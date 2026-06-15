@@ -8,7 +8,8 @@
     "scheme": "smartfitnessapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.anonymous.smart-fitness-app"
     },
     "android": {
       "adaptiveIcon": {
@@ -39,6 +40,18 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0f2acce2-b968-4b48-87de-5622ccdec60c"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0f2acce2-b968-4b48-87de-5622ccdec60c"
     }
   }
 }
