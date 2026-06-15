@@ -1,0 +1,39 @@
+{
+  "project_status": "mvp_scaffold",
+  "environment": {
+    "framework": "React Native (Expo)",
+    "language": "TypeScript",
+    "storage": "AsyncStorage temporary local state"
+  },
+  "navigation": [
+    "Home",
+    "Workouts",
+    "Nutrition",
+    "Progress",
+    "Profile"
+  ],
+  "features": {
+    "workouts": [
+      "Workout list",
+      "Start workout action",
+      "Mock exercise list"
+    ],
+    "nutrition": [
+      "Calories",
+      "Protein",
+      "Carbs",
+      "Fats",
+      "Food entry list"
+    ],
+    "progress": [
+      "Weight history",
+      "Body measurements mock"
+    ],
+    "profile": [
+      "Height",
+      "Weight",
+      "Goal",
+      "Activity level"
+    ]
+  }
+}

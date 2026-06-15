@@ -1,15 +1,29 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { AppProvider } from '@/context/AppContext';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+    <ThemeProvider value={DarkTheme}>
+      <AppProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            contentStyle: { backgroundColor: '#090B0F' },
+            headerStyle: { backgroundColor: '#090B0F' },
+            headerTintColor: '#F5F7FA',
+          }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="workout-session"
+            options={{
+              headerBackTitle: 'Back',
+              title: 'Workout Session',
+            }}
+          />
+        </Stack>
+      </AppProvider>
     </ThemeProvider>
   );
 }

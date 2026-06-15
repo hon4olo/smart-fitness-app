@@ -1,0 +1,2930 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.claude/
+  settings.json
+assets/
+  expo.icon/
+    Assets/
+      expo-symbol 2.svg
+      grid.png
+    icon.json
+  images/
+    android-icon-background.png
+    android-icon-foreground.png
+    android-icon-monochrome.png
+    favicon.png
+    icon.png
+    splash-icon.png
+scripts/
+  reset-project.js
+src/
+  app/
+    (tabs)/
+      _layout.tsx
+      index.tsx
+      nutrition.tsx
+      profile.tsx
+      progress.tsx
+      workouts.tsx
+    _layout.tsx
+    workout-session.tsx
+  components/
+    ui/
+      AppButton.tsx
+      AppCard.tsx
+      MetricCard.tsx
+      SectionHeader.tsx
+  constants/
+    theme.ts
+  context/
+    AppContext.tsx
+  hooks/
+    use-color-scheme.ts
+    use-color-scheme.web.ts
+    use-theme.ts
+  global.css
+.gitignore
+AGENTS.md
+app-architecture.json
+app.json
+CLAUDE.md
+connect.txt
+LICENSE
+package.json
+README.md
+succes.txt
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/app/(tabs)/_layout.tsx">
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
+
+import { Colors } from '@/constants/theme';
+
+const colors = Colors.dark;
+
+export default function TabsLayout() {
+  return (
+    <NativeTabs
+      backgroundColor={colors.background}
+      indicatorColor={colors.accentMuted}
+      iconColor={{ default: colors.textSecondary, selected: colors.accent }}
+      labelStyle={{
+        default: { color: colors.textSecondary },
+        selected: { color: colors.text },
+      }}
+      tintColor={colors.accent}>
+      <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="workouts">
+        <NativeTabs.Trigger.Label>Workouts</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="nutrition">
+        <NativeTabs.Trigger.Label>Nutrition</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="progress">
+        <NativeTabs.Trigger.Label>Progress</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="profile">
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
+  );
+}
+</file>
+
+<file path="src/app/(tabs)/index.tsx">
+import { router } from 'expo-router';
+import { ScrollView, StyleSheet, View } from 'react-native';
+
+import { AppButton } from '@/components/ui/AppButton';
+import { MetricCard } from '@/components/ui/MetricCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAppContext } from '@/context/AppContext';
+
+export default function HomeScreen() {
+  const { nutrition, weightHistory, getLastWorkoutSession } = useAppContext();
+  const lastWorkoutSession = getLastWorkoutSession();
+  const latestWeight = weightHistory[0];
+
+  return (
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      style={styles.screen}
+      contentContainerStyle={styles.content}>
+      <View style={styles.container}>
+        <SectionHeader title="Home" subtitle="Today at a glance" />
+
+        <View style={styles.grid}>
+          <MetricCard label="Today's calories" value={`${nutrition.calories}`} detail="kcal logged" />
+          <MetricCard label="Protein" value={`${nutrition.protein} g`} detail="today" />
+          <MetricCard
+            label="Body weight"
+            value={latestWeight ? `${latestWeight.weight.toFixed(1)} kg` : 'No weight yet'}
+            detail="latest entry"
+          />
+          <MetricCard
+            label="Last workout"
+            value={lastWorkoutSession?.workoutTitle ?? 'No sessions yet'}
+            detail={lastWorkoutSession ? `${lastWorkoutSession.sets.length} sets logged` : 'finish a workout'}
+          />
+        </View>
+
+        <AppButton label="Start Workout" onPress={() => router.push('/workouts')} />
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+  },
+  content: {
+    alignItems: 'center',
+    gap: Spacing.three,
+    padding: Spacing.three,
+    paddingBottom: Spacing.six,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+});
+</file>
+
+<file path="src/app/(tabs)/nutrition.tsx">
+import { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { AppButton } from '@/components/ui/AppButton';
+import { AppCard } from '@/components/ui/AppCard';
+import { MetricCard } from '@/components/ui/MetricCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAppContext } from '@/context/AppContext';
+
+export default function NutritionScreen() {
+  const { addFoodEntry, deleteFoodEntry, nutrition, foodEntries } = useAppContext();
+  const safeAreaInsets = useSafeAreaInsets();
+  const [name, setName] = useState('');
+  const [calories, setCalories] = useState('');
+  const [protein, setProtein] = useState('');
+  const [carbs, setCarbs] = useState('');
+  const [fats, setFats] = useState('');
+  const parsedCalories = Number(calories);
+  const isSaveDisabled = name.trim().length === 0 || !Number.isFinite(parsedCalories) || parsedCalories <= 0;
+
+  const parseMacro = (value: string) => {
+    const parsedValue = Number(value);
+    return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : 0;
+  };
+
+  const handleSaveFood = () => {
+    if (isSaveDisabled) {
+      return;
+    }
+
+    addFoodEntry({
+      id: `${Date.now()}`,
+      name: name.trim(),
+      calories: parsedCalories,
+      protein: parseMacro(protein),
+      carbs: parseMacro(carbs),
+      fats: parseMacro(fats),
+      source: 'manual',
+      createdAt: new Date().toISOString(),
+    });
+
+    setName('');
+    setCalories('');
+    setProtein('');
+    setCarbs('');
+    setFats('');
+  };
+
+  const confirmDeleteFoodEntry = (entryId: string) => {
+    Alert.alert(
+      'Delete food entry?',
+      "This entry will be removed from today's nutrition.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteFoodEntry(entryId),
+        },
+      ],
+    );
+  };
+
+  return (
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      style={styles.screen}
+      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
+      <View style={styles.container}>
+        <SectionHeader title="Nutrition" subtitle="Daily macro snapshot and food entries" />
+
+        <View style={styles.grid}>
+          <MetricCard label="Calories" value={`${nutrition.calories}`} detail="kcal" />
+          <MetricCard label="Protein" value={`${nutrition.protein} g`} />
+          <MetricCard label="Carbs" value={`${nutrition.carbs} g`} />
+          <MetricCard label="Fats" value={`${nutrition.fats} g`} />
+        </View>
+
+        <AppCard>
+          <Text selectable style={styles.sectionTitle}>
+            Add Food
+          </Text>
+
+          <View style={styles.inputGroup}>
+            <Text selectable style={styles.inputLabel}>
+              Name
+            </Text>
+            <TextInput
+              onChangeText={setName}
+              placeholder="Food name"
+              placeholderTextColor={Colors.dark.textSecondary}
+              style={styles.input}
+              value={name}
+            />
+          </View>
+
+          <View style={styles.inputGrid}>
+            <View style={styles.inputGroup}>
+              <Text selectable style={styles.inputLabel}>
+                Calories
+              </Text>
+              <TextInput
+                keyboardType="decimal-pad"
+                onChangeText={setCalories}
+                placeholder="0"
+                placeholderTextColor={Colors.dark.textSecondary}
+                style={styles.input}
+                value={calories}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text selectable style={styles.inputLabel}>
+                Protein
+              </Text>
+              <TextInput
+                keyboardType="decimal-pad"
+                onChangeText={setProtein}
+                placeholder="0"
+                placeholderTextColor={Colors.dark.textSecondary}
+                style={styles.input}
+                value={protein}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text selectable style={styles.inputLabel}>
+                Carbs
+              </Text>
+              <TextInput
+                keyboardType="decimal-pad"
+                onChangeText={setCarbs}
+                placeholder="0"
+                placeholderTextColor={Colors.dark.textSecondary}
+                style={styles.input}
+                value={carbs}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text selectable style={styles.inputLabel}>
+                Fats
+              </Text>
+              <TextInput
+                keyboardType="decimal-pad"
+                onChangeText={setFats}
+                placeholder="0"
+                placeholderTextColor={Colors.dark.textSecondary}
+                style={styles.input}
+                value={fats}
+              />
+            </View>
+          </View>
+
+          <AppButton disabled={isSaveDisabled} label="Save Food" onPress={handleSaveFood} />
+        </AppCard>
+
+        <AppCard>
+          <Text selectable style={styles.sectionTitle}>
+            Food entries
+          </Text>
+          {foodEntries.map((entry) => (
+            <View key={entry.id} style={styles.foodRow}>
+              <Text selectable style={styles.foodName}>
+                {entry.name}
+              </Text>
+              <Text selectable style={styles.foodMeta}>
+                {entry.calories} kcal / {entry.protein} g protein / {entry.carbs} g carbs / {entry.fats} g fats
+              </Text>
+              <AppButton
+                label="Delete"
+                onPress={() => confirmDeleteFoodEntry(entry.id)}
+                variant="secondary"
+              />
+            </View>
+          ))}
+        </AppCard>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+  },
+  content: {
+    alignItems: 'center',
+    padding: Spacing.three,
+  },
+  foodMeta: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    fontVariant: ['tabular-nums'],
+    lineHeight: 20,
+  },
+  foodName: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 21,
+    width: '100%',
+  },
+  foodRow: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    gap: Spacing.one,
+    paddingTop: Spacing.three,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  input: {
+    backgroundColor: Colors.dark.background,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: Colors.dark.text,
+    fontSize: 16,
+    minHeight: 48,
+    paddingHorizontal: Spacing.two,
+  },
+  inputGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  inputGroup: {
+    flex: 1,
+    gap: Spacing.one,
+    minWidth: 130,
+  },
+  inputLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+  sectionTitle: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+});
+</file>
+
+<file path="src/app/(tabs)/profile.tsx">
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { AppCard } from '@/components/ui/AppCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAppContext } from '@/context/AppContext';
+
+export default function ProfileScreen() {
+  const { profile, weightHistory } = useAppContext();
+  const latestWeight = weightHistory[0];
+  const rows = [
+    ['Height', profile.height],
+    ['Weight', latestWeight ? `${latestWeight.weight.toFixed(1)} kg` : profile.weight],
+    ['Goal', profile.goal],
+    ['Activity level', profile.activityLevel],
+  ];
+
+  return (
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      style={styles.screen}
+      contentContainerStyle={styles.content}>
+      <View style={styles.container}>
+        <SectionHeader title="Profile" subtitle="Basic profile details for the MVP" />
+
+        <AppCard>
+          {rows.map(([label, value]) => (
+            <View key={label} style={styles.row}>
+              <Text selectable style={styles.label}>
+                {label}
+              </Text>
+              <Text selectable style={styles.value}>
+                {value}
+              </Text>
+            </View>
+          ))}
+        </AppCard>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+  },
+  content: {
+    alignItems: 'center',
+    padding: Spacing.three,
+    paddingBottom: Spacing.six,
+  },
+  label: {
+    color: Colors.dark.textSecondary,
+    fontSize: 15,
+  },
+  row: {
+    alignItems: 'center',
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: Spacing.three,
+    justifyContent: 'space-between',
+    paddingTop: Spacing.two,
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+  value: {
+    color: Colors.dark.text,
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+});
+</file>
+
+<file path="src/app/(tabs)/progress.tsx">
+import { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { AppButton } from '@/components/ui/AppButton';
+import { AppCard } from '@/components/ui/AppCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAppContext } from '@/context/AppContext';
+
+export default function ProgressScreen() {
+  const {
+    addBodyMeasurement,
+    addWeightEntry,
+    deleteBodyMeasurement,
+    deleteWeightEntry,
+    weightHistory,
+    bodyMeasurements,
+  } = useAppContext();
+  const safeAreaInsets = useSafeAreaInsets();
+  const [weight, setWeight] = useState('');
+  const [measurementLabel, setMeasurementLabel] = useState('');
+  const [measurementValue, setMeasurementValue] = useState('');
+  const parsedWeight = Number(weight);
+  const isWeightDisabled = !Number.isFinite(parsedWeight) || parsedWeight <= 0;
+  const isMeasurementDisabled =
+    measurementLabel.trim().length === 0 || measurementValue.trim().length === 0;
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat(undefined, {
+      day: 'numeric',
+      month: 'short',
+    }).format(date);
+  };
+
+  const handleSaveWeight = () => {
+    if (isWeightDisabled) {
+      return;
+    }
+
+    const now = new Date();
+    addWeightEntry({
+      id: `${Date.now()}`,
+      date: formatDate(now),
+      weight: parsedWeight,
+      createdAt: now.toISOString(),
+    });
+    setWeight('');
+  };
+
+  const handleSaveMeasurement = () => {
+    if (isMeasurementDisabled) {
+      return;
+    }
+
+    addBodyMeasurement({
+      id: `${Date.now()}`,
+      label: measurementLabel.trim(),
+      value: measurementValue.trim(),
+      createdAt: new Date().toISOString(),
+    });
+    setMeasurementLabel('');
+    setMeasurementValue('');
+  };
+
+  const confirmDeleteWeight = (entryId: string) => {
+    Alert.alert(
+      'Delete weight entry?',
+      'This weight entry will be removed from progress history.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteWeightEntry(entryId),
+        },
+      ],
+    );
+  };
+
+  const confirmDeleteMeasurement = (entryId: string) => {
+    Alert.alert(
+      'Delete measurement?',
+      'This body measurement will be removed from progress history.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteBodyMeasurement(entryId),
+        },
+      ],
+    );
+  };
+
+  return (
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      style={styles.screen}
+      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
+      <View style={styles.container}>
+        <SectionHeader title="Progress" subtitle="Weight history and body measurements mock" />
+
+        <AppCard>
+          <Text style={styles.sectionTitle}>Add Weight</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Weight</Text>
+            <TextInput
+              keyboardType="decimal-pad"
+              onChangeText={setWeight}
+              placeholder="0"
+              placeholderTextColor={Colors.dark.textSecondary}
+              style={styles.input}
+              value={weight}
+            />
+          </View>
+          <AppButton disabled={isWeightDisabled} label="Save Weight" onPress={handleSaveWeight} />
+        </AppCard>
+
+        <AppCard>
+          <Text style={styles.sectionTitle}>Add Measurement</Text>
+          <View style={styles.inputGrid}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Label</Text>
+              <TextInput
+                onChangeText={setMeasurementLabel}
+                placeholder="Waist"
+                placeholderTextColor={Colors.dark.textSecondary}
+                style={styles.input}
+                value={measurementLabel}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Value</Text>
+              <TextInput
+                onChangeText={setMeasurementValue}
+                placeholder="84 cm"
+                placeholderTextColor={Colors.dark.textSecondary}
+                style={styles.input}
+                value={measurementValue}
+              />
+            </View>
+          </View>
+          <AppButton
+            disabled={isMeasurementDisabled}
+            label="Save Measurement"
+            onPress={handleSaveMeasurement}
+          />
+        </AppCard>
+
+        <AppCard>
+          <Text style={styles.sectionTitle}>
+            Weight history
+          </Text>
+          {weightHistory.map((entry) => (
+            <View key={entry.id} style={styles.row}>
+              <View style={styles.rowText}>
+                <Text style={styles.label}>{entry.date}</Text>
+                <Text style={styles.value}>{entry.weight.toFixed(1)} kg</Text>
+              </View>
+              <AppButton
+                label="Delete"
+                onPress={() => confirmDeleteWeight(entry.id)}
+                variant="secondary"
+              />
+            </View>
+          ))}
+        </AppCard>
+
+        <AppCard>
+          <Text style={styles.sectionTitle}>
+            Body measurements
+          </Text>
+          {bodyMeasurements.map((measurement) => (
+            <View key={measurement.id} style={styles.row}>
+              <View style={styles.rowText}>
+                <Text style={styles.label}>{measurement.label}</Text>
+                <Text style={styles.value}>{measurement.value}</Text>
+              </View>
+              <AppButton
+                label="Delete"
+                onPress={() => confirmDeleteMeasurement(measurement.id)}
+                variant="secondary"
+              />
+            </View>
+          ))}
+        </AppCard>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+  },
+  content: {
+    alignItems: 'center',
+    padding: Spacing.three,
+  },
+  input: {
+    backgroundColor: Colors.dark.background,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: Colors.dark.text,
+    fontSize: 16,
+    minHeight: 48,
+    paddingHorizontal: Spacing.two,
+  },
+  inputGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  inputGroup: {
+    flex: 1,
+    gap: Spacing.one,
+    minWidth: 130,
+  },
+  inputLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  label: {
+    color: Colors.dark.textSecondary,
+    fontSize: 15,
+  },
+  row: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    gap: Spacing.two,
+    paddingTop: Spacing.two,
+  },
+  rowText: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+  sectionTitle: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  value: {
+    color: Colors.dark.text,
+    fontSize: 16,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+  },
+});
+</file>
+
+<file path="src/app/(tabs)/workouts.tsx">
+import { router } from 'expo-router';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { AppButton } from '@/components/ui/AppButton';
+import { AppCard } from '@/components/ui/AppCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAppContext, WorkoutSession } from '@/context/AppContext';
+
+const formatFinishedAt = (finishedAt: string) => {
+  const date = new Date(finishedAt);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown time';
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    month: 'short',
+  }).format(date);
+};
+
+const getSessionVolume = (session: WorkoutSession) => {
+  return session.sets.reduce((total, set) => total + set.weight * set.reps, 0);
+};
+
+const getSessionExercises = (session: WorkoutSession) => {
+  return Array.from(new Set(session.sets.map((set) => set.exerciseName)));
+};
+
+export default function WorkoutsScreen() {
+  const { deleteWorkoutSession, workouts, workoutSessions } = useAppContext();
+  const completedSessions = [...workoutSessions].reverse();
+  const startWorkout = (workoutId: string) => {
+    router.push({
+      pathname: '/workout-session',
+      params: { workoutId },
+    });
+  };
+  const confirmDeleteSession = (sessionId: string) => {
+    Alert.alert(
+      'Delete workout?',
+      'This completed workout will be removed from history.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteWorkoutSession(sessionId),
+        },
+      ],
+    );
+  };
+
+  return (
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      style={styles.screen}
+      contentContainerStyle={styles.content}>
+      <View style={styles.container}>
+        <SectionHeader title="Workouts" subtitle="Simple routines and mock exercises" />
+        <AppButton label="Start Workout" onPress={() => startWorkout(workouts[0]?.id ?? '')} />
+
+        <SectionHeader title="Workout history" />
+        {completedSessions.length === 0 ? (
+          <AppCard>
+            <Text selectable style={styles.emptyText}>
+              No completed workouts yet.
+            </Text>
+          </AppCard>
+        ) : (
+          completedSessions.map((session) => {
+            const sessionExercises = getSessionExercises(session);
+            const sessionVolume = getSessionVolume(session);
+
+            return (
+              <AppCard key={session.id}>
+                <View style={styles.cardHeader}>
+                  <Text selectable style={styles.title}>
+                    {session.workoutTitle}
+                  </Text>
+                  <Text selectable style={styles.duration}>
+                    {formatFinishedAt(session.finishedAt)}
+                  </Text>
+                </View>
+
+                <View style={styles.sessionStats}>
+                  <Text selectable style={styles.sessionStat}>
+                    {session.sets.length} sets
+                  </Text>
+                  <Text selectable style={styles.sessionStat}>
+                    {sessionVolume.toLocaleString()} kg volume
+                  </Text>
+                </View>
+
+                <View style={styles.exerciseList}>
+                  {sessionExercises.map((exerciseName) => (
+                    <Text selectable key={exerciseName} style={styles.exercise}>
+                      {exerciseName}
+                    </Text>
+                  ))}
+                </View>
+
+                <AppButton
+                  label="Delete"
+                  onPress={() => confirmDeleteSession(session.id)}
+                  variant="secondary"
+                />
+              </AppCard>
+            );
+          })
+        )}
+
+        <SectionHeader title="Workout templates" />
+        {workouts.map((workout) => (
+          <AppCard key={workout.id}>
+            <View style={styles.cardHeader}>
+              <Text selectable style={styles.title}>
+                {workout.title}
+              </Text>
+              <Text selectable style={styles.duration}>
+                {workout.duration}
+              </Text>
+            </View>
+
+            <View style={styles.exerciseList}>
+              {workout.exercises.map((exercise) => (
+                <Text selectable key={exercise.id} style={styles.exercise}>
+                  {exercise.name}
+                </Text>
+              ))}
+            </View>
+
+            <AppButton label="Start" onPress={() => startWorkout(workout.id)} />
+          </AppCard>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  cardHeader: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+  },
+  container: {
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+  },
+  content: {
+    alignItems: 'center',
+    padding: Spacing.three,
+    paddingBottom: Spacing.six,
+  },
+  duration: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    fontVariant: ['tabular-nums'],
+  },
+  emptyText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+  },
+  exercise: {
+    color: Colors.dark.text,
+    fontSize: 15,
+  },
+  exerciseList: {
+    gap: Spacing.one,
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+  sessionStat: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '700',
+  },
+  sessionStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  title: {
+    color: Colors.dark.text,
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+});
+</file>
+
+<file path="src/app/workout-session.tsx">
+import { router, useLocalSearchParams } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { AppButton } from '@/components/ui/AppButton';
+import { AppCard } from '@/components/ui/AppCard';
+import { MetricCard } from '@/components/ui/MetricCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAppContext, WorkoutSet } from '@/context/AppContext';
+
+export default function WorkoutSessionScreen() {
+  const { workouts, saveWorkoutSession } = useAppContext();
+  const { workoutId } = useLocalSearchParams();
+  const safeAreaInsets = useSafeAreaInsets();
+  const requestedWorkoutId = Array.isArray(workoutId) ? workoutId[0] : workoutId;
+  const workout = workouts.find((candidate) => candidate.id === requestedWorkoutId) ?? workouts[0];
+  const [selectedExerciseId, setSelectedExerciseId] = useState(workout.exercises[0]?.id ?? '');
+  const [weight, setWeight] = useState('60');
+  const [reps, setReps] = useState('8');
+  const [sets, setSets] = useState<WorkoutSet[]>([]);
+  const startedAt = useMemo(() => new Date().toISOString(), []);
+
+  const selectedExercise =
+    workout.exercises.find((exercise) => exercise.id === selectedExerciseId) ?? workout.exercises[0];
+
+  const handleAddSet = () => {
+    const parsedWeight = Number(weight);
+    const parsedReps = Number.parseInt(reps, 10);
+
+    if (!selectedExercise || !Number.isFinite(parsedWeight) || !Number.isFinite(parsedReps)) {
+      return;
+    }
+
+    if (parsedWeight < 0 || parsedReps <= 0) {
+      return;
+    }
+
+    setSets((currentSets) => [
+      ...currentSets,
+      {
+        id: `${Date.now()}-${currentSets.length + 1}`,
+        exerciseId: selectedExercise.id,
+        exerciseName: selectedExercise.name,
+        weight: parsedWeight,
+        reps: parsedReps,
+      },
+    ]);
+  };
+
+  const handleFinishWorkout = () => {
+    if (sets.length === 0) {
+      return;
+    }
+
+    saveWorkoutSession({
+      id: `${Date.now()}`,
+      workoutId: workout.id,
+      workoutTitle: workout.title,
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      sets,
+    });
+    router.replace('/');
+  };
+
+  const handleCancelWorkout = () => {
+    if (sets.length === 0) {
+      router.replace('/');
+      return;
+    }
+
+    Alert.alert(
+      'Cancel workout?',
+      'Your added sets will not be saved.',
+      [
+        { text: 'Keep Training', style: 'cancel' },
+        {
+          text: 'Cancel Workout',
+          style: 'destructive',
+          onPress: () => router.replace('/'),
+        },
+      ],
+    );
+  };
+
+  const footerHeight = 72 + safeAreaInsets.bottom;
+
+  return (
+    <View style={styles.screen}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={styles.scrollView}
+        contentContainerStyle={[styles.content, { paddingBottom: footerHeight + Spacing.three }]}>
+        <View style={styles.container}>
+          <SectionHeader title="Workout Session" subtitle={workout.title} />
+
+          <View style={styles.grid}>
+            <MetricCard label="Workout" value={workout.title} detail={workout.duration} />
+            <MetricCard label="Sets" value={`${sets.length}`} detail="added now" />
+          </View>
+
+          <AppCard>
+            <Text selectable style={styles.sectionTitle}>
+              Exercises
+            </Text>
+            <View style={styles.exerciseList}>
+              {workout.exercises.map((exercise) => {
+                const isSelected = exercise.id === selectedExerciseId;
+
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    key={exercise.id}
+                    onPress={() => setSelectedExerciseId(exercise.id)}
+                    style={({ pressed }) => [
+                      styles.exerciseButton,
+                      isSelected && styles.exerciseButtonSelected,
+                      pressed && styles.pressed,
+                    ]}>
+                    <Text
+                      selectable
+                      style={[styles.exerciseText, isSelected && styles.exerciseTextSelected]}>
+                      {exercise.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </AppCard>
+
+          <AppCard>
+            <Text selectable style={styles.sectionTitle}>
+              Selected exercise
+            </Text>
+            <Text selectable style={styles.selectedExercise}>
+              {selectedExercise?.name ?? 'No exercise selected'}
+            </Text>
+
+            <View style={styles.inputsRow}>
+              <View style={styles.inputGroup}>
+                <Text selectable style={styles.inputLabel}>
+                  Weight
+                </Text>
+                <TextInput
+                  keyboardType="decimal-pad"
+                  onChangeText={setWeight}
+                  placeholder="0"
+                  placeholderTextColor={Colors.dark.textSecondary}
+                  style={styles.input}
+                  value={weight}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text selectable style={styles.inputLabel}>
+                  Reps
+                </Text>
+                <TextInput
+                  keyboardType="number-pad"
+                  onChangeText={setReps}
+                  placeholder="0"
+                  placeholderTextColor={Colors.dark.textSecondary}
+                  style={styles.input}
+                  value={reps}
+                />
+              </View>
+            </View>
+
+            <AppButton label="Add Set" onPress={handleAddSet} />
+          </AppCard>
+
+          <AppCard>
+            <Text selectable style={styles.sectionTitle}>
+              Added sets
+            </Text>
+            {sets.length === 0 ? (
+              <Text selectable style={styles.emptyText}>
+                No sets added yet.
+              </Text>
+            ) : (
+              sets.map((set, index) => (
+                <View key={set.id} style={styles.setRow}>
+                  <Text selectable style={styles.setName}>
+                    {index + 1}. {set.exerciseName}
+                  </Text>
+                  <Text selectable style={styles.setMeta}>
+                    {set.weight} kg x {set.reps}
+                  </Text>
+                </View>
+              ))
+            )}
+          </AppCard>
+        </View>
+      </ScrollView>
+
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom: safeAreaInsets.bottom + Spacing.two,
+          },
+        ]}>
+        <View style={styles.footerInner}>
+          <View style={styles.cancelButtonSlot}>
+            <AppButton label="Cancel Workout" onPress={handleCancelWorkout} variant="secondary" />
+          </View>
+          <View style={styles.finishButtonSlot}>
+            <AppButton
+              disabled={sets.length === 0}
+              label="Finish Workout"
+              onPress={handleFinishWorkout}
+            />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  cancelButtonSlot: {
+    flex: 1,
+  },
+  container: {
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+  },
+  content: {
+    alignItems: 'center',
+    padding: Spacing.three,
+  },
+  emptyText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+  },
+  exerciseButton: {
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.two,
+  },
+  exerciseButtonSelected: {
+    backgroundColor: Colors.dark.accentMuted,
+    borderColor: Colors.dark.accent,
+  },
+  exerciseList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  exerciseText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  exerciseTextSelected: {
+    color: Colors.dark.text,
+  },
+  finishButtonSlot: {
+    flex: 1.7,
+  },
+  footer: {
+    backgroundColor: Colors.dark.background,
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    bottom: 0,
+    left: 0,
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.two,
+    position: 'absolute',
+    right: 0,
+  },
+  footerInner: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: Spacing.two,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  input: {
+    backgroundColor: Colors.dark.background,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontVariant: ['tabular-nums'],
+    minHeight: 48,
+    paddingHorizontal: Spacing.two,
+  },
+  inputGroup: {
+    flex: 1,
+    gap: Spacing.one,
+    minWidth: 120,
+  },
+  inputLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  inputsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  pressed: {
+    opacity: 0.78,
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+  scrollView: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+  sectionTitle: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  selectedExercise: {
+    color: Colors.dark.accent,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  setMeta: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+  },
+  setName: {
+    color: Colors.dark.textSecondary,
+    flex: 1,
+    fontSize: 15,
+  },
+  setRow: {
+    alignItems: 'center',
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+    paddingTop: Spacing.two,
+  },
+});
+</file>
+
+<file path="src/components/ui/AppButton.tsx">
+import { Pressable, StyleSheet, Text } from 'react-native';
+
+import { Colors, Spacing } from '@/constants/theme';
+
+type AppButtonProps = {
+  disabled?: boolean;
+  label: string;
+  onPress?: () => void;
+  variant?: 'primary' | 'secondary';
+};
+
+export function AppButton({ disabled = false, label, onPress, variant = 'primary' }: AppButtonProps) {
+  const isPrimary = variant === 'primary';
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={disabled ? undefined : onPress}
+      style={({ pressed }) => [
+        styles.button,
+        isPrimary ? styles.primary : styles.secondary,
+        pressed && !disabled && styles.pressed,
+        disabled && styles.disabled,
+      ]}>
+      <Text style={[styles.label, isPrimary ? styles.primaryLabel : styles.secondaryLabel]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  button: {
+    alignItems: 'center',
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  primary: {
+    backgroundColor: Colors.dark.accent,
+  },
+  primaryLabel: {
+    color: '#07110B',
+  },
+  secondary: {
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderColor: Colors.dark.border,
+    borderWidth: 1,
+  },
+  secondaryLabel: {
+    color: Colors.dark.text,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  pressed: {
+    opacity: 0.78,
+  },
+  disabled: {
+    opacity: 0.45,
+  },
+});
+</file>
+
+<file path="src/components/ui/AppCard.tsx">
+import { PropsWithChildren } from 'react';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+
+import { Colors, Spacing } from '@/constants/theme';
+
+type AppCardProps = PropsWithChildren<{
+  style?: StyleProp<ViewStyle>;
+}>;
+
+export function AppCard({ children, style }: AppCardProps) {
+  return <View style={[styles.card, style]}>{children}</View>;
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: Colors.dark.backgroundElement,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: Spacing.two,
+    padding: Spacing.three,
+  },
+});
+</file>
+
+<file path="src/components/ui/MetricCard.tsx">
+import { StyleSheet, Text, View } from 'react-native';
+
+import { Colors, Spacing } from '@/constants/theme';
+import { AppCard } from '@/components/ui/AppCard';
+
+type MetricCardProps = {
+  label: string;
+  value: string;
+  detail?: string;
+};
+
+export function MetricCard({ label, value, detail }: MetricCardProps) {
+  return (
+    <AppCard style={styles.card}>
+      <Text selectable style={styles.label}>
+        {label}
+      </Text>
+      <View style={styles.valueRow}>
+        <Text selectable style={styles.value}>
+          {value}
+        </Text>
+      </View>
+      {detail ? (
+        <Text selectable style={styles.detail}>
+          {detail}
+        </Text>
+      ) : null}
+    </AppCard>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    flex: 1,
+    minWidth: 148,
+  },
+  detail: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+  },
+  label: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  value: {
+    color: Colors.dark.text,
+    fontSize: 24,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+  },
+  valueRow: {
+    flexDirection: 'row',
+    gap: Spacing.one,
+  },
+});
+</file>
+
+<file path="src/components/ui/SectionHeader.tsx">
+import { StyleSheet, Text, View } from 'react-native';
+
+import { Colors, Spacing } from '@/constants/theme';
+
+type SectionHeaderProps = {
+  title: string;
+  subtitle?: string;
+};
+
+export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
+  return (
+    <View style={styles.container}>
+      <Text selectable style={styles.title}>
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text selectable style={styles.subtitle}>
+          {subtitle}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    gap: Spacing.one,
+  },
+  subtitle: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  title: {
+    color: Colors.dark.text,
+    fontSize: 22,
+    fontWeight: '800',
+  },
+});
+</file>
+
+<file path="src/context/AppContext.tsx">
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  createContext,
+  PropsWithChildren,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
+export type Workout = {
+  id: string;
+  title: string;
+  duration: string;
+  exercises: Exercise[];
+};
+
+export type Exercise = {
+  id: string;
+  name: string;
+};
+
+export type WorkoutSet = {
+  id: string;
+  exerciseId: string;
+  exerciseName: string;
+  weight: number;
+  reps: number;
+};
+
+export type WorkoutSession = {
+  id: string;
+  workoutId: string;
+  workoutTitle: string;
+  startedAt: string;
+  finishedAt: string;
+  sets: WorkoutSet[];
+};
+
+export type FoodEntry = {
+  id: string;
+  name: string;
+  brandName?: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  source: 'manual' | 'fatsecret' | 'openfoodfacts' | 'usda';
+  externalId?: string;
+  servingSize?: number;
+  servingUnit?: string;
+  quantity?: number;
+  createdAt: string;
+};
+
+export type NutritionState = {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+};
+
+export type WeightEntry = {
+  id: string;
+  date: string;
+  weight: number;
+  createdAt: string;
+};
+
+export type BodyMeasurement = {
+  id: string;
+  label: string;
+  value: string;
+  createdAt: string;
+};
+
+export type ProfileState = {
+  height: string;
+  weight: string;
+  goal: string;
+  activityLevel: string;
+};
+
+type AppState = {
+  workouts: Workout[];
+  workoutSessions: WorkoutSession[];
+  foodEntries: FoodEntry[];
+  nutrition: NutritionState;
+  weightHistory: WeightEntry[];
+  bodyMeasurements: BodyMeasurement[];
+  profile: ProfileState;
+};
+
+type AppContextType = AppState & {
+  addWeightEntry: (entry: WeightEntry) => void;
+  addBodyMeasurement: (entry: BodyMeasurement) => void;
+  addFoodEntry: (entry: FoodEntry) => void;
+  deleteFoodEntry: (entryId: string) => void;
+  deleteWeightEntry: (entryId: string) => void;
+  deleteBodyMeasurement: (entryId: string) => void;
+  deleteWorkoutSession: (sessionId: string) => void;
+  saveWorkoutSession: (session: WorkoutSession) => void;
+  getLastWorkoutSession: () => WorkoutSession | null;
+};
+
+const APP_STATE_KEY = '@smart_fitness_mvp_state';
+
+const defaultState: AppState = {
+  workouts: [
+    {
+      id: 'push-a',
+      title: 'Upper Body Strength',
+      duration: '45 min',
+      exercises: [
+        { id: 'bench-press', name: 'Bench press' },
+        { id: 'one-arm-row', name: 'One-arm row' },
+        { id: 'shoulder-press', name: 'Shoulder press' },
+        { id: 'lat-pulldown', name: 'Lat pulldown' },
+      ],
+    },
+    {
+      id: 'legs-a',
+      title: 'Lower Body',
+      duration: '50 min',
+      exercises: [
+        { id: 'back-squat', name: 'Back squat' },
+        { id: 'romanian-deadlift', name: 'Romanian deadlift' },
+        { id: 'walking-lunge', name: 'Walking lunge' },
+        { id: 'calf-raise', name: 'Calf raise' },
+      ],
+    },
+    {
+      id: 'conditioning-a',
+      title: 'Conditioning',
+      duration: '30 min',
+      exercises: [
+        { id: 'bike-intervals', name: 'Bike intervals' },
+        { id: 'kettlebell-swing', name: 'Kettlebell swing' },
+        { id: 'plank', name: 'Plank' },
+        { id: 'farmer-carry', name: 'Farmer carry' },
+      ],
+    },
+  ],
+  workoutSessions: [],
+  foodEntries: [
+    {
+      id: 'breakfast',
+      name: 'Greek yogurt bowl',
+      calories: 420,
+      protein: 32,
+      carbs: 42,
+      fats: 10,
+      source: 'manual',
+      createdAt: '2026-06-09T08:00:00.000Z',
+    },
+    {
+      id: 'lunch',
+      name: 'Chicken rice plate',
+      calories: 680,
+      protein: 48,
+      carbs: 76,
+      fats: 18,
+      source: 'manual',
+      createdAt: '2026-06-09T13:00:00.000Z',
+    },
+    {
+      id: 'snack',
+      name: 'Protein smoothie',
+      calories: 310,
+      protein: 28,
+      carbs: 30,
+      fats: 6,
+      source: 'manual',
+      createdAt: '2026-06-09T16:00:00.000Z',
+    },
+  ],
+  nutrition: {
+    calories: 1980,
+    protein: 142,
+    carbs: 214,
+    fats: 58,
+  },
+  weightHistory: [
+    { id: 'w3', date: 'Jun 9', weight: 82.7, createdAt: '2026-06-09T08:00:00.000Z' },
+    { id: 'w2', date: 'Jun 2', weight: 83.1, createdAt: '2026-06-02T08:00:00.000Z' },
+    { id: 'w1', date: 'May 26', weight: 83.8, createdAt: '2026-05-26T08:00:00.000Z' },
+  ],
+  bodyMeasurements: [
+    { id: 'waist', label: 'Waist', value: '84 cm', createdAt: '2026-06-09T08:00:00.000Z' },
+    { id: 'chest', label: 'Chest', value: '103 cm', createdAt: '2026-06-09T08:00:00.000Z' },
+    { id: 'hips', label: 'Hips', value: '98 cm', createdAt: '2026-06-09T08:00:00.000Z' },
+  ],
+  profile: {
+    height: '180 cm',
+    weight: '82.7 kg',
+    goal: 'Build lean strength',
+    activityLevel: 'Moderate',
+  },
+};
+
+const AppContext = createContext<AppContextType | null>(null);
+
+const persistState = async (state: AppState) => {
+  try {
+    await AsyncStorage.setItem(APP_STATE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.warn('Failed to persist MVP app state', error);
+  }
+};
+
+const createExerciseId = (name: string) => {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+};
+
+const normalizeWorkouts = (workouts: Workout[]) => {
+  return workouts.map((workout) => ({
+    ...workout,
+    exercises: workout.exercises.map((exercise) => {
+      if (typeof exercise === 'string') {
+        return {
+          id: createExerciseId(exercise),
+          name: exercise,
+        };
+      }
+
+      return exercise;
+    }),
+  }));
+};
+
+const normalizeFoodEntries = (foodEntries: FoodEntry[]) => {
+  return foodEntries.map((entry) => ({
+    ...entry,
+    carbs: entry.carbs ?? 0,
+    fats: entry.fats ?? 0,
+    source: entry.source ?? 'manual',
+    createdAt: entry.createdAt ?? new Date().toISOString(),
+  }));
+};
+
+const normalizeWeightHistory = (weightHistory: WeightEntry[]) => {
+  return weightHistory
+    .map((entry) => {
+      const parsedDate = new Date(`${entry.date} 2026`);
+
+      return {
+        ...entry,
+        createdAt:
+          entry.createdAt ??
+          (Number.isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString()),
+      };
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};
+
+const normalizeBodyMeasurements = (bodyMeasurements: BodyMeasurement[]) => {
+  return bodyMeasurements
+    .map((entry) => ({
+      ...entry,
+      createdAt: entry.createdAt ?? new Date().toISOString(),
+    }))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};
+
+export function AppProvider({ children }: PropsWithChildren) {
+  const [state, setState] = useState<AppState>(defaultState);
+
+  useEffect(() => {
+    const restoreState = async () => {
+      try {
+        const storedState = await AsyncStorage.getItem(APP_STATE_KEY);
+
+        if (storedState) {
+          const parsedState = JSON.parse(storedState) as Partial<AppState>;
+
+          setState({
+            ...defaultState,
+            ...parsedState,
+            workouts: normalizeWorkouts(parsedState.workouts ?? defaultState.workouts),
+            workoutSessions: parsedState.workoutSessions ?? defaultState.workoutSessions,
+            foodEntries: normalizeFoodEntries(parsedState.foodEntries ?? defaultState.foodEntries),
+            weightHistory: normalizeWeightHistory(
+              parsedState.weightHistory ?? defaultState.weightHistory
+            ),
+            bodyMeasurements: normalizeBodyMeasurements(
+              parsedState.bodyMeasurements ?? defaultState.bodyMeasurements
+            ),
+          });
+        }
+      } catch (error) {
+        console.warn('Failed to restore MVP app state', error);
+      }
+    };
+
+    void restoreState();
+  }, []);
+
+  const addFoodEntry = useCallback((entry: FoodEntry) => {
+    setState((currentState) => {
+      const nextState = {
+        ...currentState,
+        foodEntries: [entry, ...currentState.foodEntries],
+        nutrition: {
+          calories: currentState.nutrition.calories + entry.calories,
+          protein: currentState.nutrition.protein + entry.protein,
+          carbs: currentState.nutrition.carbs + entry.carbs,
+          fats: currentState.nutrition.fats + entry.fats,
+        },
+      };
+      void persistState(nextState);
+      return nextState;
+    });
+  }, []);
+
+  const deleteFoodEntry = useCallback((entryId: string) => {
+    setState((currentState) => {
+      const entry = currentState.foodEntries.find((foodEntry) => foodEntry.id === entryId);
+
+      if (!entry) {
+        return currentState;
+      }
+
+      const nextState = {
+        ...currentState,
+        foodEntries: currentState.foodEntries.filter((foodEntry) => foodEntry.id !== entryId),
+        nutrition: {
+          calories: Math.max(0, currentState.nutrition.calories - entry.calories),
+          protein: Math.max(0, currentState.nutrition.protein - entry.protein),
+          carbs: Math.max(0, currentState.nutrition.carbs - entry.carbs),
+          fats: Math.max(0, currentState.nutrition.fats - entry.fats),
+        },
+      };
+      void persistState(nextState);
+      return nextState;
+    });
+  }, []);
+
+  const addWeightEntry = useCallback((entry: WeightEntry) => {
+    setState((currentState) => {
+      const nextState = {
+        ...currentState,
+        weightHistory: [entry, ...currentState.weightHistory],
+      };
+      void persistState(nextState);
+      return nextState;
+    });
+  }, []);
+
+  const addBodyMeasurement = useCallback((entry: BodyMeasurement) => {
+    setState((currentState) => {
+      const nextState = {
+        ...currentState,
+        bodyMeasurements: [entry, ...currentState.bodyMeasurements],
+      };
+      void persistState(nextState);
+      return nextState;
+    });
+  }, []);
+
+  const deleteWeightEntry = useCallback((entryId: string) => {
+    setState((currentState) => {
+      const nextState = {
+        ...currentState,
+        weightHistory: currentState.weightHistory.filter((entry) => entry.id !== entryId),
+      };
+      void persistState(nextState);
+      return nextState;
+    });
+  }, []);
+
+  const deleteBodyMeasurement = useCallback((entryId: string) => {
+    setState((currentState) => {
+      const nextState = {
+        ...currentState,
+        bodyMeasurements: currentState.bodyMeasurements.filter((entry) => entry.id !== entryId),
+      };
+      void persistState(nextState);
+      return nextState;
+    });
+  }, []);
+
+  const saveWorkoutSession = useCallback((session: WorkoutSession) => {
+    setState((currentState) => {
+      const nextState = {
+        ...currentState,
+        workoutSessions: [...currentState.workoutSessions, session],
+      };
+      void persistState(nextState);
+      return nextState;
+    });
+  }, []);
+
+  const deleteWorkoutSession = useCallback((sessionId: string) => {
+    setState((currentState) => {
+      const nextState = {
+        ...currentState,
+        workoutSessions: currentState.workoutSessions.filter((session) => session.id !== sessionId),
+      };
+      void persistState(nextState);
+      return nextState;
+    });
+  }, []);
+
+  const getLastWorkoutSession = useCallback(() => {
+    return state.workoutSessions.at(-1) ?? null;
+  }, [state.workoutSessions]);
+
+  const value = useMemo<AppContextType>(
+    () => ({
+      ...state,
+      addBodyMeasurement,
+      addFoodEntry,
+      addWeightEntry,
+      deleteBodyMeasurement,
+      deleteFoodEntry,
+      deleteWeightEntry,
+      deleteWorkoutSession,
+      getLastWorkoutSession,
+      saveWorkoutSession,
+    }),
+    [
+      addBodyMeasurement,
+      addFoodEntry,
+      addWeightEntry,
+      deleteBodyMeasurement,
+      deleteFoodEntry,
+      deleteWeightEntry,
+      deleteWorkoutSession,
+      getLastWorkoutSession,
+      saveWorkoutSession,
+      state,
+    ]
+  );
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
+
+export function useAppContext() {
+  const context = useContext(AppContext);
+
+  if (!context) {
+    throw new Error('useAppContext must be used inside AppProvider');
+  }
+
+  return context;
+}
+</file>
+
+<file path="app-architecture.json">
+{
+  "project_status": "mvp_scaffold",
+  "environment": {
+    "framework": "React Native (Expo)",
+    "language": "TypeScript",
+    "storage": "AsyncStorage temporary local state"
+  },
+  "navigation": [
+    "Home",
+    "Workouts",
+    "Nutrition",
+    "Progress",
+    "Profile"
+  ],
+  "features": {
+    "workouts": [
+      "Workout list",
+      "Start workout action",
+      "Mock exercise list"
+    ],
+    "nutrition": [
+      "Calories",
+      "Protein",
+      "Carbs",
+      "Fats",
+      "Food entry list"
+    ],
+    "progress": [
+      "Weight history",
+      "Body measurements mock"
+    ],
+    "profile": [
+      "Height",
+      "Weight",
+      "Goal",
+      "Activity level"
+    ]
+  }
+}
+</file>
+
+<file path="connect.txt">
+
+</file>
+
+<file path="succes.txt">
+
+</file>
+
+<file path=".claude/settings.json">
+{
+  "enabledPlugins": {
+    "expo@claude-plugins-official": true
+  }
+}
+</file>
+
+<file path="assets/expo.icon/Assets/expo-symbol 2.svg">
+<svg width="652" height="606" viewBox="0 0 652 606" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M353.554 0H298.446C273.006 0 249.684 14.6347 237.962 37.9539L4.37994 502.646C-1.04325 513.435 -1.45067 526.178 3.2716 537.313L22.6123 582.918C34.6475 611.297 72.5404 614.156 88.4414 587.885L309.863 222.063C313.34 216.317 319.439 212.826 326 212.826C332.561 212.826 338.659 216.317 342.137 222.063L563.559 587.885C579.46 614.156 617.352 611.297 629.388 582.918L648.728 537.313C653.451 526.178 653.043 513.435 647.62 502.646L414.038 37.9539C402.316 14.6347 378.994 0 353.554 0Z" fill="white"/>
+</svg>
+</file>
+
+<file path="assets/expo.icon/icon.json">
+{
+  "fill" : {
+    "automatic-gradient" : "extended-srgb:0.00000,0.47843,1.00000,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "expo-symbol 2.svg",
+          "name" : "expo-symbol 2",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              1.1008400065293245e-05,
+              -16.046875
+            ]
+          }
+        },
+        {
+          "image-name" : "grid.png",
+          "name" : "grid"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
+</file>
+
+<file path="scripts/reset-project.js">
+#!/usr/bin/env node
+
+/**
+ * This script is used to reset the project to a blank state.
+ * It deletes or moves the /src and /scripts directories to /example based on user input and creates a new /src/app directory with an index.tsx and _layout.tsx file.
+ * You can remove the `reset-project` script from package.json and safely delete this file after running it.
+ */
+
+const fs = require("fs");
+const path = require("path");
+const readline = require("readline");
+
+const root = process.cwd();
+const oldDirs = ["src", "scripts"];
+const exampleDir = "example";
+const newAppDir = "src/app";
+const exampleDirPath = path.join(root, exampleDir);
+
+const indexContent = `import { Text, View, StyleSheet } from "react-native";
+
+export default function Index() {
+  return (
+    <View style={styles.container}>
+      <Text>Edit src/app/index.tsx to edit this screen.</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
+`;
+
+const layoutContent = `import { Stack } from "expo-router";
+
+export default function RootLayout() {
+  return <Stack />;
+}
+`;
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+const moveDirectories = async (userInput) => {
+  try {
+    if (userInput === "y") {
+      // Create the app-example directory
+      await fs.promises.mkdir(exampleDirPath, { recursive: true });
+      console.log(`📁 /${exampleDir} directory created.`);
+    }
+
+    // Move old directories to new app-example directory or delete them
+    for (const dir of oldDirs) {
+      const oldDirPath = path.join(root, dir);
+      if (fs.existsSync(oldDirPath)) {
+        if (userInput === "y") {
+          const newDirPath = path.join(root, exampleDir, dir);
+          await fs.promises.rename(oldDirPath, newDirPath);
+          console.log(`➡️ /${dir} moved to /${exampleDir}/${dir}.`);
+        } else {
+          await fs.promises.rm(oldDirPath, { recursive: true, force: true });
+          console.log(`❌ /${dir} deleted.`);
+        }
+      } else {
+        console.log(`➡️ /${dir} does not exist, skipping.`);
+      }
+    }
+
+    // Create new /src/app directory
+    const newAppDirPath = path.join(root, newAppDir);
+    await fs.promises.mkdir(newAppDirPath, { recursive: true });
+    console.log("\n📁 New /src/app directory created.");
+
+    // Create index.tsx
+    const indexPath = path.join(newAppDirPath, "index.tsx");
+    await fs.promises.writeFile(indexPath, indexContent);
+    console.log("📄 src/app/index.tsx created.");
+
+    // Create _layout.tsx
+    const layoutPath = path.join(newAppDirPath, "_layout.tsx");
+    await fs.promises.writeFile(layoutPath, layoutContent);
+    console.log("📄 src/app/_layout.tsx created.");
+
+    console.log("\n✅ Project reset complete. Next steps:");
+    console.log(
+      `1. Run \`npx expo start\` to start a development server.\n2. Edit src/app/index.tsx to edit the main screen.\n3. Put all your application code in /src, only screens and layout files should be in /src/app.${
+        userInput === "y"
+          ? `\n4. Delete the /${exampleDir} directory when you're done referencing it.`
+          : ""
+      }`
+    );
+  } catch (error) {
+    console.error(`❌ Error during script execution: ${error.message}`);
+  }
+};
+
+rl.question(
+  "Do you want to move existing files to /example instead of deleting them? (Y/n): ",
+  (answer) => {
+    const userInput = answer.trim().toLowerCase() || "y";
+    if (userInput === "y" || userInput === "n") {
+      moveDirectories(userInput).finally(() => rl.close());
+    } else {
+      console.log("❌ Invalid input. Please enter 'Y' or 'N'.");
+      rl.close();
+    }
+  }
+);
+</file>
+
+<file path="src/app/_layout.tsx">
+import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+
+import { AppProvider } from '@/context/AppContext';
+
+export default function TabLayout() {
+  return (
+    <ThemeProvider value={DarkTheme}>
+      <AppProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            contentStyle: { backgroundColor: '#090B0F' },
+            headerStyle: { backgroundColor: '#090B0F' },
+            headerTintColor: '#F5F7FA',
+          }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="workout-session"
+            options={{
+              headerBackTitle: 'Back',
+              title: 'Workout Session',
+            }}
+          />
+        </Stack>
+      </AppProvider>
+    </ThemeProvider>
+  );
+}
+</file>
+
+<file path="src/constants/theme.ts">
+import { Platform } from 'react-native';
+
+export const Colors = {
+  light: {
+    text: '#F5F7FA',
+    background: '#090B0F',
+    backgroundElement: '#151922',
+    backgroundSelected: '#202838',
+    textSecondary: '#9CA7B8',
+    border: '#242B38',
+    accent: '#4ADE80',
+    accentMuted: '#173323',
+  },
+  dark: {
+    text: '#F5F7FA',
+    background: '#090B0F',
+    backgroundElement: '#151922',
+    backgroundSelected: '#202838',
+    textSecondary: '#9CA7B8',
+    border: '#242B38',
+    accent: '#4ADE80',
+    accentMuted: '#173323',
+  },
+} as const;
+
+export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+
+export const Fonts = Platform.select({
+  ios: {
+    /** iOS `UIFontDescriptorSystemDesignDefault` */
+    sans: 'system-ui',
+    /** iOS `UIFontDescriptorSystemDesignSerif` */
+    serif: 'ui-serif',
+    /** iOS `UIFontDescriptorSystemDesignRounded` */
+    rounded: 'ui-rounded',
+    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
+    mono: 'ui-monospace',
+  },
+  default: {
+    sans: 'normal',
+    serif: 'serif',
+    rounded: 'normal',
+    mono: 'monospace',
+  },
+  web: {
+    sans: 'var(--font-display)',
+    serif: 'var(--font-serif)',
+    rounded: 'var(--font-rounded)',
+    mono: 'var(--font-mono)',
+  },
+});
+
+export const Spacing = {
+  half: 2,
+  one: 4,
+  two: 8,
+  three: 16,
+  four: 24,
+  five: 32,
+  six: 64,
+} as const;
+
+export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
+export const MaxContentWidth = 800;
+</file>
+
+<file path="src/hooks/use-color-scheme.ts">
+export { useColorScheme } from 'react-native';
+</file>
+
+<file path="src/hooks/use-color-scheme.web.ts">
+import { useEffect, useState } from 'react';
+import { useColorScheme as useRNColorScheme } from 'react-native';
+
+/**
+ * To support static rendering, this value needs to be re-calculated on the client side for web
+ */
+export function useColorScheme() {
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
+
+  const colorScheme = useRNColorScheme();
+
+  if (hasHydrated) {
+    return colorScheme;
+  }
+
+  return 'light';
+}
+</file>
+
+<file path="src/hooks/use-theme.ts">
+/**
+ * Learn more about light and dark modes:
+ * https://docs.expo.dev/guides/color-schemes/
+ */
+
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+
+export function useTheme() {
+  const scheme = useColorScheme();
+  const theme = scheme === 'unspecified' ? 'light' : scheme;
+
+  return Colors[theme];
+}
+</file>
+
+<file path="src/global.css">
+:root {
+  --font-display:
+    Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
+    Segoe UI Symbol, Noto Color Emoji;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+  --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+}
+</file>
+
+<file path=".gitignore">
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+example
+
+# generated native folders
+/ios
+/android
+</file>
+
+<file path="AGENTS.md">
+# Smart Fitness App — Codex Instructions
+
+## Project Overview
+
+This is a React Native + Expo Router + TypeScript fitness MVP.
+
+The product goal is to build a clean fitness tracking app with:
+
+* workout tracking;
+* nutrition tracking;
+* progress tracking;
+* basic profile data;
+* later: education, AI recommendations, lab tracking, coach marketplace.
+
+Current MVP scope is intentionally limited. Do not expand the product beyond the current task.
+
+---
+
+## Current Stack
+
+* Expo SDK 56
+* React Native
+* Expo Router
+* TypeScript
+* AsyncStorage as temporary local persistence
+* Dark minimal UI
+* No backend yet
+* No Supabase yet
+* No AI API yet
+
+---
+
+## Current App Structure
+
+Main app routes:
+
+* `src/app/_layout.tsx` — root stack layout
+* `src/app/workout-session.tsx` — active workout session screen
+* `src/app/(tabs)/_layout.tsx` — bottom tab navigation
+* `src/app/(tabs)/index.tsx` — Home
+* `src/app/(tabs)/workouts.tsx` — Workouts
+* `src/app/(tabs)/nutrition.tsx` — Nutrition
+* `src/app/(tabs)/progress.tsx` — Progress
+* `src/app/(tabs)/profile.tsx` — Profile
+
+Shared UI components:
+
+* `src/components/ui/AppCard.tsx`
+* `src/components/ui/AppButton.tsx`
+* `src/components/ui/MetricCard.tsx`
+* `src/components/ui/SectionHeader.tsx`
+
+Temporary MVP state:
+
+* `src/context/AppContext.tsx`
+
+Theme:
+
+* `src/constants/theme.ts`
+
+---
+
+## Core Product Rules
+
+Build a fitness MVP, not a medical/pharmacology app.
+
+Do not add:
+
+* Supabase unless explicitly requested;
+* AI features unless explicitly requested;
+* blood test analysis unless explicitly requested;
+* medical advice;
+* pharmacology;
+* hormone protocols;
+* SARMs;
+* dosing logic;
+* supplement protocols;
+* diagnosis logic;
+* coach marketplace;
+* social network features;
+* payments;
+* subscriptions.
+
+If a task seems to require one of these, stop and ask for confirmation.
+
+---
+
+## Coding Rules
+
+Prefer small, surgical changes.
+
+Default behavior:
+
+* Modify only the files explicitly mentioned in the user task.
+* Do not refactor unrelated code.
+* Do not rename files unless the task explicitly asks.
+* Do not change routing unless the task explicitly asks.
+* Do not install new dependencies unless explicitly requested.
+* Do not rewrite architecture unless explicitly requested.
+* Do not move state from AsyncStorage to backend unless explicitly requested.
+* Keep TypeScript strict-compatible.
+* Keep UI consistent with the current dark minimal style.
+* Use existing UI components before creating new ones.
+* Avoid adding large abstractions too early.
+
+When adding functionality:
+
+* Keep the implementation simple.
+* Prefer readable code over clever code.
+* Keep MVP state in `AppContext.tsx` unless the task says otherwise.
+* Keep local persistence through the existing AsyncStorage pattern.
+* Preserve existing working features.
+
+---
+
+## UI Rules
+
+General UI direction:
+
+* dark theme;
+* clean cards;
+* large readable text;
+* simple spacing;
+* no decorative complexity;
+* mobile-first layout;
+* avoid overcrowded horizontal rows.
+
+Use existing components where possible:
+
+* `AppCard`
+* `AppButton`
+* `MetricCard`
+* `SectionHeader`
+
+Important mobile layout rules:
+
+* Always account for bottom tab bar overlap.
+* Use `useSafeAreaInsets` when adding screens with long scrollable content.
+* `ScrollView` screens should generally include enough `paddingBottom`.
+* Use `keyboardShouldPersistTaps="handled"` on forms.
+* Avoid `selectable` on normal UI text unless specifically needed.
+* Do not make text columns so narrow that words wrap letter-by-letter.
+* For lists like food entries or workout history, prefer vertical layout:
+
+  * title/name on first line;
+  * metadata on second line.
+
+---
+
+## Navigation Rules
+
+Expo Router is used.
+
+Current route expectations:
+
+* Home tab: `/`
+* Workouts tab: `/workouts`
+* Nutrition tab: `/nutrition`
+* Progress tab: `/progress`
+* Profile tab: `/profile`
+* Active workout session: `/workout-session`
+
+The active workout session is outside the tab group and should open as a stack screen.
+
+Do not break:
+
+* Home → Start Workout → `/workout-session`
+* Workouts → Start Workout → `/workout-session`
+* Finish Workout → return to Home
+* Cancel Workout → return to Home without saving
+
+If changing headers:
+
+* title for workout session should be `Workout Session`;
+* do not show `(tabs)` as the iOS back label.
+
+---
+
+## Data Model Rules
+
+Current MVP state lives in:
+
+* `src/context/AppContext.tsx`
+
+Existing major state areas:
+
+* workouts
+* workoutSessions
+* foodEntries
+* nutrition
+* weightHistory
+* bodyMeasurements
+* profile
+
+When adding data:
+
+* add a clear TypeScript type;
+* include `id`;
+* include `createdAt` when it represents a user-created record;
+* keep data serializable;
+* persist through existing AsyncStorage state saving.
+
+Do not introduce backend schemas yet.
+
+---
+
+## Documentation Rules
+
+Do not search the web or read external docs for routine UI/state changes.
+
+Use Expo SDK 56 docs only when the task involves:
+- Expo SDK version changes;
+- package/dependency installation;
+- native modules;
+- Expo Router structural changes;
+- EAS / build / deployment;
+- platform-specific APIs.
+
+For normal MVP tasks such as screen edits, forms, buttons, AppContext state, layout fixes, and delete/edit logic, do not use web search. Work from the existing codebase and AGENTS.md.
+
+## Dependency Rules
+
+Do not add dependencies without explicit approval.
+
+If a new dependency seems useful, first explain:
+
+* why it is needed;
+* what it replaces;
+* whether Expo SDK 56 supports it;
+* whether the feature can be built without it.
+
+Avoid adding libraries for simple MVP UI.
+
+---
+
+## Codex Usage Rules
+
+Be efficient with agentic usage.
+
+Do not:
+
+* analyze the whole repository unless explicitly requested;
+* review all files unless explicitly requested;
+* spawn subagents unless explicitly requested;
+* perform broad architecture review unless explicitly requested;
+* refactor the whole project;
+* change formatting across unrelated files;
+* run unnecessary commands.
+
+Do:
+
+* focus only on the files in the task;
+* produce minimal diffs;
+* explain changed files briefly after editing;
+* run `npx tsc --noEmit` after code changes;
+* ask before making large structural changes.
+
+---
+
+## Preferred Response Format After Changes
+
+After completing a task, respond with:
+
+1. Files changed
+2. What changed
+3. Validation result
+4. Any manual checks the user should perform
+
+Example:
+
+```text
+Changed:
+- src/app/(tabs)/nutrition.tsx
+- src/context/AppContext.tsx
+
+Done:
+- Added Add Food form.
+- Added addFoodEntry.
+- Nutrition totals now update and persist.
+
+Validation:
+- npx tsc --noEmit passed.
+
+Manual check:
+- Add food in Nutrition.
+- Confirm Home calories/protein update.
+- Restart app and confirm entries persist.
+```
+
+---
+
+## Current MVP Priority Order
+
+Build in this order:
+
+1. Workout logger
+2. Nutrition logger
+3. Progress logger
+4. Choose workout before session
+5. Edit/delete entries
+6. Basic onboarding/profile setup
+7. Better design system
+8. Supabase backend
+9. AI recommendations
+10. Education content
+11. Lab tracking
+12. Coach marketplace / social features
+
+Do not jump ahead unless explicitly asked.
+</file>
+
+<file path="app.json">
+{
+  "expo": {
+    "name": "smart-fitness-app",
+    "slug": "smart-fitness-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "smartfitnessapp",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/expo.icon"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#208AEF",
+          "android": {
+            "image": "./assets/images/splash-icon.png",
+            "imageWidth": 76
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
+</file>
+
+<file path="CLAUDE.md">
+@AGENTS.md
+</file>
+
+<file path="LICENSE">
+The MIT License (MIT)
+
+Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="package.json">
+{
+  "name": "smart-fitness-app",
+  "main": "expo-router/entry",
+  "version": "1.0.0",
+  "dependencies": {
+    "@expo/ui": "~56.0.16",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "~56.0.9",
+    "expo-constants": "~56.0.16",
+    "expo-device": "~56.0.4",
+    "expo-font": "~56.0.5",
+    "expo-glass-effect": "~56.0.4",
+    "expo-linking": "~56.0.13",
+    "expo-router": "~56.2.9",
+    "expo-splash-screen": "~56.0.10",
+    "expo-status-bar": "~56.0.4",
+    "expo-system-ui": "~56.0.5",
+    "expo-web-browser": "~56.0.5",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-gesture-handler": "~2.31.1",
+    "react-native-reanimated": "4.3.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "4.25.2",
+    "react-native-web": "~0.21.0",
+    "react-native-worklets": "0.8.3"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "reset-project": "node ./scripts/reset-project.js",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "lint": "expo lint"
+  },
+  "private": true
+}
+</file>
+
+<file path="README.md">
+# Smart Fitness App
+
+Clean Expo MVP scaffold for a fitness tracking app.
+
+## Current MVP
+
+- Home dashboard with calories, protein, body weight, last workout, and start workout action.
+- Workouts screen with mock routines and exercises.
+- Nutrition screen with macro totals and food entries.
+- Progress screen with weight history and body measurement mocks.
+- Profile screen with basic height, weight, goal, and activity level fields.
+- AsyncStorage is used only as temporary local storage.
+
+## Run
+
+```bash
+npm install
+npx expo start
+```
+</file>
+
+<file path="tsconfig.json">
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@/assets/*": [
+        "./assets/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}
+</file>
+
+</files>
