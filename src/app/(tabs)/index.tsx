@@ -72,7 +72,7 @@ const projectPlan: PlanItem[] = [
   },
 ];
 
-export default function HomeScreen() {
+export default function AICoachScreen() {
   const {
     completeOnboarding,
     foodEntries,
@@ -207,7 +207,7 @@ export default function HomeScreen() {
         { paddingBottom: safeAreaInsets.bottom + 160 },
       ]}>
       <View style={styles.container}>
-        <SectionHeader title="AI Coach" subtitle="Today at a glance" />
+        <SectionHeader title="AI Coach" subtitle="Training, nutrition, and recovery at a glance" />
 
         {!onboardingCompleted ? (
           <AppCard>
@@ -471,4 +471,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
