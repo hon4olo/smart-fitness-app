@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.anonymous.smart-fitness-app"
+      "bundleIdentifier": "com.dzahard28.smartfitnessapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -51,7 +51,10 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/0f2acce2-b968-4b48-87de-5622ccdec60c"
+      "url": "https://u.expo.dev/0f2acce2-b968-4b48-87de-5622ccdec60c",
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      }
     }
   }
 }
