@@ -314,7 +314,7 @@ export default function WorkoutsScreen() {
       style={styles.screen}
       contentContainerStyle={styles.content}>
       <View style={styles.container}>
-        <SectionHeader title="Workouts" subtitle="Simple routines and mock exercises" />
+        <SectionHeader title="Track" subtitle="Workouts, templates, and session history" />
         <AppButton label="Start Workout" onPress={() => startWorkout(workouts[0]?.id ?? '')} />
 
         <AppCard>

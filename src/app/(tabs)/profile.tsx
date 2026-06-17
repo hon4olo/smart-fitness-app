@@ -129,7 +129,7 @@ export default function ProfileScreen() {
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 180 }]}>
       <View style={styles.container}>
-        <SectionHeader title="Profile" subtitle="Basic profile details for the MVP" />
+        <SectionHeader title="Profile" subtitle="Goals, settings, and developer tools" />
 
         <AppCard>
           {rows.map(([label, value]) => (

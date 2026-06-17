@@ -52,23 +52,23 @@ type PlanItem = {
 const projectPlan: PlanItem[] = [
   {
     label: 'Now',
-    title: 'Core tracking and data entry',
-    detail: 'Keep workouts, nutrition, and progress logging stable.',
+    title: 'Track and Eat data entry',
+    detail: 'Keep workout logging, meals, and progress capture stable.',
   },
   {
     label: 'Next',
-    title: 'AI coach analysis',
+    title: 'AI Coach guidance',
     detail: 'Add explainable feedback for training, nutrition, and recovery.',
   },
   {
     label: 'Then',
-    title: 'Learn-on-demand and customization',
-    detail: 'Offer short explanations, deeper dives, and simpler UI controls.',
+    title: 'Labs and body measurements',
+    detail: 'Surface progress insights before adding deeper learning modes.',
   },
   {
     label: 'Later',
-    title: 'Labs, premium coaching, marketplace, social',
-    detail: 'Move analysis forward before adding paid and network features.',
+    title: 'Learn-on-demand, customization, premium coaching',
+    detail: 'Keep learning secondary while the coach and analytics mature.',
   },
 ];
 
@@ -337,9 +337,10 @@ export default function HomeScreen() {
             </AppCard>
 
             <View style={styles.quickActions}>
-              <AppButton label="Start Workout" onPress={() => router.push('/workouts')} />
-              <AppButton label="Log Food" onPress={() => router.push('/nutrition')} variant="secondary" />
-              <AppButton label="Add Weight" onPress={() => router.push('/progress')} variant="secondary" />
+              <AppButton label="Open Coach" onPress={() => router.push('/coach')} />
+              <AppButton label="Open Track" onPress={() => router.push('/track')} variant="secondary" />
+              <AppButton label="Open Eat" onPress={() => router.push('/eat')} variant="secondary" />
+              <AppButton label="Open Labs" onPress={() => router.push('/labs')} variant="secondary" />
             </View>
           </>
         )}

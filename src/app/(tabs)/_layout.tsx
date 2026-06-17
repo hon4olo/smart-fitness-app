@@ -19,15 +19,19 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="workouts">
-        <NativeTabs.Trigger.Label>Workouts</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="coach">
+        <NativeTabs.Trigger.Label>Coach</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="nutrition">
-        <NativeTabs.Trigger.Label>Nutrition</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="track">
+        <NativeTabs.Trigger.Label>Track</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="progress">
+      <NativeTabs.Trigger name="eat">
+        <NativeTabs.Trigger.Label>Eat</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="labs">
         <NativeTabs.Trigger.Label>Labs</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 

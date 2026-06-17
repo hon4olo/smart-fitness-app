@@ -681,7 +681,7 @@ export default function NutritionScreen() {
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
       <View style={styles.container}>
-        <SectionHeader title="Nutrition" subtitle="Daily macro snapshot and food entries" />
+        <SectionHeader title="Eat" subtitle="Meals, macros, and nutrition targets" />
 
         <AppCard>
           <Text selectable style={styles.sectionTitle}>
