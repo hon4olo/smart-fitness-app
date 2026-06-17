@@ -81,6 +81,7 @@ export default function AICoachScreen() {
     profile,
     updateNutritionTargets,
     weightHistory,
+    bodyMeasurements,
     workoutSessions,
   } = useAppContext();
   const [currentWeight, setCurrentWeight] = useState('');
@@ -129,6 +130,64 @@ export default function AICoachScreen() {
     weeklyTrainingDelta < 0
       ? `Weekly training goal exceeded by ${Math.abs(weeklyTrainingDelta)} workouts`
       : `${workoutsThisWeek} / ${trainingGoal} workouts this week`;
+  const nextBestMove = (() => {
+    if (!onboardingCompleted) {
+      return {
+        title: 'Complete setup first',
+        detail: 'Add your baseline weight and goals so AI Coach can calibrate targets.',
+        action: 'Finish Quick Setup',
+        route: null as string | null,
+      };
+    }
+
+    if (weightHistory.length === 0) {
+      return {
+        title: 'Log your baseline weight',
+        detail: 'A first weigh-in lets Coach compare progress against your target.',
+        action: 'Open Labs',
+        route: '/labs',
+      };
+    }
+
+    if (todaysFoodEntries.length === 0) {
+      return {
+        title: 'Log today’s meals',
+        detail: 'Nutrition guidance is strongest when the app sees a full day of food data.',
+        action: 'Open Eat',
+        route: '/eat',
+      };
+    }
+
+    if (workoutsThisWeek < trainingGoal) {
+      return {
+        title: 'Schedule one more workout',
+        detail: `You’re at ${workoutsThisWeek} of ${trainingGoal} weekly sessions.`,
+        action: 'Open Track',
+        route: '/track',
+      };
+    }
+
+    if (bodyMeasurements.length === 0) {
+      return {
+        title: 'Capture body measurements',
+        detail: 'Waist, chest, and hips help Labs show change even when scale weight stalls.',
+        action: 'Open Labs',
+        route: '/labs',
+      };
+    }
+
+    return {
+      title: 'Maintain the current rhythm',
+      detail: 'You’ve logged the core data. Keep the streak alive and refine targets from Labs.',
+      action: 'Open Labs',
+      route: '/labs',
+    };
+  })();
+  const secondaryCoachNotes = [
+    `Calories: ${caloriesStatus}`,
+    `Protein: ${proteinStatus}`,
+    `Training: ${trainingStatus}`,
+  ];
   const weightStatus =
     weightDistance === null
       ? 'No weight logged yet'
@@ -208,6 +267,27 @@ export default function AICoachScreen() {
       ]}>
       <View style={styles.container}>
         <SectionHeader title="AI Coach" subtitle="Training, nutrition, and recovery at a glance" />
+
+        <AppCard>
+          <Text style={styles.sectionTitle}>Next best move</Text>
+          <View style={styles.coachSummary}>
+            <Text style={styles.coachTitle}>{nextBestMove.title}</Text>
+            <Text style={styles.coachDetail}>{nextBestMove.detail}</Text>
+            <View style={styles.coachNotes}>
+              {secondaryCoachNotes.map((note) => (
+                <Text key={note} style={styles.coachNote}>
+                  {note}
+                </Text>
+              ))}
+            </View>
+            {nextBestMove.route ? (
+              <AppButton
+                label={nextBestMove.action}
+                onPress={() => router.push(nextBestMove.route ?? '/labs')}
+              />
+            ) : null}
+          </View>
+        </AppCard>
 
         {!onboardingCompleted ? (
           <AppCard>
@@ -384,6 +464,30 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: Colors.dark.text,
     fontSize: 18,
+    fontWeight: '800',
+  },
+  coachDetail: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  coachNote: {
+    color: Colors.dark.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  coachNotes: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  coachSummary: {
+    gap: Spacing.two,
+  },
+  coachTitle: {
+    color: Colors.dark.text,
+    fontSize: 16,
     fontWeight: '800',
   },
   quickActions: {
