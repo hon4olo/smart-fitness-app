@@ -257,6 +257,35 @@ Do:
 
 ---
 
+## Default task proposal and execution policy
+
+When proposing tasks automatically, include:
+
+* likely modified files;
+* OTA-safety;
+* whether a skill or subagent is needed;
+* risk level.
+
+Execution rules:
+
+* Do not use subagents by default.
+* Do not use research, debug, or cleanup skills for routine UI, CRUD, layout, styling, or local React Native / TypeScript tasks.
+* Use skills only when clearly necessary and report which skill was used.
+* Read only task-relevant files.
+* Do not inspect the whole repository unless explicitly requested.
+* Do not repeatedly read `AGENTS.md` in the same session unless it changed.
+* Do not inspect `package.json` unless dependencies, scripts, build config, or TypeScript config are relevant.
+* Prefer direct implementation over long planning.
+* Modify only files needed for the approved task.
+* Run `npx tsc --noEmit`.
+* Use `[ota]` only for JS / TS / TSX / assets-only changes.
+* Commit, then push to `main`.
+* If normal `git push` fails, use the GitHub API fallback.
+* If `[ota]` is used, verify GitHub Actions `Publish EAS Update` started.
+* Stop after reporting changed files, validation, commit, push, and OTA workflow status.
+
+---
+
 ## Preferred Response Format After Changes
 
 After completing a task, respond with:
