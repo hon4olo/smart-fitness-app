@@ -42,6 +42,35 @@ const getWorkoutTimestamp = (session: { finishedAt?: string; startedAt?: string 
   return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
 };
 
+type PlanItem = {
+  label: string;
+  title: string;
+  detail: string;
+};
+
+const projectPlan: PlanItem[] = [
+  {
+    label: 'Now',
+    title: 'Stabilize local MVP',
+    detail: 'Reduce UI overload, fix defaults, and keep persistence reliable.',
+  },
+  {
+    label: 'Next',
+    title: 'Workout and progress flows',
+    detail: 'Keep logging, history, and edit/delete flows working cleanly.',
+  },
+  {
+    label: 'Then',
+    title: 'Nutrition diary',
+    detail: 'Improve food logging, recent foods, and saved meals.',
+  },
+  {
+    label: 'Later',
+    title: 'Dashboard and profile polish',
+    detail: 'Keep the app simple before any backend or cloud work.',
+  },
+];
+
 export default function HomeScreen() {
   const {
     completeOnboarding,
@@ -173,6 +202,28 @@ export default function HomeScreen() {
       contentContainerStyle={styles.content}>
       <View style={styles.container}>
         <SectionHeader title="Home" subtitle="Today at a glance" />
+
+        <AppCard>
+          <View style={styles.otaBadge}>
+            <Text style={styles.otaBadgeTitle}>HERMES OTA TEST</Text>
+            <Text style={styles.otaBadgeSubtitle}>Published from Hermes</Text>
+          </View>
+        </AppCard>
+
+        <AppCard>
+          <Text style={styles.sectionTitle}>Project Plan</Text>
+          <View style={styles.planList}>
+            {projectPlan.map((item) => (
+              <View key={item.label} style={styles.planRow}>
+                <Text style={styles.planLabel}>{item.label}</Text>
+                <View style={styles.planContent}>
+                  <Text style={styles.planTitle}>{item.title}</Text>
+                  <Text style={styles.planDetail}>{item.detail}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </AppCard>
 
         {!onboardingCompleted ? (
           <AppCard>
@@ -337,6 +388,55 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     gap: Spacing.two,
+  },
+  otaBadge: {
+    borderColor: Colors.dark.border,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 4,
+    padding: Spacing.two,
+  },
+  otaBadgeSubtitle: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  otaBadgeTitle: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  planContent: {
+    flex: 1,
+    gap: 4,
+  },
+  planDetail: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  planLabel: {
+    color: Colors.dark.accent,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    width: 48,
+  },
+  planList: {
+    gap: Spacing.two,
+  },
+  planRow: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: Spacing.two,
+    paddingTop: Spacing.two,
+  },
+  planTitle: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontWeight: '800',
   },
   goalTypeRow: {
     flexDirection: 'row',
