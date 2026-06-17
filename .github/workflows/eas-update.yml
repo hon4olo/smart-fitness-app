@@ -4,15 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       message:
-        description: "Update message"
+        description: 'Update message'
         required: false
-        default: "Manual OTA update"
+        default: 'Manual OTA update'
 
 jobs:
   publish:
     name: Publish OTA update
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,4 +35,4 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Publish EAS Update
-        run: eas update --channel production --message "${{ github.event.inputs.message }}" --environment production  
+        run: eas update --channel production --message "${{ github.event.inputs.message }}" --environment production
