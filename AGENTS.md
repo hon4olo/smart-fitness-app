@@ -37,18 +37,30 @@ Main app routes:
 * `src/app/_layout.tsx` — root stack layout
 * `src/app/workout-session.tsx` — active workout session screen
 * `src/app/(tabs)/_layout.tsx` — bottom tab navigation
-* `src/app/(tabs)/index.tsx` — Home
-* `src/app/(tabs)/workouts.tsx` — Workouts
-* `src/app/(tabs)/nutrition.tsx` — Nutrition
-* `src/app/(tabs)/progress.tsx` — Progress
-* `src/app/(tabs)/profile.tsx` — Profile
 
-Shared UI components:
+Current tab files:
 
-* `src/components/ui/AppCard.tsx`
-* `src/components/ui/AppButton.tsx`
-* `src/components/ui/MetricCard.tsx`
-* `src/components/ui/SectionHeader.tsx`
+* `src/app/(tabs)/index.tsx`
+* `src/app/(tabs)/coach.tsx`
+* `src/app/(tabs)/labs.tsx`
+* `src/app/(tabs)/track.tsx`
+* `src/app/(tabs)/eat.tsx`
+* `src/app/(tabs)/workouts.tsx`
+* `src/app/(tabs)/nutrition.tsx`
+* `src/app/(tabs)/progress.tsx`
+* `src/app/(tabs)/profile.tsx`
+
+Alias routes:
+
+* `coach.tsx` re-exports `index.tsx`
+* `track.tsx` re-exports `workouts.tsx`
+* `eat.tsx` re-exports `nutrition.tsx`
+
+Component folders:
+
+* `src/components/ui/`
+* `src/components/workouts/`
+* `src/components/nutrition/`
 
 Temporary MVP state:
 
@@ -281,8 +293,8 @@ Execution rules:
 * Use `[ota]` only for JS / TS / TSX / assets-only changes.
 * Commit, then push to `main`.
 * If normal `git push` fails, use the GitHub API fallback.
-* If `[ota]` is used, verify GitHub Actions `Publish EAS Update` started.
-* Stop after reporting changed files, validation, commit, push, and OTA workflow status.
+* Only verify GitHub Actions when explicitly asked.
+* Stop after reporting changed files, any requested validation, commit, and push.
 
 ---
 
