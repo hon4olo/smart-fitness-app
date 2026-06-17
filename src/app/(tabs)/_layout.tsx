@@ -16,11 +16,11 @@ export default function TabsLayout() {
       }}
       tintColor={colors.accent}>
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>AI Coach</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="coach">
-        <NativeTabs.Trigger.Label>Coach</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="labs">
+        <NativeTabs.Trigger.Label>Labs</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="track">
@@ -31,13 +31,10 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Label>Eat</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="labs">
-        <NativeTabs.Trigger.Label>Labs</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
+

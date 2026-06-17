@@ -207,7 +207,7 @@ export default function HomeScreen() {
         { paddingBottom: safeAreaInsets.bottom + 160 },
       ]}>
       <View style={styles.container}>
-        <SectionHeader title="Home" subtitle="Today at a glance" />
+        <SectionHeader title="AI Coach" subtitle="Today at a glance" />
 
         {!onboardingCompleted ? (
           <AppCard>
@@ -337,16 +337,16 @@ export default function HomeScreen() {
             </AppCard>
 
             <View style={styles.quickActions}>
-              <AppButton label="Open Coach" onPress={() => router.push('/coach')} />
+              <AppButton label="Open Labs" onPress={() => router.push('/labs')} />
               <AppButton label="Open Track" onPress={() => router.push('/track')} variant="secondary" />
               <AppButton label="Open Eat" onPress={() => router.push('/eat')} variant="secondary" />
-              <AppButton label="Open Labs" onPress={() => router.push('/labs')} variant="secondary" />
+              <AppButton label="Open Profile" onPress={() => router.push('/profile')} variant="secondary" />
             </View>
           </>
         )}
 
         <AppCard>
-          <Text style={styles.sectionTitle}>Project Plan</Text>
+          <Text style={styles.sectionTitle}>Product roadmap</Text>
           <View style={styles.planList}>
             {projectPlan.map((item) => (
               <View key={item.label} style={styles.planRow}>
@@ -471,3 +471,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+

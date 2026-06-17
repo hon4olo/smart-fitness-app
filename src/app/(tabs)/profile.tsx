@@ -56,7 +56,7 @@ export default function ProfileScreen() {
   };
 
   const handleResetOnboarding = () => {
-    Alert.alert('Reset onboarding?', 'Home will show Quick Setup again.', [
+    Alert.alert('Reset onboarding?', 'AI Coach will show Quick Setup again.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Reset',
@@ -387,3 +387,4 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 });
+
