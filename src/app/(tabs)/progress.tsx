@@ -510,7 +510,7 @@ export default function ProgressScreen() {
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
       <View style={styles.container}>
-        <SectionHeader title="Progress" subtitle="Weight history and body measurements mock" />
+        <SectionHeader title="Labs" subtitle="Analysis, progress, and body measurements" />
 
         <AppCard>
           <Text style={styles.sectionTitle}>Add Weight</Text>
@@ -529,6 +529,36 @@ export default function ProgressScreen() {
         </AppCard>
 
         <AppCard>
+          <Text style={styles.sectionTitle}>Latest Weight Summary</Text>
+          {latestTrendEntry ? (
+            <View style={styles.trendSummary}>
+              <View style={styles.trendSummaryRow}>
+                <Text style={styles.label}>Latest weight</Text>
+                <Text style={styles.value}>{latestTrendEntry.weight.toFixed(1)} kg</Text>
+              </View>
+              <View style={styles.trendSummaryRow}>
+                <Text style={styles.label}>Change from previous</Text>
+                <Text style={styles.value}>
+                  {previousTrendEntry
+                    ? formatTrendDelta(latestTrendEntry.weight - previousTrendEntry.weight)
+                    : 'N/A'}
+                </Text>
+              </View>
+              <View style={styles.trendSummaryRow}>
+                <Text style={styles.label}>Change from first</Text>
+                <Text style={styles.value}>
+                  {firstTrendEntry
+                    ? formatTrendDelta(latestTrendEntry.weight - firstTrendEntry.weight)
+                    : 'N/A'}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.emptyText}>Add a weight entry to see your latest summary.</Text>
+          )}
+        </AppCard>
+
+        <AppCard>
           <Pressable
             onPress={() => setIsBodyWeightTrendExpanded((current) => !current)}
             style={styles.collapsibleHeader}>
@@ -538,39 +568,12 @@ export default function ProgressScreen() {
           </Pressable>
 
           {isBodyWeightTrendExpanded ? (
-            <>
-              <TrendChart
-                emptyLabel="Add at least two weight entries to see a trend."
-                maxLabel={weightTrendAxisMaxLabel}
-                minLabel={weightTrendAxisMinLabel}
-                points={weightTrendPoints}
-              />
-
-              {latestTrendEntry ? (
-                <View style={styles.trendSummary}>
-                  <View style={styles.trendSummaryRow}>
-                    <Text style={styles.label}>Latest weight</Text>
-                    <Text style={styles.value}>{latestTrendEntry.weight.toFixed(1)} kg</Text>
-                  </View>
-                  <View style={styles.trendSummaryRow}>
-                    <Text style={styles.label}>Change from previous</Text>
-                    <Text style={styles.value}>
-                      {previousTrendEntry
-                        ? formatTrendDelta(latestTrendEntry.weight - previousTrendEntry.weight)
-                        : 'N/A'}
-                    </Text>
-                  </View>
-                  <View style={styles.trendSummaryRow}>
-                    <Text style={styles.label}>Change from first</Text>
-                    <Text style={styles.value}>
-                      {firstTrendEntry
-                        ? formatTrendDelta(latestTrendEntry.weight - firstTrendEntry.weight)
-                        : 'N/A'}
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
-            </>
+            <TrendChart
+              emptyLabel="Add at least two weight entries to see a trend."
+              maxLabel={weightTrendAxisMaxLabel}
+              minLabel={weightTrendAxisMinLabel}
+              points={weightTrendPoints}
+            />
           ) : null}
         </AppCard>
 
@@ -746,7 +749,7 @@ export default function ProgressScreen() {
                       <View style={styles.exerciseStatRow}>
                         <Text style={styles.label}>Best volume set</Text>
                         <Text style={styles.value}>
-                          {selectedExerciseStats.bestVolumeSet.weight.toFixed(1)} kg x{' '}
+                          {selectedExerciseStats.bestVolumeSet.weight.toFixed(1)} kg x {' '}
                           {selectedExerciseStats.bestVolumeSet.reps}
                         </Text>
                       </View>

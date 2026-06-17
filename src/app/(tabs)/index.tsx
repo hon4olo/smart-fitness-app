@@ -52,23 +52,23 @@ type PlanItem = {
 const projectPlan: PlanItem[] = [
   {
     label: 'Now',
-    title: 'Stabilize local MVP',
-    detail: 'Reduce UI overload, fix defaults, and keep persistence reliable.',
+    title: 'Core tracking and data entry',
+    detail: 'Keep workouts, nutrition, and progress logging stable.',
   },
   {
     label: 'Next',
-    title: 'Workout and progress flows',
-    detail: 'Keep logging, history, and edit/delete flows working cleanly.',
+    title: 'AI coach analysis',
+    detail: 'Add explainable feedback for training, nutrition, and recovery.',
   },
   {
     label: 'Then',
-    title: 'Nutrition diary',
-    detail: 'Improve food logging, recent foods, and saved meals.',
+    title: 'Learn-on-demand and customization',
+    detail: 'Offer short explanations, deeper dives, and simpler UI controls.',
   },
   {
     label: 'Later',
-    title: 'Dashboard and profile polish',
-    detail: 'Keep the app simple before any backend or cloud work.',
+    title: 'Labs, premium coaching, marketplace, social',
+    detail: 'Move analysis forward before adding paid and network features.',
   },
 ];
 

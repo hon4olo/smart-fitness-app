@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useState } from 'react';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -59,6 +59,9 @@ export default function WorkoutsScreen() {
   const [sessionWeight, setSessionWeight] = useState('');
   const [sessionReps, setSessionReps] = useState('');
   const [editingSessionSetId, setEditingSessionSetId] = useState<string | undefined>();
+  const [isCreateWorkoutExpanded, setIsCreateWorkoutExpanded] = useState(false);
+  const [isExercisesExpanded, setIsExercisesExpanded] = useState(false);
+  const [isWorkoutHistoryExpanded, setIsWorkoutHistoryExpanded] = useState(true);
   const completedSessions = [...workoutSessions].reverse();
   const isSaveWorkoutDisabled = workoutTitle.trim().length === 0 || draftExercises.length === 0;
   const isSaveExerciseDisabled = exerciseName.trim().length === 0;
@@ -91,6 +94,10 @@ export default function WorkoutsScreen() {
 
   const isCustomWorkout = (workoutId: string, isCustom?: boolean) => {
     return Boolean(isCustom) || !DEFAULT_WORKOUT_TEMPLATE_IDS.has(workoutId);
+  };
+
+  const getSectionTitle = (title: string, isExpanded: boolean) => {
+    return `${title} ${isExpanded ? '−' : '+'}`;
   };
 
   const clearWorkoutForm = () => {
@@ -187,6 +194,7 @@ export default function WorkoutsScreen() {
       return;
     }
 
+    setIsCreateWorkoutExpanded(true);
     setEditingWorkoutId(workout.id);
     setWorkoutTitle(workout.title);
     setWorkoutDescription(workout.description ?? '');
@@ -309,333 +317,368 @@ export default function WorkoutsScreen() {
         <SectionHeader title="Workouts" subtitle="Simple routines and mock exercises" />
         <AppButton label="Start Workout" onPress={() => startWorkout(workouts[0]?.id ?? '')} />
 
-        <SectionHeader title="Exercises" />
         <AppCard>
-          <View style={styles.inputGroup}>
-            <Text selectable style={styles.inputLabel}>
-              Exercise name
+          <Pressable
+            onPress={() => setIsExercisesExpanded((current) => !current)}
+            style={styles.collapsibleHeader}>
+            <Text style={styles.sectionTitle}>{getSectionTitle('Exercises', isExercisesExpanded)}</Text>
+          </Pressable>
+
+          {isExercisesExpanded ? (
+            <>
+              <View style={styles.inputGroup}>
+                <Text selectable style={styles.inputLabel}>
+                  Exercise name
+                </Text>
+                <TextInput
+                  onChangeText={setExerciseName}
+                  placeholder="Bench press"
+                  placeholderTextColor={Colors.dark.textSecondary}
+                  style={styles.input}
+                  value={exerciseName}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text selectable style={styles.inputLabel}>
+                  Muscle group
+                </Text>
+                <TextInput
+                  onChangeText={setExerciseMuscleGroup}
+                  placeholder="Chest"
+                  placeholderTextColor={Colors.dark.textSecondary}
+                  style={styles.input}
+                  value={exerciseMuscleGroup}
+                />
+              </View>
+
+              <AppButton
+                disabled={isSaveExerciseDisabled}
+                label="Add Exercise"
+                onPress={handleSaveExercise}
+              />
+
+              <View style={styles.availableExercises}>
+                <Text selectable style={styles.availableExercisesTitle}>
+                  Available exercises
+                </Text>
+                {exercises.length > 0 ? (
+                  exercises.map((exercise) => {
+                    const isAdded = isDraftExerciseAdded(exercise.name);
+
+                    return (
+                      <View key={exercise.id} style={styles.availableExerciseRow}>
+                        <View style={styles.availableExerciseContent}>
+                          <Text selectable style={styles.exercise}>
+                            {exercise.name}
+                          </Text>
+                          {exercise.muscleGroup ? (
+                            <Text selectable style={styles.availableExerciseMeta}>
+                              {exercise.muscleGroup}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <AppButton
+                          disabled={isAdded}
+                          label={isAdded ? 'Added' : 'Add'}
+                          onPress={() => handleAddDatabaseExercise(exercise.name)}
+                          variant="secondary"
+                        />
+                        {exercise.isCustom ? (
+                          <AppButton
+                            label="Delete"
+                            onPress={() => handleDeleteExercise(exercise.id)}
+                            variant="secondary"
+                          />
+                        ) : null}
+                      </View>
+                    );
+                  })
+                ) : (
+                  <Text selectable style={styles.emptyText}>
+                    No exercises yet.
+                  </Text>
+                )}
+              </View>
+            </>
+          ) : null}
+        </AppCard>
+
+        <AppCard>
+          <Pressable
+            onPress={() => setIsCreateWorkoutExpanded((current) => !current)}
+            style={styles.collapsibleHeader}>
+            <Text style={styles.sectionTitle}>
+              {getSectionTitle(editingWorkoutId ? 'Edit Workout' : 'Create Workout', isCreateWorkoutExpanded)}
             </Text>
-            <TextInput
-              onChangeText={setExerciseName}
-              placeholder="Bench press"
-              placeholderTextColor={Colors.dark.textSecondary}
-              style={styles.input}
-              value={exerciseName}
-            />
-          </View>
+          </Pressable>
 
-          <View style={styles.inputGroup}>
-            <Text selectable style={styles.inputLabel}>
-              Muscle group
-            </Text>
-            <TextInput
-              onChangeText={setExerciseMuscleGroup}
-              placeholder="Chest"
-              placeholderTextColor={Colors.dark.textSecondary}
-              style={styles.input}
-              value={exerciseMuscleGroup}
-            />
-          </View>
+          {isCreateWorkoutExpanded ? (
+            <>
+              <Text selectable style={styles.formTitle}>
+                {editingWorkoutId ? 'Edit Workout' : 'Create Workout'}
+              </Text>
 
-          <AppButton
-            disabled={isSaveExerciseDisabled}
-            label="Add Exercise"
-            onPress={handleSaveExercise}
-          />
+              <View style={styles.inputGroup}>
+                <Text selectable style={styles.inputLabel}>
+                  Workout title
+                </Text>
+                <TextInput
+                  onChangeText={setWorkoutTitle}
+                  placeholder="Push day"
+                  placeholderTextColor={Colors.dark.textSecondary}
+                  style={styles.input}
+                  value={workoutTitle}
+                />
+              </View>
 
-          <View style={styles.availableExercises}>
-            <Text selectable style={styles.availableExercisesTitle}>
-              Available exercises
-            </Text>
-            {exercises.length > 0 ? (
-              exercises.map((exercise) => {
-                const isAdded = isDraftExerciseAdded(exercise.name);
+              <View style={styles.inputGroup}>
+                <Text selectable style={styles.inputLabel}>
+                  Description
+                </Text>
+                <TextInput
+                  onChangeText={setWorkoutDescription}
+                  placeholder="Optional description"
+                  placeholderTextColor={Colors.dark.textSecondary}
+                  style={styles.input}
+                  value={workoutDescription}
+                />
+              </View>
 
-                return (
-                  <View key={exercise.id} style={styles.availableExerciseRow}>
-                    <View style={styles.availableExerciseContent}>
+              <View style={styles.inputGroup}>
+                <Text selectable style={styles.inputLabel}>
+                  Exercise name
+                </Text>
+                <TextInput
+                  onChangeText={setDraftExerciseName}
+                  placeholder="Bench press"
+                  placeholderTextColor={Colors.dark.textSecondary}
+                  style={styles.input}
+                  value={draftExerciseName}
+                />
+              </View>
+
+              <AppButton
+                disabled={draftExerciseName.trim().length === 0}
+                label="Add Exercise"
+                onPress={handleAddExercise}
+                variant="secondary"
+              />
+
+              {draftExercises.length > 0 ? (
+                <View style={styles.draftList}>
+                  {draftExercises.map((exercise, index) => (
+                    <View key={`${exercise}-${index}`} style={styles.draftRow}>
                       <Text selectable style={styles.exercise}>
-                        {exercise.name}
+                        {exercise}
                       </Text>
-                      {exercise.muscleGroup ? (
-                        <Text selectable style={styles.availableExerciseMeta}>
-                          {exercise.muscleGroup}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <AppButton
-                      disabled={isAdded}
-                      label={isAdded ? 'Added' : 'Add'}
-                      onPress={() => handleAddDatabaseExercise(exercise.name)}
-                      variant="secondary"
-                    />
-                    {exercise.isCustom ? (
                       <AppButton
-                        label="Delete"
-                        onPress={() => handleDeleteExercise(exercise.id)}
+                        label="Remove"
+                        onPress={() => handleRemoveDraftExercise(index)}
                         variant="secondary"
                       />
-                    ) : null}
-                  </View>
-                );
-              })
-            ) : (
-              <Text selectable style={styles.emptyText}>
-                No exercises yet.
-              </Text>
-            )}
-          </View>
-        </AppCard>
-
-        <SectionHeader title="Create Workout" />
-        <AppCard>
-          <Text selectable style={styles.formTitle}>
-            {editingWorkoutId ? 'Edit Workout' : 'Create Workout'}
-          </Text>
-
-          <View style={styles.inputGroup}>
-            <Text selectable style={styles.inputLabel}>
-              Workout title
-            </Text>
-            <TextInput
-              onChangeText={setWorkoutTitle}
-              placeholder="Push day"
-              placeholderTextColor={Colors.dark.textSecondary}
-              style={styles.input}
-              value={workoutTitle}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text selectable style={styles.inputLabel}>
-              Description
-            </Text>
-            <TextInput
-              onChangeText={setWorkoutDescription}
-              placeholder="Optional description"
-              placeholderTextColor={Colors.dark.textSecondary}
-              style={styles.input}
-              value={workoutDescription}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text selectable style={styles.inputLabel}>
-              Exercise name
-            </Text>
-            <TextInput
-              onChangeText={setDraftExerciseName}
-              placeholder="Bench press"
-              placeholderTextColor={Colors.dark.textSecondary}
-              style={styles.input}
-              value={draftExerciseName}
-            />
-          </View>
-
-          <AppButton
-            disabled={draftExerciseName.trim().length === 0}
-            label="Add Exercise"
-            onPress={handleAddExercise}
-            variant="secondary"
-          />
-
-          {draftExercises.length > 0 ? (
-            <View style={styles.draftList}>
-              {draftExercises.map((exercise, index) => (
-                <View key={`${exercise}-${index}`} style={styles.draftRow}>
-                  <Text selectable style={styles.exercise}>
-                    {exercise}
-                  </Text>
-                  <AppButton
-                    label="Remove"
-                    onPress={() => handleRemoveDraftExercise(index)}
-                    variant="secondary"
-                  />
-                </View>
-              ))}
-            </View>
-          ) : null}
-
-          <AppButton disabled={isSaveWorkoutDisabled} label="Save Workout" onPress={handleSaveWorkout} />
-          {editingWorkoutId ? (
-            <AppButton label="Cancel Edit" onPress={clearWorkoutForm} variant="secondary" />
-          ) : null}
-        </AppCard>
-
-        <SectionHeader title="Workout history" />
-        {completedSessions.length === 0 ? (
-          <AppCard>
-            <Text selectable style={styles.emptyText}>
-              No completed workouts yet.
-            </Text>
-          </AppCard>
-        ) : (
-          completedSessions.map((session) => {
-            const isEditingSession = editingSessionId === session.id;
-            const visibleSets = isEditingSession ? sessionDraftSets : session.sets;
-            const sessionExercises = getSessionExercises({ ...session, sets: visibleSets });
-            const sessionVolume = getSessionVolume({ ...session, sets: visibleSets });
-
-            return (
-              <AppCard key={session.id}>
-                <View style={styles.cardHeader}>
-                  <Text selectable style={styles.title}>
-                    {session.workoutTitle}
-                  </Text>
-                  <Text selectable style={styles.duration}>
-                    {formatFinishedAt(session.finishedAt)}
-                  </Text>
-                </View>
-
-                <View style={styles.sessionStats}>
-                  <Text selectable style={styles.sessionStat}>
-                    {session.sets.length} sets
-                  </Text>
-                  <Text selectable style={styles.sessionStat}>
-                    {sessionVolume.toLocaleString()} kg volume
-                  </Text>
-                </View>
-
-                <View style={styles.exerciseList}>
-                  {sessionExercises.map((exerciseName) => (
-                    <Text selectable key={exerciseName} style={styles.exercise}>
-                      {exerciseName}
-                    </Text>
+                    </View>
                   ))}
                 </View>
+              ) : null}
 
-                {isEditingSession ? (
-                  <View style={styles.sessionEditor}>
-                    <View style={styles.inputGroup}>
-                      <Text selectable style={styles.inputLabel}>
-                        Exercise name
+              <AppButton
+                disabled={isSaveWorkoutDisabled}
+                label="Save Workout"
+                onPress={handleSaveWorkout}
+              />
+              {editingWorkoutId ? (
+                <AppButton label="Cancel Edit" onPress={clearWorkoutForm} variant="secondary" />
+              ) : null}
+            </>
+          ) : null}
+        </AppCard>
+
+        <AppCard>
+          <Pressable
+            onPress={() => setIsWorkoutHistoryExpanded((current) => !current)}
+            style={styles.collapsibleHeader}>
+            <Text style={styles.sectionTitle}>
+              {getSectionTitle('Workout History', isWorkoutHistoryExpanded)}
+            </Text>
+          </Pressable>
+
+          {isWorkoutHistoryExpanded ? (
+            completedSessions.length === 0 ? (
+              <AppCard>
+                <Text selectable style={styles.emptyText}>
+                  No completed workouts yet.
+                </Text>
+              </AppCard>
+            ) : (
+              completedSessions.map((session) => {
+                const isEditingSession = editingSessionId === session.id;
+                const visibleSets = isEditingSession ? sessionDraftSets : session.sets;
+                const sessionExercises = getSessionExercises({ ...session, sets: visibleSets });
+                const sessionVolume = getSessionVolume({ ...session, sets: visibleSets });
+
+                return (
+                  <AppCard key={session.id}>
+                    <View style={styles.cardHeader}>
+                      <Text selectable style={styles.title}>
+                        {session.workoutTitle}
                       </Text>
-                      <TextInput
-                        onChangeText={setSessionExerciseName}
-                        placeholder="Bench press"
-                        placeholderTextColor={Colors.dark.textSecondary}
-                        style={styles.input}
-                        value={sessionExerciseName}
-                      />
+                      <Text selectable style={styles.duration}>
+                        {formatFinishedAt(session.finishedAt)}
+                      </Text>
                     </View>
 
-                    <View style={styles.inputsRow}>
-                      <View style={styles.inputGroup}>
-                        <Text selectable style={styles.inputLabel}>
-                          Weight
-                        </Text>
-                        <TextInput
-                          keyboardType="decimal-pad"
-                          onChangeText={setSessionWeight}
-                          placeholder="0"
-                          placeholderTextColor={Colors.dark.textSecondary}
-                          style={styles.input}
-                          value={sessionWeight}
-                        />
-                      </View>
-
-                      <View style={styles.inputGroup}>
-                        <Text selectable style={styles.inputLabel}>
-                          Reps
-                        </Text>
-                        <TextInput
-                          keyboardType="number-pad"
-                          onChangeText={setSessionReps}
-                          placeholder="0"
-                          placeholderTextColor={Colors.dark.textSecondary}
-                          style={styles.input}
-                          value={sessionReps}
-                        />
-                      </View>
+                    <View style={styles.sessionStats}>
+                      <Text selectable style={styles.sessionStat}>
+                        {session.sets.length} sets
+                      </Text>
+                      <Text selectable style={styles.sessionStat}>
+                        {sessionVolume.toLocaleString()} kg volume
+                      </Text>
                     </View>
 
-                    <AppButton
-                      label={editingSessionSetId ? 'Save Set' : 'Add Set'}
-                      onPress={handleSaveSessionSet}
-                    />
-                    {editingSessionSetId ? (
-                      <AppButton
-                        label="Cancel Edit"
-                        onPress={() => {
-                          setEditingSessionSetId(undefined);
-                          setSessionExerciseName('');
-                          setSessionWeight('');
-                          setSessionReps('');
-                        }}
-                        variant="secondary"
-                      />
-                    ) : null}
-
-                    <View style={styles.draftList}>
-                      {sessionDraftSets.map((set) => (
-                        <View key={set.id} style={styles.draftRow}>
-                          <View style={styles.setContent}>
-                            <Text selectable style={styles.setName}>
-                              {set.exerciseName}
-                            </Text>
-                            <Text selectable style={styles.setMeta}>
-                              {set.weight} kg x {set.reps}
-                            </Text>
-                          </View>
-                          <View style={styles.setActions}>
-                            <AppButton
-                              label="Edit"
-                              onPress={() => handleEditSessionSet(set)}
-                              variant="secondary"
-                            />
-                            <AppButton
-                              label="Delete"
-                              onPress={() => handleDeleteSessionSet(set.id)}
-                              variant="secondary"
-                            />
-                          </View>
-                        </View>
+                    <View style={styles.exerciseList}>
+                      {sessionExercises.map((exerciseName) => (
+                        <Text selectable key={exerciseName} style={styles.exercise}>
+                          {exerciseName}
+                        </Text>
                       ))}
                     </View>
 
-                    <View style={styles.editorFooter}>
-                      <AppButton label="Cancel" onPress={handleCancelSessionEdit} variant="secondary" />
-                      <AppButton
-                        label="Save Changes"
-                        onPress={() => handleSaveSessionChanges(session)}
-                      />
-                      <AppButton
-                        label="Delete"
-                        onPress={() => {
-                          Alert.alert(
-                            'Delete workout?',
-                            'This completed workout will be removed from history.',
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              {
-                                text: 'Delete',
-                                style: 'destructive',
-                                onPress: () => {
-                                  clearSessionEdit();
-                                  deleteWorkoutSession(session.id);
-                                },
-                              },
-                            ],
-                          );
-                        }}
-                        variant="secondary"
-                      />
-                    </View>
-                  </View>
-                ) : (
-                  <>
-                    <AppButton label="Edit" onPress={() => handleEditSession(session)} variant="secondary" />
-                    <AppButton
-                      label="Delete"
-                      onPress={() => confirmDeleteSession(session.id)}
-                      variant="secondary"
-                    />
-                  </>
-                )}
-              </AppCard>
-            );
-          })
-        )}
+                    {isEditingSession ? (
+                      <View style={styles.sessionEditor}>
+                        <View style={styles.inputGroup}>
+                          <Text selectable style={styles.inputLabel}>
+                            Exercise name
+                          </Text>
+                          <TextInput
+                            onChangeText={setSessionExerciseName}
+                            placeholder="Bench press"
+                            placeholderTextColor={Colors.dark.textSecondary}
+                            style={styles.input}
+                            value={sessionExerciseName}
+                          />
+                        </View>
+
+                        <View style={styles.inputsRow}>
+                          <View style={styles.inputGroup}>
+                            <Text selectable style={styles.inputLabel}>
+                              Weight
+                            </Text>
+                            <TextInput
+                              keyboardType="decimal-pad"
+                              onChangeText={setSessionWeight}
+                              placeholder="0"
+                              placeholderTextColor={Colors.dark.textSecondary}
+                              style={styles.input}
+                              value={sessionWeight}
+                            />
+                          </View>
+
+                          <View style={styles.inputGroup}>
+                            <Text selectable style={styles.inputLabel}>
+                              Reps
+                            </Text>
+                            <TextInput
+                              keyboardType="number-pad"
+                              onChangeText={setSessionReps}
+                              placeholder="0"
+                              placeholderTextColor={Colors.dark.textSecondary}
+                              style={styles.input}
+                              value={sessionReps}
+                            />
+                          </View>
+                        </View>
+
+                        <AppButton
+                          label={editingSessionSetId ? 'Save Set' : 'Add Set'}
+                          onPress={handleSaveSessionSet}
+                        />
+                        {editingSessionSetId ? (
+                          <AppButton
+                            label="Cancel Edit"
+                            onPress={() => {
+                              setEditingSessionSetId(undefined);
+                              setSessionExerciseName('');
+                              setSessionWeight('');
+                              setSessionReps('');
+                            }}
+                            variant="secondary"
+                          />
+                        ) : null}
+
+                        <View style={styles.draftList}>
+                          {sessionDraftSets.map((set) => (
+                            <View key={set.id} style={styles.draftRow}>
+                              <View style={styles.setContent}>
+                                <Text selectable style={styles.setName}>
+                                  {set.exerciseName}
+                                </Text>
+                                <Text selectable style={styles.setMeta}>
+                                  {set.weight} kg x {set.reps}
+                                </Text>
+                              </View>
+                              <View style={styles.setActions}>
+                                <AppButton
+                                  label="Edit"
+                                  onPress={() => handleEditSessionSet(set)}
+                                  variant="secondary"
+                                />
+                                <AppButton
+                                  label="Delete"
+                                  onPress={() => handleDeleteSessionSet(set.id)}
+                                  variant="secondary"
+                                />
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+
+                        <View style={styles.editorFooter}>
+                          <AppButton label="Cancel" onPress={handleCancelSessionEdit} variant="secondary" />
+                          <AppButton
+                            label="Save Changes"
+                            onPress={() => handleSaveSessionChanges(session)}
+                          />
+                          <AppButton
+                            label="Delete"
+                            onPress={() => {
+                              Alert.alert(
+                                'Delete workout?',
+                                'This completed workout will be removed from history.',
+                                [
+                                  { text: 'Cancel', style: 'cancel' },
+                                  {
+                                    text: 'Delete',
+                                    style: 'destructive',
+                                    onPress: () => {
+                                      clearSessionEdit();
+                                      deleteWorkoutSession(session.id);
+                                    },
+                                  },
+                                ],
+                              );
+                            }}
+                            variant="secondary"
+                          />
+                        </View>
+                      </View>
+                    ) : (
+                      <>
+                        <AppButton label="Edit" onPress={() => handleEditSession(session)} variant="secondary" />
+                        <AppButton
+                          label="Delete"
+                          onPress={() => confirmDeleteSession(session.id)}
+                          variant="secondary"
+                        />
+                      </>
+                    )}
+                  </AppCard>
+                );
+              })
+            )
+          ) : null}
+        </AppCard>
 
         <SectionHeader title="Workout templates" />
         {workouts.map((workout) => (
@@ -690,6 +733,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.two,
     justifyContent: 'space-between',
+  },
+  collapsibleHeader: {
+    paddingBottom: Spacing.two,
   },
   container: {
     gap: Spacing.three,
@@ -821,16 +867,21 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.background,
     flex: 1,
   },
-  setMeta: {
+  sectionTitle: {
     color: Colors.dark.text,
-    fontSize: 15,
-    fontVariant: ['tabular-nums'],
+    fontSize: 18,
     fontWeight: '800',
   },
   setName: {
     color: Colors.dark.textSecondary,
     flex: 1,
     fontSize: 15,
+  },
+  setMeta: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
   },
   sessionStat: {
     color: Colors.dark.textSecondary,
