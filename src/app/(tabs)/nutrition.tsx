@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { AddFoodFormSection } from '@/components/nutrition/AddFoodFormSection';
+import { FoodDiarySection } from '@/components/nutrition/FoodDiarySection';
+import { FoodSearchSection } from '@/components/nutrition/FoodSearchSection';
+import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
+import { NutritionTargetsCard } from '@/components/nutrition/NutritionTargetsCard';
+import { RecentFoodsSection } from '@/components/nutrition/RecentFoodsSection';
+import { SavedMealsSection } from '@/components/nutrition/SavedMealsSection';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import type { FoodEntry, MealTemplate, MealType } from '@/context/AppContext';
 import { useAppContext } from '@/context/AppContext';
@@ -368,7 +375,7 @@ export default function NutritionScreen() {
     quantity?: number;
   }) => {
     if (!entry.servingSize && !entry.servingUnit && !entry.quantity) {
-      return null;
+      return '';
     }
 
     if (entry.quantity && entry.servingUnit) {
@@ -717,24 +724,14 @@ export default function NutritionScreen() {
       <View style={styles.container}>
         <SectionHeader title="Eat" subtitle="Meals, macros, and nutrition targets" />
 
-        <AppCard>
-          <Text selectable style={styles.sectionTitle}>Coach insight</Text>
-          <View style={styles.suggestionSummary}>
-            <View style={styles.suggestionSummaryRow}>
-              <Text selectable style={styles.suggestionLabel}>{nutritionCoachInsight.title}</Text>
-              <Text selectable style={styles.suggestionValue}>{nutritionCoachInsight.calorieLine}</Text>
-            </View>
-            <View style={styles.suggestionSummaryRow}>
-              <Text selectable style={styles.suggestionLabel}>Direction</Text>
-              <Text selectable style={styles.suggestionValue}>{nutritionCoachInsight.detail}</Text>
-            </View>
-            <View style={styles.suggestionSummaryRow}>
-              <Text selectable style={styles.suggestionLabel}>Protein</Text>
-              <Text selectable style={styles.suggestionValue}>{nutritionCoachInsight.proteinLine}</Text>
-            </View>
-          </View>
-          <AppButton label={nutritionCoachInsight.ctaLabel} onPress={() => setIsSearchExpanded(true)} variant="secondary" />
-        </AppCard>
+        <NutritionSummaryCard
+          calorieLine={nutritionCoachInsight.calorieLine}
+          ctaLabel={nutritionCoachInsight.ctaLabel}
+          detail={nutritionCoachInsight.detail}
+          onPress={() => setIsSearchExpanded(true)}
+          proteinLine={nutritionCoachInsight.proteinLine}
+          title={nutritionCoachInsight.title}
+        />
 
         <AppCard>
           <Text selectable style={styles.sectionTitle}>
@@ -849,549 +846,97 @@ export default function NutritionScreen() {
           </View>
         </AppCard>
 
-        <AppCard>
-          <Pressable
-            onPress={() => setIsTargetsExpanded((current) => !current)}
-            style={styles.collapsibleHeader}>
-            <Text selectable style={styles.sectionTitle}>
-              {getSectionTitle('Nutrition Targets', isTargetsExpanded)}
-            </Text>
-          </Pressable>
+        <NutritionTargetsCard
+          goalType={profile.goalType}
+          isExpanded={isTargetsExpanded}
+          latestWeightLabel={Number.isFinite(latestWeightKg) && latestWeightKg > 0 ? `${latestWeightKg.toFixed(1)} kg` : 'No weight logged yet'}
+          onApplySuggestedTargets={handleApplySuggestedTargets}
+          onCaloriesChange={setTargetCalories}
+          onCarbsChange={setTargetCarbs}
+          onFatsChange={setTargetFats}
+          onProteinChange={setTargetProtein}
+          onSaveTargets={handleSaveTargets}
+          onToggleExpanded={() => setIsTargetsExpanded((current) => !current)}
+          caloriesTarget={targetCalories}
+          carbsTarget={targetCarbs}
+          fatsTarget={targetFats}
+          proteinTarget={targetProtein}
+          suggestedTargets={suggestedTargets}
+        />
 
-          {isTargetsExpanded ? (
-            <>
-              <View style={styles.suggestedSummary}>
-                <View style={styles.suggestedSummaryRow}>
-                  <Text selectable style={styles.targetLabel}>
-                    Goal
-                  </Text>
-                  <Text selectable style={styles.targetValue}>
-                    {formatGoalType(profile.goalType)}
-                  </Text>
-                </View>
-                <View style={styles.suggestedSummaryRow}>
-                  <Text selectable style={styles.targetLabel}>
-                    Latest weight
-                  </Text>
-                  <Text selectable style={styles.targetValue}>
-                    {Number.isFinite(latestWeightKg) && latestWeightKg > 0
-                      ? `${latestWeightKg.toFixed(1)} kg`
-                      : 'No weight logged yet'}
-                  </Text>
-                </View>
-              </View>
+        <FoodSearchSection
+          filteredFoods={filteredMockFoods}
+          foodSearchQuery={foodSearchQuery}
+          isExpanded={isSearchExpanded}
+          onFoodSearchQueryChange={setFoodSearchQuery}
+          onToggleExpanded={() => setIsSearchExpanded((current) => !current)}
+          onUseFood={handleUseMockFood}
+        />
 
-              <View style={styles.suggestedCard}>
-                <Text selectable style={styles.suggestedTitle}>
-                  Suggested Targets
-                </Text>
-                {suggestedTargets ? (
-                  <>
-                    <View style={styles.suggestedGrid}>
-                      <View style={styles.suggestedItem}>
-                        <Text selectable style={styles.inputLabel}>
-                          Calories
-                        </Text>
-                        <Text selectable style={styles.suggestedValue}>
-                          {suggestedTargets.calories}
-                        </Text>
-                      </View>
-                      <View style={styles.suggestedItem}>
-                        <Text selectable style={styles.inputLabel}>
-                          Protein
-                        </Text>
-                        <Text selectable style={styles.suggestedValue}>
-                          {suggestedTargets.protein} g
-                        </Text>
-                      </View>
-                      <View style={styles.suggestedItem}>
-                        <Text selectable style={styles.inputLabel}>
-                          Carbs
-                        </Text>
-                        <Text selectable style={styles.suggestedValue}>
-                          {suggestedTargets.carbs} g
-                        </Text>
-                      </View>
-                      <View style={styles.suggestedItem}>
-                        <Text selectable style={styles.inputLabel}>
-                          Fats
-                        </Text>
-                        <Text selectable style={styles.suggestedValue}>
-                          {suggestedTargets.fats} g
-                        </Text>
-                      </View>
-                    </View>
-                    <AppButton
-                      label="Apply Suggested Targets"
-                      onPress={handleApplySuggestedTargets}
-                      variant="secondary"
-                    />
-                  </>
-                ) : (
-                  <Text selectable style={styles.remainingValue}>
-                    Log a weight entry to generate suggested targets.
-                  </Text>
-                )}
-              </View>
+        <RecentFoodsSection
+          formatServingInfo={formatServingInfo}
+          isExpanded={isRecentFoodsExpanded}
+          onToggleExpanded={() => setIsRecentFoodsExpanded((current) => !current)}
+          onUseRecentFood={handleUseRecentFood}
+          recentFoods={recentFoods}
+        />
 
-              <View style={styles.inputGrid}>
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Calories target
-                  </Text>
-                  <TextInput
-                    keyboardType="decimal-pad"
-                    onChangeText={setTargetCalories}
-                    placeholder="2800"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={targetCalories}
-                  />
-                </View>
+        <SavedMealsSection
+          currentMealCount={selectedMealFoodEntries.length}
+          currentMealLabel={mealTypeLabels[mealType]}
+          currentMealNutritionLabel={formatMacroTotals(selectedMealNutrition)}
+          formatMacroTotals={formatMacroTotals}
+          isExpanded={isSavedMealsExpanded}
+          isMealTemplateSaveDisabled={isMealTemplateSaveDisabled}
+          mealTemplateButtonLabel={mealTemplateButtonLabel}
+          mealTemplateName={mealTemplateName}
+          mealTemplates={mealTemplates}
+          onDeleteMealTemplate={confirmDeleteMealTemplate}
+          onMealTemplateNameChange={setMealTemplateName}
+          onSaveMealTemplate={handleSaveMealTemplate}
+          onToggleExpanded={() => setIsSavedMealsExpanded((current) => !current)}
+          onUseMealTemplate={handleUseMealTemplate}
+          selectedDateLabel={selectedDate}
+          selectedMealEntriesCount={selectedMealFoodEntries.length}
+          selectedMealTypeLabel={mealTypeLabels[mealType]}
+        />
 
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Protein target
-                  </Text>
-                  <TextInput
-                    keyboardType="decimal-pad"
-                    onChangeText={setTargetProtein}
-                    placeholder="160"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={targetProtein}
-                  />
-                </View>
+        <AddFoodFormSection
+          calories={calories}
+          carbs={carbs}
+          currentMealTotalLabel={formatMacroTotals(selectedMealNutrition)}
+          editingFoodEntry={editingFoodEntry}
+          fats={fats}
+          isExpanded={isAddFoodFormExpanded}
+          isSaveDisabled={isSaveDisabled}
+          mealType={mealType}
+          mealTypeLabels={mealTypeLabels}
+          name={name}
+          onCaloriesChange={setCalories}
+          onCarbsChange={setCarbs}
+          onCancelEdit={clearForm}
+          onFatsChange={setFats}
+          onMealTypeChange={setMealType}
+          onNameChange={handleNameChange}
+          onProteinChange={setProtein}
+          onQuantityChange={handleQuantityChange}
+          onSaveFood={handleSaveFood}
+          onServingSizeChange={handleServingSizeChange}
+          onServingUnitChange={handleServingUnitChange}
+          onToggleExpanded={() => setIsAddFoodFormExpanded((current) => !current)}
+          protein={protein}
+          quantity={quantity}
+          servingSize={servingSize}
+          servingUnit={servingUnit}
+        />
 
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Carbs target
-                  </Text>
-                  <TextInput
-                    keyboardType="decimal-pad"
-                    onChangeText={setTargetCarbs}
-                    placeholder="350"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={targetCarbs}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Fats target
-                  </Text>
-                  <TextInput
-                    keyboardType="decimal-pad"
-                    onChangeText={setTargetFats}
-                    placeholder="80"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={targetFats}
-                  />
-                </View>
-              </View>
-
-              <AppButton label="Save Targets" onPress={handleSaveTargets} />
-            </>
-          ) : null}
-        </AppCard>
-
-        <AppCard>
-          <Pressable
-            onPress={() => setIsSearchExpanded((current) => !current)}
-            style={styles.collapsibleHeader}>
-            <Text selectable style={styles.sectionTitle}>
-              {getSectionTitle('Search Food', isSearchExpanded)}
-            </Text>
-          </Pressable>
-
-          {isSearchExpanded ? (
-            <>
-              <View style={styles.inputGroup}>
-                <TextInput
-                  onChangeText={setFoodSearchQuery}
-                  placeholder="Search food database"
-                  placeholderTextColor={Colors.dark.textSecondary}
-                  style={styles.input}
-                  value={foodSearchQuery}
-                />
-              </View>
-
-              {filteredMockFoods.map((food) => (
-                <View key={`${food.name}-${food.servingUnit}`} style={styles.searchResult}>
-                  <View style={styles.searchResultContent}>
-                    <Text selectable style={styles.foodName}>
-                      {food.name}
-                    </Text>
-                    {food.brandName ? (
-                      <Text selectable style={styles.foodBrand}>
-                        {food.brandName}
-                      </Text>
-                    ) : null}
-                    <Text selectable style={styles.foodMeta}>
-                      {food.calories} kcal / {food.protein} g protein / {food.carbs} g carbs / {food.fats} g fats
-                    </Text>
-                    <Text selectable style={styles.foodServing}>
-                      Serving: {[food.servingSize, food.servingUnit].filter(Boolean).join(' ')}
-                    </Text>
-                  </View>
-                  <AppButton label="Use" onPress={() => handleUseMockFood(food)} variant="secondary" />
-                </View>
-              ))}
-            </>
-          ) : null}
-        </AppCard>
-
-        <AppCard>
-          <Pressable
-            onPress={() => setIsRecentFoodsExpanded((current) => !current)}
-            style={styles.collapsibleHeader}>
-            <Text selectable style={styles.sectionTitle}>
-              {getSectionTitle('Recent Foods', isRecentFoodsExpanded)}
-            </Text>
-          </Pressable>
-
-          {isRecentFoodsExpanded ? (
-            recentFoods.length > 0 ? (
-              recentFoods.map((food) => (
-                <View key={`${food.name}-${food.brandName ?? ''}-${food.source}-${food.externalId ?? ''}`} style={styles.searchResult}>
-                  <View style={styles.searchResultContent}>
-                    <Text selectable style={styles.foodName}>
-                      {food.name}
-                    </Text>
-                    {food.brandName ? (
-                      <Text selectable style={styles.foodBrand}>
-                        {food.brandName}
-                      </Text>
-                    ) : null}
-                    {formatServingInfo(food) ? (
-                      <Text selectable style={styles.foodServing}>
-                        Serving: {formatServingInfo(food)}
-                      </Text>
-                    ) : null}
-                    <Text selectable style={styles.foodMeta}>
-                      {food.calories} kcal / {food.protein} g protein / {food.carbs} g carbs /{' '}
-                      {food.fats} g fats
-                    </Text>
-                  </View>
-                  <AppButton
-                    label="Use"
-                    onPress={() => handleUseRecentFood(food)}
-                    variant="secondary"
-                  />
-                </View>
-              ))
-            ) : (
-              <Text selectable style={styles.remainingValue}>
-                No recent foods yet.
-              </Text>
-            )
-          ) : null}
-        </AppCard>
-
-        <AppCard>
-          <Pressable
-            onPress={() => setIsSavedMealsExpanded((current) => !current)}
-            style={styles.collapsibleHeader}>
-            <Text selectable style={styles.sectionTitle}>
-              {getSectionTitle('Saved Meals', isSavedMealsExpanded)}
-            </Text>
-          </Pressable>
-
-          {isSavedMealsExpanded ? (
-            <>
-              <View style={styles.savedMealComposer}>
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Template name
-                  </Text>
-                  <TextInput
-                    onChangeText={setMealTemplateName}
-                    placeholder="Post-workout lunch"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={mealTemplateName}
-                  />
-                </View>
-
-                <Text selectable style={styles.remainingValue}>
-                  Save the current {mealTypeLabels[mealType]} entries for {selectedDate}. This will store{' '}
-                  {selectedMealFoodEntries.length} item{selectedMealFoodEntries.length === 1 ? '' : 's'}.
-                </Text>
-                <Text selectable style={styles.templateSummaryLabel}>
-                  Template source: {mealTypeLabels[mealType]}
-                </Text>
-                <Text selectable style={styles.templateSummaryLabel}>
-                  Foods in current meal: {selectedMealFoodEntries.length}
-                </Text>
-                <Text selectable style={styles.templateSummaryLabel}>
-                  Current meal calories: {formatNumber(selectedMealNutrition.calories)} kcal
-                </Text>
-
-                <AppButton
-                  disabled={isMealTemplateSaveDisabled}
-                  label={mealTemplateButtonLabel}
-                  onPress={handleSaveMealTemplate}
-                />
-              </View>
-
-              {mealTemplates.length > 0 ? (
-                mealTemplates.map((template) => {
-                  const templateTotals = template.items.reduce(
-                    (totals, entry) => ({
-                      calories: totals.calories + entry.calories,
-                      protein: totals.protein + entry.protein,
-                      carbs: totals.carbs + entry.carbs,
-                      fats: totals.fats + entry.fats,
-                    }),
-                    { calories: 0, protein: 0, carbs: 0, fats: 0 }
-                  );
-
-                  return (
-                    <View key={template.id} style={styles.savedMealItem}>
-                      <View style={styles.savedMealItemContent}>
-                        <Text selectable style={styles.foodName}>
-                          {template.name}
-                        </Text>
-                        <Text selectable style={styles.foodMeta}>
-                          {formatMacroTotals(templateTotals)}
-                        </Text>
-                        <Text selectable style={styles.foodServing}>
-                          {template.items.length} item{template.items.length === 1 ? '' : 's'}
-                        </Text>
-                      </View>
-                      <View style={styles.savedMealActions}>
-                        <AppButton
-                          label="Use"
-                          onPress={() => handleUseMealTemplate(template)}
-                          variant="secondary"
-                        />
-                        <AppButton
-                          label="Delete"
-                          onPress={() => confirmDeleteMealTemplate(template.id)}
-                          variant="secondary"
-                        />
-                      </View>
-                    </View>
-                  );
-                })
-              ) : (
-                <Text selectable style={styles.remainingValue}>
-                  No saved meals yet.
-                </Text>
-              )}
-            </>
-          ) : null}
-        </AppCard>
-
-        <AppCard>
-          <Pressable
-            onPress={() => setIsAddFoodFormExpanded((current) => !current)}
-            style={styles.collapsibleHeader}>
-            <Text selectable style={styles.sectionTitle}>
-              {getSectionTitle(editingFoodEntry ? 'Edit Food' : 'Add Food form', isAddFoodFormExpanded)}
-            </Text>
-          </Pressable>
-
-          {isAddFoodFormExpanded ? (
-            <>
-              <View style={styles.inputGroup}>
-                <Text selectable style={styles.inputLabel}>
-                  Name
-                </Text>
-                <TextInput
-                  onChangeText={handleNameChange}
-                  placeholder="Food name"
-                  placeholderTextColor={Colors.dark.textSecondary}
-                  style={styles.input}
-                  value={name}
-                />
-              </View>
-
-              <Text selectable style={styles.inputLabel}>
-                Meal type
-              </Text>
-              <View style={styles.mealTypeRow}>
-                {mealTypeOrder.map((type) => (
-                  <AppButton
-                    key={type}
-                    label={mealTypeLabels[type]}
-                    onPress={() => setMealType(type)}
-                    variant={mealType === type ? 'primary' : 'secondary'}
-                  />
-                ))}
-              </View>
-
-              <View style={styles.mealSummary}>
-                <Text selectable style={styles.remainingValue}>
-                  Current {mealTypeLabels[mealType]} total: {formatMacroTotals(selectedMealNutrition)}
-                </Text>
-              </View>
-
-              <View style={styles.inputGrid}>
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Calories
-                  </Text>
-                  <TextInput
-                    keyboardType="decimal-pad"
-                    onChangeText={setCalories}
-                    placeholder="0"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={calories}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Protein
-                  </Text>
-                  <TextInput
-                    keyboardType="decimal-pad"
-                    onChangeText={setProtein}
-                    placeholder="0"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={protein}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Carbs
-                  </Text>
-                  <TextInput
-                    keyboardType="decimal-pad"
-                    onChangeText={setCarbs}
-                    placeholder="0"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={carbs}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Fats
-                  </Text>
-                  <TextInput
-                    keyboardType="decimal-pad"
-                    onChangeText={setFats}
-                    placeholder="0"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={fats}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGrid}>
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Serving size
-                  </Text>
-                  <TextInput
-                    keyboardType="decimal-pad"
-                    onChangeText={handleServingSizeChange}
-                    placeholder="100"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={servingSize}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Serving unit
-                  </Text>
-                  <TextInput
-                    onChangeText={handleServingUnitChange}
-                    placeholder="g"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={servingUnit}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text selectable style={styles.inputLabel}>
-                    Quantity
-                  </Text>
-                  <TextInput
-                    keyboardType="decimal-pad"
-                    onChangeText={handleQuantityChange}
-                    placeholder="0"
-                    placeholderTextColor={Colors.dark.textSecondary}
-                    style={styles.input}
-                    value={quantity}
-                  />
-                </View>
-              </View>
-
-              <AppButton disabled={isSaveDisabled} label="Save Food" onPress={handleSaveFood} />
-              {editingFoodEntry ? (
-                <AppButton label="Cancel Edit" onPress={clearForm} variant="secondary" />
-              ) : null}
-            </>
-          ) : null}
-        </AppCard>
-
-        <AppCard>
-          <Text selectable style={styles.sectionTitle}>
-            Food entries
-          </Text>
-          {selectedDateMeals.map(({ entries, subtotal, type }) => {
-            if (entries.length === 0) {
-              return null;
-            }
-
-            return (
-              <View key={type} style={styles.mealGroup}>
-                <View style={styles.mealHeader}>
-                  <Text selectable style={styles.mealTitle}>
-                    {mealTypeLabels[type]}
-                  </Text>
-                  <Text selectable style={styles.mealSubtotal}>
-                    {subtotal.calories.toFixed(0)} kcal
-                  </Text>
-                </View>
-                {entries.map((entry) => (
-                  <View key={entry.id} style={styles.foodRow}>
-                    <Text selectable style={styles.foodName}>
-                      {entry.name}
-                    </Text>
-                    {entry.brandName ? (
-                      <Text selectable style={styles.foodBrand}>
-                        {entry.brandName}
-                      </Text>
-                    ) : null}
-                    {formatServingInfo(entry) ? (
-                      <Text selectable style={styles.foodServing}>
-                        Serving: {formatServingInfo(entry)}
-                      </Text>
-                    ) : null}
-                    <Text selectable style={styles.foodMeta}>
-                      {entry.calories} kcal / {entry.protein} g protein / {entry.carbs} g carbs /{' '}
-                      {entry.fats} g fats
-                    </Text>
-                    <AppButton
-                      label="Edit"
-                      onPress={() => handleEditFoodEntry(entry)}
-                      variant="secondary"
-                    />
-                    <AppButton
-                      label="Delete"
-                      onPress={() => confirmDeleteFoodEntry(entry.id)}
-                      variant="secondary"
-                    />
-                  </View>
-                ))}
-              </View>
-            );
-          })}
-        </AppCard>
+        <FoodDiarySection
+          entriesByMeal={selectedDateMeals}
+          formatServingInfo={formatServingInfo}
+          mealTypeLabels={mealTypeLabels}
+          onDeleteFoodEntry={confirmDeleteFoodEntry}
+          onEditFoodEntry={handleEditFoodEntry}
+        />
       </View>
     </ScrollView>
   );
