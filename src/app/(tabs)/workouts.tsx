@@ -5,6 +5,11 @@ import { useState } from 'react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { EmptyWorkoutState } from '@/components/workouts/EmptyWorkoutState';
+import { WorkoutCoachInsightCard } from '@/components/workouts/WorkoutCoachInsightCard';
+import { WorkoutExerciseLibraryCard } from '@/components/workouts/WorkoutExerciseLibraryCard';
+import { WorkoutHistorySessionCard } from '@/components/workouts/WorkoutHistorySessionCard';
+import { WorkoutTemplateCard } from '@/components/workouts/WorkoutTemplateCard';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext, WorkoutSession } from '@/context/AppContext';
 
@@ -249,6 +254,13 @@ export default function WorkoutsScreen() {
     setSessionReps(`${set.reps}`);
   };
 
+  const handleCancelSessionSetEdit = () => {
+    setEditingSessionSetId(undefined);
+    setSessionExerciseName('');
+    setSessionWeight('');
+    setSessionReps('');
+  };
+
   const handleDeleteSessionSet = (setId: string) => {
     setSessionDraftSets((currentSets) => currentSets.filter((set) => set.id !== setId));
 
@@ -343,130 +355,37 @@ export default function WorkoutsScreen() {
       <View style={styles.container}>
         <SectionHeader title="Track" subtitle="Workouts, templates, and session history" />
 
-        <AppCard>
-          <Text selectable style={styles.sectionTitle}>
-            Coach insight
-          </Text>
-          <View style={styles.insightSummary}>
-            <View style={styles.insightSummaryRow}>
-              <Text selectable style={styles.insightLabel}>
-                {workoutsInsight.title}
-              </Text>
-              <Text selectable style={styles.insightValue}>
-                {workoutsInsight.summaryLine}
-              </Text>
-            </View>
-            <View style={styles.insightSummaryRow}>
-              <Text selectable style={styles.insightLabel}>
-                Next step
-              </Text>
-              <Text selectable style={styles.insightValue}>
-                {workoutsInsight.detail}
-              </Text>
-            </View>
-          </View>
-          <AppButton
-            label={workoutsInsight.ctaLabel}
-            onPress={() => {
-              if (workouts.length === 0) {
-                setIsCreateWorkoutExpanded(true);
-                return;
-              }
+        <WorkoutCoachInsightCard
+          ctaLabel={workoutsInsight.ctaLabel}
+          detail={workoutsInsight.detail}
+          onPress={() => {
+            if (workouts.length === 0) {
+              setIsCreateWorkoutExpanded(true);
+              return;
+            }
 
-              startWorkout(workouts[0].id);
-            }}
-            variant="secondary"
-          />
-        </AppCard>
+            startWorkout(workouts[0].id);
+          }}
+          summaryLine={workoutsInsight.summaryLine}
+          title={workoutsInsight.title}
+        />
 
         <AppButton label="Start Workout" onPress={() => startWorkout(workouts[0]?.id ?? '')} />
 
-        <AppCard>
-          <Pressable
-            onPress={() => setIsExercisesExpanded((current) => !current)}
-            style={styles.collapsibleHeader}>
-            <Text style={styles.sectionTitle}>{getSectionTitle('Exercises', isExercisesExpanded)}</Text>
-          </Pressable>
-
-          {isExercisesExpanded ? (
-            <>
-              <View style={styles.inputGroup}>
-                <Text selectable style={styles.inputLabel}>
-                  Exercise name
-                </Text>
-                <TextInput
-                  onChangeText={setExerciseName}
-                  placeholder="Bench press"
-                  placeholderTextColor={Colors.dark.textSecondary}
-                  style={styles.input}
-                  value={exerciseName}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text selectable style={styles.inputLabel}>
-                  Muscle group
-                </Text>
-                <TextInput
-                  onChangeText={setExerciseMuscleGroup}
-                  placeholder="Chest"
-                  placeholderTextColor={Colors.dark.textSecondary}
-                  style={styles.input}
-                  value={exerciseMuscleGroup}
-                />
-              </View>
-
-              <AppButton
-                disabled={isSaveExerciseDisabled}
-                label="Add Exercise"
-                onPress={handleSaveExercise}
-              />
-
-              <View style={styles.availableExercises}>
-                <Text selectable style={styles.availableExercisesTitle}>
-                  Available exercises
-                </Text>
-                {exercises.length > 0 ? (
-                  exercises.map((exercise) => {
-                    const isAdded = isDraftExerciseAdded(exercise.name);
-
-                    return (
-                      <View key={exercise.id} style={styles.availableExerciseRow}>
-                        <View style={styles.availableExerciseContent}>
-                          <Text selectable style={styles.exercise}>
-                            {exercise.name}
-                          </Text>
-                          {exercise.muscleGroup ? (
-                            <Text selectable style={styles.availableExerciseMeta}>
-                              {exercise.muscleGroup}
-                            </Text>
-                          ) : null}
-                        </View>
-                        <AppButton
-                          disabled={isAdded}
-                          label={isAdded ? 'Added' : 'Add'}
-                          onPress={() => handleAddDatabaseExercise(exercise.name)}
-                          variant="secondary"
-                        />
-                        {exercise.isCustom ? (
-                          <AppButton
-                            label="Delete"
-                            onPress={() => handleDeleteExercise(exercise.id)}
-                            variant="secondary"
-                          />
-                        ) : null}
-                      </View>
-                    );
-                  })
-                ) : (
-                  <Text selectable style={styles.emptyText}>
-                    No exercises yet.
-                  </Text>
-                )}
-              </View>
-            </>
-          ) : null}
-        </AppCard>
+        <WorkoutExerciseLibraryCard
+          exerciseName={exerciseName}
+          exerciseMuscleGroup={exerciseMuscleGroup}
+          exercises={exercises}
+          isExpanded={isExercisesExpanded}
+          isExerciseAdded={isDraftExerciseAdded}
+          isSaveExerciseDisabled={isSaveExerciseDisabled}
+          onAddDatabaseExercise={handleAddDatabaseExercise}
+          onDeleteExercise={handleDeleteExercise}
+          onExerciseMuscleGroupChange={setExerciseMuscleGroup}
+          onExerciseNameChange={setExerciseName}
+          onSaveExercise={handleSaveExercise}
+          onToggleExpanded={() => setIsExercisesExpanded((current) => !current)}
+        />
 
         <AppCard>
           <Pressable
@@ -569,11 +488,7 @@ export default function WorkoutsScreen() {
 
           {isWorkoutHistoryExpanded ? (
             completedSessions.length === 0 ? (
-              <AppCard>
-                <Text selectable style={styles.emptyText}>
-                  No completed workouts yet.
-                </Text>
-              </AppCard>
+              <EmptyWorkoutState message="No completed workouts yet." />
             ) : (
               completedSessions.map((session) => {
                 const isEditingSession = editingSessionId === session.id;
@@ -582,162 +497,50 @@ export default function WorkoutsScreen() {
                 const sessionVolume = getSessionVolume({ ...session, sets: visibleSets });
 
                 return (
-                  <AppCard key={session.id}>
-                    <View style={styles.cardHeader}>
-                      <Text selectable style={styles.title}>
-                        {session.workoutTitle}
-                      </Text>
-                      <Text selectable style={styles.duration}>
-                        {formatFinishedAt(session.finishedAt)}
-                      </Text>
-                    </View>
+                  <WorkoutHistorySessionCard
+                    editingSessionSetId={editingSessionSetId}
+                    formatFinishedAt={formatFinishedAt}
+                    isEditing={isEditingSession}
+                    onCancelSessionEdit={handleCancelSessionEdit}
+                    onCancelSessionSetEdit={handleCancelSessionSetEdit}
+                    onDeleteSession={() => {
+                      if (isEditingSession) {
+                        Alert.alert(
+                          'Delete workout?',
+                          'This completed workout will be removed from history.',
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            {
+                              text: 'Delete',
+                              style: 'destructive',
+                              onPress: () => {
+                                clearSessionEdit();
+                                deleteWorkoutSession(session.id);
+                              },
+                            },
+                          ],
+                        );
+                        return;
+                      }
 
-                    <View style={styles.sessionStats}>
-                      <Text selectable style={styles.sessionStat}>
-                        {session.sets.length} sets
-                      </Text>
-                      <Text selectable style={styles.sessionStat}>
-                        {sessionVolume.toLocaleString()} kg volume
-                      </Text>
-                    </View>
-
-                    <View style={styles.exerciseList}>
-                      {sessionExercises.map((exerciseName) => (
-                        <Text selectable key={exerciseName} style={styles.exercise}>
-                          {exerciseName}
-                        </Text>
-                      ))}
-                    </View>
-
-                    {isEditingSession ? (
-                      <View style={styles.sessionEditor}>
-                        <View style={styles.inputGroup}>
-                          <Text selectable style={styles.inputLabel}>
-                            Exercise name
-                          </Text>
-                          <TextInput
-                            onChangeText={setSessionExerciseName}
-                            placeholder="Bench press"
-                            placeholderTextColor={Colors.dark.textSecondary}
-                            style={styles.input}
-                            value={sessionExerciseName}
-                          />
-                        </View>
-
-                        <View style={styles.inputsRow}>
-                          <View style={styles.inputGroup}>
-                            <Text selectable style={styles.inputLabel}>
-                              Weight
-                            </Text>
-                            <TextInput
-                              keyboardType="decimal-pad"
-                              onChangeText={setSessionWeight}
-                              placeholder="0"
-                              placeholderTextColor={Colors.dark.textSecondary}
-                              style={styles.input}
-                              value={sessionWeight}
-                            />
-                          </View>
-
-                          <View style={styles.inputGroup}>
-                            <Text selectable style={styles.inputLabel}>
-                              Reps
-                            </Text>
-                            <TextInput
-                              keyboardType="number-pad"
-                              onChangeText={setSessionReps}
-                              placeholder="0"
-                              placeholderTextColor={Colors.dark.textSecondary}
-                              style={styles.input}
-                              value={sessionReps}
-                            />
-                          </View>
-                        </View>
-
-                        <AppButton
-                          label={editingSessionSetId ? 'Save Set' : 'Add Set'}
-                          onPress={handleSaveSessionSet}
-                        />
-                        {editingSessionSetId ? (
-                          <AppButton
-                            label="Cancel Edit"
-                            onPress={() => {
-                              setEditingSessionSetId(undefined);
-                              setSessionExerciseName('');
-                              setSessionWeight('');
-                              setSessionReps('');
-                            }}
-                            variant="secondary"
-                          />
-                        ) : null}
-
-                        <View style={styles.draftList}>
-                          {sessionDraftSets.map((set) => (
-                            <View key={set.id} style={styles.draftRow}>
-                              <View style={styles.setContent}>
-                                <Text selectable style={styles.setName}>
-                                  {set.exerciseName}
-                                </Text>
-                                <Text selectable style={styles.setMeta}>
-                                  {set.weight} kg x {set.reps}
-                                </Text>
-                              </View>
-                              <View style={styles.setActions}>
-                                <AppButton
-                                  label="Edit"
-                                  onPress={() => handleEditSessionSet(set)}
-                                  variant="secondary"
-                                />
-                                <AppButton
-                                  label="Delete"
-                                  onPress={() => handleDeleteSessionSet(set.id)}
-                                  variant="secondary"
-                                />
-                              </View>
-                            </View>
-                          ))}
-                        </View>
-
-                        <View style={styles.editorFooter}>
-                          <AppButton label="Cancel" onPress={handleCancelSessionEdit} variant="secondary" />
-                          <AppButton
-                            label="Save Changes"
-                            onPress={() => handleSaveSessionChanges(session)}
-                          />
-                          <AppButton
-                            label="Delete"
-                            onPress={() => {
-                              Alert.alert(
-                                'Delete workout?',
-                                'This completed workout will be removed from history.',
-                                [
-                                  { text: 'Cancel', style: 'cancel' },
-                                  {
-                                    text: 'Delete',
-                                    style: 'destructive',
-                                    onPress: () => {
-                                      clearSessionEdit();
-                                      deleteWorkoutSession(session.id);
-                                    },
-                                  },
-                                ],
-                              );
-                            }}
-                            variant="secondary"
-                          />
-                        </View>
-                      </View>
-                    ) : (
-                      <>
-                        <AppButton label="Edit" onPress={() => handleEditSession(session)} variant="secondary" />
-                        <AppButton
-                          label="Delete"
-                          onPress={() => confirmDeleteSession(session.id)}
-                          variant="secondary"
-                        />
-                      </>
-                    )}
-                  </AppCard>
+                      confirmDeleteSession(session.id);
+                    }}
+                    onDeleteSessionSet={handleDeleteSessionSet}
+                    onEditSession={() => handleEditSession(session)}
+                    onEditSessionSet={handleEditSessionSet}
+                    onSaveSessionChanges={() => handleSaveSessionChanges(session)}
+                    onSaveSessionSet={handleSaveSessionSet}
+                    onSessionExerciseNameChange={setSessionExerciseName}
+                    onSessionRepsChange={setSessionReps}
+                    onSessionWeightChange={setSessionWeight}
+                    session={session}
+                    sessionExerciseName={sessionExerciseName}
+                    sessionExercises={sessionExercises}
+                    sessionReps={sessionReps}
+                    sessionVolume={sessionVolume}
+                    sessionWeight={sessionWeight}
+                    visibleSets={visibleSets}
+                  />
                 );
               })
             )
@@ -746,46 +549,13 @@ export default function WorkoutsScreen() {
 
         <SectionHeader title="Workout templates" />
         {workouts.map((workout) => (
-          <AppCard key={workout.id}>
-            <View style={styles.cardHeader}>
-              <Text selectable style={styles.title}>
-                {workout.title}
-              </Text>
-              <Text selectable style={styles.duration}>
-                {workout.duration}
-              </Text>
-            </View>
-
-            {workout.description ? (
-              <Text selectable style={styles.description}>
-                {workout.description}
-              </Text>
-            ) : null}
-
-            <View style={styles.exerciseList}>
-              {workout.exercises.map((exercise) => (
-                <Text selectable key={exercise.id} style={styles.exercise}>
-                  {exercise.name}
-                </Text>
-              ))}
-            </View>
-
-            <AppButton label="Start" onPress={() => startWorkout(workout.id)} />
-            {isCustomWorkout(workout.id, workout.isCustom) ? (
-              <>
-                <AppButton
-                  label="Edit"
-                  onPress={() => handleEditWorkout(workout.id)}
-                  variant="secondary"
-                />
-                <AppButton
-                  label="Delete"
-                  onPress={() => confirmDeleteWorkoutTemplate(workout.id)}
-                  variant="secondary"
-                />
-              </>
-            ) : null}
-          </AppCard>
+          <WorkoutTemplateCard
+            isCustomWorkout={isCustomWorkout(workout.id, workout.isCustom)}
+            onDelete={confirmDeleteWorkoutTemplate}
+            onEdit={handleEditWorkout}
+            onStart={startWorkout}
+            workout={workout}
+          />
         ))}
       </View>
     </ScrollView>

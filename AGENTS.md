@@ -286,6 +286,32 @@ Execution rules:
 
 ---
 
+## Large screen splitting policy
+
+Large tab screen files should not keep growing indefinitely.
+
+Do:
+
+* Prefer extracting reusable UI blocks into small components under `src/components/`.
+* For future routine UI changes, avoid full-file dumps of large screens.
+* Read and edit targeted components whenever possible.
+* Modify only the files needed for the approved task.
+* Keep the number of extracted files small and focused.
+
+Do not:
+
+* use subagents by default;
+* use research, debug, or cleanup skills for routine UI, CRUD, layout, styling, or local React Native / TypeScript tasks;
+* inspect unrelated files;
+* check GitHub Actions unless explicitly asked.
+
+For OTA-safe JS / TS / TSX changes:
+
+* commit with `[ota]`;
+* push to `main`.
+
+---
+
 ## Preferred Response Format After Changes
 
 After completing a task, respond with:
