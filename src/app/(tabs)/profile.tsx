@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// @ts-ignore - expo-updates types are not available in this workspace, but the runtime module exists on device.
+import * as Updates from 'expo-updates';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -76,6 +78,39 @@ export default function ProfileScreen() {
     return 'Gain muscle';
   };
 
+  const formatOtaValue = (value: unknown) => {
+    if (value === null || value === undefined || value === '') {
+      return 'Not available';
+    }
+
+    if (value instanceof Date) {
+      return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(value);
+    }
+
+    return String(value);
+  };
+
+  const handleCheckForOtaUpdate = async () => {
+    try {
+      const update = await Updates.checkForUpdateAsync();
+
+      if (!update.isAvailable) {
+        Alert.alert('No update available');
+        return;
+      }
+
+      await Updates.fetchUpdateAsync();
+      Alert.alert('Update downloaded. Restarting app.');
+      await Updates.reloadAsync();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('OTA update error', message);
+    }
+  };
+
   const rows = [
     ['Height', profile.height],
     ['Weight', latestWeight ? `${latestWeight.weight.toFixed(1)} kg` : profile.weight],
@@ -83,11 +118,16 @@ export default function ProfileScreen() {
     ['Activity level', profile.activityLevel],
   ];
 
+  const otaRuntimeVersion = formatOtaValue((Updates as Record<string, unknown>).runtimeVersion);
+  const otaUpdateId = formatOtaValue((Updates as Record<string, unknown>).updateId);
+  const otaCreatedAt = formatOtaValue((Updates as Record<string, unknown>).createdAt);
+  const otaChannel = formatOtaValue((Updates as Record<string, unknown>).channel);
+
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
+      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 180 }]}>
       <View style={styles.container}>
         <SectionHeader title="Profile" subtitle="Basic profile details for the MVP" />
 
@@ -193,6 +233,36 @@ export default function ProfileScreen() {
         </AppCard>
 
         <AppButton label="Reset Onboarding" onPress={handleResetOnboarding} variant="secondary" />
+
+        <AppCard>
+          <Text style={styles.developerTitle}>Developer Tools</Text>
+          <View style={styles.otaCard}>
+            <Text style={styles.otaTitle}>OTA Update</Text>
+
+            <View style={styles.otaRow}>
+              <Text style={styles.otaLabel}>runtimeVersion</Text>
+              <Text style={styles.otaValue}>{otaRuntimeVersion}</Text>
+            </View>
+            <View style={styles.otaRow}>
+              <Text style={styles.otaLabel}>updateId</Text>
+              <Text style={styles.otaValue}>{otaUpdateId}</Text>
+            </View>
+            <View style={styles.otaRow}>
+              <Text style={styles.otaLabel}>createdAt</Text>
+              <Text style={styles.otaValue}>{otaCreatedAt}</Text>
+            </View>
+            <View style={styles.otaRow}>
+              <Text style={styles.otaLabel}>channel</Text>
+              <Text style={styles.otaValue}>{otaChannel}</Text>
+            </View>
+
+            <AppButton
+              label="Check for OTA update"
+              onPress={handleCheckForOtaUpdate}
+              variant="secondary"
+            />
+          </View>
+        </AppCard>
       </View>
     </ScrollView>
   );
@@ -207,6 +277,42 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
     padding: Spacing.three,
+  },
+  developerTitle: {
+    color: Colors.dark.text,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    marginBottom: Spacing.one,
+    textTransform: 'uppercase',
+  },
+  otaCard: {
+    gap: Spacing.two,
+  },
+  otaLabel: {
+    color: Colors.dark.textSecondary,
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  otaRow: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: Spacing.two,
+    paddingTop: Spacing.two,
+  },
+  otaTitle: {
+    color: Colors.dark.text,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  otaValue: {
+    color: Colors.dark.text,
+    flex: 1,
+    fontSize: 12,
+    textAlign: 'right',
   },
   goalSummaryRow: {
     alignItems: 'center',

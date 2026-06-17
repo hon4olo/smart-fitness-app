@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -88,6 +89,7 @@ export default function HomeScreen() {
   const [trainingDaysPerWeekInput, setTrainingDaysPerWeekInput] = useState(
     `${profile.trainingDaysPerWeek}`
   );
+  const safeAreaInsets = useSafeAreaInsets();
   const latestWeight = weightHistory[0];
   const today = formatLocalDate(new Date());
   const todaysFoodEntries = foodEntries.filter((entry) => entry.date === today);
@@ -198,25 +200,14 @@ export default function HomeScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
       style={styles.screen}
-      contentContainerStyle={styles.content}>
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: safeAreaInsets.bottom + 160 },
+      ]}>
       <View style={styles.container}>
         <SectionHeader title="Home" subtitle="Today at a glance" />
-
-        <AppCard>
-          <Text style={styles.sectionTitle}>Project Plan</Text>
-          <View style={styles.planList}>
-            {projectPlan.map((item) => (
-              <View key={item.label} style={styles.planRow}>
-                <Text style={styles.planLabel}>{item.label}</Text>
-                <View style={styles.planContent}>
-                  <Text style={styles.planTitle}>{item.title}</Text>
-                  <Text style={styles.planDetail}>{item.detail}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </AppCard>
 
         {!onboardingCompleted ? (
           <AppCard>
@@ -352,6 +343,21 @@ export default function HomeScreen() {
             </View>
           </>
         )}
+
+        <AppCard>
+          <Text style={styles.sectionTitle}>Project Plan</Text>
+          <View style={styles.planList}>
+            {projectPlan.map((item) => (
+              <View key={item.label} style={styles.planRow}>
+                <Text style={styles.planLabel}>{item.label}</Text>
+                <View style={styles.planContent}>
+                  <Text style={styles.planTitle}>{item.title}</Text>
+                  <Text style={styles.planDetail}>{item.detail}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </AppCard>
       </View>
     </ScrollView>
   );
