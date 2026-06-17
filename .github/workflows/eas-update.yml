@@ -1,0 +1,39 @@
+name: Publish EAS Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Update message"
+        required: false
+        default: "Manual OTA update"
+
+jobs:
+  publish:
+    name: Publish OTA update
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Publish EAS Update
+        run: eas update --channel production --message "${{ github.event.inputs.message }}" --environment production  
