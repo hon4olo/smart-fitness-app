@@ -205,8 +205,8 @@ export default function HomeScreen() {
 
         <AppCard>
           <View style={styles.otaBadge}>
-            <Text style={styles.otaBadgeTitle}>HERMES OTA TEST</Text>
-            <Text style={styles.otaBadgeSubtitle}>Published from Hermes</Text>
+            <Text style={styles.otaBadgeTitle}>AUTO OTA WORKS</Text>
+            <Text style={styles.otaBadgeSubtitle}>Published automatically after Hermes push</Text>
           </View>
         </AppCard>
 
