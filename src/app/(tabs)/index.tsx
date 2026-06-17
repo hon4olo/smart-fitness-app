@@ -1,6 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+// @ts-ignore - expo-updates types are unavailable in this workspace, but the runtime module is used on device.
+import * as Updates from 'expo-updates';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -40,6 +42,21 @@ const getWorkoutTimestamp = (session: { finishedAt?: string; startedAt?: string 
   const parsed = new Date(source);
 
   return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+};
+
+const formatOtaDebugValue = (value: string | Date | null | undefined) => {
+  if (value === null || value === undefined || value === '') {
+    return 'Not available';
+  }
+
+  if (value instanceof Date) {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(value);
+  }
+
+  return value;
 };
 
 type PlanItem = {
@@ -88,6 +105,7 @@ export default function HomeScreen() {
   const [trainingDaysPerWeekInput, setTrainingDaysPerWeekInput] = useState(
     `${profile.trainingDaysPerWeek}`
   );
+  const [otaCheckInProgress, setOtaCheckInProgress] = useState(false);
   const latestWeight = weightHistory[0];
   const today = formatLocalDate(new Date());
   const todaysFoodEntries = foodEntries.filter((entry) => entry.date === today);
@@ -144,6 +162,31 @@ export default function HomeScreen() {
     Number.isFinite(parsedTrainingDaysPerWeek) &&
     parsedTrainingDaysPerWeek >= 1 &&
     parsedTrainingDaysPerWeek <= 7;
+  const otaRuntimeVersion = formatOtaDebugValue(Updates.runtimeVersion);
+  const otaUpdateId = formatOtaDebugValue(Updates.updateId);
+  const otaCreatedAt = formatOtaDebugValue(Updates.createdAt);
+  const otaChannel = formatOtaDebugValue(Updates.channel);
+
+  const handleCheckForOtaUpdate = async () => {
+    try {
+      setOtaCheckInProgress(true);
+      const update = await Updates.checkForUpdateAsync();
+
+      if (!update.isAvailable) {
+        Alert.alert('No update available');
+        return;
+      }
+
+      await Updates.fetchUpdateAsync();
+      Alert.alert('Update downloaded. Restarting app.');
+      await Updates.reloadAsync();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('OTA update error', message);
+    } finally {
+      setOtaCheckInProgress(false);
+    }
+  };
 
   const handleCompleteSetup = () => {
     if (!Number.isFinite(parsedCurrentWeight) || parsedCurrentWeight <= 0) {
@@ -208,6 +251,34 @@ export default function HomeScreen() {
             <Text style={styles.otaBadgeTitle}>AUTO OTA WORKS</Text>
             <Text style={styles.otaBadgeSubtitle}>Published automatically after Hermes push</Text>
           </View>
+        </AppCard>
+
+        <AppCard>
+          <Text style={styles.otaDebugTitle}>OTA Debug</Text>
+          <View style={styles.otaDebugList}>
+            <View style={styles.otaDebugRow}>
+              <Text style={styles.otaDebugLabel}>runtimeVersion</Text>
+              <Text style={styles.otaDebugValue}>{otaRuntimeVersion}</Text>
+            </View>
+            <View style={styles.otaDebugRow}>
+              <Text style={styles.otaDebugLabel}>updateId</Text>
+              <Text style={styles.otaDebugValue}>{otaUpdateId}</Text>
+            </View>
+            <View style={styles.otaDebugRow}>
+              <Text style={styles.otaDebugLabel}>createdAt</Text>
+              <Text style={styles.otaDebugValue}>{otaCreatedAt}</Text>
+            </View>
+            <View style={styles.otaDebugRow}>
+              <Text style={styles.otaDebugLabel}>channel</Text>
+              <Text style={styles.otaDebugValue}>{otaChannel}</Text>
+            </View>
+          </View>
+          <AppButton
+            disabled={otaCheckInProgress}
+            label={otaCheckInProgress ? 'Checking…' : 'Check for OTA update'}
+            onPress={handleCheckForOtaUpdate}
+            variant="secondary"
+          />
         </AppCard>
 
         <AppCard>
@@ -406,6 +477,36 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 0.8,
+  },
+  otaDebugLabel: {
+    color: Colors.dark.textSecondary,
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  otaDebugList: {
+    gap: Spacing.one,
+    marginBottom: Spacing.two,
+    marginTop: Spacing.one,
+  },
+  otaDebugRow: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: Spacing.two,
+    paddingTop: Spacing.one,
+  },
+  otaDebugTitle: {
+    color: Colors.dark.text,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  otaDebugValue: {
+    color: Colors.dark.text,
+    flex: 1,
+    fontSize: 12,
+    textAlign: 'right',
   },
   planContent: {
     flex: 1,
