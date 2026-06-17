@@ -14,6 +14,7 @@ on:
 jobs:
   publish:
     name: Publish OTA update
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ota]'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
