@@ -63,6 +63,33 @@ export default function WorkoutsScreen() {
   const [isExercisesExpanded, setIsExercisesExpanded] = useState(false);
   const [isWorkoutHistoryExpanded, setIsWorkoutHistoryExpanded] = useState(true);
   const completedSessions = [...workoutSessions].reverse();
+  const latestCompletedSession = completedSessions[0];
+  const workoutsInsight = (() => {
+    if (workouts.length === 0) {
+      return {
+        title: 'Build your first workout',
+        detail: 'Create a template so Track has something ready to launch.',
+        summaryLine: '0 templates · 0 completed sessions',
+        ctaLabel: 'Create workout',
+      };
+    }
+
+    if (completedSessions.length === 0) {
+      return {
+        title: 'Ready to log your first session',
+        detail: `You have ${workouts.length} workout template${workouts.length === 1 ? '' : 's'} ready to go.`,
+        summaryLine: `${workouts.length} template${workouts.length === 1 ? '' : 's'} · no completed sessions yet`,
+        ctaLabel: 'Start workout',
+      };
+    }
+
+    return {
+      title: 'Keep the momentum',
+      detail: `${latestCompletedSession?.workoutTitle ?? 'Your last workout'} finished on ${formatFinishedAt(latestCompletedSession?.finishedAt ?? '')} with ${getSessionVolume(latestCompletedSession ?? completedSessions[0]).toLocaleString()} kg volume.`,
+      summaryLine: `${workouts.length} template${workouts.length === 1 ? '' : 's'} · ${completedSessions.length} completed session${completedSessions.length === 1 ? '' : 's'}`,
+      ctaLabel: 'Start next workout',
+    };
+  })();
   const isSaveWorkoutDisabled = workoutTitle.trim().length === 0 || draftExercises.length === 0;
   const isSaveExerciseDisabled = exerciseName.trim().length === 0;
   const normalizeDraftExerciseName = (name: string) => name.trim().toLowerCase();
@@ -315,6 +342,43 @@ export default function WorkoutsScreen() {
       contentContainerStyle={styles.content}>
       <View style={styles.container}>
         <SectionHeader title="Track" subtitle="Workouts, templates, and session history" />
+
+        <AppCard>
+          <Text selectable style={styles.sectionTitle}>
+            Coach insight
+          </Text>
+          <View style={styles.insightSummary}>
+            <View style={styles.insightSummaryRow}>
+              <Text selectable style={styles.insightLabel}>
+                {workoutsInsight.title}
+              </Text>
+              <Text selectable style={styles.insightValue}>
+                {workoutsInsight.summaryLine}
+              </Text>
+            </View>
+            <View style={styles.insightSummaryRow}>
+              <Text selectable style={styles.insightLabel}>
+                Next step
+              </Text>
+              <Text selectable style={styles.insightValue}>
+                {workoutsInsight.detail}
+              </Text>
+            </View>
+          </View>
+          <AppButton
+            label={workoutsInsight.ctaLabel}
+            onPress={() => {
+              if (workouts.length === 0) {
+                setIsCreateWorkoutExpanded(true);
+                return;
+              }
+
+              startWorkout(workouts[0].id);
+            }}
+            variant="secondary"
+          />
+        </AppCard>
+
         <AppButton label="Start Workout" onPress={() => startWorkout(workouts[0]?.id ?? '')} />
 
         <AppCard>
@@ -871,6 +935,28 @@ const styles = StyleSheet.create({
     color: Colors.dark.text,
     fontSize: 18,
     fontWeight: '800',
+  },
+  insightLabel: {
+    color: Colors.dark.textSecondary,
+    flex: 1,
+    fontSize: 15,
+  },
+  insightSummary: {
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  insightSummaryRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+  },
+  insightValue: {
+    color: Colors.dark.text,
+    flex: 1,
+    fontSize: 15,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+    textAlign: 'right',
   },
   setName: {
     color: Colors.dark.textSecondary,
