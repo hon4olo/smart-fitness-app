@@ -328,6 +328,40 @@ export default function NutritionScreen() {
     return remaining < 0 ? `Over by ${formattedValue}` : `Remaining ${formattedValue}`;
   };
 
+  const nutritionCoachInsight = (() => {
+    const caloriesRemaining = nutritionTargets.calories - selectedDateNutrition.calories;
+    const proteinRemaining = nutritionTargets.protein - selectedDateNutrition.protein;
+    const hasWeightContext = Number.isFinite(latestWeightKg) && latestWeightKg > 0;
+    const proteinPerKg = hasWeightContext ? nutritionTargets.protein / latestWeightKg : null;
+
+    if (selectedDateFoodEntries.length === 0) {
+      return {
+        title: 'Start with the first meal',
+        detail: 'Add a meal or search the food database to begin tracking today.',
+        calorieLine: 'No calories logged yet',
+        ctaLabel: 'Search food',
+        proteinLine: 'No protein logged yet',
+      };
+    }
+
+    return {
+      title:
+        caloriesRemaining >= 0
+          ? 'You still have room in today\'s target'
+          : 'You are over today\'s calorie target',
+      detail:
+        caloriesRemaining >= 0
+          ? `${formatRemaining(caloriesRemaining, ' kcal')} on calories and ${formatRemaining(proteinRemaining, ' g')} on protein.`
+          : `${formatRemaining(caloriesRemaining, ' kcal')} on calories. Protein is ${formatRemaining(proteinRemaining, ' g')}.`,
+      calorieLine: `${formatNumber(selectedDateNutrition.calories)} / ${nutritionTargets.calories} kcal`,
+      ctaLabel: 'Open search',
+      proteinLine:
+        proteinPerKg !== null
+          ? `${formatNumber(selectedDateNutrition.protein)} g · ${formatNumber(proteinPerKg)} g/kg target`
+          : `${formatNumber(selectedDateNutrition.protein)} / ${nutritionTargets.protein} g protein`,
+    };
+  })();
+
   const formatServingInfo = (entry: {
     servingSize?: number;
     servingUnit?: string;
@@ -682,6 +716,25 @@ export default function NutritionScreen() {
       contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
       <View style={styles.container}>
         <SectionHeader title="Eat" subtitle="Meals, macros, and nutrition targets" />
+
+        <AppCard>
+          <Text selectable style={styles.sectionTitle}>Coach insight</Text>
+          <View style={styles.suggestionSummary}>
+            <View style={styles.suggestionSummaryRow}>
+              <Text selectable style={styles.suggestionLabel}>{nutritionCoachInsight.title}</Text>
+              <Text selectable style={styles.suggestionValue}>{nutritionCoachInsight.calorieLine}</Text>
+            </View>
+            <View style={styles.suggestionSummaryRow}>
+              <Text selectable style={styles.suggestionLabel}>Direction</Text>
+              <Text selectable style={styles.suggestionValue}>{nutritionCoachInsight.detail}</Text>
+            </View>
+            <View style={styles.suggestionSummaryRow}>
+              <Text selectable style={styles.suggestionLabel}>Protein</Text>
+              <Text selectable style={styles.suggestionValue}>{nutritionCoachInsight.proteinLine}</Text>
+            </View>
+          </View>
+          <AppButton label={nutritionCoachInsight.ctaLabel} onPress={() => setIsSearchExpanded(true)} variant="secondary" />
+        </AppCard>
 
         <AppCard>
           <Text selectable style={styles.sectionTitle}>
@@ -1467,6 +1520,28 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     marginBottom: Spacing.three,
     paddingTop: Spacing.two,
+  },
+  suggestionSummary: {
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  suggestionSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  suggestionLabel: {
+    color: Colors.dark.textSecondary,
+    flex: 1,
+    fontSize: 15,
+  },
+  suggestionValue: {
+    color: Colors.dark.text,
+    flex: 1,
+    fontSize: 15,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+    textAlign: 'right',
   },
   suggestedSummary: {
     gap: Spacing.two,
