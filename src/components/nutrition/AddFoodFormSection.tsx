@@ -66,12 +66,16 @@ export function AddFoodFormSection({
     <AppCard>
       <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
         <Text selectable style={styles.sectionTitle}>
-          {`${editingFoodEntry ? 'Edit Food' : 'Add Food form'} ${isExpanded ? '−' : '+'}`}
+          {`${editingFoodEntry ? 'Edit food' : 'Add food'} ${isExpanded ? '−' : '+'}`}
         </Text>
       </Pressable>
 
       {isExpanded ? (
         <>
+          <Text selectable style={styles.helperText}>
+            Manual entry for new foods or quick edits.
+          </Text>
+
           <View style={styles.inputGroup}>
             <Text selectable style={styles.inputLabel}>
               Name
@@ -233,6 +237,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
+  },
+  helperText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: Spacing.two,
   },
   inputGroup: {
     flex: 1,

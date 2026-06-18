@@ -47,12 +47,15 @@ export function SavedMealsSection({
     <AppCard>
       <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
         <Text selectable style={styles.sectionTitle}>
-          {`Saved Meals ${isExpanded ? '−' : '+'}`}
+          {`Saved meals ${isExpanded ? '−' : '+'}`}
         </Text>
       </Pressable>
 
       {isExpanded ? (
         <>
+          <Text selectable style={styles.helperText}>
+            Save the current meal so you can reuse it later.
+          </Text>
           <View style={styles.savedMealComposer}>
             <View style={styles.inputGroup}>
               <Text selectable style={styles.inputLabel}>
@@ -128,6 +131,7 @@ const styles = StyleSheet.create({
   foodMeta: { color: Colors.dark.textSecondary, fontSize: 14, fontVariant: ['tabular-nums'], lineHeight: 20 },
   foodName: { color: Colors.dark.text, fontSize: 15, fontWeight: '700', lineHeight: 21 },
   foodServing: { color: Colors.dark.textSecondary, fontSize: 13, lineHeight: 19 },
+  helperText: { color: Colors.dark.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: Spacing.two },
   input: { backgroundColor: Colors.dark.background, borderColor: Colors.dark.border, borderCurve: 'continuous', borderRadius: 8, borderWidth: 1, color: Colors.dark.text, fontSize: 16, minHeight: 48, paddingHorizontal: Spacing.two },
   inputGroup: { gap: Spacing.one },
   inputLabel: { color: Colors.dark.textSecondary, fontSize: 13, fontWeight: '700' },

@@ -218,6 +218,16 @@ export default function NutritionScreen() {
         <SectionHeader title="Eat" subtitle="Meals, macros, and nutrition targets" />
         <NutritionSummaryCard calorieLine={nutritionCoachInsight.calorieLine} ctaLabel={nutritionCoachInsight.ctaLabel} detail={nutritionCoachInsight.detail} onPress={() => setIsSearchExpanded(true)} proteinLine={nutritionCoachInsight.proteinLine} title={nutritionCoachInsight.title} />
         <AppCard>
+          <Text style={styles.sectionTitle}>Quick actions</Text>
+          <Text style={styles.quickActionsHelp}>Jump straight to the part you need most.</Text>
+          <View style={styles.quickActions}>
+            <AppButton label="Add food" onPress={() => setIsAddFoodFormExpanded(true)} />
+            <AppButton label="Search food" onPress={() => setIsSearchExpanded(true)} variant="secondary" />
+            <AppButton label="Recent foods" onPress={() => setIsRecentFoodsExpanded(true)} variant="secondary" />
+            <AppButton label="Saved meals" onPress={() => setIsSavedMealsExpanded(true)} variant="secondary" />
+          </View>
+        </AppCard>
+        <AppCard>
           <Text selectable style={styles.sectionTitle}>{selectedDate}</Text>
           <View style={styles.dateControls}>
             <AppButton label="Previous Day" onPress={goToPreviousDay} variant="secondary" />
@@ -259,6 +269,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.three,
     paddingBottom: Spacing.six,
+  },
+  quickActions: {
+    gap: Spacing.two,
+  },
+  quickActionsHelp: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: Spacing.two,
   },
   collapsibleHeader: {
     paddingBottom: Spacing.two,

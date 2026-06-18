@@ -38,12 +38,15 @@ export function FoodSearchSection({
     <AppCard>
       <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
         <Text selectable style={styles.sectionTitle}>
-          {`Search Food ${isExpanded ? '−' : '+'}`}
+          {`Search food ${isExpanded ? '−' : '+'}`}
         </Text>
       </Pressable>
 
       {isExpanded ? (
         <>
+          <Text selectable style={styles.helperText}>
+            Search by food name or brand, then tap Use.
+          </Text>
           <View style={styles.inputGroup}>
             <TextInput
               onChangeText={onFoodSearchQueryChange}
@@ -84,6 +87,12 @@ export function FoodSearchSection({
 const styles = StyleSheet.create({
   collapsibleHeader: {
     paddingBottom: Spacing.two,
+  },
+  helperText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: Spacing.two,
   },
   foodBrand: {
     color: Colors.dark.textSecondary,
