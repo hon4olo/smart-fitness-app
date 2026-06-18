@@ -18,7 +18,6 @@ import {
 } from '@/lib/workouts';
 import { sumNutritionTotals } from '@/lib/nutrition';
 
-
 type PlanItem = {
   label: string;
   title: string;
@@ -232,10 +231,10 @@ export default function AICoachScreen() {
         { paddingBottom: safeAreaInsets.bottom + 160 },
       ]}>
       <View style={styles.container}>
-        <SectionHeader title="AI Coach" subtitle="Training, nutrition, and recovery at a glance" />
+        <SectionHeader title="AI Coach" subtitle="Your home dashboard for today’s training, nutrition, and progress" />
 
         <AppCard>
-          <Text style={styles.sectionTitle}>Next best move</Text>
+          <Text style={styles.sectionTitle}>Today at a glance</Text>
           <View style={styles.coachSummary}>
             <Text style={styles.coachTitle}>{nextBestMove.title}</Text>
             <Text style={styles.coachDetail}>{nextBestMove.detail}</Text>
@@ -258,6 +257,7 @@ export default function AICoachScreen() {
         {!onboardingCompleted ? (
           <AppCard>
             <Text style={styles.sectionTitle}>Quick Setup</Text>
+            <Text style={styles.setupHelp}>Set your starting point once so Coach can personalize targets.</Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Current weight</Text>
@@ -393,6 +393,7 @@ export default function AICoachScreen() {
 
         <AppCard>
           <Text style={styles.sectionTitle}>Product roadmap</Text>
+          <Text style={styles.roadmapHelp}>Planned work only — not part of today’s main flow.</Text>
           <View style={styles.planList}>
             {projectPlan.map((item) => (
               <View key={item.label} style={styles.planRow}>
@@ -458,6 +459,18 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     gap: Spacing.two,
+  },
+  roadmapHelp: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: Spacing.two,
+  },
+  setupHelp: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: Spacing.two,
   },
   planContent: {
     flex: 1,
