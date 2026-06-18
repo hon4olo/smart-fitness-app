@@ -34,9 +34,10 @@ export function ProfileGoalsCard({
   return (
     <AppCard>
       <Text style={styles.sectionTitle}>Goals</Text>
+      <Text style={styles.helpText}>Update targets used by nutrition and coaching.</Text>
 
       <View style={styles.goalSummaryRow}>
-        <Text style={styles.label}>Latest weight</Text>
+        <Text style={styles.label}>Latest logged weight</Text>
         <Text style={styles.value}>{latestWeightLabel}</Text>
       </View>
 
@@ -105,6 +106,13 @@ const styles = {
     color: Colors.dark.text,
     fontSize: 18,
     fontWeight: '800' as const,
+  },
+  helpText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: Spacing.two,
+    marginTop: Spacing.one,
   },
   goalSummaryRow: {
     alignItems: 'center' as const,

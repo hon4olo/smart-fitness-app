@@ -22,6 +22,7 @@ export function DeveloperToolsCard({
   return (
     <AppCard>
       <Text style={styles.developerTitle}>Developer Tools</Text>
+      <Text style={styles.helpText}>Debug info and OTA controls stay here, below your profile settings.</Text>
       <View style={styles.otaCard}>
         <Text style={styles.otaTitle}>OTA Update</Text>
 
@@ -58,8 +59,14 @@ const styles = {
     fontSize: 14,
     fontWeight: '800' as const,
     letterSpacing: 0.4,
-    marginBottom: Spacing.one,
+    marginBottom: 2,
     textTransform: 'uppercase' as const,
+  },
+  helpText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: Spacing.two,
   },
   otaCard: {
     gap: Spacing.two,
