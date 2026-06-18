@@ -110,7 +110,7 @@ export default function ProgressScreen() {
   const [isEstimated1RMExpanded, setIsEstimated1RMExpanded] = useState(false);
   const [isWorkoutVolumeExpanded, setIsWorkoutVolumeExpanded] = useState(false);
   const selectedExerciseLabel = selectedExercise || 'No exercise selected';
-  const getSectionTitle = (title: string, isExpanded: boolean) => `${title} ${isExpanded ? '−' : '+'}`;
+  const getSectionTitle = (title: string, isExpanded: boolean) => `${title} ${isExpanded ? '-' : '+'}`;
   const parsedWeight = Number(weight);
   const isWeightDisabled = !Number.isFinite(parsedWeight) || parsedWeight <= 0;
   const isMeasurementDisabled =
@@ -519,4 +519,547 @@ export default function ProgressScreen() {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>\n      <View style={styles.container}>\n        <SectionHeader title="Labs" subtitle="Analysis, progress, and body measurements" />\n\n        <ProgressSummaryCard\n          title="Coach insight"\n          rows={[\n            { label: coachInsight.title, value: coachInsight.weightLine },\n            { label: 'Direction', value: coachInsight.detail },\n            { label: 'Training', value: coachInsight.trainingLine },\n          ]}\n        />\n\n        <AddWeightEntryCard\n          isDisabled={isWeightDisabled}\n          onChangeWeight={setWeight}\n          onSave={handleSaveWeight}\n          weight={weight}\n        />\n\n        <ProgressSummaryCard\n          emptyMessage="Add a weight entry to see your latest summary."\n          title="Latest Weight Summary"\n          rows={\n            latestTrendEntry\n              ? [\n                  { label: 'Latest weight', value: `${latestTrendEntry.weight.toFixed(1)} kg` },\n                  {\n                    label: 'Change from previous',\n                    value: previousTrendEntry\n                      ? formatWeightDelta(\n                          calculateWeightDelta(latestTrendEntry.weight, previousTrendEntry.weight) ?? 0\n                        )\n                      : 'N/A',\n                  },\n                  {\n                    label: 'Change from first',\n                    value: firstTrendEntry\n                      ? formatWeightDelta(\n                          calculateWeightDelta(latestTrendEntry.weight, firstTrendEntry.weight) ?? 0\n                        )\n                      : 'N/A',\n                  },\n                ]\n              : []\n          }\n        />\n\n        <WeightTrendCard\n          isExpanded={isBodyWeightTrendExpanded}\n          onToggle={() => setIsBodyWeightTrendExpanded((current) => !current)}\n          title="Body Weight Trend">\n          <TrendChart\n            emptyLabel="Add at least two weight entries to see a trend."\n            maxLabel={weightTrendAxisMaxLabel}\n            minLabel={weightTrendAxisMinLabel}\n            points={weightTrendPoints}\n          />\n        </WeightTrendCard>\n\n        <WorkoutVolumeTrendCard\n          isExpanded={isWorkoutVolumeExpanded}\n          onToggle={() => setIsWorkoutVolumeExpanded((current) => !current)}\n          title="Workout Volume Trend"\n          summary={\n            latestWorkoutVolumeEntry ? (\n              <>\n                <View style={styles.trendSummaryRow}>\n                  <Text style={styles.label}>Latest workout volume</Text>\n                  <Text style={styles.value}>\n                    {latestWorkoutVolumeEntry.sessionVolume.toLocaleString()} kg\n                  </Text>\n                </View>\n                <View style={styles.trendSummaryRow}>\n                  <Text style={styles.label}>Change from previous</Text>\n                  <Text style={styles.value}>\n                    {previousWorkoutVolumeEntry\n                      ? formatWeightDelta(\n                          latestWorkoutVolumeEntry.sessionVolume -\n                            previousWorkoutVolumeEntry.sessionVolume\n                        )\n                      : 'N/A'}\n                  </Text>\n                </View>\n                <View style={styles.trendSummaryRow}>\n                  <Text style={styles.label}>Change from first</Text>\n                  <Text style={styles.value}>\n                    {firstWorkoutVolumeEntry\n                      ? formatWeightDelta(\n                          latestWorkoutVolumeEntry.sessionVolume - firstWorkoutVolumeEntry.sessionVolume\n                        )\n                      : 'N/A'}\n                  </Text>\n                </View>\n              </>\n            ) : null\n          }>\n          <TrendChart\n            emptyLabel="Complete at least two workouts to see volume trend."\n            maxLabel={workoutVolumeAxisMaxLabel}\n            minLabel={workoutVolumeAxisMinLabel}\n            points={workoutVolumePoints}\n          />\n        </WorkoutVolumeTrendCard>\n\n        <AddBodyMeasurementCard\n          isDisabled={isMeasurementDisabled}\n          measurementLabel={measurementLabel}\n          measurementValue={measurementValue}\n          onChangeLabel={setMeasurementLabel}\n          onChangeValue={setMeasurementValue}\n          onSave={handleSaveMeasurement}\n        />\n\n        <AppCard>\n          <Text style={styles.sectionTitle}>Weight history</Text>\n          {weightHistory.map((entry) => (\n            <View key={entry.id} style={styles.row}>\n              <View style={styles.rowText}>\n                <Text style={styles.label}>{entry.date}</Text>\n                <Text style={styles.value}>{entry.weight.toFixed(1)} kg</Text>\n              </View>\n              <AppButton\n                label="Delete"\n                onPress={() => confirmDeleteWeight(entry.id)}\n                variant="secondary"\n              />\n            </View>\n          ))}\n        </AppCard>\n\n        <AppCard>\n          <Pressable\n            onPress={() => setIsBodyMeasurementsExpanded((current) => !current)}\n            style={styles.collapsibleHeader}>\n            <Text style={styles.sectionTitle}>\n              {getSectionTitle('Body Measurements', isBodyMeasurementsExpanded)}\n            </Text>\n          </Pressable>\n\n          {isBodyMeasurementsExpanded ? (\n            bodyMeasurements.map((measurement) => (\n              <View key={measurement.id} style={styles.row}>\n                <View style={styles.rowText}>\n                  <Text style={styles.label}>{measurement.label}</Text>\n                  <Text style={styles.value}>{measurement.value}</Text>\n                </View>\n                <AppButton\n                  label="Delete"\n                  onPress={() => confirmDeleteMeasurement(measurement.id)}\n                  variant="secondary"\n                />\n              </View>\n            ))\n          ) : null}\n        </AppCard>\n\n        <AppCard>\n          <Pressable\n            onPress={() => setIsExerciseProgressExpanded((current) => !current)}\n            style={styles.collapsibleHeader}>\n            <Text style={styles.sectionTitle}>\n              {getSectionTitle('Exercise Progress', isExerciseProgressExpanded)}\n            </Text>\n          </Pressable>\n\n          {isExerciseProgressExpanded ? (\n            <>\n              <View style={styles.exercisePicker}>\n                {availableExercises.length > 0 ? (\n                  availableExercises.map((exerciseName) => {\n                    const isActive = selectedExercise === exerciseName;\n\n                    return (\n                      <AppButton\n                        key={exerciseName}\n                        label={exerciseName}\n                        onPress={() => setSelectedExercise(exerciseName)}\n                        variant={isActive ? 'secondary' : 'secondary'}\n                      />\n                    );\n                  })\n                ) : (\n                  <EmptyProgressState message="No exercises available yet." />\n                )}\n              </View>\n\n              {selectedExercise ? (\n                <>\n                  <Text style={styles.selectedExerciseTitle}>{selectedExerciseLabel}</Text>\n\n                  {exerciseHistory.length > 0 && selectedExerciseStats ? (\n                    <View style={styles.exerciseStats}>\n                      <View style={styles.exerciseStatRow}>\n                        <Text style={styles.label}>Max weight</Text>\n                        <Text style={styles.value}>\n                          {selectedExerciseStats.maxWeightSet.weight.toFixed(1)} kg\n                        </Text>\n                      </View>\n                      <View style={styles.exerciseStatRow}>\n                        <Text style={styles.label}>Best volume set</Text>\n                        <Text style={styles.value}>\n                          {selectedExerciseStats.bestVolumeSet.weight.toFixed(1)} kg x{' '}\n                          {selectedExerciseStats.bestVolumeSet.reps}\n                        </Text>\n                      </View>\n                      <View style={styles.exerciseStatRow}>\n                        <Text style={styles.label}>Total sets</Text>\n                        <Text style={styles.value}>{exerciseHistory.length}</Text>\n                      </View>\n                      <View style={styles.exerciseStatRow}>\n                        <Text style={styles.label}>Total volume</Text>\n                        <Text style={styles.value}>\n                          {exerciseHistory\n                            .reduce((total, set) => total + set.weight * set.reps, 0)\n                            .toLocaleString()}{' '}\n                          kg\n                        </Text>\n                      </View>\n                    </View>\n                  ) : (\n                    <EmptyProgressState message="No history for this exercise yet" />\n                  )}\n\n                  <Pressable\n                    onPress={() => setIsEstimated1RMExpanded((current) => !current)}\n                    style={styles.collapsibleHeader}>\n                    <Text style={styles.sectionTitle}>\n                      {getSectionTitle('Estimated 1RM Trend', isEstimated1RMExpanded)}\n                    </Text>\n                  </Pressable>\n\n                  {isEstimated1RMExpanded ? (\n                    <>\n                      <TrendChart\n                        emptyLabel="Add at least two workouts for this exercise to see a strength trend."\n                        maxLabel={exerciseTrendAxisMaxLabel}\n                        minLabel={exerciseTrendAxisMinLabel}\n                        points={exerciseTrendPoints}\n                      />\n\n                      {latestExerciseTrendEntry ? (\n                        <View style={styles.exerciseTrendSummary}>\n                          <View style={styles.exerciseTrendSummaryRow}>\n                            <Text style={styles.label}>Latest estimated 1RM</Text>\n                            <Text style={styles.value}>\n                              {latestExerciseTrendEntry.estimated1RM.toFixed(1)} kg\n                            </Text>\n                          </View>\n                          <View style={styles.exerciseTrendSummaryRow}>\n                            <Text style={styles.label}>Change from previous</Text>\n                            <Text style={styles.value}>\n                              {previousExerciseTrendEntry\n                                ? formatWeightDelta(\n                                    latestExerciseTrendEntry.estimated1RM -\n                                      previousExerciseTrendEntry.estimated1RM\n                                  )\n                                : 'N/A'}\n                            </Text>\n                          </View>\n                          <View style={styles.exerciseTrendSummaryRow}>\n                            <Text style={styles.label}>Change from first</Text>\n                            <Text style={styles.value}>\n                              {firstExerciseTrendEntry\n                                ? formatWeightDelta(\n                                    latestExerciseTrendEntry.estimated1RM -\n                                      firstExerciseTrendEntry.estimated1RM\n                                  )\n                                : 'N/A'}\n                            </Text>\n                          </View>\n                        </View>\n                      ) : null}\n                    </>\n                  ) : null}\n\n                  {exerciseHistory.length > 0 ? (\n                    <View style={styles.exerciseHistory}>\n                      {exerciseHistory.slice(0, 10).map((set, index) => (\n                        <View\n                          key={`${set.exerciseName}-${set.finishedAt}-${set.sessionIndex}-${set.setIndex}`}\n                          style={styles.historyRow}>\n                          <View style={styles.rowText}>\n                            <Text style={styles.label}>{formatShortDate(set.finishedAt)}</Text>\n                            <Text style={styles.value}>\n                              {set.weight.toFixed(1)} kg x {set.reps}\n                            </Text>\n                          </View>\n                        </View>\n                      ))}\n                    </View>\n                  ) : null}\n                </>\n              ) : null}\n            </>\n          ) : null}\n        </AppCard>\n      </View>\n    </ScrollView>\n  );\n}\n\nconst styles = StyleSheet.create({\n  container: {\n    gap: Spacing.three,\n    maxWidth: MaxContentWidth,\n    width: '100%',\n  },\n  content: {\n    alignItems: 'center',\n    padding: Spacing.three,\n  },\n  collapsibleHeader: {\n    paddingBottom: Spacing.two,\n  },\n  emptyText: {\n    color: Colors.dark.textSecondary,\n    fontSize: 14,\n  },\n  exerciseHistory: {\n    gap: Spacing.two,\n  },\n  chartBar: {\n    borderRadius: 6,\n    minHeight: 24,\n    width: '100%',\n  },\n  chartBarColumn: {\n    alignItems: 'center',\n    flex: 1,\n    gap: 4,\n    minWidth: 0,\n  },\n  chartBarLabel: {\n    color: Colors.dark.textSecondary,\n    fontSize: 11,\n    textAlign: 'center',\n  },\n  chartBarTrack: {\n    backgroundColor: Colors.dark.border,\n    borderRadius: 8,\n    height: 96,\n    justifyContent: 'flex-end',\n    overflow: 'hidden',\n    padding: 2,\n    width: '100%',\n  },\n  chartBaseline: {\n    backgroundColor: Colors.dark.border,\n    bottom: 34,\n    height: 1,\n    left: 0,\n    opacity: 0.7,\n    position: 'absolute',\n    right: 0,\n  },\n  chartBars: {\n    flexDirection: 'row',\n    gap: 8,\n  },\n  chartContent: {\n    flex: 1,\n    position: 'relative',\n  },\n  chartRangeLabel: {\n    color: Colors.dark.textSecondary,\n    fontSize: 12,\n    fontVariant: ['tabular-nums'],\n    fontWeight: '700',\n  },\n  chartRangeRow: {\n    flexDirection: 'row',\n    justifyContent: 'space-between',\n    marginBottom: 6,\n  },\n  chartShell: {\n    marginTop: Spacing.one,\n  },\n  chartValueLabel: {\n    color: Colors.dark.text,\n    fontSize: 11,\n    fontVariant: ['tabular-nums'],\n    fontWeight: '800',\n  },\n  exerciseTrendBar: {\n    backgroundColor: Colors.dark.accent,\n    borderRadius: 6,\n    minHeight: 24,\n    width: '100%',\n  },\n  exerciseTrendBarColumn: {\n    alignItems: 'center',\n    flex: 1,\n    gap: Spacing.one,\n    minWidth: 0,\n  },\n  exerciseTrendBarLabel: {\n    color: Colors.dark.textSecondary,\n    fontSize: 11,\n    textAlign: 'center',\n  },\n  exerciseTrendBarTrack: {\n    backgroundColor: Colors.dark.border,\n    borderRadius: 8,\n    height: 100,\n    justifyContent: 'flex-end',\n    overflow: 'hidden',\n    padding: 2,\n    width: '100%',\n  },\n  exerciseTrendChart: {\n    flexDirection: 'row',\n    gap: 6,\n    marginTop: Spacing.one,\n  },\n  exerciseTrendSummary: {\n    gap: Spacing.two,\n    marginTop: Spacing.two,\n  },\n  exerciseTrendSummaryRow: {\n    flexDirection: 'row',\n    justifyContent: 'space-between',\n    gap: Spacing.two,\n  },\n  exercisePicker: {\n    flexDirection: 'row',\n    flexWrap: 'wrap',\n    gap: Spacing.two,\n  },\n  exerciseStatRow: {\n    flexDirection: 'row',\n    justifyContent: 'space-between',\n    gap: Spacing.two,\n  },\n  exerciseStats: {\n    gap: Spacing.two,\n  },\n  historyRow: {\n    borderColor: Colors.dark.border,\n    borderTopWidth: 1,\n    paddingTop: Spacing.two,\n  },\n  trendBar: {\n    backgroundColor: Colors.dark.accent,\n    borderRadius: 6,\n    minHeight: 24,\n    width: '100%',\n  },\n  trendBarColumn: {\n    alignItems: 'center',\n    flex: 1,\n    gap: Spacing.one,\n    minWidth: 0,\n  },\n  trendBarLabel: {\n    color: Colors.dark.textSecondary,\n    fontSize: 11,\n    textAlign: 'center',\n  },\n  trendBarTrack: {\n    backgroundColor: Colors.dark.border,\n    borderRadius: 8,\n    height: 100,\n    justifyContent: 'flex-end',\n    overflow: 'hidden',\n    padding: 2,\n    width: '100%',\n  },\n  trendChart: {\n    flexDirection: 'row',\n    gap: 6,\n  },\n  trendSummary: {\n    gap: Spacing.two,\n    marginTop: Spacing.two,\n  },\n  trendSummaryRow: {\n    flexDirection: 'row',\n    justifyContent: 'space-between',\n    gap: Spacing.two,\n  },\n  input: {\n    backgroundColor: Colors.dark.background,\n    borderColor: Colors.dark.border,\n    borderCurve: 'continuous',\n    borderRadius: 8,\n    borderWidth: 1,\n    color: Colors.dark.text,\n    fontSize: 16,\n    minHeight: 48,\n    paddingHorizontal: Spacing.two,\n  },\n  inputGrid: {\n    flexDirection: 'row',\n    flexWrap: 'wrap',\n    gap: Spacing.two,\n  },\n  inputGroup: {\n    flex: 1,\n    gap: Spacing.one,\n    minWidth: 130,\n  },\n  inputLabel: {\n    color: Colors.dark.textSecondary,\n    fontSize: 13,\n    fontWeight: '700',\n  },\n  label: {\n    color: Colors.dark.textSecondary,\n    fontSize: 15,\n  },\n  row: {\n    borderColor: Colors.dark.border,\n    borderTopWidth: 1,\n    gap: Spacing.two,\n    paddingTop: Spacing.two,\n  },\n  rowText: {\n    flexDirection: 'row',\n    justifyContent: 'space-between',\n    gap: Spacing.two,\n  },\n  selectedExerciseTitle: {\n    color: Colors.dark.text,\n    fontSize: 16,\n    fontWeight: '800',\n    marginBottom: Spacing.one,\n  },\n  screen: {\n    backgroundColor: Colors.dark.background,\n    flex: 1,\n  },\n  sectionTitle: {\n    color: Colors.dark.text,\n    fontSize: 18,\n    fontWeight: '800',\n  },\n  value: {\n    color: Colors.dark.text,\n    fontSize: 16,\n    fontVariant: ['tabular-nums'],\n    fontWeight: '800',\n  },\n});
+      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
+      <View style={styles.container}>
+        <SectionHeader title="Labs" subtitle="Analysis, progress, and body measurements" />
+
+        <ProgressSummaryCard
+          title="Coach insight"
+          rows={[
+            { label: coachInsight.title, value: coachInsight.weightLine },
+            { label: 'Direction', value: coachInsight.detail },
+            { label: 'Training', value: coachInsight.trainingLine },
+          ]}
+        />
+
+        <AddWeightEntryCard
+          isDisabled={isWeightDisabled}
+          onChangeWeight={setWeight}
+          onSave={handleSaveWeight}
+          weight={weight}
+        />
+
+        <ProgressSummaryCard
+          emptyMessage="Add a weight entry to see your latest summary."
+          title="Latest Weight Summary"
+          rows={
+            latestTrendEntry
+              ? [
+                  { label: 'Latest weight', value: `${latestTrendEntry.weight.toFixed(1)} kg` },
+                  {
+                    label: 'Change from previous',
+                    value: previousTrendEntry
+                      ? formatWeightDelta(
+                          calculateWeightDelta(latestTrendEntry.weight, previousTrendEntry.weight) ?? 0
+                        )
+                      : 'N/A',
+                  },
+                  {
+                    label: 'Change from first',
+                    value: firstTrendEntry
+                      ? formatWeightDelta(
+                          calculateWeightDelta(latestTrendEntry.weight, firstTrendEntry.weight) ?? 0
+                        )
+                      : 'N/A',
+                  },
+                ]
+              : []
+          }
+        />
+
+        <WeightTrendCard
+          isExpanded={isBodyWeightTrendExpanded}
+          onToggle={() => setIsBodyWeightTrendExpanded((current) => !current)}
+          title="Body Weight Trend">
+          <TrendChart
+            emptyLabel="Add at least two weight entries to see a trend."
+            maxLabel={weightTrendAxisMaxLabel}
+            minLabel={weightTrendAxisMinLabel}
+            points={weightTrendPoints}
+          />
+        </WeightTrendCard>
+
+        <WorkoutVolumeTrendCard
+          isExpanded={isWorkoutVolumeExpanded}
+          onToggle={() => setIsWorkoutVolumeExpanded((current) => !current)}
+          title="Workout Volume Trend"
+          summary={
+            latestWorkoutVolumeEntry ? (
+              <>
+                <View style={styles.trendSummaryRow}>
+                  <Text style={styles.label}>Latest workout volume</Text>
+                  <Text style={styles.value}>
+                    {latestWorkoutVolumeEntry.sessionVolume.toLocaleString()} kg
+                  </Text>
+                </View>
+                <View style={styles.trendSummaryRow}>
+                  <Text style={styles.label}>Change from previous</Text>
+                  <Text style={styles.value}>
+                    {previousWorkoutVolumeEntry
+                      ? formatWeightDelta(
+                          latestWorkoutVolumeEntry.sessionVolume -
+                            previousWorkoutVolumeEntry.sessionVolume
+                        )
+                      : 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.trendSummaryRow}>
+                  <Text style={styles.label}>Change from first</Text>
+                  <Text style={styles.value}>
+                    {firstWorkoutVolumeEntry
+                      ? formatWeightDelta(
+                          latestWorkoutVolumeEntry.sessionVolume - firstWorkoutVolumeEntry.sessionVolume
+                        )
+                      : 'N/A'}
+                  </Text>
+                </View>
+              </>
+            ) : null
+          }>
+          <TrendChart
+            emptyLabel="Complete at least two workouts to see volume trend."
+            maxLabel={workoutVolumeAxisMaxLabel}
+            minLabel={workoutVolumeAxisMinLabel}
+            points={workoutVolumePoints}
+          />
+        </WorkoutVolumeTrendCard>
+
+        <AddBodyMeasurementCard
+          isDisabled={isMeasurementDisabled}
+          measurementLabel={measurementLabel}
+          measurementValue={measurementValue}
+          onChangeLabel={setMeasurementLabel}
+          onChangeValue={setMeasurementValue}
+          onSave={handleSaveMeasurement}
+        />
+
+        <AppCard>
+          <Text style={styles.sectionTitle}>Weight history</Text>
+          {weightHistory.map((entry) => (
+            <View key={entry.id} style={styles.row}>
+              <View style={styles.rowText}>
+                <Text style={styles.label}>{entry.date}</Text>
+                <Text style={styles.value}>{entry.weight.toFixed(1)} kg</Text>
+              </View>
+              <AppButton
+                label="Delete"
+                onPress={() => confirmDeleteWeight(entry.id)}
+                variant="secondary"
+              />
+            </View>
+          ))}
+        </AppCard>
+
+        <AppCard>
+          <Pressable
+            onPress={() => setIsBodyMeasurementsExpanded((current) => !current)}
+            style={styles.collapsibleHeader}>
+            <Text style={styles.sectionTitle}>
+              {getSectionTitle('Body Measurements', isBodyMeasurementsExpanded)}
+            </Text>
+          </Pressable>
+
+          {isBodyMeasurementsExpanded ? (
+            bodyMeasurements.map((measurement) => (
+              <View key={measurement.id} style={styles.row}>
+                <View style={styles.rowText}>
+                  <Text style={styles.label}>{measurement.label}</Text>
+                  <Text style={styles.value}>{measurement.value}</Text>
+                </View>
+                <AppButton
+                  label="Delete"
+                  onPress={() => confirmDeleteMeasurement(measurement.id)}
+                  variant="secondary"
+                />
+              </View>
+            ))
+          ) : null}
+        </AppCard>
+
+        <AppCard>
+          <Pressable
+            onPress={() => setIsExerciseProgressExpanded((current) => !current)}
+            style={styles.collapsibleHeader}>
+            <Text style={styles.sectionTitle}>
+              {getSectionTitle('Exercise Progress', isExerciseProgressExpanded)}
+            </Text>
+          </Pressable>
+
+          {isExerciseProgressExpanded ? (
+            <>
+              <View style={styles.exercisePicker}>
+                {availableExercises.length > 0 ? (
+                  availableExercises.map((exerciseName) => {
+                    const isActive = selectedExercise === exerciseName;
+
+                    return (
+                      <AppButton
+                        key={exerciseName}
+                        label={exerciseName}
+                        onPress={() => setSelectedExercise(exerciseName)}
+                        variant={isActive ? 'secondary' : 'secondary'}
+                      />
+                    );
+                  })
+                ) : (
+                  <EmptyProgressState message="No exercises available yet." />
+                )}
+              </View>
+
+              {selectedExercise ? (
+                <>
+                  <Text style={styles.selectedExerciseTitle}>{selectedExerciseLabel}</Text>
+
+                  {exerciseHistory.length > 0 && selectedExerciseStats ? (
+                    <View style={styles.exerciseStats}>
+                      <View style={styles.exerciseStatRow}>
+                        <Text style={styles.label}>Max weight</Text>
+                        <Text style={styles.value}>
+                          {selectedExerciseStats.maxWeightSet.weight.toFixed(1)} kg
+                        </Text>
+                      </View>
+                      <View style={styles.exerciseStatRow}>
+                        <Text style={styles.label}>Best volume set</Text>
+                        <Text style={styles.value}>
+                          {selectedExerciseStats.bestVolumeSet.weight.toFixed(1)} kg x{' '}
+                          {selectedExerciseStats.bestVolumeSet.reps}
+                        </Text>
+                      </View>
+                      <View style={styles.exerciseStatRow}>
+                        <Text style={styles.label}>Total sets</Text>
+                        <Text style={styles.value}>{exerciseHistory.length}</Text>
+                      </View>
+                      <View style={styles.exerciseStatRow}>
+                        <Text style={styles.label}>Total volume</Text>
+                        <Text style={styles.value}>
+                          {exerciseHistory
+                            .reduce((total, set) => total + set.weight * set.reps, 0)
+                            .toLocaleString()}{' '}
+                          kg
+                        </Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <EmptyProgressState message="No history for this exercise yet" />
+                  )}
+
+                  <Pressable
+                    onPress={() => setIsEstimated1RMExpanded((current) => !current)}
+                    style={styles.collapsibleHeader}>
+                    <Text style={styles.sectionTitle}>
+                      {getSectionTitle('Estimated 1RM Trend', isEstimated1RMExpanded)}
+                    </Text>
+                  </Pressable>
+
+                  {isEstimated1RMExpanded ? (
+                    <>
+                      <TrendChart
+                        emptyLabel="Add at least two workouts for this exercise to see a strength trend."
+                        maxLabel={exerciseTrendAxisMaxLabel}
+                        minLabel={exerciseTrendAxisMinLabel}
+                        points={exerciseTrendPoints}
+                      />
+
+                      {latestExerciseTrendEntry ? (
+                        <View style={styles.exerciseTrendSummary}>
+                          <View style={styles.exerciseTrendSummaryRow}>
+                            <Text style={styles.label}>Latest estimated 1RM</Text>
+                            <Text style={styles.value}>
+                              {latestExerciseTrendEntry.estimated1RM.toFixed(1)} kg
+                            </Text>
+                          </View>
+                          <View style={styles.exerciseTrendSummaryRow}>
+                            <Text style={styles.label}>Change from previous</Text>
+                            <Text style={styles.value}>
+                              {previousExerciseTrendEntry
+                                ? formatWeightDelta(
+                                    latestExerciseTrendEntry.estimated1RM -
+                                      previousExerciseTrendEntry.estimated1RM
+                                  )
+                                : 'N/A'}
+                            </Text>
+                          </View>
+                          <View style={styles.exerciseTrendSummaryRow}>
+                            <Text style={styles.label}>Change from first</Text>
+                            <Text style={styles.value}>
+                              {firstExerciseTrendEntry
+                                ? formatWeightDelta(
+                                    latestExerciseTrendEntry.estimated1RM -
+                                      firstExerciseTrendEntry.estimated1RM
+                                  )
+                                : 'N/A'}
+                            </Text>
+                          </View>
+                        </View>
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  {exerciseHistory.length > 0 ? (
+                    <View style={styles.exerciseHistory}>
+                      {exerciseHistory.slice(0, 10).map((set, index) => (
+                        <View
+                          key={`${set.exerciseName}-${set.finishedAt}-${set.sessionIndex}-${set.setIndex}`}
+                          style={styles.historyRow}>
+                          <View style={styles.rowText}>
+                            <Text style={styles.label}>{formatShortDate(set.finishedAt)}</Text>
+                            <Text style={styles.value}>
+                              {set.weight.toFixed(1)} kg x {set.reps}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </>
+              ) : null}
+            </>
+          ) : null}
+        </AppCard>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+  },
+  content: {
+    alignItems: 'center',
+    padding: Spacing.three,
+  },
+  collapsibleHeader: {
+    paddingBottom: Spacing.two,
+  },
+  emptyText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+  },
+  exerciseHistory: {
+    gap: Spacing.two,
+  },
+  chartBar: {
+    borderRadius: 6,
+    minHeight: 24,
+    width: '100%',
+  },
+  chartBarColumn: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 4,
+    minWidth: 0,
+  },
+  chartBarLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  chartBarTrack: {
+    backgroundColor: Colors.dark.border,
+    borderRadius: 8,
+    height: 96,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    padding: 2,
+    width: '100%',
+  },
+  chartBaseline: {
+    backgroundColor: Colors.dark.border,
+    bottom: 34,
+    height: 1,
+    left: 0,
+    opacity: 0.7,
+    position: 'absolute',
+    right: 0,
+  },
+  chartBars: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chartContent: {
+    flex: 1,
+    position: 'relative',
+  },
+  chartRangeLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 12,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '700',
+  },
+  chartRangeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  chartShell: {
+    marginTop: Spacing.one,
+  },
+  chartValueLabel: {
+    color: Colors.dark.text,
+    fontSize: 11,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+  },
+  exerciseTrendBar: {
+    backgroundColor: Colors.dark.accent,
+    borderRadius: 6,
+    minHeight: 24,
+    width: '100%',
+  },
+  exerciseTrendBarColumn: {
+    alignItems: 'center',
+    flex: 1,
+    gap: Spacing.one,
+    minWidth: 0,
+  },
+  exerciseTrendBarLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  exerciseTrendBarTrack: {
+    backgroundColor: Colors.dark.border,
+    borderRadius: 8,
+    height: 100,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    padding: 2,
+    width: '100%',
+  },
+  exerciseTrendChart: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: Spacing.one,
+  },
+  exerciseTrendSummary: {
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  exerciseTrendSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  exercisePicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  exerciseStatRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  exerciseStats: {
+    gap: Spacing.two,
+  },
+  historyRow: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    paddingTop: Spacing.two,
+  },
+  trendBar: {
+    backgroundColor: Colors.dark.accent,
+    borderRadius: 6,
+    minHeight: 24,
+    width: '100%',
+  },
+  trendBarColumn: {
+    alignItems: 'center',
+    flex: 1,
+    gap: Spacing.one,
+    minWidth: 0,
+  },
+  trendBarLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  trendBarTrack: {
+    backgroundColor: Colors.dark.border,
+    borderRadius: 8,
+    height: 100,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    padding: 2,
+    width: '100%',
+  },
+  trendChart: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  trendSummary: {
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  trendSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  input: {
+    backgroundColor: Colors.dark.background,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: Colors.dark.text,
+    fontSize: 16,
+    minHeight: 48,
+    paddingHorizontal: Spacing.two,
+  },
+  inputGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  inputGroup: {
+    flex: 1,
+    gap: Spacing.one,
+    minWidth: 130,
+  },
+  inputLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  label: {
+    color: Colors.dark.textSecondary,
+    fontSize: 15,
+  },
+  row: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    gap: Spacing.two,
+    paddingTop: Spacing.two,
+  },
+  rowText: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  selectedExerciseTitle: {
+    color: Colors.dark.text,
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: Spacing.one,
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+  sectionTitle: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  value: {
+    color: Colors.dark.text,
+    fontSize: 16,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+  },
+});
