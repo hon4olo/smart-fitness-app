@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { BodyMeasurement, Exercise, FoodEntry, MealTemplate, WeightEntry, Workout } from '@/types';
+import type { BodyMeasurement, Exercise, FoodEntry, MealTemplate, WeightEntry, Workout, WorkoutSession } from '@/types';
 
 export const createExerciseId = (name: string) => {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -83,6 +83,10 @@ export const normalizeBodyMeasurements = (bodyMeasurements: BodyMeasurement[]) =
       createdAt: entry.createdAt ?? new Date().toISOString(),
     }))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};
+
+export const getLastWorkoutSession = (workoutSessions: WorkoutSession[]) => {
+  return workoutSessions.at(-1) ?? null;
 };
 
 export const persistState = async (storageKey: string, state: unknown) => {

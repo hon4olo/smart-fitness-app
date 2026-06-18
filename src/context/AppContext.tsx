@@ -29,6 +29,7 @@ import type {
 import { DEFAULT_WORKOUT_TEMPLATE_IDS as DEFAULT_WORKOUT_TEMPLATE_IDS_FROM_DATA, defaultState as defaultAppState } from '@/data/defaults';
 import {
   createExerciseId,
+  getLastWorkoutSession as getLastWorkoutSessionFromState,
   normalizeBodyMeasurements,
   normalizeExercises,
   normalizeFoodEntries,
@@ -562,7 +563,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, []);
 
   const getLastWorkoutSession = useCallback(() => {
-    return state.workoutSessions.at(-1) ?? null;
+    return getLastWorkoutSessionFromState(state.workoutSessions);
   }, [state.workoutSessions]);
 
   const value = useMemo<AppContextType>(
