@@ -1,3 +1,4 @@
+export type { AppContextType, AppState } from './appContext';
 export type { BodyMeasurement, WeightEntry } from './progress';
 export type { FoodEntry, MealTemplate, MealType, NutritionState, NutritionTargets } from './nutrition';
 export type { ProfileGoalType, ProfileState } from './profile';
