@@ -24,6 +24,16 @@ import type {
   WorkoutSession,
   WorkoutSet,
 } from '@/types';
+import {
+  createExerciseId,
+  normalizeBodyMeasurements,
+  normalizeExercises,
+  normalizeFoodEntries,
+  normalizeMealTemplates,
+  normalizeWeightHistory,
+  normalizeWorkouts,
+  persistState,
+} from '@/lib/appState';
 
 export type {
   BodyMeasurement,
@@ -277,97 +287,6 @@ const defaultState: AppState = {
 
 const AppContext = createContext<AppContextType | null>(null);
 
-const persistState = async (state: AppState) => {
-  try {
-    await AsyncStorage.setItem(APP_STATE_KEY, JSON.stringify(state));
-  } catch (error) {
-    console.warn('Failed to persist MVP app state', error);
-  }
-};
-
-const createExerciseId = (name: string) => {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-};
-
-const normalizeWorkouts = (workouts: Workout[]) => {
-  return workouts.map((workout) => ({
-    ...workout,
-    createdAt: workout.createdAt ?? new Date().toISOString(),
-    isCustom: workout.isCustom ?? !DEFAULT_WORKOUT_TEMPLATE_IDS.has(workout.id),
-    exercises: workout.exercises.map((exercise, index) => {
-      if (typeof exercise === 'string') {
-        return {
-          id: `${createExerciseId(exercise)}-${index}`,
-          name: exercise,
-          isCustom: true,
-          createdAt: new Date().toISOString(),
-        };
-      }
-
-      return {
-        ...exercise,
-        isCustom: exercise.isCustom ?? true,
-        createdAt: exercise.createdAt ?? new Date().toISOString(),
-      };
-    }),
-  }));
-};
-
-const normalizeExercises = (exercises: Exercise[]) => {
-  return exercises.map((exercise) => ({
-    ...exercise,
-    isCustom: exercise.isCustom ?? false,
-    createdAt: exercise.createdAt ?? new Date().toISOString(),
-  }));
-};
-
-const normalizeFoodEntries = (foodEntries: FoodEntry[]) => {
-  return foodEntries.map((entry) => ({
-    ...entry,
-    date: entry.date ?? (entry.createdAt ? entry.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10)),
-    mealType: entry.mealType ?? 'breakfast',
-    carbs: entry.carbs ?? 0,
-    fats: entry.fats ?? 0,
-    source: entry.source ?? 'manual',
-    createdAt: entry.createdAt ?? new Date().toISOString(),
-  }));
-};
-
-const normalizeMealTemplates = (mealTemplates: MealTemplate[]) => {
-  return mealTemplates.map((template) => ({
-    ...template,
-    createdAt: template.createdAt ?? new Date().toISOString(),
-    items: normalizeFoodEntries(template.items ?? []).map((item, index) => ({
-      ...item,
-      id: `${template.id}-item-${index}`,
-    })),
-  }));
-};
-
-const normalizeWeightHistory = (weightHistory: WeightEntry[]) => {
-  return weightHistory
-    .map((entry) => {
-      const parsedDate = new Date(`${entry.date} 2026`);
-
-      return {
-        ...entry,
-        createdAt:
-          entry.createdAt ??
-          (Number.isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString()),
-      };
-    })
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-};
-
-const normalizeBodyMeasurements = (bodyMeasurements: BodyMeasurement[]) => {
-  return bodyMeasurements
-    .map((entry) => ({
-      ...entry,
-      createdAt: entry.createdAt ?? new Date().toISOString(),
-    }))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-};
-
 export function AppProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(defaultState);
 
@@ -382,7 +301,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           setState({
             ...defaultState,
             ...parsedState,
-            workouts: normalizeWorkouts(parsedState.workouts ?? defaultState.workouts),
+            workouts: normalizeWorkouts(parsedState.workouts ?? defaultState.workouts, DEFAULT_WORKOUT_TEMPLATE_IDS),
             exercises: normalizeExercises(parsedState.exercises ?? defaultState.exercises),
             workoutSessions: parsedState.workoutSessions ?? defaultState.workoutSessions,
             foodEntries: normalizeFoodEntries(parsedState.foodEntries ?? defaultState.foodEntries),
@@ -427,7 +346,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           fats: currentState.nutrition.fats + foodEntry.fats,
         },
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -459,7 +378,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           fats: currentState.nutrition.fats + addedNutrition.fats,
         },
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -477,7 +396,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           ...currentState.mealTemplates,
         ],
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -502,7 +421,7 @@ export function AppProvider({ children }: PropsWithChildren) {
             },
           ],
         };
-        void persistState(nextState);
+        void persistState(APP_STATE_KEY, nextState);
         return nextState;
       });
     },
@@ -538,7 +457,7 @@ export function AppProvider({ children }: PropsWithChildren) {
             },
           ],
         };
-        void persistState(nextState);
+        void persistState(APP_STATE_KEY, nextState);
         return nextState;
       });
     },
@@ -580,7 +499,7 @@ export function AppProvider({ children }: PropsWithChildren) {
               : item
           ),
         };
-        void persistState(nextState);
+        void persistState(APP_STATE_KEY, nextState);
         return nextState;
       });
     },
@@ -614,7 +533,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           fats: Math.max(0, currentState.nutrition.fats - oldEntry.fats + foodEntry.fats),
         },
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -631,7 +550,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         workouts: currentState.workouts.filter((item) => item.id !== templateId),
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -648,7 +567,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         exercises: currentState.exercises.filter((item) => item.id !== exerciseId),
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -671,7 +590,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           fats: Math.max(0, currentState.nutrition.fats - entry.fats),
         },
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -682,7 +601,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         mealTemplates: currentState.mealTemplates.filter((template) => template.id !== templateId),
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -693,7 +612,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         nutritionTargets: targets,
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -713,7 +632,7 @@ export function AppProvider({ children }: PropsWithChildren) {
             ...goals,
           },
         };
-        void persistState(nextState);
+        void persistState(APP_STATE_KEY, nextState);
         return nextState;
       });
     },
@@ -726,7 +645,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         weightHistory: [entry, ...currentState.weightHistory],
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -737,7 +656,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         bodyMeasurements: [entry, ...currentState.bodyMeasurements],
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -748,7 +667,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         weightHistory: currentState.weightHistory.filter((entry) => entry.id !== entryId),
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -759,7 +678,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         bodyMeasurements: currentState.bodyMeasurements.filter((entry) => entry.id !== entryId),
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -770,7 +689,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         workoutSessions: [...currentState.workoutSessions, session],
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -810,7 +729,7 @@ export function AppProvider({ children }: PropsWithChildren) {
             ...currentState.weightHistory,
           ],
         };
-        void persistState(nextState);
+        void persistState(APP_STATE_KEY, nextState);
         return nextState;
       });
     },
@@ -823,7 +742,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         onboardingCompleted: false,
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -834,7 +753,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         workoutSessions: currentState.workoutSessions.filter((session) => session.id !== sessionId),
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
@@ -862,7 +781,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           session.id === sessionId ? nextSession : session
         ),
       };
-      void persistState(nextState);
+      void persistState(APP_STATE_KEY, nextState);
       return nextState;
     });
   }, []);
