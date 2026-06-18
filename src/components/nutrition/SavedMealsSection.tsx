@@ -4,6 +4,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
 import type { MealTemplate } from '@/context/AppContext';
+import { formatMacroTotals, sumNutritionTotals } from '@/lib';
 
 type SavedMealsSectionProps = {
   currentMealCount: number;
@@ -22,7 +23,6 @@ type SavedMealsSectionProps = {
   selectedDateLabel: string;
   selectedMealEntriesCount: number;
   selectedMealTypeLabel: string;
-  formatMacroTotals: (entryTotals: { calories: number; protein: number; carbs: number; fats: number }) => string;
 };
 
 export function SavedMealsSection({
@@ -42,7 +42,6 @@ export function SavedMealsSection({
   selectedDateLabel,
   selectedMealEntriesCount,
   selectedMealTypeLabel,
-  formatMacroTotals,
 }: SavedMealsSectionProps) {
   return (
     <AppCard>
@@ -91,15 +90,7 @@ export function SavedMealsSection({
 
           {mealTemplates.length > 0 ? (
             mealTemplates.map((template) => {
-              const templateTotals = template.items.reduce(
-                (totals, entry) => ({
-                  calories: totals.calories + entry.calories,
-                  protein: totals.protein + entry.protein,
-                  carbs: totals.carbs + entry.carbs,
-                  fats: totals.fats + entry.fats,
-                }),
-                { calories: 0, protein: 0, carbs: 0, fats: 0 }
-              );
+              const templateTotals = sumNutritionTotals(template.items);
 
               return (
                 <View key={template.id} style={styles.savedMealItem}>
@@ -133,81 +124,18 @@ export function SavedMealsSection({
 }
 
 const styles = StyleSheet.create({
-  collapsibleHeader: {
-    paddingBottom: Spacing.two,
-  },
-  foodMeta: {
-    color: Colors.dark.textSecondary,
-    fontSize: 14,
-    fontVariant: ['tabular-nums'],
-    lineHeight: 20,
-  },
-  foodName: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 21,
-  },
-  foodServing: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  input: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 8,
-    borderWidth: 1,
-    color: Colors.dark.text,
-    fontSize: 16,
-    minHeight: 48,
-    paddingHorizontal: Spacing.two,
-  },
-  inputGroup: {
-    gap: Spacing.one,
-  },
-  inputLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  remainingValue: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    width: '100%',
-  },
-  savedMealActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  savedMealComposer: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    gap: Spacing.two,
-    marginBottom: Spacing.three,
-    paddingTop: Spacing.two,
-  },
-  savedMealItem: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    gap: Spacing.two,
-    paddingTop: Spacing.three,
-  },
-  savedMealItemContent: {
-    gap: Spacing.one,
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  templateSummaryLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-    width: '100%',
-  },
+  collapsibleHeader: { paddingBottom: Spacing.two },
+  foodMeta: { color: Colors.dark.textSecondary, fontSize: 14, fontVariant: ['tabular-nums'], lineHeight: 20 },
+  foodName: { color: Colors.dark.text, fontSize: 15, fontWeight: '700', lineHeight: 21 },
+  foodServing: { color: Colors.dark.textSecondary, fontSize: 13, lineHeight: 19 },
+  input: { backgroundColor: Colors.dark.background, borderColor: Colors.dark.border, borderCurve: 'continuous', borderRadius: 8, borderWidth: 1, color: Colors.dark.text, fontSize: 16, minHeight: 48, paddingHorizontal: Spacing.two },
+  inputGroup: { gap: Spacing.one },
+  inputLabel: { color: Colors.dark.textSecondary, fontSize: 13, fontWeight: '700' },
+  remainingValue: { color: Colors.dark.textSecondary, fontSize: 13, lineHeight: 19, width: '100%' },
+  savedMealActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  savedMealComposer: { borderColor: Colors.dark.border, borderTopWidth: 1, gap: Spacing.two, marginBottom: Spacing.three, paddingTop: Spacing.two },
+  savedMealItem: { borderColor: Colors.dark.border, borderTopWidth: 1, gap: Spacing.two, paddingTop: Spacing.three },
+  savedMealItemContent: { gap: Spacing.one },
+  sectionTitle: { color: Colors.dark.text, fontSize: 18, fontWeight: '800' },
+  templateSummaryLabel: { color: Colors.dark.textSecondary, fontSize: 12, lineHeight: 18, width: '100%' },
 });

@@ -4,6 +4,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
 import { WorkoutSession } from '@/context/AppContext';
+import { getSessionExercises, getSessionVolume } from '@/lib/workouts';
 import { EmptyWorkoutState } from './EmptyWorkoutState';
 import { WorkoutHistorySessionCard } from './WorkoutHistorySessionCard';
 
@@ -35,37 +36,7 @@ const getSectionTitle = (title: string, isExpanded: boolean) => {
   return `${title} ${isExpanded ? '−' : '+'}`;
 };
 
-const getSessionVolume = (session: WorkoutSession) => {
-  return session.sets.reduce((total, set) => total + set.weight * set.reps, 0);
-};
-
-const getSessionExercises = (session: WorkoutSession) => {
-  return Array.from(new Set(session.sets.map((set) => set.exerciseName)));
-};
-
-export function WorkoutHistorySection({
-  completedSessions,
-  editingSessionId,
-  editingSessionSetId,
-  formatFinishedAt,
-  isExpanded,
-  onCancelSessionEdit,
-  onCancelSessionSetEdit,
-  onDeleteSession,
-  onDeleteSessionSet,
-  onEditSession,
-  onEditSessionSet,
-  onSaveSessionChanges,
-  onSaveSessionSet,
-  onSessionExerciseNameChange,
-  onSessionRepsChange,
-  onSessionWeightChange,
-  onToggleExpanded,
-  sessionDraftSets,
-  sessionExerciseName,
-  sessionReps,
-  sessionWeight,
-}: WorkoutHistorySectionProps) {
+export function WorkoutHistorySection({ completedSessions, editingSessionId, editingSessionSetId, formatFinishedAt, isExpanded, onCancelSessionEdit, onCancelSessionSetEdit, onDeleteSession, onDeleteSessionSet, onEditSession, onEditSessionSet, onSaveSessionChanges, onSaveSessionSet, onSessionExerciseNameChange, onSessionRepsChange, onSessionWeightChange, onToggleExpanded, sessionDraftSets, sessionExerciseName, sessionReps, sessionWeight, }: WorkoutHistorySectionProps) {
   return (
     <AppCard>
       <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
@@ -115,12 +86,6 @@ export function WorkoutHistorySection({
 }
 
 const styles = StyleSheet.create({
-  collapsibleHeader: {
-    paddingBottom: Spacing.two,
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
+  collapsibleHeader: { paddingBottom: Spacing.two },
+  sectionTitle: { color: Colors.dark.text, fontSize: 18, fontWeight: '800' },
 });

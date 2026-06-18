@@ -9,39 +9,14 @@ import { MetricCard } from '@/components/ui/MetricCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-
-const formatLocalDate = (date: Date) => {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-};
-
-const formatWorkoutDate = (dateString: string) => {
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return 'Unknown date';
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    month: 'short',
-  }).format(date);
-};
-
-const getWorkoutTimestamp = (session: { finishedAt?: string; startedAt?: string }) => {
-  const source = session.finishedAt ?? session.startedAt;
-
-  if (!source) {
-    return 0;
-  }
-
-  const parsed = new Date(source);
-
-  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
-};
+import { formatLocalDate, formatShortDate } from '@/lib';
+import { getLatestWeightEntry } from '@/lib/progress';
+import {
+  getLatestWorkoutSession,
+  getSessionVolume,
+  getWeeklyWorkoutCount,
+} from '@/lib/workouts';
+import { sumNutritionTotals } from '@/lib/nutrition';
 
 type PlanItem = {
   label: string;
@@ -91,24 +66,14 @@ export default function AICoachScreen() {
     `${profile.trainingDaysPerWeek}`
   );
   const safeAreaInsets = useSafeAreaInsets();
-  const latestWeight = weightHistory[0];
+  const latestWeight = getLatestWeightEntry(weightHistory);
   const today = formatLocalDate(new Date());
   const todaysFoodEntries = foodEntries.filter((entry) => entry.date === today);
-  const todaysNutrition = todaysFoodEntries.reduce(
-    (totals, entry) => ({
-      calories: totals.calories + entry.calories,
-      protein: totals.protein + entry.protein,
-      carbs: totals.carbs + entry.carbs,
-      fats: totals.fats + entry.fats,
-    }),
-    { calories: 0, protein: 0, carbs: 0, fats: 0 }
-  );
-  const latestWorkoutSession = [...workoutSessions].sort((a, b) => getWorkoutTimestamp(a) - getWorkoutTimestamp(b)).at(-1);
-  const latestWorkoutVolume = latestWorkoutSession
-    ? latestWorkoutSession.sets.reduce((total, set) => total + set.weight * set.reps, 0)
-    : 0;
+  const todaysNutrition = sumNutritionTotals(todaysFoodEntries);
+  const latestWorkoutSession = getLatestWorkoutSession(workoutSessions);
+  const latestWorkoutVolume = latestWorkoutSession ? getSessionVolume(latestWorkoutSession) : 0;
   const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const workoutsThisWeek = workoutSessions.filter((session) => getWorkoutTimestamp(session) >= weekStart).length;
+  const workoutsThisWeek = getWeeklyWorkoutCount(workoutSessions, weekStart);
   const trainingGoal = profile.trainingDaysPerWeek;
   const latestWeightLabel = latestWeight
     ? `${latestWeight.weight.toFixed(1)} kg`
@@ -383,7 +348,7 @@ export default function AICoachScreen() {
                 value={latestWorkoutSession?.workoutTitle ?? 'No sessions yet'}
                 detail={
                   latestWorkoutSession
-                    ? `${formatWorkoutDate(latestWorkoutSession.finishedAt)} • ${latestWorkoutSession.sets.length} sets • ${latestWorkoutVolume.toFixed(0)} kg`
+                    ? `${formatShortDate(latestWorkoutSession.finishedAt)} • ${latestWorkoutSession.sets.length} sets • ${latestWorkoutVolume.toFixed(0)} kg`
                     : 'Finish a workout to see history'
                 }
               />
@@ -443,135 +408,3 @@ export default function AICoachScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.three,
-    maxWidth: MaxContentWidth,
-    width: '100%',
-  },
-  content: {
-    alignItems: 'center',
-    gap: Spacing.three,
-    padding: Spacing.three,
-    paddingBottom: Spacing.six,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  coachDetail: {
-    color: Colors.dark.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  coachNote: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  coachNotes: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  coachSummary: {
-    gap: Spacing.two,
-  },
-  coachTitle: {
-    color: Colors.dark.text,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  quickActions: {
-    gap: Spacing.two,
-  },
-  planContent: {
-    flex: 1,
-    gap: 4,
-  },
-  planDetail: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  planLabel: {
-    color: Colors.dark.accent,
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    width: 48,
-  },
-  planList: {
-    gap: Spacing.two,
-  },
-  planRow: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: Spacing.two,
-    paddingTop: Spacing.two,
-  },
-  planTitle: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  goalTypeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-    marginBottom: Spacing.two,
-    marginTop: Spacing.one,
-  },
-  input: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 8,
-    borderWidth: 1,
-    color: Colors.dark.text,
-    fontSize: 16,
-    minHeight: 48,
-    paddingHorizontal: Spacing.two,
-  },
-  inputGroup: {
-    gap: Spacing.one,
-    marginBottom: Spacing.two,
-  },
-  inputLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  statusLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  statusList: {
-    gap: Spacing.two,
-  },
-  statusRow: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    gap: Spacing.one,
-    paddingTop: Spacing.two,
-  },
-  statusValue: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  screen: {
-    backgroundColor: Colors.dark.background,
-    flex: 1,
-  },
-});
