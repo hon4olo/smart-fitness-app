@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore - expo-updates types are not available in this workspace, but the runtime module exists on device.
 import * as Updates from 'expo-updates';
 
 import { AppButton } from '@/components/ui/AppButton';
-import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { DeveloperToolsCard } from '@/components/profile/DeveloperToolsCard';
+import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
+import { ProfileHeaderCard } from '@/components/profile/ProfileHeaderCard';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 
 type ProfileScreenGoalType = 'lose_fat' | 'maintain' | 'gain_muscle';
+type OtaValueSource = Record<string, unknown>;
 
 export default function ProfileScreen() {
   const { profile, resetOnboarding, updateProfileGoals, weightHistory } = useAppContext();
@@ -112,16 +115,16 @@ export default function ProfileScreen() {
   };
 
   const rows = [
-    ['Height', profile.height],
-    ['Weight', latestWeight ? `${latestWeight.weight.toFixed(1)} kg` : profile.weight],
-    ['Goal type', goalTypeLabel(profile.goalType)],
-    ['Activity level', profile.activityLevel],
+    { label: 'Height', value: profile.height },
+    { label: 'Weight', value: latestWeight ? `${latestWeight.weight.toFixed(1)} kg` : profile.weight },
+    { label: 'Goal type', value: goalTypeLabel(profile.goalType) },
+    { label: 'Activity level', value: profile.activityLevel },
   ];
 
-  const otaRuntimeVersion = formatOtaValue((Updates as Record<string, unknown>).runtimeVersion);
-  const otaUpdateId = formatOtaValue((Updates as Record<string, unknown>).updateId);
-  const otaCreatedAt = formatOtaValue((Updates as Record<string, unknown>).createdAt);
-  const otaChannel = formatOtaValue((Updates as Record<string, unknown>).channel);
+  const otaRuntimeVersion = formatOtaValue((Updates as OtaValueSource).runtimeVersion);
+  const otaUpdateId = formatOtaValue((Updates as OtaValueSource).updateId);
+  const otaCreatedAt = formatOtaValue((Updates as OtaValueSource).createdAt);
+  const otaChannel = formatOtaValue((Updates as OtaValueSource).channel);
 
   return (
     <ScrollView
@@ -131,138 +134,31 @@ export default function ProfileScreen() {
       <View style={styles.container}>
         <SectionHeader title="Profile" subtitle="Goals, settings, and developer tools" />
 
-        <AppCard>
-          {rows.map(([label, value]) => (
-            <View key={label} style={styles.row}>
-              <Text selectable style={styles.label}>
-                {label}
-              </Text>
-              <Text selectable style={styles.value}>
-                {value}
-              </Text>
-            </View>
-          ))}
-        </AppCard>
+        <ProfileHeaderCard rows={rows} />
 
-        <AppCard>
-          <Text style={styles.sectionTitle}>Goals</Text>
-
-          <View style={styles.goalSummaryRow}>
-            <Text style={styles.label}>Latest weight</Text>
-            <Text style={styles.value}>
-              {latestWeight ? `${latestWeight.weight.toFixed(1)} kg` : 'No weight logged yet'}
-            </Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Target weight</Text>
-            <TextInput
-              keyboardType="decimal-pad"
-              onChangeText={setTargetWeight}
-              placeholder="75"
-              placeholderTextColor={Colors.dark.textSecondary}
-              style={styles.input}
-              value={targetWeight}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Weekly weight change goal</Text>
-            <TextInput
-              keyboardType="decimal-pad"
-              onChangeText={setWeeklyWeightChangeGoal}
-              placeholder="0.25"
-              placeholderTextColor={Colors.dark.textSecondary}
-              style={styles.input}
-              value={weeklyWeightChangeGoal}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Training days per week</Text>
-            <TextInput
-              keyboardType="number-pad"
-              onChangeText={setTrainingDaysPerWeek}
-              placeholder="3"
-              placeholderTextColor={Colors.dark.textSecondary}
-              style={styles.input}
-              value={trainingDaysPerWeek}
-            />
-          </View>
-
-          <Text style={styles.inputLabel}>Goal type</Text>
-          <View style={styles.goalTypeRow}>
-            <AppButton
-              label="Lose fat"
-              onPress={() => setGoalType('lose_fat')}
-              variant={goalType === 'lose_fat' ? 'primary' : 'secondary'}
-            />
-            <AppButton
-              label="Maintain"
-              onPress={() => setGoalType('maintain')}
-              variant={goalType === 'maintain' ? 'primary' : 'secondary'}
-            />
-            <AppButton
-              label="Gain muscle"
-              onPress={() => setGoalType('gain_muscle')}
-              variant={goalType === 'gain_muscle' ? 'primary' : 'secondary'}
-            />
-          </View>
-
-          <AppButton disabled={isSaveDisabled} label="Save Goals" onPress={handleSaveGoals} />
-        </AppCard>
-
-        <AppCard>
-          <Text style={styles.sectionTitle}>Saved Goals</Text>
-          <View style={styles.savedGoalRow}>
-            <Text style={styles.label}>Target weight</Text>
-            <Text style={styles.value}>{profile.targetWeight.toFixed(1)} kg</Text>
-          </View>
-          <View style={styles.savedGoalRow}>
-            <Text style={styles.label}>Goal type</Text>
-            <Text style={styles.value}>{goalTypeLabel(profile.goalType)}</Text>
-          </View>
-          <View style={styles.savedGoalRow}>
-            <Text style={styles.label}>Weekly weight change goal</Text>
-            <Text style={styles.value}>{profile.weeklyWeightChangeGoal.toFixed(2)} kg</Text>
-          </View>
-          <View style={styles.savedGoalRow}>
-            <Text style={styles.label}>Training days per week</Text>
-            <Text style={styles.value}>{profile.trainingDaysPerWeek}</Text>
-          </View>
-        </AppCard>
+        <ProfileGoalsCard
+          goalType={goalType}
+          isSaveDisabled={isSaveDisabled}
+          latestWeightLabel={latestWeight ? `${latestWeight.weight.toFixed(1)} kg` : 'No weight logged yet'}
+          onGoalTypeChange={setGoalType}
+          onSaveGoals={handleSaveGoals}
+          onTargetWeightChange={setTargetWeight}
+          onTrainingDaysPerWeekChange={setTrainingDaysPerWeek}
+          onWeeklyWeightChangeGoalChange={setWeeklyWeightChangeGoal}
+          targetWeight={targetWeight}
+          trainingDaysPerWeek={trainingDaysPerWeek}
+          weeklyWeightChangeGoal={weeklyWeightChangeGoal}
+        />
 
         <AppButton label="Reset Onboarding" onPress={handleResetOnboarding} variant="secondary" />
 
-        <AppCard>
-          <Text style={styles.developerTitle}>Developer Tools</Text>
-          <View style={styles.otaCard}>
-            <Text style={styles.otaTitle}>OTA Update</Text>
-
-            <View style={styles.otaRow}>
-              <Text style={styles.otaLabel}>runtimeVersion</Text>
-              <Text style={styles.otaValue}>{otaRuntimeVersion}</Text>
-            </View>
-            <View style={styles.otaRow}>
-              <Text style={styles.otaLabel}>updateId</Text>
-              <Text style={styles.otaValue}>{otaUpdateId}</Text>
-            </View>
-            <View style={styles.otaRow}>
-              <Text style={styles.otaLabel}>createdAt</Text>
-              <Text style={styles.otaValue}>{otaCreatedAt}</Text>
-            </View>
-            <View style={styles.otaRow}>
-              <Text style={styles.otaLabel}>channel</Text>
-              <Text style={styles.otaValue}>{otaChannel}</Text>
-            </View>
-
-            <AppButton
-              label="Check for OTA update"
-              onPress={handleCheckForOtaUpdate}
-              variant="secondary"
-            />
-          </View>
-        </AppCard>
+        <DeveloperToolsCard
+          channel={otaChannel}
+          createdAt={otaCreatedAt}
+          onCheckForOtaUpdate={handleCheckForOtaUpdate}
+          runtimeVersion={otaRuntimeVersion}
+          updateId={otaUpdateId}
+        />
       </View>
     </ScrollView>
   );
@@ -278,113 +174,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.three,
   },
-  developerTitle: {
-    color: Colors.dark.text,
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-    marginBottom: Spacing.one,
-    textTransform: 'uppercase',
-  },
-  otaCard: {
-    gap: Spacing.two,
-  },
-  otaLabel: {
-    color: Colors.dark.textSecondary,
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  otaRow: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: Spacing.two,
-    paddingTop: Spacing.two,
-  },
-  otaTitle: {
-    color: Colors.dark.text,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  otaValue: {
-    color: Colors.dark.text,
-    flex: 1,
-    fontSize: 12,
-    textAlign: 'right',
-  },
-  goalSummaryRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: Spacing.three,
-    justifyContent: 'space-between',
-    paddingBottom: Spacing.two,
-  },
-  goalTypeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-    marginBottom: Spacing.two,
-    marginTop: Spacing.one,
-  },
-  input: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 8,
-    borderWidth: 1,
-    color: Colors.dark.text,
-    fontSize: 16,
-    minHeight: 48,
-    paddingHorizontal: Spacing.two,
-  },
-  inputGroup: {
-    gap: Spacing.one,
-    marginBottom: Spacing.two,
-  },
-  inputLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  label: {
-    color: Colors.dark.textSecondary,
-    fontSize: 15,
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  row: {
-    alignItems: 'center',
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: Spacing.three,
-    justifyContent: 'space-between',
-    paddingTop: Spacing.two,
-  },
   screen: {
     backgroundColor: Colors.dark.background,
     flex: 1,
   },
-  savedGoalRow: {
-    alignItems: 'center',
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: Spacing.three,
-    justifyContent: 'space-between',
-    paddingTop: Spacing.two,
-  },
-  value: {
-    color: Colors.dark.text,
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '800',
-    textAlign: 'right',
-  },
 });
-
