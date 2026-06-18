@@ -6,6 +6,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { AddFoodFormSection } from '@/components/nutrition/AddFoodFormSection';
 import { FoodDiarySection } from '@/components/nutrition/FoodDiarySection';
 import { FoodSearchSection } from '@/components/nutrition/FoodSearchSection';
@@ -217,16 +218,16 @@ export default function NutritionScreen() {
       <View style={styles.container}>
         <SectionHeader title="Eat" subtitle="Meals, macros, and nutrition targets" />
         <NutritionSummaryCard calorieLine={nutritionCoachInsight.calorieLine} ctaLabel={nutritionCoachInsight.ctaLabel} detail={nutritionCoachInsight.detail} onPress={() => setIsSearchExpanded(true)} proteinLine={nutritionCoachInsight.proteinLine} title={nutritionCoachInsight.title} />
-        <AppCard>
-          <Text style={styles.sectionTitle}>Quick actions</Text>
-          <Text style={styles.quickActionsHelp}>Jump straight to the part you need most.</Text>
-          <View style={styles.quickActions}>
-            <AppButton label="Add food" onPress={() => setIsAddFoodFormExpanded(true)} />
-            <AppButton label="Search food" onPress={() => setIsSearchExpanded(true)} variant="secondary" />
-            <AppButton label="Recent foods" onPress={() => setIsRecentFoodsExpanded(true)} variant="secondary" />
-            <AppButton label="Saved meals" onPress={() => setIsSavedMealsExpanded(true)} variant="secondary" />
-          </View>
-        </AppCard>
+        <QuickActionsCard
+          title="Nutrition Actions"
+          subtitle="Fast entry and fast reuse."
+          primaryAction={{ label: 'Add Food', onPress: () => setIsAddFoodFormExpanded(true) }}
+          secondaryActions={[
+            { label: 'Search', onPress: () => setIsSearchExpanded(true) },
+            { label: 'Recent Foods', onPress: () => setIsRecentFoodsExpanded(true) },
+            { label: 'Saved Meals', onPress: () => setIsSavedMealsExpanded(true) },
+          ]}
+        />
         <AppCard>
           <Text selectable style={styles.sectionTitle}>{selectedDate}</Text>
           <View style={styles.dateControls}>
