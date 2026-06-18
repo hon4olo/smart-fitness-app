@@ -1,15 +1,14 @@
 import { router } from 'expo-router';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useState } from 'react';
 
 import { AppButton } from '@/components/ui/AppButton';
-import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { EmptyWorkoutState } from '@/components/workouts/EmptyWorkoutState';
 import { WorkoutCoachInsightCard } from '@/components/workouts/WorkoutCoachInsightCard';
 import { WorkoutExerciseLibraryCard } from '@/components/workouts/WorkoutExerciseLibraryCard';
-import { WorkoutHistorySessionCard } from '@/components/workouts/WorkoutHistorySessionCard';
 import { WorkoutTemplateCard } from '@/components/workouts/WorkoutTemplateCard';
+import { CreateWorkoutCard } from '@/components/workouts/CreateWorkoutCard';
+import { WorkoutHistorySection } from '@/components/workouts/WorkoutHistorySection';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext, WorkoutSession } from '@/context/AppContext';
 
@@ -126,10 +125,6 @@ export default function WorkoutsScreen() {
 
   const isCustomWorkout = (workoutId: string, isCustom?: boolean) => {
     return Boolean(isCustom) || !DEFAULT_WORKOUT_TEMPLATE_IDS.has(workoutId);
-  };
-
-  const getSectionTitle = (title: string, isExpanded: boolean) => {
-    return `${title} ${isExpanded ? '−' : '+'}`;
   };
 
   const clearWorkoutForm = () => {
@@ -370,7 +365,11 @@ export default function WorkoutsScreen() {
           title={workoutsInsight.title}
         />
 
-        <AppButton label="Start Workout" onPress={() => startWorkout(workouts[0]?.id ?? '')} />
+        <AppButton
+          disabled={workouts.length === 0}
+          label="Start Workout"
+          onPress={() => startWorkout(workouts[0]?.id ?? '')}
+        />
 
         <WorkoutExerciseLibraryCard
           exerciseName={exerciseName}
@@ -387,169 +386,69 @@ export default function WorkoutsScreen() {
           onToggleExpanded={() => setIsExercisesExpanded((current) => !current)}
         />
 
-        <AppCard>
-          <Pressable
-            onPress={() => setIsCreateWorkoutExpanded((current) => !current)}
-            style={styles.collapsibleHeader}>
-            <Text style={styles.sectionTitle}>
-              {getSectionTitle(editingWorkoutId ? 'Edit Workout' : 'Create Workout', isCreateWorkoutExpanded)}
-            </Text>
-          </Pressable>
+        <CreateWorkoutCard
+          draftExerciseName={draftExerciseName}
+          draftExercises={draftExercises}
+          editingWorkoutId={editingWorkoutId}
+          isExpanded={isCreateWorkoutExpanded}
+          isSaveWorkoutDisabled={isSaveWorkoutDisabled}
+          onAddExercise={handleAddExercise}
+          onCancelEdit={clearWorkoutForm}
+          onDraftExerciseNameChange={setDraftExerciseName}
+          onRemoveDraftExercise={handleRemoveDraftExercise}
+          onSaveWorkout={handleSaveWorkout}
+          onToggleExpanded={() => setIsCreateWorkoutExpanded((current) => !current)}
+          onWorkoutDescriptionChange={setWorkoutDescription}
+          onWorkoutTitleChange={setWorkoutTitle}
+          workoutDescription={workoutDescription}
+          workoutTitle={workoutTitle}
+        />
 
-          {isCreateWorkoutExpanded ? (
-            <>
-              <Text selectable style={styles.formTitle}>
-                {editingWorkoutId ? 'Edit Workout' : 'Create Workout'}
-              </Text>
+        <WorkoutHistorySection
+          completedSessions={completedSessions}
+          editingSessionId={editingSessionId}
+          editingSessionSetId={editingSessionSetId}
+          formatFinishedAt={formatFinishedAt}
+          isExpanded={isWorkoutHistoryExpanded}
+          onCancelSessionEdit={handleCancelSessionEdit}
+          onCancelSessionSetEdit={handleCancelSessionSetEdit}
+          onDeleteSession={(sessionId) => {
+            if (editingSessionId === sessionId) {
+              Alert.alert('Delete workout?', 'This completed workout will be removed from history.', [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: () => {
+                    clearSessionEdit();
+                    deleteWorkoutSession(sessionId);
+                  },
+                },
+              ]);
+              return;
+            }
 
-              <View style={styles.inputGroup}>
-                <Text selectable style={styles.inputLabel}>
-                  Workout title
-                </Text>
-                <TextInput
-                  onChangeText={setWorkoutTitle}
-                  placeholder="Push day"
-                  placeholderTextColor={Colors.dark.textSecondary}
-                  style={styles.input}
-                  value={workoutTitle}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text selectable style={styles.inputLabel}>
-                  Description
-                </Text>
-                <TextInput
-                  onChangeText={setWorkoutDescription}
-                  placeholder="Optional description"
-                  placeholderTextColor={Colors.dark.textSecondary}
-                  style={styles.input}
-                  value={workoutDescription}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text selectable style={styles.inputLabel}>
-                  Exercise name
-                </Text>
-                <TextInput
-                  onChangeText={setDraftExerciseName}
-                  placeholder="Bench press"
-                  placeholderTextColor={Colors.dark.textSecondary}
-                  style={styles.input}
-                  value={draftExerciseName}
-                />
-              </View>
-
-              <AppButton
-                disabled={draftExerciseName.trim().length === 0}
-                label="Add Exercise"
-                onPress={handleAddExercise}
-                variant="secondary"
-              />
-
-              {draftExercises.length > 0 ? (
-                <View style={styles.draftList}>
-                  {draftExercises.map((exercise, index) => (
-                    <View key={`${exercise}-${index}`} style={styles.draftRow}>
-                      <Text selectable style={styles.exercise}>
-                        {exercise}
-                      </Text>
-                      <AppButton
-                        label="Remove"
-                        onPress={() => handleRemoveDraftExercise(index)}
-                        variant="secondary"
-                      />
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              <AppButton
-                disabled={isSaveWorkoutDisabled}
-                label="Save Workout"
-                onPress={handleSaveWorkout}
-              />
-              {editingWorkoutId ? (
-                <AppButton label="Cancel Edit" onPress={clearWorkoutForm} variant="secondary" />
-              ) : null}
-            </>
-          ) : null}
-        </AppCard>
-
-        <AppCard>
-          <Pressable
-            onPress={() => setIsWorkoutHistoryExpanded((current) => !current)}
-            style={styles.collapsibleHeader}>
-            <Text style={styles.sectionTitle}>
-              {getSectionTitle('Workout History', isWorkoutHistoryExpanded)}
-            </Text>
-          </Pressable>
-
-          {isWorkoutHistoryExpanded ? (
-            completedSessions.length === 0 ? (
-              <EmptyWorkoutState message="No completed workouts yet." />
-            ) : (
-              completedSessions.map((session) => {
-                const isEditingSession = editingSessionId === session.id;
-                const visibleSets = isEditingSession ? sessionDraftSets : session.sets;
-                const sessionExercises = getSessionExercises({ ...session, sets: visibleSets });
-                const sessionVolume = getSessionVolume({ ...session, sets: visibleSets });
-
-                return (
-                  <WorkoutHistorySessionCard
-                    editingSessionSetId={editingSessionSetId}
-                    formatFinishedAt={formatFinishedAt}
-                    isEditing={isEditingSession}
-                    onCancelSessionEdit={handleCancelSessionEdit}
-                    onCancelSessionSetEdit={handleCancelSessionSetEdit}
-                    onDeleteSession={() => {
-                      if (isEditingSession) {
-                        Alert.alert(
-                          'Delete workout?',
-                          'This completed workout will be removed from history.',
-                          [
-                            { text: 'Cancel', style: 'cancel' },
-                            {
-                              text: 'Delete',
-                              style: 'destructive',
-                              onPress: () => {
-                                clearSessionEdit();
-                                deleteWorkoutSession(session.id);
-                              },
-                            },
-                          ],
-                        );
-                        return;
-                      }
-
-                      confirmDeleteSession(session.id);
-                    }}
-                    onDeleteSessionSet={handleDeleteSessionSet}
-                    onEditSession={() => handleEditSession(session)}
-                    onEditSessionSet={handleEditSessionSet}
-                    onSaveSessionChanges={() => handleSaveSessionChanges(session)}
-                    onSaveSessionSet={handleSaveSessionSet}
-                    onSessionExerciseNameChange={setSessionExerciseName}
-                    onSessionRepsChange={setSessionReps}
-                    onSessionWeightChange={setSessionWeight}
-                    session={session}
-                    sessionExerciseName={sessionExerciseName}
-                    sessionExercises={sessionExercises}
-                    sessionReps={sessionReps}
-                    sessionVolume={sessionVolume}
-                    sessionWeight={sessionWeight}
-                    visibleSets={visibleSets}
-                  />
-                );
-              })
-            )
-          ) : null}
-        </AppCard>
+            confirmDeleteSession(sessionId);
+          }}
+          onDeleteSessionSet={handleDeleteSessionSet}
+          onEditSession={handleEditSession}
+          onEditSessionSet={handleEditSessionSet}
+          onSaveSessionChanges={handleSaveSessionChanges}
+          onSaveSessionSet={handleSaveSessionSet}
+          onSessionExerciseNameChange={setSessionExerciseName}
+          onSessionRepsChange={setSessionReps}
+          onSessionWeightChange={setSessionWeight}
+          onToggleExpanded={() => setIsWorkoutHistoryExpanded((current) => !current)}
+          sessionDraftSets={sessionDraftSets}
+          sessionExerciseName={sessionExerciseName}
+          sessionReps={sessionReps}
+          sessionWeight={sessionWeight}
+        />
 
         <SectionHeader title="Workout templates" />
         {workouts.map((workout) => (
           <WorkoutTemplateCard
+            key={workout.id}
             isCustomWorkout={isCustomWorkout(workout.id, workout.isCustom)}
             onDelete={confirmDeleteWorkoutTemplate}
             onEdit={handleEditWorkout}
