@@ -9,110 +9,38 @@ import {
   useState,
 } from 'react';
 
-export type Workout = {
-  id: string;
-  title: string;
-  description?: string;
-  duration: string;
-  exercises: Exercise[];
-  createdAt?: string;
-  isCustom?: boolean;
-};
+import type {
+  BodyMeasurement,
+  Exercise,
+  FoodEntry,
+  MealTemplate,
+  MealType,
+  NutritionState,
+  NutritionTargets,
+  ProfileGoalType,
+  ProfileState,
+  WeightEntry,
+  Workout,
+  WorkoutSession,
+  WorkoutSet,
+} from '@/types';
 
-export type Exercise = {
-  id: string;
-  name: string;
-  muscleGroup?: string;
-  isCustom: boolean;
-  createdAt: string;
-};
+export type {
+  BodyMeasurement,
+  Exercise,
+  FoodEntry,
+  MealTemplate,
+  MealType,
+  NutritionState,
+  NutritionTargets,
+  ProfileGoalType,
+  ProfileState,
+  WeightEntry,
+  Workout,
+  WorkoutSession,
+  WorkoutSet,
+} from '@/types';
 
-export type WorkoutSet = {
-  id: string;
-  exerciseId: string;
-  exerciseName: string;
-  weight: number;
-  reps: number;
-};
-
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
-
-export type WorkoutSession = {
-  id: string;
-  workoutId: string;
-  workoutTitle: string;
-  startedAt: string;
-  finishedAt: string;
-  sets: WorkoutSet[];
-};
-
-export type FoodEntry = {
-  id: string;
-  name: string;
-  date: string;
-  mealType: MealType;
-  brandName?: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  baseCalories?: number;
-  baseProtein?: number;
-  baseCarbs?: number;
-  baseFats?: number;
-  source: 'manual' | 'fatsecret' | 'openfoodfacts' | 'usda';
-  externalId?: string;
-  servingSize?: number;
-  servingUnit?: string;
-  quantity?: number;
-  createdAt: string;
-};
-
-export type MealTemplate = {
-  id: string;
-  name: string;
-  items: FoodEntry[];
-  createdAt: string;
-};
-
-export type NutritionState = {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-};
-
-export type NutritionTargets = {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-};
-
-export type WeightEntry = {
-  id: string;
-  date: string;
-  weight: number;
-  createdAt: string;
-};
-
-export type BodyMeasurement = {
-  id: string;
-  label: string;
-  value: string;
-  createdAt: string;
-};
-
-export type ProfileState = {
-  height: string;
-  weight: string;
-  goal: string;
-  activityLevel: string;
-  targetWeight: number;
-  goalType: 'lose_fat' | 'maintain' | 'gain_muscle';
-  weeklyWeightChangeGoal: number;
-  trainingDaysPerWeek: number;
-};
 
 type AppState = {
   workouts: Workout[];
@@ -159,7 +87,7 @@ type AppContextType = AppState & {
   updateNutritionTargets: (targets: NutritionTargets) => void;
   updateProfileGoals: (goals: {
     targetWeight: number;
-    goalType: 'lose_fat' | 'maintain' | 'gain_muscle';
+    goalType: ProfileGoalType;
     weeklyWeightChangeGoal: number;
     trainingDaysPerWeek: number;
   }) => void;
@@ -177,7 +105,7 @@ type AppContextType = AppState & {
   completeOnboarding: (setup: {
     currentWeight: number;
     targetWeight: number;
-    goalType: 'lose_fat' | 'maintain' | 'gain_muscle';
+    goalType: ProfileGoalType;
     trainingDaysPerWeek: number;
   }) => void;
   resetOnboarding: () => void;
@@ -185,13 +113,14 @@ type AppContextType = AppState & {
 
 const APP_STATE_KEY = '@smart_fitness_mvp_state';
 const DEFAULT_WORKOUT_TEMPLATE_IDS = new Set(['push-a', 'legs-a', 'conditioning-a']);
+const DEFAULT_APP_DATA_CREATED_AT = '2000-01-01T00:00:00.000Z';
 
 const defaultState: AppState = {
   workouts: [
     {
       id: 'push-a',
       title: 'Upper Body Strength',
-      createdAt: '2026-06-09T08:00:00.000Z',
+      createdAt: DEFAULT_APP_DATA_CREATED_AT,
       isCustom: false,
       duration: '45 min',
       exercises: [
@@ -199,32 +128,32 @@ const defaultState: AppState = {
           id: 'bench-press',
           name: 'Bench press',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
         {
           id: 'one-arm-row',
           name: 'One-arm row',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
         {
           id: 'shoulder-press',
           name: 'Shoulder press',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
         {
           id: 'lat-pulldown',
           name: 'Lat pulldown',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
       ],
     },
     {
       id: 'legs-a',
       title: 'Lower Body',
-      createdAt: '2026-06-09T08:00:00.000Z',
+      createdAt: DEFAULT_APP_DATA_CREATED_AT,
       isCustom: false,
       duration: '50 min',
       exercises: [
@@ -232,32 +161,32 @@ const defaultState: AppState = {
           id: 'back-squat',
           name: 'Back squat',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
         {
           id: 'romanian-deadlift',
           name: 'Romanian deadlift',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
         {
           id: 'walking-lunge',
           name: 'Walking lunge',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
         {
           id: 'calf-raise',
           name: 'Calf raise',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
       ],
     },
     {
       id: 'conditioning-a',
       title: 'Conditioning',
-      createdAt: '2026-06-09T08:00:00.000Z',
+      createdAt: DEFAULT_APP_DATA_CREATED_AT,
       isCustom: false,
       duration: '30 min',
       exercises: [
@@ -265,102 +194,65 @@ const defaultState: AppState = {
           id: 'bike-intervals',
           name: 'Bike intervals',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
         {
           id: 'kettlebell-swing',
           name: 'Kettlebell swing',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
         {
           id: 'plank',
           name: 'Plank',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
         {
           id: 'farmer-carry',
           name: 'Farmer carry',
           isCustom: false,
-          createdAt: '2026-06-09T08:00:00.000Z',
+          createdAt: DEFAULT_APP_DATA_CREATED_AT,
         },
       ],
     },
   ],
   mealTemplates: [],
   exercises: [
-    { id: 'bench-press', name: 'Bench Press', isCustom: false, createdAt: '2026-06-09T08:00:00.000Z' },
+    { id: 'bench-press', name: 'Bench Press', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
     {
       id: 'incline-dumbbell-press',
       name: 'Incline Dumbbell Press',
       isCustom: false,
-      createdAt: '2026-06-09T08:00:00.000Z',
+      createdAt: DEFAULT_APP_DATA_CREATED_AT,
     },
-    { id: 'pull-up', name: 'Pull-up', isCustom: false, createdAt: '2026-06-09T08:00:00.000Z' },
-    { id: 'barbell-row', name: 'Barbell Row', isCustom: false, createdAt: '2026-06-09T08:00:00.000Z' },
-    { id: 'squat', name: 'Squat', isCustom: false, createdAt: '2026-06-09T08:00:00.000Z' },
+    { id: 'pull-up', name: 'Pull-up', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
+    { id: 'barbell-row', name: 'Barbell Row', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
+    { id: 'squat', name: 'Squat', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
     {
       id: 'romanian-deadlift',
       name: 'Romanian Deadlift',
       isCustom: false,
-      createdAt: '2026-06-09T08:00:00.000Z',
+      createdAt: DEFAULT_APP_DATA_CREATED_AT,
     },
-    { id: 'leg-press', name: 'Leg Press', isCustom: false, createdAt: '2026-06-09T08:00:00.000Z' },
-    { id: 'shoulder-press', name: 'Shoulder Press', isCustom: false, createdAt: '2026-06-09T08:00:00.000Z' },
-    { id: 'lateral-raise', name: 'Lateral Raise', isCustom: false, createdAt: '2026-06-09T08:00:00.000Z' },
-    { id: 'biceps-curl', name: 'Biceps Curl', isCustom: false, createdAt: '2026-06-09T08:00:00.000Z' },
+    { id: 'leg-press', name: 'Leg Press', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
+    { id: 'shoulder-press', name: 'Shoulder Press', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
+    { id: 'lateral-raise', name: 'Lateral Raise', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
+    { id: 'biceps-curl', name: 'Biceps Curl', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
     {
       id: 'triceps-pushdown',
       name: 'Triceps Pushdown',
       isCustom: false,
-      createdAt: '2026-06-09T08:00:00.000Z',
+      createdAt: DEFAULT_APP_DATA_CREATED_AT,
     },
   ],
   workoutSessions: [],
-  foodEntries: [
-    {
-      id: 'breakfast',
-      name: 'Greek yogurt bowl',
-      date: '2026-06-09',
-      mealType: 'breakfast',
-      calories: 420,
-      protein: 32,
-      carbs: 42,
-      fats: 10,
-      source: 'manual',
-      createdAt: '2026-06-09T08:00:00.000Z',
-    },
-    {
-      id: 'lunch',
-      name: 'Chicken rice plate',
-      date: '2026-06-09',
-      mealType: 'lunch',
-      calories: 680,
-      protein: 48,
-      carbs: 76,
-      fats: 18,
-      source: 'manual',
-      createdAt: '2026-06-09T13:00:00.000Z',
-    },
-    {
-      id: 'snack',
-      name: 'Protein smoothie',
-      date: '2026-06-09',
-      mealType: 'snack',
-      calories: 310,
-      protein: 28,
-      carbs: 30,
-      fats: 6,
-      source: 'manual',
-      createdAt: '2026-06-09T16:00:00.000Z',
-    },
-  ],
+  foodEntries: [],
   nutrition: {
-    calories: 1980,
-    protein: 142,
-    carbs: 214,
-    fats: 58,
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fats: 0,
   },
   nutritionTargets: {
     calories: 2800,
@@ -368,22 +260,14 @@ const defaultState: AppState = {
     carbs: 350,
     fats: 80,
   },
-  weightHistory: [
-    { id: 'w3', date: 'Jun 9', weight: 82.7, createdAt: '2026-06-09T08:00:00.000Z' },
-    { id: 'w2', date: 'Jun 2', weight: 83.1, createdAt: '2026-06-02T08:00:00.000Z' },
-    { id: 'w1', date: 'May 26', weight: 83.8, createdAt: '2026-05-26T08:00:00.000Z' },
-  ],
-  bodyMeasurements: [
-    { id: 'waist', label: 'Waist', value: '84 cm', createdAt: '2026-06-09T08:00:00.000Z' },
-    { id: 'chest', label: 'Chest', value: '103 cm', createdAt: '2026-06-09T08:00:00.000Z' },
-    { id: 'hips', label: 'Hips', value: '98 cm', createdAt: '2026-06-09T08:00:00.000Z' },
-  ],
+  weightHistory: [],
+  bodyMeasurements: [],
   onboardingCompleted: false,
   profile: {
-    height: '180 cm',
-    weight: '82.7 kg',
-    goal: 'Build lean strength',
-    activityLevel: 'Moderate',
+    height: '',
+    weight: '',
+    goal: '',
+    activityLevel: '',
     targetWeight: 75,
     goalType: 'gain_muscle',
     weeklyWeightChangeGoal: 0.25,
@@ -817,7 +701,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const updateProfileGoals = useCallback(
     (goals: {
       targetWeight: number;
-      goalType: 'lose_fat' | 'maintain' | 'gain_muscle';
+      goalType: ProfileGoalType;
       weeklyWeightChangeGoal: number;
       trainingDaysPerWeek: number;
     }) => {
@@ -895,7 +779,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     (setup: {
       currentWeight: number;
       targetWeight: number;
-      goalType: 'lose_fat' | 'maintain' | 'gain_muscle';
+      goalType: ProfileGoalType;
       trainingDaysPerWeek: number;
     }) => {
       const today = new Intl.DateTimeFormat(undefined, {
