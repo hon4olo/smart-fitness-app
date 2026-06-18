@@ -1,230 +1,523 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AddBodyMeasurementCard } from '@/components/progress/AddBodyMeasurementCard';
+import { AddWeightEntryCard } from '@/components/progress/AddWeightEntryCard';
+import { EmptyProgressState } from '@/components/progress/EmptyProgressState';
+import { ProgressSummaryCard } from '@/components/progress/ProgressSummaryCard';
+import { WeightTrendCard } from '@/components/progress/WeightTrendCard';
+import { WorkoutVolumeTrendCard } from '@/components/progress/WorkoutVolumeTrendCard';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { MetricCard } from '@/components/ui/MetricCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { formatLocalDate, formatShortDate } from '@/lib';
-import { getLatestWeightEntry } from '@/lib/progress';
-import {
-  getLatestWorkoutSession,
-  getSessionVolume,
-  getWeeklyWorkoutCount,
-} from '@/lib/workouts';
-import { sumNutritionTotals } from '@/lib/nutrition';
+import { formatShortDate, formatShortDateTime } from '@/lib';
+import { calculateEstimated1RM } from '@/lib/workouts';
+import { formatWeightDelta, calculateWeightDelta } from '@/lib/progress';
 
-type PlanItem = {
+
+type TrendPoint = {
+  key: string;
   label: string;
-  title: string;
-  detail: string;
+  value: number;
+  displayValue: string;
 };
 
-const projectPlan: PlanItem[] = [
-  {
-    label: 'Now',
-    title: 'Track and Eat data entry',
-    detail: 'Keep workout logging, meals, and progress capture stable.',
-  },
-  {
-    label: 'Next',
-    title: 'AI Coach guidance',
-    detail: 'Add explainable feedback for training, nutrition, and recovery.',
-  },
-  {
-    label: 'Then',
-    title: 'Labs and body measurements',
-    detail: 'Surface progress insights before adding deeper learning modes.',
-  },
-  {
-    label: 'Later',
-    title: 'Learn-on-demand, customization, premium coaching',
-    detail: 'Keep learning secondary while the coach and analytics mature.',
-  },
-];
+type TrendChartProps = {
+  emptyLabel: string;
+  maxLabel: string;
+  minLabel: string;
+  points: TrendPoint[];
+  barColor?: string;
+};
 
-export default function AICoachScreen() {
+function TrendChart({
+  barColor = Colors.dark.accent,
+  emptyLabel,
+  maxLabel,
+  minLabel,
+  points,
+}: TrendChartProps) {
+  if (points.length < 2) {
+    return <Text style={styles.emptyText}>{emptyLabel}</Text>;
+  }
+
+  const minValue = points.reduce((min, point) => Math.min(min, point.value), points[0].value);
+  const maxValue = points.reduce((max, point) => Math.max(max, point.value), points[0].value);
+  const range = maxValue - minValue;
+  const scaledRange = Math.max(range, Math.max(Math.abs(maxValue), 1) * 0.12);
+  const getBarHeight = (value: number) => {
+    if (range === 0) {
+      return 60;
+    }
+
+    const normalized = (value - minValue) / scaledRange;
+
+    return 24 + Math.min(1, Math.max(0, normalized)) * 76;
+  };
+
+
+  return (
+    <View style={styles.chartShell}>
+      <View style={styles.chartRangeRow}>
+        <Text style={styles.chartRangeLabel}>{maxLabel}</Text>
+        <Text style={styles.chartRangeLabel}>{minLabel}</Text>
+      </View>
+
+      <View style={styles.chartContent}>
+        <View style={styles.chartBaseline} />
+        <View style={styles.chartBars}>
+          {points.map((point) => (
+            <View key={point.key} style={styles.chartBarColumn}>
+              <Text numberOfLines={1} style={styles.chartValueLabel}>
+                {point.displayValue}
+              </Text>
+              <View style={styles.chartBarTrack}>
+                <View style={[styles.chartBar, { backgroundColor: barColor, height: getBarHeight(point.value) }]} />
+              </View>
+              <Text numberOfLines={1} style={styles.chartBarLabel}>
+                {point.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+export default function ProgressScreen() {
   const {
-    completeOnboarding,
-    foodEntries,
-    nutritionTargets,
-    onboardingCompleted,
-    profile,
-    updateNutritionTargets,
+    addBodyMeasurement,
+    addWeightEntry,
+    exercises,
+    deleteBodyMeasurement,
+    deleteWeightEntry,
+    workoutSessions,
     weightHistory,
     bodyMeasurements,
-    workoutSessions,
   } = useAppContext();
-  const [currentWeight, setCurrentWeight] = useState('');
-  const [targetWeightInput, setTargetWeightInput] = useState(`${profile.targetWeight}`);
-  const [goalType, setGoalType] = useState(profile.goalType);
-  const [trainingDaysPerWeekInput, setTrainingDaysPerWeekInput] = useState(
-    `${profile.trainingDaysPerWeek}`
-  );
   const safeAreaInsets = useSafeAreaInsets();
-  const latestWeight = getLatestWeightEntry(weightHistory);
-  const today = formatLocalDate(new Date());
-  const todaysFoodEntries = foodEntries.filter((entry) => entry.date === today);
-  const todaysNutrition = sumNutritionTotals(todaysFoodEntries);
-  const latestWorkoutSession = getLatestWorkoutSession(workoutSessions);
-  const latestWorkoutVolume = latestWorkoutSession ? getSessionVolume(latestWorkoutSession) : 0;
-  const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const workoutsThisWeek = getWeeklyWorkoutCount(workoutSessions, weekStart);
-  const trainingGoal = profile.trainingDaysPerWeek;
-  const latestWeightLabel = latestWeight
-    ? `${latestWeight.weight.toFixed(1)} kg`
-    : 'No weight yet';
-  const targetWeightLabel = `${profile.targetWeight.toFixed(1)} kg`;
-  const caloriesRemaining = nutritionTargets.calories - todaysNutrition.calories;
-  const proteinRemaining = nutritionTargets.protein - todaysNutrition.protein;
-  const weightDistance = latestWeight ? profile.targetWeight - latestWeight.weight : null;
-  const weeklyTrainingDelta = trainingGoal - workoutsThisWeek;
-  const caloriesStatus =
-    caloriesRemaining < 0
-      ? `${Math.abs(caloriesRemaining).toFixed(0)} kcal over target`
-      : `${caloriesRemaining.toFixed(0)} kcal remaining today`;
-  const proteinStatus =
-    proteinRemaining <= 0
-      ? 'Protein target reached'
-      : `${proteinRemaining.toFixed(0)} g protein remaining today`;
-  const trainingStatus =
-    weeklyTrainingDelta < 0
-      ? `Weekly training goal exceeded by ${Math.abs(weeklyTrainingDelta)} workouts`
-      : `${workoutsThisWeek} / ${trainingGoal} workouts this week`;
-  const nextBestMove = (() => {
-    if (!onboardingCompleted) {
+  const [weight, setWeight] = useState('');
+  const [measurementLabel, setMeasurementLabel] = useState('');
+  const [measurementValue, setMeasurementValue] = useState('');
+  const [selectedExercise, setSelectedExercise] = useState('');
+  const [isBodyWeightTrendExpanded, setIsBodyWeightTrendExpanded] = useState(true);
+  const [isBodyMeasurementsExpanded, setIsBodyMeasurementsExpanded] = useState(false);
+  const [isExerciseProgressExpanded, setIsExerciseProgressExpanded] = useState(false);
+  const [isEstimated1RMExpanded, setIsEstimated1RMExpanded] = useState(false);
+  const [isWorkoutVolumeExpanded, setIsWorkoutVolumeExpanded] = useState(false);
+  const selectedExerciseLabel = selectedExercise || 'No exercise selected';
+  const getSectionTitle = (title: string, isExpanded: boolean) => `${title} ${isExpanded ? '-' : '+'}`;
+  const parsedWeight = Number(weight);
+  const isWeightDisabled = !Number.isFinite(parsedWeight) || parsedWeight <= 0;
+  const isMeasurementDisabled =
+    measurementLabel.trim().length === 0 || measurementValue.trim().length === 0;
+  const weightTrendEntries = [...weightHistory]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 14)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  const availableExercises = Array.from(
+    new Set(
+      (exercises.length > 0
+        ? exercises.map((exercise) => exercise.name)
+        : workoutSessions.flatMap((session) => session.sets.map((set) => set.exerciseName))
+      ).filter((name): name is string => Boolean(name))
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  const normalizeExerciseLabel = (value: string | undefined | null) => value?.trim().toLowerCase() ?? '';
+  const getExerciseSetLabel = (set: { exercise?: unknown; exerciseName?: unknown; name?: unknown }) => {
+    const label = set.exerciseName ?? set.exercise ?? set.name;
+
+    return typeof label === 'string' ? label : '';
+  };
+  const getNumericSetValue = (value: unknown) => {
+    const parsedValue = Number(value);
+
+    return Number.isFinite(parsedValue) ? parsedValue : null;
+  };
+
+  const exerciseHistory = selectedExercise
+    ? workoutSessions
+        .flatMap((session, sessionIndex) =>
+          session.sets
+            .map((set, setIndex) => {
+              const exerciseName = getExerciseSetLabel(
+                set as { exercise?: unknown; exerciseName?: unknown; name?: unknown }
+              );
+              const weight = getNumericSetValue((set as { weight?: unknown }).weight);
+              const reps = getNumericSetValue((set as { reps?: unknown }).reps);
+
+              if (
+                normalizeExerciseLabel(exerciseName) !== normalizeExerciseLabel(selectedExercise) ||
+                weight === null ||
+                reps === null ||
+                weight <= 0 ||
+                reps <= 0
+              ) {
+                return null;
+              }
+
+              return {
+                exerciseName,
+                finishedAt: session.finishedAt,
+                reps,
+                sessionIndex,
+                setIndex,
+                weight,
+              };
+            })
+            .filter(
+              (
+                set
+              ): set is {
+                exerciseName: string;
+                finishedAt: string;
+                reps: number;
+                sessionIndex: number;
+                setIndex: number;
+                weight: number;
+              } => Boolean(set)
+            )
+        )
+        .sort((a, b) => {
+          const dateDiff = new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime();
+
+          if (dateDiff !== 0) {
+            return dateDiff;
+          }
+
+          if (b.sessionIndex !== a.sessionIndex) {
+            return b.sessionIndex - a.sessionIndex;
+          }
+
+          return b.setIndex - a.setIndex;
+        })
+    : [];
+
+  const exerciseTrendData = selectedExercise
+    ? Array.from(
+        workoutSessions.reduce((sessionMap, session) => {
+          const matchingSets = session.sets
+            .map((set) => {
+              const exerciseName = getExerciseSetLabel(
+                set as { exercise?: unknown; exerciseName?: unknown; name?: unknown }
+              );
+              const weight = getNumericSetValue((set as { weight?: unknown }).weight);
+              const reps = getNumericSetValue((set as { reps?: unknown }).reps);
+
+              if (
+                normalizeExerciseLabel(exerciseName) !== normalizeExerciseLabel(selectedExercise) ||
+                weight === null ||
+                reps === null ||
+                weight <= 0 ||
+                reps <= 0
+              ) {
+                return null;
+              }
+
+              return {
+                estimated1RM: calculateEstimated1RM(weight, reps),
+                finishedAt: session.finishedAt,
+                weight,
+                reps,
+              };
+            })
+            .filter(
+              (
+                set
+              ): set is {
+                estimated1RM: number;
+                finishedAt: string;
+                weight: number;
+                reps: number;
+              } => Boolean(set)
+            );
+
+          if (matchingSets.length === 0) {
+            return sessionMap;
+          }
+
+          const sessionKey = session.id || session.finishedAt || session.startedAt;
+          const bestSet = matchingSets.reduce((best, current) =>
+            current.estimated1RM > best.estimated1RM ? current : best
+          );
+          const existingPoint = sessionMap.get(sessionKey);
+
+          if (!existingPoint || bestSet.estimated1RM > existingPoint.estimated1RM) {
+            sessionMap.set(sessionKey, {
+              date: session.finishedAt || session.startedAt,
+              finishedAt: session.finishedAt || session.startedAt,
+              estimated1RM: bestSet.estimated1RM,
+            });
+          }
+
+          return sessionMap;
+        }, new Map<string, { date: string; finishedAt: string; estimated1RM: number }>())
+          .values()
+      )
+        .sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime())
+        .slice(0, 10)
+        .sort((a, b) => new Date(a.finishedAt).getTime() - new Date(b.finishedAt).getTime())
+    : [];
+
+  const exerciseTrendDateCounts = exerciseTrendData.reduce<Record<string, number>>((counts, entry) => {
+    const dateKey = entry.finishedAt.slice(0, 10);
+
+    counts[dateKey] = (counts[dateKey] ?? 0) + 1;
+
+    return counts;
+  }, {});
+  const getExerciseTrendLabel = (entry: (typeof exerciseTrendData)[number]) => {
+    const dateKey = entry.finishedAt.slice(0, 10);
+
+    return exerciseTrendDateCounts[dateKey] > 1
+      ? formatShortDateTime(entry.finishedAt)
+      : formatShortDate(entry.finishedAt);
+  };
+
+  const workoutVolumeData = workoutSessions
+    .map((session, sessionIndex) => {
+      const sessionVolume = session.sets.reduce((total, set) => {
+        const exerciseName = getExerciseSetLabel(
+          set as { exercise?: unknown; exerciseName?: unknown; name?: unknown }
+        );
+        const weight = getNumericSetValue((set as { weight?: unknown }).weight);
+        const reps = getNumericSetValue((set as { reps?: unknown }).reps);
+
+        if (weight === null || reps === null || weight <= 0 || reps <= 0 || !exerciseName) {
+          return total;
+        }
+
+        return total + weight * reps;
+      }, 0);
+
+      if (sessionVolume <= 0) {
+        return null;
+      }
+
       return {
-        title: 'Complete setup first',
-        detail: 'Add your baseline weight and goals so AI Coach can calibrate targets.',
-        action: 'Finish Quick Setup',
-        route: null as string | null,
+        finishedAt: session.finishedAt || session.startedAt,
+        sessionId: session.id ?? `${session.finishedAt || session.startedAt}-${sessionIndex}`,
+        sessionIndex,
+        sessionVolume,
+      };
+    })
+    .filter(
+      (
+        session
+      ): session is {
+        finishedAt: string;
+        sessionId: string;
+        sessionIndex: number;
+        sessionVolume: number;
+      } => Boolean(session)
+    )
+    .sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime())
+    .slice(0, 10)
+    .sort((a, b) => new Date(a.finishedAt).getTime() - new Date(b.finishedAt).getTime());
+
+  const workoutVolumeDateCounts = workoutVolumeData.reduce<Record<string, number>>((counts, entry) => {
+    const dateKey = entry.finishedAt.slice(0, 10);
+
+    counts[dateKey] = (counts[dateKey] ?? 0) + 1;
+
+    return counts;
+  }, {});
+  const getWorkoutVolumeLabel = (entry: (typeof workoutVolumeData)[number]) => {
+    const dateKey = entry.finishedAt.slice(0, 10);
+
+    return workoutVolumeDateCounts[dateKey] > 1
+      ? formatShortDateTime(entry.finishedAt)
+      : formatShortDate(entry.finishedAt);
+  };
+
+  const weightTrendPoints = weightTrendEntries.map((entry) => ({
+    displayValue: entry.weight.toFixed(1),
+    key: entry.id,
+    label: entry.date,
+    value: entry.weight,
+  }));
+  const latestTrendEntry = weightTrendEntries.at(-1);
+  const previousTrendEntry = weightTrendEntries.at(-2);
+  const firstTrendEntry = weightTrendEntries[0];
+  const weightTrendAxisMaxLabel = `${weightTrendEntries
+    .reduce((max, entry) => Math.max(max, entry.weight), weightTrendEntries[0]?.weight ?? 0)
+    .toFixed(1)} kg`;
+  const weightTrendAxisMinLabel = `${weightTrendEntries
+    .reduce((min, entry) => Math.min(min, entry.weight), weightTrendEntries[0]?.weight ?? 0)
+    .toFixed(1)} kg`;
+  const workoutVolumePoints = workoutVolumeData.map((entry) => ({
+    displayValue: entry.sessionVolume.toLocaleString(),
+    key: entry.sessionId,
+    label: getWorkoutVolumeLabel(entry),
+    value: entry.sessionVolume,
+  }));
+  const latestWorkoutVolumeEntry = workoutVolumeData.at(-1);
+  const previousWorkoutVolumeEntry = workoutVolumeData.at(-2);
+  const firstWorkoutVolumeEntry = workoutVolumeData[0];
+  const workoutVolumeAxisMaxLabel = `${workoutVolumeData
+    .reduce((max, entry) => Math.max(max, entry.sessionVolume), workoutVolumeData[0]?.sessionVolume ?? 0)
+    .toLocaleString()} kg`;
+  const workoutVolumeAxisMinLabel = `${workoutVolumeData
+    .reduce((min, entry) => Math.min(min, entry.sessionVolume), workoutVolumeData[0]?.sessionVolume ?? 0)
+    .toLocaleString()} kg`;
+  const exerciseTrendPoints = exerciseTrendData.map((entry) => ({
+    displayValue: entry.estimated1RM.toFixed(1),
+    key: `${entry.finishedAt}-${entry.estimated1RM}`,
+    label: getExerciseTrendLabel(entry),
+    value: entry.estimated1RM,
+  }));
+  const latestExerciseTrendEntry = exerciseTrendData.at(-1);
+  const previousExerciseTrendEntry = exerciseTrendData.at(-2);
+  const firstExerciseTrendEntry = exerciseTrendData[0];
+  const exerciseTrendAxisMaxLabel = `${exerciseTrendData
+    .reduce((max, entry) => Math.max(max, entry.estimated1RM), exerciseTrendData[0]?.estimated1RM ?? 0)
+    .toFixed(1)} kg`;
+  const exerciseTrendAxisMinLabel = `${exerciseTrendData
+    .reduce((min, entry) => Math.min(min, entry.estimated1RM), exerciseTrendData[0]?.estimated1RM ?? 0)
+    .toFixed(1)} kg`;
+
+  const coachInsight = (() => {
+    if (weightTrendEntries.length === 0) {
+      return {
+        title: 'Start with a baseline weigh-in',
+        detail: 'One weight entry unlocks trend coaching and makes progress easier to read.',
+        weightLine: 'No weight logged yet',
+        trainingLine: workoutVolumeData.length > 0 ? `${workoutVolumeData.length} workouts logged` : 'No workouts yet',
       };
     }
 
-    if (weightHistory.length === 0) {
-      return {
-        title: 'Log your baseline weight',
-        detail: 'A first weigh-in lets Coach compare progress against your target.',
-        action: 'Open Labs',
-        route: '/labs',
-      };
-    }
-
-    if (todaysFoodEntries.length === 0) {
-      return {
-        title: 'Log today’s meals',
-        detail: 'Nutrition guidance is strongest when the app sees a full day of food data.',
-        action: 'Open Eat',
-        route: '/eat',
-      };
-    }
-
-    if (workoutsThisWeek < trainingGoal) {
-      return {
-        title: 'Schedule one more workout',
-        detail: `You’re at ${workoutsThisWeek} of ${trainingGoal} weekly sessions.`,
-        action: 'Open Track',
-        route: '/track',
-      };
-    }
-
-    if (bodyMeasurements.length === 0) {
-      return {
-        title: 'Capture body measurements',
-        detail: 'Waist, chest, and hips help Labs show change even when scale weight stalls.',
-        action: 'Open Labs',
-        route: '/labs',
-      };
-    }
+    const safeLatestTrendEntry = latestTrendEntry ?? weightTrendEntries[weightTrendEntries.length - 1]!;
+    const safeLatestWorkoutEntry =
+      latestWorkoutVolumeEntry ?? workoutVolumeData[workoutVolumeData.length - 1]!;
+    const latestWeightDelta = previousTrendEntry ? safeLatestTrendEntry.weight - previousTrendEntry.weight : null;
+    const latestWorkoutDelta = previousWorkoutVolumeEntry
+      ? safeLatestWorkoutEntry.sessionVolume - previousWorkoutVolumeEntry.sessionVolume
+      : null;
+    const signedWeightDelta =
+      latestWeightDelta === null
+        ? null
+        : `${latestWeightDelta >= 0 ? '+' : ''}${latestWeightDelta.toFixed(1)} kg`;
+    const signedWorkoutDelta =
+      latestWorkoutDelta === null
+        ? null
+        : `${latestWorkoutDelta >= 0 ? '+' : ''}${latestWorkoutDelta.toFixed(1)} kg`;
 
     return {
-      title: 'Maintain the current rhythm',
-      detail: 'You’ve logged the core data. Keep the streak alive and refine targets from Labs.',
-      action: 'Open Labs',
-      route: '/labs',
+      title: latestWeightDelta !== null && latestWeightDelta <= 0 ? 'Weight is moving the right way' : 'Keep the trend moving',
+      detail:
+        signedWeightDelta !== null
+          ? `Latest weight ${signedWeightDelta} since the previous check-in.`
+          : 'Add another weigh-in to compare direction.',
+      weightLine: `${safeLatestTrendEntry.weight.toFixed(1)} kg`,
+      trainingLine:
+        signedWorkoutDelta !== null
+          ? `${safeLatestWorkoutEntry.sessionVolume.toLocaleString()} kg ${signedWorkoutDelta} vs previous`
+          : `${safeLatestWorkoutEntry.sessionVolume.toLocaleString()} kg on latest session`,
     };
   })();
-  const secondaryCoachNotes = [
-    `Calories: ${caloriesStatus}`,
-    `Protein: ${proteinStatus}`,
-    `Training: ${trainingStatus}`,
-  ];
-  const weightStatus =
-    weightDistance === null
-      ? 'No weight logged yet'
-      : weightDistance < 0
-        ? `${Math.abs(weightDistance).toFixed(1)} kg over target weight`
-        : `${weightDistance.toFixed(1)} kg to target weight`;
-  const parsedCurrentWeight = Number(currentWeight);
-  const parsedTargetWeight = Number(targetWeightInput);
-  const parsedTrainingDaysPerWeek = Number(trainingDaysPerWeekInput);
-  const isSetupValid =
-    Number.isFinite(parsedCurrentWeight) &&
-    parsedCurrentWeight > 0 &&
-    Number.isFinite(parsedTargetWeight) &&
-    parsedTargetWeight > 0 &&
-    Number.isFinite(parsedTrainingDaysPerWeek) &&
-    parsedTrainingDaysPerWeek >= 1 &&
-    parsedTrainingDaysPerWeek <= 7;
 
-  const handleCompleteSetup = () => {
-    if (!Number.isFinite(parsedCurrentWeight) || parsedCurrentWeight <= 0) {
-      Alert.alert('Invalid input', 'Enter a valid current weight.');
-      return;
-    }
 
-    if (!Number.isFinite(parsedTargetWeight) || parsedTargetWeight <= 0) {
-      Alert.alert('Invalid input', 'Enter a valid target weight.');
-      return;
-    }
+  const selectedExerciseStats = exerciseHistory.length > 0
+    ? exerciseHistory.reduce(
+        (best, current) => {
+          const volume = current.weight * current.reps;
+          const estimated1RM = current.weight * (1 + current.reps / 30);
+          const bestVolume = best.bestVolumeSet.weight * best.bestVolumeSet.reps;
+          const bestEstimated1RM = best.best1RMSet.weight * (1 + best.best1RMSet.reps / 30);
 
-    if (
-      !Number.isFinite(parsedTrainingDaysPerWeek) ||
-      parsedTrainingDaysPerWeek < 1 ||
-      parsedTrainingDaysPerWeek > 7
-    ) {
-      Alert.alert('Invalid input', 'Enter training days per week between 1 and 7.');
-      return;
-    }
+          return {
+            maxWeightSet: current.weight > best.maxWeightSet.weight ? current : best.maxWeightSet,
+            bestVolumeSet: volume > bestVolume ? current : best.bestVolumeSet,
+            best1RMSet: estimated1RM > bestEstimated1RM ? current : best.best1RMSet,
+          };
+        },
+        {
+          maxWeightSet: exerciseHistory[0],
+          bestVolumeSet: exerciseHistory[0],
+          best1RMSet: exerciseHistory[0],
+        }
+      )
+    : null;
 
-    completeOnboarding({
-      currentWeight: parsedCurrentWeight,
-      goalType,
-      targetWeight: parsedTargetWeight,
-      trainingDaysPerWeek: parsedTrainingDaysPerWeek,
-    });
-    const maintenanceCalories = parsedCurrentWeight * 33;
-    const suggestedCalories =
-      goalType === 'lose_fat'
-        ? maintenanceCalories - 300
-        : goalType === 'gain_muscle'
-          ? maintenanceCalories + 250
-          : maintenanceCalories;
-    const suggestedProtein = Math.round(parsedCurrentWeight * 2.0);
-    const suggestedFats = Math.round(parsedCurrentWeight * 0.8);
-    const suggestedCaloriesRounded = Math.round(suggestedCalories / 10) * 10;
-    const suggestedCarbs = Math.max(
-      0,
-      Math.round((suggestedCaloriesRounded - suggestedProtein * 4 - suggestedFats * 9) / 4)
-    );
-
-    updateNutritionTargets({
-      calories: suggestedCaloriesRounded,
-      protein: suggestedProtein,
-      carbs: suggestedCarbs,
-      fats: suggestedFats,
-    });
-    Alert.alert('Setup complete', 'Your dashboard is ready.');
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat(undefined, {
+      day: 'numeric',
+      month: 'short',
+    }).format(date);
   };
+
+  const handleSaveWeight = () => {
+    if (isWeightDisabled) {
+      return;
+    }
+
+    const now = new Date();
+    addWeightEntry({
+      id: `${Date.now()}`,
+      date: formatDate(now),
+      weight: parsedWeight,
+      createdAt: now.toISOString(),
+    });
+    setWeight('');
+  };
+
+  const handleSaveMeasurement = () => {
+    if (isMeasurementDisabled) {
+      return;
+    }
+
+    addBodyMeasurement({
+      id: `${Date.now()}`,
+      label: measurementLabel.trim(),
+      value: measurementValue.trim(),
+      createdAt: new Date().toISOString(),
+    });
+    setMeasurementLabel('');
+    setMeasurementValue('');
+  };
+
+  const confirmDeleteWeight = (entryId: string) => {
+    Alert.alert(
+      'Delete weight entry?',
+      'This weight entry will be removed from progress history.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteWeightEntry(entryId),
+        },
+      ],
+    );
+  };
+
+  const confirmDeleteMeasurement = (entryId: string) => {
+    Alert.alert(
+      'Delete measurement?',
+      'This body measurement will be removed from progress history.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteBodyMeasurement(entryId),
+        },
+      ],
+    );
+  };
+
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
       style={styles.screen}
       contentContainerStyle={[
         styles.content,
@@ -408,3 +701,135 @@ export default function AICoachScreen() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+  },
+  content: {
+    alignItems: 'center',
+    gap: Spacing.three,
+    padding: Spacing.three,
+    paddingBottom: Spacing.six,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  sectionTitle: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  coachDetail: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  coachNote: {
+    color: Colors.dark.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  coachNotes: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  coachSummary: {
+    gap: Spacing.two,
+  },
+  coachTitle: {
+    color: Colors.dark.text,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  quickActions: {
+    gap: Spacing.two,
+  },
+  planContent: {
+    flex: 1,
+    gap: 4,
+  },
+  planDetail: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  planLabel: {
+    color: Colors.dark.accent,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    width: 48,
+  },
+  planList: {
+    gap: Spacing.two,
+  },
+  planRow: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: Spacing.two,
+    paddingTop: Spacing.two,
+  },
+  planTitle: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  goalTypeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+    marginBottom: Spacing.two,
+    marginTop: Spacing.one,
+  },
+  input: {
+    backgroundColor: Colors.dark.background,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: Colors.dark.text,
+    fontSize: 16,
+    minHeight: 48,
+    paddingHorizontal: Spacing.two,
+  },
+  inputGroup: {
+    gap: Spacing.one,
+    marginBottom: Spacing.two,
+  },
+  inputLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  statusLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  statusList: {
+    gap: Spacing.two,
+  },
+  statusRow: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    gap: Spacing.one,
+    paddingTop: Spacing.two,
+  },
+  statusValue: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+});
