@@ -231,7 +231,7 @@ export default function AICoachScreen() {
         { paddingBottom: safeAreaInsets.bottom + 160 },
       ]}>
       <View style={styles.container}>
-        <SectionHeader title="AI Coach" subtitle="Your home dashboard for today’s training, nutrition, and progress" />
+        <SectionHeader title="AI Coach" subtitle="Home dashboard for today’s training, nutrition, and progress" />
 
         <AppCard>
           <Text style={styles.sectionTitle}>Today at a glance</Text>
@@ -382,6 +382,7 @@ export default function AICoachScreen() {
               </View>
             </AppCard>
 
+            <Text style={styles.sectionTitle}>Primary actions</Text>
             <View style={styles.quickActions}>
               <AppButton label="Open Labs" onPress={() => router.push('/labs')} />
               <AppButton label="Open Track" onPress={() => router.push('/track')} variant="secondary" />
@@ -392,8 +393,8 @@ export default function AICoachScreen() {
         )}
 
         <AppCard>
-          <Text style={styles.sectionTitle}>Product roadmap</Text>
-          <Text style={styles.roadmapHelp}>Planned work only — not part of today’s main flow.</Text>
+          <Text style={styles.sectionTitle}>Roadmap</Text>
+          <Text style={styles.roadmapHelp}>Reference only — not part of today’s main flow.</Text>
           <View style={styles.planList}>
             {projectPlan.map((item) => (
               <View key={item.label} style={styles.planRow}>
