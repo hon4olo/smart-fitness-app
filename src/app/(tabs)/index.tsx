@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { MetricCard } from '@/components/ui/MetricCard';
+import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
@@ -382,13 +383,16 @@ export default function AICoachScreen() {
               </View>
             </AppCard>
 
-            <Text style={styles.sectionTitle}>Primary actions</Text>
-            <View style={styles.quickActions}>
-              <AppButton label="Open Labs" onPress={() => router.push('/labs')} />
-              <AppButton label="Open Track" onPress={() => router.push('/track')} variant="secondary" />
-              <AppButton label="Open Eat" onPress={() => router.push('/eat')} variant="secondary" />
-              <AppButton label="Open Profile" onPress={() => router.push('/profile')} variant="secondary" />
-            </View>
+            <QuickActionsCard
+              title="Today Actions"
+              subtitle="Keep the next move one tap away."
+              primaryAction={{ label: 'Start Workout', onPress: () => router.push('/track') }}
+              secondaryActions={[
+                { label: 'Log Food', onPress: () => router.push('/eat') },
+                { label: 'Add Weight', onPress: () => router.push('/progress') },
+                { label: 'View Progress', onPress: () => router.push('/progress') },
+              ]}
+            />
           </>
         )}
 
