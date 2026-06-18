@@ -248,3 +248,261 @@ export default function NutritionScreen() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+  },
+  content: {
+    alignItems: 'center',
+    padding: Spacing.three,
+    paddingBottom: Spacing.six,
+  },
+  collapsibleHeader: {
+    paddingBottom: Spacing.two,
+  },
+  dateControls: {
+    gap: Spacing.two,
+  },
+  foodMeta: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    fontVariant: ['tabular-nums'],
+    lineHeight: 20,
+  },
+  foodBrand: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  foodName: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 21,
+    width: '100%',
+  },
+  foodRow: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    gap: Spacing.one,
+    paddingTop: Spacing.three,
+  },
+  foodServing: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  mealGroup: {
+    gap: Spacing.two,
+    paddingTop: Spacing.two,
+  },
+  mealHeader: {
+    alignItems: 'center',
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.two,
+  },
+  mealSubtotal: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  mealTitle: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  input: {
+    backgroundColor: Colors.dark.background,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: Colors.dark.text,
+    fontSize: 16,
+    minHeight: 48,
+    paddingHorizontal: Spacing.two,
+  },
+  inputGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  inputGroup: {
+    flex: 1,
+    gap: Spacing.one,
+    minWidth: 130,
+  },
+  inputLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  mealTypeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+    marginBottom: Spacing.two,
+    marginTop: Spacing.one,
+  },
+  suggestedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  suggestedItem: {
+    flex: 1,
+    gap: Spacing.one,
+    minWidth: 120,
+  },
+  suggestedCard: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    gap: Spacing.two,
+    marginBottom: Spacing.three,
+    paddingTop: Spacing.two,
+  },
+  suggestionSummary: {
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  suggestionSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  suggestionLabel: {
+    color: Colors.dark.textSecondary,
+    flex: 1,
+    fontSize: 15,
+  },
+  suggestionValue: {
+    color: Colors.dark.text,
+    flex: 1,
+    fontSize: 15,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  suggestedSummary: {
+    gap: Spacing.two,
+    marginBottom: Spacing.two,
+  },
+  suggestedSummaryRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  suggestedTitle: {
+    color: Colors.dark.text,
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: Spacing.two,
+  },
+  suggestedValue: {
+    color: Colors.dark.text,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  progressFill: {
+    backgroundColor: Colors.dark.accent,
+    borderRadius: 999,
+    height: '100%',
+  },
+  progressTrack: {
+    backgroundColor: Colors.dark.backgroundElement,
+    borderColor: Colors.dark.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 10,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+  searchResult: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    gap: Spacing.two,
+    paddingTop: Spacing.three,
+  },
+  searchResultContent: {
+    gap: Spacing.one,
+  },
+  savedMealActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  savedMealComposer: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    gap: Spacing.two,
+    marginBottom: Spacing.three,
+    paddingTop: Spacing.two,
+  },
+  savedMealItem: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    gap: Spacing.two,
+    paddingTop: Spacing.three,
+  },
+  savedMealItemContent: {
+    gap: Spacing.one,
+  },
+  mealSummary: {
+    marginBottom: Spacing.two,
+  },
+  sectionTitle: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  remainingValue: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    width: '100%',
+  },
+  templateSummaryLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+    width: '100%',
+  },
+  targetLabel: {
+    color: Colors.dark.text,
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  targetRow: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.one,
+    justifyContent: 'space-between',
+    paddingTop: Spacing.two,
+  },
+  targetValue: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+  },
+});
