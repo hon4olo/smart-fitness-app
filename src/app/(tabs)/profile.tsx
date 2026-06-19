@@ -4,8 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore - expo-updates types are not available in this workspace, but the runtime module exists on device.
 import * as Updates from 'expo-updates';
 
-import { AppButton } from '@/components/ui/AppButton';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { ProfileActionsCard } from '@/components/profile/ProfileActionsCard';
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
 import { ProfileHeaderCard } from '@/components/profile/ProfileHeaderCard';
 import { ProfileRuntimeInfoCard } from '@/components/profile/ProfileRuntimeInfoCard';
@@ -150,7 +150,7 @@ export default function ProfileScreen() {
           weeklyWeightChangeGoal={weeklyWeightChangeGoal}
         />
 
-        <AppButton label="Reset Onboarding" onPress={handleResetOnboarding} variant="secondary" />
+        <ProfileActionsCard onResetOnboarding={handleResetOnboarding} />
 
         <ProfileRuntimeInfoCard
           channel={otaChannel}
