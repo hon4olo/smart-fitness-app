@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, LayoutChangeEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -10,6 +10,7 @@ import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { AddFoodFormSection } from '@/components/nutrition/AddFoodFormSection';
 import { FoodDiarySection } from '@/components/nutrition/FoodDiarySection';
 import { FoodSearchSection } from '@/components/nutrition/FoodSearchSection';
+import { MealMenuCard } from '@/components/nutrition/MealMenuCard';
 import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
 import { NutritionTargetsCard } from '@/components/nutrition/NutritionTargetsCard';
 import { RecentFoodsSection } from '@/components/nutrition/RecentFoodsSection';
@@ -74,6 +75,8 @@ const mockFoodDatabase: MockFood[] = [
 export default function NutritionScreen() {
   const { addFoodEntry, addFoodEntries, addMealTemplate, deleteFoodEntry, deleteMealTemplate, profile, weightHistory, updateFoodEntry, updateNutritionTargets, foodEntries, mealTemplates, nutritionTargets } = useAppContext();
   const safeAreaInsets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const sectionOffsets = useRef({ addFoodForm: 0 });
   const [selectedDate, setSelectedDate] = useState(formatLocalDate(new Date()));
   const [targetCalories, setTargetCalories] = useState(`${nutritionTargets.calories}`);
   const [targetProtein, setTargetProtein] = useState(`${nutritionTargets.protein}`);
@@ -207,6 +210,11 @@ export default function NutritionScreen() {
   const goToPreviousDay = () => { setSelectedDate((current) => addDays(current, -1)); clearForm(); };
   const goToToday = () => { setSelectedDate(formatLocalDate(new Date())); clearForm(); };
   const goToNextDay = () => { setSelectedDate((current) => addDays(current, 1)); clearForm(); };
+  const handleAddFoodToMeal = (nextMealType: MealType) => {
+    setMealType(nextMealType);
+    setIsAddFoodFormExpanded(true);
+    scrollViewRef.current?.scrollTo({ animated: true, y: Math.max(0, sectionOffsets.current.addFoodForm - 12) });
+  };
   const selectedDateMeals = mealTypeOrder.map((type) => { const entries = selectedDateFoodEntries.filter((entry) => entry.mealType === type); const subtotal = entries.reduce((totals, entry) => ({ calories: totals.calories + entry.calories, protein: totals.protein + entry.protein, carbs: totals.carbs + entry.carbs, fats: totals.fats + entry.fats, }), { calories: 0, protein: 0, carbs: 0, fats: 0 }); return { entries, subtotal, type }; });
 
   return (
@@ -229,6 +237,7 @@ export default function NutritionScreen() {
           ]}
         />
         <NutritionSummaryCard calorieLine={nutritionCoachInsight.calorieLine} ctaLabel={nutritionCoachInsight.ctaLabel} detail={nutritionCoachInsight.detail} onPress={() => setIsSearchExpanded(true)} proteinLine={nutritionCoachInsight.proteinLine} title={nutritionCoachInsight.title} />
+        <MealMenuCard entriesByMeal={selectedDateMeals} mealTypeLabels={mealTypeLabels} onAddFoodToMeal={handleAddFoodToMeal} selectedMealType={mealType} />
         <AppCard>
           <Text selectable style={styles.sectionTitle}>{selectedDate}</Text>
           <View style={styles.dateControls}>
@@ -254,8 +263,12 @@ export default function NutritionScreen() {
         <FoodSearchSection filteredFoods={filteredMockFoods} foodSearchQuery={foodSearchQuery} isExpanded={isSearchExpanded} onFoodSearchQueryChange={setFoodSearchQuery} onToggleExpanded={() => setIsSearchExpanded((current) => !current)} onUseFood={handleUseMockFood} />
         <RecentFoodsSection formatServingInfo={formatServingInfo} isExpanded={isRecentFoodsExpanded} onToggleExpanded={() => setIsRecentFoodsExpanded((current) => !current)} onUseRecentFood={handleUseRecentFood} recentFoods={recentFoods} />
         <SavedMealsSection currentMealCount={selectedMealFoodEntries.length} currentMealLabel={mealTypeLabels[mealType]} currentMealNutritionLabel={formatMacroTotals(selectedMealNutrition)} isExpanded={isSavedMealsExpanded} isMealTemplateSaveDisabled={isMealTemplateSaveDisabled} mealTemplateButtonLabel={mealTemplateButtonLabel} mealTemplateName={mealTemplateName} mealTemplates={mealTemplates} onDeleteMealTemplate={confirmDeleteMealTemplate} onMealTemplateNameChange={setMealTemplateName} onSaveMealTemplate={handleSaveMealTemplate} onToggleExpanded={() => setIsSavedMealsExpanded((current) => !current)} onUseMealTemplate={handleUseMealTemplate} selectedDateLabel={selectedDate} selectedMealEntriesCount={selectedMealFoodEntries.length} selectedMealTypeLabel={mealTypeLabels[mealType]} onDuplicateMealTemplate={handleDuplicateMealTemplate} />
-        <AddFoodFormSection calories={calories} carbs={carbs} currentMealTotalLabel={formatMacroTotals(selectedMealNutrition)} editingFoodEntry={editingFoodEntry} fats={fats} isExpanded={isAddFoodFormExpanded} isSaveDisabled={isSaveDisabled} mealType={mealType} mealTypeLabels={mealTypeLabels} name={name} onCaloriesChange={setCalories} onCarbsChange={setCarbs} onCancelEdit={clearForm} onFatsChange={setFats} onMealTypeChange={setMealType} onNameChange={handleNameChange} onProteinChange={setProtein} onQuantityChange={handleQuantityChange} onSaveFood={handleSaveFood} onServingSizeChange={handleServingSizeChange} onServingUnitChange={handleServingUnitChange} onToggleExpanded={() => setIsAddFoodFormExpanded((current) => !current)} protein={protein} quantity={quantity} servingSize={servingSize} servingUnit={servingUnit} />
-        <FoodDiarySection entriesByMeal={selectedDateMeals} formatServingInfo={formatServingInfo} mealTypeLabels={mealTypeLabels} onDeleteFoodEntry={confirmDeleteFoodEntry} onEditFoodEntry={handleEditFoodEntry} />
+        <View onLayout={(event: LayoutChangeEvent) => {
+          sectionOffsets.current.addFoodForm = event.nativeEvent.layout.y;
+        }}>
+          <AddFoodFormSection calories={calories} carbs={carbs} currentMealTotalLabel={formatMacroTotals(selectedMealNutrition)} editingFoodEntry={editingFoodEntry} fats={fats} isExpanded={isAddFoodFormExpanded} isSaveDisabled={isSaveDisabled} mealType={mealType} mealTypeLabels={mealTypeLabels} name={name} onCaloriesChange={setCalories} onCarbsChange={setCarbs} onCancelEdit={clearForm} onFatsChange={setFats} onMealTypeChange={setMealType} onNameChange={handleNameChange} onProteinChange={setProtein} onQuantityChange={handleQuantityChange} onSaveFood={handleSaveFood} onServingSizeChange={handleServingSizeChange} onServingUnitChange={handleServingUnitChange} onToggleExpanded={() => setIsAddFoodFormExpanded((current) => !current)} protein={protein} quantity={quantity} servingSize={servingSize} servingUnit={servingUnit} />
+        </View>
+        <FoodDiarySection entriesByMeal={selectedDateMeals} formatServingInfo={formatServingInfo} mealTypeLabels={mealTypeLabels} onAddFoodToMeal={handleAddFoodToMeal} onDeleteFoodEntry={confirmDeleteFoodEntry} onEditFoodEntry={handleEditFoodEntry} />
       </View>
     </ScrollView>
   );

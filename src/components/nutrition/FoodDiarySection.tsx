@@ -4,6 +4,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
 import type { FoodEntry, MealType } from '@/context/AppContext';
+import { formatMacroTotals } from '@/lib';
 
 type FoodDiaryMeal = {
   entries: FoodEntry[];
@@ -20,6 +21,7 @@ type FoodDiarySectionProps = {
   entriesByMeal: FoodDiaryMeal[];
   formatServingInfo: (entry: FoodEntry) => string;
   mealTypeLabels: Record<MealType, string>;
+  onAddFoodToMeal: (mealType: MealType) => void;
   onDeleteFoodEntry: (entryId: string) => void;
   onEditFoodEntry: (entry: FoodEntry) => void;
 };
@@ -28,13 +30,14 @@ export function FoodDiarySection({
   entriesByMeal,
   formatServingInfo,
   mealTypeLabels,
+  onAddFoodToMeal,
   onDeleteFoodEntry,
   onEditFoodEntry,
 }: FoodDiarySectionProps) {
   return (
     <AppCard>
       <Text selectable style={styles.sectionTitle}>
-        Food entries
+        Meal diary
       </Text>
       {entriesByMeal.map(({ entries, subtotal, type }) => {
         if (entries.length === 0) {
@@ -44,12 +47,15 @@ export function FoodDiarySection({
         return (
           <View key={type} style={styles.mealGroup}>
             <View style={styles.mealHeader}>
-              <Text selectable style={styles.mealTitle}>
-                {mealTypeLabels[type]}
-              </Text>
-              <Text selectable style={styles.mealSubtotal}>
-                {subtotal.calories.toFixed(0)} kcal
-              </Text>
+              <View style={styles.mealHeaderContent}>
+                <Text selectable style={styles.mealTitle}>
+                  {mealTypeLabels[type]}
+                </Text>
+                <Text selectable style={styles.mealSubtotal}>
+                  {formatMacroTotals(subtotal)}
+                </Text>
+              </View>
+              <AppButton label="Add food" onPress={() => onAddFoodToMeal(type)} variant="secondary" />
             </View>
             {entries.map((entry) => (
               <View key={entry.id} style={styles.foodRow}>
@@ -120,8 +126,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.dark.border,
     borderTopWidth: 1,
     flexDirection: 'row',
+    gap: Spacing.two,
     justifyContent: 'space-between',
     paddingTop: Spacing.two,
+  },
+  mealHeaderContent: {
+    flex: 1,
+    gap: Spacing.one,
   },
   mealSubtotal: {
     color: Colors.dark.textSecondary,
