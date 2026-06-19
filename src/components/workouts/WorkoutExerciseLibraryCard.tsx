@@ -70,7 +70,7 @@ export function WorkoutExerciseLibraryCard({
             />
           </View>
 
-          <AppButton disabled={isSaveExerciseDisabled} label="Add Exercise" onPress={onSaveExercise} />
+          <AppButton disabled={isSaveExerciseDisabled} label="Add exercise" onPress={onSaveExercise} />
 
           <View style={styles.list}>
             <Text selectable style={styles.title}>
@@ -94,7 +94,7 @@ export function WorkoutExerciseLibraryCard({
                     </View>
                     <AppButton
                       disabled={added}
-                      label={added ? 'Added' : 'Add'}
+                      label={added ? 'Added' : 'Add to workout'}
                       onPress={() => onAddDatabaseExercise(exercise.name)}
                       variant="secondary"
                     />

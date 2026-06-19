@@ -47,14 +47,14 @@ export function CreateWorkoutCard({
     <AppCard>
       <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
         <Text style={styles.sectionTitle}>
-          {getSectionTitle(editingWorkoutId ? 'Edit Workout' : 'Create Workout', isExpanded)}
+          {getSectionTitle(editingWorkoutId ? 'Edit workout' : 'Create workout', isExpanded)}
         </Text>
       </Pressable>
 
       {isExpanded ? (
         <>
           <Text selectable style={styles.formTitle}>
-            {editingWorkoutId ? 'Edit Workout' : 'Create Workout'}
+            {editingWorkoutId ? 'Edit workout' : 'Create workout'}
           </Text>
 
           <View style={styles.inputGroup}>
@@ -98,7 +98,7 @@ export function CreateWorkoutCard({
 
           <AppButton
             disabled={draftExerciseName.trim().length === 0}
-            label="Add Exercise"
+            label="Add exercise"
             onPress={onAddExercise}
             variant="secondary"
           />
@@ -120,8 +120,8 @@ export function CreateWorkoutCard({
             </View>
           ) : null}
 
-          <AppButton disabled={isSaveWorkoutDisabled} label="Save Workout" onPress={onSaveWorkout} />
-          {editingWorkoutId ? <AppButton label="Cancel Edit" onPress={onCancelEdit} variant="secondary" /> : null}
+          <AppButton disabled={isSaveWorkoutDisabled} label="Save workout" onPress={onSaveWorkout} />
+          {editingWorkoutId ? <AppButton label="Cancel edit" onPress={onCancelEdit} variant="secondary" /> : null}
         </>
       ) : null}
     </AppCard>

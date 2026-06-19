@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { Alert, LayoutChangeEvent, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
+import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { WorkoutCoachInsightCard } from '@/components/workouts/WorkoutCoachInsightCard';
 import { WorkoutExerciseLibraryCard } from '@/components/workouts/WorkoutExerciseLibraryCard';
@@ -46,6 +47,8 @@ export default function WorkoutsScreen() {
   const [isCreateWorkoutExpanded, setIsCreateWorkoutExpanded] = useState(false);
   const [isExercisesExpanded, setIsExercisesExpanded] = useState(false);
   const [isWorkoutHistoryExpanded, setIsWorkoutHistoryExpanded] = useState(true);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const sectionOffsets = useRef({ createWorkout: 0, exerciseLibrary: 0, history: 0, templates: 0 });
   const completedSessions = [...workoutSessions].reverse();
   const latestCompletedSession = completedSessions[0];
   const workoutsInsight = (() => {
@@ -87,6 +90,12 @@ export default function WorkoutsScreen() {
       pathname: '/workout-session',
       params: { workoutId },
     });
+  };
+  const scrollToSection = (key: keyof typeof sectionOffsets.current) => {
+    scrollViewRef.current?.scrollTo({ animated: true, y: Math.max(0, sectionOffsets.current[key] - 12) });
+  };
+  const handleSectionLayout = (key: keyof typeof sectionOffsets.current) => (event: LayoutChangeEvent) => {
+    sectionOffsets.current[key] = event.nativeEvent.layout.y;
   };
   const confirmDeleteSession = (sessionId: string) => {
     Alert.alert(
@@ -325,6 +334,7 @@ export default function WorkoutsScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
+      ref={scrollViewRef}
       style={styles.screen}
       contentContainerStyle={styles.content}>
       <View style={styles.container}>
@@ -345,97 +355,144 @@ export default function WorkoutsScreen() {
           title={workoutsInsight.title}
         />
 
-        <AppButton
-          disabled={workouts.length === 0}
-          label="Start Workout"
-          onPress={() => startWorkout(workouts[0]?.id ?? '')}
-        />
+        <QuickActionsCard
+          title="Workout actions"
+          subtitle="Create, edit, or launch workouts without hunting through the page."
+          primaryAction={{
+            disabled: workouts.length === 0,
+            label: workouts.length === 0 ? 'Create workout first' : 'Start workout',
+            onPress: () => {
+              if (workouts.length === 0) {
+                setIsCreateWorkoutExpanded(true);
+                scrollToSection('createWorkout');
+                return;
+              }
 
-        <WorkoutExerciseLibraryCard
-          exerciseName={exerciseName}
-          exerciseMuscleGroup={exerciseMuscleGroup}
-          exercises={exercises}
-          isExpanded={isExercisesExpanded}
-          isExerciseAdded={isDraftExerciseAdded}
-          isSaveExerciseDisabled={isSaveExerciseDisabled}
-          onAddDatabaseExercise={handleAddDatabaseExercise}
-          onDeleteExercise={handleDeleteExercise}
-          onExerciseMuscleGroupChange={setExerciseMuscleGroup}
-          onExerciseNameChange={setExerciseName}
-          onSaveExercise={handleSaveExercise}
-          onToggleExpanded={() => setIsExercisesExpanded((current) => !current)}
-        />
-
-        <CreateWorkoutCard
-          draftExerciseName={draftExerciseName}
-          draftExercises={draftExercises}
-          editingWorkoutId={editingWorkoutId}
-          isExpanded={isCreateWorkoutExpanded}
-          isSaveWorkoutDisabled={isSaveWorkoutDisabled}
-          onAddExercise={handleAddExercise}
-          onCancelEdit={clearWorkoutForm}
-          onDraftExerciseNameChange={setDraftExerciseName}
-          onRemoveDraftExercise={handleRemoveDraftExercise}
-          onSaveWorkout={handleSaveWorkout}
-          onToggleExpanded={() => setIsCreateWorkoutExpanded((current) => !current)}
-          onWorkoutDescriptionChange={setWorkoutDescription}
-          onWorkoutTitleChange={setWorkoutTitle}
-          workoutDescription={workoutDescription}
-          workoutTitle={workoutTitle}
-        />
-
-        <WorkoutHistorySection
-          completedSessions={completedSessions}
-          editingSessionId={editingSessionId}
-          editingSessionSetId={editingSessionSetId}
-          formatFinishedAt={formatShortDateTime}
-          isExpanded={isWorkoutHistoryExpanded}
-          onCancelSessionEdit={handleCancelSessionEdit}
-          onCancelSessionSetEdit={handleCancelSessionSetEdit}
-          onDeleteSession={(sessionId) => {
-            if (editingSessionId === sessionId) {
-              Alert.alert('Delete workout?', 'This completed workout will be removed from history.', [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Delete',
-                  style: 'destructive',
-                  onPress: () => {
-                    clearSessionEdit();
-                    deleteWorkoutSession(sessionId);
-                  },
-                },
-              ]);
-              return;
-            }
-
-            confirmDeleteSession(sessionId);
+              startWorkout(workouts[0].id);
+            },
           }}
-          onDeleteSessionSet={handleDeleteSessionSet}
-          onEditSession={handleEditSession}
-          onEditSessionSet={handleEditSessionSet}
-          onSaveSessionChanges={handleSaveSessionChanges}
-          onSaveSessionSet={handleSaveSessionSet}
-          onSessionExerciseNameChange={setSessionExerciseName}
-          onSessionRepsChange={setSessionReps}
-          onSessionWeightChange={setSessionWeight}
-          onToggleExpanded={() => setIsWorkoutHistoryExpanded((current) => !current)}
-          sessionDraftSets={sessionDraftSets}
-          sessionExerciseName={sessionExerciseName}
-          sessionReps={sessionReps}
-          sessionWeight={sessionWeight}
+          secondaryActions={[
+            {
+              label: 'Create workout',
+              onPress: () => {
+                setIsCreateWorkoutExpanded(true);
+                scrollToSection('createWorkout');
+              },
+            },
+            {
+              label: 'Add exercise',
+              onPress: () => {
+                setIsExercisesExpanded(true);
+                scrollToSection('exerciseLibrary');
+              },
+            },
+            {
+              label: 'Workout history',
+              onPress: () => {
+                setIsWorkoutHistoryExpanded(true);
+                scrollToSection('history');
+              },
+            },
+            {
+              label: 'Templates',
+              onPress: () => scrollToSection('templates'),
+            },
+          ]}
         />
 
-        <SectionHeader title="Workout templates" />
-        {workouts.map((workout) => (
-          <WorkoutTemplateCard
-            key={workout.id}
-            isCustomWorkout={isCustomWorkout(workout.id, workout.isCustom)}
-            onDelete={confirmDeleteWorkoutTemplate}
-            onEdit={handleEditWorkout}
-            onStart={startWorkout}
-            workout={workout}
+        <View onLayout={handleSectionLayout('exerciseLibrary')}>
+          <WorkoutExerciseLibraryCard
+            exerciseName={exerciseName}
+            exerciseMuscleGroup={exerciseMuscleGroup}
+            exercises={exercises}
+            isExpanded={isExercisesExpanded}
+            isExerciseAdded={isDraftExerciseAdded}
+            isSaveExerciseDisabled={isSaveExerciseDisabled}
+            onAddDatabaseExercise={handleAddDatabaseExercise}
+            onDeleteExercise={handleDeleteExercise}
+            onExerciseMuscleGroupChange={setExerciseMuscleGroup}
+            onExerciseNameChange={setExerciseName}
+            onSaveExercise={handleSaveExercise}
+            onToggleExpanded={() => setIsExercisesExpanded((current) => !current)}
           />
-        ))}
+        </View>
+
+        <View onLayout={handleSectionLayout('createWorkout')}>
+          <CreateWorkoutCard
+            draftExerciseName={draftExerciseName}
+            draftExercises={draftExercises}
+            editingWorkoutId={editingWorkoutId}
+            isExpanded={isCreateWorkoutExpanded}
+            isSaveWorkoutDisabled={isSaveWorkoutDisabled}
+            onAddExercise={handleAddExercise}
+            onCancelEdit={clearWorkoutForm}
+            onDraftExerciseNameChange={setDraftExerciseName}
+            onRemoveDraftExercise={handleRemoveDraftExercise}
+            onSaveWorkout={handleSaveWorkout}
+            onToggleExpanded={() => setIsCreateWorkoutExpanded((current) => !current)}
+            onWorkoutDescriptionChange={setWorkoutDescription}
+            onWorkoutTitleChange={setWorkoutTitle}
+            workoutDescription={workoutDescription}
+            workoutTitle={workoutTitle}
+          />
+        </View>
+
+        <View onLayout={handleSectionLayout('history')}>
+          <WorkoutHistorySection
+            completedSessions={completedSessions}
+            editingSessionId={editingSessionId}
+            editingSessionSetId={editingSessionSetId}
+            formatFinishedAt={formatShortDateTime}
+            isExpanded={isWorkoutHistoryExpanded}
+            onCancelSessionEdit={handleCancelSessionEdit}
+            onCancelSessionSetEdit={handleCancelSessionSetEdit}
+            onDeleteSession={(sessionId) => {
+              if (editingSessionId === sessionId) {
+                Alert.alert('Delete workout?', 'This completed workout will be removed from history.', [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => {
+                      clearSessionEdit();
+                      deleteWorkoutSession(sessionId);
+                    },
+                  },
+                ]);
+                return;
+              }
+
+              confirmDeleteSession(sessionId);
+            }}
+            onDeleteSessionSet={handleDeleteSessionSet}
+            onEditSession={handleEditSession}
+            onEditSessionSet={handleEditSessionSet}
+            onSaveSessionChanges={handleSaveSessionChanges}
+            onSaveSessionSet={handleSaveSessionSet}
+            onSessionExerciseNameChange={setSessionExerciseName}
+            onSessionRepsChange={setSessionReps}
+            onSessionWeightChange={setSessionWeight}
+            onToggleExpanded={() => setIsWorkoutHistoryExpanded((current) => !current)}
+            sessionDraftSets={sessionDraftSets}
+            sessionExerciseName={sessionExerciseName}
+            sessionReps={sessionReps}
+            sessionWeight={sessionWeight}
+          />
+        </View>
+
+        <View onLayout={handleSectionLayout('templates')}>
+          <SectionHeader title="Workout templates" />
+          {workouts.map((workout) => (
+            <WorkoutTemplateCard
+              key={workout.id}
+              isCustomWorkout={isCustomWorkout(workout.id, workout.isCustom)}
+              onDelete={confirmDeleteWorkoutTemplate}
+              onEdit={handleEditWorkout}
+              onStart={startWorkout}
+              workout={workout}
+            />
+          ))}
+        </View>
       </View>
     </ScrollView>
   );

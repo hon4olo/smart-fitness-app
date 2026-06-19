@@ -39,11 +39,11 @@ export function WorkoutTemplateCard({ isCustomWorkout, onDelete, onEdit, onStart
         ))}
       </View>
 
-      <AppButton label="Start" onPress={() => onStart(workout.id)} />
+      <AppButton label="Start workout" onPress={() => onStart(workout.id)} />
       {isCustomWorkout ? (
         <>
-          <AppButton label="Edit" onPress={() => onEdit(workout.id)} variant="secondary" />
-          <AppButton label="Delete" onPress={() => onDelete(workout.id)} variant="secondary" />
+          <AppButton label="Edit workout" onPress={() => onEdit(workout.id)} variant="secondary" />
+          <AppButton label="Delete workout" onPress={() => onDelete(workout.id)} variant="secondary" />
         </>
       ) : null}
     </AppCard>
