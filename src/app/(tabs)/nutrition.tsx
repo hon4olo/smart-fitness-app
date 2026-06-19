@@ -2,12 +2,9 @@ import { useRef, useState } from 'react';
 import { Alert, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { AddFoodFormSection } from '@/components/nutrition/AddFoodFormSection';
-import { FoodDiarySection } from '@/components/nutrition/FoodDiarySection';
-import { FoodSearchSection } from '@/components/nutrition/FoodSearchSection';
 import { MealMenuCard } from '@/components/nutrition/MealMenuCard';
 import { RecentFoodsSection } from '@/components/nutrition/RecentFoodsSection';
 import { SavedMealsSection } from '@/components/nutrition/SavedMealsSection';
@@ -70,10 +67,11 @@ export default function NutritionScreen() {
   const sectionOffsets = useRef({ addFoodForm: 0 });
   const [selectedDate, setSelectedDate] = useState(formatLocalDate(new Date()));
   const [foodSearchQuery, setFoodSearchQuery] = useState('');
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isRecentFoodsExpanded, setIsRecentFoodsExpanded] = useState(false);
   const [isSavedMealsExpanded, setIsSavedMealsExpanded] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isAddFoodFormExpanded, setIsAddFoodFormExpanded] = useState(true);
+  const [expandedMealType, setExpandedMealType] = useState<MealType | null>(null);
   const [editingFoodEntry, setEditingFoodEntry] = useState<FoodEntry | undefined>();
   const [mealType, setMealType] = useState<MealType>('breakfast');
   const [mealTemplateName, setMealTemplateName] = useState('');
@@ -171,8 +169,23 @@ export default function NutritionScreen() {
   const goToNextDay = () => { setSelectedDate((current) => addDays(current, 1)); clearForm(); };
   const handleAddFoodToMeal = (nextMealType: MealType) => {
     setMealType(nextMealType);
+    setExpandedMealType(nextMealType);
     setIsAddFoodFormExpanded(true);
     scrollViewRef.current?.scrollTo({ animated: true, y: Math.max(0, sectionOffsets.current.addFoodForm - 12) });
+  };
+  const handleOpenRecentFoods = (nextMealType: MealType) => {
+    setMealType(nextMealType);
+    setExpandedMealType(nextMealType);
+    setIsRecentFoodsExpanded(true);
+  };
+  const handleOpenSavedMeals = (nextMealType: MealType) => {
+    setMealType(nextMealType);
+    setExpandedMealType(nextMealType);
+    setIsSavedMealsExpanded(true);
+  };
+  const handleToggleExpandedMeal = (nextMealType: MealType) => {
+    setMealType(nextMealType);
+    setExpandedMealType((current) => (current === nextMealType ? null : nextMealType));
   };
   const selectedDateMeals = mealTypeOrder.map((type) => { const entries = selectedDateFoodEntries.filter((entry) => entry.mealType === type); const subtotal = entries.reduce((totals, entry) => ({ calories: totals.calories + entry.calories, protein: totals.protein + entry.protein, carbs: totals.carbs + entry.carbs, fats: totals.fats + entry.fats, }), { calories: 0, protein: 0, carbs: 0, fats: 0 }); return { entries, subtotal, type }; });
 
@@ -203,9 +216,6 @@ export default function NutritionScreen() {
           <Text selectable style={styles.sectionTitle}>
             Today's totals
           </Text>
-          <Text selectable style={styles.summarySubtitle}>
-            Kcal, protein, carbs, and fats consumed today.
-          </Text>
           <View style={styles.summaryGrid}>
             <View style={styles.summaryItem}>
               <Text selectable style={styles.summaryLabel}>Kcal</Text>
@@ -225,16 +235,27 @@ export default function NutritionScreen() {
             </View>
           </View>
         </AppCard>
-        <MealMenuCard entriesByMeal={selectedDateMeals} mealTypeLabels={mealTypeLabels} onAddFoodToMeal={handleAddFoodToMeal} selectedMealType={mealType} />
-        <FoodSearchSection filteredFoods={filteredMockFoods} foodSearchQuery={foodSearchQuery} isExpanded={isSearchExpanded} onFoodSearchQueryChange={setFoodSearchQuery} onToggleExpanded={() => setIsSearchExpanded((current) => !current)} onUseFood={handleUseMockFood} />
+        <MealMenuCard
+          entriesByMeal={selectedDateMeals}
+          expandedMealType={expandedMealType}
+          formatServingInfo={formatServingInfo}
+          mealTypeLabels={mealTypeLabels}
+          onAddFoodToMeal={handleAddFoodToMeal}
+          onDeleteFoodEntry={confirmDeleteFoodEntry}
+          onEditFoodEntry={handleEditFoodEntry}
+          onOpenRecentFoods={handleOpenRecentFoods}
+          onOpenSavedMeals={handleOpenSavedMeals}
+          onToggleExpandedMeal={handleToggleExpandedMeal}
+          selectedMealType={mealType}
+        />
         <RecentFoodsSection formatServingInfo={formatServingInfo} isExpanded={isRecentFoodsExpanded} onToggleExpanded={() => setIsRecentFoodsExpanded((current) => !current)} onUseRecentFood={handleUseRecentFood} recentFoods={recentFoods} />
         <SavedMealsSection currentMealCount={selectedMealFoodEntries.length} currentMealLabel={mealTypeLabels[mealType]} currentMealNutritionLabel={formatMacroTotals(selectedMealNutrition)} isExpanded={isSavedMealsExpanded} isMealTemplateSaveDisabled={isMealTemplateSaveDisabled} mealTemplateButtonLabel={mealTemplateButtonLabel} mealTemplateName={mealTemplateName} mealTemplates={mealTemplates} onDeleteMealTemplate={confirmDeleteMealTemplate} onMealTemplateNameChange={setMealTemplateName} onSaveMealTemplate={handleSaveMealTemplate} onToggleExpanded={() => setIsSavedMealsExpanded((current) => !current)} onUseMealTemplate={handleUseMealTemplate} selectedDateLabel={selectedDate} selectedMealEntriesCount={selectedMealFoodEntries.length} selectedMealTypeLabel={mealTypeLabels[mealType]} onDuplicateMealTemplate={handleDuplicateMealTemplate} />
         <View onLayout={(event: LayoutChangeEvent) => {
           sectionOffsets.current.addFoodForm = event.nativeEvent.layout.y;
         }}>
-          <AddFoodFormSection calories={calories} carbs={carbs} currentMealTotalLabel={formatMacroTotals(selectedMealNutrition)} editingFoodEntry={editingFoodEntry} fats={fats} isExpanded={isAddFoodFormExpanded} isSaveDisabled={isSaveDisabled} mealType={mealType} mealTypeLabels={mealTypeLabels} name={name} onCaloriesChange={setCalories} onCarbsChange={setCarbs} onCancelEdit={clearForm} onFatsChange={setFats} onMealTypeChange={setMealType} onNameChange={handleNameChange} onProteinChange={setProtein} onQuantityChange={handleQuantityChange} onSaveFood={handleSaveFood} onServingSizeChange={handleServingSizeChange} onServingUnitChange={handleServingUnitChange} onToggleExpanded={() => setIsAddFoodFormExpanded((current) => !current)} protein={protein} quantity={quantity} servingSize={servingSize} servingUnit={servingUnit} />
+          <AddFoodFormSection calories={calories} carbs={carbs} currentMealTotalLabel={formatMacroTotals(selectedMealNutrition)} editingFoodEntry={editingFoodEntry} fats={fats} filteredFoods={filteredMockFoods} foodSearchQuery={foodSearchQuery} isExpanded={isAddFoodFormExpanded} isSaveDisabled={isSaveDisabled} isSearchExpanded={isSearchExpanded} mealType={mealType} mealTypeLabels={mealTypeLabels} name={name} onCaloriesChange={setCalories} onCarbsChange={setCarbs} onCancelEdit={clearForm} onFatsChange={setFats} onFoodSearchQueryChange={setFoodSearchQuery} onMealTypeChange={setMealType} onNameChange={handleNameChange} onProteinChange={setProtein} onQuantityChange={handleQuantityChange} onSaveFood={handleSaveFood} onServingSizeChange={handleServingSizeChange} onServingUnitChange={handleServingUnitChange} onToggleExpanded={() => setIsAddFoodFormExpanded((current) => !current)} onToggleSearchExpanded={() => setIsSearchExpanded((current) => !current)} onUseFood={handleUseMockFood} protein={protein} quantity={quantity} servingSize={servingSize} servingUnit={servingUnit} />
         </View>
-        <FoodDiarySection entriesByMeal={selectedDateMeals} formatServingInfo={formatServingInfo} mealTypeLabels={mealTypeLabels} onAddFoodToMeal={handleAddFoodToMeal} onDeleteFoodEntry={confirmDeleteFoodEntry} onEditFoodEntry={handleEditFoodEntry} />
+
       </View>
     </ScrollView>
   );
@@ -362,29 +383,30 @@ const styles = StyleSheet.create({
   },
   summaryGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-    marginTop: Spacing.three,
+    flexWrap: 'nowrap',
+    gap: Spacing.one,
+    marginTop: Spacing.two,
   },
   summaryItem: {
+    alignItems: 'center',
     flex: 1,
-    gap: Spacing.one,
-    minWidth: 120,
+    gap: 2,
+    minWidth: 0,
   },
   summaryLabel: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
   },
   summaryValue: {
     color: Colors.dark.text,
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   sectionTitle: {
     color: Colors.dark.text,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
   },
   screen: {
@@ -455,13 +477,5 @@ const styles = StyleSheet.create({
     color: Colors.dark.textSecondary,
     flex: 1,
     fontSize: 15,
-  },
-  suggestionValue: {
-    color: Colors.dark.text,
-    flex: 1,
-    fontSize: 15,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '800',
-    textAlign: 'right',
   },
 });

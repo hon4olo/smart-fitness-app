@@ -5,19 +5,36 @@ import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
 import type { FoodEntry, MealType } from '@/context/AppContext';
 
+type FoodSearchResult = {
+  brandName?: string;
+  calories: number;
+  carbs: number;
+  fats: number;
+  name: string;
+  protein: number;
+  servingSize?: number;
+  servingUnit?: string;
+  source: FoodEntry['source'];
+};
+
 type AddFoodFormSectionProps = {
   calories: string;
   carbs: string;
+  currentMealTotalLabel: string;
   editingFoodEntry?: FoodEntry;
   fats: string;
+  filteredFoods: FoodSearchResult[];
+  foodSearchQuery: string;
   isExpanded: boolean;
   isSaveDisabled: boolean;
+  isSearchExpanded: boolean;
   mealType: MealType;
   mealTypeLabels: Record<MealType, string>;
   onCaloriesChange: (value: string) => void;
   onCarbsChange: (value: string) => void;
   onCancelEdit: () => void;
   onFatsChange: (value: string) => void;
+  onFoodSearchQueryChange: (value: string) => void;
   onMealTypeChange: (value: MealType) => void;
   onNameChange: (value: string) => void;
   onProteinChange: (value: string) => void;
@@ -26,11 +43,12 @@ type AddFoodFormSectionProps = {
   onServingSizeChange: (value: string) => void;
   onServingUnitChange: (value: string) => void;
   onToggleExpanded: () => void;
+  onToggleSearchExpanded: () => void;
+  onUseFood: (food: FoodSearchResult) => void;
   protein: string;
   quantity: string;
   servingSize: string;
   servingUnit: string;
-  currentMealTotalLabel: string;
   name: string;
 };
 
@@ -39,14 +57,18 @@ export function AddFoodFormSection({
   carbs,
   editingFoodEntry,
   fats,
+  filteredFoods,
+  foodSearchQuery,
   isExpanded,
   isSaveDisabled,
+  isSearchExpanded,
   mealType,
   mealTypeLabels,
   onCaloriesChange,
   onCarbsChange,
   onCancelEdit,
   onFatsChange,
+  onFoodSearchQueryChange,
   onMealTypeChange,
   onNameChange,
   onProteinChange,
@@ -55,6 +77,8 @@ export function AddFoodFormSection({
   onServingSizeChange,
   onServingUnitChange,
   onToggleExpanded,
+  onToggleSearchExpanded,
+  onUseFood,
   protein,
   quantity,
   servingSize,
@@ -108,6 +132,57 @@ export function AddFoodFormSection({
               Current {mealTypeLabels[mealType]} total: {currentMealTotalLabel}
             </Text>
           </View>
+
+          <Pressable onPress={onToggleSearchExpanded} style={styles.collapsibleHeader}>
+            <Text selectable style={styles.sectionTitle}>
+              {`Search food ${isSearchExpanded ? '−' : '+'}`}
+            </Text>
+          </Pressable>
+
+          {isSearchExpanded ? (
+            <>
+              <Text selectable style={styles.helperText}>
+                Search by name or brand, then tap Use.
+              </Text>
+              <View style={styles.inputGroup}>
+                <TextInput
+                  onChangeText={onFoodSearchQueryChange}
+                  placeholder="Search name or brand"
+                  placeholderTextColor={Colors.dark.textSecondary}
+                  style={styles.input}
+                  value={foodSearchQuery}
+                />
+              </View>
+
+              {filteredFoods.length === 0 ? (
+                <Text selectable style={styles.helperText}>
+                  No results yet.
+                </Text>
+              ) : null}
+
+              {filteredFoods.map((food) => (
+                <View key={`${food.name}-${food.servingUnit}`} style={styles.searchResult}>
+                  <View style={styles.searchResultContent}>
+                    <Text selectable style={styles.foodName}>
+                      {food.name}
+                    </Text>
+                    {food.brandName ? (
+                      <Text selectable style={styles.foodBrand}>
+                        {food.brandName}
+                      </Text>
+                    ) : null}
+                    <Text selectable style={styles.foodMeta}>
+                      {food.calories} kcal / {food.protein} g protein / {food.carbs} g carbs / {food.fats} g fats
+                    </Text>
+                    <Text selectable style={styles.foodServing}>
+                      Serving: {[food.servingSize, food.servingUnit].filter(Boolean).join(' ')}
+                    </Text>
+                  </View>
+                  <AppButton label="Use" onPress={() => onUseFood(food)} variant="secondary" />
+                </View>
+              ))}
+            </>
+          ) : null}
 
           <View style={styles.inputGrid}>
             <View style={styles.inputGroup}>
@@ -269,6 +344,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     width: '100%',
+  },
+  foodBrand: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  foodMeta: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    fontVariant: ['tabular-nums'],
+    lineHeight: 20,
+  },
+  foodName: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 21,
+    width: '100%',
+  },
+  foodServing: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  searchResult: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    gap: Spacing.two,
+    paddingTop: Spacing.three,
+  },
+  searchResultContent: {
+    gap: Spacing.one,
   },
   sectionTitle: {
     color: Colors.dark.text,
