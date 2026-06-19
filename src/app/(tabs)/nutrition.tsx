@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: {
-    backgroundColor: Colors.dark.primary,
+    backgroundColor: Colors.dark.accent,
     height: '100%',
   },
   screen: {

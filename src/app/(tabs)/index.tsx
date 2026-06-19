@@ -384,13 +384,13 @@ export default function AICoachScreen() {
             </AppCard>
 
             <QuickActionsCard
-              title="Today Actions"
-              subtitle="Keep the next move one tap away."
+              title="Today actions"
+              subtitle="Start training, then log food or update progress in one tap."
               primaryAction={{ label: 'Start Workout', onPress: () => router.push('/track') }}
               secondaryActions={[
-                { label: 'Log Food', onPress: () => router.push('/eat') },
-                { label: 'Add Weight', onPress: () => router.push('/progress') },
-                { label: 'View Progress', onPress: () => router.push('/progress') },
+                { label: 'Log food', onPress: () => router.push('/eat') },
+                { label: 'Add weight', onPress: () => router.push('/progress') },
+                { label: 'View progress', onPress: () => router.push('/progress') },
               ]}
             />
           </>
