@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Alert, LayoutChangeEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -11,16 +11,12 @@ import { AddFoodFormSection } from '@/components/nutrition/AddFoodFormSection';
 import { FoodDiarySection } from '@/components/nutrition/FoodDiarySection';
 import { FoodSearchSection } from '@/components/nutrition/FoodSearchSection';
 import { MealMenuCard } from '@/components/nutrition/MealMenuCard';
-import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
-import { NutritionTargetsCard } from '@/components/nutrition/NutritionTargetsCard';
 import { RecentFoodsSection } from '@/components/nutrition/RecentFoodsSection';
 import { SavedMealsSection } from '@/components/nutrition/SavedMealsSection';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import type { FoodEntry, MealTemplate, MealType } from '@/context/AppContext';
 import { useAppContext } from '@/context/AppContext';
 import {
-  calculateSuggestedTargets,
-  formatGoalType,
   formatMacroTotals,
   formatNumber,
   formatRemaining,
@@ -78,10 +74,6 @@ export default function NutritionScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const sectionOffsets = useRef({ addFoodForm: 0 });
   const [selectedDate, setSelectedDate] = useState(formatLocalDate(new Date()));
-  const [targetCalories, setTargetCalories] = useState(`${nutritionTargets.calories}`);
-  const [targetProtein, setTargetProtein] = useState(`${nutritionTargets.protein}`);
-  const [targetCarbs, setTargetCarbs] = useState(`${nutritionTargets.carbs}`);
-  const [targetFats, setTargetFats] = useState(`${nutritionTargets.fats}`);
   const [foodSearchQuery, setFoodSearchQuery] = useState('');
   const [isTargetsExpanded, setIsTargetsExpanded] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -135,15 +127,6 @@ export default function NutritionScreen() {
   const isMealTemplateSaveDisabled = mealTemplateName.trim().length === 0 || selectedMealFoodEntries.length === 0;
   const mealTemplateButtonLabel = `Save ${mealTypeLabels[mealType]} Template`;
 
-  const suggestedTargets = calculateSuggestedTargets(latestWeightKg, profile.goalType);
-
-  useEffect(() => {
-    setTargetCalories(`${nutritionTargets.calories}`);
-    setTargetProtein(`${nutritionTargets.protein}`);
-    setTargetCarbs(`${nutritionTargets.carbs}`);
-    setTargetFats(`${nutritionTargets.fats}`);
-  }, [nutritionTargets]);
-
   const nutritionCoachInsight = (() => {
     const caloriesRemaining = nutritionTargets.calories - selectedDateNutrition.calories;
     const proteinRemaining = nutritionTargets.protein - selectedDateNutrition.protein;
@@ -167,6 +150,11 @@ export default function NutritionScreen() {
 
   const getSectionTitle = (title: string, isExpanded: boolean) => {
     return `${title} ${isExpanded ? '−' : '+'}`;
+  };
+
+  const formatSelectedDateLabel = (dateLabel: string) => {
+    const [, month = '', day = ''] = dateLabel.split('-');
+    return `${day}.${month}`;
   };
 
   const createBaseFoodFromMock = (food: MockFood): SelectedBaseFood => ({ servingSize: food.servingSize, servingUnit: food.servingUnit, baseCalories: food.calories, baseProtein: food.protein, baseCarbs: food.carbs, baseFats: food.fats });
@@ -203,8 +191,6 @@ export default function NutritionScreen() {
   const handleSaveMealTemplate = () => { if (isMealTemplateSaveDisabled) { return; } const createdAt = new Date().toISOString(); const templateId = `${Date.now()}`; addMealTemplate({ id: templateId, name: mealTemplateName.trim(), items: selectedMealFoodEntries.map((entry, index) => ({ ...entry, id: `${templateId}-item-${index}` })), createdAt, }); setMealTemplateName(''); };
   const handleDuplicateMealTemplate = (template: MealTemplate) => { const createdAt = new Date().toISOString(); const templateId = `${Date.now()}`; addMealTemplate({ id: templateId, name: `${template.name} copy`, items: template.items.map((item, index) => ({ ...item, id: `${templateId}-item-${index}` })), createdAt, }); };
   const handleUseMealTemplate = (template: MealTemplate) => { const createdAt = new Date().toISOString(); const templateIdPrefix = `${Date.now()}`; addFoodEntries(template.items.map((item, index) => ({ ...item, id: `${templateIdPrefix}-${index}-${Math.random().toString(36).slice(2, 8)}`, date: selectedDate, mealType, createdAt, }))); };
-  const handleSaveTargets = () => { updateNutritionTargets({ calories: parseNonNegativeNumber(targetCalories), protein: parseNonNegativeNumber(targetProtein), carbs: parseNonNegativeNumber(targetCarbs), fats: parseNonNegativeNumber(targetFats) }); };
-  const handleApplySuggestedTargets = () => { if (!suggestedTargets) { return; } updateNutritionTargets(suggestedTargets); };
   const confirmDeleteFoodEntry = (entryId: string) => { Alert.alert('Delete food entry?', "This entry will be removed from today's nutrition.", [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => deleteFoodEntry(entryId) },]); };
   const confirmDeleteMealTemplate = (templateId: string) => { Alert.alert('Delete saved meal?', 'This template will be removed from your saved meals.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => deleteMealTemplate(templateId) },]); };
   const goToPreviousDay = () => { setSelectedDate((current) => addDays(current, -1)); clearForm(); };
@@ -226,6 +212,20 @@ export default function NutritionScreen() {
       contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
       <View style={styles.container}>
         <SectionHeader title="Nutrition" subtitle="Log food, reuse meals, and keep today on track" />
+        <View style={styles.dayStrip}>
+          <Pressable onPress={goToPreviousDay} style={styles.dayStripButton}>
+            <Text style={styles.dayStripButtonText}>‹</Text>
+          </Pressable>
+          <Text selectable style={styles.dayStripValue}>
+            {formatSelectedDateLabel(selectedDate)}
+          </Text>
+          <Pressable onPress={goToToday} style={styles.dayStripCenterButton}>
+            <Text style={styles.dayStripCenterButtonText}>Today</Text>
+          </Pressable>
+          <Pressable onPress={goToNextDay} style={styles.dayStripButton}>
+            <Text style={styles.dayStripButtonText}>›</Text>
+          </Pressable>
+        </View>
         <QuickActionsCard
           title="Nutrition actions"
           subtitle="Start with one entry, then jump to search, recent foods, or saved meals."
@@ -236,16 +236,7 @@ export default function NutritionScreen() {
             { label: 'Saved meals', onPress: () => setIsSavedMealsExpanded(true) },
           ]}
         />
-        <NutritionSummaryCard calorieLine={nutritionCoachInsight.calorieLine} ctaLabel={nutritionCoachInsight.ctaLabel} detail={nutritionCoachInsight.detail} onPress={() => setIsSearchExpanded(true)} proteinLine={nutritionCoachInsight.proteinLine} title={nutritionCoachInsight.title} />
         <MealMenuCard entriesByMeal={selectedDateMeals} mealTypeLabels={mealTypeLabels} onAddFoodToMeal={handleAddFoodToMeal} selectedMealType={mealType} />
-        <AppCard>
-          <Text selectable style={styles.sectionTitle}>{selectedDate}</Text>
-          <View style={styles.dateControls}>
-            <AppButton label="Previous Day" onPress={goToPreviousDay} variant="secondary" />
-            <AppButton label="Today" onPress={goToToday} variant="secondary" />
-            <AppButton label="Next Day" onPress={goToNextDay} variant="secondary" />
-          </View>
-        </AppCard>
         <View style={styles.grid}>
           <MetricCard label="Calories" value={`${formatNumber(selectedDateNutrition.calories)} / ${nutritionTargets.calories}`} detail="kcal" />
           <MetricCard label="Protein" value={`${formatNumber(selectedDateNutrition.protein)} / ${nutritionTargets.protein} g`} />
@@ -259,7 +250,6 @@ export default function NutritionScreen() {
           <View style={styles.targetRow}><Text selectable style={styles.targetLabel}>Carbs</Text><Text selectable style={styles.targetValue}>{formatNumber(selectedDateNutrition.carbs)} / {nutritionTargets.carbs} g</Text><Text selectable style={styles.remainingValue}>{formatRemaining(nutritionTargets.carbs - selectedDateNutrition.carbs, ' g')}</Text><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${getClampedProgress(selectedDateNutrition.carbs, nutritionTargets.carbs) * 100}%` }]} /></View></View>
           <View style={styles.targetRow}><Text selectable style={styles.targetLabel}>Fats</Text><Text selectable style={styles.targetValue}>{formatNumber(selectedDateNutrition.fats)} / {nutritionTargets.fats} g</Text><Text selectable style={styles.remainingValue}>{formatRemaining(nutritionTargets.fats - selectedDateNutrition.fats, ' g')}</Text><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${getClampedProgress(selectedDateNutrition.fats, nutritionTargets.fats) * 100}%` }]} /></View></View>
         </AppCard>
-        <NutritionTargetsCard goalType={profile.goalType} isExpanded={isTargetsExpanded} latestWeightLabel={Number.isFinite(latestWeightKg) && latestWeightKg > 0 ? `${latestWeightKg.toFixed(1)} kg` : 'No weight logged yet'} onApplySuggestedTargets={handleApplySuggestedTargets} onCaloriesChange={setTargetCalories} onCarbsChange={setTargetCarbs} onFatsChange={setTargetFats} onProteinChange={setTargetProtein} onSaveTargets={handleSaveTargets} onToggleExpanded={() => setIsTargetsExpanded((current) => !current)} caloriesTarget={targetCalories} carbsTarget={targetCarbs} fatsTarget={targetFats} proteinTarget={targetProtein} suggestedTargets={suggestedTargets} />
         <FoodSearchSection filteredFoods={filteredMockFoods} foodSearchQuery={foodSearchQuery} isExpanded={isSearchExpanded} onFoodSearchQueryChange={setFoodSearchQuery} onToggleExpanded={() => setIsSearchExpanded((current) => !current)} onUseFood={handleUseMockFood} />
         <RecentFoodsSection formatServingInfo={formatServingInfo} isExpanded={isRecentFoodsExpanded} onToggleExpanded={() => setIsRecentFoodsExpanded((current) => !current)} onUseRecentFood={handleUseRecentFood} recentFoods={recentFoods} />
         <SavedMealsSection currentMealCount={selectedMealFoodEntries.length} currentMealLabel={mealTypeLabels[mealType]} currentMealNutritionLabel={formatMacroTotals(selectedMealNutrition)} isExpanded={isSavedMealsExpanded} isMealTemplateSaveDisabled={isMealTemplateSaveDisabled} mealTemplateButtonLabel={mealTemplateButtonLabel} mealTemplateName={mealTemplateName} mealTemplates={mealTemplates} onDeleteMealTemplate={confirmDeleteMealTemplate} onMealTemplateNameChange={setMealTemplateName} onSaveMealTemplate={handleSaveMealTemplate} onToggleExpanded={() => setIsSavedMealsExpanded((current) => !current)} onUseMealTemplate={handleUseMealTemplate} selectedDateLabel={selectedDate} selectedMealEntriesCount={selectedMealFoodEntries.length} selectedMealTypeLabel={mealTypeLabels[mealType]} onDuplicateMealTemplate={handleDuplicateMealTemplate} />
@@ -285,14 +275,50 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     paddingBottom: Spacing.six,
   },
-  quickActions: {
-    gap: Spacing.two,
+  dayStrip: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: Spacing.one,
+    justifyContent: 'space-between',
   },
-  quickActionsHelp: {
-    color: Colors.dark.textSecondary,
+  dayStripButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderColor: Colors.dark.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  dayStripButtonText: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  dayStripCenterButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderColor: Colors.dark.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    minHeight: 36,
+    paddingHorizontal: Spacing.two,
+    justifyContent: 'center',
+  },
+  dayStripCenterButtonText: {
+    color: Colors.dark.text,
     fontSize: 13,
-    lineHeight: 19,
-    marginBottom: Spacing.two,
+    fontWeight: '700',
+  },
+  dayStripValue: {
+    color: Colors.dark.text,
+    flex: 1,
+    fontSize: 14,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+    textAlign: 'center',
   },
   collapsibleHeader: {
     paddingBottom: Spacing.two,
