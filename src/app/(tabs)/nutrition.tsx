@@ -4,9 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { MetricCard } from '@/components/ui/MetricCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { AddFoodFormSection } from '@/components/nutrition/AddFoodFormSection';
 import { FoodDiarySection } from '@/components/nutrition/FoodDiarySection';
 import { FoodSearchSection } from '@/components/nutrition/FoodSearchSection';
@@ -19,8 +17,6 @@ import { useAppContext } from '@/context/AppContext';
 import {
   formatMacroTotals,
   formatNumber,
-  formatRemaining,
-  getClampedProgress,
   getServingInfo,
   parseNonNegativeNumber,
   parseOptionalPositiveNumber,
@@ -28,7 +24,6 @@ import {
   sumNutritionTotals,
 } from '@/lib';
 import { formatLocalDate, addDays } from '@/lib';
-import { getLatestWeightEntry } from '@/lib/progress';
 
 type MockFood = Pick<
   FoodEntry,
@@ -69,13 +64,12 @@ const mockFoodDatabase: MockFood[] = [
 ];
 
 export default function NutritionScreen() {
-  const { addFoodEntry, addFoodEntries, addMealTemplate, deleteFoodEntry, deleteMealTemplate, profile, weightHistory, updateFoodEntry, updateNutritionTargets, foodEntries, mealTemplates, nutritionTargets } = useAppContext();
+  const { addFoodEntry, addFoodEntries, addMealTemplate, deleteFoodEntry, deleteMealTemplate, foodEntries, mealTemplates, updateFoodEntry } = useAppContext();
   const safeAreaInsets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const sectionOffsets = useRef({ addFoodForm: 0 });
   const [selectedDate, setSelectedDate] = useState(formatLocalDate(new Date()));
   const [foodSearchQuery, setFoodSearchQuery] = useState('');
-  const [isTargetsExpanded, setIsTargetsExpanded] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isRecentFoodsExpanded, setIsRecentFoodsExpanded] = useState(false);
   const [isSavedMealsExpanded, setIsSavedMealsExpanded] = useState(false);
@@ -99,8 +93,6 @@ export default function NutritionScreen() {
   const isSaveDisabled = name.trim().length === 0 || !Number.isFinite(parsedCalories) || parsedCalories <= 0;
   const selectedDateFoodEntries = foodEntries.filter((entry) => entry.date === selectedDate);
   const selectedMealFoodEntries = selectedDateFoodEntries.filter((entry) => entry.mealType === mealType);
-  const latestWeightEntry = getLatestWeightEntry(weightHistory);
-  const latestWeightKg = latestWeightEntry?.weight ?? Number(profile.weight);
   const selectedDateNutrition = sumNutritionTotals(selectedDateFoodEntries);
   const selectedMealNutrition = sumNutritionTotals(selectedMealFoodEntries);
   const foodSearchTerm = foodSearchQuery.trim().toLowerCase();
@@ -126,25 +118,6 @@ export default function NutritionScreen() {
   ).slice(0, 8);
   const isMealTemplateSaveDisabled = mealTemplateName.trim().length === 0 || selectedMealFoodEntries.length === 0;
   const mealTemplateButtonLabel = `Save ${mealTypeLabels[mealType]} Template`;
-
-  const nutritionCoachInsight = (() => {
-    const caloriesRemaining = nutritionTargets.calories - selectedDateNutrition.calories;
-    const proteinRemaining = nutritionTargets.protein - selectedDateNutrition.protein;
-    const hasWeightContext = Number.isFinite(latestWeightKg) && latestWeightKg > 0;
-    const proteinPerKg = hasWeightContext ? nutritionTargets.protein / latestWeightKg : null;
-
-    if (selectedDateFoodEntries.length === 0) {
-      return { title: 'Start with the first meal', detail: 'Add a meal or search the food database to begin tracking today.', calorieLine: 'No calories logged yet', ctaLabel: 'Search food', proteinLine: 'No protein logged yet' };
-    }
-
-    return {
-      title: caloriesRemaining >= 0 ? 'You still have room in today\'s target' : 'You are over today\'s calorie target',
-      detail: caloriesRemaining >= 0 ? `${formatRemaining(caloriesRemaining, ' kcal')} on calories and ${formatRemaining(proteinRemaining, ' g')} on protein.` : `${formatRemaining(caloriesRemaining, ' kcal')} on calories. Protein is ${formatRemaining(proteinRemaining, ' g')}.`,
-      calorieLine: `${formatNumber(selectedDateNutrition.calories)} / ${nutritionTargets.calories} kcal`,
-      ctaLabel: 'Open search',
-      proteinLine: proteinPerKg !== null ? `${formatNumber(selectedDateNutrition.protein)} g · ${formatNumber(proteinPerKg)} g/kg target` : `${formatNumber(selectedDateNutrition.protein)} / ${nutritionTargets.protein} g protein`,
-    };
-  })();
 
   const formatServingInfo = getServingInfo;
 
@@ -211,7 +184,7 @@ export default function NutritionScreen() {
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
       <View style={styles.container}>
-        <SectionHeader title="Nutrition" subtitle="Log food, reuse meals, and keep today on track" />
+        <SectionHeader title="Nutrition" subtitle="Log food, reuse meals, and review today's totals" />
         <View style={styles.dayStrip}>
           <Pressable onPress={goToPreviousDay} style={styles.dayStripButton}>
             <Text style={styles.dayStripButtonText}>‹</Text>
@@ -226,30 +199,33 @@ export default function NutritionScreen() {
             <Text style={styles.dayStripButtonText}>›</Text>
           </Pressable>
         </View>
-        <QuickActionsCard
-          title="Nutrition actions"
-          subtitle="Start with one entry, then jump to search, recent foods, or saved meals."
-          primaryAction={{ label: 'Add food', onPress: () => setIsAddFoodFormExpanded(true) }}
-          secondaryActions={[
-            { label: 'Search food', onPress: () => setIsSearchExpanded(true) },
-            { label: 'Recent foods', onPress: () => setIsRecentFoodsExpanded(true) },
-            { label: 'Saved meals', onPress: () => setIsSavedMealsExpanded(true) },
-          ]}
-        />
-        <MealMenuCard entriesByMeal={selectedDateMeals} mealTypeLabels={mealTypeLabels} onAddFoodToMeal={handleAddFoodToMeal} selectedMealType={mealType} />
-        <View style={styles.grid}>
-          <MetricCard label="Calories" value={`${formatNumber(selectedDateNutrition.calories)} / ${nutritionTargets.calories}`} detail="kcal" />
-          <MetricCard label="Protein" value={`${formatNumber(selectedDateNutrition.protein)} / ${nutritionTargets.protein} g`} />
-          <MetricCard label="Carbs" value={`${formatNumber(selectedDateNutrition.carbs)} / ${nutritionTargets.carbs} g`} />
-          <MetricCard label="Fats" value={`${formatNumber(selectedDateNutrition.fats)} / ${nutritionTargets.fats} g`} />
-        </View>
         <AppCard>
-          <Text selectable style={styles.sectionTitle}>Daily progress</Text>
-          <View style={styles.targetRow}><Text selectable style={styles.targetLabel}>Calories</Text><Text selectable style={styles.targetValue}>{formatNumber(selectedDateNutrition.calories)} / {nutritionTargets.calories} kcal</Text><Text selectable style={styles.remainingValue}>{formatRemaining(nutritionTargets.calories - selectedDateNutrition.calories, ' kcal')}</Text><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${getClampedProgress(selectedDateNutrition.calories, nutritionTargets.calories) * 100}%` }]} /></View></View>
-          <View style={styles.targetRow}><Text selectable style={styles.targetLabel}>Protein</Text><Text selectable style={styles.targetValue}>{formatNumber(selectedDateNutrition.protein)} / {nutritionTargets.protein} g</Text><Text selectable style={styles.remainingValue}>{formatRemaining(nutritionTargets.protein - selectedDateNutrition.protein, ' g')}</Text><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${getClampedProgress(selectedDateNutrition.protein, nutritionTargets.protein) * 100}%` }]} /></View></View>
-          <View style={styles.targetRow}><Text selectable style={styles.targetLabel}>Carbs</Text><Text selectable style={styles.targetValue}>{formatNumber(selectedDateNutrition.carbs)} / {nutritionTargets.carbs} g</Text><Text selectable style={styles.remainingValue}>{formatRemaining(nutritionTargets.carbs - selectedDateNutrition.carbs, ' g')}</Text><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${getClampedProgress(selectedDateNutrition.carbs, nutritionTargets.carbs) * 100}%` }]} /></View></View>
-          <View style={styles.targetRow}><Text selectable style={styles.targetLabel}>Fats</Text><Text selectable style={styles.targetValue}>{formatNumber(selectedDateNutrition.fats)} / {nutritionTargets.fats} g</Text><Text selectable style={styles.remainingValue}>{formatRemaining(nutritionTargets.fats - selectedDateNutrition.fats, ' g')}</Text><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${getClampedProgress(selectedDateNutrition.fats, nutritionTargets.fats) * 100}%` }]} /></View></View>
+          <Text selectable style={styles.sectionTitle}>
+            Today's totals
+          </Text>
+          <Text selectable style={styles.summarySubtitle}>
+            Kcal, protein, carbs, and fats consumed today.
+          </Text>
+          <View style={styles.summaryGrid}>
+            <View style={styles.summaryItem}>
+              <Text selectable style={styles.summaryLabel}>Kcal</Text>
+              <Text selectable style={styles.summaryValue}>{formatNumber(selectedDateNutrition.calories)}</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text selectable style={styles.summaryLabel}>Protein</Text>
+              <Text selectable style={styles.summaryValue}>{formatNumber(selectedDateNutrition.protein)} g</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text selectable style={styles.summaryLabel}>Carbs</Text>
+              <Text selectable style={styles.summaryValue}>{formatNumber(selectedDateNutrition.carbs)} g</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text selectable style={styles.summaryLabel}>Fats</Text>
+              <Text selectable style={styles.summaryValue}>{formatNumber(selectedDateNutrition.fats)} g</Text>
+            </View>
+          </View>
         </AppCard>
+        <MealMenuCard entriesByMeal={selectedDateMeals} mealTypeLabels={mealTypeLabels} onAddFoodToMeal={handleAddFoodToMeal} selectedMealType={mealType} />
         <FoodSearchSection filteredFoods={filteredMockFoods} foodSearchQuery={foodSearchQuery} isExpanded={isSearchExpanded} onFoodSearchQueryChange={setFoodSearchQuery} onToggleExpanded={() => setIsSearchExpanded((current) => !current)} onUseFood={handleUseMockFood} />
         <RecentFoodsSection formatServingInfo={formatServingInfo} isExpanded={isRecentFoodsExpanded} onToggleExpanded={() => setIsRecentFoodsExpanded((current) => !current)} onUseRecentFood={handleUseRecentFood} recentFoods={recentFoods} />
         <SavedMealsSection currentMealCount={selectedMealFoodEntries.length} currentMealLabel={mealTypeLabels[mealType]} currentMealNutritionLabel={formatMacroTotals(selectedMealNutrition)} isExpanded={isSavedMealsExpanded} isMealTemplateSaveDisabled={isMealTemplateSaveDisabled} mealTemplateButtonLabel={mealTemplateButtonLabel} mealTemplateName={mealTemplateName} mealTemplates={mealTemplates} onDeleteMealTemplate={confirmDeleteMealTemplate} onMealTemplateNameChange={setMealTemplateName} onSaveMealTemplate={handleSaveMealTemplate} onToggleExpanded={() => setIsSavedMealsExpanded((current) => !current)} onUseMealTemplate={handleUseMealTemplate} selectedDateLabel={selectedDate} selectedMealEntriesCount={selectedMealFoodEntries.length} selectedMealTypeLabel={mealTypeLabels[mealType]} onDuplicateMealTemplate={handleDuplicateMealTemplate} />
@@ -378,10 +354,42 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
   },
-  grid: {
+  summarySubtitle: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: Spacing.one,
+  },
+  summaryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
+    marginTop: Spacing.three,
+  },
+  summaryItem: {
+    flex: 1,
+    gap: Spacing.one,
+    minWidth: 120,
+  },
+  summaryLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  summaryValue: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  sectionTitle: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
   },
   input: {
     backgroundColor: Colors.dark.background,
@@ -455,48 +463,5 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     fontWeight: '800',
     textAlign: 'right',
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  remainingValue: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    width: '100%',
-  },
-  targetLabel: {
-    color: Colors.dark.text,
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  targetRow: {
-    gap: Spacing.one,
-    marginBottom: Spacing.three,
-  },
-  targetValue: {
-    color: Colors.dark.text,
-    flex: 1,
-    fontSize: 15,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '800',
-    textAlign: 'right',
-  },
-  progressTrack: {
-    backgroundColor: Colors.dark.border,
-    borderRadius: 999,
-    height: 6,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    backgroundColor: Colors.dark.accent,
-    height: '100%',
-  },
-  screen: {
-    backgroundColor: Colors.dark.background,
-    flex: 1,
   },
 });
