@@ -11,9 +11,9 @@ type ProfileActionsCardProps = {
 export function ProfileActionsCard({ onResetOnboarding }: ProfileActionsCardProps) {
   return (
     <AppCard>
-      <Text style={styles.title}>Profile actions</Text>
+      <Text style={styles.title}>Quick actions</Text>
       <Text style={styles.helpText}>Need the setup flow again? Reset onboarding from here.</Text>
-      <AppButton label="Reset Onboarding" onPress={onResetOnboarding} variant="secondary" />
+      <AppButton label="Reset onboarding" onPress={onResetOnboarding} variant="secondary" />
     </AppCard>
   );
 }

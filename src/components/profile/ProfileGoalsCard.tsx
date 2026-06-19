@@ -33,7 +33,7 @@ export function ProfileGoalsCard({
 }: ProfileGoalsCardProps) {
   return (
     <AppCard>
-      <Text style={styles.sectionTitle}>Set goals</Text>
+      <Text style={styles.sectionTitle}>Goal settings</Text>
       <Text style={styles.helpText}>These numbers drive nutrition targets and coaching suggestions.</Text>
 
       <View style={styles.goalSummaryRow}>

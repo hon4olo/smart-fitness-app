@@ -16,7 +16,7 @@ export function ProfileHeaderCard({ rows }: ProfileHeaderCardProps) {
   return (
     <AppCard>
       <Text style={styles.title}>At a glance</Text>
-      <Text style={styles.helpText}>A quick snapshot of the profile values used throughout the app.</Text>
+      <Text style={styles.helpText}>A quick snapshot of the values used across workouts, nutrition, and goals.</Text>
 
       {rows.map((row) => (
         <View key={row.label} style={styles.row}>

@@ -132,7 +132,7 @@ export default function ProfileScreen() {
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 180 }]}>
       <View style={styles.container}>
-        <SectionHeader title="Profile" subtitle="Review your stats, adjust goals, and keep tools below" />
+        <SectionHeader title="Profile" subtitle="Review your stats, adjust goals, and use quick actions below" />
 
         <ProfileHeaderCard rows={rows} />
 

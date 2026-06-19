@@ -21,7 +21,7 @@ export function ProfileRuntimeInfoCard({
 }: ProfileRuntimeInfoCardProps) {
   return (
     <AppCard>
-      <Text style={styles.title}>Developer Tools</Text>
+      <Text style={styles.title}>Runtime info</Text>
       <Text style={styles.helpText}>Debug info and OTA controls stay here, below your profile settings.</Text>
 
       <View style={styles.otaCard}>
