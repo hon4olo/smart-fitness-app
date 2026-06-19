@@ -16,6 +16,7 @@ type SavedMealsSectionProps = {
   mealTemplateName: string;
   mealTemplates: MealTemplate[];
   onDeleteMealTemplate: (templateId: string) => void;
+  onDuplicateMealTemplate: (template: MealTemplate) => void;
   onMealTemplateNameChange: (value: string) => void;
   onSaveMealTemplate: () => void;
   onToggleExpanded: () => void;
@@ -35,6 +36,7 @@ export function SavedMealsSection({
   mealTemplateName,
   mealTemplates,
   onDeleteMealTemplate,
+  onDuplicateMealTemplate,
   onMealTemplateNameChange,
   onSaveMealTemplate,
   onToggleExpanded,
@@ -110,6 +112,7 @@ export function SavedMealsSection({
                   </View>
                   <View style={styles.savedMealActions}>
                     <AppButton label="Use" onPress={() => onUseMealTemplate(template)} variant="secondary" />
+                    <AppButton label="Duplicate" onPress={() => onDuplicateMealTemplate(template)} variant="secondary" />
                     <AppButton label="Delete" onPress={() => onDeleteMealTemplate(template.id)} variant="secondary" />
                   </View>
                 </View>
