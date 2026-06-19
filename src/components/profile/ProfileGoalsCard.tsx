@@ -33,16 +33,16 @@ export function ProfileGoalsCard({
 }: ProfileGoalsCardProps) {
   return (
     <AppCard>
-      <Text style={styles.sectionTitle}>Goals</Text>
-      <Text style={styles.helpText}>Update targets used by nutrition and coaching.</Text>
+      <Text style={styles.sectionTitle}>Set goals</Text>
+      <Text style={styles.helpText}>These numbers drive nutrition targets and coaching suggestions.</Text>
 
       <View style={styles.goalSummaryRow}>
-        <Text style={styles.label}>Latest logged weight</Text>
+        <Text style={styles.label}>Current logged weight</Text>
         <Text style={styles.value}>{latestWeightLabel}</Text>
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Target weight</Text>
+        <Text style={styles.inputLabel}>Target weight (kg)</Text>
         <TextInput
           keyboardType="decimal-pad"
           onChangeText={onTargetWeightChange}
@@ -54,7 +54,7 @@ export function ProfileGoalsCard({
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Weekly weight change goal</Text>
+        <Text style={styles.inputLabel}>Weekly weight change goal (kg/week)</Text>
         <TextInput
           keyboardType="decimal-pad"
           onChangeText={onWeeklyWeightChangeGoalChange}
@@ -77,7 +77,8 @@ export function ProfileGoalsCard({
         />
       </View>
 
-      <Text style={styles.inputLabel}>Goal type</Text>
+      <Text style={styles.inputLabel}>Primary goal</Text>
+      <Text style={styles.helpTextCompact}>Pick the closest match to your current phase.</Text>
       <View style={styles.goalTypeRow}>
         <AppButton
           label="Lose fat"
@@ -96,7 +97,7 @@ export function ProfileGoalsCard({
         />
       </View>
 
-      <AppButton disabled={isSaveDisabled} label="Save Goals" onPress={onSaveGoals} />
+      <AppButton disabled={isSaveDisabled} label="Save goals" onPress={onSaveGoals} />
     </AppCard>
   );
 }
@@ -104,15 +105,24 @@ export function ProfileGoalsCard({
 const styles = {
   sectionTitle: {
     color: Colors.dark.text,
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '800' as const,
+    letterSpacing: 0.4,
+    marginBottom: 2,
+    textTransform: 'uppercase' as const,
   },
   helpText: {
     color: Colors.dark.textSecondary,
     fontSize: 13,
     lineHeight: 19,
     marginBottom: Spacing.two,
-    marginTop: Spacing.one,
+  },
+  helpTextCompact: {
+    color: Colors.dark.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: Spacing.one,
+    marginTop: 2,
   },
   goalSummaryRow: {
     alignItems: 'center' as const,
