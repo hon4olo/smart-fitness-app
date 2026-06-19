@@ -6,13 +6,13 @@ import * as Updates from 'expo-updates';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { DeveloperToolsCard } from '@/components/profile/DeveloperToolsCard';
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
 import { ProfileHeaderCard } from '@/components/profile/ProfileHeaderCard';
+import { ProfileRuntimeInfoCard } from '@/components/profile/ProfileRuntimeInfoCard';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import type { ProfileGoalType } from '@/types';
 
-type ProfileScreenGoalType = 'lose_fat' | 'maintain' | 'gain_muscle';
 type OtaValueSource = Record<string, unknown>;
 
 export default function ProfileScreen() {
@@ -69,7 +69,7 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const goalTypeLabel = (value: ProfileScreenGoalType) => {
+  const goalTypeLabel = (value: ProfileGoalType) => {
     if (value === 'lose_fat') {
       return 'Lose fat';
     }
@@ -152,7 +152,7 @@ export default function ProfileScreen() {
 
         <AppButton label="Reset Onboarding" onPress={handleResetOnboarding} variant="secondary" />
 
-        <DeveloperToolsCard
+        <ProfileRuntimeInfoCard
           channel={otaChannel}
           createdAt={otaCreatedAt}
           onCheckForOtaUpdate={handleCheckForOtaUpdate}
