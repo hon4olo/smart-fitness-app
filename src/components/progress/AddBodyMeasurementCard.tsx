@@ -23,7 +23,7 @@ export function AddBodyMeasurementCard({
 }: AddBodyMeasurementCardProps) {
   return (
     <AppCard>
-      <Text style={styles.sectionTitle}>Add Measurement</Text>
+      <Text style={styles.sectionTitle}>Add measurement</Text>
       <View style={styles.inputGrid}>
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Label</Text>
@@ -46,7 +46,7 @@ export function AddBodyMeasurementCard({
           />
         </View>
       </View>
-      <AppButton disabled={isDisabled} label="Save Measurement" onPress={onSave} />
+      <AppButton disabled={isDisabled} label="Save measurement" onPress={onSave} />
     </AppCard>
   );
 }

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddBodyMeasurementCard } from '@/components/progress/AddBodyMeasurementCard';
@@ -10,6 +10,7 @@ import { WeightTrendCard } from '@/components/progress/WeightTrendCard';
 import { WorkoutVolumeTrendCard } from '@/components/progress/WorkoutVolumeTrendCard';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
@@ -100,6 +101,8 @@ export default function ProgressScreen() {
     bodyMeasurements,
   } = useAppContext();
   const safeAreaInsets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const sectionOffsets = useRef({ bodyMeasurements: 0, weightEntry: 0 });
   const [weight, setWeight] = useState('');
   const [measurementLabel, setMeasurementLabel] = useState('');
   const [measurementValue, setMeasurementValue] = useState('');
@@ -115,6 +118,12 @@ export default function ProgressScreen() {
   const isWeightDisabled = !Number.isFinite(parsedWeight) || parsedWeight <= 0;
   const isMeasurementDisabled =
     measurementLabel.trim().length === 0 || measurementValue.trim().length === 0;
+  const scrollToSection = (key: keyof typeof sectionOffsets.current) => {
+    scrollViewRef.current?.scrollTo({ animated: true, y: Math.max(0, sectionOffsets.current[key] - 12) });
+  };
+  const handleSectionLayout = (key: keyof typeof sectionOffsets.current) => (event: LayoutChangeEvent) => {
+    sectionOffsets.current[key] = event.nativeEvent.layout.y;
+  };
   const weightTrendEntries = [...weightHistory]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 14)
@@ -517,14 +526,25 @@ export default function ProgressScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
+      ref={scrollViewRef}
       showsVerticalScrollIndicator={false}
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
       <View style={styles.container}>
-        <SectionHeader title="Labs" subtitle="Analysis, progress, and body measurements" />
-
+        <SectionHeader title="Labs" subtitle="Track weight, measurements, and training trends" />
+        <QuickActionsCard
+          title="Progress actions"
+          subtitle="Jump to the right section without hunting for it."
+          primaryAction={{ label: 'Add weight', onPress: () => scrollToSection('weightEntry') }}
+          secondaryActions={[
+            { label: 'Add measurement', onPress: () => scrollToSection('bodyMeasurements') },
+            { label: 'Weight trend', onPress: () => setIsBodyWeightTrendExpanded(true) },
+            { label: 'Workout volume', onPress: () => setIsWorkoutVolumeExpanded(true) },
+            { label: 'Exercise progress', onPress: () => setIsExerciseProgressExpanded(true) },
+          ]}
+        />
         <ProgressSummaryCard
-          title="Coach insight"
+          title="Today snapshot"
           rows={[
             { label: coachInsight.title, value: coachInsight.weightLine },
             { label: 'Direction', value: coachInsight.detail },
@@ -532,16 +552,18 @@ export default function ProgressScreen() {
           ]}
         />
 
-        <AddWeightEntryCard
-          isDisabled={isWeightDisabled}
-          onChangeWeight={setWeight}
-          onSave={handleSaveWeight}
-          weight={weight}
-        />
+        <View onLayout={handleSectionLayout('weightEntry')}>
+          <AddWeightEntryCard
+            isDisabled={isWeightDisabled}
+            onChangeWeight={setWeight}
+            onSave={handleSaveWeight}
+            weight={weight}
+          />
+        </View>
 
         <ProgressSummaryCard
           emptyMessage="Add a weight entry to see your latest summary."
-          title="Latest Weight Summary"
+          title="Latest weight summary"
           rows={
             latestTrendEntry
               ? [
@@ -570,7 +592,7 @@ export default function ProgressScreen() {
         <WeightTrendCard
           isExpanded={isBodyWeightTrendExpanded}
           onToggle={() => setIsBodyWeightTrendExpanded((current) => !current)}
-          title="Body Weight Trend">
+          title="Body weight trend">
           <TrendChart
             emptyLabel="Add at least two weight entries to see a trend."
             maxLabel={weightTrendAxisMaxLabel}
@@ -582,7 +604,7 @@ export default function ProgressScreen() {
         <WorkoutVolumeTrendCard
           isExpanded={isWorkoutVolumeExpanded}
           onToggle={() => setIsWorkoutVolumeExpanded((current) => !current)}
-          title="Workout Volume Trend"
+          title="Workout volume trend"
           summary={
             latestWorkoutVolumeEntry ? (
               <>
@@ -624,14 +646,16 @@ export default function ProgressScreen() {
           />
         </WorkoutVolumeTrendCard>
 
-        <AddBodyMeasurementCard
-          isDisabled={isMeasurementDisabled}
-          measurementLabel={measurementLabel}
-          measurementValue={measurementValue}
-          onChangeLabel={setMeasurementLabel}
-          onChangeValue={setMeasurementValue}
-          onSave={handleSaveMeasurement}
-        />
+        <View onLayout={handleSectionLayout('bodyMeasurements')}>
+          <AddBodyMeasurementCard
+            isDisabled={isMeasurementDisabled}
+            measurementLabel={measurementLabel}
+            measurementValue={measurementValue}
+            onChangeLabel={setMeasurementLabel}
+            onChangeValue={setMeasurementValue}
+            onSave={handleSaveMeasurement}
+          />
+        </View>
 
         <AppCard>
           <Text style={styles.sectionTitle}>Weight history</Text>
@@ -655,7 +679,7 @@ export default function ProgressScreen() {
             onPress={() => setIsBodyMeasurementsExpanded((current) => !current)}
             style={styles.collapsibleHeader}>
             <Text style={styles.sectionTitle}>
-              {getSectionTitle('Body Measurements', isBodyMeasurementsExpanded)}
+              {getSectionTitle('Body measurements', isBodyMeasurementsExpanded)}
             </Text>
           </Pressable>
 
@@ -681,7 +705,7 @@ export default function ProgressScreen() {
             onPress={() => setIsExerciseProgressExpanded((current) => !current)}
             style={styles.collapsibleHeader}>
             <Text style={styles.sectionTitle}>
-              {getSectionTitle('Exercise Progress', isExerciseProgressExpanded)}
+              {getSectionTitle('Exercise progress', isExerciseProgressExpanded)}
             </Text>
           </Pressable>
 
@@ -747,7 +771,7 @@ export default function ProgressScreen() {
                     onPress={() => setIsEstimated1RMExpanded((current) => !current)}
                     style={styles.collapsibleHeader}>
                     <Text style={styles.sectionTitle}>
-                      {getSectionTitle('Estimated 1RM Trend', isEstimated1RMExpanded)}
+                      {getSectionTitle('Estimated 1RM trend', isEstimated1RMExpanded)}
                     </Text>
                   </Pressable>
 

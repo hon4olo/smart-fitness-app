@@ -14,7 +14,7 @@ type AddWeightEntryCardProps = {
 export function AddWeightEntryCard({ isDisabled, onChangeWeight, onSave, weight }: AddWeightEntryCardProps) {
   return (
     <AppCard>
-      <Text style={styles.sectionTitle}>Add Weight</Text>
+      <Text style={styles.sectionTitle}>Add weight</Text>
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Weight</Text>
         <TextInput
@@ -26,7 +26,7 @@ export function AddWeightEntryCard({ isDisabled, onChangeWeight, onSave, weight 
           value={weight}
         />
       </View>
-      <AppButton disabled={isDisabled} label="Save Weight" onPress={onSave} />
+      <AppButton disabled={isDisabled} label="Save weight" onPress={onSave} />
     </AppCard>
   );
 }
