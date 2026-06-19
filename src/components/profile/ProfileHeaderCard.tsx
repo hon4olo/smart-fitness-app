@@ -15,6 +15,9 @@ type ProfileHeaderCardProps = {
 export function ProfileHeaderCard({ rows }: ProfileHeaderCardProps) {
   return (
     <AppCard>
+      <Text style={styles.title}>At a glance</Text>
+      <Text style={styles.helpText}>A quick snapshot of the profile values used throughout the app.</Text>
+
       {rows.map((row) => (
         <View key={row.label} style={styles.row}>
           <Text selectable style={styles.label}>
@@ -30,6 +33,20 @@ export function ProfileHeaderCard({ rows }: ProfileHeaderCardProps) {
 }
 
 const styles = {
+  title: {
+    color: Colors.dark.text,
+    fontSize: 14,
+    fontWeight: '800' as const,
+    letterSpacing: 0.4,
+    marginBottom: 2,
+    textTransform: 'uppercase' as const,
+  },
+  helpText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: Spacing.two,
+  },
   row: {
     alignItems: 'center' as const,
     borderColor: Colors.dark.border,
