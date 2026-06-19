@@ -216,18 +216,18 @@ export default function NutritionScreen() {
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
       <View style={styles.container}>
-        <SectionHeader title="Eat" subtitle="Meals, macros, and nutrition targets" />
-        <NutritionSummaryCard calorieLine={nutritionCoachInsight.calorieLine} ctaLabel={nutritionCoachInsight.ctaLabel} detail={nutritionCoachInsight.detail} onPress={() => setIsSearchExpanded(true)} proteinLine={nutritionCoachInsight.proteinLine} title={nutritionCoachInsight.title} />
+        <SectionHeader title="Nutrition" subtitle="Log food, reuse meals, and keep today on track" />
         <QuickActionsCard
-          title="Nutrition Actions"
-          subtitle="Fast entry and fast reuse."
-          primaryAction={{ label: 'Add Food', onPress: () => setIsAddFoodFormExpanded(true) }}
+          title="Nutrition actions"
+          subtitle="Start with one entry, then jump to search, recent foods, or saved meals."
+          primaryAction={{ label: 'Add food', onPress: () => setIsAddFoodFormExpanded(true) }}
           secondaryActions={[
-            { label: 'Search', onPress: () => setIsSearchExpanded(true) },
-            { label: 'Recent Foods', onPress: () => setIsRecentFoodsExpanded(true) },
-            { label: 'Saved Meals', onPress: () => setIsSavedMealsExpanded(true) },
+            { label: 'Search food', onPress: () => setIsSearchExpanded(true) },
+            { label: 'Recent foods', onPress: () => setIsRecentFoodsExpanded(true) },
+            { label: 'Saved meals', onPress: () => setIsSavedMealsExpanded(true) },
           ]}
         />
+        <NutritionSummaryCard calorieLine={nutritionCoachInsight.calorieLine} ctaLabel={nutritionCoachInsight.ctaLabel} detail={nutritionCoachInsight.detail} onPress={() => setIsSearchExpanded(true)} proteinLine={nutritionCoachInsight.proteinLine} title={nutritionCoachInsight.title} />
         <AppCard>
           <Text selectable style={styles.sectionTitle}>{selectedDate}</Text>
           <View style={styles.dateControls}>
@@ -398,6 +398,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.two,
   },
   suggestionSummaryRow: {
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: Spacing.two,
@@ -415,78 +416,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'right',
   },
-  suggestedSummary: {
-    gap: Spacing.two,
-    marginBottom: Spacing.two,
-  },
-  suggestedSummaryRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-  },
-  suggestedTitle: {
-    color: Colors.dark.text,
-    fontSize: 16,
-    fontWeight: '800',
-    marginBottom: Spacing.two,
-  },
-  suggestedValue: {
-    color: Colors.dark.text,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  progressFill: {
-    backgroundColor: Colors.dark.accent,
-    borderRadius: 999,
-    height: '100%',
-  },
-  progressTrack: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Colors.dark.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 10,
-    overflow: 'hidden',
-    width: '100%',
-  },
-  screen: {
-    backgroundColor: Colors.dark.background,
-    flex: 1,
-  },
-  searchResult: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    gap: Spacing.two,
-    paddingTop: Spacing.three,
-  },
-  searchResultContent: {
-    gap: Spacing.one,
-  },
-  savedMealActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  savedMealComposer: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    gap: Spacing.two,
-    marginBottom: Spacing.three,
-    paddingTop: Spacing.two,
-  },
-  savedMealItem: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    gap: Spacing.two,
-    paddingTop: Spacing.three,
-  },
-  savedMealItemContent: {
-    gap: Spacing.one,
-  },
-  mealSummary: {
-    marginBottom: Spacing.two,
-  },
   sectionTitle: {
     color: Colors.dark.text,
     fontSize: 18,
@@ -498,12 +427,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     width: '100%',
   },
-  templateSummaryLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-    width: '100%',
-  },
   targetLabel: {
     color: Colors.dark.text,
     flex: 1,
@@ -511,18 +434,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   targetRow: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: Spacing.one,
-    justifyContent: 'space-between',
-    paddingTop: Spacing.two,
+    marginBottom: Spacing.three,
   },
   targetValue: {
     color: Colors.dark.text,
+    flex: 1,
     fontSize: 15,
     fontVariant: ['tabular-nums'],
     fontWeight: '800',
+    textAlign: 'right',
+  },
+  progressTrack: {
+    backgroundColor: Colors.dark.border,
+    borderRadius: 999,
+    height: 6,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    backgroundColor: Colors.dark.primary,
+    height: '100%',
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
   },
 });

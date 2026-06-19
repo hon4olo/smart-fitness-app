@@ -45,12 +45,12 @@ export function FoodSearchSection({
       {isExpanded ? (
         <>
           <Text selectable style={styles.helperText}>
-            Search by food name or brand, then tap Use.
+            Find a food by name or brand, then tap Use.
           </Text>
           <View style={styles.inputGroup}>
             <TextInput
               onChangeText={onFoodSearchQueryChange}
-              placeholder="Search food database"
+              placeholder="Search name or brand"
               placeholderTextColor={Colors.dark.textSecondary}
               style={styles.input}
               value={foodSearchQuery}

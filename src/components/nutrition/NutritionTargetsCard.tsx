@@ -45,7 +45,7 @@ export function NutritionTargetsCard({
     <AppCard>
       <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
         <Text selectable style={styles.sectionTitle}>
-          {`Nutrition Targets ${isExpanded ? '−' : '+'}`}
+          {`Nutrition targets ${isExpanded ? '−' : '+'}`}
         </Text>
       </Pressable>
 
@@ -72,7 +72,7 @@ export function NutritionTargetsCard({
 
           <View style={styles.suggestedCard}>
             <Text selectable style={styles.suggestedTitle}>
-              Suggested Targets
+              Suggested targets
             </Text>
             {suggestedTargets ? (
               <>
@@ -110,7 +110,7 @@ export function NutritionTargetsCard({
                     </Text>
                   </View>
                 </View>
-                <AppButton label="Apply Suggested Targets" onPress={onApplySuggestedTargets} variant="secondary" />
+                <AppButton label="Apply suggested targets" onPress={onApplySuggestedTargets} variant="secondary" />
               </>
             ) : (
               <Text selectable style={styles.remainingValue}>
@@ -177,7 +177,7 @@ export function NutritionTargetsCard({
             </View>
           </View>
 
-          <AppButton label="Save Targets" onPress={onSaveTargets} />
+          <AppButton label="Save targets" onPress={onSaveTargets} />
         </>
       ) : null}
     </AppCard>

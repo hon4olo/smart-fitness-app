@@ -73,7 +73,7 @@ export function AddFoodFormSection({
       {isExpanded ? (
         <>
           <Text selectable style={styles.helperText}>
-            Manual entry for new foods or quick edits.
+            Log a custom food or make a quick edit without leaving the diary.
           </Text>
 
           <View style={styles.inputGroup}>
@@ -90,7 +90,7 @@ export function AddFoodFormSection({
           </View>
 
           <Text selectable style={styles.inputLabel}>
-            Meal type
+            Meal
           </Text>
           <View style={styles.mealTypeRow}>
             {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((type) => (
@@ -210,8 +210,8 @@ export function AddFoodFormSection({
             </View>
           </View>
 
-          <AppButton disabled={isSaveDisabled} label="Save Food" onPress={onSaveFood} />
-          {editingFoodEntry ? <AppButton label="Cancel Edit" onPress={onCancelEdit} variant="secondary" /> : null}
+          <AppButton disabled={isSaveDisabled} label="Save food" onPress={onSaveFood} />
+          {editingFoodEntry ? <AppButton label="Cancel edit" onPress={onCancelEdit} variant="secondary" /> : null}
         </>
       ) : null}
     </AppCard>

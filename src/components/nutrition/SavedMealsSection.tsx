@@ -54,7 +54,7 @@ export function SavedMealsSection({
       {isExpanded ? (
         <>
           <Text selectable style={styles.helperText}>
-            Save the current meal so you can reuse it later.
+            Save the current meal once, then reuse it with one tap.
           </Text>
           <View style={styles.savedMealComposer}>
             <View style={styles.inputGroup}>

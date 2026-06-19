@@ -38,7 +38,7 @@ export function RecentFoodsSection({ formatServingInfo, isExpanded, onToggleExpa
       {isExpanded ? (
         <>
           <Text selectable style={styles.helperText}>
-            Reuse something you logged earlier.
+            Tap Use to repeat a previous food.
           </Text>
           {recentFoods.length > 0 ? (
             recentFoods.map((food) => (

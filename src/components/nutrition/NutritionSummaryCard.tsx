@@ -17,7 +17,7 @@ export function NutritionSummaryCard({ calorieLine, ctaLabel, detail, onPress, p
   return (
     <AppCard>
       <Text selectable style={styles.sectionTitle}>
-        Coach insight
+        Today's snapshot
       </Text>
       <View style={styles.suggestionSummary}>
         <View style={styles.suggestionSummaryRow}>
@@ -30,7 +30,7 @@ export function NutritionSummaryCard({ calorieLine, ctaLabel, detail, onPress, p
         </View>
         <View style={styles.suggestionSummaryRow}>
           <Text selectable style={styles.suggestionLabel}>
-            Direction
+            What to do
           </Text>
           <Text selectable style={styles.suggestionValue}>
             {detail}
