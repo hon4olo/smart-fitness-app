@@ -1,365 +1,223 @@
-# Smart Fitness App — Codex Instructions
+# Smart Fitness App — Agent Instructions
 
-## Project Overview
+## Project
 
 This is a React Native + Expo Router + TypeScript fitness MVP.
 
-The product goal is to build a clean fitness tracking app with:
+Current product scope:
+- workout tracking;
+- nutrition tracking;
+- progress tracking;
+- basic profile data.
 
-* workout tracking;
-* nutrition tracking;
-* progress tracking;
-* basic profile data;
-* later: education, AI recommendations, lab tracking, coach marketplace.
+Do not expand the product beyond the user’s current task.
 
-Current MVP scope is intentionally limited. Do not expand the product beyond the current task.
+Future features such as AI recommendations, lab tracking, education, backend, payments, coach marketplace, and social features must not be added unless explicitly requested.
 
----
+## Stack
 
-## Current Stack
+- Expo SDK 56
+- React Native
+- Expo Router
+- TypeScript
+- AsyncStorage for temporary local persistence
+- Dark minimal UI
+- No backend yet
+- No Supabase yet
+- No AI API yet
 
-* Expo SDK 56
-* React Native
-* Expo Router
-* TypeScript
-* AsyncStorage as temporary local persistence
-* Dark minimal UI
-* No backend yet
-* No Supabase yet
-* No AI API yet
+Main state currently lives in:
+- src/context/AppContext.tsx
 
----
+## Required Workflow
 
-## Current App Structure
+Before code changes:
+1. Locate the repository root.
+2. Read AGENTS.md once per working session.
+3. Read PROJECT_LEARNINGS.md if it exists.
+4. For bugfixes or failed validation, use DEBUGGING_SKILL.md if it exists.
+5. Read only files relevant to the task.
+6. Make small, targeted changes.
+7. Preserve existing working features.
 
-Main app routes:
+After TS / TSX code changes, run:
+npx tsc --noEmit
 
-* `src/app/_layout.tsx` — root stack layout
-* `src/app/workout-session.tsx` — active workout session screen
-* `src/app/(tabs)/_layout.tsx` — bottom tab navigation
+Do not claim completion unless validation passes or the blocker is clearly stated.
 
-Current tab files:
+## Scope Rules
 
-* `src/app/(tabs)/index.tsx`
-* `src/app/(tabs)/coach.tsx`
-* `src/app/(tabs)/labs.tsx`
-* `src/app/(tabs)/track.tsx`
-* `src/app/(tabs)/eat.tsx`
-* `src/app/(tabs)/workouts.tsx`
-* `src/app/(tabs)/nutrition.tsx`
-* `src/app/(tabs)/progress.tsx`
-* `src/app/(tabs)/profile.tsx`
+Do not add these unless the user explicitly asks:
+- Supabase;
+- backend schemas;
+- AI features;
+- blood test analysis;
+- medical advice;
+- pharmacology;
+- hormone protocols;
+- SARMs;
+- supplement dosing logic;
+- diagnosis logic;
+- coach marketplace;
+- social network features;
+- payments;
+- subscriptions;
+- new dependencies.
+
+If a task appears to require any of these, stop and ask for confirmation.
+
+## Key Routes and Files
+
+Root/layout:
+- src/app/_layout.tsx
+- src/app/(tabs)/_layout.tsx
+
+Main screens:
+- src/app/(tabs)/index.tsx
+- src/app/(tabs)/workouts.tsx
+- src/app/(tabs)/nutrition.tsx
+- src/app/(tabs)/progress.tsx
+- src/app/(tabs)/profile.tsx
+- src/app/workout-session.tsx
 
 Alias routes:
+- src/app/(tabs)/coach.tsx re-exports index.tsx
+- src/app/(tabs)/track.tsx re-exports workouts.tsx
+- src/app/(tabs)/eat.tsx re-exports nutrition.tsx
 
-* `coach.tsx` re-exports `index.tsx`
-* `track.tsx` re-exports `workouts.tsx`
-* `eat.tsx` re-exports `nutrition.tsx`
-
-Component folders:
-
-* `src/components/ui/`
-* `src/components/workouts/`
-* `src/components/nutrition/`
-
-Temporary MVP state:
-
-* `src/context/AppContext.tsx`
-
-Theme:
-
-* `src/constants/theme.ts`
-
----
-
-## Core Product Rules
-
-Build a fitness MVP, not a medical/pharmacology app.
-
-Do not add:
-
-* Supabase unless explicitly requested;
-* AI features unless explicitly requested;
-* blood test analysis unless explicitly requested;
-* medical advice;
-* pharmacology;
-* hormone protocols;
-* SARMs;
-* dosing logic;
-* supplement protocols;
-* diagnosis logic;
-* coach marketplace;
-* social network features;
-* payments;
-* subscriptions.
-
-If a task seems to require one of these, stop and ask for confirmation.
-
----
+Shared code:
+- src/context/AppContext.tsx
+- src/constants/theme.ts
+- src/components/ui/
+- src/components/workouts/
+- src/components/nutrition/
 
 ## Coding Rules
 
-Prefer small, surgical changes.
+Prefer minimal diffs.
 
-Default behavior:
+Do:
+- keep TypeScript strict-compatible;
+- use existing UI components before creating new ones;
+- keep MVP state in AppContext.tsx unless told otherwise;
+- keep persistence through the existing AsyncStorage pattern;
+- add clear TypeScript types for new data;
+- keep data serializable;
+- include id for user-created records;
+- include createdAt when the record represents user-created history.
 
-* Modify only the files explicitly mentioned in the user task.
-* Do not refactor unrelated code.
-* Do not rename files unless the task explicitly asks.
-* Do not change routing unless the task explicitly asks.
-* Do not install new dependencies unless explicitly requested.
-* Do not rewrite architecture unless explicitly requested.
-* Do not move state from AsyncStorage to backend unless explicitly requested.
-* Keep TypeScript strict-compatible.
-* Keep UI consistent with the current dark minimal style.
-* Use existing UI components before creating new ones.
-* Avoid adding large abstractions too early.
-
-When adding functionality:
-
-* Keep the implementation simple.
-* Prefer readable code over clever code.
-* Keep MVP state in `AppContext.tsx` unless the task says otherwise.
-* Keep local persistence through the existing AsyncStorage pattern.
-* Preserve existing working features.
-
----
+Do not:
+- refactor unrelated code;
+- rename files unless required;
+- change routing unless required;
+- install dependencies without approval;
+- rewrite architecture;
+- move state to a backend;
+- inspect the whole repo unless asked;
+- modify formatting across unrelated files.
 
 ## UI Rules
 
-General UI direction:
+Follow the existing dark minimal style.
 
-* dark theme;
-* clean cards;
-* large readable text;
-* simple spacing;
-* no decorative complexity;
-* mobile-first layout;
-* avoid overcrowded horizontal rows.
+Prefer:
+- clean cards;
+- readable text;
+- simple spacing;
+- mobile-first layout;
+- vertical list layouts for food entries, workout history, and records.
 
 Use existing components where possible:
+- AppCard
+- AppButton
+- MetricCard
+- SectionHeader
 
-* `AppCard`
-* `AppButton`
-* `MetricCard`
-* `SectionHeader`
-
-Important mobile layout rules:
-
-* Always account for bottom tab bar overlap.
-* Use `useSafeAreaInsets` when adding screens with long scrollable content.
-* `ScrollView` screens should generally include enough `paddingBottom`.
-* Use `keyboardShouldPersistTaps="handled"` on forms.
-* Avoid `selectable` on normal UI text unless specifically needed.
-* Do not make text columns so narrow that words wrap letter-by-letter.
-* For lists like food entries or workout history, prefer vertical layout:
-
-  * title/name on first line;
-  * metadata on second line.
-
----
+Mobile layout rules:
+- account for bottom tab bar overlap;
+- use useSafeAreaInsets on long scrollable screens;
+- give ScrollView enough paddingBottom;
+- use keyboardShouldPersistTaps="handled" on forms;
+- avoid overcrowded horizontal rows;
+- avoid narrow text columns that wrap words letter-by-letter.
 
 ## Navigation Rules
 
 Expo Router is used.
 
-Current route expectations:
+Expected routes:
+- Home: /
+- Workouts: /workouts
+- Nutrition: /nutrition
+- Progress: /progress
+- Profile: /profile
+- Active workout session: /workout-session
 
-* Home tab: `/`
-* Workouts tab: `/workouts`
-* Nutrition tab: `/nutrition`
-* Progress tab: `/progress`
-* Profile tab: `/profile`
-* Active workout session: `/workout-session`
-
-The active workout session is outside the tab group and should open as a stack screen.
+The workout session screen is outside the tab group and should open as a stack screen.
 
 Do not break:
+- Home → Start Workout → /workout-session
+- Workouts → Start Workout → /workout-session
+- Finish Workout → return to Home and save session
+- Cancel Workout → return to Home without saving
 
-* Home → Start Workout → `/workout-session`
-* Workouts → Start Workout → `/workout-session`
-* Finish Workout → return to Home
-* Cancel Workout → return to Home without saving
-
-If changing headers:
-
-* title for workout session should be `Workout Session`;
-* do not show `(tabs)` as the iOS back label.
-
----
-
-## Data Model Rules
-
-Current MVP state lives in:
-
-* `src/context/AppContext.tsx`
-
-Existing major state areas:
-
-* workouts
-* workoutSessions
-* foodEntries
-* nutrition
-* weightHistory
-* bodyMeasurements
-* profile
-
-When adding data:
-
-* add a clear TypeScript type;
-* include `id`;
-* include `createdAt` when it represents a user-created record;
-* keep data serializable;
-* persist through existing AsyncStorage state saving.
-
-Do not introduce backend schemas yet.
-
----
-
-## Documentation Rules
-
-Do not search the web or read external docs for routine UI/state changes.
-
-Use Expo SDK 56 docs only when the task involves:
-- Expo SDK version changes;
-- package/dependency installation;
-- native modules;
-- Expo Router structural changes;
-- EAS / build / deployment;
-- platform-specific APIs.
-
-For normal MVP tasks such as screen edits, forms, buttons, AppContext state, layout fixes, and delete/edit logic, do not use web search. Work from the existing codebase and AGENTS.md.
-
-## Dependency Rules
+## Dependencies and Docs
 
 Do not add dependencies without explicit approval.
 
-If a new dependency seems useful, first explain:
+Use external docs only when needed for:
+- Expo SDK version changes;
+- package installation;
+- native modules;
+- Expo Router structure;
+- EAS/build/deployment;
+- platform-specific APIs.
 
-* why it is needed;
-* what it replaces;
-* whether Expo SDK 56 supports it;
-* whether the feature can be built without it.
+For routine UI, CRUD, AppContext, forms, styling, and local TypeScript changes, work from the existing codebase.
 
-Avoid adding libraries for simple MVP UI.
+## Large Screen Policy
 
----
+Large tab screen files should not grow indefinitely.
 
-## Codex Usage Rules
+Prefer extracting focused reusable UI blocks into:
+- src/components/ui/
+- src/components/workouts/
+- src/components/nutrition/
 
-Be efficient with agentic usage.
+Keep extracted files small and task-specific.
 
-Do not:
+Do not create large abstractions too early.
 
-* analyze the whole repository unless explicitly requested;
-* review all files unless explicitly requested;
-* spawn subagents unless explicitly requested;
-* perform broad architecture review unless explicitly requested;
-* refactor the whole project;
-* change formatting across unrelated files;
-* run unnecessary commands.
+## Git and Deployment
 
-Do:
+For approved code changes:
+1. Make minimal changes.
+2. Run npx tsc --noEmit.
+3. Commit changes.
+4. Push to main.
 
-* focus only on the files in the task;
-* produce minimal diffs;
-* explain changed files briefly after editing;
-* run `npx tsc --noEmit` after code changes;
-* ask before making large structural changes.
+Use [ota] in the commit message only for OTA-safe changes:
+- JS;
+- TS;
+- TSX;
+- assets-only changes.
 
----
+Do not check GitHub Actions unless explicitly asked.
 
-## Default task proposal and execution policy
+If normal git push fails, report the failure before using any fallback unless the user has already approved fallback behavior.
 
-When proposing tasks automatically, include:
-
-* likely modified files;
-* OTA-safety;
-* whether a skill or subagent is needed;
-* risk level.
-
-Execution rules:
-
-* Do not use subagents by default.
-* Do not use research, debug, or cleanup skills for routine UI, CRUD, layout, styling, or local React Native / TypeScript tasks.
-* Use skills only when clearly necessary and report which skill was used.
-* Read only task-relevant files.
-* Do not inspect the whole repository unless explicitly requested.
-* Do not repeatedly read `AGENTS.md` in the same session unless it changed.
-* Do not inspect `package.json` unless dependencies, scripts, build config, or TypeScript config are relevant.
-* Prefer direct implementation over long planning.
-* Modify only files needed for the approved task.
-* Run `npx tsc --noEmit`.
-* Use `[ota]` only for JS / TS / TSX / assets-only changes.
-* Commit, then push to `main`.
-* If normal `git push` fails, use the GitHub API fallback.
-* Only verify GitHub Actions when explicitly asked.
-* Stop after reporting changed files, any requested validation, commit, and push.
-
----
-
-## Large screen splitting policy
-
-Large tab screen files should not keep growing indefinitely.
-
-Do:
-
-* Prefer extracting reusable UI blocks into small components under `src/components/`.
-* For future routine UI changes, avoid full-file dumps of large screens.
-* Read and edit targeted components whenever possible.
-* Modify only the files needed for the approved task.
-* Keep the number of extracted files small and focused.
-
-Do not:
-
-* use subagents by default;
-* use research, debug, or cleanup skills for routine UI, CRUD, layout, styling, or local React Native / TypeScript tasks;
-* inspect unrelated files;
-* check GitHub Actions unless explicitly asked.
-
-For OTA-safe JS / TS / TSX changes:
-
-* commit with `[ota]`;
-* push to `main`.
-
----
-
-## Preferred Response Format After Changes
+## Response Format After Changes
 
 After completing a task, respond with:
-
 1. Files changed
 2. What changed
 3. Validation result
-4. Any manual checks the user should perform
+4. Commit/push result
+5. Manual checks needed
 
-Example:
+## MVP Priority
 
-```text
-Changed:
-- src/app/(tabs)/nutrition.tsx
-- src/context/AppContext.tsx
-
-Done:
-- Added Add Food form.
-- Added addFoodEntry.
-- Nutrition totals now update and persist.
-
-Validation:
-- npx tsc --noEmit passed.
-
-Manual check:
-- Add food in Nutrition.
-- Confirm Home calories/protein update.
-- Restart app and confirm entries persist.
-```
-
----
-
-## Current MVP Priority Order
-
-Build in this order:
-
+Default build order:
 1. Workout logger
 2. Nutrition logger
 3. Progress logger
