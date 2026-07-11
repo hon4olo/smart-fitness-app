@@ -8,6 +8,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { WorkoutLauncherCard } from '@/components/workouts/WorkoutLauncherCard';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { formatLocalDate, formatShortDate } from '@/lib';
@@ -58,11 +59,13 @@ export default function AICoachScreen() {
     updateNutritionTargets,
     weightHistory,
     bodyMeasurements,
+    workouts,
     workoutSessions,
   } = useAppContext();
   const [currentWeight, setCurrentWeight] = useState('');
   const [targetWeightInput, setTargetWeightInput] = useState(`${profile.targetWeight}`);
   const [goalType, setGoalType] = useState(profile.goalType);
+  const [isWorkoutLauncherExpanded, setIsWorkoutLauncherExpanded] = useState(false);
   const [trainingDaysPerWeekInput, setTrainingDaysPerWeekInput] = useState(
     `${profile.trainingDaysPerWeek}`
   );
@@ -383,10 +386,27 @@ export default function AICoachScreen() {
               </View>
             </AppCard>
 
+            <WorkoutLauncherCard
+              isExpanded={isWorkoutLauncherExpanded}
+              onCreateWorkout={() => router.push('/track')}
+              onStart={(workoutId) =>
+                router.push({
+                  pathname: '/workout-session',
+                  params: { workoutId },
+                })
+              }
+              onToggleExpanded={() => setIsWorkoutLauncherExpanded((current) => !current)}
+              workoutSessions={workoutSessions}
+              workouts={workouts}
+            />
+
             <QuickActionsCard
               title="Today actions"
-              subtitle="Start training, then log food or update progress in one tap."
-              primaryAction={{ label: 'Start Workout', onPress: () => router.push('/track') }}
+              subtitle="Choose a workout, then log food or update progress in one tap."
+              primaryAction={{
+                label: 'Choose workout',
+                onPress: () => setIsWorkoutLauncherExpanded(true),
+              }}
               secondaryActions={[
                 { label: 'Log food', onPress: () => router.push('/eat') },
                 { label: 'Add weight', onPress: () => router.push('/progress') },

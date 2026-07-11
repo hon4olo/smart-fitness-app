@@ -2,11 +2,11 @@ import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Alert, LayoutChangeEvent, ScrollView, StyleSheet, View } from 'react-native';
 
-import { AppButton } from '@/components/ui/AppButton';
 import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { WorkoutCoachInsightCard } from '@/components/workouts/WorkoutCoachInsightCard';
 import { WorkoutExerciseLibraryCard } from '@/components/workouts/WorkoutExerciseLibraryCard';
+import { WorkoutLauncherCard } from '@/components/workouts/WorkoutLauncherCard';
 import { WorkoutTemplateCard } from '@/components/workouts/WorkoutTemplateCard';
 import { CreateWorkoutCard } from '@/components/workouts/CreateWorkoutCard';
 import { WorkoutHistorySection } from '@/components/workouts/WorkoutHistorySection';
@@ -47,6 +47,7 @@ export default function WorkoutsScreen() {
   const [isCreateWorkoutExpanded, setIsCreateWorkoutExpanded] = useState(false);
   const [isExercisesExpanded, setIsExercisesExpanded] = useState(false);
   const [isWorkoutHistoryExpanded, setIsWorkoutHistoryExpanded] = useState(true);
+  const [isWorkoutLauncherExpanded, setIsWorkoutLauncherExpanded] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const sectionOffsets = useRef({ createWorkout: 0, exerciseLibrary: 0, history: 0, templates: 0 });
   const completedSessions = [...workoutSessions].reverse();
@@ -346,13 +347,26 @@ export default function WorkoutsScreen() {
           onPress={() => {
             if (workouts.length === 0) {
               setIsCreateWorkoutExpanded(true);
+              scrollToSection('createWorkout');
               return;
             }
 
-            startWorkout(workouts[0].id);
+            setIsWorkoutLauncherExpanded(true);
           }}
           summaryLine={workoutsInsight.summaryLine}
           title={workoutsInsight.title}
+        />
+
+        <WorkoutLauncherCard
+          isExpanded={isWorkoutLauncherExpanded}
+          onCreateWorkout={() => {
+            setIsCreateWorkoutExpanded(true);
+            scrollToSection('createWorkout');
+          }}
+          onStart={startWorkout}
+          onToggleExpanded={() => setIsWorkoutLauncherExpanded((current) => !current)}
+          workoutSessions={workoutSessions}
+          workouts={workouts}
         />
 
         <QuickActionsCard
@@ -360,7 +374,7 @@ export default function WorkoutsScreen() {
           subtitle="Create, edit, or launch workouts without hunting through the page."
           primaryAction={{
             disabled: workouts.length === 0,
-            label: workouts.length === 0 ? 'Create workout first' : 'Start workout',
+            label: workouts.length === 0 ? 'Create workout first' : 'Choose workout',
             onPress: () => {
               if (workouts.length === 0) {
                 setIsCreateWorkoutExpanded(true);
@@ -368,7 +382,7 @@ export default function WorkoutsScreen() {
                 return;
               }
 
-              startWorkout(workouts[0].id);
+              setIsWorkoutLauncherExpanded(true);
             },
           }}
           secondaryActions={[
