@@ -214,7 +214,7 @@ export default function NutritionScreen() {
         </View>
         <AppCard>
           <Text selectable style={styles.sectionTitle}>
-            Today's totals
+            Totals for {formatSelectedDateLabel(selectedDate)}
           </Text>
           <View style={styles.summaryGrid}>
             <View style={styles.summaryItem}>
