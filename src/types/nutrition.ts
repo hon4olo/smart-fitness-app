@@ -1,5 +1,34 @@
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
+export type FoodCategory =
+  | 'protein'
+  | 'carbohydrates'
+  | 'fats'
+  | 'dairy'
+  | 'fruit'
+  | 'vegetables'
+  | 'drinks'
+  | 'snacks'
+  | 'sauces';
+
+export type FoodBrowserMode = 'all' | 'favorites' | 'recent' | 'popular';
+
+export type FoodCatalogItem = {
+  id: string;
+  name: string;
+  category: FoodCategory;
+  servingSize: number;
+  servingUnit: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  aliases: string[];
+  tags: string[];
+  popularity: number;
+};
+
 export type FoodEntry = {
   id: string;
   name: string;

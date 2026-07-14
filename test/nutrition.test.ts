@@ -1,3 +1,4 @@
+import { foodCatalog } from '@/data/foods';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -6,6 +7,8 @@ import {
   formatMacroTargetPair,
   getNutritionSummary,
   getServingInfo,
+  getSimilarFoods,
+  searchFoodCatalog,
   sumNutritionTotals,
 } from '@/lib/nutrition';
 
@@ -31,6 +34,26 @@ describe('nutrition helpers', () => {
     expect(getServingInfo({})).toBe('');
     expect(getServingInfo({ quantity: 2, servingUnit: 'cups' })).toBe('2 cups');
     expect(getServingInfo({ servingSize: 150, servingUnit: 'g' })).toBe('150 g');
+  });
+
+  it('searches aliases and ranks exact matches first', () => {
+    const results = searchFoodCatalog(foodCatalog, 'pb');
+
+    expect(results[0]?.id).toBe('peanut-butter');
+    expect(results.some((food) => food.id === 'peanut-butter')).toBe(true);
+  });
+
+  it('finds similar foods in the same category', () => {
+    const chickenBreast = foodCatalog.find((food) => food.id === 'chicken-breast');
+
+    expect(chickenBreast).toBeTruthy();
+
+    const similarFoods = getSimilarFoods(chickenBreast!, foodCatalog, 5);
+
+    expect(similarFoods.length).toBeGreaterThan(0);
+    expect(similarFoods.every((food) => food.category === chickenBreast!.category && food.id !== chickenBreast!.id)).toBe(
+      true
+    );
   });
 
   it('builds nutrition summary with progress and deficit state', () => {

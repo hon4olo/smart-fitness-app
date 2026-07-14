@@ -3,6 +3,7 @@ import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddFoodFormSection } from '@/components/nutrition/AddFoodFormSection';
+import { FoodDetailSheet } from '@/components/nutrition/FoodDetailSheet';
 import { MealMenuCard } from '@/components/nutrition/MealMenuCard';
 import { NutritionActionsCard } from '@/components/nutrition/NutritionActionsCard';
 import { NutritionEmptyState } from '@/components/nutrition/NutritionEmptyState';
@@ -10,15 +11,22 @@ import { NutritionOverviewCard } from '@/components/nutrition/NutritionOverviewC
 import { RecentFoodsSection } from '@/components/nutrition/RecentFoodsSection';
 import { SavedMealsSection } from '@/components/nutrition/SavedMealsSection';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { foodCatalog, foodCategoryLabels, foodCategoryOrder } from '@/data/foods';
 import { useAppContext } from '@/context/AppContext';
-import { addDays, formatLocalDate, getServingInfo, parseOptionalPositiveNumber, parsePositiveNumber, sumNutritionTotals } from '@/lib';
-import { formatCompactMacroTotals, getNutritionSummary } from '@/lib/nutrition';
-import type { FoodEntry, MealTemplate, MealType } from '@/context/AppContext';
-
-type MockFood = Pick<
-  FoodEntry,
-  'name' | 'brandName' | 'source' | 'servingSize' | 'servingUnit' | 'calories' | 'protein' | 'carbs' | 'fats'
->;
+import {
+  addDays,
+  buildFoodEntryFromCatalog,
+  formatLocalDate,
+  getRecentCatalogFoods,
+  getServingInfo,
+  getSimilarFoods,
+  parseOptionalPositiveNumber,
+  parsePositiveNumber,
+  searchFoodCatalog,
+  sumNutritionTotals,
+} from '@/lib';
+import { formatCompactMacroTotals, getFoodCatalogTopFoods, getNutritionSummary } from '@/lib/nutrition';
+import type { FoodBrowserMode, FoodCatalogItem, FoodCategory, FoodEntry, MealTemplate, MealType } from '@/types';
 
 type SelectedBaseFood = {
   servingSize?: number;
@@ -40,18 +48,6 @@ const mealTypeLabels: Record<MealType, string> = {
   dinner: 'Dinner',
   snack: 'Snack',
 };
-
-const mockFoodDatabase: MockFood[] = [
-  { name: 'Chicken breast', source: 'manual', servingSize: 100, servingUnit: 'g', calories: 165, protein: 31, carbs: 0, fats: 3.6 },
-  { name: 'White rice', source: 'manual', servingSize: 100, servingUnit: 'g', calories: 130, protein: 2.7, carbs: 28, fats: 0.3 },
-  { name: 'Oats', source: 'manual', servingSize: 40, servingUnit: 'g', calories: 150, protein: 5, carbs: 27, fats: 3 },
-  { name: 'Greek yogurt', brandName: 'Plain', source: 'manual', servingSize: 170, servingUnit: 'g', calories: 100, protein: 17, carbs: 6, fats: 0 },
-  { name: 'Banana', source: 'manual', servingSize: 1, servingUnit: 'medium', calories: 105, protein: 1.3, carbs: 27, fats: 0.4 },
-  { name: 'Eggs', source: 'manual', servingSize: 2, servingUnit: 'large', calories: 140, protein: 12, carbs: 1, fats: 10 },
-  { name: 'Salmon', source: 'manual', servingSize: 100, servingUnit: 'g', calories: 208, protein: 20, carbs: 0, fats: 13 },
-  { name: 'Pasta', source: 'manual', servingSize: 100, servingUnit: 'g', calories: 158, protein: 5.8, carbs: 31, fats: 0.9 },
-  { name: 'Whey protein', brandName: 'Generic', source: 'manual', servingSize: 1, servingUnit: 'scoop', calories: 120, protein: 24, carbs: 3, fats: 1.5 },
-];
 
 const formatDisplayDate = (dateLabel: string) => {
   const parsedDate = new Date(`${dateLabel}T12:00:00`);
@@ -88,6 +84,11 @@ export default function NutritionScreen() {
   const [isSavedMealsExpanded, setIsSavedMealsExpanded] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isAddFoodFormExpanded, setIsAddFoodFormExpanded] = useState(true);
+  const [isFoodBrowserExpanded, setIsFoodBrowserExpanded] = useState(true);
+  const [selectedBrowserCategory, setSelectedBrowserCategory] = useState<FoodCategory | 'all'>('all');
+  const [selectedBrowserMode, setSelectedBrowserMode] = useState<FoodBrowserMode>('all');
+  const [favoriteFoodIds, setFavoriteFoodIds] = useState<string[]>([]);
+  const [selectedBrowserFood, setSelectedBrowserFood] = useState<FoodCatalogItem | null>(null);
   const [expandedMealType, setExpandedMealType] = useState<MealType | null>(null);
   const [editingFoodEntry, setEditingFoodEntry] = useState<FoodEntry | undefined>();
   const [mealType, setMealType] = useState<MealType>('breakfast');
@@ -124,12 +125,6 @@ export default function NutritionScreen() {
   const currentMealTotalLabel = formatCompactMacroTotals(selectedMealNutrition);
   const currentMealEntriesCount = selectedMealFoodEntries.length;
 
-  const foodSearchTerm = foodSearchQuery.trim().toLowerCase();
-  const filteredMockFoods =
-    foodSearchTerm.length === 0
-      ? []
-      : mockFoodDatabase.filter((food) => [food.name, food.brandName].some((value) => value?.toLowerCase().includes(foodSearchTerm)));
-
   const recentFoods = useMemo(
     () =>
       Array.from(
@@ -150,18 +145,73 @@ export default function NutritionScreen() {
     [foodEntries]
   );
 
+  const browserRecentFoods = useMemo(() => getRecentCatalogFoods(foodEntries, 20), [foodEntries]);
+  const favoriteFoodSet = useMemo(() => new Set(favoriteFoodIds), [favoriteFoodIds]);
+  const favoriteFoods = useMemo(() => foodCatalog.filter((food) => favoriteFoodSet.has(food.id)), [favoriteFoodSet]);
+  const popularFoods = useMemo(() => getFoodCatalogTopFoods(foodCatalog, 8), []);
+  const browserResults = useMemo(
+    () =>
+      searchFoodCatalog(foodCatalog, foodSearchQuery, {
+        category: selectedBrowserCategory,
+        favoriteIds: favoriteFoodIds,
+        mode: selectedBrowserMode,
+        recentIds: browserRecentFoods.map((food) => food.id),
+      }),
+    [browserRecentFoods, favoriteFoodIds, foodSearchQuery, selectedBrowserCategory, selectedBrowserMode]
+  );
+  const browserSimilarFoods = useMemo(
+    () => (selectedBrowserFood ? getSimilarFoods(selectedBrowserFood, foodCatalog, 6) : []),
+    [selectedBrowserFood]
+  );
+  const browserCategoryCounts = useMemo(
+    () =>
+      foodCategoryOrder.map((category) => ({
+        category,
+        count: foodCatalog.filter((food) => food.category === category).length,
+        label: foodCategoryLabels[category],
+      })),
+    []
+  );
+  const browserModeCounts = useMemo(
+    () => [
+      { count: foodCatalog.length, label: 'All', mode: 'all' as const },
+      { count: favoriteFoods.length, label: 'Favorites', mode: 'favorites' as const },
+      { count: browserRecentFoods.length, label: 'Recent', mode: 'recent' as const },
+      { count: popularFoods.length, label: 'Popular', mode: 'popular' as const },
+    ],
+    [browserRecentFoods.length, favoriteFoods.length, popularFoods.length]
+  );
+  const browserCategoryChips = useMemo(
+    () => [
+      {
+        count: foodCatalog.length,
+        label: 'All',
+        onPress: () => setSelectedBrowserCategory('all'),
+        selected: selectedBrowserCategory === 'all',
+      },
+      ...browserCategoryCounts.map(({ category, count, label }) => ({
+        count,
+        label,
+        onPress: () => setSelectedBrowserCategory(category),
+        selected: selectedBrowserCategory === category,
+      })),
+    ],
+    [browserCategoryCounts, selectedBrowserCategory]
+  );
+  const browserModeChips = useMemo(
+    () =>
+      browserModeCounts.map(({ count, label, mode }) => ({
+        count,
+        label,
+        onPress: () => setSelectedBrowserMode(mode),
+        selected: selectedBrowserMode === mode,
+      })),
+    [browserModeCounts, selectedBrowserMode]
+  );
+
   const isMealTemplateSaveDisabled = mealTemplateName.trim().length === 0 || selectedMealFoodEntries.length === 0;
   const mealTemplateButtonLabel = `Save ${currentMealLabel} Template`;
   const hasFoodLoggedToday = selectedDateFoodEntries.length > 0;
-
-  const createBaseFoodFromMock = (food: MockFood): SelectedBaseFood => ({
-    servingSize: food.servingSize,
-    servingUnit: food.servingUnit,
-    baseCalories: food.calories,
-    baseProtein: food.protein,
-    baseCarbs: food.carbs,
-    baseFats: food.fats,
-  });
 
   const createBaseFoodFromEntry = (entry: FoodEntry): SelectedBaseFood => {
     const multiplier = entry.quantity && entry.servingSize && entry.quantity > 0 && entry.servingSize > 0 ? entry.quantity / entry.servingSize : 0;
@@ -228,6 +278,10 @@ export default function NutritionScreen() {
     setServingUnit('');
     setQuantity('');
     setFoodSearchQuery('');
+    setSelectedBrowserFood(null);
+    setSelectedBrowserCategory('all');
+    setSelectedBrowserMode('all');
+    setIsFoodBrowserExpanded(true);
     setIsSearchExpanded(false);
   };
 
@@ -256,18 +310,30 @@ export default function NutritionScreen() {
     }
   };
 
-  const handleUseMockFood = (food: MockFood) => {
-    const nextQuantity = `${food.servingSize ?? 1}`;
-    const baseFood = createBaseFoodFromMock(food);
-    setName(food.name);
-    setBrandName(food.brandName);
-    setDraftFoodSource(food.source);
-    setDraftFoodExternalId(undefined);
-    setSelectedBaseFood(baseFood);
-    setServingSize(food.servingSize ? `${food.servingSize}` : '');
-    setServingUnit(food.servingUnit ?? '');
-    setQuantity(nextQuantity);
-    applyCalculatedMacros(baseFood, nextQuantity, food.servingSize ? `${food.servingSize}` : '');
+  const handleToggleFavoriteFood = (food: FoodCatalogItem) => {
+    setFavoriteFoodIds((current) => (current.includes(food.id) ? current.filter((foodId) => foodId !== food.id) : [...current, food.id]));
+  };
+
+  const handleOpenBrowserFood = (food: FoodCatalogItem) => {
+    setSelectedBrowserFood(food);
+    setIsSearchExpanded(true);
+    setIsAddFoodFormExpanded(true);
+  };
+
+  const handleCloseBrowserFood = () => {
+    setSelectedBrowserFood(null);
+  };
+
+  const handleQuickAddBrowserFood = (food: FoodCatalogItem, servings = 1) => {
+    const foodEntry = buildFoodEntryFromCatalog(food, {
+      date: selectedDate,
+      mealType,
+      servings,
+    });
+
+    addFoodEntry(foodEntry);
+    setIsSearchExpanded(true);
+    setIsAddFoodFormExpanded(true);
   };
 
   const handleUseRecentFood = (food: FoodEntry) => {
@@ -429,6 +495,7 @@ export default function NutritionScreen() {
   const handleOpenSearch = () => {
     setIsAddFoodFormExpanded(true);
     setIsSearchExpanded(true);
+    setIsFoodBrowserExpanded(true);
     scrollToSection('foodForm');
   };
 
@@ -527,32 +594,46 @@ export default function NutritionScreen() {
             currentMealTotalLabel={currentMealTotalLabel}
             editingFoodEntry={editingFoodEntry}
             fats={fats}
-            filteredFoods={filteredMockFoods}
+            filteredFoods={browserResults}
+            favoriteFoods={favoriteFoods}
+            favoriteIds={favoriteFoodIds}
             foodSearchQuery={foodSearchQuery}
+            isBrowserExpanded={isFoodBrowserExpanded}
             isExpanded={isAddFoodFormExpanded}
             isSaveDisabled={name.trim().length === 0 || !Number.isFinite(Number(calories)) || Number(calories) <= 0}
             isSearchExpanded={isSearchExpanded}
             mealType={mealType}
             mealTypeLabels={mealTypeLabels}
+            modeChips={browserModeChips}
             name={name}
             onCaloriesChange={setCalories}
             onCarbsChange={setCarbs}
             onCancelEdit={clearForm}
+            onCategoryChange={setSelectedBrowserCategory}
             onFatsChange={setFats}
             onFoodSearchQueryChange={setFoodSearchQuery}
             onMealTypeChange={setMealType}
+            onModeChange={setSelectedBrowserMode}
             onNameChange={handleNameChange}
+            onOpenFood={handleOpenBrowserFood}
+            onQuickAddFood={handleQuickAddBrowserFood}
             onProteinChange={setProtein}
             onQuantityChange={handleQuantityChange}
             onSaveFood={handleSaveFood}
             onServingSizeChange={handleServingSizeChange}
             onServingUnitChange={handleServingUnitChange}
+            onToggleBrowserExpanded={() => setIsFoodBrowserExpanded((current) => !current)}
             onToggleExpanded={() => setIsAddFoodFormExpanded((current) => !current)}
-            onUseFood={handleUseMockFood}
+            onToggleFavorite={handleToggleFavoriteFood}
+            popularFoods={popularFoods}
+            recentFoods={browserRecentFoods}
+            selectedCategory={selectedBrowserCategory}
+            selectedMode={selectedBrowserMode}
             protein={protein}
             quantity={quantity}
             servingSize={servingSize}
             servingUnit={servingUnit}
+            categoryChips={browserCategoryChips}
           />
         </View>
 
@@ -593,6 +674,16 @@ export default function NutritionScreen() {
             selectedMealTypeLabel={currentMealLabel}
           />
         </View>
+
+        <FoodDetailSheet
+          food={selectedBrowserFood}
+          isFavorite={selectedBrowserFood ? favoriteFoodSet.has(selectedBrowserFood.id) : false}
+          onAddFood={(servings) => selectedBrowserFood && handleQuickAddBrowserFood(selectedBrowserFood, servings)}
+          onClose={handleCloseBrowserFood}
+          onSelectSimilar={handleOpenBrowserFood}
+          onToggleFavorite={handleToggleFavoriteFood}
+          similarFoods={browserSimilarFoods}
+        />
       </View>
     </ScrollView>
   );

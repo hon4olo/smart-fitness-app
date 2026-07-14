@@ -1,39 +1,60 @@
 import { StyleSheet, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
-import type { FoodEntry, MealType } from '@/context/AppContext';
-import type { FoodSearchResult } from '@/components/nutrition/nutrition-types';
+import type { FoodCatalogItem, FoodBrowserMode, FoodCategory, FoodEntry, MealType } from '@/types';
+
 import { FoodManualEntryForm } from '@/components/nutrition/FoodManualEntryForm';
-import { FoodSearchPanel } from '@/components/nutrition/FoodSearchPanel';
+import { FoodBrowserSection } from '@/components/nutrition/FoodBrowserSection';
+
+type FilterChip = {
+  count?: number;
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+};
 
 type AddFoodFormSectionProps = {
   calories: string;
   carbs: string;
+  categoryChips: FilterChip[];
   currentMealTotalLabel: string;
   editingFoodEntry?: FoodEntry;
+  favoriteFoods: FoodCatalogItem[];
+  favoriteIds: string[];
   fats: string;
-  filteredFoods: FoodSearchResult[];
+  filteredFoods: FoodCatalogItem[];
   foodSearchQuery: string;
   isExpanded: boolean;
+  isBrowserExpanded: boolean;
   isSaveDisabled: boolean;
   isSearchExpanded: boolean;
   mealType: MealType;
   mealTypeLabels: Record<MealType, string>;
+  modeChips: FilterChip[];
   name: string;
   onCaloriesChange: (value: string) => void;
   onCarbsChange: (value: string) => void;
   onCancelEdit: () => void;
+  onCategoryChange: (value: FoodCategory | 'all') => void;
   onFatsChange: (value: string) => void;
   onFoodSearchQueryChange: (value: string) => void;
   onMealTypeChange: (value: MealType) => void;
+  onModeChange: (value: FoodBrowserMode) => void;
   onNameChange: (value: string) => void;
+  onOpenFood: (food: FoodCatalogItem) => void;
+  onQuickAddFood: (food: FoodCatalogItem, servings?: number) => void;
   onProteinChange: (value: string) => void;
   onQuantityChange: (value: string) => void;
   onSaveFood: () => void;
   onServingSizeChange: (value: string) => void;
   onServingUnitChange: (value: string) => void;
+  onToggleBrowserExpanded: () => void;
   onToggleExpanded: () => void;
-  onUseFood: (food: FoodSearchResult) => void;
+  onToggleFavorite: (food: FoodCatalogItem) => void;
+  popularFoods: FoodCatalogItem[];
+  recentFoods: FoodCatalogItem[];
+  selectedCategory: FoodCategory | 'all';
+  selectedMode: FoodBrowserMode;
   protein: string;
   quantity: string;
   servingSize: string;
@@ -43,31 +64,45 @@ type AddFoodFormSectionProps = {
 export function AddFoodFormSection({
   calories,
   carbs,
+  categoryChips,
   currentMealTotalLabel,
   editingFoodEntry,
+  favoriteFoods,
+  favoriteIds,
   fats,
   filteredFoods,
   foodSearchQuery,
+  isBrowserExpanded,
   isExpanded,
   isSaveDisabled,
   isSearchExpanded,
   mealType,
   mealTypeLabels,
+  modeChips,
   name,
   onCaloriesChange,
   onCarbsChange,
   onCancelEdit,
+  onCategoryChange,
   onFatsChange,
   onFoodSearchQueryChange,
   onMealTypeChange,
+  onModeChange,
   onNameChange,
+  onOpenFood,
+  onQuickAddFood,
   onProteinChange,
   onQuantityChange,
   onSaveFood,
   onServingSizeChange,
   onServingUnitChange,
+  onToggleBrowserExpanded,
   onToggleExpanded,
-  onUseFood,
+  onToggleFavorite,
+  popularFoods,
+  recentFoods,
+  selectedCategory,
+  selectedMode,
   protein,
   quantity,
   servingSize,
@@ -100,15 +135,26 @@ export function AddFoodFormSection({
       protein={protein}
       quantity={quantity}
       servingSize={servingSize}
-      servingUnit={servingUnit}
-    >
+      servingUnit={servingUnit}>
       {isSearchExpanded ? (
         <View style={styles.searchPanel}>
-          <FoodSearchPanel
+          <FoodBrowserSection
+            categoryChips={categoryChips}
+            favoriteFoods={favoriteFoods}
+            favoriteIds={favoriteIds}
             filteredFoods={filteredFoods}
             foodSearchQuery={foodSearchQuery}
-            onFoodSearchQueryChange={onFoodSearchQueryChange}
-            onUseFood={onUseFood}
+            isExpanded={isBrowserExpanded}
+            modeChips={modeChips}
+            onOpenFood={onOpenFood}
+            onQuickAddFood={onQuickAddFood}
+            onSearchQueryChange={onFoodSearchQueryChange}
+            onToggleExpanded={onToggleBrowserExpanded}
+            onToggleFavorite={onToggleFavorite}
+            popularFoods={popularFoods}
+            recentFoods={recentFoods}
+            selectedCategory={selectedCategory}
+            selectedMode={selectedMode}
           />
         </View>
       ) : null}
