@@ -7,6 +7,14 @@ export type MacroTotals = {
   protein: number;
 };
 
+export type NutritionSummary = {
+  consumed: MacroTotals;
+  target: MacroTotals;
+  remaining: MacroTotals;
+  calorieProgress: number;
+  isOverTarget: boolean;
+};
+
 export const createMacroTotals = (): MacroTotals => ({
   calories: 0,
   protein: 0,
@@ -28,6 +36,31 @@ export const sumNutritionTotals = (entries: Pick<FoodEntry, 'calories' | 'protei
 
 export const formatNumber = (value: number) => {
   return `${Math.round(value * 10) / 10}`;
+};
+
+export const formatCompactMacroTotals = (entryTotals: MacroTotals) => {
+  return `${formatNumber(entryTotals.calories)} kcal · ${formatNumber(entryTotals.protein)}P · ${formatNumber(entryTotals.carbs)}C · ${formatNumber(entryTotals.fats)}F`;
+};
+
+export const formatMacroTargetPair = (consumed: number, target: number, unit = 'g') => {
+  return `${formatNumber(consumed)} / ${formatNumber(target)} ${unit}`;
+};
+
+export const getNutritionSummary = (consumed: MacroTotals, target: MacroTotals): NutritionSummary => {
+  const remaining = {
+    calories: target.calories - consumed.calories,
+    protein: target.protein - consumed.protein,
+    carbs: target.carbs - consumed.carbs,
+    fats: target.fats - consumed.fats,
+  };
+
+  return {
+    consumed,
+    target,
+    remaining,
+    calorieProgress: getClampedProgress(consumed.calories, target.calories),
+    isOverTarget: remaining.calories < 0,
+  };
 };
 
 export const formatMacroTotals = (entryTotals: MacroTotals) => {

@@ -5,6 +5,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
 import type { MealTemplate } from '@/context/AppContext';
 import { formatMacroTotals, sumNutritionTotals } from '@/lib';
+import { NutritionEmptyState } from '@/components/nutrition/NutritionEmptyState';
 
 type SavedMealsSectionProps = {
   currentMealCount: number;
@@ -111,7 +112,7 @@ export function SavedMealsSection({
                     </Text>
                   </View>
                   <View style={styles.savedMealActions}>
-                    <AppButton label="Use" onPress={() => onUseMealTemplate(template)} variant="secondary" />
+                    <AppButton label="Use" onPress={() => onUseMealTemplate(template)} variant="primary" />
                     <AppButton label="Duplicate" onPress={() => onDuplicateMealTemplate(template)} variant="secondary" />
                     <AppButton label="Delete" onPress={() => onDeleteMealTemplate(template.id)} variant="secondary" />
                   </View>
@@ -119,9 +120,11 @@ export function SavedMealsSection({
               );
             })
           ) : (
-            <Text selectable style={styles.remainingValue}>
-              No saved meals yet.
-            </Text>
+            <NutritionEmptyState
+              compact
+              description="Save a meal after logging breakfast, lunch, dinner, or snacks, then reuse it with one tap."
+              title="No saved meals yet"
+            />
           )}
         </>
       ) : null}

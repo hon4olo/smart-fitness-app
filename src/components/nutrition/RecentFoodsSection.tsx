@@ -4,6 +4,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
 import type { FoodEntry } from '@/context/AppContext';
+import { NutritionEmptyState } from '@/components/nutrition/NutritionEmptyState';
 
 type RecentFoodsSectionProps = {
   formatServingInfo: (entry: {
@@ -64,13 +65,15 @@ export function RecentFoodsSection({ formatServingInfo, isExpanded, onToggleExpa
                     {food.fats} g fats
                   </Text>
                 </View>
-                <AppButton label="Use" onPress={() => onUseRecentFood(food)} variant="secondary" />
+                <AppButton label="Use" onPress={() => onUseRecentFood(food)} variant="primary" />
               </View>
             ))
           ) : (
-            <Text selectable style={styles.remainingValue}>
-              No recent foods yet.
-            </Text>
+            <NutritionEmptyState
+              compact
+              description="Log a food once and it will stay ready for one-tap reuse here."
+              title="No recent foods yet"
+            />
           )}
         </>
       ) : null}

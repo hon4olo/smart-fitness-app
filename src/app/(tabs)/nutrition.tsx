@@ -1,26 +1,19 @@
-import { useRef, useState } from 'react';
-import { Alert, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppCard } from '@/components/ui/AppCard';
-import { SectionHeader } from '@/components/ui/SectionHeader';
 import { AddFoodFormSection } from '@/components/nutrition/AddFoodFormSection';
 import { MealMenuCard } from '@/components/nutrition/MealMenuCard';
+import { NutritionActionsCard } from '@/components/nutrition/NutritionActionsCard';
+import { NutritionEmptyState } from '@/components/nutrition/NutritionEmptyState';
+import { NutritionOverviewCard } from '@/components/nutrition/NutritionOverviewCard';
 import { RecentFoodsSection } from '@/components/nutrition/RecentFoodsSection';
 import { SavedMealsSection } from '@/components/nutrition/SavedMealsSection';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
-import type { FoodEntry, MealTemplate, MealType } from '@/context/AppContext';
 import { useAppContext } from '@/context/AppContext';
-import {
-  formatMacroTotals,
-  formatNumber,
-  getServingInfo,
-  parseNonNegativeNumber,
-  parseOptionalPositiveNumber,
-  parsePositiveNumber,
-  sumNutritionTotals,
-} from '@/lib';
-import { formatLocalDate, addDays } from '@/lib';
+import { addDays, formatLocalDate, getServingInfo, parseOptionalPositiveNumber, parsePositiveNumber, sumNutritionTotals } from '@/lib';
+import { formatCompactMacroTotals, getNutritionSummary } from '@/lib/nutrition';
+import type { FoodEntry, MealTemplate, MealType } from '@/context/AppContext';
 
 type MockFood = Pick<
   FoodEntry,
@@ -60,11 +53,35 @@ const mockFoodDatabase: MockFood[] = [
   { name: 'Whey protein', brandName: 'Generic', source: 'manual', servingSize: 1, servingUnit: 'scoop', calories: 120, protein: 24, carbs: 3, fats: 1.5 },
 ];
 
+const formatDisplayDate = (dateLabel: string) => {
+  const parsedDate = new Date(`${dateLabel}T12:00:00`);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return dateLabel;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    month: 'short',
+    weekday: 'short',
+  }).format(parsedDate);
+};
+
 export default function NutritionScreen() {
-  const { addFoodEntry, addFoodEntries, addMealTemplate, deleteFoodEntry, deleteMealTemplate, foodEntries, mealTemplates, updateFoodEntry } = useAppContext();
+  const {
+    addFoodEntry,
+    addFoodEntries,
+    addMealTemplate,
+    deleteFoodEntry,
+    deleteMealTemplate,
+    foodEntries,
+    mealTemplates,
+    nutritionTargets,
+    updateFoodEntry,
+  } = useAppContext();
   const safeAreaInsets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
-  const sectionOffsets = useRef({ addFoodForm: 0 });
+  const sectionOffsets = useRef({ foodForm: 0, recentFoods: 0, savedMeals: 0 });
   const [selectedDate, setSelectedDate] = useState(formatLocalDate(new Date()));
   const [foodSearchQuery, setFoodSearchQuery] = useState('');
   const [isRecentFoodsExpanded, setIsRecentFoodsExpanded] = useState(false);
@@ -87,175 +104,495 @@ export default function NutritionScreen() {
   const [servingSize, setServingSize] = useState('');
   const [servingUnit, setServingUnit] = useState('');
   const [quantity, setQuantity] = useState('');
-  const parsedCalories = Number(calories);
-  const isSaveDisabled = name.trim().length === 0 || !Number.isFinite(parsedCalories) || parsedCalories <= 0;
-  const selectedDateFoodEntries = foodEntries.filter((entry) => entry.date === selectedDate);
-  const selectedMealFoodEntries = selectedDateFoodEntries.filter((entry) => entry.mealType === mealType);
-  const selectedDateNutrition = sumNutritionTotals(selectedDateFoodEntries);
-  const selectedMealNutrition = sumNutritionTotals(selectedMealFoodEntries);
+
+  const selectedDateFoodEntries = useMemo(
+    () => foodEntries.filter((entry) => entry.date === selectedDate),
+    [foodEntries, selectedDate]
+  );
+  const selectedDateNutrition = useMemo(() => sumNutritionTotals(selectedDateFoodEntries), [selectedDateFoodEntries]);
+  const selectedMealFoodEntries = useMemo(
+    () => selectedDateFoodEntries.filter((entry) => entry.mealType === mealType),
+    [mealType, selectedDateFoodEntries]
+  );
+  const selectedMealNutrition = useMemo(() => sumNutritionTotals(selectedMealFoodEntries), [selectedMealFoodEntries]);
+  const nutritionSummary = useMemo(
+    () => getNutritionSummary(selectedDateNutrition, nutritionTargets),
+    [nutritionTargets, selectedDateNutrition]
+  );
+  const selectedDateLabel = useMemo(() => formatDisplayDate(selectedDate), [selectedDate]);
+  const currentMealLabel = mealTypeLabels[mealType];
+  const currentMealTotalLabel = formatCompactMacroTotals(selectedMealNutrition);
+  const currentMealEntriesCount = selectedMealFoodEntries.length;
+
   const foodSearchTerm = foodSearchQuery.trim().toLowerCase();
   const filteredMockFoods =
     foodSearchTerm.length === 0
       ? []
       : mockFoodDatabase.filter((food) => [food.name, food.brandName].some((value) => value?.toLowerCase().includes(foodSearchTerm)));
 
-  const recentFoods = Array.from(
-    foodEntries
-      .slice()
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .reduce((recentMap, entry) => {
-        const dedupeKey = [entry.name.trim().toLowerCase(), entry.brandName?.trim().toLowerCase() ?? '', entry.source, entry.externalId ?? ''].join('|');
+  const recentFoods = useMemo(
+    () =>
+      Array.from(
+        foodEntries
+          .slice()
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .reduce((recentMap, entry) => {
+            const dedupeKey = [entry.name.trim().toLowerCase(), entry.brandName?.trim().toLowerCase() ?? '', entry.source, entry.externalId ?? ''].join('|');
 
-        if (!recentMap.has(dedupeKey)) {
-          recentMap.set(dedupeKey, entry as RecentFood);
-        }
+            if (!recentMap.has(dedupeKey)) {
+              recentMap.set(dedupeKey, entry as RecentFood);
+            }
 
-        return recentMap;
-      }, new Map<string, RecentFood>())
-      .values()
-  ).slice(0, 8);
+            return recentMap;
+          }, new Map<string, RecentFood>())
+          .values()
+      ).slice(0, 8),
+    [foodEntries]
+  );
+
   const isMealTemplateSaveDisabled = mealTemplateName.trim().length === 0 || selectedMealFoodEntries.length === 0;
-  const mealTemplateButtonLabel = `Save ${mealTypeLabels[mealType]} Template`;
+  const mealTemplateButtonLabel = `Save ${currentMealLabel} Template`;
+  const hasFoodLoggedToday = selectedDateFoodEntries.length > 0;
 
-  const formatServingInfo = getServingInfo;
+  const createBaseFoodFromMock = (food: MockFood): SelectedBaseFood => ({
+    servingSize: food.servingSize,
+    servingUnit: food.servingUnit,
+    baseCalories: food.calories,
+    baseProtein: food.protein,
+    baseCarbs: food.carbs,
+    baseFats: food.fats,
+  });
 
-  const getSectionTitle = (title: string, isExpanded: boolean) => {
-    return `${title} ${isExpanded ? '−' : '+'}`;
-  };
-
-  const formatSelectedDateLabel = (dateLabel: string) => {
-    const [, month = '', day = ''] = dateLabel.split('-');
-    return `${day}.${month}`;
-  };
-
-  const createBaseFoodFromMock = (food: MockFood): SelectedBaseFood => ({ servingSize: food.servingSize, servingUnit: food.servingUnit, baseCalories: food.calories, baseProtein: food.protein, baseCarbs: food.carbs, baseFats: food.fats });
   const createBaseFoodFromEntry = (entry: FoodEntry): SelectedBaseFood => {
     const multiplier = entry.quantity && entry.servingSize && entry.quantity > 0 && entry.servingSize > 0 ? entry.quantity / entry.servingSize : 0;
     const inferBaseMacro = (baseMacro: number | undefined, savedMacro: number) => {
-      if (baseMacro !== undefined) { return baseMacro; }
+      if (baseMacro !== undefined) {
+        return baseMacro;
+      }
+
       return multiplier > 0 ? savedMacro / multiplier : savedMacro;
     };
-    return { servingSize: entry.servingSize, servingUnit: entry.servingUnit, baseCalories: inferBaseMacro(entry.baseCalories, entry.calories), baseProtein: inferBaseMacro(entry.baseProtein, entry.protein), baseCarbs: inferBaseMacro(entry.baseCarbs, entry.carbs), baseFats: inferBaseMacro(entry.baseFats, entry.fats) };
+
+    return {
+      servingSize: entry.servingSize,
+      servingUnit: entry.servingUnit,
+      baseCalories: inferBaseMacro(entry.baseCalories, entry.calories),
+      baseProtein: inferBaseMacro(entry.baseProtein, entry.protein),
+      baseCarbs: inferBaseMacro(entry.baseCarbs, entry.carbs),
+      baseFats: inferBaseMacro(entry.baseFats, entry.fats),
+    };
   };
+
   const applyCalculatedMacros = (baseFood: SelectedBaseFood, nextQuantity: string, nextServingSize = servingSize) => {
     const parsedServingSize = parseOptionalPositiveNumber(nextServingSize) ?? baseFood.servingSize;
     const parsedQuantity = Number(nextQuantity);
+
     if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0 || parsedServingSize === undefined || parsedServingSize <= 0) {
-      setCalories(''); setProtein(''); setCarbs(''); setFats(''); return;
+      setCalories('');
+      setProtein('');
+      setCarbs('');
+      setFats('');
+      return;
     }
+
     const multiplier = parsedQuantity / parsedServingSize;
-    setCalories(formatNumber(baseFood.baseCalories * multiplier));
-    setProtein(formatNumber(baseFood.baseProtein * multiplier));
-    setCarbs(formatNumber(baseFood.baseCarbs * multiplier));
-    setFats(formatNumber(baseFood.baseFats * multiplier));
+    setCalories((baseFood.baseCalories * multiplier).toFixed(1).replace(/\.0$/, ''));
+    setProtein((baseFood.baseProtein * multiplier).toFixed(1).replace(/\.0$/, ''));
+    setCarbs((baseFood.baseCarbs * multiplier).toFixed(1).replace(/\.0$/, ''));
+    setFats((baseFood.baseFats * multiplier).toFixed(1).replace(/\.0$/, ''));
   };
-  const clearSelectedFoodMetadata = () => { setBrandName(undefined); setDraftFoodSource('manual'); setDraftFoodExternalId(undefined); setSelectedBaseFood(undefined); setServingSize(''); setServingUnit(''); setQuantity(''); };
-  const clearForm = () => { setEditingFoodEntry(undefined); setMealType('breakfast'); setName(''); setBrandName(undefined); setDraftFoodSource('manual'); setDraftFoodExternalId(undefined); setSelectedBaseFood(undefined); setCalories(''); setProtein(''); setCarbs(''); setFats(''); setServingSize(''); setServingUnit(''); setQuantity(''); };
-  const handleNameChange = (value: string) => { setName(value); clearSelectedFoodMetadata(); };
-  const handleServingSizeChange = (value: string) => { setServingSize(value); if (selectedBaseFood) { applyCalculatedMacros(selectedBaseFood, quantity, value); } };
-  const handleServingUnitChange = (value: string) => { setServingUnit(value); };
-  const handleQuantityChange = (value: string) => { setQuantity(value); if (selectedBaseFood) { applyCalculatedMacros(selectedBaseFood, value); } };
-  const handleUseMockFood = (food: MockFood) => { const nextQuantity = `${food.servingSize ?? 1}`; const baseFood = createBaseFoodFromMock(food); setName(food.name); setBrandName(food.brandName); setDraftFoodSource(food.source); setDraftFoodExternalId(undefined); setSelectedBaseFood(baseFood); setServingSize(food.servingSize ? `${food.servingSize}` : ''); setServingUnit(food.servingUnit ?? ''); setQuantity(nextQuantity); applyCalculatedMacros(baseFood, nextQuantity, food.servingSize ? `${food.servingSize}` : ''); };
-  const handleUseRecentFood = (food: FoodEntry) => { const baseFood = createBaseFoodFromEntry(food); const nextQuantity = food.quantity ? `${food.quantity}` : `${food.servingSize ?? 1}`; setName(food.name); setBrandName(food.brandName); setDraftFoodSource(food.source); setDraftFoodExternalId(food.externalId); setSelectedBaseFood(baseFood); setCalories(`${food.calories}`); setProtein(`${food.protein}`); setCarbs(`${food.carbs}`); setFats(`${food.fats}`); setServingSize(food.servingSize ? `${food.servingSize}` : ''); setServingUnit(food.servingUnit ?? ''); setQuantity(nextQuantity); applyCalculatedMacros(baseFood, nextQuantity, food.servingSize ? `${food.servingSize}` : ''); };
-  const handleEditFoodEntry = (entry: FoodEntry) => { const baseFood = createBaseFoodFromEntry(entry); setEditingFoodEntry(entry); setMealType(entry.mealType); setName(entry.name); setBrandName(entry.brandName); setDraftFoodSource(entry.source); setDraftFoodExternalId(entry.externalId); setSelectedBaseFood(baseFood); setCalories(`${entry.calories}`); setProtein(`${entry.protein}`); setCarbs(`${entry.carbs}`); setFats(`${entry.fats}`); setServingSize(entry.servingSize ? `${entry.servingSize}` : ''); setServingUnit(entry.servingUnit ?? ''); setQuantity(entry.quantity ? `${entry.quantity}` : ''); };
-  const handleSaveFood = () => { if (isSaveDisabled) { return; } const parsedQuantity = parseOptionalPositiveNumber(quantity); const parsedServingSize = parseOptionalPositiveNumber(servingSize) ?? parsedQuantity; const baseCalories = selectedBaseFood?.baseCalories ?? parsedCalories; const baseProtein = selectedBaseFood?.baseProtein ?? parsePositiveNumber(protein); const baseCarbs = selectedBaseFood?.baseCarbs ?? parsePositiveNumber(carbs); const baseFats = selectedBaseFood?.baseFats ?? parsePositiveNumber(fats); const foodEntry: FoodEntry = { id: editingFoodEntry?.id ?? `${Date.now()}`, name: name.trim(), date: editingFoodEntry?.date ?? selectedDate, mealType, brandName, calories: parsedCalories, protein: parsePositiveNumber(protein), carbs: parsePositiveNumber(carbs), fats: parsePositiveNumber(fats), baseCalories, baseProtein, baseCarbs, baseFats, source: editingFoodEntry?.source ?? draftFoodSource, servingSize: parsedServingSize, servingUnit: servingUnit.trim() || undefined, quantity: parsedQuantity, externalId: editingFoodEntry?.externalId ?? draftFoodExternalId, createdAt: editingFoodEntry?.createdAt ?? new Date().toISOString(), }; if (editingFoodEntry) { updateFoodEntry(editingFoodEntry.id, foodEntry); } else { addFoodEntry(foodEntry); } clearForm(); };
-  const handleSaveMealTemplate = () => { if (isMealTemplateSaveDisabled) { return; } const createdAt = new Date().toISOString(); const templateId = `${Date.now()}`; addMealTemplate({ id: templateId, name: mealTemplateName.trim(), items: selectedMealFoodEntries.map((entry, index) => ({ ...entry, id: `${templateId}-item-${index}` })), createdAt, }); setMealTemplateName(''); };
-  const handleDuplicateMealTemplate = (template: MealTemplate) => { const createdAt = new Date().toISOString(); const templateId = `${Date.now()}`; addMealTemplate({ id: templateId, name: `${template.name} copy`, items: template.items.map((item, index) => ({ ...item, id: `${templateId}-item-${index}` })), createdAt, }); };
-  const handleUseMealTemplate = (template: MealTemplate) => { const createdAt = new Date().toISOString(); const templateIdPrefix = `${Date.now()}`; addFoodEntries(template.items.map((item, index) => ({ ...item, id: `${templateIdPrefix}-${index}-${Math.random().toString(36).slice(2, 8)}`, date: selectedDate, mealType, createdAt, }))); };
-  const confirmDeleteFoodEntry = (entryId: string) => { Alert.alert('Delete food entry?', "This entry will be removed from today's nutrition.", [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => deleteFoodEntry(entryId) },]); };
-  const confirmDeleteMealTemplate = (templateId: string) => { Alert.alert('Delete saved meal?', 'This template will be removed from your saved meals.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => deleteMealTemplate(templateId) },]); };
-  const goToPreviousDay = () => { setSelectedDate((current) => addDays(current, -1)); clearForm(); };
-  const goToToday = () => { setSelectedDate(formatLocalDate(new Date())); clearForm(); };
-  const goToNextDay = () => { setSelectedDate((current) => addDays(current, 1)); clearForm(); };
+
+  const clearSelectedFoodMetadata = () => {
+    setBrandName(undefined);
+    setDraftFoodSource('manual');
+    setDraftFoodExternalId(undefined);
+    setSelectedBaseFood(undefined);
+    setServingSize('');
+    setServingUnit('');
+    setQuantity('');
+  };
+
+  const clearForm = () => {
+    setEditingFoodEntry(undefined);
+    setMealType('breakfast');
+    setName('');
+    setBrandName(undefined);
+    setDraftFoodSource('manual');
+    setDraftFoodExternalId(undefined);
+    setSelectedBaseFood(undefined);
+    setCalories('');
+    setProtein('');
+    setCarbs('');
+    setFats('');
+    setServingSize('');
+    setServingUnit('');
+    setQuantity('');
+    setFoodSearchQuery('');
+    setIsSearchExpanded(false);
+  };
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    clearSelectedFoodMetadata();
+  };
+
+  const handleServingSizeChange = (value: string) => {
+    setServingSize(value);
+
+    if (selectedBaseFood) {
+      applyCalculatedMacros(selectedBaseFood, quantity, value);
+    }
+  };
+
+  const handleServingUnitChange = (value: string) => {
+    setServingUnit(value);
+  };
+
+  const handleQuantityChange = (value: string) => {
+    setQuantity(value);
+
+    if (selectedBaseFood) {
+      applyCalculatedMacros(selectedBaseFood, value);
+    }
+  };
+
+  const handleUseMockFood = (food: MockFood) => {
+    const nextQuantity = `${food.servingSize ?? 1}`;
+    const baseFood = createBaseFoodFromMock(food);
+    setName(food.name);
+    setBrandName(food.brandName);
+    setDraftFoodSource(food.source);
+    setDraftFoodExternalId(undefined);
+    setSelectedBaseFood(baseFood);
+    setServingSize(food.servingSize ? `${food.servingSize}` : '');
+    setServingUnit(food.servingUnit ?? '');
+    setQuantity(nextQuantity);
+    applyCalculatedMacros(baseFood, nextQuantity, food.servingSize ? `${food.servingSize}` : '');
+  };
+
+  const handleUseRecentFood = (food: FoodEntry) => {
+    const baseFood = createBaseFoodFromEntry(food);
+    const nextQuantity = food.quantity ? `${food.quantity}` : `${food.servingSize ?? 1}`;
+    setName(food.name);
+    setBrandName(food.brandName);
+    setDraftFoodSource(food.source);
+    setDraftFoodExternalId(food.externalId);
+    setSelectedBaseFood(baseFood);
+    setCalories(`${food.calories}`);
+    setProtein(`${food.protein}`);
+    setCarbs(`${food.carbs}`);
+    setFats(`${food.fats}`);
+    setServingSize(food.servingSize ? `${food.servingSize}` : '');
+    setServingUnit(food.servingUnit ?? '');
+    setQuantity(nextQuantity);
+    applyCalculatedMacros(baseFood, nextQuantity, food.servingSize ? `${food.servingSize}` : '');
+    setIsAddFoodFormExpanded(true);
+    setIsSearchExpanded(true);
+    scrollToSection('foodForm');
+  };
+
+  const handleEditFoodEntry = (entry: FoodEntry) => {
+    const baseFood = createBaseFoodFromEntry(entry);
+    setEditingFoodEntry(entry);
+    setMealType(entry.mealType);
+    setName(entry.name);
+    setBrandName(entry.brandName);
+    setDraftFoodSource(entry.source);
+    setDraftFoodExternalId(entry.externalId);
+    setSelectedBaseFood(baseFood);
+    setCalories(`${entry.calories}`);
+    setProtein(`${entry.protein}`);
+    setCarbs(`${entry.carbs}`);
+    setFats(`${entry.fats}`);
+    setServingSize(entry.servingSize ? `${entry.servingSize}` : '');
+    setServingUnit(entry.servingUnit ?? '');
+    setQuantity(entry.quantity ? `${entry.quantity}` : '');
+    setIsAddFoodFormExpanded(true);
+    setIsSearchExpanded(false);
+    scrollToSection('foodForm');
+  };
+
+  const handleSaveFood = () => {
+    if (name.trim().length === 0 || !Number.isFinite(Number(calories)) || Number(calories) <= 0) {
+      return;
+    }
+
+    const parsedQuantity = parseOptionalPositiveNumber(quantity);
+    const parsedServingSize = parseOptionalPositiveNumber(servingSize) ?? parsedQuantity;
+    const parsedCalories = Number(calories);
+    const foodEntry: FoodEntry = {
+      id: editingFoodEntry?.id ?? `${Date.now()}`,
+      name: name.trim(),
+      date: editingFoodEntry?.date ?? selectedDate,
+      mealType,
+      brandName,
+      calories: parsedCalories,
+      protein: parsePositiveNumber(protein),
+      carbs: parsePositiveNumber(carbs),
+      fats: parsePositiveNumber(fats),
+      baseCalories: selectedBaseFood?.baseCalories ?? parsedCalories,
+      baseProtein: selectedBaseFood?.baseProtein ?? parsePositiveNumber(protein),
+      baseCarbs: selectedBaseFood?.baseCarbs ?? parsePositiveNumber(carbs),
+      baseFats: selectedBaseFood?.baseFats ?? parsePositiveNumber(fats),
+      source: editingFoodEntry?.source ?? draftFoodSource,
+      servingSize: parsedServingSize,
+      servingUnit: servingUnit.trim() || undefined,
+      quantity: parsedQuantity,
+      externalId: editingFoodEntry?.externalId ?? draftFoodExternalId,
+      createdAt: editingFoodEntry?.createdAt ?? new Date().toISOString(),
+    };
+
+    if (editingFoodEntry) {
+      updateFoodEntry(editingFoodEntry.id, foodEntry);
+    } else {
+      addFoodEntry(foodEntry);
+    }
+
+    clearForm();
+  };
+
+  const handleSaveMealTemplate = () => {
+    if (isMealTemplateSaveDisabled) {
+      return;
+    }
+
+    const createdAt = new Date().toISOString();
+    const templateId = `${Date.now()}`;
+    addMealTemplate({
+      id: templateId,
+      name: mealTemplateName.trim(),
+      items: selectedMealFoodEntries.map((entry, index) => ({ ...entry, id: `${templateId}-item-${index}` })),
+      createdAt,
+    });
+    setMealTemplateName('');
+  };
+
+  const handleDuplicateMealTemplate = (template: MealTemplate) => {
+    const createdAt = new Date().toISOString();
+    const templateId = `${Date.now()}`;
+    addMealTemplate({
+      id: templateId,
+      name: `${template.name} copy`,
+      items: template.items.map((item, index) => ({ ...item, id: `${templateId}-item-${index}` })),
+      createdAt,
+    });
+  };
+
+  const handleUseMealTemplate = (template: MealTemplate) => {
+    const createdAt = new Date().toISOString();
+    const templateIdPrefix = `${Date.now()}`;
+    addFoodEntries(
+      template.items.map((item, index) => ({
+        ...item,
+        id: `${templateIdPrefix}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+        date: selectedDate,
+        mealType,
+        createdAt,
+      }))
+    );
+  };
+
+  const confirmDeleteFoodEntry = (entryId: string) => {
+    deleteFoodEntry(entryId);
+  };
+
+  const confirmDeleteMealTemplate = (templateId: string) => {
+    deleteMealTemplate(templateId);
+  };
+
+  const scrollToSection = (key: keyof typeof sectionOffsets.current) => {
+    const offset = sectionOffsets.current[key];
+    scrollViewRef.current?.scrollTo({ animated: true, y: Math.max(0, offset - 12) });
+  };
+
+  const goToPreviousDay = () => {
+    setSelectedDate((current) => addDays(current, -1));
+    clearForm();
+  };
+
+  const goToToday = () => {
+    setSelectedDate(formatLocalDate(new Date()));
+    clearForm();
+  };
+
+  const goToNextDay = () => {
+    setSelectedDate((current) => addDays(current, 1));
+    clearForm();
+  };
+
+  const handleOpenAddFood = () => {
+    setIsAddFoodFormExpanded(true);
+    setIsSearchExpanded(false);
+    scrollToSection('foodForm');
+  };
+
+  const handleOpenSearch = () => {
+    setIsAddFoodFormExpanded(true);
+    setIsSearchExpanded(true);
+    scrollToSection('foodForm');
+  };
+
+  const handleOpenRecentFoods = () => {
+    setIsRecentFoodsExpanded(true);
+    scrollToSection('recentFoods');
+  };
+
+  const handleOpenSavedMeals = () => {
+    setIsSavedMealsExpanded(true);
+    scrollToSection('savedMeals');
+  };
+
   const handleAddFoodToMeal = (nextMealType: MealType) => {
     setMealType(nextMealType);
     setExpandedMealType(nextMealType);
-    setIsAddFoodFormExpanded(true);
-    scrollViewRef.current?.scrollTo({ animated: true, y: Math.max(0, sectionOffsets.current.addFoodForm - 12) });
+    handleOpenAddFood();
   };
-  const handleOpenRecentFoods = (nextMealType: MealType) => {
-    setMealType(nextMealType);
-    setExpandedMealType(nextMealType);
-    setIsRecentFoodsExpanded(true);
-  };
-  const handleOpenSavedMeals = (nextMealType: MealType) => {
-    setMealType(nextMealType);
-    setExpandedMealType(nextMealType);
-    setIsSavedMealsExpanded(true);
-  };
+
   const handleToggleExpandedMeal = (nextMealType: MealType) => {
     setMealType(nextMealType);
     setExpandedMealType((current) => (current === nextMealType ? null : nextMealType));
   };
-  const selectedDateMeals = mealTypeOrder.map((type) => { const entries = selectedDateFoodEntries.filter((entry) => entry.mealType === type); const subtotal = entries.reduce((totals, entry) => ({ calories: totals.calories + entry.calories, protein: totals.protein + entry.protein, carbs: totals.carbs + entry.carbs, fats: totals.fats + entry.fats, }), { calories: 0, protein: 0, carbs: 0, fats: 0 }); return { entries, subtotal, type }; });
+
+  const selectedDateMeals = useMemo(
+    () =>
+      mealTypeOrder.map((type) => {
+        const entries = selectedDateFoodEntries.filter((entry) => entry.mealType === type);
+        const subtotal = sumNutritionTotals(entries);
+
+        return { entries, subtotal, type };
+      }),
+    [selectedDateFoodEntries]
+  );
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}
       keyboardShouldPersistTaps="handled"
+      ref={scrollViewRef}
       showsVerticalScrollIndicator={false}
-      style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}>
+      style={styles.screen}>
       <View style={styles.container}>
-        <SectionHeader title="Nutrition" subtitle="Log food, reuse meals, and review today's totals" />
-        <View style={styles.dayStrip}>
-          <Pressable onPress={goToPreviousDay} style={styles.dayStripButton}>
-            <Text style={styles.dayStripButtonText}>‹</Text>
+        <Text selectable style={styles.pageTitle}>
+          Nutrition
+        </Text>
+        <Text selectable style={styles.pageSubtitle}>
+          Fast food diary, grouped actions, and clear daily progress.
+        </Text>
+
+        <View style={styles.dateRow}>
+          <Pressable onPress={goToPreviousDay} style={styles.dateButton}>
+            <Text style={styles.dateButtonLabel}>‹</Text>
           </Pressable>
-          <Text selectable style={styles.dayStripValue}>
-            {formatSelectedDateLabel(selectedDate)}
+          <Text selectable style={styles.dateLabel}>
+            {selectedDateLabel}
           </Text>
-          <Pressable onPress={goToToday} style={styles.dayStripCenterButton}>
-            <Text style={styles.dayStripCenterButtonText}>Today</Text>
+          <Pressable onPress={goToToday} style={styles.todayButton}>
+            <Text style={styles.todayButtonLabel}>Today</Text>
           </Pressable>
-          <Pressable onPress={goToNextDay} style={styles.dayStripButton}>
-            <Text style={styles.dayStripButtonText}>›</Text>
+          <Pressable onPress={goToNextDay} style={styles.dateButton}>
+            <Text style={styles.dateButtonLabel}>›</Text>
           </Pressable>
         </View>
-        <AppCard>
-          <Text selectable style={styles.sectionTitle}>
-            Totals for {formatSelectedDateLabel(selectedDate)}
-          </Text>
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryItem}>
-              <Text selectable style={styles.summaryLabel}>Kcal</Text>
-              <Text selectable style={styles.summaryValue}>{formatNumber(selectedDateNutrition.calories)}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text selectable style={styles.summaryLabel}>Protein</Text>
-              <Text selectable style={styles.summaryValue}>{formatNumber(selectedDateNutrition.protein)} g</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text selectable style={styles.summaryLabel}>Carbs</Text>
-              <Text selectable style={styles.summaryValue}>{formatNumber(selectedDateNutrition.carbs)} g</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text selectable style={styles.summaryLabel}>Fats</Text>
-              <Text selectable style={styles.summaryValue}>{formatNumber(selectedDateNutrition.fats)} g</Text>
-            </View>
-          </View>
-        </AppCard>
+
+        <NutritionOverviewCard dateLabel={selectedDateLabel} summary={nutritionSummary} />
+        <NutritionActionsCard onAddFood={handleOpenAddFood} onOpenRecentFoods={handleOpenRecentFoods} onOpenSavedMeals={handleOpenSavedMeals} onOpenSearch={handleOpenSearch} />
+
+        {!hasFoodLoggedToday ? (
+          <NutritionEmptyState
+            description="Start the diary by logging one food item. The meal cards below will stay ready for quick entry."
+            title="No food logged today"
+          />
+        ) : null}
+
         <MealMenuCard
           entriesByMeal={selectedDateMeals}
           expandedMealType={expandedMealType}
-          formatServingInfo={formatServingInfo}
+          formatServingInfo={getServingInfo}
           mealTypeLabels={mealTypeLabels}
           onAddFoodToMeal={handleAddFoodToMeal}
           onDeleteFoodEntry={confirmDeleteFoodEntry}
           onEditFoodEntry={handleEditFoodEntry}
-          onOpenRecentFoods={handleOpenRecentFoods}
-          onOpenSavedMeals={handleOpenSavedMeals}
           onToggleExpandedMeal={handleToggleExpandedMeal}
           selectedMealType={mealType}
         />
-        <RecentFoodsSection formatServingInfo={formatServingInfo} isExpanded={isRecentFoodsExpanded} onToggleExpanded={() => setIsRecentFoodsExpanded((current) => !current)} onUseRecentFood={handleUseRecentFood} recentFoods={recentFoods} />
-        <SavedMealsSection currentMealCount={selectedMealFoodEntries.length} currentMealLabel={mealTypeLabels[mealType]} currentMealNutritionLabel={formatMacroTotals(selectedMealNutrition)} isExpanded={isSavedMealsExpanded} isMealTemplateSaveDisabled={isMealTemplateSaveDisabled} mealTemplateButtonLabel={mealTemplateButtonLabel} mealTemplateName={mealTemplateName} mealTemplates={mealTemplates} onDeleteMealTemplate={confirmDeleteMealTemplate} onMealTemplateNameChange={setMealTemplateName} onSaveMealTemplate={handleSaveMealTemplate} onToggleExpanded={() => setIsSavedMealsExpanded((current) => !current)} onUseMealTemplate={handleUseMealTemplate} selectedDateLabel={selectedDate} selectedMealEntriesCount={selectedMealFoodEntries.length} selectedMealTypeLabel={mealTypeLabels[mealType]} onDuplicateMealTemplate={handleDuplicateMealTemplate} />
-        <View onLayout={(event: LayoutChangeEvent) => {
-          sectionOffsets.current.addFoodForm = event.nativeEvent.layout.y;
-        }}>
-          <AddFoodFormSection calories={calories} carbs={carbs} currentMealTotalLabel={formatMacroTotals(selectedMealNutrition)} editingFoodEntry={editingFoodEntry} fats={fats} filteredFoods={filteredMockFoods} foodSearchQuery={foodSearchQuery} isExpanded={isAddFoodFormExpanded} isSaveDisabled={isSaveDisabled} isSearchExpanded={isSearchExpanded} mealType={mealType} mealTypeLabels={mealTypeLabels} name={name} onCaloriesChange={setCalories} onCarbsChange={setCarbs} onCancelEdit={clearForm} onFatsChange={setFats} onFoodSearchQueryChange={setFoodSearchQuery} onMealTypeChange={setMealType} onNameChange={handleNameChange} onProteinChange={setProtein} onQuantityChange={handleQuantityChange} onSaveFood={handleSaveFood} onServingSizeChange={handleServingSizeChange} onServingUnitChange={handleServingUnitChange} onToggleExpanded={() => setIsAddFoodFormExpanded((current) => !current)} onToggleSearchExpanded={() => setIsSearchExpanded((current) => !current)} onUseFood={handleUseMockFood} protein={protein} quantity={quantity} servingSize={servingSize} servingUnit={servingUnit} />
+
+        <View
+          onLayout={(event: LayoutChangeEvent) => {
+            sectionOffsets.current.foodForm = event.nativeEvent.layout.y;
+          }}>
+          <AddFoodFormSection
+            calories={calories}
+            carbs={carbs}
+            currentMealTotalLabel={currentMealTotalLabel}
+            editingFoodEntry={editingFoodEntry}
+            fats={fats}
+            filteredFoods={filteredMockFoods}
+            foodSearchQuery={foodSearchQuery}
+            isExpanded={isAddFoodFormExpanded}
+            isSaveDisabled={name.trim().length === 0 || !Number.isFinite(Number(calories)) || Number(calories) <= 0}
+            isSearchExpanded={isSearchExpanded}
+            mealType={mealType}
+            mealTypeLabels={mealTypeLabels}
+            name={name}
+            onCaloriesChange={setCalories}
+            onCarbsChange={setCarbs}
+            onCancelEdit={clearForm}
+            onFatsChange={setFats}
+            onFoodSearchQueryChange={setFoodSearchQuery}
+            onMealTypeChange={setMealType}
+            onNameChange={handleNameChange}
+            onProteinChange={setProtein}
+            onQuantityChange={handleQuantityChange}
+            onSaveFood={handleSaveFood}
+            onServingSizeChange={handleServingSizeChange}
+            onServingUnitChange={handleServingUnitChange}
+            onToggleExpanded={() => setIsAddFoodFormExpanded((current) => !current)}
+            onUseFood={handleUseMockFood}
+            protein={protein}
+            quantity={quantity}
+            servingSize={servingSize}
+            servingUnit={servingUnit}
+          />
         </View>
 
+        <View
+          onLayout={(event: LayoutChangeEvent) => {
+            sectionOffsets.current.recentFoods = event.nativeEvent.layout.y;
+          }}>
+          <RecentFoodsSection
+            formatServingInfo={getServingInfo}
+            isExpanded={isRecentFoodsExpanded}
+            onToggleExpanded={() => setIsRecentFoodsExpanded((current) => !current)}
+            onUseRecentFood={handleUseRecentFood}
+            recentFoods={recentFoods}
+          />
+        </View>
+
+        <View
+          onLayout={(event: LayoutChangeEvent) => {
+            sectionOffsets.current.savedMeals = event.nativeEvent.layout.y;
+          }}>
+          <SavedMealsSection
+            currentMealCount={currentMealEntriesCount}
+            currentMealLabel={currentMealLabel}
+            currentMealNutritionLabel={currentMealTotalLabel}
+            isExpanded={isSavedMealsExpanded}
+            isMealTemplateSaveDisabled={isMealTemplateSaveDisabled}
+            mealTemplateButtonLabel={mealTemplateButtonLabel}
+            mealTemplateName={mealTemplateName}
+            mealTemplates={mealTemplates}
+            onDeleteMealTemplate={confirmDeleteMealTemplate}
+            onDuplicateMealTemplate={handleDuplicateMealTemplate}
+            onMealTemplateNameChange={setMealTemplateName}
+            onSaveMealTemplate={handleSaveMealTemplate}
+            onToggleExpanded={() => setIsSavedMealsExpanded((current) => !current)}
+            onUseMealTemplate={handleUseMealTemplate}
+            selectedDateLabel={selectedDateLabel}
+            selectedMealEntriesCount={currentMealEntriesCount}
+            selectedMealTypeLabel={currentMealLabel}
+          />
+        </View>
       </View>
     </ScrollView>
   );
@@ -270,46 +607,25 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
     padding: Spacing.three,
-    paddingBottom: Spacing.six,
   },
-  dayStrip: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: Spacing.one,
-    justifyContent: 'space-between',
-  },
-  dayStripButton: {
+  dateButton: {
     alignItems: 'center',
     backgroundColor: Colors.dark.backgroundSelected,
     borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
     borderRadius: 999,
     borderWidth: 1,
     height: 36,
     justifyContent: 'center',
     width: 36,
   },
-  dayStripButtonText: {
+  dateButtonLabel: {
     color: Colors.dark.text,
     fontSize: 18,
     fontWeight: '800',
     lineHeight: 18,
   },
-  dayStripCenterButton: {
-    alignItems: 'center',
-    backgroundColor: Colors.dark.backgroundSelected,
-    borderColor: Colors.dark.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    minHeight: 36,
-    paddingHorizontal: Spacing.two,
-    justifyContent: 'center',
-  },
-  dayStripCenterButtonText: {
-    color: Colors.dark.text,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  dayStripValue: {
+  dateLabel: {
     color: Colors.dark.text,
     flex: 1,
     fontSize: 14,
@@ -317,165 +633,40 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
-  collapsibleHeader: {
-    paddingBottom: Spacing.two,
-  },
-  dateControls: {
-    gap: Spacing.two,
-  },
-  foodMeta: {
-    color: Colors.dark.textSecondary,
-    fontSize: 14,
-    fontVariant: ['tabular-nums'],
-    lineHeight: 20,
-  },
-  foodBrand: {
-    color: Colors.dark.textSecondary,
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  foodName: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 21,
-    width: '100%',
-  },
-  foodRow: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    gap: Spacing.one,
-    paddingTop: Spacing.three,
-  },
-  foodServing: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  mealGroup: {
-    gap: Spacing.two,
-    paddingTop: Spacing.two,
-  },
-  mealHeader: {
+  dateRow: {
     alignItems: 'center',
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
     flexDirection: 'row',
+    gap: Spacing.one,
     justifyContent: 'space-between',
-    paddingTop: Spacing.two,
   },
-  mealSubtotal: {
+  pageSubtitle: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 20,
   },
-  mealTitle: {
+  pageTitle: {
     color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  summarySubtitle: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: Spacing.one,
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
-    gap: Spacing.one,
-    marginTop: Spacing.two,
-  },
-  summaryItem: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 2,
-    minWidth: 0,
-  },
-  summaryLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  summaryValue: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '900',
   },
   screen: {
     backgroundColor: Colors.dark.background,
     flex: 1,
   },
-  input: {
-    backgroundColor: Colors.dark.background,
+  todayButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.backgroundSelected,
     borderColor: Colors.dark.border,
     borderCurve: 'continuous',
-    borderRadius: 8,
+    borderRadius: 999,
     borderWidth: 1,
-    color: Colors.dark.text,
-    fontSize: 16,
-    minHeight: 48,
+    minHeight: 36,
+    justifyContent: 'center',
     paddingHorizontal: Spacing.two,
   },
-  inputGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  inputGroup: {
-    flex: 1,
-    gap: Spacing.one,
-    minWidth: 130,
-  },
-  inputLabel: {
-    color: Colors.dark.textSecondary,
+  todayButtonLabel: {
+    color: Colors.dark.text,
     fontSize: 13,
     fontWeight: '700',
-  },
-  mealTypeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-    marginBottom: Spacing.two,
-    marginTop: Spacing.one,
-  },
-  suggestedGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  suggestedItem: {
-    flex: 1,
-    gap: Spacing.one,
-    minWidth: 120,
-  },
-  suggestedCard: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    gap: Spacing.two,
-    marginBottom: Spacing.three,
-    paddingTop: Spacing.two,
-  },
-  suggestionSummary: {
-    gap: Spacing.two,
-    marginTop: Spacing.two,
-  },
-  suggestionSummaryRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-  },
-  suggestionLabel: {
-    color: Colors.dark.textSecondary,
-    flex: 1,
-    fontSize: 15,
   },
 });

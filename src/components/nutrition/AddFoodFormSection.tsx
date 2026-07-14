@@ -43,7 +43,6 @@ type AddFoodFormSectionProps = {
   onServingSizeChange: (value: string) => void;
   onServingUnitChange: (value: string) => void;
   onToggleExpanded: () => void;
-  onToggleSearchExpanded: () => void;
   onUseFood: (food: FoodSearchResult) => void;
   protein: string;
   quantity: string;
@@ -77,7 +76,6 @@ export function AddFoodFormSection({
   onServingSizeChange,
   onServingUnitChange,
   onToggleExpanded,
-  onToggleSearchExpanded,
   onUseFood,
   protein,
   quantity,
@@ -133,17 +131,17 @@ export function AddFoodFormSection({
             </Text>
           </View>
 
-          <Pressable onPress={onToggleSearchExpanded} style={styles.collapsibleHeader}>
-            <Text selectable style={styles.sectionTitle}>
-              {`Search food ${isSearchExpanded ? '−' : '+'}`}
-            </Text>
-          </Pressable>
-
           {isSearchExpanded ? (
-            <>
-              <Text selectable style={styles.helperText}>
-                Search by name or brand, then tap Use.
-              </Text>
+            <View style={styles.searchPanel}>
+              <View style={styles.searchPanelHeader}>
+                <Text selectable style={styles.sectionTitle}>
+                  Search food
+                </Text>
+                <Text selectable style={styles.searchPanelHint}>
+                  {foodSearchQuery.trim().length > 0 ? 'Tap Use to copy a prior item.' : 'Start typing to search by name or brand.'}
+                </Text>
+              </View>
+
               <View style={styles.inputGroup}>
                 <TextInput
                   onChangeText={onFoodSearchQueryChange}
@@ -154,34 +152,38 @@ export function AddFoodFormSection({
                 />
               </View>
 
-              {filteredFoods.length === 0 ? (
+              {foodSearchQuery.trim().length === 0 ? (
                 <Text selectable style={styles.helperText}>
-                  No results yet.
+                  Search results appear here as you type. Use the top actions to jump back later.
                 </Text>
-              ) : null}
-
-              {filteredFoods.map((food) => (
-                <View key={`${food.name}-${food.servingUnit}`} style={styles.searchResult}>
-                  <View style={styles.searchResultContent}>
-                    <Text selectable style={styles.foodName}>
-                      {food.name}
-                    </Text>
-                    {food.brandName ? (
-                      <Text selectable style={styles.foodBrand}>
-                        {food.brandName}
+              ) : filteredFoods.length === 0 ? (
+                <Text selectable style={styles.helperText}>
+                  No search results yet.
+                </Text>
+              ) : (
+                filteredFoods.map((food) => (
+                  <View key={`${food.name}-${food.servingUnit}`} style={styles.searchResult}>
+                    <View style={styles.searchResultContent}>
+                      <Text selectable style={styles.foodName}>
+                        {food.name}
                       </Text>
-                    ) : null}
-                    <Text selectable style={styles.foodMeta}>
-                      {food.calories} kcal / {food.protein} g protein / {food.carbs} g carbs / {food.fats} g fats
-                    </Text>
-                    <Text selectable style={styles.foodServing}>
-                      Serving: {[food.servingSize, food.servingUnit].filter(Boolean).join(' ')}
-                    </Text>
+                      {food.brandName ? (
+                        <Text selectable style={styles.foodBrand}>
+                          {food.brandName}
+                        </Text>
+                      ) : null}
+                      <Text selectable style={styles.foodMeta}>
+                        {food.calories} kcal / {food.protein} g protein / {food.carbs} g carbs / {food.fats} g fats
+                      </Text>
+                      <Text selectable style={styles.foodServing}>
+                        Serving: {[food.servingSize, food.servingUnit].filter(Boolean).join(' ')}
+                      </Text>
+                    </View>
+                    <AppButton label="Use" onPress={() => onUseFood(food)} variant="secondary" />
                   </View>
-                  <AppButton label="Use" onPress={() => onUseFood(food)} variant="secondary" />
-                </View>
-              ))}
-            </>
+                ))
+              )}
+            </View>
           ) : null}
 
           <View style={styles.inputGrid}>
@@ -328,6 +330,21 @@ const styles = StyleSheet.create({
     color: Colors.dark.textSecondary,
     fontSize: 13,
     fontWeight: '700',
+  },
+  searchPanel: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    gap: Spacing.two,
+    marginBottom: Spacing.two,
+    paddingTop: Spacing.two,
+  },
+  searchPanelHeader: {
+    gap: 2,
+  },
+  searchPanelHint: {
+    color: Colors.dark.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
   },
   mealSummary: {
     marginBottom: Spacing.two,
