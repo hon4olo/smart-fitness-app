@@ -1,169 +1,154 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HomeActivityCard } from '@/components/home/HomeActivityCard';
+import { HomeSnapshotCard } from '@/components/home/HomeSnapshotCard';
+import { HomeSummaryCard } from '@/components/home/HomeSummaryCard';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { MetricCard } from '@/components/ui/MetricCard';
 import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { WorkoutLauncherCard } from '@/components/workouts/WorkoutLauncherCard';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { formatLocalDate, formatShortDate } from '@/lib';
-import { getLatestWeightEntry } from '@/lib/progress';
+import { addDays, formatLocalDate } from '@/lib';
+import { getClampedProgress, sumNutritionTotals } from '@/lib/nutrition';
+import { getProgressAnalytics, formatProgressDelta } from '@/lib/progress';
 import {
-  getLatestWorkoutSession,
-  getSessionVolume,
+  getCurrentWorkoutStreak,
+  getMotivationInsight,
+  getRecentActivityItems,
+  getWeeklyCaloriesAverage,
   getWeeklyWorkoutCount,
-} from '@/lib/workouts';
-import { sumNutritionTotals } from '@/lib/nutrition';
+  getWeeklyWorkoutVolumeTrend,
+  type HomeSnapshotItem,
+} from '@/lib/home';
+import { getLatestWorkoutSession } from '@/lib/workouts';
 
-type PlanItem = {
-  label: string;
-  title: string;
-  detail: string;
-};
-
-const projectPlan: PlanItem[] = [
-  {
-    label: 'Now',
-    title: 'Track and Eat data entry',
-    detail: 'Keep workout logging, meals, and progress capture stable.',
-  },
-  {
-    label: 'Next',
-    title: 'AI Coach guidance',
-    detail: 'Add explainable feedback for training, nutrition, and recovery.',
-  },
-  {
-    label: 'Then',
-    title: 'Labs and body measurements',
-    detail: 'Surface progress insights before adding deeper learning modes.',
-  },
-  {
-    label: 'Later',
-    title: 'Learn-on-demand, customization, premium coaching',
-    detail: 'Keep learning secondary while the coach and analytics mature.',
-  },
-];
-
-export default function AICoachScreen() {
+export default function HomeScreen() {
   const {
+    bodyMeasurements,
     completeOnboarding,
+    exercises,
     foodEntries,
     nutritionTargets,
     onboardingCompleted,
     profile,
     updateNutritionTargets,
     weightHistory,
-    bodyMeasurements,
-    workouts,
     workoutSessions,
   } = useAppContext();
-  const [currentWeight, setCurrentWeight] = useState('');
+  const safeAreaInsets = useSafeAreaInsets();
+  const todayKey = formatLocalDate(new Date());
+  const yesterdayKey = addDays(todayKey, -1);
+  const currentWorkout = useMemo(() => getLatestWorkoutSession(workoutSessions), [workoutSessions]);
+  const currentWorkoutStreak = useMemo(() => getCurrentWorkoutStreak(workoutSessions), [workoutSessions]);
+  const progressAnalytics = useMemo(
+    () =>
+      getProgressAnalytics({
+        bodyMeasurements,
+        exercises,
+        weightHistory,
+        workoutSessions,
+      }),
+    [bodyMeasurements, exercises, weightHistory, workoutSessions]
+  );
+  const latestWeightEntry = progressAnalytics.weight.currentWeightEntry;
+  const todaysFoodEntries = useMemo(() => foodEntries.filter((entry) => entry.date === todayKey), [foodEntries, todayKey]);
+  const yesterdaysFoodEntries = useMemo(() => foodEntries.filter((entry) => entry.date === yesterdayKey), [foodEntries, yesterdayKey]);
+  const todaysNutrition = useMemo(() => sumNutritionTotals(todaysFoodEntries), [todaysFoodEntries]);
+  const yesterdaysNutrition = useMemo(() => sumNutritionTotals(yesterdaysFoodEntries), [yesterdaysFoodEntries]);
+  const workoutsThisWeek = useMemo(() => getWeeklyWorkoutCount(workoutSessions, todayKey), [todayKey, workoutSessions]);
+  const weeklyCaloriesAverage = useMemo(() => getWeeklyCaloriesAverage(foodEntries, todayKey), [foodEntries, todayKey]);
+  const weeklyVolumeTrend = useMemo(() => getWeeklyWorkoutVolumeTrend(workoutSessions, todayKey), [todayKey, workoutSessions]);
+  const recentActivityItems = useMemo(
+    () =>
+      getRecentActivityItems({
+        foodEntries,
+        latestPrs: progressAnalytics.latestPrs,
+        weightHistory,
+        workoutSessions,
+      }),
+    [foodEntries, progressAnalytics.latestPrs, weightHistory, workoutSessions]
+  );
+  const currentWeightLabel = latestWeightEntry ? `${latestWeightEntry.weight.toFixed(1)} kg` : profile.weight || '—';
+  const latestWorkoutLabel = currentWorkout ? currentWorkout.workoutTitle : 'No workouts yet';
+  const streakLabel = currentWorkoutStreak ? `${currentWorkoutStreak.days}-day streak` : undefined;
+  const caloriesRemaining = nutritionTargets.calories - todaysNutrition.calories;
+  const caloriesRemainingLabel = caloriesRemaining < 0 ? `Over by ${Math.abs(caloriesRemaining).toFixed(0)} kcal` : `${caloriesRemaining.toFixed(0)} kcal remaining`;
+  const caloriesOverTarget = caloriesRemaining < 0;
+  const nutritionCompletionLabel = `${Math.round(getClampedProgress(todaysNutrition.calories, nutritionTargets.calories) * 100)}% today`;
+  const workoutCompletionLabel = workoutSessions.some((session) => formatLocalDate(new Date(session.finishedAt)) === todayKey)
+    ? 'Completed today'
+    : 'Pending today';
+  const motivation = getMotivationInsight({
+    currentStreak: currentWorkoutStreak?.days ?? null,
+    latestPr: progressAnalytics.latestPrs.at(0)
+      ? { label: progressAnalytics.latestPrs[0].label, value: progressAnalytics.latestPrs[0].value }
+      : undefined,
+    trainingGoal: profile.trainingDaysPerWeek,
+    weightDelta30Days: progressAnalytics.weight.delta30Days,
+    workoutsThisWeek,
+    yesterdayProteinMet: yesterdaysFoodEntries.length > 0 && yesterdaysNutrition.protein >= nutritionTargets.protein,
+  });
+
+  const snapshotItems = useMemo<HomeSnapshotItem[]>(
+    () => [
+      {
+        id: 'workouts',
+        label: 'Workouts this week',
+        value: `${workoutsThisWeek}`,
+        detail: `Goal ${profile.trainingDaysPerWeek}`,
+        tone: workoutsThisWeek >= profile.trainingDaysPerWeek ? 'positive' : 'neutral',
+      },
+      {
+        id: 'average-calories',
+        label: 'Average calories',
+        value: weeklyCaloriesAverage !== null ? `${weeklyCaloriesAverage.toFixed(0)} kcal` : '—',
+        detail: 'Last 7 days',
+        tone: weeklyCaloriesAverage !== null && weeklyCaloriesAverage <= nutritionTargets.calories ? 'positive' : 'neutral',
+      },
+      {
+        id: 'weight-trend',
+        label: 'Weight trend',
+        value: progressAnalytics.weight.delta30Days !== null ? formatProgressDelta(progressAnalytics.weight.delta30Days, 'kg') : '—',
+        detail: progressAnalytics.weight.currentWeightEntry ? 'Compared with 30 days ago' : 'No weight trend yet',
+        tone: progressAnalytics.weight.delta30Days !== null && progressAnalytics.weight.delta30Days < 0 ? 'positive' : 'warning',
+      },
+      {
+        id: 'volume-trend',
+        label: 'Training volume',
+        value: weeklyVolumeTrend.label,
+        detail: weeklyVolumeTrend.detail,
+        tone: weeklyVolumeTrend.previousVolume > 0 && weeklyVolumeTrend.currentVolume >= weeklyVolumeTrend.previousVolume ? 'positive' : 'neutral',
+      },
+    ],
+    [nutritionTargets.calories, profile.trainingDaysPerWeek, progressAnalytics.weight.currentWeightEntry, progressAnalytics.weight.delta30Days, weeklyCaloriesAverage, weeklyVolumeTrend.currentVolume, weeklyVolumeTrend.detail, weeklyVolumeTrend.previousVolume, workoutsThisWeek]
+  );
+
+  const primaryWorkoutRoute = currentWorkout
+    ? {
+        pathname: '/workout-session' as const,
+        params: { workoutId: currentWorkout.workoutId },
+      }
+    : '/track';
+
+  const handleOpenPrimaryWorkout = () => {
+    if (currentWorkout) {
+      router.push(primaryWorkoutRoute);
+      return;
+    }
+
+    router.push('/track');
+  };
+
+  const [currentWeightInput, setCurrentWeightInput] = useState('');
   const [targetWeightInput, setTargetWeightInput] = useState(`${profile.targetWeight}`);
   const [goalType, setGoalType] = useState(profile.goalType);
-  const [isWorkoutLauncherExpanded, setIsWorkoutLauncherExpanded] = useState(false);
-  const [trainingDaysPerWeekInput, setTrainingDaysPerWeekInput] = useState(
-    `${profile.trainingDaysPerWeek}`
-  );
-  const safeAreaInsets = useSafeAreaInsets();
-  const latestWeight = getLatestWeightEntry(weightHistory);
-  const today = formatLocalDate(new Date());
-  const todaysFoodEntries = foodEntries.filter((entry) => entry.date === today);
-  const todaysNutrition = sumNutritionTotals(todaysFoodEntries);
-  const latestWorkoutSession = getLatestWorkoutSession(workoutSessions);
-  const latestWorkoutVolume = latestWorkoutSession ? getSessionVolume(latestWorkoutSession) : 0;
-  const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const workoutsThisWeek = getWeeklyWorkoutCount(workoutSessions, weekStart);
-  const trainingGoal = profile.trainingDaysPerWeek;
-  const latestWeightLabel = latestWeight
-    ? `${latestWeight.weight.toFixed(1)} kg`
-    : 'No weight yet';
-  const targetWeightLabel = `${profile.targetWeight.toFixed(1)} kg`;
-  const caloriesRemaining = nutritionTargets.calories - todaysNutrition.calories;
-  const proteinRemaining = nutritionTargets.protein - todaysNutrition.protein;
-  const weightDistance = latestWeight ? profile.targetWeight - latestWeight.weight : null;
-  const weeklyTrainingDelta = trainingGoal - workoutsThisWeek;
-  const caloriesStatus =
-    caloriesRemaining < 0
-      ? `${Math.abs(caloriesRemaining).toFixed(0)} kcal over target`
-      : `${caloriesRemaining.toFixed(0)} kcal remaining today`;
-  const proteinStatus =
-    proteinRemaining <= 0
-      ? 'Protein target reached'
-      : `${proteinRemaining.toFixed(0)} g protein remaining today`;
-  const trainingStatus =
-    weeklyTrainingDelta < 0
-      ? `Weekly training goal exceeded by ${Math.abs(weeklyTrainingDelta)} workouts`
-      : `${workoutsThisWeek} / ${trainingGoal} workouts this week`;
-  const nextBestMove = (() => {
-    if (!onboardingCompleted) {
-      return {
-        title: 'Complete setup first',
-        detail: 'Add your baseline weight and goals so AI Coach can calibrate targets.',
-        action: 'Finish Quick Setup',
-        route: null as string | null,
-      };
-    }
+  const [trainingDaysPerWeekInput, setTrainingDaysPerWeekInput] = useState(`${profile.trainingDaysPerWeek}`);
 
-    if (weightHistory.length === 0) {
-      return {
-        title: 'Log your baseline weight',
-        detail: 'A first weigh-in lets Coach compare progress against your target.',
-        action: 'Open Labs',
-        route: '/labs',
-      };
-    }
-
-    if (todaysFoodEntries.length === 0) {
-      return {
-        title: 'Log today’s meals',
-        detail: 'Nutrition guidance is strongest when the app sees a full day of food data.',
-        action: 'Open Eat',
-        route: '/eat',
-      };
-    }
-
-    if (workoutsThisWeek < trainingGoal) {
-      return {
-        title: 'Schedule one more workout',
-        detail: `You’re at ${workoutsThisWeek} of ${trainingGoal} weekly sessions.`,
-        action: 'Open Track',
-        route: '/track',
-      };
-    }
-
-    if (bodyMeasurements.length === 0) {
-      return {
-        title: 'Capture body measurements',
-        detail: 'Waist, chest, and hips help Labs show change even when scale weight stalls.',
-        action: 'Open Labs',
-        route: '/labs',
-      };
-    }
-
-    return {
-      title: 'Maintain the current rhythm',
-      detail: 'You’ve logged the core data. Keep the streak alive and refine targets from Labs.',
-      action: 'Open Labs',
-      route: '/labs',
-    };
-  })();
-  const secondaryCoachNotes = [
-    `Calories: ${caloriesStatus}`,
-    `Protein: ${proteinStatus}`,
-    `Training: ${trainingStatus}`,
-  ];
-  const weightStatus =
-    weightDistance === null
-      ? 'No weight logged yet'
-      : weightDistance < 0
-        ? `${Math.abs(weightDistance).toFixed(1)} kg over target weight`
-        : `${weightDistance.toFixed(1)} kg to target weight`;
-  const parsedCurrentWeight = Number(currentWeight);
+  const parsedCurrentWeight = Number(currentWeightInput);
   const parsedTargetWeight = Number(targetWeightInput);
   const parsedTrainingDaysPerWeek = Number(trainingDaysPerWeekInput);
   const isSetupValid =
@@ -186,11 +171,7 @@ export default function AICoachScreen() {
       return;
     }
 
-    if (
-      !Number.isFinite(parsedTrainingDaysPerWeek) ||
-      parsedTrainingDaysPerWeek < 1 ||
-      parsedTrainingDaysPerWeek > 7
-    ) {
+    if (!Number.isFinite(parsedTrainingDaysPerWeek) || parsedTrainingDaysPerWeek < 1 || parsedTrainingDaysPerWeek > 7) {
       Alert.alert('Invalid input', 'Enter training days per week between 1 and 7.');
       return;
     }
@@ -201,20 +182,14 @@ export default function AICoachScreen() {
       targetWeight: parsedTargetWeight,
       trainingDaysPerWeek: parsedTrainingDaysPerWeek,
     });
+
     const maintenanceCalories = parsedCurrentWeight * 33;
     const suggestedCalories =
-      goalType === 'lose_fat'
-        ? maintenanceCalories - 300
-        : goalType === 'gain_muscle'
-          ? maintenanceCalories + 250
-          : maintenanceCalories;
+      goalType === 'lose_fat' ? maintenanceCalories - 300 : goalType === 'gain_muscle' ? maintenanceCalories + 250 : maintenanceCalories;
     const suggestedProtein = Math.round(parsedCurrentWeight * 2.0);
     const suggestedFats = Math.round(parsedCurrentWeight * 0.8);
     const suggestedCaloriesRounded = Math.round(suggestedCalories / 10) * 10;
-    const suggestedCarbs = Math.max(
-      0,
-      Math.round((suggestedCaloriesRounded - suggestedProtein * 4 - suggestedFats * 9) / 4)
-    );
+    const suggestedCarbs = Math.max(0, Math.round((suggestedCaloriesRounded - suggestedProtein * 4 - suggestedFats * 9) / 4));
 
     updateNutritionTargets({
       calories: suggestedCaloriesRounded,
@@ -222,56 +197,66 @@ export default function AICoachScreen() {
       carbs: suggestedCarbs,
       fats: suggestedFats,
     });
+
     Alert.alert('Setup complete', 'Your dashboard is ready.');
   };
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 140 }]}
       keyboardShouldPersistTaps="handled"
-      style={styles.screen}
-      contentContainerStyle={[
-        styles.content,
-        { paddingBottom: safeAreaInsets.bottom + 160 },
-      ]}>
+      showsVerticalScrollIndicator={false}
+      style={styles.screen}>
       <View style={styles.container}>
-        <SectionHeader title="AI Coach" subtitle="Home dashboard for today’s training, nutrition, and progress" />
+        <SectionHeader title="Home" subtitle="Today’s fitness dashboard" />
 
-        <AppCard>
-          <Text style={styles.sectionTitle}>Today at a glance</Text>
-          <View style={styles.coachSummary}>
-            <Text style={styles.coachTitle}>{nextBestMove.title}</Text>
-            <Text style={styles.coachDetail}>{nextBestMove.detail}</Text>
-            <View style={styles.coachNotes}>
-              {secondaryCoachNotes.map((note) => (
-                <Text key={note} style={styles.coachNote}>
-                  {note}
-                </Text>
-              ))}
-            </View>
-            {nextBestMove.route ? (
-              <AppButton
-                label={nextBestMove.action}
-                onPress={() => router.push(nextBestMove.route ?? '/labs')}
-              />
-            ) : null}
-          </View>
-        </AppCard>
+        <HomeSummaryCard
+          caloriesRemainingLabel={caloriesRemainingLabel}
+          currentWeightLabel={currentWeightLabel}
+          isCaloriesOverTarget={caloriesOverTarget}
+          latestWorkoutLabel={latestWorkoutLabel}
+          motivation={motivation}
+          nutritionCompletionLabel={nutritionCompletionLabel}
+          streakLabel={streakLabel}
+          workoutCompletionLabel={workoutCompletionLabel}
+        />
+
+        <QuickActionsCard
+          primaryAction={{
+            label: currentWorkout ? 'Continue Workout' : 'Start Workout',
+            onPress: handleOpenPrimaryWorkout,
+          }}
+          secondaryActions={[
+            { label: 'Add Food', onPress: () => router.push('/eat') },
+            { label: 'Log Weight', onPress: () => router.push('/progress') },
+          ]}
+          subtitle="One primary action, then quick logging shortcuts."
+          title="Quick actions"
+        />
+
+        <HomeActivityCard items={recentActivityItems} />
+
+        <HomeSnapshotCard items={snapshotItems} />
 
         {!onboardingCompleted ? (
           <AppCard>
-            <Text style={styles.sectionTitle}>Quick Setup</Text>
-            <Text style={styles.setupHelp}>Set your starting point once so Coach can personalize targets.</Text>
+            <Text selectable style={styles.sectionTitle}>
+              Quick setup
+            </Text>
+            <Text selectable style={styles.setupHelp}>
+              Set your baseline once so the dashboard can personalize calories and streak goals.
+            </Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Current weight</Text>
               <TextInput
                 keyboardType="decimal-pad"
-                onChangeText={setCurrentWeight}
+                onChangeText={setCurrentWeightInput}
                 placeholder="82.7"
                 placeholderTextColor={Colors.dark.textSecondary}
                 style={styles.input}
-                value={currentWeight}
+                value={currentWeightInput}
               />
             </View>
 
@@ -301,232 +286,28 @@ export default function AICoachScreen() {
 
             <Text style={styles.inputLabel}>Goal type</Text>
             <View style={styles.goalTypeRow}>
-              <AppButton
-                label="Lose fat"
-                onPress={() => setGoalType('lose_fat')}
-                variant={goalType === 'lose_fat' ? 'primary' : 'secondary'}
-              />
-              <AppButton
-                label="Maintain"
-                onPress={() => setGoalType('maintain')}
-                variant={goalType === 'maintain' ? 'primary' : 'secondary'}
-              />
-              <AppButton
-                label="Gain muscle"
-                onPress={() => setGoalType('gain_muscle')}
-                variant={goalType === 'gain_muscle' ? 'primary' : 'secondary'}
-              />
+              <AppButton label="Lose fat" onPress={() => setGoalType('lose_fat')} variant={goalType === 'lose_fat' ? 'primary' : 'secondary'} />
+              <AppButton label="Maintain" onPress={() => setGoalType('maintain')} variant={goalType === 'maintain' ? 'primary' : 'secondary'} />
+              <AppButton label="Gain muscle" onPress={() => setGoalType('gain_muscle')} variant={goalType === 'gain_muscle' ? 'primary' : 'secondary'} />
             </View>
 
             <AppButton disabled={!isSetupValid} label="Complete Setup" onPress={handleCompleteSetup} />
           </AppCard>
-        ) : (
-          <>
-            <View style={styles.grid}>
-              <MetricCard
-                label="Today’s calories"
-                value={`${todaysNutrition.calories.toFixed(0)} / ${nutritionTargets.calories} kcal`}
-                detail={`${Math.max(0, caloriesRemaining).toFixed(0)} kcal remaining`}
-              />
-              <MetricCard
-                label="Protein"
-                value={`${todaysNutrition.protein.toFixed(0)} / ${nutritionTargets.protein} g`}
-                detail="today"
-              />
-              <MetricCard
-                label="Carbs"
-                value={`${todaysNutrition.carbs.toFixed(0)} / ${nutritionTargets.carbs} g`}
-                detail="today"
-              />
-              <MetricCard
-                label="Fats"
-                value={`${todaysNutrition.fats.toFixed(0)} / ${nutritionTargets.fats} g`}
-                detail="today"
-              />
-              <MetricCard
-                label="Body weight"
-                value={latestWeightLabel}
-                detail={`Target ${targetWeightLabel}`}
-              />
-              <MetricCard
-                label="Last workout"
-                value={latestWorkoutSession?.workoutTitle ?? 'No sessions yet'}
-                detail={
-                  latestWorkoutSession
-                    ? `${formatShortDate(latestWorkoutSession.finishedAt)} • ${latestWorkoutSession.sets.length} sets • ${latestWorkoutVolume.toFixed(0)} kg`
-                    : 'Finish a workout to see history'
-                }
-              />
-              <MetricCard
-                label="Weekly training"
-                value={`${workoutsThisWeek} / ${trainingGoal} workouts`}
-                detail="last 7 days"
-              />
-            </View>
-
-            <AppCard>
-              <Text style={styles.sectionTitle}>Today Status</Text>
-              <View style={styles.statusList}>
-                <View style={styles.statusRow}>
-                  <Text style={styles.statusLabel}>Calories</Text>
-                  <Text style={styles.statusValue}>{caloriesStatus}</Text>
-                </View>
-                <View style={styles.statusRow}>
-                  <Text style={styles.statusLabel}>Protein</Text>
-                  <Text style={styles.statusValue}>{proteinStatus}</Text>
-                </View>
-                <View style={styles.statusRow}>
-                  <Text style={styles.statusLabel}>Training</Text>
-                  <Text style={styles.statusValue}>{trainingStatus}</Text>
-                </View>
-                <View style={styles.statusRow}>
-                  <Text style={styles.statusLabel}>Weight</Text>
-                  <Text style={styles.statusValue}>{weightStatus}</Text>
-                </View>
-              </View>
-            </AppCard>
-
-            <WorkoutLauncherCard
-              isExpanded={isWorkoutLauncherExpanded}
-              onCreateWorkout={() => router.push('/track')}
-              onStart={(workoutId) =>
-                router.push({
-                  pathname: '/workout-session',
-                  params: { workoutId },
-                })
-              }
-              onToggleExpanded={() => setIsWorkoutLauncherExpanded((current) => !current)}
-              workoutSessions={workoutSessions}
-              workouts={workouts}
-            />
-
-            <QuickActionsCard
-              title="Today actions"
-              subtitle="Choose a workout, then log food or update progress in one tap."
-              primaryAction={{
-                label: 'Choose workout',
-                onPress: () => setIsWorkoutLauncherExpanded(true),
-              }}
-              secondaryActions={[
-                { label: 'Log food', onPress: () => router.push('/eat') },
-                { label: 'Add weight', onPress: () => router.push('/progress') },
-                { label: 'View progress', onPress: () => router.push('/progress') },
-              ]}
-            />
-          </>
-        )}
-
-        <AppCard>
-          <Text style={styles.sectionTitle}>Roadmap</Text>
-          <Text style={styles.roadmapHelp}>Reference only — not part of today’s main flow.</Text>
-          <View style={styles.planList}>
-            {projectPlan.map((item) => (
-              <View key={item.label} style={styles.planRow}>
-                <Text style={styles.planLabel}>{item.label}</Text>
-                <View style={styles.planContent}>
-                  <Text style={styles.planTitle}>{item.title}</Text>
-                  <Text style={styles.planDetail}>{item.detail}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </AppCard>
+        ) : null}
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  content: {
+    alignItems: 'center',
+    padding: Spacing.three,
+  },
   container: {
     gap: Spacing.three,
     maxWidth: MaxContentWidth,
     width: '100%',
-  },
-  content: {
-    alignItems: 'center',
-    gap: Spacing.three,
-    padding: Spacing.three,
-    paddingBottom: Spacing.six,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  coachDetail: {
-    color: Colors.dark.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  coachNote: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  coachNotes: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  coachSummary: {
-    gap: Spacing.two,
-  },
-  coachTitle: {
-    color: Colors.dark.text,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  quickActions: {
-    gap: Spacing.two,
-  },
-  roadmapHelp: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: Spacing.two,
-  },
-  setupHelp: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: Spacing.two,
-  },
-  planContent: {
-    flex: 1,
-    gap: 4,
-  },
-  planDetail: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  planLabel: {
-    color: Colors.dark.accent,
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    width: 48,
-  },
-  planList: {
-    gap: Spacing.two,
-  },
-  planRow: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: Spacing.two,
-    paddingTop: Spacing.two,
-  },
-  planTitle: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
   },
   goalTypeRow: {
     flexDirection: 'row',
@@ -555,27 +336,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  statusLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  statusList: {
-    gap: Spacing.two,
-  },
-  statusRow: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    gap: Spacing.one,
-    paddingTop: Spacing.two,
-  },
-  statusValue: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '700',
-  },
   screen: {
     backgroundColor: Colors.dark.background,
     flex: 1,
+  },
+  sectionTitle: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  setupHelp: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: Spacing.two,
   },
 });
