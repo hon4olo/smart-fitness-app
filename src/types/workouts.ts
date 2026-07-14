@@ -12,6 +12,10 @@ export type Exercise = {
   id: string;
   name: string;
   muscleGroup?: string;
+  notes?: string;
+  restSeconds?: number;
+  targetReps?: number;
+  targetSets?: number;
   isCustom: boolean;
   createdAt: string;
 };

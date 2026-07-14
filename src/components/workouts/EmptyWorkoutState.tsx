@@ -1,25 +1,65 @@
-import { StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 
 type EmptyWorkoutStateProps = {
+  actionLabel?: string;
+  description?: string;
   message: string;
+  onActionPress?: () => void;
+  title?: string;
 };
 
-export function EmptyWorkoutState({ message }: EmptyWorkoutStateProps) {
+export function EmptyWorkoutState({ actionLabel, description, message, onActionPress, title }: EmptyWorkoutStateProps) {
   return (
     <AppCard>
-      <Text selectable style={styles.text}>
-        {message}
-      </Text>
+      <View style={styles.container}>
+        {title ? <Text selectable style={styles.title}>{title}</Text> : null}
+        <Text selectable style={styles.message}>{message}</Text>
+        {description ? <Text selectable style={styles.description}>{description}</Text> : null}
+        {actionLabel && onActionPress ? (
+          <Pressable accessibilityRole="button" onPress={onActionPress} style={styles.action}>
+            <Text style={styles.actionLabel}>{actionLabel}</Text>
+          </Pressable>
+        ) : null}
+      </View>
     </AppCard>
   );
 }
 
 const styles = StyleSheet.create({
-  text: {
+  action: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  actionLabel: {
+    color: Colors.dark.text,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  container: {
+    gap: Spacing.two,
+  },
+  description: {
     color: Colors.dark.textSecondary,
     fontSize: 14,
+    lineHeight: 20,
+  },
+  message: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  title: {
+    color: Colors.dark.text,
+    fontSize: 16,
+    fontWeight: '800',
   },
 });

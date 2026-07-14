@@ -45,7 +45,11 @@ export function WorkoutHistorySection({ completedSessions, editingSessionId, edi
 
       {isExpanded ? (
         completedSessions.length === 0 ? (
-          <EmptyWorkoutState message="No completed workouts yet." />
+          <EmptyWorkoutState
+            description="Log a few workouts and your recent sessions will appear here."
+            message="No completed workouts yet."
+            title="Workout history is empty"
+          />
         ) : (
           completedSessions.map((session) => {
             const isEditingSession = editingSessionId === session.id;

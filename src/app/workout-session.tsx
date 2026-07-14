@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,22 +9,75 @@ import { MetricCard } from '@/components/ui/MetricCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext, WorkoutSet } from '@/context/AppContext';
+import { Workout, Exercise } from '@/types';
+import {
+  estimateWorkoutDurationFromPlan,
+  formatWorkoutPlanExercise,
+  parseWorkoutPlanDescription,
+} from '@/lib/workouts';
+
+type PlannedExercise = Exercise & {
+  notes?: string;
+  restSeconds?: number;
+  targetReps?: number;
+  targetSets?: number;
+};
+
+const formatDate = (value: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+
+const resolveWorkoutExercises = (workout?: Workout) => {
+  if (!workout) {
+    return [] as PlannedExercise[];
+  }
+
+  const parsedPlan = parseWorkoutPlanDescription(workout.description);
+
+  return workout.exercises.map((exercise, index) => {
+    const plannedExercise = parsedPlan.exercises[index];
+
+    return {
+      ...exercise,
+      ...plannedExercise,
+      name: plannedExercise?.name ?? exercise.name,
+    } satisfies PlannedExercise;
+  });
+};
 
 export default function WorkoutSessionScreen() {
   const { workouts, workoutSessions, saveWorkoutSession } = useAppContext();
   const { workoutId } = useLocalSearchParams();
   const safeAreaInsets = useSafeAreaInsets();
   const requestedWorkoutId = Array.isArray(workoutId) ? workoutId[0] : workoutId;
-  const workout = workouts.find((candidate) => candidate.id === requestedWorkoutId) ?? workouts[0];
-  const [selectedExerciseId, setSelectedExerciseId] = useState(workout.exercises[0]?.id ?? '');
+  const workout = useMemo(() => workouts.find((candidate) => candidate.id === requestedWorkoutId) ?? workouts[0], [requestedWorkoutId, workouts]);
+  const workoutExercises = useMemo(() => resolveWorkoutExercises(workout), [workout]);
+  const parsedPlan = useMemo(() => parseWorkoutPlanDescription(workout?.description), [workout?.description]);
+  const startedAt = useMemo(() => new Date().toISOString(), []);
+
+  const [selectedExerciseId, setSelectedExerciseId] = useState(workoutExercises[0]?.id ?? '');
   const [weight, setWeight] = useState('60');
   const [reps, setReps] = useState('8');
   const [sets, setSets] = useState<WorkoutSet[]>([]);
   const [editingSetId, setEditingSetId] = useState<string | undefined>();
-  const startedAt = useMemo(() => new Date().toISOString(), []);
 
-  const selectedExercise =
-    workout.exercises.find((exercise) => exercise.id === selectedExerciseId) ?? workout.exercises[0];
+  useEffect(() => {
+    setSelectedExerciseId(workoutExercises[0]?.id ?? '');
+    setWeight('60');
+    setReps('8');
+    setSets([]);
+    setEditingSetId(undefined);
+  }, [workout?.id]);
+
+  const selectedExercise = workoutExercises.find((exercise) => exercise.id === selectedExerciseId) ?? workoutExercises[0];
+  const selectedExerciseIndex = Math.max(0, workoutExercises.findIndex((exercise) => exercise.id === selectedExercise?.id));
+  const progressLabel = workoutExercises.length > 0 ? `${selectedExerciseIndex + 1} / ${workoutExercises.length}` : '0 / 0';
+  const nextExercise = workoutExercises[selectedExerciseIndex + 1];
+  const estimatedDuration = parsedPlan.exercises.length > 0 ? estimateWorkoutDurationFromPlan(parsedPlan.exercises) : workout?.duration ?? '—';
+
   const previousSets = useMemo(() => {
     if (!selectedExercise) {
       return [];
@@ -37,18 +90,15 @@ export default function WorkoutSessionScreen() {
           .map((set) => ({
             id: `${session.id}-${set.id}`,
             finishedAt: session.finishedAt,
-            workoutDate: new Intl.DateTimeFormat(undefined, {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            }).format(new Date(session.finishedAt)),
+            workoutDate: formatDate(session.finishedAt),
             reps: set.reps,
             weight: set.weight,
           }));
       })
-      .sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime())
+      .sort((left, right) => new Date(right.finishedAt).getTime() - new Date(left.finishedAt).getTime())
       .slice(0, 5);
   }, [selectedExercise, workoutSessions]);
+
   const exercisePrs = useMemo(() => {
     if (!selectedExercise) {
       return [];
@@ -59,31 +109,21 @@ export default function WorkoutSessionScreen() {
         .filter((set) => set.exerciseId === selectedExercise.id)
         .map((set) => ({
           finishedAt: session.finishedAt,
-          workoutDate: new Intl.DateTimeFormat(undefined, {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          }).format(new Date(session.finishedAt)),
+          workoutDate: formatDate(session.finishedAt),
           reps: set.reps,
           weight: set.weight,
           volume: set.weight * set.reps,
           estimated1rm: set.weight * (1 + set.reps / 30),
-        }))
+        })),
     );
 
     if (matchingSets.length === 0) {
       return [];
     }
 
-    const maxWeightSet = matchingSets.reduce((best, current) =>
-      current.weight > best.weight ? current : best
-    );
-    const bestVolumeSet = matchingSets.reduce((best, current) =>
-      current.volume > best.volume ? current : best
-    );
-    const estimated1rmSet = matchingSets.reduce((best, current) =>
-      current.estimated1rm > best.estimated1rm ? current : best
-    );
+    const maxWeightSet = matchingSets.reduce((best, current) => (current.weight > best.weight ? current : best));
+    const bestVolumeSet = matchingSets.reduce((best, current) => (current.volume > best.volume ? current : best));
+    const estimated1rmSet = matchingSets.reduce((best, current) => (current.estimated1rm > best.estimated1rm ? current : best));
 
     return [
       {
@@ -107,31 +147,31 @@ export default function WorkoutSessionScreen() {
     ];
   }, [selectedExercise, workoutSessions]);
 
-  const resetSetForm = () => {
-    setEditingSetId(undefined);
-    setSelectedExerciseId(workout.exercises[0]?.id ?? '');
-    setWeight('60');
-    setReps('8');
-  };
+  if (!workout) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.emptyScreen}>
+          <Text style={styles.emptyTitle}>No workout selected</Text>
+          <Text style={styles.emptyDescription}>Create a template first, then start a session from the workouts tab.</Text>
+          <AppButton label="Go back" onPress={() => router.replace('/')} />
+        </View>
+      </View>
+    );
+  }
 
   const handleSaveSet = () => {
+    if (!selectedExercise) {
+      return;
+    }
+
     const parsedWeight = Number(weight);
     const parsedReps = Number(reps);
 
-    if (
-      !selectedExercise ||
-      !selectedExerciseId ||
-      !Number.isFinite(parsedWeight) ||
-      !Number.isFinite(parsedReps)
-    ) {
+    if (!Number.isFinite(parsedWeight) || !Number.isFinite(parsedReps) || parsedWeight < 0 || parsedReps <= 0) {
       return;
     }
 
-    if (parsedWeight < 0 || parsedReps <= 0) {
-      return;
-    }
-
-    const nextSet = {
+    const nextSet: WorkoutSet = {
       id: editingSetId ?? `${Date.now()}-${sets.length + 1}`,
       exerciseId: selectedExercise.id,
       exerciseName: selectedExercise.name,
@@ -147,7 +187,9 @@ export default function WorkoutSessionScreen() {
       return currentSets.map((set) => (set.id === editingSetId ? nextSet : set));
     });
 
-    resetSetForm();
+    setEditingSetId(undefined);
+    setWeight('60');
+    setReps('8');
   };
 
   const handleEditSet = (set: WorkoutSet) => {
@@ -161,12 +203,15 @@ export default function WorkoutSessionScreen() {
     setSets((currentSets) => currentSets.filter((set) => set.id !== setId));
 
     if (editingSetId === setId) {
-      resetSetForm();
+      setEditingSetId(undefined);
+      setWeight('60');
+      setReps('8');
     }
   };
 
   const handleFinishWorkout = () => {
     if (sets.length === 0) {
+      Alert.alert('Add at least one set', 'You need at least one set before finishing the workout.');
       return;
     }
 
@@ -187,43 +232,63 @@ export default function WorkoutSessionScreen() {
       return;
     }
 
-    Alert.alert(
-      'Cancel workout?',
-      'Your added sets will not be saved.',
-      [
-        { text: 'Keep Training', style: 'cancel' },
-        {
-          text: 'Cancel Workout',
-          style: 'destructive',
-          onPress: () => router.replace('/'),
-        },
-      ],
-    );
+    Alert.alert('Cancel workout?', 'Your added sets will not be saved.', [
+      { text: 'Keep training', style: 'cancel' },
+      {
+        text: 'Cancel workout',
+        style: 'destructive',
+        onPress: () => router.replace('/'),
+      },
+    ]);
   };
-
-  const footerHeight = 72 + safeAreaInsets.bottom;
 
   return (
     <View style={styles.screen}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingBottom: footerHeight + Spacing.three }]}>
+        contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]}
+        keyboardShouldPersistTaps="handled"
+        style={styles.scrollView}>
         <View style={styles.container}>
           <SectionHeader title="Workout Session" subtitle={workout.title} />
 
-          <View style={styles.grid}>
-            <MetricCard label="Workout" value={workout.title} detail={workout.duration} />
-            <MetricCard label="Sets" value={`${sets.length}`} detail="added now" />
+          <View style={styles.metricsRow}>
+            <MetricCard label="Workout" value={workout.title} detail={estimatedDuration} />
+            <MetricCard label="Sets" value={`${sets.length}`} detail="logged now" />
           </View>
 
           <AppCard>
+            <View style={styles.progressHeader}>
+              <View style={styles.progressCopy}>
+                <Text selectable style={styles.sectionTitle}>
+                  Current exercise
+                </Text>
+                <Text selectable style={styles.currentExerciseName}>
+                  {selectedExercise?.name ?? 'No exercise selected'}
+                </Text>
+                <Text selectable style={styles.progressMeta}>
+                  {progressLabel}
+                  {nextExercise ? ` · Next: ${nextExercise.name}` : ''}
+                </Text>
+              </View>
+              <View style={styles.currentBadge}>
+                <Text style={styles.currentBadgeLabel}>Now</Text>
+              </View>
+            </View>
+
+            <View style={styles.progressBarTrack}>
+              <View style={[styles.progressBarFill, { width: `${workoutExercises.length > 0 ? ((selectedExerciseIndex + 1) / workoutExercises.length) * 100 : 0}%` }]} />
+            </View>
+          </AppCard>
+
+          <AppCard>
             <Text selectable style={styles.sectionTitle}>
-              Exercises
+              Exercise progression
             </Text>
             <View style={styles.exerciseList}>
-              {workout.exercises.map((exercise) => {
+              {workoutExercises.map((exercise, index) => {
                 const isSelected = exercise.id === selectedExerciseId;
+                const isComplete = index < selectedExerciseIndex;
 
                 return (
                   <Pressable
@@ -231,15 +296,25 @@ export default function WorkoutSessionScreen() {
                     key={exercise.id}
                     onPress={() => setSelectedExerciseId(exercise.id)}
                     style={({ pressed }) => [
-                      styles.exerciseButton,
-                      isSelected && styles.exerciseButtonSelected,
+                      styles.exerciseCard,
+                      isSelected && styles.exerciseCardSelected,
                       pressed && styles.pressed,
                     ]}>
-                    <Text
-                      selectable
-                      style={[styles.exerciseText, isSelected && styles.exerciseTextSelected]}>
-                      {exercise.name}
-                    </Text>
+                    <View style={styles.exerciseCardHeader}>
+                      <View style={styles.exerciseIndexPill}>
+                        <Text style={styles.exerciseIndexLabel}>{index + 1}</Text>
+                      </View>
+                      <View style={styles.exerciseCardCopy}>
+                        <Text selectable style={[styles.exerciseCardTitle, isSelected && styles.exerciseCardTitleSelected]}>
+                          {exercise.name}
+                        </Text>
+                        <Text selectable style={styles.exerciseCardMeta}>
+                          {exercise.targetSets ?? 3} sets · {exercise.targetReps ?? 8} reps · {exercise.restSeconds ?? 90}s rest
+                        </Text>
+                      </View>
+                      <Text style={styles.exerciseState}>{isSelected ? 'Current' : isComplete ? 'Done' : 'Next'}</Text>
+                    </View>
+                    {exercise.notes ? <Text selectable style={styles.exerciseNotes}>{exercise.notes}</Text> : null}
                   </Pressable>
                 );
               })}
@@ -250,9 +325,20 @@ export default function WorkoutSessionScreen() {
             <Text selectable style={styles.sectionTitle}>
               Selected exercise
             </Text>
-            <Text selectable style={styles.selectedExercise}>
+            <Text selectable style={styles.selectedExerciseName}>
               {selectedExercise?.name ?? 'No exercise selected'}
             </Text>
+
+            <View style={styles.infoGrid}>
+              <View style={styles.infoPill}>
+                <Text style={styles.infoLabel}>Targets</Text>
+                <Text style={styles.infoValue}>{selectedExercise ? `${selectedExercise.targetSets ?? 3} x ${selectedExercise.targetReps ?? 8}` : '—'}</Text>
+              </View>
+              <View style={styles.infoPill}>
+                <Text style={styles.infoLabel}>Rest</Text>
+                <Text style={styles.infoValue}>{selectedExercise ? `${selectedExercise.restSeconds ?? 90}s` : '—'}</Text>
+              </View>
+            </View>
 
             <View style={styles.historyBlock}>
               <Text selectable style={styles.historyTitle}>
@@ -260,7 +346,7 @@ export default function WorkoutSessionScreen() {
               </Text>
               {previousSets.length === 0 ? (
                 <Text selectable style={styles.emptyHistory}>
-                  No previous sets yet
+                  No previous sets yet.
                 </Text>
               ) : (
                 previousSets.map((set) => (
@@ -282,7 +368,7 @@ export default function WorkoutSessionScreen() {
               </Text>
               {exercisePrs.length === 0 ? (
                 <Text selectable style={styles.emptyHistory}>
-                  No PRs yet
+                  No PRs yet.
                 </Text>
               ) : (
                 exercisePrs.map((pr) => (
@@ -333,10 +419,8 @@ export default function WorkoutSessionScreen() {
               </View>
             </View>
 
-            <AppButton label={editingSetId ? 'Save Set' : 'Add Set'} onPress={handleSaveSet} />
-            {editingSetId ? (
-              <AppButton label="Cancel Edit" onPress={resetSetForm} variant="secondary" />
-            ) : null}
+            <AppButton label={editingSetId ? 'Save set' : 'Add set'} onPress={handleSaveSet} />
+            {editingSetId ? <AppButton label="Cancel edit" onPress={() => setEditingSetId(undefined)} variant="secondary" /> : null}
           </AppCard>
 
           <AppCard>
@@ -348,26 +432,26 @@ export default function WorkoutSessionScreen() {
                 No sets added yet.
               </Text>
             ) : (
-              sets.map((set, index) => (
-                <View key={set.id} style={styles.setRow}>
-                  <View style={styles.setContent}>
-                    <Text selectable style={styles.setName}>
-                      {index + 1}. {set.exerciseName}
-                    </Text>
-                    <Text selectable style={styles.setMeta}>
-                      {set.weight} kg x {set.reps}
-                    </Text>
-                  </View>
-                  <View style={styles.setActions}>
-                    <AppButton label="Edit" onPress={() => handleEditSet(set)} variant="secondary" />
-                    <AppButton
-                      label="Delete"
-                      onPress={() => handleDeleteSet(set.id)}
-                      variant="secondary"
-                    />
-                  </View>
-                </View>
-              ))
+              <View style={styles.setList}>
+                {sets.map((set, index) => (
+                  <AppCard key={set.id}>
+                    <View style={styles.setCard}>
+                      <View style={styles.setCardCopy}>
+                        <Text selectable style={styles.setName}>
+                          Set {index + 1} · {set.exerciseName}
+                        </Text>
+                        <Text selectable style={styles.setMeta}>
+                          {set.weight} kg x {set.reps}
+                        </Text>
+                      </View>
+                      <View style={styles.setActions}>
+                        <AppButton label="Edit" onPress={() => handleEditSet(set)} variant="secondary" />
+                        <AppButton label="Delete" onPress={() => handleDeleteSet(set.id)} variant="secondary" />
+                      </View>
+                    </View>
+                  </AppCard>
+                ))}
+              </View>
             )}
           </AppCard>
         </View>
@@ -382,14 +466,10 @@ export default function WorkoutSessionScreen() {
         ]}>
         <View style={styles.footerInner}>
           <View style={styles.cancelButtonSlot}>
-            <AppButton label="Cancel Workout" onPress={handleCancelWorkout} variant="secondary" />
+            <AppButton label="Cancel workout" onPress={handleCancelWorkout} variant="secondary" />
           </View>
           <View style={styles.finishButtonSlot}>
-            <AppButton
-              disabled={sets.length === 0}
-              label="Finish Workout"
-              onPress={handleFinishWorkout}
-            />
+            <AppButton disabled={sets.length === 0} label="Finish workout" onPress={handleFinishWorkout} />
           </View>
         </View>
       </View>
@@ -410,87 +490,114 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.three,
   },
-  emptyText: {
+  currentBadge: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.accentMuted,
+    borderColor: Colors.dark.accent,
+    borderCurve: 'continuous',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minWidth: 72,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
+  },
+  currentBadgeLabel: {
+    color: Colors.dark.accent,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  currentExerciseName: {
+    color: Colors.dark.text,
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  emptyDescription: {
     color: Colors.dark.textSecondary,
     fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   emptyHistory: {
     color: Colors.dark.textSecondary,
     fontSize: 13,
   },
-  exerciseButton: {
+  emptyScreen: {
+    alignItems: 'center',
+    flex: 1,
+    gap: Spacing.two,
+    justifyContent: 'center',
+    padding: Spacing.four,
+  },
+  emptyText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+  },
+  exerciseCard: {
+    backgroundColor: Colors.dark.backgroundElement,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: Spacing.one,
+    padding: Spacing.three,
+  },
+  exerciseCardCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  exerciseCardHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  exerciseCardMeta: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+  },
+  exerciseCardSelected: {
+    borderColor: Colors.dark.accent,
+  },
+  exerciseCardTitle: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  exerciseCardTitleSelected: {
+    color: Colors.dark.accent,
+  },
+  exerciseIndexLabel: {
+    color: Colors.dark.text,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  exerciseIndexPill: {
+    alignItems: 'center',
     backgroundColor: Colors.dark.backgroundSelected,
     borderColor: Colors.dark.border,
     borderCurve: 'continuous',
-    borderRadius: 8,
+    borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.two,
-  },
-  exerciseButtonSelected: {
-    backgroundColor: Colors.dark.accentMuted,
-    borderColor: Colors.dark.accent,
+    justifyContent: 'center',
+    minHeight: 28,
+    minWidth: 28,
   },
   exerciseList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: Spacing.two,
   },
-  exerciseText: {
-    color: Colors.dark.textSecondary,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  exerciseTextSelected: {
-    color: Colors.dark.text,
-  },
-  historyBlock: {
-    gap: Spacing.one,
-  },
-  historyDate: {
+  exerciseNotes: {
     color: Colors.dark.textSecondary,
     fontSize: 13,
+    lineHeight: 18,
   },
-  historyMeta: {
-    color: Colors.dark.text,
-    fontSize: 14,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '700',
-  },
-  historyRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'space-between',
-  },
-  historyTitle: {
+  exerciseState: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  prContent: {
-    flex: 1,
-    gap: Spacing.one,
-  },
-  prLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  prRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'space-between',
-  },
-  prValue: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontVariant: ['tabular-nums'],
+    fontSize: 12,
     fontWeight: '800',
+    textTransform: 'uppercase',
   },
   finishButtonSlot: {
-    flex: 1.7,
+    flex: 1.6,
   },
   footer: {
     backgroundColor: Colors.dark.background,
@@ -510,10 +617,58 @@ const styles = StyleSheet.create({
     maxWidth: MaxContentWidth,
     width: '100%',
   },
-  grid: {
+  historyBlock: {
+    gap: Spacing.one,
+  },
+  historyDate: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+  },
+  historyMeta: {
+    color: Colors.dark.text,
+    fontSize: 14,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+  },
+  historyRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+  },
+  historyTitle: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  infoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
+  },
+  infoLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  infoPill: {
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    gap: 4,
+    minWidth: 120,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.two,
+  },
+  infoValue: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontWeight: '800',
   },
   input: {
     backgroundColor: Colors.dark.background,
@@ -542,8 +697,64 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.two,
   },
+  metricsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
   pressed: {
-    opacity: 0.78,
+    opacity: 0.82,
+  },
+  prContent: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  prLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  prRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+  },
+  prValue: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+  },
+  progressBarFill: {
+    backgroundColor: Colors.dark.accent,
+    borderCurve: 'continuous',
+    borderRadius: 999,
+    height: 8,
+  },
+  progressBarTrack: {
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 10,
+    overflow: 'hidden',
+  },
+  progressCopy: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  progressHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+  },
+  progressMeta: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
   },
   screen: {
     backgroundColor: Colors.dark.background,
@@ -558,10 +769,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
   },
-  selectedExercise: {
+  selectedExerciseName: {
     color: Colors.dark.accent,
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '900',
+  },
+  setActions: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  setCard: {
+    gap: Spacing.two,
+  },
+  setCardCopy: {
+    gap: 2,
+  },
+  setList: {
+    gap: Spacing.two,
   },
   setMeta: {
     color: Colors.dark.text,
@@ -569,26 +793,14 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     fontWeight: '800',
   },
-  setActions: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  setContent: {
-    flex: 1,
-    gap: Spacing.one,
-  },
   setName: {
     color: Colors.dark.textSecondary,
-    flex: 1,
-    fontSize: 15,
+    fontSize: 14,
+    fontWeight: '700',
   },
-  setRow: {
-    alignItems: 'center',
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'space-between',
-    paddingTop: Spacing.two,
+  emptyTitle: {
+    color: Colors.dark.text,
+    fontSize: 20,
+    fontWeight: '900',
   },
 });
