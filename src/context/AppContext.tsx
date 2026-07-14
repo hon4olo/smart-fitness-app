@@ -27,7 +27,7 @@ import type {
 } from '@/types';
 import { defaultState as defaultAppState } from '@/data/defaults';
 import { createExerciseId, getLastWorkoutSession as getLastWorkoutSessionFromState } from '@/lib/appState';
-import { createLocalAppRepository } from '@/repositories';
+import { createRepositoryFactory } from '@/repositories';
 import { createAsyncStorageAdapter } from '@/storage';
 
 export type {
@@ -54,7 +54,8 @@ const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(defaultState);
-  const repository = useMemo(() => createLocalAppRepository(createAsyncStorageAdapter()), []);
+  const repositoryProvider = useMemo(() => createRepositoryFactory(createAsyncStorageAdapter()), []);
+  const repository = useMemo(() => repositoryProvider.getRepository(), [repositoryProvider]);
 
   useEffect(() => {
     let cancelled = false;
