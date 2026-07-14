@@ -2,6 +2,7 @@ import type { BodyMeasurement, WorkoutSession, WeightEntry } from '@/types';
 
 export * from './formatting';
 export * from './measurements';
+export * from './muscleAnalytics';
 export * from './personalRecords';
 export * from './weight';
 export * from './workoutVolume';

@@ -1,6 +1,6 @@
 import type { Exercise, WorkoutSession } from '@/types';
 
-import { matchesExerciseQuery } from '@/data/exercises';
+import { exerciseCatalogLookup, matchesExerciseQuery } from '@/data/exercises';
 
 export type WorkoutPlanExercise = {
   name: string;
@@ -151,6 +151,40 @@ export const getLatestWorkoutSessionForWorkout = (workoutId: string, sessions: W
     .filter((session) => session.workoutId === workoutId)
     .sort((a, b) => getWorkoutTimestamp(a) - getWorkoutTimestamp(b))
     .at(-1);
+};
+
+const normalizeWorkoutExerciseName = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+export const resolveExerciseByName = (exerciseName: string, exercises: Exercise[] = []) => {
+  const normalizedTarget = normalizeWorkoutExerciseName(exerciseName);
+  const byProvidedExercise = exercises.find((exercise) => {
+    if (normalizeWorkoutExerciseName(exercise.name) === normalizedTarget) {
+      return true;
+    }
+
+    if (normalizeWorkoutExerciseName(exercise.id) === normalizedTarget) {
+      return true;
+    }
+
+    return (exercise.aliases ?? []).some((alias) => normalizeWorkoutExerciseName(alias) === normalizedTarget);
+  });
+
+  if (byProvidedExercise) {
+    return byProvidedExercise;
+  }
+
+  return (
+    exerciseCatalogLookup.byName.get(normalizedTarget) ??
+    exerciseCatalogLookup.byAlias.get(normalizedTarget) ??
+    exerciseCatalogLookup.byId.get(normalizedTarget) ??
+    null
+  );
 };
 
 export const searchExercises = (exercises: Exercise[], query: string) => {

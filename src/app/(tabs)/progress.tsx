@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddBodyMeasurementCard } from '@/components/progress/AddBodyMeasurementCard';
 import { AddWeightEntryCard } from '@/components/progress/AddWeightEntryCard';
 import { EmptyProgressState } from '@/components/progress/EmptyProgressState';
+import { MuscleAnalyticsPanel } from '@/components/progress/MuscleAnalyticsPanel';
 import { ProgressSectionCard } from '@/components/progress/ProgressSectionCard';
 import { ProgressTrendChart, type ProgressTrendPoint } from '@/components/progress/ProgressTrendChart';
 import { AppButton } from '@/components/ui/AppButton';
@@ -13,7 +14,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { formatShortDate } from '@/lib';
-import { formatProgressDelta, getProgressAnalytics } from '@/lib/progress';
+import { formatProgressDelta, getMuscleAnalytics, getProgressAnalytics } from '@/lib/progress';
 
 const formatTrendLabel = (direction: 'up' | 'down' | 'stable') => {
   if (direction === 'up') {
@@ -114,6 +115,14 @@ export default function ProgressScreen() {
   const latestMeasurements = analytics.measurements;
   const improvingExercises = analytics.improvingExercises.slice(0, 4);
   const inactiveExercises = analytics.inactiveExercises.slice(0, 4);
+  const muscleAnalytics = useMemo(
+    () =>
+      getMuscleAnalytics({
+        exercises,
+        workoutSessions,
+      }),
+    [exercises, workoutSessions],
+  );
   const latestPrs = analytics.latestPrs.slice(0, 6);
   const estimatedNewPrs = analytics.estimatedNewPrs.slice(0, 4);
 
@@ -303,6 +312,8 @@ export default function ProgressScreen() {
             </View>
           )}
         </ProgressSectionCard>
+
+        <MuscleAnalyticsPanel analytics={muscleAnalytics} />
 
         <ProgressSectionCard subtitle="Recent achievements and projected next wins." title="Personal records">
           {!hasWorkoutHistory ? (
