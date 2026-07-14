@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import type { BodyMeasurement, Exercise, FoodEntry, MealTemplate, WeightEntry, Workout, WorkoutSession } from '@/types';
 
 export const createExerciseId = (name: string) => {
@@ -87,12 +85,4 @@ export const normalizeBodyMeasurements = (bodyMeasurements: BodyMeasurement[]) =
 
 export const getLastWorkoutSession = (workoutSessions: WorkoutSession[]) => {
   return workoutSessions.at(-1) ?? null;
-};
-
-export const persistState = async (storageKey: string, state: unknown) => {
-  try {
-    await AsyncStorage.setItem(storageKey, JSON.stringify(state));
-  } catch (error) {
-    console.warn('Failed to persist MVP app state', error);
-  }
 };

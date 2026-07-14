@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
   PropsWithChildren,
@@ -26,18 +25,10 @@ import type {
   WorkoutSession,
   WorkoutSet,
 } from '@/types';
-import { DEFAULT_WORKOUT_TEMPLATE_IDS as DEFAULT_WORKOUT_TEMPLATE_IDS_FROM_DATA, defaultState as defaultAppState } from '@/data/defaults';
-import {
-  createExerciseId,
-  getLastWorkoutSession as getLastWorkoutSessionFromState,
-  normalizeBodyMeasurements,
-  normalizeExercises,
-  normalizeFoodEntries,
-  normalizeMealTemplates,
-  normalizeWeightHistory,
-  normalizeWorkouts,
-  persistState,
-} from '@/lib/appState';
+import { defaultState as defaultAppState } from '@/data/defaults';
+import { createExerciseId, getLastWorkoutSession as getLastWorkoutSessionFromState } from '@/lib/appState';
+import { createLocalAppRepository } from '@/repositories';
+import { createAsyncStorageAdapter } from '@/storage';
 
 export type {
   AppContextType,
@@ -57,52 +48,31 @@ export type {
   WorkoutSet,
 } from '@/types';
 
-const APP_STATE_KEY = '@smart_fitness_mvp_state';
-const DEFAULT_WORKOUT_TEMPLATE_IDS = DEFAULT_WORKOUT_TEMPLATE_IDS_FROM_DATA;
 const defaultState: AppState = defaultAppState;
 
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(defaultState);
+  const repository = useMemo(() => createLocalAppRepository(createAsyncStorageAdapter()), []);
 
   useEffect(() => {
+    let cancelled = false;
+
     const restoreState = async () => {
-      try {
-        const storedState = await AsyncStorage.getItem(APP_STATE_KEY);
+      const storedState = await repository.loadState();
 
-        if (storedState) {
-          const parsedState = JSON.parse(storedState) as Partial<AppState>;
-
-          setState({
-            ...defaultState,
-            ...parsedState,
-            workouts: normalizeWorkouts(parsedState.workouts ?? defaultState.workouts, DEFAULT_WORKOUT_TEMPLATE_IDS),
-            exercises: normalizeExercises(parsedState.exercises ?? defaultState.exercises),
-            workoutSessions: parsedState.workoutSessions ?? defaultState.workoutSessions,
-            foodEntries: normalizeFoodEntries(parsedState.foodEntries ?? defaultState.foodEntries),
-            mealTemplates: normalizeMealTemplates(parsedState.mealTemplates ?? defaultState.mealTemplates),
-            nutritionTargets: parsedState.nutritionTargets ?? defaultState.nutritionTargets,
-            profile: {
-              ...defaultState.profile,
-              ...(parsedState.profile ?? {}),
-            },
-            onboardingCompleted: parsedState.onboardingCompleted ?? defaultState.onboardingCompleted,
-            weightHistory: normalizeWeightHistory(
-              parsedState.weightHistory ?? defaultState.weightHistory
-            ),
-            bodyMeasurements: normalizeBodyMeasurements(
-              parsedState.bodyMeasurements ?? defaultState.bodyMeasurements
-            ),
-          });
-        }
-      } catch (error) {
-        console.warn('Failed to restore MVP app state', error);
+      if (storedState && !cancelled) {
+        setState(storedState);
       }
     };
 
     void restoreState();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [repository]);
 
   const addFoodEntry = useCallback((entry: FoodEntry) => {
     setState((currentState) => {
@@ -122,7 +92,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           fats: currentState.nutrition.fats + foodEntry.fats,
         },
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -154,7 +124,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           fats: currentState.nutrition.fats + addedNutrition.fats,
         },
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -172,7 +142,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           ...currentState.mealTemplates,
         ],
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -197,7 +167,7 @@ export function AppProvider({ children }: PropsWithChildren) {
             },
           ],
         };
-        void persistState(APP_STATE_KEY, nextState);
+        void repository.saveState(nextState);
         return nextState;
       });
     },
@@ -233,7 +203,7 @@ export function AppProvider({ children }: PropsWithChildren) {
             },
           ],
         };
-        void persistState(APP_STATE_KEY, nextState);
+        void repository.saveState(nextState);
         return nextState;
       });
     },
@@ -275,7 +245,7 @@ export function AppProvider({ children }: PropsWithChildren) {
               : item
           ),
         };
-        void persistState(APP_STATE_KEY, nextState);
+        void repository.saveState(nextState);
         return nextState;
       });
     },
@@ -309,7 +279,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           fats: Math.max(0, currentState.nutrition.fats - oldEntry.fats + foodEntry.fats),
         },
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -326,7 +296,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         workouts: currentState.workouts.filter((item) => item.id !== templateId),
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -343,7 +313,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         exercises: currentState.exercises.filter((item) => item.id !== exerciseId),
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -366,7 +336,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           fats: Math.max(0, currentState.nutrition.fats - entry.fats),
         },
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -377,7 +347,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         mealTemplates: currentState.mealTemplates.filter((template) => template.id !== templateId),
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -388,7 +358,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         nutritionTargets: targets,
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -408,7 +378,7 @@ export function AppProvider({ children }: PropsWithChildren) {
             ...goals,
           },
         };
-        void persistState(APP_STATE_KEY, nextState);
+        void repository.saveState(nextState);
         return nextState;
       });
     },
@@ -421,7 +391,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         weightHistory: [entry, ...currentState.weightHistory],
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -432,7 +402,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         bodyMeasurements: [entry, ...currentState.bodyMeasurements],
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -443,7 +413,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         weightHistory: currentState.weightHistory.filter((entry) => entry.id !== entryId),
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -454,7 +424,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         bodyMeasurements: currentState.bodyMeasurements.filter((entry) => entry.id !== entryId),
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -465,7 +435,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         workoutSessions: [...currentState.workoutSessions, session],
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -505,7 +475,7 @@ export function AppProvider({ children }: PropsWithChildren) {
             ...currentState.weightHistory,
           ],
         };
-        void persistState(APP_STATE_KEY, nextState);
+        void repository.saveState(nextState);
         return nextState;
       });
     },
@@ -518,7 +488,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         onboardingCompleted: false,
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -529,7 +499,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...currentState,
         workoutSessions: currentState.workoutSessions.filter((session) => session.id !== sessionId),
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
@@ -557,7 +527,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           session.id === sessionId ? nextSession : session
         ),
       };
-      void persistState(APP_STATE_KEY, nextState);
+      void repository.saveState(nextState);
       return nextState;
     });
   }, []);
