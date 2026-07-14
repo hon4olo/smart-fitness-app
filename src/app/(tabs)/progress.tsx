@@ -6,6 +6,7 @@ import { AddBodyMeasurementCard } from '@/components/progress/AddBodyMeasurement
 import { AddWeightEntryCard } from '@/components/progress/AddWeightEntryCard';
 import { EmptyProgressState } from '@/components/progress/EmptyProgressState';
 import { MuscleAnalyticsPanel } from '@/components/progress/MuscleAnalyticsPanel';
+import { ProgressIntelligenceCard } from '@/components/progress/ProgressIntelligenceCard';
 import { ProgressSectionCard } from '@/components/progress/ProgressSectionCard';
 import { ProgressTrendChart, type ProgressTrendPoint } from '@/components/progress/ProgressTrendChart';
 import { AppButton } from '@/components/ui/AppButton';
@@ -15,6 +16,8 @@ import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { formatShortDate } from '@/lib';
 import { formatProgressDelta, getMuscleAnalytics, getProgressAnalytics } from '@/lib/progress';
+import { createDefaultTrainingProgram } from '@/lib/workouts';
+import { getProgramAdvisor, getRecoveryAdvisor, getTrainingAdvisor } from '@/lib/intelligence';
 
 const formatTrendLabel = (direction: 'up' | 'down' | 'stable') => {
   if (direction === 'up') {
@@ -67,6 +70,7 @@ export default function ProgressScreen() {
     exercises,
     weightHistory,
     workoutSessions,
+    workouts,
   } = useAppContext();
   const safeAreaInsets = useSafeAreaInsets();
   const [weight, setWeight] = useState('');
@@ -122,6 +126,22 @@ export default function ProgressScreen() {
         workoutSessions,
       }),
     [exercises, workoutSessions],
+  );
+  const currentProgram = useMemo(() => createDefaultTrainingProgram(workouts), [workouts]);
+  const trainingAdvisor = useMemo(() => getTrainingAdvisor({ exercises, program: currentProgram, workoutSessions, workouts }), [currentProgram, exercises, workoutSessions, workouts]);
+  const recoveryAdvisor = useMemo(() => getRecoveryAdvisor({ exercises, workoutSessions, workouts }), [exercises, workoutSessions, workouts]);
+  const programAdvisor = useMemo(() => getProgramAdvisor({ exercises, program: currentProgram, workouts }), [currentProgram, exercises, workouts]);
+  const progressIntelligence = useMemo(
+    () => ({
+      actionableRecommendations: [
+        ...trainingAdvisor.recommendations.slice(0, 2).map((recommendation) => recommendation.detail),
+        ...programAdvisor.recommendations.slice(0, 1).map((recommendation) => recommendation.detail),
+      ],
+      improvementOpportunities: [...trainingAdvisor.improvementOpportunities, ...programAdvisor.improvementOpportunities],
+      recoverySummary: `${recoveryAdvisor.status} · wait ${recoveryAdvisor.recommendedWaitTime} · ${recoveryAdvisor.recoveryExplanation}`,
+      trainingWarnings: [...trainingAdvisor.warnings, ...programAdvisor.warnings],
+    }),
+    [programAdvisor, recoveryAdvisor, trainingAdvisor],
   );
   const latestPrs = analytics.latestPrs.slice(0, 6);
   const estimatedNewPrs = analytics.estimatedNewPrs.slice(0, 4);
@@ -312,6 +332,13 @@ export default function ProgressScreen() {
             </View>
           )}
         </ProgressSectionCard>
+
+        <ProgressIntelligenceCard
+          actionableRecommendations={progressIntelligence.actionableRecommendations}
+          improvementOpportunities={progressIntelligence.improvementOpportunities}
+          recoverySummary={progressIntelligence.recoverySummary}
+          trainingWarnings={progressIntelligence.trainingWarnings}
+        />
 
         <MuscleAnalyticsPanel analytics={muscleAnalytics} />
 

@@ -4,6 +4,7 @@ import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HomeActivityCard } from '@/components/home/HomeActivityCard';
+import { HomeIntelligenceCard } from '@/components/home/HomeIntelligenceCard';
 import { HomeSnapshotCard } from '@/components/home/HomeSnapshotCard';
 import { HomeSummaryCard } from '@/components/home/HomeSummaryCard';
 import { AppButton } from '@/components/ui/AppButton';
@@ -12,19 +13,19 @@ import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { addDays, formatLocalDate } from '@/lib';
+import { formatLocalDate } from '@/lib';
 import { getClampedProgress, sumNutritionTotals } from '@/lib/nutrition';
 import { getProgressAnalytics, formatProgressDelta } from '@/lib/progress';
 import {
   getCurrentWorkoutStreak,
-  getMotivationInsight,
   getRecentActivityItems,
   getWeeklyCaloriesAverage,
   getWeeklyWorkoutCount,
   getWeeklyWorkoutVolumeTrend,
   type HomeSnapshotItem,
 } from '@/lib/home';
-import { getLatestWorkoutSession } from '@/lib/workouts';
+import { getLatestWorkoutSession, createDefaultTrainingProgram } from '@/lib/workouts';
+import { getMotivationInsight, getNutritionAdvisor, getProgramAdvisor, getRecoveryAdvisor, getTrainingAdvisor } from '@/lib/intelligence';
 
 export default function HomeScreen() {
   const {
@@ -38,12 +39,13 @@ export default function HomeScreen() {
     updateNutritionTargets,
     weightHistory,
     workoutSessions,
+    workouts,
   } = useAppContext();
   const safeAreaInsets = useSafeAreaInsets();
   const todayKey = formatLocalDate(new Date());
-  const yesterdayKey = addDays(todayKey, -1);
   const currentWorkout = useMemo(() => getLatestWorkoutSession(workoutSessions), [workoutSessions]);
   const currentWorkoutStreak = useMemo(() => getCurrentWorkoutStreak(workoutSessions), [workoutSessions]);
+  const currentProgram = useMemo(() => createDefaultTrainingProgram(workouts), [workouts]);
   const progressAnalytics = useMemo(
     () =>
       getProgressAnalytics({
@@ -56,12 +58,14 @@ export default function HomeScreen() {
   );
   const latestWeightEntry = progressAnalytics.weight.currentWeightEntry;
   const todaysFoodEntries = useMemo(() => foodEntries.filter((entry) => entry.date === todayKey), [foodEntries, todayKey]);
-  const yesterdaysFoodEntries = useMemo(() => foodEntries.filter((entry) => entry.date === yesterdayKey), [foodEntries, yesterdayKey]);
   const todaysNutrition = useMemo(() => sumNutritionTotals(todaysFoodEntries), [todaysFoodEntries]);
-  const yesterdaysNutrition = useMemo(() => sumNutritionTotals(yesterdaysFoodEntries), [yesterdaysFoodEntries]);
   const workoutsThisWeek = useMemo(() => getWeeklyWorkoutCount(workoutSessions, todayKey), [todayKey, workoutSessions]);
   const weeklyCaloriesAverage = useMemo(() => getWeeklyCaloriesAverage(foodEntries, todayKey), [foodEntries, todayKey]);
   const weeklyVolumeTrend = useMemo(() => getWeeklyWorkoutVolumeTrend(workoutSessions, todayKey), [todayKey, workoutSessions]);
+  const recoveryAdvisor = useMemo(() => getRecoveryAdvisor({ exercises, workoutSessions, workouts }), [exercises, workoutSessions, workouts]);
+  const trainingAdvisor = useMemo(() => getTrainingAdvisor({ exercises, program: currentProgram, workoutSessions, workouts }), [currentProgram, exercises, workoutSessions, workouts]);
+  const programAdvisor = useMemo(() => getProgramAdvisor({ exercises, program: currentProgram, workouts }), [currentProgram, exercises, workouts]);
+  const nutritionAdvisor = useMemo(() => getNutritionAdvisor({ entries: todaysFoodEntries, goalType: profile.goalType, targets: nutritionTargets }), [nutritionTargets, profile.goalType, todaysFoodEntries]);
   const recentActivityItems = useMemo(
     () =>
       getRecentActivityItems({
@@ -82,16 +86,23 @@ export default function HomeScreen() {
   const workoutCompletionLabel = workoutSessions.some((session) => formatLocalDate(new Date(session.finishedAt)) === todayKey)
     ? 'Completed today'
     : 'Pending today';
+  const weeklyVolumeChangePercent =
+    weeklyVolumeTrend.previousVolume > 0 ? ((weeklyVolumeTrend.currentVolume - weeklyVolumeTrend.previousVolume) / weeklyVolumeTrend.previousVolume) * 100 : null;
   const motivation = getMotivationInsight({
-    currentStreak: currentWorkoutStreak?.days ?? null,
-    latestPr: progressAnalytics.latestPrs.at(0)
-      ? { label: progressAnalytics.latestPrs[0].label, value: progressAnalytics.latestPrs[0].value }
-      : undefined,
-    trainingGoal: profile.trainingDaysPerWeek,
-    weightDelta30Days: progressAnalytics.weight.delta30Days,
-    workoutsThisWeek,
-    yesterdayProteinMet: yesterdaysFoodEntries.length > 0 && yesterdaysNutrition.protein >= nutritionTargets.protein,
+    nutrition: nutritionAdvisor,
+    recovery: recoveryAdvisor,
+    training: trainingAdvisor,
+    weeklyVolumeChangePercent,
+    weeklyWorkoutCount: workoutsThisWeek,
   });
+  const primaryIntelligenceRecommendation =
+    nutritionAdvisor.primaryRecommendation !== 'Macro balance looks good'
+      ? nutritionAdvisor.primaryRecommendation
+      : recoveryAdvisor.status === 'Overloaded'
+        ? `${recoveryAdvisor.recommendedWaitTime} before your next hard workout`
+        : trainingAdvisor.primaryRecommendation !== 'Maintain current program'
+          ? trainingAdvisor.primaryRecommendation
+          : programAdvisor.primaryRecommendation;
 
   const snapshotItems = useMemo<HomeSnapshotItem[]>(
     () => [
@@ -220,6 +231,16 @@ export default function HomeScreen() {
           nutritionCompletionLabel={nutritionCompletionLabel}
           streakLabel={streakLabel}
           workoutCompletionLabel={workoutCompletionLabel}
+        />
+
+        <HomeIntelligenceCard
+          motivation={motivation}
+          nutritionDetail={`${Math.round(nutritionAdvisor.caloriesRemaining)} kcal remaining · ${nutritionAdvisor.macroBalance}`}
+          nutritionStatus={nutritionAdvisor.status}
+          primaryRecommendation={primaryIntelligenceRecommendation}
+          recoveryDetail={recoveryAdvisor.recoveryExplanation}
+          recoveryStatus={recoveryAdvisor.status}
+          trainingFocus={trainingAdvisor.primaryRecommendation}
         />
 
         <QuickActionsCard
