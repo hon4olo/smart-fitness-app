@@ -529,6 +529,7 @@ export default function WorkoutsScreen() {
             onSearchChange={setExerciseSearch}
             onToggleExpanded={() => setIsExercisesExpanded((current) => !current)}
             searchValue={exerciseSearch}
+            workoutSessions={workoutSessions}
           />
         </View>
 
