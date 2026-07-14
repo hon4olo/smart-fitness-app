@@ -1,21 +1,24 @@
 import { router } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, LayoutChangeEvent, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { WorkoutBuilderCard } from '@/components/workouts/WorkoutBuilderCard';
+import { TrainingProgramBuilderCard } from '@/components/workouts/TrainingProgramBuilderCard';
 import { WorkoutExerciseLibraryCard } from '@/components/workouts/WorkoutExerciseLibraryCard';
 import { WorkoutLauncherCard } from '@/components/workouts/WorkoutLauncherCard';
 import { WorkoutTemplateCard } from '@/components/workouts/WorkoutTemplateCard';
 import { WorkoutHistorySection } from '@/components/workouts/WorkoutHistorySection';
 import { EmptyWorkoutState } from '@/components/workouts/EmptyWorkoutState';
 import type { DraftWorkoutExercise } from '@/components/workouts/workout-builder-types';
+import type { TrainingProgram } from '@/types';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext, WorkoutSession } from '@/context/AppContext';
 import { formatShortDateTime } from '@/lib';
 import {
+  createDefaultTrainingProgram,
   formatWorkoutPlanDescription,
   getLatestWorkoutSessionForWorkout,
   parseWorkoutPlanDescription,
@@ -88,12 +91,21 @@ export default function WorkoutsScreen() {
   const [isExercisesExpanded, setIsExercisesExpanded] = useState(false);
   const [isWorkoutHistoryExpanded, setIsWorkoutHistoryExpanded] = useState(true);
   const [isWorkoutLauncherExpanded, setIsWorkoutLauncherExpanded] = useState(false);
+  const [isProgramBuilderExpanded, setIsProgramBuilderExpanded] = useState(true);
+  const [trainingProgram, setTrainingProgram] = useState<TrainingProgram>(() => createDefaultTrainingProgram(workouts));
   const scrollViewRef = useRef<ScrollView>(null);
-  const sectionOffsets = useRef({ createWorkout: 0, exerciseLibrary: 0, history: 0, templates: 0 });
+  const sectionOffsets = useRef({ createWorkout: 0, exerciseLibrary: 0, history: 0, programBuilder: 0, templates: 0 });
 
   const completedSessions = useMemo(() => [...workoutSessions].reverse(), [workoutSessions]);
   const latestCompletedSession = completedSessions[0];
 
+  useEffect(() => {
+    if (trainingProgram.days.length > 0 || workouts.length === 0) {
+      return;
+    }
+
+    setTrainingProgram(createDefaultTrainingProgram(workouts));
+  }, [trainingProgram.days.length, workouts]);
   const isCustomWorkout = (workoutId: string, isCustom?: boolean) => {
     return Boolean(isCustom) || !DEFAULT_WORKOUT_TEMPLATE_IDS.has(workoutId);
   };
@@ -454,6 +466,13 @@ export default function WorkoutsScreen() {
                 label: 'Templates',
                 onPress: () => scrollToSection('templates'),
               },
+              {
+                label: 'Program builder',
+                onPress: () => {
+                  setIsProgramBuilderExpanded(true);
+                  scrollToSection('programBuilder');
+                },
+              },
             ]}
           />
 
@@ -466,6 +485,17 @@ export default function WorkoutsScreen() {
             onStart={startWorkout}
             onToggleExpanded={() => setIsWorkoutLauncherExpanded((current) => !current)}
             workoutSessions={workoutSessions}
+            workouts={workouts}
+          />
+        </View>
+
+        <View onLayout={handleSectionLayout('programBuilder')}>
+          <TrainingProgramBuilderCard
+            exercises={exercises}
+            isExpanded={isProgramBuilderExpanded}
+            onProgramChange={setTrainingProgram}
+            onToggleExpanded={() => setIsProgramBuilderExpanded((current) => !current)}
+            program={trainingProgram}
             workouts={workouts}
           />
         </View>
