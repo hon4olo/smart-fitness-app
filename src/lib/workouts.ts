@@ -1,4 +1,6 @@
-import type { WorkoutSession } from '@/types';
+import type { Exercise, WorkoutSession } from '@/types';
+
+import { matchesExerciseQuery } from '@/data/exercises';
 
 export type WorkoutPlanExercise = {
   name: string;
@@ -149,4 +151,8 @@ export const getLatestWorkoutSessionForWorkout = (workoutId: string, sessions: W
     .filter((session) => session.workoutId === workoutId)
     .sort((a, b) => getWorkoutTimestamp(a) - getWorkoutTimestamp(b))
     .at(-1);
+};
+
+export const searchExercises = (exercises: Exercise[], query: string) => {
+  return exercises.filter((exercise) => matchesExerciseQuery(exercise, query));
 };

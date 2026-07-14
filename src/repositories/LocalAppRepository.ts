@@ -1,4 +1,5 @@
 import { DEFAULT_WORKOUT_TEMPLATE_IDS as DEFAULT_WORKOUT_TEMPLATE_IDS_FROM_DATA, defaultState as defaultAppState } from '@/data/defaults';
+import { exerciseDatabase, mergeExerciseCatalog } from '@/data/exercises';
 import type { AppState } from '@/types';
 import {
   normalizeBodyMeasurements,
@@ -20,7 +21,9 @@ const normalizeStoredState = (storedState: Partial<AppState>): AppState => ({
   ...defaultState,
   ...storedState,
   workouts: normalizeWorkouts(storedState.workouts ?? defaultState.workouts, DEFAULT_WORKOUT_TEMPLATE_IDS),
-  exercises: normalizeExercises(storedState.exercises ?? defaultState.exercises),
+  exercises: storedState.exercises
+    ? mergeExerciseCatalog(exerciseDatabase, normalizeExercises(storedState.exercises))
+    : defaultState.exercises,
   workoutSessions: storedState.workoutSessions ?? defaultState.workoutSessions,
   foodEntries: normalizeFoodEntries(storedState.foodEntries ?? defaultState.foodEntries),
   mealTemplates: normalizeMealTemplates(storedState.mealTemplates ?? defaultState.mealTemplates),

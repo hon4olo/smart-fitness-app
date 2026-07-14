@@ -4,6 +4,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
 import { Exercise } from '@/types';
+import { searchExercises } from '@/lib/workouts';
 
 import { EmptyWorkoutState } from './EmptyWorkoutState';
 
@@ -53,13 +54,7 @@ export function WorkoutExerciseLibraryCard({
   searchValue,
 }: WorkoutExerciseLibraryCardProps) {
   const normalizedSearch = searchValue.trim().toLowerCase();
-  const filteredExercises = exercises.filter((exercise) => {
-    if (!normalizedSearch) {
-      return true;
-    }
-
-    return [exercise.name, exercise.muscleGroup ?? ''].some((value) => value.toLowerCase().includes(normalizedSearch));
-  });
+  const filteredExercises = searchExercises(exercises, normalizedSearch);
   const groupedExercises = groupExercises(filteredExercises);
   const groupKeys = Object.keys(groupedExercises).sort((left, right) => left.localeCompare(right));
 

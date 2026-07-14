@@ -1,5 +1,7 @@
 import type { BodyMeasurement, Exercise, FoodEntry, MealTemplate, NutritionState, NutritionTargets, ProfileState, WeightEntry, Workout, WorkoutSession } from '@/types';
 
+import { exerciseDatabase } from './exercises';
+
 export const DEFAULT_WORKOUT_TEMPLATE_IDS = new Set(['push-a', 'legs-a', 'conditioning-a']);
 export const DEFAULT_APP_DATA_CREATED_AT = '2000-01-01T00:00:00.000Z';
 
@@ -60,19 +62,7 @@ export const defaultState: AppDefaultState = {
     },
   ],
   mealTemplates: [],
-  exercises: [
-    { id: 'bench-press', name: 'Bench Press', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
-    { id: 'incline-dumbbell-press', name: 'Incline Dumbbell Press', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
-    { id: 'pull-up', name: 'Pull-up', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
-    { id: 'barbell-row', name: 'Barbell Row', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
-    { id: 'squat', name: 'Squat', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
-    { id: 'romanian-deadlift', name: 'Romanian Deadlift', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
-    { id: 'leg-press', name: 'Leg Press', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
-    { id: 'shoulder-press', name: 'Shoulder Press', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
-    { id: 'lateral-raise', name: 'Lateral Raise', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
-    { id: 'biceps-curl', name: 'Biceps Curl', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
-    { id: 'triceps-pushdown', name: 'Triceps Pushdown', isCustom: false, createdAt: DEFAULT_APP_DATA_CREATED_AT },
-  ],
+  exercises: exerciseDatabase,
   workoutSessions: [],
   foodEntries: [],
   nutrition: {

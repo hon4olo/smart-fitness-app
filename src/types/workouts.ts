@@ -1,3 +1,5 @@
+import type { Exercise as DomainExercise } from '@/domain/models';
+
 export type Workout = {
   id: string;
   title: string;
@@ -8,17 +10,7 @@ export type Workout = {
   isCustom?: boolean;
 };
 
-export type Exercise = {
-  id: string;
-  name: string;
-  muscleGroup?: string;
-  notes?: string;
-  restSeconds?: number;
-  targetReps?: number;
-  targetSets?: number;
-  isCustom: boolean;
-  createdAt: string;
-};
+export type Exercise = DomainExercise;
 
 export type WorkoutSet = {
   id: string;
