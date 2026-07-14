@@ -1,21 +1,10 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { AppButton } from '@/components/ui/AppButton';
-import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
 import type { FoodEntry, MealType } from '@/context/AppContext';
-
-type FoodSearchResult = {
-  brandName?: string;
-  calories: number;
-  carbs: number;
-  fats: number;
-  name: string;
-  protein: number;
-  servingSize?: number;
-  servingUnit?: string;
-  source: FoodEntry['source'];
-};
+import type { FoodSearchResult } from '@/components/nutrition/nutrition-types';
+import { FoodManualEntryForm } from '@/components/nutrition/FoodManualEntryForm';
+import { FoodSearchPanel } from '@/components/nutrition/FoodSearchPanel';
 
 type AddFoodFormSectionProps = {
   calories: string;
@@ -30,6 +19,7 @@ type AddFoodFormSectionProps = {
   isSearchExpanded: boolean;
   mealType: MealType;
   mealTypeLabels: Record<MealType, string>;
+  name: string;
   onCaloriesChange: (value: string) => void;
   onCarbsChange: (value: string) => void;
   onCancelEdit: () => void;
@@ -48,12 +38,12 @@ type AddFoodFormSectionProps = {
   quantity: string;
   servingSize: string;
   servingUnit: string;
-  name: string;
 };
 
 export function AddFoodFormSection({
   calories,
   carbs,
+  currentMealTotalLabel,
   editingFoodEntry,
   fats,
   filteredFoods,
@@ -63,6 +53,7 @@ export function AddFoodFormSection({
   isSearchExpanded,
   mealType,
   mealTypeLabels,
+  name,
   onCaloriesChange,
   onCarbsChange,
   onCancelEdit,
@@ -81,323 +72,56 @@ export function AddFoodFormSection({
   quantity,
   servingSize,
   servingUnit,
-  currentMealTotalLabel,
-  name,
 }: AddFoodFormSectionProps) {
   return (
-    <AppCard>
-      <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
-        <Text selectable style={styles.sectionTitle}>
-          {`${editingFoodEntry ? 'Edit food' : 'Add food'} ${isExpanded ? '−' : '+'}`}
-        </Text>
-      </Pressable>
-
-      {isExpanded ? (
-        <>
-          <Text selectable style={styles.helperText}>
-            Log a custom food or make a quick edit without leaving the diary.
-          </Text>
-
-          <View style={styles.inputGroup}>
-            <Text selectable style={styles.inputLabel}>
-              Name
-            </Text>
-            <TextInput
-              onChangeText={onNameChange}
-              placeholder="Food name"
-              placeholderTextColor={Colors.dark.textSecondary}
-              style={styles.input}
-              value={name}
-            />
-          </View>
-
-          <Text selectable style={styles.inputLabel}>
-            Meal
-          </Text>
-          <View style={styles.mealTypeRow}>
-            {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((type) => (
-              <AppButton
-                key={type}
-                label={mealTypeLabels[type]}
-                onPress={() => onMealTypeChange(type)}
-                variant={mealType === type ? 'primary' : 'secondary'}
-              />
-            ))}
-          </View>
-
-          <View style={styles.mealSummary}>
-            <Text selectable style={styles.remainingValue}>
-              Current {mealTypeLabels[mealType]} total: {currentMealTotalLabel}
-            </Text>
-          </View>
-
-          {isSearchExpanded ? (
-            <View style={styles.searchPanel}>
-              <View style={styles.searchPanelHeader}>
-                <Text selectable style={styles.sectionTitle}>
-                  Search food
-                </Text>
-                <Text selectable style={styles.searchPanelHint}>
-                  {foodSearchQuery.trim().length > 0 ? 'Tap Use to copy a prior item.' : 'Start typing to search by name or brand.'}
-                </Text>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <TextInput
-                  onChangeText={onFoodSearchQueryChange}
-                  placeholder="Search name or brand"
-                  placeholderTextColor={Colors.dark.textSecondary}
-                  style={styles.input}
-                  value={foodSearchQuery}
-                />
-              </View>
-
-              {foodSearchQuery.trim().length === 0 ? (
-                <Text selectable style={styles.helperText}>
-                  Search results appear here as you type. Use the top actions to jump back later.
-                </Text>
-              ) : filteredFoods.length === 0 ? (
-                <Text selectable style={styles.helperText}>
-                  No search results yet.
-                </Text>
-              ) : (
-                filteredFoods.map((food) => (
-                  <View key={`${food.name}-${food.servingUnit}`} style={styles.searchResult}>
-                    <View style={styles.searchResultContent}>
-                      <Text selectable style={styles.foodName}>
-                        {food.name}
-                      </Text>
-                      {food.brandName ? (
-                        <Text selectable style={styles.foodBrand}>
-                          {food.brandName}
-                        </Text>
-                      ) : null}
-                      <Text selectable style={styles.foodMeta}>
-                        {food.calories} kcal / {food.protein} g protein / {food.carbs} g carbs / {food.fats} g fats
-                      </Text>
-                      <Text selectable style={styles.foodServing}>
-                        Serving: {[food.servingSize, food.servingUnit].filter(Boolean).join(' ')}
-                      </Text>
-                    </View>
-                    <AppButton label="Use" onPress={() => onUseFood(food)} variant="secondary" />
-                  </View>
-                ))
-              )}
-            </View>
-          ) : null}
-
-          <View style={styles.inputGrid}>
-            <View style={styles.inputGroup}>
-              <Text selectable style={styles.inputLabel}>
-                Calories
-              </Text>
-              <TextInput
-                keyboardType="decimal-pad"
-                onChangeText={onCaloriesChange}
-                placeholder="0"
-                placeholderTextColor={Colors.dark.textSecondary}
-                style={styles.input}
-                value={calories}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text selectable style={styles.inputLabel}>
-                Protein
-              </Text>
-              <TextInput
-                keyboardType="decimal-pad"
-                onChangeText={onProteinChange}
-                placeholder="0"
-                placeholderTextColor={Colors.dark.textSecondary}
-                style={styles.input}
-                value={protein}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text selectable style={styles.inputLabel}>
-                Carbs
-              </Text>
-              <TextInput
-                keyboardType="decimal-pad"
-                onChangeText={onCarbsChange}
-                placeholder="0"
-                placeholderTextColor={Colors.dark.textSecondary}
-                style={styles.input}
-                value={carbs}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text selectable style={styles.inputLabel}>
-                Fats
-              </Text>
-              <TextInput
-                keyboardType="decimal-pad"
-                onChangeText={onFatsChange}
-                placeholder="0"
-                placeholderTextColor={Colors.dark.textSecondary}
-                style={styles.input}
-                value={fats}
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGrid}>
-            <View style={styles.inputGroup}>
-              <Text selectable style={styles.inputLabel}>
-                Serving size
-              </Text>
-              <TextInput
-                keyboardType="decimal-pad"
-                onChangeText={onServingSizeChange}
-                placeholder="100"
-                placeholderTextColor={Colors.dark.textSecondary}
-                style={styles.input}
-                value={servingSize}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text selectable style={styles.inputLabel}>
-                Serving unit
-              </Text>
-              <TextInput
-                onChangeText={onServingUnitChange}
-                placeholder="g"
-                placeholderTextColor={Colors.dark.textSecondary}
-                style={styles.input}
-                value={servingUnit}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text selectable style={styles.inputLabel}>
-                Quantity
-              </Text>
-              <TextInput
-                keyboardType="decimal-pad"
-                onChangeText={onQuantityChange}
-                placeholder="0"
-                placeholderTextColor={Colors.dark.textSecondary}
-                style={styles.input}
-                value={quantity}
-              />
-            </View>
-          </View>
-
-          <AppButton disabled={isSaveDisabled} label="Save food" onPress={onSaveFood} />
-          {editingFoodEntry ? <AppButton label="Cancel edit" onPress={onCancelEdit} variant="secondary" /> : null}
-        </>
+    <FoodManualEntryForm
+      calories={calories}
+      currentMealTotalLabel={currentMealTotalLabel}
+      editingFoodEntry={editingFoodEntry}
+      carbs={carbs}
+      fats={fats}
+      isExpanded={isExpanded}
+      isSaveDisabled={isSaveDisabled}
+      mealType={mealType}
+      mealTypeLabels={mealTypeLabels}
+      name={name}
+      onCaloriesChange={onCaloriesChange}
+      onCarbsChange={onCarbsChange}
+      onCancelEdit={onCancelEdit}
+      onFatsChange={onFatsChange}
+      onMealTypeChange={onMealTypeChange}
+      onNameChange={onNameChange}
+      onProteinChange={onProteinChange}
+      onQuantityChange={onQuantityChange}
+      onSaveFood={onSaveFood}
+      onServingSizeChange={onServingSizeChange}
+      onServingUnitChange={onServingUnitChange}
+      onToggleExpanded={onToggleExpanded}
+      protein={protein}
+      quantity={quantity}
+      servingSize={servingSize}
+      servingUnit={servingUnit}
+    >
+      {isSearchExpanded ? (
+        <View style={styles.searchPanel}>
+          <FoodSearchPanel
+            filteredFoods={filteredFoods}
+            foodSearchQuery={foodSearchQuery}
+            onFoodSearchQueryChange={onFoodSearchQueryChange}
+            onUseFood={onUseFood}
+          />
+        </View>
       ) : null}
-    </AppCard>
+    </FoodManualEntryForm>
   );
 }
 
 const styles = StyleSheet.create({
-  collapsibleHeader: {
-    paddingBottom: Spacing.two,
-  },
-  input: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 8,
-    borderWidth: 1,
-    color: Colors.dark.text,
-    fontSize: 16,
-    minHeight: 48,
-    paddingHorizontal: Spacing.two,
-  },
-  inputGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  helperText: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: Spacing.two,
-  },
-  inputGroup: {
-    flex: 1,
-    gap: Spacing.one,
-    minWidth: 130,
-  },
-  inputLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
   searchPanel: {
     borderColor: Colors.dark.border,
     borderTopWidth: 1,
     gap: Spacing.two,
     marginBottom: Spacing.two,
     paddingTop: Spacing.two,
-  },
-  searchPanelHeader: {
-    gap: 2,
-  },
-  searchPanelHint: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  mealSummary: {
-    marginBottom: Spacing.two,
-  },
-  mealTypeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-    marginBottom: Spacing.two,
-    marginTop: Spacing.one,
-  },
-  remainingValue: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    width: '100%',
-  },
-  foodBrand: {
-    color: Colors.dark.textSecondary,
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  foodMeta: {
-    color: Colors.dark.textSecondary,
-    fontSize: 14,
-    fontVariant: ['tabular-nums'],
-    lineHeight: 20,
-  },
-  foodName: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 21,
-    width: '100%',
-  },
-  foodServing: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  searchResult: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    gap: Spacing.two,
-    paddingTop: Spacing.three,
-  },
-  searchResultContent: {
-    gap: Spacing.one,
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
   },
 });
