@@ -1,8 +1,9 @@
-import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
-import { AppButton } from '@/components/ui/AppButton';
-import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
+import { AppSection } from '@/components/ui/AppSection';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { SecondaryButton } from '@/components/ui/SecondaryButton';
+import { Spacing } from '@/constants/theme';
 
 type QuickAction = {
   disabled?: boolean;
@@ -18,92 +19,35 @@ type QuickActionsCardProps = {
   title: string;
 };
 
-function QuickActionChip({ disabled = false, label, onPress }: QuickAction) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={disabled ? undefined : onPress}
-      style={({ pressed }) => [
-        styles.chip,
-        pressed && !disabled && styles.chipPressed,
-        disabled && styles.chipDisabled,
-      ]}>
-      <Text style={[styles.chipLabel, disabled && styles.chipLabelDisabled]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 export function QuickActionsCard({ primaryAction, secondaryActions = [], style, subtitle, title }: QuickActionsCardProps) {
   return (
-    <AppCard style={style}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-      </View>
-
+    <AppSection bodyStyle={styles.body} style={style} subtitle={subtitle} title={title}>
       {primaryAction ? (
-        <AppButton
-          disabled={primaryAction.disabled}
-          label={primaryAction.label}
-          onPress={primaryAction.onPress}
-        />
+        <PrimaryButton disabled={primaryAction.disabled} label={primaryAction.label} onPress={primaryAction.onPress} />
       ) : null}
 
       {secondaryActions.length > 0 ? (
         <View style={styles.secondaryActions}>
           {secondaryActions.map((action) => (
-            <QuickActionChip key={action.label} {...action} />
+            <SecondaryButton key={action.label} disabled={action.disabled} label={action.label} onPress={action.onPress} style={styles.secondaryButton} />
           ))}
         </View>
       ) : null}
-    </AppCard>
+    </AppSection>
   );
 }
 
 const styles = StyleSheet.create({
-  chip: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.dark.backgroundSelected,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 999,
-    borderWidth: 1,
-    minHeight: 36,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 8,
-  },
-  chipDisabled: {
-    opacity: 0.45,
-  },
-  chipLabel: {
-    color: Colors.dark.text,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  chipLabelDisabled: {
-    color: Colors.dark.textSecondary,
-  },
-  chipPressed: {
-    opacity: 0.78,
-  },
-  header: {
-    gap: 4,
+  body: {
+    gap: Spacing.two,
   },
   secondaryActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.one,
   },
-  subtitle: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  title: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
+  secondaryButton: {
+    flexGrow: 1,
+    minWidth: 132,
   },
 });

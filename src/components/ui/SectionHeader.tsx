@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
 
+
 type SectionHeaderProps = {
   title: string;
   subtitle?: string;
@@ -28,12 +29,12 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: Colors.dark.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 19,
   },
   title: {
     color: Colors.dark.text,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
   },
 });

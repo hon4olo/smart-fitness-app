@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.backgroundElement,
     borderColor: Colors.dark.border,
     borderCurve: 'continuous',
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
     gap: Spacing.two,
     padding: Spacing.three,
