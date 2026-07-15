@@ -135,6 +135,7 @@ export const incrementOfflineSyncQueueRetry = (
 export const toOfflineSyncQueueSyncOperation = (operation: OfflineSyncQueueOperation): SyncOperation => ({
   id: operation.opId,
   entity: operation.entityType as unknown as SyncOperation['entity'],
+  entityId: operation.entityId,
   action: operation.action === 'delete' ? 'delete' : operation.action === 'merge' ? 'merge' : 'upsert',
   payload: operation.payload,
   revision: operation.baseRevision,

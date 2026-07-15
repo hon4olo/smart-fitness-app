@@ -45,6 +45,31 @@ export {
   createConflictPolicyRegistry,
 } from './CloudConflictPolicies';
 export type {
+  SyncBatchValidation,
+  SyncBuildResult,
+  SyncConflictResolution,
+  SyncCoordinator,
+  SyncCoordinatorDependencies,
+  SyncCoordinatorPhase,
+  SyncPreview,
+  SyncPreviewPull,
+  SyncPreparation,
+  SyncPullSimulation,
+  SyncPushSimulation,
+} from './SyncCoordinator';
+export {
+  SYNC_COORDINATOR_PHASES,
+  buildSyncBatch,
+  buildSyncResult,
+  collectPendingOperations,
+  createSyncCoordinator,
+  prepareSync,
+  resolveConflicts,
+  simulatePull,
+  simulatePush,
+  validateBatch,
+} from './SyncCoordinator';
+export type {
   OfflineSyncQueueAction,
   OfflineSyncQueueOperation,
   OfflineSyncQueueOperationPatch,

@@ -31,6 +31,7 @@ export type SyncMetadata = {
 export type SyncOperation = {
   id: string;
   entity: DomainEntityName;
+  entityId?: string;
   action: 'upsert' | 'delete' | 'merge';
   payload?: Record<string, unknown>;
   revision?: SyncRevision;
