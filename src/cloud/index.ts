@@ -13,6 +13,8 @@ export type { CloudSyncStatus } from './CloudSyncStatus';
 export { CLOUD_SYNC_STATUSES } from './CloudSyncStatus';
 export type {
   ConflictRecord,
+  ConflictResolutionStrategy,
+  ConflictStatus,
   SyncBatch,
   SyncMetadata,
   SyncOperation,
@@ -20,6 +22,28 @@ export type {
   SyncSnapshot,
   SyncState,
 } from './CloudSyncTypes';
+export {
+  CLOUD_CONFLICT_RESOLUTION_STRATEGIES,
+  CLOUD_CONFLICT_STATUSES,
+} from './CloudSyncTypes';
+export type {
+  ConflictDetectionInput,
+  ConflictResolutionOutcome,
+  ConflictResolutionResult,
+  ConflictResolver,
+} from './CloudConflictResolver';
+export {
+  createConflictResolver,
+} from './CloudConflictResolver';
+export type {
+  ConflictPolicy,
+  ConflictPolicyRegistry,
+} from './CloudConflictPolicies';
+export {
+  DEFAULT_CONFLICT_POLICY,
+  DEFAULT_CONFLICT_POLICIES,
+  createConflictPolicyRegistry,
+} from './CloudConflictPolicies';
 export type {
   OfflineSyncQueueAction,
   OfflineSyncQueueOperation,
