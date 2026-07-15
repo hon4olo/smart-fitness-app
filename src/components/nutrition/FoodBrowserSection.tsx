@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -35,18 +36,20 @@ type FoodBrowserSectionProps = {
   selectedMode: FoodBrowserMode;
 };
 
-const renderFoodCard = (
-  food: FoodCatalogItem,
-  handlers: {
-    onOpenFood: (food: FoodCatalogItem) => void;
-    onQuickAddFood: (food: FoodCatalogItem, servings?: number) => void;
-    onToggleFavorite: (food: FoodCatalogItem) => void;
-  },
-  isFavorite: boolean,
-) => {
+type FoodCardProps = {
+  food: FoodCatalogItem;
+  isFavorite: boolean;
+  onOpenFood: (food: FoodCatalogItem) => void;
+  onQuickAddFood: (food: FoodCatalogItem) => void;
+  onToggleFavorite: (food: FoodCatalogItem) => void;
+};
+
+const FoodCard = memo(function FoodCard({ food, isFavorite, onOpenFood, onQuickAddFood, onToggleFavorite }: FoodCardProps) {
+  const accessibilityLabel = `${food.name}, ${foodCategoryLabels[food.category]}, ${formatFoodServing(food)}, ${formatFoodMacros(food)}`;
+
   return (
-    <View key={food.id} style={styles.foodCard}>
-      <Pressable onPress={() => handlers.onOpenFood(food)} style={styles.foodCardMain}>
+    <View style={styles.foodCard}>
+      <Pressable accessibilityLabel={accessibilityLabel} onPress={() => onOpenFood(food)} style={styles.foodCardMain}>
         <View style={styles.foodHeaderRow}>
           <View style={styles.foodHeaderCopy}>
             <Text selectable style={styles.foodName}>
@@ -79,14 +82,18 @@ const renderFoodCard = (
       </Pressable>
 
       <View style={styles.cardActions}>
-        <AppButton label="Add" onPress={() => handlers.onQuickAddFood(food)} variant="secondary" />
-        <AppButton label={isFavorite ? 'Unfavorite' : 'Favorite'} onPress={() => handlers.onToggleFavorite(food)} variant="secondary" />
+        <AppButton label="Add" onPress={() => onQuickAddFood(food)} variant="secondary" />
+        <AppButton
+          label={isFavorite ? 'Unfavorite' : 'Favorite'}
+          onPress={() => onToggleFavorite(food)}
+          variant="secondary"
+        />
       </View>
     </View>
   );
-};
+});
 
-export function FoodBrowserSection({
+export const FoodBrowserSection = memo(function FoodBrowserSection({
   categoryChips,
   favoriteFoods,
   filteredFoods,
@@ -105,6 +112,7 @@ export function FoodBrowserSection({
   favoriteIds,
 }: FoodBrowserSectionProps) {
   const showCollections = foodSearchQuery.trim().length === 0 && selectedMode === 'all' && selectedCategory === 'all';
+  const favoriteIdSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
 
   return (
     <AppCard>
@@ -176,7 +184,16 @@ export function FoodBrowserSection({
                     Favorites
                   </Text>
                   <View style={styles.collectionList}>
-                    {favoriteFoods.map((food) => renderFoodCard(food, { onOpenFood, onQuickAddFood, onToggleFavorite }, favoriteIds.includes(food.id)))}
+                    {favoriteFoods.map((food) => (
+                      <FoodCard
+                        key={food.id}
+                        food={food}
+                        isFavorite={favoriteIdSet.has(food.id)}
+                        onOpenFood={onOpenFood}
+                        onQuickAddFood={onQuickAddFood}
+                        onToggleFavorite={onToggleFavorite}
+                      />
+                    ))}
                   </View>
                 </View>
               ) : null}
@@ -187,7 +204,16 @@ export function FoodBrowserSection({
                     Recent foods
                   </Text>
                   <View style={styles.collectionList}>
-                    {recentFoods.map((food) => renderFoodCard(food, { onOpenFood, onQuickAddFood, onToggleFavorite }, favoriteIds.includes(food.id)))}
+                    {recentFoods.map((food) => (
+                      <FoodCard
+                        key={food.id}
+                        food={food}
+                        isFavorite={favoriteIdSet.has(food.id)}
+                        onOpenFood={onOpenFood}
+                        onQuickAddFood={onQuickAddFood}
+                        onToggleFavorite={onToggleFavorite}
+                      />
+                    ))}
                   </View>
                 </View>
               ) : null}
@@ -197,7 +223,16 @@ export function FoodBrowserSection({
                   Popular foods
                 </Text>
                 <View style={styles.collectionList}>
-                  {popularFoods.map((food) => renderFoodCard(food, { onOpenFood, onQuickAddFood, onToggleFavorite }, favoriteIds.includes(food.id)))}
+                  {popularFoods.map((food) => (
+                    <FoodCard
+                      key={food.id}
+                      food={food}
+                      isFavorite={favoriteIdSet.has(food.id)}
+                      onOpenFood={onOpenFood}
+                      onQuickAddFood={onQuickAddFood}
+                      onToggleFavorite={onToggleFavorite}
+                    />
+                  ))}
                 </View>
               </View>
             </View>
@@ -207,7 +242,16 @@ export function FoodBrowserSection({
                 {filteredFoods.length} food{filteredFoods.length === 1 ? '' : 's'}
               </Text>
               <View style={styles.collectionList}>
-                {filteredFoods.map((food) => renderFoodCard(food, { onOpenFood, onQuickAddFood, onToggleFavorite }, favoriteIds.includes(food.id)))}
+                {filteredFoods.map((food) => (
+                  <FoodCard
+                    key={food.id}
+                    food={food}
+                    isFavorite={favoriteIdSet.has(food.id)}
+                    onOpenFood={onOpenFood}
+                    onQuickAddFood={onQuickAddFood}
+                    onToggleFavorite={onToggleFavorite}
+                  />
+                ))}
               </View>
             </View>
           ) : (
@@ -221,7 +265,7 @@ export function FoodBrowserSection({
       ) : null}
     </AppCard>
   );
-}
+});
 
 const styles = StyleSheet.create({
   body: {

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -18,7 +19,7 @@ type FoodDetailSheetProps = {
 
 const quickAddButtons = [0.5, 1, 2] as const;
 
-export function FoodDetailSheet({
+export const FoodDetailSheet = memo(function FoodDetailSheet({
   food,
   isFavorite,
   onAddFood,
@@ -169,7 +170,7 @@ export function FoodDetailSheet({
       </Pressable>
     </Modal>
   );
-}
+});
 
 const styles = StyleSheet.create({
   backdrop: {

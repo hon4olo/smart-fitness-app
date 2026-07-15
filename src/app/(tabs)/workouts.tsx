@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, LayoutChangeEvent, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -184,7 +184,7 @@ export default function WorkoutsScreen() {
     ]);
   };
 
-  const handleAddExercise = () => {
+  const handleAddExercise = useCallback(() => {
     const nextExercise = draftExerciseName.trim();
 
     if (!nextExercise || isDraftExerciseAdded(nextExercise)) {
@@ -193,17 +193,20 @@ export default function WorkoutsScreen() {
 
     setDraftExercises((currentExercises) => [...currentExercises, createDraftExercise(nextExercise)]);
     setDraftExerciseName('');
-  };
+  }, [draftExerciseName, isDraftExerciseAdded]);
 
-  const handleAddExerciseFromLibrary = (name: string) => {
-    const nextExercise = name.trim();
+  const handleAddExerciseFromLibrary = useCallback(
+    (name: string) => {
+      const nextExercise = name.trim();
 
-    if (!nextExercise || isDraftExerciseAdded(nextExercise)) {
-      return;
-    }
+      if (!nextExercise || isDraftExerciseAdded(nextExercise)) {
+        return;
+      }
 
-    setDraftExercises((currentExercises) => [...currentExercises, createDraftExercise(nextExercise)]);
-  };
+      setDraftExercises((currentExercises) => [...currentExercises, createDraftExercise(nextExercise)]);
+    },
+    [isDraftExerciseAdded],
+  );
 
   const handleDuplicateExercise = (exerciseId: string) => {
     setDraftExercises((currentExercises) => {
@@ -387,6 +390,28 @@ export default function WorkoutsScreen() {
     });
     clearSessionEdit();
   };
+
+  const handleDeleteSession = useCallback(
+    (sessionId: string) => {
+      if (editingSessionId === sessionId) {
+        Alert.alert('Delete workout?', 'This completed workout will be removed from history.', [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              clearSessionEdit();
+              deleteWorkoutSession(sessionId);
+            },
+          },
+        ]);
+        return;
+      }
+
+      confirmDeleteSession(sessionId);
+    },
+    [clearSessionEdit, deleteWorkoutSession, editingSessionId],
+  );
 
   const handleSaveWorkout = () => {
     if (isSaveWorkoutDisabled) {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -40,7 +40,7 @@ type SectionRowProps = {
   emphasis?: 'improved' | 'neutral' | 'warning';
 };
 
-function SectionRow({ delta, emphasis = 'neutral', label, value }: SectionRowProps) {
+const SectionRow = memo(function SectionRow({ delta, emphasis = 'neutral', label, value }: SectionRowProps) {
   return (
     <View style={[styles.sectionRow, emphasis === 'improved' && styles.sectionRowImproved, emphasis === 'warning' && styles.sectionRowWarning]}>
       <View style={styles.sectionRowCopy}>
@@ -58,7 +58,7 @@ function SectionRow({ delta, emphasis = 'neutral', label, value }: SectionRowPro
       ) : null}
     </View>
   );
-}
+});
 
 export default function ProgressScreen() {
   const {
@@ -95,19 +95,25 @@ export default function ProgressScreen() {
   const trendLabel = formatTrendLabel(analytics.weight.direction);
   const trendTone = analytics.weight.direction === 'down' ? 'improved' : analytics.weight.direction === 'up' ? 'warning' : 'neutral';
 
-  const weightTrendPoints: ProgressTrendPoint[] = analytics.weight.recentEntries.map((entry) => ({
-    key: entry.id,
-    label: toDateLabel(entry.createdAt),
-    value: entry.weight,
-    displayValue: entry.weight.toFixed(1),
-  }));
+  const weightTrendPoints = useMemo<ProgressTrendPoint[]>(
+    () => analytics.weight.recentEntries.map((entry) => ({
+      key: entry.id,
+      label: toDateLabel(entry.createdAt),
+      value: entry.weight,
+      displayValue: entry.weight.toFixed(1),
+    })),
+    [analytics.weight.recentEntries],
+  );
 
-  const workoutTrendPoints: ProgressTrendPoint[] = analytics.workoutVolumeTrend.map((entry) => ({
-    key: entry.id,
-    label: toDateLabel(entry.createdAt),
-    value: entry.volume,
-    displayValue: entry.volume.toLocaleString(),
-  }));
+  const workoutTrendPoints = useMemo<ProgressTrendPoint[]>(
+    () => analytics.workoutVolumeTrend.map((entry) => ({
+      key: entry.id,
+      label: toDateLabel(entry.createdAt),
+      value: entry.volume,
+      displayValue: entry.volume.toLocaleString(),
+    })),
+    [analytics.workoutVolumeTrend],
+  );
 
   const isWeightDisabled = !Number.isFinite(Number(weight)) || Number(weight) <= 0;
   const isMeasurementDisabled = measurementLabel.trim().length === 0 || measurementValue.trim().length === 0;
@@ -116,9 +122,9 @@ export default function ProgressScreen() {
   const workoutTrendPrevious = analytics.workoutVolumeTrend.at(-2) ?? null;
   const workoutTrendChange = workoutTrendLatest && workoutTrendPrevious ? workoutTrendLatest.volume - workoutTrendPrevious.volume : null;
 
-  const latestMeasurements = analytics.measurements;
-  const improvingExercises = analytics.improvingExercises.slice(0, 4);
-  const inactiveExercises = analytics.inactiveExercises.slice(0, 4);
+  const latestMeasurements = useMemo(() => analytics.measurements, [analytics.measurements]);
+  const improvingExercises = useMemo(() => analytics.improvingExercises.slice(0, 4), [analytics.improvingExercises]);
+  const inactiveExercises = useMemo(() => analytics.inactiveExercises.slice(0, 4), [analytics.inactiveExercises]);
   const muscleAnalytics = useMemo(
     () =>
       getMuscleAnalytics({
@@ -143,8 +149,8 @@ export default function ProgressScreen() {
     }),
     [programAdvisor, recoveryAdvisor, trainingAdvisor],
   );
-  const latestPrs = analytics.latestPrs.slice(0, 6);
-  const estimatedNewPrs = analytics.estimatedNewPrs.slice(0, 4);
+  const latestPrs = useMemo(() => analytics.latestPrs.slice(0, 6), [analytics.latestPrs]);
+  const estimatedNewPrs = useMemo(() => analytics.estimatedNewPrs.slice(0, 4), [analytics.estimatedNewPrs]);
 
   const saveWeight = () => {
     if (isWeightDisabled) {

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -29,7 +30,7 @@ type WorkoutHistorySessionCardProps = {
   visibleSets: WorkoutSession['sets'];
 };
 
-export function WorkoutHistorySessionCard({
+export const WorkoutHistorySessionCard = memo(function WorkoutHistorySessionCard({
   editingSessionSetId,
   formatFinishedAt,
   isEditing,
@@ -163,7 +164,7 @@ export function WorkoutHistorySessionCard({
       )}
     </AppCard>
   );
-}
+});
 
 const styles = StyleSheet.create({
   cardHeader: {

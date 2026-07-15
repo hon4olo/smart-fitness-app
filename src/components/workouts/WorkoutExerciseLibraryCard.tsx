@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -171,17 +171,19 @@ const matchesFacet = (exercise: Exercise, facet: FilterValue, facetType: 'muscle
   return matchesExerciseQuery(exercise, facet);
 };
 
-const FilterChip = ({ label, onPress, selected = false }: FilterChipProps) => (
-  <Pressable
-    accessibilityRole="button"
-    accessibilityState={{ selected }}
-    onPress={onPress}
-    style={({ pressed }) => [styles.filterChip, selected && styles.filterChipSelected, pressed && styles.pressed]}>
-    <Text style={[styles.filterChipLabel, selected && styles.filterChipLabelSelected]}>{label}</Text>
-  </Pressable>
-);
+const FilterChip = memo(function FilterChip({ label, onPress, selected = false }: FilterChipProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.filterChip, selected && styles.filterChipSelected, pressed && styles.pressed]}>
+      <Text style={[styles.filterChipLabel, selected && styles.filterChipLabelSelected]}>{label}</Text>
+    </Pressable>
+  );
+});
 
-const DetailBulletList = ({ emptyLabel, items }: DetailBulletListProps) => {
+const DetailBulletList = memo(function DetailBulletList({ emptyLabel, items }: DetailBulletListProps) {
   if (items.length === 0) {
     return <Text style={styles.detailEmpty}>{emptyLabel}</Text>;
   }
@@ -196,9 +198,9 @@ const DetailBulletList = ({ emptyLabel, items }: DetailBulletListProps) => {
       ))}
     </View>
   );
-};
+});
 
-const ExerciseRow = ({ exercise, isAdded, isFavorite, onAdd, onDelete, onOpenDetail, onToggleFavorite, query, sectionLabel }: ExerciseRowProps) => {
+const ExerciseRow = memo(function ExerciseRow({ exercise, isAdded, isFavorite, onAdd, onDelete, onOpenDetail, onToggleFavorite, query, sectionLabel }: ExerciseRowProps) {
   const summary = getExerciseSummary(exercise);
   const exerciseMeta = [getDifficultyLabel(exercise), getExerciseTypeLabel(exercise), ...summary.equipment.slice(0, 2)].filter(Boolean).join(' · ');
   const muscleMeta = [exercise.muscleGroup, ...summary.primaryMuscles.slice(0, 2)].filter(Boolean).join(' · ');
@@ -229,9 +231,9 @@ const ExerciseRow = ({ exercise, isAdded, isFavorite, onAdd, onDelete, onOpenDet
       </View>
     </View>
   );
-};
+});
 
-const ExerciseDetailSheet = ({ exercise, isFavorite, onAdd, onClose, onToggleFavorite, similarExercises }: ExerciseDetailSheetProps) => {
+const ExerciseDetailSheet = memo(function ExerciseDetailSheet({ exercise, isFavorite, onAdd, onClose, onToggleFavorite, similarExercises }: ExerciseDetailSheetProps) {
   const summary = getExerciseSummary(exercise);
 
   return (
@@ -332,9 +334,9 @@ const ExerciseDetailSheet = ({ exercise, isFavorite, onAdd, onClose, onToggleFav
       </View>
     </Modal>
   );
-};
+});
 
-export function WorkoutExerciseLibraryCard({
+export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCard({
   exerciseName,
   exerciseMuscleGroup,
   exercises,
@@ -426,7 +428,7 @@ export function WorkoutExerciseLibraryCard({
     }
   }, [exerciseIdSet, selectedExerciseId]);
 
-  const toggleFavorite = (exerciseId: string) => {
+  const toggleFavorite = useCallback((exerciseId: string) => {
     setFavoriteExerciseIds((currentFavorites) => {
       if (currentFavorites.includes(exerciseId)) {
         return currentFavorites.filter((id) => id !== exerciseId);
@@ -434,7 +436,7 @@ export function WorkoutExerciseLibraryCard({
 
       return [exerciseId, ...currentFavorites].slice(0, 50);
     });
-  };
+  }, []);
 
   const filteredExercises = useMemo(() => {
     const searchedExercises = searchExercises(exercises, searchQuery);
@@ -481,27 +483,36 @@ export function WorkoutExerciseLibraryCard({
   const hasActiveSearch = searchQuery.length > 0;
   const hasAnyResults = filteredExercises.length > 0;
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setSelectedMuscle(FILTER_ALL);
     setSelectedEquipment(FILTER_ALL);
     setSelectedDifficulty(FILTER_ALL);
     setSelectedExerciseType(FILTER_ALL);
     onSearchChange('');
-  };
+  }, [onSearchChange]);
 
-  const handleDeleteExercise = (exerciseId: string) => {
-    if (selectedExerciseId === exerciseId) {
-      setSelectedExerciseId(null);
-    }
+  const handleDeleteExercise = useCallback(
+    (exerciseId: string) => {
+      if (selectedExerciseId === exerciseId) {
+        setSelectedExerciseId(null);
+      }
 
-    setFavoriteExerciseIds((currentFavorites) => currentFavorites.filter((id) => id !== exerciseId));
-    onDeleteExercise(exerciseId);
-  };
+      setFavoriteExerciseIds((currentFavorites) => currentFavorites.filter((id) => id !== exerciseId));
+      onDeleteExercise(exerciseId);
+    },
+    [onDeleteExercise, selectedExerciseId],
+  );
 
-  const handleAddExercise = (name: string) => {
-    onAddDatabaseExercise(name);
-  };
+  const handleCloseSelectedExercise = useCallback(() => {
+    setSelectedExerciseId(null);
+  }, []);
 
+  const handleAddExercise = useCallback(
+    (name: string) => {
+      onAddDatabaseExercise(name);
+    },
+    [onAddDatabaseExercise],
+  );
   const renderExerciseSection = (title: string, exercisesToRender: Exercise[], sectionLabel: string) => {
     if (exercisesToRender.length === 0) {
       return null;
@@ -699,16 +710,16 @@ export function WorkoutExerciseLibraryCard({
               exercise={selectedExercise}
               isFavorite={favoriteIdSet.has(selectedExercise.id)}
               onAdd={handleAddExercise}
-              onClose={() => setSelectedExerciseId(null)}
+              onClose={handleCloseSelectedExercise}
               onToggleFavorite={toggleFavorite}
-              similarExercises={getSimilarExercises(selectedExercise, exercises, 5)}
+              similarExercises={selectedSimilarExercises}
             />
           ) : null}
         </>
       ) : null}
     </AppCard>
   );
-}
+});
 
 const styles = StyleSheet.create({
   collapsibleHeader: {

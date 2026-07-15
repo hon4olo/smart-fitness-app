@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -163,15 +163,19 @@ export default function NutritionScreen() {
     () => (selectedBrowserFood ? getSimilarFoods(selectedBrowserFood, foodCatalog, 6) : []),
     [selectedBrowserFood]
   );
-  const browserCategoryCounts = useMemo(
-    () =>
-      foodCategoryOrder.map((category) => ({
-        category,
-        count: foodCatalog.filter((food) => food.category === category).length,
-        label: foodCategoryLabels[category],
-      })),
-    []
-  );
+  const browserCategoryCounts = useMemo(() => {
+    const counts = new Map<FoodCategory, number>();
+
+    for (const food of foodCatalog) {
+      counts.set(food.category, (counts.get(food.category) ?? 0) + 1);
+    }
+
+    return foodCategoryOrder.map((category) => ({
+      category,
+      count: counts.get(category) ?? 0,
+      label: foodCategoryLabels[category],
+    }));
+  }, []);
   const browserModeCounts = useMemo(
     () => [
       { count: foodCatalog.length, label: 'All', mode: 'all' as const },
@@ -310,31 +314,34 @@ export default function NutritionScreen() {
     }
   };
 
-  const handleToggleFavoriteFood = (food: FoodCatalogItem) => {
+  const handleToggleFavoriteFood = useCallback((food: FoodCatalogItem) => {
     setFavoriteFoodIds((current) => (current.includes(food.id) ? current.filter((foodId) => foodId !== food.id) : [...current, food.id]));
-  };
+  }, []);
 
-  const handleOpenBrowserFood = (food: FoodCatalogItem) => {
+  const handleOpenBrowserFood = useCallback((food: FoodCatalogItem) => {
     setSelectedBrowserFood(food);
     setIsSearchExpanded(true);
     setIsAddFoodFormExpanded(true);
-  };
+  }, []);
 
-  const handleCloseBrowserFood = () => {
+  const handleCloseBrowserFood = useCallback(() => {
     setSelectedBrowserFood(null);
-  };
+  }, []);
 
-  const handleQuickAddBrowserFood = (food: FoodCatalogItem, servings = 1) => {
-    const foodEntry = buildFoodEntryFromCatalog(food, {
-      date: selectedDate,
-      mealType,
-      servings,
-    });
+  const handleQuickAddBrowserFood = useCallback(
+    (food: FoodCatalogItem, servings = 1) => {
+      const foodEntry = buildFoodEntryFromCatalog(food, {
+        date: selectedDate,
+        mealType,
+        servings,
+      });
 
-    addFoodEntry(foodEntry);
-    setIsSearchExpanded(true);
-    setIsAddFoodFormExpanded(true);
-  };
+      addFoodEntry(foodEntry);
+      setIsSearchExpanded(true);
+      setIsAddFoodFormExpanded(true);
+    },
+    [addFoodEntry, mealType, selectedDate]
+  );
 
   const handleUseRecentFood = (food: FoodEntry) => {
     const baseFood = createBaseFoodFromEntry(food);

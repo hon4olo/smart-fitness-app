@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -36,7 +37,7 @@ const getSectionTitle = (title: string, isExpanded: boolean) => {
   return `${title} ${isExpanded ? '−' : '+'}`;
 };
 
-export function WorkoutHistorySection({ completedSessions, editingSessionId, editingSessionSetId, formatFinishedAt, isExpanded, onCancelSessionEdit, onCancelSessionSetEdit, onDeleteSession, onDeleteSessionSet, onEditSession, onEditSessionSet, onSaveSessionChanges, onSaveSessionSet, onSessionExerciseNameChange, onSessionRepsChange, onSessionWeightChange, onToggleExpanded, sessionDraftSets, sessionExerciseName, sessionReps, sessionWeight, }: WorkoutHistorySectionProps) {
+export const WorkoutHistorySection = memo(function WorkoutHistorySection({ completedSessions, editingSessionId, editingSessionSetId, formatFinishedAt, isExpanded, onCancelSessionEdit, onCancelSessionSetEdit, onDeleteSession, onDeleteSessionSet, onEditSession, onEditSessionSet, onSaveSessionChanges, onSaveSessionSet, onSessionExerciseNameChange, onSessionRepsChange, onSessionWeightChange, onToggleExpanded, sessionDraftSets, sessionExerciseName, sessionReps, sessionWeight, }: WorkoutHistorySectionProps) {
   return (
     <AppCard>
       <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
@@ -87,7 +88,7 @@ export function WorkoutHistorySection({ completedSessions, editingSessionId, edi
       ) : null}
     </AppCard>
   );
-}
+});
 
 const styles = StyleSheet.create({
   collapsibleHeader: { paddingBottom: Spacing.two },

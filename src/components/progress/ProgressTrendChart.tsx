@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
@@ -17,25 +18,39 @@ type ProgressTrendChartProps = {
   points: ProgressTrendPoint[];
 };
 
-export function ProgressTrendChart({ barColor = Colors.dark.accent, emptyLabel, maxLabel, minLabel, points }: ProgressTrendChartProps) {
-  if (points.length < 2) {
-    return <Text style={styles.emptyText}>{emptyLabel}</Text>;
-  }
-
-  const minValue = points.reduce((min, point) => Math.min(min, point.value), points[0].value);
-  const maxValue = points.reduce((max, point) => Math.max(max, point.value), points[0].value);
-  const range = maxValue - minValue;
-  const scaleRange = Math.max(range, Math.max(Math.abs(maxValue), 1) * 0.12);
-
-  const getBarHeight = (value: number) => {
-    if (range === 0) {
-      return 60;
+export const ProgressTrendChart = memo(function ProgressTrendChart({
+  barColor = Colors.dark.accent,
+  emptyLabel,
+  maxLabel,
+  minLabel,
+  points,
+}: ProgressTrendChartProps) {
+  const chartMetrics = useMemo(() => {
+    if (points.length < 2) {
+      return null;
     }
 
-    const normalized = (value - minValue) / scaleRange;
+    const minValue = points.reduce((min, point) => Math.min(min, point.value), points[0].value);
+    const maxValue = points.reduce((max, point) => Math.max(max, point.value), points[0].value);
+    const range = maxValue - minValue;
+    const scaleRange = Math.max(range, Math.max(Math.abs(maxValue), 1) * 0.12);
 
-    return 24 + Math.min(1, Math.max(0, normalized)) * 76;
-  };
+    return {
+      bars: points.map((point) => {
+        const normalized = range === 0 ? 0.5 : (point.value - minValue) / scaleRange;
+        const height = 24 + Math.min(1, Math.max(0, normalized)) * 76;
+
+        return {
+          ...point,
+          height,
+        };
+      }),
+    };
+  }, [points]);
+
+  if (!chartMetrics) {
+    return <Text style={styles.emptyText}>{emptyLabel}</Text>;
+  }
 
   return (
     <View style={styles.chartShell}>
@@ -47,13 +62,13 @@ export function ProgressTrendChart({ barColor = Colors.dark.accent, emptyLabel, 
       <View style={styles.chartContent}>
         <View style={styles.chartBaseline} />
         <View style={styles.chartBars}>
-          {points.map((point) => (
+          {chartMetrics.bars.map((point) => (
             <View key={point.key} style={styles.chartBarColumn}>
               <Text numberOfLines={1} style={styles.chartValueLabel}>
                 {point.displayValue}
               </Text>
               <View style={styles.chartBarTrack}>
-                <View style={[styles.chartBar, { backgroundColor: barColor, height: getBarHeight(point.value) }]} />
+                <View style={[styles.chartBar, { backgroundColor: barColor, height: point.height }]} />
               </View>
               <Text numberOfLines={1} style={styles.chartBarLabel}>
                 {point.label}
@@ -64,7 +79,7 @@ export function ProgressTrendChart({ barColor = Colors.dark.accent, emptyLabel, 
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   chartBar: {
