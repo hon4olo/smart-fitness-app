@@ -1,684 +1,728 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, LayoutChangeEvent, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppCard } from '@/components/ui/AppCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { WorkoutBuilderCard } from '@/components/workouts/WorkoutBuilderCard';
-import { TrainingProgramBuilderCard } from '@/components/workouts/TrainingProgramBuilderCard';
-import { WorkoutExerciseLibraryCard } from '@/components/workouts/WorkoutExerciseLibraryCard';
-import { WorkoutLauncherCard } from '@/components/workouts/WorkoutLauncherCard';
-import { WorkoutTemplateCard } from '@/components/workouts/WorkoutTemplateCard';
-import { WorkoutHistorySection } from '@/components/workouts/WorkoutHistorySection';
-import { EmptyWorkoutState } from '@/components/workouts/EmptyWorkoutState';
-import type { DraftWorkoutExercise } from '@/components/workouts/workout-builder-types';
-import type { TrainingProgram } from '@/types';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useAppContext, WorkoutSession } from '@/context/AppContext';
-import { formatShortDateTime } from '@/lib';
+import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAppContext } from '@/context/AppContext';
 import {
-  createDefaultTrainingProgram,
-  formatWorkoutPlanDescription,
-  getLatestWorkoutSessionForWorkout,
-  parseWorkoutPlanDescription,
+  clearActiveWorkoutSessionDraft,
+  getActiveWorkoutSessionDraft,
+  getRecentlyUsedWorkoutTemplates,
+  getSuggestedWorkoutTemplates,
+  getWorkoutHubViewModel,
+  getWorkoutProgramById,
+  getWorkoutProgramSchedule,
+  getWorkoutProgramSummary,
+  getWorkoutPrograms,
+  getWorkoutTemplateSummary,
+  resetWorkoutHubState,
+  saveWorkoutProgram,
+  startEmptyWorkoutSessionDraft,
+  startWorkoutSessionDraft,
+  toggleWorkoutProgramFavorite,
 } from '@/lib/workouts';
+import { formatShortDate, formatShortDateTime } from '@/lib';
+import type { TrainingProgram, Workout } from '@/types';
 
-const DEFAULT_WORKOUT_TEMPLATE_IDS = new Set(['push-a', 'legs-a', 'conditioning-a']);
+const MODES = [
+  { key: 'start-now', label: 'Start Now' },
+  { key: 'programs', label: 'Programs' },
+] as const;
 
-const createDraftExercise = (name = '', overrides: Partial<DraftWorkoutExercise> = {}): DraftWorkoutExercise => ({
-  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-  name,
-  notes: '',
-  restSeconds: '90',
-  targetReps: '8',
-  targetSets: '3',
-  ...overrides,
-});
+type ModeKey = (typeof MODES)[number]['key'];
 
-const toPositiveInteger = (value: string, fallback: number) => {
-  const parsed = Number.parseInt(value, 10);
+type WorkoutCardSummary = ReturnType<typeof getWorkoutTemplateSummary>;
+type ProgramSummary = ReturnType<typeof getWorkoutProgramSummary>;
 
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-};
+const formatElapsedDuration = (startedAt: string) => {
+  const elapsedMs = Math.max(0, Date.now() - new Date(startedAt).getTime());
+  const totalMinutes = Math.max(0, Math.floor(elapsedMs / 60000));
 
-const toExercisePlan = (exercise: DraftWorkoutExercise) => ({
-  name: exercise.name.trim(),
-  notes: exercise.notes.trim() || undefined,
-  restSeconds: toPositiveInteger(exercise.restSeconds, 90),
-  targetReps: toPositiveInteger(exercise.targetReps, 8),
-  targetSets: toPositiveInteger(exercise.targetSets, 3),
-});
-
-const formatLastUsedLabel = (session?: WorkoutSession) => {
-  if (!session) {
-    return undefined;
+  if (totalMinutes >= 60) {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes}m`;
   }
 
-  return formatShortDateTime(session.finishedAt);
+  return `${totalMinutes}m`;
 };
 
-export default function WorkoutsScreen() {
-  const {
-    addExercise,
-    addWorkoutTemplate,
-    deleteExercise,
-    deleteWorkoutSession,
-    deleteWorkoutTemplate,
-    updateWorkoutSession,
-    updateWorkoutTemplate,
-    exercises,
-    workouts,
-    workoutSessions,
-  } = useAppContext();
-  const safeAreaInsets = useSafeAreaInsets();
+const formatWorkoutSubtitle = (summary: WorkoutCardSummary) =>
+  [summary.subtitle, `${summary.exerciseCount} exercise${summary.exerciseCount === 1 ? '' : 's'}`].filter(Boolean).join(' · ');
 
-  const [exerciseName, setExerciseName] = useState('');
-  const [exerciseMuscleGroup, setExerciseMuscleGroup] = useState('');
-  const [exerciseSearch, setExerciseSearch] = useState('');
-  const [workoutTitle, setWorkoutTitle] = useState('');
-  const [workoutDescription, setWorkoutDescription] = useState('');
-  const [draftExerciseName, setDraftExerciseName] = useState('');
-  const [draftExercises, setDraftExercises] = useState<DraftWorkoutExercise[]>([]);
-  const [editingWorkoutId, setEditingWorkoutId] = useState<string | undefined>();
-  const [editingSessionId, setEditingSessionId] = useState<string | undefined>();
-  const [sessionDraftSets, setSessionDraftSets] = useState<WorkoutSession['sets']>([]);
-  const [sessionExerciseName, setSessionExerciseName] = useState('');
-  const [sessionWeight, setSessionWeight] = useState('');
-  const [sessionReps, setSessionReps] = useState('');
-  const [editingSessionSetId, setEditingSessionSetId] = useState<string | undefined>();
-  const [isCreateWorkoutExpanded, setIsCreateWorkoutExpanded] = useState(false);
-  const [isExercisesExpanded, setIsExercisesExpanded] = useState(false);
-  const [isWorkoutHistoryExpanded, setIsWorkoutHistoryExpanded] = useState(true);
-  const [isWorkoutLauncherExpanded, setIsWorkoutLauncherExpanded] = useState(false);
-  const [isProgramBuilderExpanded, setIsProgramBuilderExpanded] = useState(true);
-  const [trainingProgram, setTrainingProgram] = useState<TrainingProgram>(() => createDefaultTrainingProgram(workouts));
-  const scrollViewRef = useRef<ScrollView>(null);
-  const sectionOffsets = useRef({ createWorkout: 0, exerciseLibrary: 0, history: 0, programBuilder: 0, templates: 0 });
-
-  const completedSessions = useMemo(() => [...workoutSessions].reverse(), [workoutSessions]);
-  const latestCompletedSession = completedSessions[0];
-
-  useEffect(() => {
-    if (trainingProgram.days.length > 0 || workouts.length === 0) {
-      return;
-    }
-
-    setTrainingProgram(createDefaultTrainingProgram(workouts));
-  }, [trainingProgram.days.length, workouts]);
-  const isCustomWorkout = (workoutId: string, isCustom?: boolean) => {
-    return Boolean(isCustom) || !DEFAULT_WORKOUT_TEMPLATE_IDS.has(workoutId);
-  };
-
-  const isDraftExerciseAdded = (name: string) => {
-    const normalizedName = name.trim().toLowerCase();
-
-    return draftExercises.some((exercise) => exercise.name.trim().toLowerCase() === normalizedName);
-  };
-
-  const isSaveWorkoutDisabled =
-    workoutTitle.trim().length === 0 ||
-    draftExercises.length === 0 ||
-    draftExercises.some((exercise) => exercise.name.trim().length === 0);
-
-  const startWorkout = (workoutId: string) => {
-    router.push({
-      pathname: '/workout-session',
-      params: { workoutId },
-    });
-  };
-
-  const scrollToSection = (key: keyof typeof sectionOffsets.current) => {
-    scrollViewRef.current?.scrollTo({ animated: true, y: Math.max(0, sectionOffsets.current[key] - 12) });
-  };
-
-  const handleSectionLayout = (key: keyof typeof sectionOffsets.current) => (event: LayoutChangeEvent) => {
-    sectionOffsets.current[key] = event.nativeEvent.layout.y;
-  };
-
-  const confirmDeleteSession = (sessionId: string) => {
-    Alert.alert(
-      'Delete workout?',
-      'This completed workout will be removed from history.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteWorkoutSession(sessionId),
-        },
-      ],
-    );
-  };
-
-  const clearWorkoutForm = () => {
-    setEditingWorkoutId(undefined);
-    setWorkoutTitle('');
-    setWorkoutDescription('');
-    setDraftExerciseName('');
-    setDraftExercises([]);
-  };
-
-  const clearExerciseForm = () => {
-    setExerciseName('');
-    setExerciseMuscleGroup('');
-  };
-
-  const clearSessionEdit = () => {
-    setEditingSessionId(undefined);
-    setSessionDraftSets([]);
-    setSessionExerciseName('');
-    setSessionWeight('');
-    setSessionReps('');
-    setEditingSessionSetId(undefined);
-  };
-
-  const confirmDeleteWorkoutTemplate = (templateId: string) => {
-    Alert.alert('Delete workout?', 'This custom workout template will be removed.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => deleteWorkoutTemplate(templateId),
-      },
-    ]);
-  };
-
-  const handleAddExercise = useCallback(() => {
-    const nextExercise = draftExerciseName.trim();
-
-    if (!nextExercise || isDraftExerciseAdded(nextExercise)) {
-      return;
-    }
-
-    setDraftExercises((currentExercises) => [...currentExercises, createDraftExercise(nextExercise)]);
-    setDraftExerciseName('');
-  }, [draftExerciseName, isDraftExerciseAdded]);
-
-  const handleAddExerciseFromLibrary = useCallback(
-    (name: string) => {
-      const nextExercise = name.trim();
-
-      if (!nextExercise || isDraftExerciseAdded(nextExercise)) {
-        return;
-      }
-
-      setDraftExercises((currentExercises) => [...currentExercises, createDraftExercise(nextExercise)]);
-    },
-    [isDraftExerciseAdded],
+function SegmentButton({ label, selected, onPress }: { label: string; onPress: () => void; selected: boolean }) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.segment, selected && styles.segmentSelected, pressed && styles.pressed]}>
+      <Text style={[styles.segmentLabel, selected && styles.segmentLabelSelected]}>{label}</Text>
+    </Pressable>
   );
+}
 
-  const handleDuplicateExercise = (exerciseId: string) => {
-    setDraftExercises((currentExercises) => {
-      const sourceIndex = currentExercises.findIndex((exercise) => exercise.id === exerciseId);
+function WorkoutPreviewCard({
+  actionLabel,
+  onAction,
+  onOpen,
+  summary,
+  variant,
+}: {
+  actionLabel: string;
+  onAction: () => void;
+  onOpen: () => void;
+  summary: WorkoutCardSummary;
+  variant: 'suggested' | 'recent';
+}) {
+  return (
+    <AppCard style={[styles.previewCard, variant === 'recent' && styles.recentPreviewCard]}>
+      <Pressable accessibilityRole="button" onPress={onOpen} style={({ pressed }) => [styles.previewPressable, pressed && styles.pressed]}>
+        <View style={styles.previewHeader}>
+          <View style={styles.previewCopy}>
+            <Text selectable style={styles.previewTitle}>
+              {summary.workout.title}
+            </Text>
+            <Text selectable style={styles.previewSubtitle}>
+              {formatWorkoutSubtitle(summary)}
+            </Text>
+          </View>
+          <View style={styles.previewBadge}>
+            <Text style={styles.previewBadgeLabel}>{summary.estimatedDuration}</Text>
+          </View>
+        </View>
 
-      if (sourceIndex === -1) {
-        return currentExercises;
-      }
+        <View style={styles.previewMetaRow}>
+          <View style={styles.previewMetaChip}>
+            <Text style={styles.previewMetaLabel}>Exercises</Text>
+            <Text style={styles.previewMetaValue}>{summary.exerciseCount}</Text>
+          </View>
+          {summary.lastUsedLabel ? (
+            <View style={styles.previewMetaChip}>
+              <Text style={styles.previewMetaLabel}>Last used</Text>
+              <Text style={styles.previewMetaValue}>{summary.lastUsedLabel}</Text>
+            </View>
+          ) : null}
+        </View>
+      </Pressable>
 
-      const duplicatedExercise = createDraftExercise(currentExercises[sourceIndex].name, {
-        notes: currentExercises[sourceIndex].notes,
-        restSeconds: currentExercises[sourceIndex].restSeconds,
-        targetReps: currentExercises[sourceIndex].targetReps,
-        targetSets: currentExercises[sourceIndex].targetSets,
-      });
-      const nextExercises = [...currentExercises];
-      nextExercises.splice(sourceIndex + 1, 0, duplicatedExercise);
+      <AppButton label={actionLabel} onPress={onAction} />
+    </AppCard>
+  );
+}
 
-      return nextExercises;
-    });
-  };
+function ProgramRow({ onOpen, onToggleFavorite, program }: { onOpen: () => void; onToggleFavorite: () => void; program: ProgramSummary }) {
+  const schedule = getWorkoutProgramSchedule(program.program);
 
-  const handleMoveExercise = (exerciseId: string, direction: -1 | 1) => {
-    setDraftExercises((currentExercises) => {
-      const sourceIndex = currentExercises.findIndex((exercise) => exercise.id === exerciseId);
-      const targetIndex = sourceIndex + direction;
+  return (
+    <AppCard style={styles.programRow}>
+      <Pressable accessibilityRole="button" onPress={onOpen} style={({ pressed }) => [styles.programRowPressable, pressed && styles.pressed]}>
+        <View style={styles.programRowHeader}>
+          <View style={styles.programRowCopy}>
+            <Text selectable style={styles.programTitle}>
+              {program.program.name}
+            </Text>
+            <Text selectable style={styles.programSubtitle}>
+              {program.subtitle}
+            </Text>
+          </View>
+          <Text style={[styles.favoriteMark, program.isFavorite && styles.favoriteMarkActive]}>{program.isFavorite ? '★' : '☆'}</Text>
+        </View>
 
-      if (sourceIndex === -1 || targetIndex < 0 || targetIndex >= currentExercises.length) {
-        return currentExercises;
-      }
+        <View style={styles.programMetaRow}>
+          <Text style={styles.programMetaText}>{program.workoutCount} workout{program.workoutCount === 1 ? '' : 's'}</Text>
+          <Text style={styles.programMetaText}>{program.daysPerWeek} days/week</Text>
+          <Text style={styles.programMetaText}>{program.goalLabel} · {program.difficultyLabel}</Text>
+        </View>
 
-      const nextExercises = [...currentExercises];
-      const [movedExercise] = nextExercises.splice(sourceIndex, 1);
-      nextExercises.splice(targetIndex, 0, movedExercise);
+        {schedule.isRestDayToday ? (
+          <Text style={styles.programRestNote}>Rest day today · Next: {schedule.nextWorkout?.workoutTemplateName ?? 'next workout'}</Text>
+        ) : null}
+      </Pressable>
 
-      return nextExercises;
-    });
-  };
+      <View style={styles.programRowActions}>
+        <AppButton label={program.isFavorite ? 'Unfavorite' : 'Favorite'} onPress={onToggleFavorite} variant="secondary" />
+        <AppButton label="Open" onPress={onOpen} />
+      </View>
+    </AppCard>
+  );
+}
 
-  const handleExerciseChange = (exerciseId: string, patch: Partial<DraftWorkoutExercise>) => {
-    setDraftExercises((currentExercises) =>
-      currentExercises.map((exercise) =>
-        exercise.id === exerciseId
-          ? {
-              ...exercise,
-              ...patch,
-            }
-          : exercise,
-      ),
-    );
-  };
+export default function WorkoutsScreen() {
+  const { workouts, workoutSessions } = useAppContext();
+  const [mode, setMode] = useState<ModeKey>('start-now');
+  const insets = useSafeAreaInsets();
 
-  const handleRemoveDraftExercise = (exerciseId: string) => {
-    setDraftExercises((currentExercises) => currentExercises.filter((exercise) => exercise.id !== exerciseId));
-  };
+  const activeDraft = getActiveWorkoutSessionDraft();
+  const hub = useMemo(() => getWorkoutHubViewModel({ activeProgram: null, workouts, workoutSessions }), [workouts, workoutSessions]);
+  const allPrograms = useMemo(() => getWorkoutPrograms(workouts), [workouts]);
+  const customPrograms = useMemo(
+    () => allPrograms.filter((program) => program.isCustom).map((program) => getWorkoutProgramSummary(program, workouts, workoutSessions)),
+    [allPrograms, workoutSessions, workouts],
+  );
+  const favoritePrograms = useMemo(() => customPrograms.filter((program) => program.isFavorite), [customPrograms]);
+  const recentWorkouts = useMemo(() => getRecentlyUsedWorkoutTemplates(workouts, workoutSessions, 4), [workouts, workoutSessions]);
+  const suggestions = useMemo(() => getSuggestedWorkoutTemplates(workouts, workoutSessions, null), [workouts, workoutSessions]);
 
-  const handleEditWorkout = (workoutId: string) => {
-    const workout = workouts.find((item) => item.id === workoutId);
-
-    if (!workout || !isCustomWorkout(workout.id, workout.isCustom)) {
-      return;
+  const activeWorkoutSummary = useMemo(() => {
+    if (!activeDraft) {
+      return null;
     }
 
-    const parsedDescription = parseWorkoutPlanDescription(workout.description);
-    const sourceExercises: Array<{
-      name: string;
-      notes?: string;
-      restSeconds?: number;
-      targetReps?: number;
-      targetSets?: number;
-    }> =
-      parsedDescription.exercises.length > 0
-        ? parsedDescription.exercises
-        : workout.exercises.map((exercise) => ({
-            name: exercise.name,
-            notes: undefined,
-            restSeconds: undefined,
-            targetReps: undefined,
-            targetSets: undefined,
-          }));
-
-    setIsCreateWorkoutExpanded(true);
-    setEditingWorkoutId(workout.id);
-    setWorkoutTitle(workout.title);
-    setWorkoutDescription(parsedDescription.baseDescription);
-    setDraftExerciseName('');
-    setDraftExercises(
-      sourceExercises.map((exercise) =>
-        createDraftExercise(exercise.name, {
-          notes: exercise.notes ?? '',
-          restSeconds: `${exercise.restSeconds ?? 90}`,
-          targetReps: `${exercise.targetReps ?? 8}`,
-          targetSets: `${exercise.targetSets ?? 3}`,
-        }),
-      ),
-    );
-  };
-
-  const handleEditSession = (session: WorkoutSession) => {
-    setEditingSessionId(session.id);
-    setSessionDraftSets(session.sets.map((set) => ({ ...set })));
-    setSessionExerciseName('');
-    setSessionWeight('');
-    setSessionReps('');
-    setEditingSessionSetId(undefined);
-  };
-
-  const handleCancelSessionEdit = () => {
-    clearSessionEdit();
-  };
-
-  const handleEditSessionSet = (set: WorkoutSession['sets'][number]) => {
-    setEditingSessionSetId(set.id);
-    setSessionExerciseName(set.exerciseName);
-    setSessionWeight(`${set.weight}`);
-    setSessionReps(`${set.reps}`);
-  };
-
-  const handleCancelSessionSetEdit = () => {
-    setEditingSessionSetId(undefined);
-    setSessionExerciseName('');
-    setSessionWeight('');
-    setSessionReps('');
-  };
-
-  const handleDeleteSessionSet = (setId: string) => {
-    setSessionDraftSets((currentSets) => currentSets.filter((set) => set.id !== setId));
-
-    if (editingSessionSetId === setId) {
-      setEditingSessionSetId(undefined);
-      setSessionExerciseName('');
-      setSessionWeight('');
-      setSessionReps('');
-    }
-  };
-
-  const handleSaveSessionSet = () => {
-    const parsedWeight = Number(sessionWeight);
-    const parsedReps = Number(sessionReps);
-    const exerciseName = sessionExerciseName.trim();
-
-    if (!exerciseName || !Number.isFinite(parsedWeight) || !Number.isFinite(parsedReps)) {
-      return;
+    const workout = workouts.find((candidate) => candidate.id === activeDraft.workoutId);
+    if (!workout) {
+      return null;
     }
 
-    if (parsedWeight < 0 || parsedReps <= 0) {
-      return;
-    }
-
-    const nextSet: WorkoutSession['sets'][number] = {
-      id: editingSessionSetId ?? `${Date.now()}-${sessionDraftSets.length + 1}`,
-      exerciseId: exerciseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      exerciseName,
-      weight: parsedWeight,
-      reps: parsedReps,
+    const summary = getWorkoutTemplateSummary(workout, workoutSessions);
+    return {
+      ...summary,
+      completedExercises: new Set(activeDraft.sets.map((set) => set.exerciseId)).size,
+      elapsedLabel: formatElapsedDuration(activeDraft.startedAt),
+      progressLabel: `${new Set(activeDraft.sets.map((set) => set.exerciseId)).size}/${workout.exercises.length} exercises`,
     };
+  }, [activeDraft, workoutSessions, workouts]);
 
-    setSessionDraftSets((currentSets) => {
-      if (!editingSessionSetId) {
-        return [...currentSets, nextSet];
-      }
-
-      return currentSets.map((set) => (set.id === editingSessionSetId ? nextSet : set));
-    });
-
-    setEditingSessionSetId(undefined);
-    setSessionExerciseName('');
-    setSessionWeight('');
-    setSessionReps('');
-  };
-
-  const handleSaveSessionChanges = (session: WorkoutSession) => {
-    if (sessionDraftSets.length === 0) {
-      Alert.alert('Workout needs sets', 'Add at least one set before saving changes.');
-      return;
-    }
-
-    updateWorkoutSession(session.id, {
-      ...session,
-      sets: sessionDraftSets,
-    });
-    clearSessionEdit();
-  };
-
-  const handleDeleteSession = useCallback(
-    (sessionId: string) => {
-      if (editingSessionId === sessionId) {
-        Alert.alert('Delete workout?', 'This completed workout will be removed from history.', [
+  const launchWorkout = useCallback(
+    (workout: Workout) => {
+      if (activeDraft && activeDraft.workoutId !== workout.id) {
+        Alert.alert('Existing workout in progress', 'Continue the current workout or discard it and start a new one.', [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Delete',
+            text: 'Continue Existing',
+            onPress: () => router.push({ pathname: '/workout-session', params: { workoutId: activeDraft.workoutId } }),
+          },
+          {
+            text: 'Discard and Start New',
             style: 'destructive',
             onPress: () => {
-              clearSessionEdit();
-              deleteWorkoutSession(sessionId);
+              clearActiveWorkoutSessionDraft();
+              startWorkoutSessionDraft(workout);
+              router.push({ pathname: '/workout-session', params: { workoutId: workout.id } });
             },
           },
         ]);
         return;
       }
 
-      confirmDeleteSession(sessionId);
+      startWorkoutSessionDraft(workout);
+      router.push({ pathname: '/workout-session', params: { workoutId: workout.id } });
     },
-    [clearSessionEdit, deleteWorkoutSession, editingSessionId],
+    [activeDraft],
   );
 
-  const handleSaveWorkout = () => {
-    if (isSaveWorkoutDisabled) {
+  const launchEmptyWorkout = useCallback(() => {
+    if (activeDraft) {
+      Alert.alert('Existing workout in progress', 'Continue the current workout or discard it and start a new one.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue Existing',
+          onPress: () => router.push({ pathname: '/workout-session', params: { workoutId: activeDraft.workoutId } }),
+        },
+        {
+          text: 'Discard and Start New',
+          style: 'destructive',
+          onPress: () => {
+            clearActiveWorkoutSessionDraft();
+            startEmptyWorkoutSessionDraft();
+            router.push({ pathname: '/workout-session', params: { workoutId: 'empty-workout' } });
+          },
+        },
+      ]);
       return;
     }
 
-    const normalizedExercises = draftExercises.map(toExercisePlan);
-    const workoutPayload = {
-      title: workoutTitle.trim(),
-      description: formatWorkoutPlanDescription(workoutDescription, normalizedExercises),
-      exercises: normalizedExercises.map((exercise) => exercise.name),
-    };
+    startEmptyWorkoutSessionDraft();
+    router.push({ pathname: '/workout-session', params: { workoutId: 'empty-workout' } });
+  }, [activeDraft]);
 
-    if (editingWorkoutId) {
-      updateWorkoutTemplate(editingWorkoutId, workoutPayload);
-    } else {
-      addWorkoutTemplate({
-        id: `${Date.now()}`,
-        ...workoutPayload,
-        createdAt: new Date().toISOString(),
-      });
+  const handleOverflow = useCallback(() => {
+    Alert.alert('Workouts', 'Choose a section', [
+      { text: 'Workout History', onPress: () => router.push('/workouts/history') },
+      { text: 'Exercise Library', onPress: () => router.push('/workouts/exercise-library') },
+      { text: 'Manage Templates', onPress: () => router.push('/workouts/builder') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, []);
+
+  const handleTemplateStart = useCallback((summary: WorkoutCardSummary) => launchWorkout(summary.workout), [launchWorkout]);
+  const handleOpenTemplate = useCallback((workoutId: string) => router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId } }), []);
+  const handleOpenProgram = useCallback((programId: string) => router.push({ pathname: '/workouts/program/[programId]', params: { programId } }), []);
+
+  const handleStickyAction = useCallback(() => {
+    if (activeDraft) {
+      router.push({ pathname: '/workout-session', params: { workoutId: activeDraft.workoutId } });
+      return;
     }
 
-    clearWorkoutForm();
-  };
+    launchEmptyWorkout();
+  }, [activeDraft, launchEmptyWorkout]);
+
+  const handleCreateProgram = useCallback(() => router.push('/workouts/builder'), []);
+  const handleSearch = useCallback(() => router.push('/workouts/exercise-library'), []);
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + Spacing.six }]}
-      keyboardShouldPersistTaps="handled"
-      ref={scrollViewRef}
-      style={styles.screen}>
-      <View style={styles.container}>
-        <SectionHeader title="Track" subtitle="Workouts, templates, and session history" />
+    <View style={styles.screen}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 120 }]}
+        keyboardShouldPersistTaps="handled"
+        style={styles.scrollView}>
+        <View style={styles.container}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerCopy}>
+              <Text selectable style={styles.title}>
+                Workouts
+              </Text>
+              <Text selectable style={styles.subtitle}>
+                What workout do I want to start now?
+              </Text>
+            </View>
 
-        <View style={styles.heroGroup}>
-          <QuickActionsCard
-            title="Workout actions"
-            subtitle="Create, edit, or launch workouts without hunting through the page."
-            primaryAction={{
-              disabled: workouts.length === 0,
-              label: workouts.length === 0 ? 'Create workout first' : 'Choose workout',
-              onPress: () => {
-                if (workouts.length === 0) {
-                  setIsCreateWorkoutExpanded(true);
-                  scrollToSection('createWorkout');
-                  return;
-                }
+            <View style={styles.headerActions}>
+              <Pressable accessibilityHint="Open the exercise library" accessibilityLabel="Search exercises" accessibilityRole="button" onPress={handleSearch} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+                <Text style={styles.iconLabel}>⌕</Text>
+              </Pressable>
+              <Pressable accessibilityHint="Open workout sections and management" accessibilityLabel="More workout options" accessibilityRole="button" onPress={handleOverflow} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+                <Text style={styles.iconLabel}>⋯</Text>
+              </Pressable>
+            </View>
+          </View>
 
-                setIsWorkoutLauncherExpanded(true);
-              },
-            }}
-            secondaryActions={[
-              {
-                label: 'Create workout',
-                onPress: () => {
-                  setIsCreateWorkoutExpanded(true);
-                  scrollToSection('createWorkout');
-                },
-              },
-              {
-                label: 'Add exercise',
-                onPress: () => {
-                  setIsExercisesExpanded(true);
-                  scrollToSection('exerciseLibrary');
-                },
-              },
-              {
-                label: 'Workout history',
-                onPress: () => {
-                  setIsWorkoutHistoryExpanded(true);
-                  scrollToSection('history');
-                },
-              },
-              {
-                label: 'Templates',
-                onPress: () => scrollToSection('templates'),
-              },
-              {
-                label: 'Program builder',
-                onPress: () => {
-                  setIsProgramBuilderExpanded(true);
-                  scrollToSection('programBuilder');
-                },
-              },
-            ]}
-          />
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Start Now" onPress={() => setMode('start-now')} selected={mode === 'start-now'} />
+            <SegmentButton label="Programs" onPress={() => setMode('programs')} selected={mode === 'programs'} />
+          </View>
 
-          <WorkoutLauncherCard
-            isExpanded={isWorkoutLauncherExpanded}
-            onCreateWorkout={() => {
-              setIsCreateWorkoutExpanded(true);
-              scrollToSection('createWorkout');
-            }}
-            onStart={startWorkout}
-            onToggleExpanded={() => setIsWorkoutLauncherExpanded((current) => !current)}
-            workoutSessions={workoutSessions}
-            workouts={workouts}
-          />
-        </View>
+          {mode === 'start-now' ? (
+            <View style={styles.modeStack}>
+              {activeWorkoutSummary ? (
+                <AppCard style={styles.activeCard}>
+                  <View style={styles.activeTopRow}>
+                    <View style={styles.activeCopy}>
+                      <Text selectable style={styles.sectionTitle}>
+                        Active workout
+                      </Text>
+                      <Text selectable style={styles.activeTitle}>
+                        {activeWorkoutSummary.workout.title}
+                      </Text>
+                      <Text selectable style={styles.activeMeta}>
+                        {activeWorkoutSummary.elapsedLabel} · {activeWorkoutSummary.progressLabel}
+                      </Text>
+                    </View>
+                    <View style={styles.activeAccent}>
+                      <Text style={styles.activeAccentLabel}>Live</Text>
+                    </View>
+                  </View>
+                  <AppButton label="Continue Workout" onPress={handleStickyAction} />
+                </AppCard>
+              ) : null}
 
-        <View onLayout={handleSectionLayout('programBuilder')}>
-          <TrainingProgramBuilderCard
-            exercises={exercises}
-            isExpanded={isProgramBuilderExpanded}
-            onProgramChange={setTrainingProgram}
-            onToggleExpanded={() => setIsProgramBuilderExpanded((current) => !current)}
-            program={trainingProgram}
-            workouts={workouts}
-          />
-        </View>
+              {!activeWorkoutSummary ? (
+                <View style={styles.sectionBlock}>
+                  <SectionHeader subtitle="One clear place to pick something and start." title="Suggested Workouts" />
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalRail}>
+                    {suggestions.map((summary) => (
+                      <View key={summary.workout.id} style={styles.horizontalItem}>
+                        <WorkoutPreviewCard actionLabel="Start" onAction={() => handleTemplateStart(summary)} onOpen={() => handleOpenTemplate(summary.workout.id)} summary={summary} variant="suggested" />
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
 
-        <View onLayout={handleSectionLayout('exerciseLibrary')}>
-          <WorkoutExerciseLibraryCard
-            exerciseName={exerciseName}
-            exerciseMuscleGroup={exerciseMuscleGroup}
-            exercises={exercises}
-            isExpanded={isExercisesExpanded}
-            isExerciseAdded={isDraftExerciseAdded}
-            isSaveExerciseDisabled={exerciseName.trim().length === 0}
-            onAddDatabaseExercise={handleAddExerciseFromLibrary}
-            onDeleteExercise={deleteExercise}
-            onExerciseMuscleGroupChange={setExerciseMuscleGroup}
-            onExerciseNameChange={setExerciseName}
-            onSaveExercise={() => {
-              if (exerciseName.trim().length === 0) {
-                return;
-              }
+              {!activeWorkoutSummary && recentWorkouts.length > 0 ? (
+                <View style={styles.sectionBlock}>
+                  <SectionHeader subtitle="Quick repeats from the recent log." title="Recently Used" />
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalRail}>
+                    {recentWorkouts.map((summary) => (
+                      <View key={summary.workout.id} style={styles.horizontalItem}>
+                        <WorkoutPreviewCard actionLabel="Repeat" onAction={() => handleTemplateStart(summary)} onOpen={() => handleOpenTemplate(summary.workout.id)} summary={summary} variant="recent" />
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
 
-              addExercise({
-                id: `${Date.now()}`,
-                name: exerciseName.trim(),
-                muscleGroup: exerciseMuscleGroup.trim() || undefined,
-                isCustom: true,
-                createdAt: new Date().toISOString(),
-              });
-              clearExerciseForm();
-            }}
-            onSearchChange={setExerciseSearch}
-            onToggleExpanded={() => setIsExercisesExpanded((current) => !current)}
-            searchValue={exerciseSearch}
-            workoutSessions={workoutSessions}
-          />
-        </View>
-
-        <View onLayout={handleSectionLayout('createWorkout')}>
-          <WorkoutBuilderCard
-            draftExerciseName={draftExerciseName}
-            draftExercises={draftExercises}
-            editingWorkoutId={editingWorkoutId}
-            isExpanded={isCreateWorkoutExpanded}
-            isSaveWorkoutDisabled={isSaveWorkoutDisabled}
-            onAddExercise={handleAddExercise}
-            onCancelEdit={clearWorkoutForm}
-            onDraftExerciseNameChange={setDraftExerciseName}
-            onDuplicateExercise={handleDuplicateExercise}
-            onExerciseChange={handleExerciseChange}
-            onMoveExercise={handleMoveExercise}
-            onRemoveDraftExercise={handleRemoveDraftExercise}
-            onSaveWorkout={handleSaveWorkout}
-            onToggleExpanded={() => setIsCreateWorkoutExpanded((current) => !current)}
-            onWorkoutDescriptionChange={setWorkoutDescription}
-            onWorkoutTitleChange={setWorkoutTitle}
-            workoutDescription={workoutDescription}
-            workoutTitle={workoutTitle}
-          />
-        </View>
-
-        <View onLayout={handleSectionLayout('history')}>
-          <WorkoutHistorySection
-            completedSessions={completedSessions}
-            editingSessionId={editingSessionId}
-            editingSessionSetId={editingSessionSetId}
-            formatFinishedAt={formatShortDateTime}
-            isExpanded={isWorkoutHistoryExpanded}
-            onCancelSessionEdit={handleCancelSessionEdit}
-            onCancelSessionSetEdit={handleCancelSessionSetEdit}
-            onDeleteSession={(sessionId) => {
-              if (editingSessionId === sessionId) {
-                Alert.alert('Delete workout?', 'This completed workout will be removed from history.', [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: () => {
-                      clearSessionEdit();
-                      deleteWorkoutSession(sessionId);
-                    },
-                  },
-                ]);
-                return;
-              }
-
-              confirmDeleteSession(sessionId);
-            }}
-            onDeleteSessionSet={handleDeleteSessionSet}
-            onEditSession={handleEditSession}
-            onEditSessionSet={handleEditSessionSet}
-            onSaveSessionChanges={handleSaveSessionChanges}
-            onSaveSessionSet={handleSaveSessionSet}
-            onSessionExerciseNameChange={setSessionExerciseName}
-            onSessionRepsChange={setSessionReps}
-            onSessionWeightChange={setSessionWeight}
-            onToggleExpanded={() => setIsWorkoutHistoryExpanded((current) => !current)}
-            sessionDraftSets={sessionDraftSets}
-            sessionExerciseName={sessionExerciseName}
-            sessionReps={sessionReps}
-            sessionWeight={sessionWeight}
-          />
-        </View>
-
-        <View onLayout={handleSectionLayout('templates')}>
-          <SectionHeader title="Workout templates" />
-          {workouts.length === 0 ? (
-            <EmptyWorkoutState
-              actionLabel="Create workout"
-              description="Build a template with targets, notes, and a saved workout plan."
-              message="You don't have any workout templates yet."
-              onActionPress={() => {
-                setIsCreateWorkoutExpanded(true);
-                scrollToSection('createWorkout');
-              }}
-              title="No workout templates"
-            />
-          ) : (
-            workouts.map((workout) => {
-              const latestSession = getLatestWorkoutSessionForWorkout(workout.id, workoutSessions);
-              const lastUsedLabel = formatLastUsedLabel(latestSession);
-
-              return (
-                <WorkoutTemplateCard
-                  key={workout.id}
-                  isCustomWorkout={isCustomWorkout(workout.id, workout.isCustom)}
-                  lastUsedLabel={lastUsedLabel}
-                  onDelete={confirmDeleteWorkoutTemplate}
-                  onEdit={handleEditWorkout}
-                  onStart={startWorkout}
-                  workout={workout}
+              {!activeWorkoutSummary && hub.hasFreshStartNowState ? (
+                <EmptyState
+                  actionLabel="Start Starter Workout"
+                  compact
+                  description="You have no workout history yet. Start with the starter template or begin empty and add exercises inside the session."
+                  message="A clean first session is ready."
+                  onActionPress={() => {
+                    const starter = suggestions[0] ?? hub.starterWorkout;
+                    if (starter) {
+                      handleTemplateStart(starter);
+                    }
+                  }}
+                  title="Fresh start"
                 />
-              );
-            })
-          )}
+              ) : null}
+            </View>
+          ) : null}
+
+          {mode === 'programs' ? (
+            <View style={styles.modeStack}>
+              <AppCard style={styles.addProgramCard}>
+                <Text selectable style={styles.sectionTitle}>
+                  Add New Program
+                </Text>
+                <Text selectable style={styles.sectionBody}>
+                  Open the builder, edit a draft, and save only when it is ready.
+                </Text>
+                <AppButton label="+ Add New Program" onPress={handleCreateProgram} />
+              </AppCard>
+
+              {favoritePrograms.length > 0 ? (
+                <View style={styles.sectionBlock}>
+                  <SectionHeader subtitle="Pinned programs you reach for most often." title="Favorites" />
+                  <View style={styles.programList}>
+                    {favoritePrograms.map((program) => (
+                      <ProgramRow key={program.program.id} onOpen={() => handleOpenProgram(program.program.id)} onToggleFavorite={() => toggleWorkoutProgramFavorite(program.program.id)} program={program} />
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
+              {customPrograms.length > 0 ? (
+                <View style={styles.sectionBlock}>
+                  <SectionHeader subtitle="Your saved training plans." title="My Programs" />
+                  <View style={styles.programList}>
+                    {customPrograms.map((program) => (
+                      <ProgramRow key={program.program.id} onOpen={() => handleOpenProgram(program.program.id)} onToggleFavorite={() => toggleWorkoutProgramFavorite(program.program.id)} program={program} />
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <EmptyState
+                  actionLabel="Create Program"
+                  compact
+                  description="Build your first plan from the current workout templates."
+                  message="No saved programs yet."
+                  onActionPress={handleCreateProgram}
+                  title="Programs are empty"
+                />
+              )}
+            </View>
+          ) : null}
+        </View>
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.two + 8 }]}>
+        <View style={styles.footerInner}>
+          <AppButton label={activeDraft ? 'Continue Workout' : 'Start Empty Workout'} onPress={handleStickyAction} />
         </View>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
+  activeAccent: {
     alignItems: 'center',
-    padding: Spacing.three,
+    backgroundColor: Colors.dark.accentMuted,
+    borderColor: Colors.dark.accent,
+    borderCurve: 'continuous',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minWidth: 72,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
+  },
+  activeAccentLabel: {
+    color: Colors.dark.accent,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  activeCard: {
+    gap: Spacing.three,
+  },
+  activeCopy: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  activeMeta: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  activeTitle: {
+    color: Colors.dark.text,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  activeTopRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+  },
+  addProgramCard: {
+    gap: Spacing.two,
   },
   container: {
     gap: Spacing.three,
     maxWidth: MaxContentWidth,
     width: '100%',
   },
-  emptySection: {
+  content: {
+    alignItems: 'center',
+    padding: Spacing.three,
+  },
+  footer: {
+    backgroundColor: Colors.dark.background,
+    borderTopColor: Colors.dark.border,
+    borderTopWidth: 1,
+    bottom: 0,
+    left: 0,
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.two,
+    position: 'absolute',
+    right: 0,
+  },
+  footerInner: {
+    alignSelf: 'center',
+    maxWidth: MaxContentWidth,
+    width: '100%',
+  },
+  favoriteMark: {
+    color: Colors.dark.textSecondary,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  favoriteMarkActive: {
+    color: Colors.dark.accent,
+  },
+  headerActions: {
+    flexDirection: 'row',
     gap: Spacing.two,
   },
-  heroGroup: {
+  headerCopy: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  headerRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+  },
+  iconButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.backgroundElement,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    minWidth: 44,
+    paddingHorizontal: Spacing.two,
+  },
+  iconLabel: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  modeStack: {
     gap: Spacing.three,
+  },
+  pressed: {
+    opacity: 0.82,
+  },
+  previewBadge: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 12,
+    borderWidth: 1,
+    minWidth: 72,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.two,
+  },
+  previewBadgeLabel: {
+    color: Colors.dark.text,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  previewCard: {
+    gap: Spacing.three,
+    width: 272,
+  },
+  previewCopy: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  previewHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+  },
+  previewMetaChip: {
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    gap: 4,
+    minWidth: 96,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.two,
+  },
+  previewMetaLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  previewMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  previewMetaValue: {
+    color: Colors.dark.text,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  previewPressable: {
+    gap: Spacing.three,
+  },
+  previewSubtitle: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  previewTitle: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  programList: {
+    gap: Spacing.two,
+  },
+  programMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  programMetaText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  programRestNote: {
+    color: Colors.dark.accent,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  programRow: {
+    gap: Spacing.two,
+  },
+  programRowActions: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  programRowCopy: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  programRowHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+  },
+  programRowPressable: {
+    gap: Spacing.two,
+  },
+  programSubtitle: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  programTitle: {
+    color: Colors.dark.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  recentPreviewCard: {
+    width: 232,
   },
   screen: {
     backgroundColor: Colors.dark.background,
     flex: 1,
+  },
+  sectionBlock: {
+    gap: Spacing.two,
+  },
+  sectionBody: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  sectionTitle: {
+    color: Colors.dark.text,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  segment: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.backgroundElement,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: 999,
+    borderWidth: 1,
+    flex: 1,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.three,
+  },
+  segmentLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  segmentLabelSelected: {
+    color: Colors.dark.text,
+  },
+  segmentRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  segmentSelected: {
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderColor: Colors.dark.accent,
+  },
+  scrollView: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+  subtitle: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  title: {
+    color: Colors.dark.text,
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  horizontalItem: {
+    width: 272,
+  },
+  horizontalRail: {
+    gap: Spacing.two,
+    paddingRight: Spacing.three,
   },
 });

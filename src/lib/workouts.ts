@@ -632,3 +632,354 @@ export const createDefaultTrainingProgram = (workouts: Workout[]): TrainingProgr
     isCustom: false,
   };
 };
+
+export type WorkoutSessionDraft = {
+  id: string;
+  workoutId: string;
+  workoutTitle: string;
+  startedAt: string;
+  sets: WorkoutSession['sets'];
+};
+
+export type WorkoutTemplateSummary = {
+  workout: Workout;
+  exerciseCount: number;
+  estimatedDuration: string;
+  lastUsedLabel?: string;
+  subtitle: string;
+};
+
+export type WorkoutProgramSummary = {
+  isFavorite: boolean;
+  program: TrainingProgram;
+  workoutCount: number;
+  daysPerWeek: number;
+  subtitle: string;
+  goalLabel: string;
+  difficultyLabel: string;
+};
+
+export type WorkoutHubViewModel = {
+  activeWorkout?: WorkoutTemplateSummary & { completedExercises: number; elapsedLabel: string; progressLabel: string };
+  favoritePrograms: WorkoutProgramSummary[];
+  mode: 'start-now' | 'programs';
+  recentWorkouts: WorkoutTemplateSummary[];
+  suggestedWorkouts: WorkoutTemplateSummary[];
+  starterWorkout?: WorkoutTemplateSummary;
+  stickyActionLabel: string;
+  stickyActionType: 'continue' | 'start-empty';
+  programs: WorkoutProgramSummary[];
+  hasFreshStartNowState: boolean;
+  hasFreshProgramsState: boolean;
+};
+
+const workoutProgramsStore = {
+  favorites: new Set<string>(),
+  programs: [] as TrainingProgram[],
+};
+
+let activeWorkoutSessionDraft: WorkoutSessionDraft | null = null;
+const workoutTemplateFavorites = new Set<string>();
+
+const cloneSet = (set: WorkoutSession['sets'][number]) => ({ ...set });
+const cloneProgram = (program: TrainingProgram): TrainingProgram => ({
+  ...program,
+  days: program.days.map((day) => ({ ...day })),
+  progression: program.progression ? { ...program.progression } : undefined,
+  metadata: program.metadata ? { ...program.metadata } : undefined,
+});
+
+const normalizeWorkoutText = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const formatElapsedLabel = (startedAt: string, now = Date.now()) => {
+  const elapsedMs = Math.max(0, now - new Date(startedAt).getTime());
+  const totalSeconds = Math.floor(elapsedMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${minutes}m`;
+};
+
+const getWorkoutSubtitle = (workout: Workout) => {
+  const labels = uniqueStrings([
+    workout.description,
+    ...(workout.exercises.flatMap((exercise) => [exercise.muscleGroup, exercise.category, ...(exercise.primaryMuscles ?? [])]) as string[]),
+  ])
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return labels.slice(0, 2).join(' · ') || 'Starter workout';
+};
+
+const getWorkoutUsage = (workoutId: string, sessions: WorkoutSession[]) => {
+  const matchingSessions = sessions.filter((session) => session.workoutId === workoutId);
+  const lastSession = getLatestWorkoutSessionForWorkout(workoutId, sessions);
+
+  return {
+    count: matchingSessions.length,
+    lastSession,
+  };
+};
+
+const getWorkoutEstimatedDuration = (workout: Workout) => {
+  const parsedPlan = parseWorkoutPlanDescription(workout.description);
+  if (parsedPlan.exercises.length > 0) {
+    return estimateWorkoutDurationFromPlan(parsedPlan.exercises);
+  }
+
+  return workout.duration || '15 min';
+};
+
+export const resetWorkoutHubState = () => {
+  workoutProgramsStore.favorites.clear();
+  workoutProgramsStore.programs = [];
+  workoutTemplateFavorites.clear();
+  activeWorkoutSessionDraft = null;
+};
+
+export const getActiveWorkoutSessionDraft = () => (activeWorkoutSessionDraft ? { ...activeWorkoutSessionDraft, sets: activeWorkoutSessionDraft.sets.map(cloneSet) } : null);
+
+export const setActiveWorkoutSessionDraft = (draft: WorkoutSessionDraft | null) => {
+  activeWorkoutSessionDraft = draft ? { ...draft, sets: draft.sets.map(cloneSet) } : null;
+};
+
+export const startWorkoutSessionDraft = (workout: Workout, startedAt = new Date().toISOString()) => {
+  const draft: WorkoutSessionDraft = {
+    id: `${Date.now()}`,
+    workoutId: workout.id,
+    workoutTitle: workout.title,
+    startedAt,
+    sets: [],
+  };
+
+  setActiveWorkoutSessionDraft(draft);
+  return draft;
+};
+
+export const startEmptyWorkoutSessionDraft = (startedAt = new Date().toISOString()) => {
+  const draft: WorkoutSessionDraft = {
+    id: `${Date.now()}`,
+    workoutId: 'empty-workout',
+    workoutTitle: 'Empty workout',
+    startedAt,
+    sets: [],
+  };
+
+  setActiveWorkoutSessionDraft(draft);
+  return draft;
+};
+
+export const updateActiveWorkoutSessionDraft = (updater: (current: WorkoutSessionDraft) => WorkoutSessionDraft) => {
+  if (!activeWorkoutSessionDraft) {
+    return null;
+  }
+
+  const nextDraft = updater({ ...activeWorkoutSessionDraft, sets: activeWorkoutSessionDraft.sets.map(cloneSet) });
+  setActiveWorkoutSessionDraft(nextDraft);
+  return nextDraft;
+};
+
+export const clearActiveWorkoutSessionDraft = () => {
+  activeWorkoutSessionDraft = null;
+};
+
+export const getWorkoutTemplateSummary = (workout: Workout, sessions: WorkoutSession[]): WorkoutTemplateSummary => {
+  const usage = getWorkoutUsage(workout.id, sessions);
+
+  return {
+    workout,
+    exerciseCount: workout.exercises.length,
+    estimatedDuration: getWorkoutEstimatedDuration(workout),
+    lastUsedLabel: usage.lastSession ? new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(usage.lastSession.finishedAt)) : undefined,
+    subtitle: getWorkoutSubtitle(workout),
+  };
+};
+
+export const getSuggestedWorkoutTemplates = (workouts: Workout[], sessions: WorkoutSession[], activeProgram?: TrainingProgram | null) => {
+  const defaultWorkoutId = workouts[0]?.id;
+  const usageMap = new Map(workouts.map((workout) => [workout.id, getWorkoutUsage(workout.id, sessions)] as const));
+  const activeProgramWorkoutId = activeProgram?.days.find((day) => !day.restDay && day.workoutTemplateId)?.workoutTemplateId;
+
+  return [...workouts]
+    .map((workout) => {
+      const usage = usageMap.get(workout.id)!;
+      const daysSinceLastSession = usage.lastSession ? Math.max(0, Math.floor((Date.now() - new Date(usage.lastSession.finishedAt).getTime()) / 86400000)) : 9999;
+      const score =
+        (activeProgramWorkoutId === workout.id ? 1000 : 0) +
+        usage.count * 120 +
+        Math.max(0, 400 - daysSinceLastSession * 20) +
+        (workout.id === defaultWorkoutId && sessions.length === 0 ? 5 : 0);
+
+      return {
+        ...getWorkoutTemplateSummary(workout, sessions),
+        score,
+        starter: workout.id === defaultWorkoutId && sessions.length === 0,
+      };
+    })
+    .sort((left, right) => right.score - left.score || left.workout.title.localeCompare(right.workout.title))
+    .slice(0, 6)
+    .map(({ score: _score, starter: _starter, ...summary }) => summary);
+};
+
+export const getRecentlyUsedWorkoutTemplates = (workouts: Workout[], sessions: WorkoutSession[], limit = 4) => {
+  const workoutById = new Map(workouts.map((workout) => [workout.id, workout] as const));
+  const seen = new Set<string>();
+
+  return [...sessions]
+    .sort((left, right) => getWorkoutTimestamp(right) - getWorkoutTimestamp(left))
+    .map((session) => workoutById.get(session.workoutId))
+    .filter((workout): workout is Workout => Boolean(workout))
+    .filter((workout) => {
+      if (seen.has(workout.id)) {
+        return false;
+      }
+      seen.add(workout.id);
+      return true;
+    })
+    .slice(0, limit)
+    .map((workout) => getWorkoutTemplateSummary(workout, sessions));
+};
+
+export const getWorkoutHubViewModel = (input: { activeProgram?: TrainingProgram | null; workouts: Workout[]; workoutSessions: WorkoutSession[] }) => {
+  const activeWorkoutDraft = getActiveWorkoutSessionDraft();
+  const activeWorkout = activeWorkoutDraft ? input.workouts.find((workout) => workout.id === activeWorkoutDraft.workoutId) ?? null : null;
+  const activeWorkoutExerciseCount = activeWorkout ? activeWorkout.exercises.length : 0;
+  const starterWorkout = input.workouts[0] ? getWorkoutTemplateSummary(input.workouts[0], input.workoutSessions) : undefined;
+  const suggestedWorkouts = getSuggestedWorkoutTemplates(input.workouts, input.workoutSessions, input.activeProgram);
+  const recentWorkouts = getRecentlyUsedWorkoutTemplates(input.workouts, input.workoutSessions, 4);
+  const programs = getWorkoutPrograms(input.workouts);
+  const programSummaries = programs.map((program) => getWorkoutProgramSummary(program, input.workouts, input.workoutSessions));
+  const activeSummary = activeWorkout ? getWorkoutTemplateSummary(activeWorkout, input.workoutSessions) : undefined;
+
+  return {
+    activeWorkout: activeSummary && activeWorkoutDraft
+      ? {
+          ...activeSummary,
+          completedExercises: new Set(activeWorkoutDraft.sets.map((set) => set.exerciseId)).size,
+          elapsedLabel: formatElapsedLabel(activeWorkoutDraft.startedAt),
+          progressLabel: `${new Set(activeWorkoutDraft.sets.map((set) => set.exerciseId)).size}/${activeWorkoutExerciseCount} exercises`,
+        }
+      : undefined,
+    favoritePrograms: programSummaries.filter((program) => program.isFavorite),
+    mode: 'start-now' as const,
+    recentWorkouts,
+    suggestedWorkouts,
+    starterWorkout,
+    stickyActionLabel: activeWorkoutDraft ? 'Continue Workout' : 'Start Empty Workout',
+    stickyActionType: activeWorkoutDraft ? 'continue' as const : 'start-empty' as const,
+    programs: programSummaries,
+    hasFreshStartNowState: input.workoutSessions.length === 0,
+    hasFreshProgramsState: workoutProgramsStore.programs.length === 0,
+  } satisfies WorkoutHubViewModel;
+};
+
+export const getWorkoutProgramSummary = (program: TrainingProgram, workouts: Workout[], sessions: WorkoutSession[]): WorkoutProgramSummary => {
+  const workoutCount = program.days.filter((day) => !day.restDay && Boolean(day.workoutTemplateId)).length;
+  const daysPerWeek = program.days.filter((day) => !day.restDay).length;
+  const firstWorkoutId = program.days.find((day) => !day.restDay && day.workoutTemplateId)?.workoutTemplateId;
+  const workout = workouts.find((item) => item.id === firstWorkoutId) ?? workouts[0];
+  const subtitle = program.description?.trim() || workout?.description?.trim() || `${workoutCount} workout${workoutCount === 1 ? '' : 's'} per week`;
+
+  return {
+    isFavorite: workoutProgramsStore.favorites.has(program.id),
+    program,
+    workoutCount,
+    daysPerWeek,
+    subtitle,
+    goalLabel: program.goal,
+    difficultyLabel: program.difficulty,
+  };
+};
+
+export const getWorkoutPrograms = (workouts: Workout[]) => {
+  const defaultProgram = createDefaultTrainingProgram(workouts);
+  return [defaultProgram, ...workoutProgramsStore.programs.map(cloneProgram)];
+};
+
+export const saveWorkoutProgram = (program: TrainingProgram) => {
+  const nextProgram = cloneProgram(program);
+  const existingIndex = workoutProgramsStore.programs.findIndex((item) => item.id === nextProgram.id);
+
+  if (existingIndex === -1) {
+    workoutProgramsStore.programs = [nextProgram, ...workoutProgramsStore.programs];
+    return nextProgram;
+  }
+
+  workoutProgramsStore.programs = workoutProgramsStore.programs.map((item) => (item.id === nextProgram.id ? nextProgram : item));
+  return nextProgram;
+};
+
+export const toggleWorkoutProgramFavorite = (programId: string) => {
+  if (workoutProgramsStore.favorites.has(programId)) {
+    workoutProgramsStore.favorites.delete(programId);
+    return false;
+  }
+
+  workoutProgramsStore.favorites.add(programId);
+  return true;
+};
+
+export const deleteWorkoutProgram = (programId: string) => {
+  workoutProgramsStore.programs = workoutProgramsStore.programs.filter((program) => program.id !== programId);
+  workoutProgramsStore.favorites.delete(programId);
+};
+
+export const duplicateWorkoutProgram = (programId: string, workouts: Workout[]) => {
+  const source = getWorkoutPrograms(workouts).find((program) => program.id === programId);
+  if (!source) {
+    return null;
+  }
+
+  const suffix = 'Copy';
+  const nextProgram: TrainingProgram = {
+    ...cloneProgram(source),
+    id: `${source.id}-${suffix.toLowerCase()}`,
+    name: `${source.name} ${suffix}`,
+    isCustom: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: undefined,
+  };
+
+  return saveWorkoutProgram(nextProgram);
+};
+
+export const getWorkoutProgramById = (programId: string, workouts: Workout[]) => getWorkoutPrograms(workouts).find((program) => program.id === programId) ?? null;
+
+export const getWorkoutProgramSchedule = (program: TrainingProgram) => {
+  const todayIndex = new Date().getDay();
+  const weekdayOrder = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+  const currentWeekday = weekdayOrder[todayIndex];
+  const currentIndex = program.days.findIndex((day) => day.weekday === currentWeekday);
+  const nextWorkout = program.days.slice(currentIndex >= 0 ? currentIndex : 0).find((day) => !day.restDay && day.workoutTemplateId) ?? program.days.find((day) => !day.restDay && day.workoutTemplateId) ?? null;
+  const currentDay = currentIndex >= 0 ? program.days[currentIndex] : null;
+
+  return {
+    currentDay,
+    nextWorkout,
+    isRestDayToday: Boolean(currentDay?.restDay),
+  };
+};
+
+export const getWorkoutTemplateById = (workoutId: string, workouts: Workout[]) => workouts.find((workout) => workout.id === workoutId) ?? null;
+
+export const isWorkoutTemplateFavorite = (workoutId: string) => workoutTemplateFavorites.has(workoutId);
+
+export const toggleWorkoutTemplateFavorite = (workoutId: string) => {
+  if (workoutTemplateFavorites.has(workoutId)) {
+    workoutTemplateFavorites.delete(workoutId);
+    return false;
+  }
+
+  workoutTemplateFavorites.add(workoutId);
+  return true;
+};

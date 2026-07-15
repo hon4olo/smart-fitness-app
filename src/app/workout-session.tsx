@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
+
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,6 +14,11 @@ import { AppButton } from '@/components/ui/AppButton';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext, WorkoutSet } from '@/context/AppContext';
 import {
+  clearActiveWorkoutSessionDraft,
+  getActiveWorkoutSessionDraft,
+  setActiveWorkoutSessionDraft,
+} from '@/lib/workouts';
+import {
   getWorkoutSessionEstimatedDuration,
   getWorkoutSessionExercisePrs,
   getWorkoutSessionPreviousSets,
@@ -25,24 +31,75 @@ export default function WorkoutSessionScreen() {
   const { workoutId } = useLocalSearchParams();
   const safeAreaInsets = useSafeAreaInsets();
   const requestedWorkoutId = Array.isArray(workoutId) ? workoutId[0] : workoutId;
-  const workout = useMemo(() => workouts.find((candidate) => candidate.id === requestedWorkoutId) ?? workouts[0], [requestedWorkoutId, workouts]);
-  const workoutExercises = useMemo(() => resolveWorkoutSessionExercises(workout), [workout]);
-  const estimatedDuration = useMemo(() => getWorkoutSessionEstimatedDuration(workout), [workout]);
-  const startedAt = useMemo(() => new Date().toISOString(), []);
+  const activeWorkoutDraft = useMemo(() => getActiveWorkoutSessionDraft(), [requestedWorkoutId]);
+  const workout = useMemo(() => {
+    if (requestedWorkoutId === 'empty-workout') {
+      return {
+        createdAt: new Date().toISOString(),
+        description: 'Start from scratch and add exercises during the session.',
+        duration: 'Open-ended',
+        exercises: [],
+        id: 'empty-workout',
+        title: 'Empty Workout',
+        isCustom: true,
+      };
+    }
 
-  const [selectedExerciseId, setSelectedExerciseId] = useState(workoutExercises[0]?.id ?? '');
+    return workouts.find((candidate) => candidate.id === requestedWorkoutId) ?? workouts[0] ?? null;
+  }, [requestedWorkoutId, workouts]);
+  const workoutExercises = useMemo(() => (workout ? resolveWorkoutSessionExercises(workout) : []), [workout]);
+  const estimatedDuration = useMemo(() => (workout ? getWorkoutSessionEstimatedDuration(workout) : '0 min'), [workout]);
+  const initialDraft = workout && activeWorkoutDraft?.workoutId === workout.id ? activeWorkoutDraft : null;
+  const [startedAt, setStartedAt] = useState(initialDraft?.startedAt ?? new Date().toISOString());
+  const [selectedExerciseId, setSelectedExerciseId] = useState(initialDraft?.sets.at(-1)?.exerciseId ?? workoutExercises[0]?.id ?? '');
   const [weight, setWeight] = useState('60');
   const [reps, setReps] = useState('8');
-  const [sets, setSets] = useState<WorkoutSet[]>([]);
+  const [sets, setSets] = useState<WorkoutSet[]>(initialDraft?.sets.map((set) => ({ ...set })) ?? []);
   const [editingSetId, setEditingSetId] = useState<string | undefined>();
 
   useEffect(() => {
-    setSelectedExerciseId(workoutExercises[0]?.id ?? '');
+    if (!workout) {
+      return;
+    }
+
+    const nextDraft = activeWorkoutDraft?.workoutId === workout.id ? activeWorkoutDraft : null;
+
+    if (nextDraft) {
+      setStartedAt(nextDraft.startedAt);
+      setSets(nextDraft.sets.map((set) => ({ ...set })));
+      setSelectedExerciseId(nextDraft.sets.at(-1)?.exerciseId ?? workoutExercises[0]?.id ?? '');
+    } else {
+      const nextStartedAt = new Date().toISOString();
+      setStartedAt(nextStartedAt);
+      setSets([]);
+      setSelectedExerciseId(workoutExercises[0]?.id ?? '');
+      setActiveWorkoutSessionDraft({
+        id: `${Date.now()}`,
+        workoutId: workout.id,
+        workoutTitle: workout.title,
+        startedAt: nextStartedAt,
+        sets: [],
+      });
+    }
+
     setWeight('60');
     setReps('8');
-    setSets([]);
     setEditingSetId(undefined);
-  }, [workout?.id]);
+  }, [activeWorkoutDraft, workout, workoutExercises]);
+
+  useEffect(() => {
+    if (!workout) {
+      return;
+    }
+
+    setActiveWorkoutSessionDraft({
+      id: `${Date.now()}`,
+      workoutId: workout.id,
+      workoutTitle: workout.title,
+      startedAt,
+      sets,
+    });
+  }, [sets, startedAt, workout]);
 
   const progress = useMemo(() => getWorkoutSessionProgress(workoutExercises, selectedExerciseId), [workoutExercises, selectedExerciseId]);
   const previousSets = useMemo(() => getWorkoutSessionPreviousSets(progress.selectedExercise, workoutSessions), [progress.selectedExercise, workoutSessions]);
@@ -112,6 +169,7 @@ export default function WorkoutSessionScreen() {
       return;
     }
 
+    clearActiveWorkoutSessionDraft();
     saveWorkoutSession({
       id: `${Date.now()}`,
       workoutId: workout.id,
@@ -125,6 +183,7 @@ export default function WorkoutSessionScreen() {
 
   const handleCancelWorkout = () => {
     if (sets.length === 0) {
+      clearActiveWorkoutSessionDraft();
       router.replace('/');
       return;
     }
@@ -134,7 +193,10 @@ export default function WorkoutSessionScreen() {
       {
         text: 'Cancel workout',
         style: 'destructive',
-        onPress: () => router.replace('/'),
+        onPress: () => {
+          clearActiveWorkoutSessionDraft();
+          router.replace('/');
+        },
       },
     ]);
   };
