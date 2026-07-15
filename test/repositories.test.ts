@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 import { defaultState } from '@/data/defaults';
 import { createLocalAppRepository } from '@/repositories';
-import type { StorageAdapter } from '@/storage';
+import type { StorageAdapter } from '@/storage/StorageAdapter';
 
 describe('local app repository', () => {
   const read = vi.fn<StorageAdapter['read']>();

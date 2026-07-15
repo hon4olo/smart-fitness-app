@@ -29,6 +29,7 @@ import { defaultState as defaultAppState } from '@/data/defaults';
 import { createExerciseId, getLastWorkoutSession as getLastWorkoutSessionFromState } from '@/lib/appState';
 import { createRepositoryFactory } from '@/repositories';
 import { createAsyncStorageAdapter } from '@/storage';
+import { AuthProvider } from '@/auth';
 
 export type {
   AppContextType,
@@ -56,6 +57,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(defaultState);
   const repositoryProvider = useMemo(() => createRepositoryFactory(createAsyncStorageAdapter()), []);
   const repository = useMemo(() => repositoryProvider.getRepository(), [repositoryProvider]);
+  const authService = useMemo(() => repositoryProvider.getAuthService(), [repositoryProvider]);
 
   useEffect(() => {
     let cancelled = false;
@@ -592,7 +594,11 @@ export function AppProvider({ children }: PropsWithChildren) {
     ]
   );
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AuthProvider service={authService}>
+      <AppContext.Provider value={value}>{children}</AppContext.Provider>
+    </AuthProvider>
+  );
 }
 
 export function useAppContext() {
