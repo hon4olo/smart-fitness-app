@@ -53,7 +53,11 @@ export const ProgressTrendChart = memo(function ProgressTrendChart({
   }
 
   return (
-    <View style={styles.chartShell}>
+    <View
+      accessible
+      accessibilityHint="A compact bar chart showing recent trend values."
+      accessibilityLabel={`Progress trend chart. ${maxLabel} is the highest value and ${minLabel} is the lowest value.`}
+      style={styles.chartShell}>
       <View style={styles.chartRangeRow}>
         <Text style={styles.chartRangeLabel}>{maxLabel}</Text>
         <Text style={styles.chartRangeLabel}>{minLabel}</Text>

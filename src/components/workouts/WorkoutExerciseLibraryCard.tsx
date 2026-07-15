@@ -174,6 +174,8 @@ const matchesFacet = (exercise: Exercise, facet: FilterValue, facetType: 'muscle
 const FilterChip = memo(function FilterChip({ label, onPress, selected = false }: FilterChipProps) {
   return (
     <Pressable
+      accessibilityLabel={label}
+      accessibilityHint="Toggle this exercise filter"
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
@@ -207,7 +209,10 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isAdded, isFavorite, o
 
   return (
     <View style={styles.exerciseRow}>
-      <Pressable onPress={() => onOpenDetail(exercise.id)} style={({ pressed }) => [styles.exerciseMain, pressed && styles.pressed]}>
+      <Pressable
+        accessibilityLabel={`Open details for ${exercise.name}`}
+        onPress={() => onOpenDetail(exercise.id)}
+        style={({ pressed }) => [styles.exerciseMain, pressed && styles.pressed]}>
         <View style={styles.exerciseTitleRow}>
           <Text style={styles.exerciseName}>{buildQueryHighlight(exercise.name, query)}</Text>
           {isFavorite ? <Text style={styles.favoriteBadge}>★</Text> : null}
@@ -221,6 +226,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isAdded, isFavorite, o
         <AppButton disabled={isAdded} label={isAdded ? 'Added' : 'Add'} onPress={() => onAdd(exercise.name)} variant="secondary" />
         <AppButton label="Details" onPress={() => onOpenDetail(exercise.id)} variant="secondary" />
         <Pressable
+          accessibilityLabel={isFavorite ? `Remove ${exercise.name} from favorites` : `Add ${exercise.name} to favorites`}
           accessibilityRole="button"
           accessibilityState={{ selected: isFavorite }}
           onPress={() => onToggleFavorite(exercise.id)}
@@ -239,7 +245,12 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({ exercise, isFavo
   return (
     <Modal animationType="slide" onRequestClose={onClose} transparent visible>
       <View style={styles.modalOverlay}>
-        <Pressable accessibilityRole="button" onPress={onClose} style={styles.modalBackdrop} />
+        <Pressable
+          accessibilityLabel={`Close exercise details for ${exercise.name}`}
+          accessibilityRole="button"
+          onPress={onClose}
+          style={styles.modalBackdrop}
+        />
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
@@ -311,7 +322,10 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({ exercise, isFavo
 
                     return (
                       <View key={match.exercise.id} style={styles.similarRow}>
-                        <Pressable onPress={() => onAdd(match.exercise.name)} style={({ pressed }) => [styles.similarMain, pressed && styles.pressed]}>
+                        <Pressable
+                          accessibilityLabel={`Add similar exercise ${match.exercise.name}`}
+                          onPress={() => onAdd(match.exercise.name)}
+                          style={({ pressed }) => [styles.similarMain, pressed && styles.pressed]}>
                           <Text style={styles.similarName}>{match.exercise.name}</Text>
                           <Text style={styles.similarMeta}>{shared || `${getExerciseTypeLabel(match.exercise)} · ${getDifficultyLabel(match.exercise)}`}</Text>
                         </Pressable>
@@ -546,7 +560,11 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
 
   return (
     <AppCard>
-      <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
+      <Pressable
+        accessibilityLabel="Toggle exercise browser"
+        accessibilityRole="button"
+        onPress={onToggleExpanded}
+        style={styles.collapsibleHeader}>
         <View style={styles.headerRow}>
           <View style={styles.headerContent}>
             <Text style={styles.sectionTitle}>{`Exercise browser ${isExpanded ? '−' : '+'}`}</Text>
@@ -575,7 +593,11 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
           <View style={styles.filterSection}>
             <View style={styles.filterHeaderRow}>
               <Text style={styles.sectionHeading}>Filter bar</Text>
-              <Pressable onPress={handleClearFilters} style={({ pressed }) => [styles.clearFiltersButton, pressed && styles.pressed]}>
+              <Pressable
+                accessibilityLabel="Clear exercise filters"
+                accessibilityRole="button"
+                onPress={handleClearFilters}
+                style={({ pressed }) => [styles.clearFiltersButton, pressed && styles.pressed]}>
                 <Text style={styles.clearFiltersText}>Clear Filters</Text>
               </Pressable>
             </View>
