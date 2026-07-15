@@ -7,6 +7,14 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { createApiClient } from '@/api/client';
+import { getMobileApiBaseUrl } from '@/api';
+import { createProductionCloudProvider } from '@/cloud/createProductionCloudProvider';
+import { createWeightHistoryQueueOperation } from '@/cloud/WeightHistorySync';
+import { createSyncCoordinator, type SyncCoordinator } from '@/cloud';
+import { createWeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
+import { createAsyncStorageOperationQueueStore } from '@/storage/AsyncStorageOperationQueueStore';
+import { SyncProvider } from './SyncContext';
 
 import type {
   AppContextType,
@@ -58,6 +66,18 @@ export function AppProvider({ children }: PropsWithChildren) {
   const repositoryProvider = useMemo(() => createRepositoryFactory(createAsyncStorageAdapter()), []);
   const repository = useMemo(() => repositoryProvider.getRepository(), [repositoryProvider]);
   const authService = useMemo(() => repositoryProvider.getAuthService(), [repositoryProvider]);
+  const storageAdapter = useMemo(() => createAsyncStorageAdapter(), []);
+  const queueStore = useMemo(() => createAsyncStorageOperationQueueStore(storageAdapter), [storageAdapter]);
+  const weightSyncMetadataStore = useMemo(() => createWeightSyncMetadataStore(storageAdapter), [storageAdapter]);
+  const apiClient = useMemo(() => createApiClient({ baseUrl: getMobileApiBaseUrl() }), []);
+  const cloudProvider = useMemo(
+    () => createProductionCloudProvider({ apiClient, authService }),
+    [apiClient, authService]
+  );
+  const syncCoordinator = useMemo<SyncCoordinator>(
+    () => createSyncCoordinator({ queueStore, provider: cloudProvider }),
+    [cloudProvider, queueStore]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -388,6 +408,24 @@ export function AppProvider({ children }: PropsWithChildren) {
     []
   );
 
+  const queueWeightHistoryOperation = useCallback(
+    async (action: 'create' | 'update' | 'delete', entry: WeightEntry) => {
+      const session = await authService.getCurrentSession();
+      const metadata = await weightSyncMetadataStore.get(entry.id);
+      const operation = createWeightHistoryQueueOperation({
+        action,
+        entry,
+        deviceId: session?.device.id ?? 'local-device',
+        baseRevision: metadata?.revision ?? 0,
+        actorId: session?.user.id,
+        previous: metadata,
+      });
+
+      await queueStore.enqueue(operation);
+    },
+    [authService, queueStore, weightSyncMetadataStore]
+  );
+
   const addWeightEntry = useCallback((entry: WeightEntry) => {
     setState((currentState) => {
       const nextState = {
@@ -395,9 +433,29 @@ export function AppProvider({ children }: PropsWithChildren) {
         weightHistory: [entry, ...currentState.weightHistory],
       };
       void repository.saveState(nextState);
+      void queueWeightHistoryOperation('create', entry);
       return nextState;
     });
-  }, []);
+  }, [queueWeightHistoryOperation, repository]);
+
+  const updateWeightEntry = useCallback((entryId: string, entry: WeightEntry) => {
+    setState((currentState) => {
+      const index = currentState.weightHistory.findIndex((item) => item.id === entryId);
+      if (index < 0) {
+        return currentState;
+      }
+
+      const nextHistory = [...currentState.weightHistory];
+      nextHistory[index] = entry;
+      const nextState = {
+        ...currentState,
+        weightHistory: nextHistory,
+      };
+      void repository.saveState(nextState);
+      void queueWeightHistoryOperation('update', entry);
+      return nextState;
+    });
+  }, [queueWeightHistoryOperation, repository]);
 
   const addBodyMeasurement = useCallback((entry: BodyMeasurement) => {
     setState((currentState) => {
@@ -412,14 +470,18 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const deleteWeightEntry = useCallback((entryId: string) => {
     setState((currentState) => {
+      const entry = currentState.weightHistory.find((item) => item.id === entryId);
       const nextState = {
         ...currentState,
-        weightHistory: currentState.weightHistory.filter((entry) => entry.id !== entryId),
+        weightHistory: currentState.weightHistory.filter((item) => item.id !== entryId),
       };
       void repository.saveState(nextState);
+      if (entry) {
+        void queueWeightHistoryOperation('delete', entry);
+      }
       return nextState;
     });
-  }, []);
+  }, [queueWeightHistoryOperation, repository]);
 
   const deleteBodyMeasurement = useCallback((entryId: string) => {
     setState((currentState) => {
@@ -455,6 +517,12 @@ export function AppProvider({ children }: PropsWithChildren) {
         month: 'short',
       }).format(new Date());
       const now = new Date().toISOString();
+      const initialWeightEntry: WeightEntry = {
+        id: `${Date.now()}`,
+        date: today,
+        weight: setup.currentWeight,
+        createdAt: now,
+      };
 
       setState((currentState) => {
         const nextState = {
@@ -468,21 +536,14 @@ export function AppProvider({ children }: PropsWithChildren) {
             trainingDaysPerWeek: setup.trainingDaysPerWeek,
             weight: `${setup.currentWeight.toFixed(1)} kg`,
           },
-          weightHistory: [
-            {
-              id: `${Date.now()}`,
-              date: today,
-              weight: setup.currentWeight,
-              createdAt: now,
-            },
-            ...currentState.weightHistory,
-          ],
+          weightHistory: [initialWeightEntry, ...currentState.weightHistory],
         };
         void repository.saveState(nextState);
+        void queueWeightHistoryOperation('create', initialWeightEntry);
         return nextState;
       });
     },
-    []
+    [queueWeightHistoryOperation, repository]
   );
 
   const resetOnboarding = useCallback(() => {
@@ -535,6 +596,14 @@ export function AppProvider({ children }: PropsWithChildren) {
     });
   }, []);
 
+  const replaceState = useCallback(
+    (nextState: AppState) => {
+      setState(nextState);
+      void repository.saveState(nextState);
+    },
+    [repository]
+  );
+
   const getLastWorkoutSession = useCallback(() => {
     return getLastWorkoutSessionFromState(state.workoutSessions);
   }, [state.workoutSessions]);
@@ -549,6 +618,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       addExercise,
       addWorkoutTemplate,
       addWeightEntry,
+      updateWeightEntry,
       deleteBodyMeasurement,
       deleteFoodEntry,
       deleteMealTemplate,
@@ -565,6 +635,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       updateFoodEntry,
       updateNutritionTargets,
       updateProfileGoals,
+      replaceState,
     }),
     [
       addBodyMeasurement,
@@ -574,6 +645,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       addExercise,
       addWorkoutTemplate,
       addWeightEntry,
+      updateWeightEntry,
       deleteBodyMeasurement,
       deleteFoodEntry,
       deleteMealTemplate,
@@ -590,13 +662,24 @@ export function AppProvider({ children }: PropsWithChildren) {
       updateFoodEntry,
       updateNutritionTargets,
       updateProfileGoals,
+      replaceState,
       state,
     ]
   );
 
   return (
     <AuthProvider service={authService}>
-      <AppContext.Provider value={value}>{children}</AppContext.Provider>
+      <AppContext.Provider value={value}>
+        <SyncProvider
+          metadataStore={weightSyncMetadataStore}
+          queueStore={queueStore}
+          replaceState={replaceState}
+          state={state}
+          syncCoordinator={syncCoordinator}
+        >
+          {children}
+        </SyncProvider>
+      </AppContext.Provider>
     </AuthProvider>
   );
 }

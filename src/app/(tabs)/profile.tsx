@@ -10,6 +10,7 @@ import { ProfileActionsCard } from '@/components/profile/ProfileActionsCard';
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
 import { ProfileHeaderCard } from '@/components/profile/ProfileHeaderCard';
 import { ProfileRuntimeInfoCard } from '@/components/profile/ProfileRuntimeInfoCard';
+import { ProfileSyncStatusCard } from '@/components/profile/ProfileSyncStatusCard';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import type { ProfileGoalType } from '@/types';
@@ -154,6 +155,8 @@ export default function ProfileScreen() {
         />
 
         <ProfileActionsCard onResetOnboarding={handleResetOnboarding} />
+
+        <ProfileSyncStatusCard />
 
         <ProfileRuntimeInfoCard
           channel={otaChannel}

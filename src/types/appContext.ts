@@ -29,7 +29,9 @@ export type AppState = {
 
 export type AppContextType = AppState & {
   addWeightEntry: (entry: WeightEntry) => void;
+  updateWeightEntry: (entryId: string, entry: WeightEntry) => void;
   addBodyMeasurement: (entry: BodyMeasurement) => void;
+  replaceState: (state: AppState) => void;
   addFoodEntry: (entry: FoodEntry) => void;
   addFoodEntries: (entries: FoodEntry[]) => void;
   addMealTemplate: (template: MealTemplate) => void;

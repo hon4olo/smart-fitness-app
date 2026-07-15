@@ -8,7 +8,7 @@
 
 export type { CloudError, CloudErrorCode } from './CloudErrors';
 export { CLOUD_ERROR_CODES } from './CloudErrors';
-export type { CloudProvider } from './CloudProvider';
+export type { CloudProvider, CloudPullResult, CloudPushResult } from './CloudProvider';
 export type { CloudSyncStatus } from './CloudSyncStatus';
 export { CLOUD_SYNC_STATUSES } from './CloudSyncStatus';
 export type {

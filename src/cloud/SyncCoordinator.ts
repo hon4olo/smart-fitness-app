@@ -1,6 +1,6 @@
-import type { CloudProvider } from './CloudProvider';
+import type { CloudProvider, CloudPullResult, CloudPushResult } from './CloudProvider';
 import type { CloudError } from './CloudErrors';
-import type { ConflictRecord, SyncBatch, SyncOperation, SyncState } from './CloudSyncTypes';
+import type { ConflictRecord, SyncBatch, SyncOperation, SyncRevision, SyncState } from './CloudSyncTypes';
 import type { ConflictPolicy, ConflictPolicyRegistry } from './CloudConflictPolicies';
 import type { ConflictResolver, ConflictResolutionResult } from './CloudConflictResolver';
 import { createConflictPolicyRegistry } from './CloudConflictPolicies';
@@ -72,12 +72,14 @@ export type SyncPushSimulation = {
   phase: 'Uploading';
   attempted: boolean;
   state?: SyncState;
+  result?: CloudPushResult;
 };
 
 export type SyncPullSimulation = {
   phase: 'Downloading';
-  batch: SyncBatch;
+  batch: Omit<SyncBatch, 'revision'> & Partial<SyncState> & { revision?: SyncRevision | number };
   operationCount: number;
+  result?: CloudPullResult;
 };
 
 export type SyncConflictResolution = {
@@ -282,7 +284,7 @@ export const simulatePush = async (
   }
 
   const state = await dependencies.provider.pushOperations(batch);
-  return { phase: 'Uploading', attempted: true, state };
+  return { phase: 'Uploading', attempted: true, state, result: state as CloudPushResult };
 };
 
 export const simulatePull = async (
@@ -298,13 +300,14 @@ export const simulatePull = async (
       id: batch.id || makeBatchId(batch.operations, now),
     },
     operationCount: batch.operations.length,
+    result: batch as CloudPullResult,
   };
 };
 
 export const resolveConflicts = async (
   dependencies: Pick<SyncCoordinatorDependencies, 'resolver' | 'registry'>,
   localOperations: OfflineSyncQueueOperation[],
-  remoteBatch: SyncBatch,
+  remoteBatch: Omit<SyncBatch, 'revision'> & Partial<SyncState> & { revision?: SyncRevision | number },
   now: string,
 ): Promise<SyncConflictResolution> => {
   const resolver = dependencies.resolver ?? createConflictResolver(dependencies.registry ?? createConflictPolicyRegistry());
