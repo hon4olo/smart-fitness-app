@@ -20,3 +20,26 @@ export type {
   SyncSnapshot,
   SyncState,
 } from './CloudSyncTypes';
+export type {
+  OfflineSyncQueueAction,
+  OfflineSyncQueueOperation,
+  OfflineSyncQueueOperationPatch,
+  OfflineSyncQueueStatus,
+} from './CloudQueueTypes';
+export {
+  OFFLINE_SYNC_QUEUE_ACTIONS,
+  OFFLINE_SYNC_QUEUE_STATUSES,
+} from './CloudQueueTypes';
+export type { OfflineSyncQueueStore } from './CloudQueueStore';
+export {
+  createOfflineSyncQueueBackoff,
+  createOfflineSyncQueueIdempotencyKey,
+  dedupeOfflineSyncQueueOperations,
+  filterFailedOfflineSyncQueueOperations,
+  filterPendingOfflineSyncQueueOperations,
+  incrementOfflineSyncQueueRetry,
+  isOfflineSyncQueueIdempotencyKey,
+  normalizeOfflineSyncQueueOperation,
+  sortOfflineSyncQueueOperations,
+  toOfflineSyncQueueSyncOperation,
+} from './CloudQueueHelpers';
