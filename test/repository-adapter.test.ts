@@ -14,9 +14,9 @@ const makeClient = () => ({
 } as unknown as ApiClient & { get: ReturnType<typeof vi.fn>; patch: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> });
 
 describe('repository adapter', () => {
-  it('keeps the local app repository working without a backend base url', async () => {
+  it('keeps the local app repository working independently of the backend client', async () => {
     const storage = createMemoryStorage();
-    const provider = createRepositoryFactory(storage, { apiBaseUrl: undefined });
+    const provider = createRepositoryFactory(storage);
     const repository = provider.getRepository();
 
     await repository.saveState(defaultState);

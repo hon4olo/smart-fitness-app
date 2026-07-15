@@ -30,6 +30,15 @@ describe('api client', () => {
     await expect(client.get<{ ok: boolean }>('/v1/health')).resolves.toEqual({ ok: true });
   });
 
+  it('joins base urls and paths without duplicate slashes', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ ok: true }));
+    const client = createApiClient({ baseUrl: 'https://api.example.com/', fetchImpl: fetchMock as typeof fetch, requestIdFactory: () => 'req-1' });
+
+    await client.get('/v1/user');
+
+    expect(fetchMock).toHaveBeenCalledWith('https://api.example.com/v1/user', expect.anything());
+  });
+
   it('serializes query parameters', async () => {
     const fetchMock = vi.fn(async () => jsonResponse({ ok: true }));
     const client = createApiClient({ baseUrl: 'https://api.example.com', fetchImpl: fetchMock as typeof fetch, requestIdFactory: () => 'req-1' });

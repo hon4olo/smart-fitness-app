@@ -1,2 +1,2 @@
 export * from './client';
-export { getMobileApiBaseUrl } from './config';
+export { PRODUCTION_API_BASE_URL, getMobileApiBaseUrl, normalizeMobileApiBaseUrl } from './config';

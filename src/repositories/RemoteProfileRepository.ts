@@ -1,4 +1,4 @@
-import type { ApiClient } from '@/api/client';
+import { type ApiClient, isApiError } from '@/api/client';
 
 import type { AuthProfile, AuthProfileUpdate, TokenManager } from '@/auth/types';
 
@@ -23,7 +23,7 @@ export const createRemoteProfileRepository = (apiClient: ApiClient, tokenManager
       });
       return response.user;
     } catch (error) {
-      if (error instanceof Error && error.name === 'ApiError') {
+      if (isApiError(error)) {
         return null;
       }
 
