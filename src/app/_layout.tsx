@@ -15,6 +15,7 @@ export default function TabLayout() {
             headerTintColor: '#F5F7FA',
           }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
           <Stack.Screen
             name="workout-session"
             options={{

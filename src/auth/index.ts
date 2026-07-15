@@ -1,5 +1,20 @@
 export { AuthProvider, AuthContext } from './AuthContext';
 export { createAuthService, AUTH_SESSION_STORAGE_KEY } from './createAuthService';
+export {
+  AUTH_DISCLOSURE_COPY,
+  buildProfileAuthViewModel,
+  getSafeLoginErrorMessage,
+  getSafeRegisterErrorMessage,
+  resolveAuthGateStatus,
+  validateLoginForm,
+  validateRegisterForm,
+  type AuthDisclosureCopy,
+  type AuthFieldErrors,
+  type AuthGateStatus,
+  type LoginFormValues,
+  type ProfileAuthViewModel,
+  type RegisterFormValues,
+} from './auth-ui';
 export type {
   AuthCredentials,
   AuthDevice,

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore - expo-updates types are not available in this workspace, but the runtime module exists on device.
 import * as Updates from 'expo-updates';
 
+import { AuthGateCard } from '@/components/auth';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ProfileActionsCard } from '@/components/profile/ProfileActionsCard';
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
@@ -133,6 +134,8 @@ export default function ProfileScreen() {
       contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 180 }]}>
       <View style={styles.container}>
         <SectionHeader title="Profile" subtitle="Review your stats, adjust goals, and use quick actions below" />
+
+        <AuthGateCard />
 
         <ProfileHeaderCard rows={rows} />
 

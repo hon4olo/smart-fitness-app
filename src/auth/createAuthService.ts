@@ -125,9 +125,28 @@ export const createAuthService = ({
       return null;
     }
 
-    return {
+    const cachedSession = {
       ...cached,
       tokens,
+    };
+
+    if (!tokenManager.isAccessTokenExpired(tokens.accessToken)) {
+      return cachedSession;
+    }
+
+    const refreshed = await refresh();
+    if (refreshed) {
+      return refreshed;
+    }
+
+    const currentTokens = await tokenManager.loadTokens();
+    if (!currentTokens) {
+      return null;
+    }
+
+    return {
+      ...cached,
+      tokens: currentTokens,
     };
   };
 
