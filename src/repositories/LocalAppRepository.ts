@@ -1,3 +1,4 @@
+import type { CloudProvider } from '@/cloud';
 import { DEFAULT_WORKOUT_TEMPLATE_IDS as DEFAULT_WORKOUT_TEMPLATE_IDS_FROM_DATA, defaultState as defaultAppState } from '@/data/defaults';
 import { exerciseDatabase, mergeExerciseCatalog } from '@/data/exercises';
 import type { AppState } from '@/types';
@@ -12,6 +13,10 @@ import {
 
 import type { AppRepository } from './AppRepository';
 import type { StorageAdapter } from '@/storage/StorageAdapter';
+
+export type LocalAppRepositoryOptions = {
+  cloudProvider?: CloudProvider;
+};
 
 const APP_STATE_KEY = '@smart_fitness_mvp_state';
 const DEFAULT_WORKOUT_TEMPLATE_IDS = DEFAULT_WORKOUT_TEMPLATE_IDS_FROM_DATA;
@@ -37,33 +42,37 @@ const normalizeStoredState = (storedState: Partial<AppState>): AppState => ({
   bodyMeasurements: normalizeBodyMeasurements(storedState.bodyMeasurements ?? defaultState.bodyMeasurements),
 });
 
-export const createLocalAppRepository = (storage: StorageAdapter): AppRepository => ({
-  async loadState() {
-    try {
-      const storedState = await storage.read(APP_STATE_KEY);
+export const createLocalAppRepository = (storage: StorageAdapter, options: LocalAppRepositoryOptions = {}): AppRepository => {
+  void options.cloudProvider;
 
-      if (!storedState) {
+  return {
+    async loadState() {
+      try {
+        const storedState = await storage.read(APP_STATE_KEY);
+
+        if (!storedState) {
+          return null;
+        }
+
+        return normalizeStoredState(JSON.parse(storedState) as Partial<AppState>);
+      } catch (error) {
+        console.warn('Failed to restore MVP app state', error);
         return null;
       }
-
-      return normalizeStoredState(JSON.parse(storedState) as Partial<AppState>);
-    } catch (error) {
-      console.warn('Failed to restore MVP app state', error);
-      return null;
-    }
-  },
-  async saveState(state) {
-    try {
-      await storage.write(APP_STATE_KEY, JSON.stringify(state));
-    } catch (error) {
-      console.warn('Failed to persist MVP app state', error);
-    }
-  },
-  async clearState() {
-    try {
-      await storage.remove(APP_STATE_KEY);
-    } catch (error) {
-      console.warn('Failed to clear MVP app state', error);
-    }
-  },
-});
+    },
+    async saveState(state) {
+      try {
+        await storage.write(APP_STATE_KEY, JSON.stringify(state));
+      } catch (error) {
+        console.warn('Failed to persist MVP app state', error);
+      }
+    },
+    async clearState() {
+      try {
+        await storage.remove(APP_STATE_KEY);
+      } catch (error) {
+        console.warn('Failed to clear MVP app state', error);
+      }
+    },
+  };
+};

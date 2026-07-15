@@ -1,15 +1,15 @@
 // Data Layer 1.0 notes
 //
-// Repository flow:
-// UI -> AppContext -> RepositoryProvider -> AppRepository -> StorageAdapter -> local persisted state
+// Intended flow:
+// UI -> AppContext -> Repository -> Local Repository -> Future Cloud Provider
 //
 // Storage flow:
-// AppRepository owns the storage key, serialization, deserialization, and normalization boundary.
+// AppRepository owns the local storage key, serialization, deserialization, and normalization boundary.
 // StorageAdapter remains a thin primitive for read/write/remove only.
 //
-// Future sync integration points:
-// - RepositoryProvider can return a SyncRepository instead of a local repository.
-// - StorageAdapter can continue backing the local cache while a remote source is layered in.
+// Cloud preparation:
+// - Repository creation can accept a CloudProvider later without changing AppContext behavior.
+// - The local repository remains the source of truth until a cloud layer is explicitly wired in.
 // - Domain metadata here can be reused by future sync/versioning code.
 
 export * from './metadata';
