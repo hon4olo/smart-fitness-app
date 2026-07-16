@@ -189,6 +189,7 @@ export default function NutritionScreen() {
 
   const targetPercent = nutritionTargets.calories > 0 ? Math.round((nutritionSummary.consumed.calories / nutritionTargets.calories) * 100) : 0;
   const targetPercentLabel = nutritionTargets.calories > 0 ? `${targetPercent}%` : '--';
+  const formatCompactMacroValue = (value: number) => formatNumber(value);
 
   const renderMacroGridRow = (values: MacroGridValues, showLabels = false, nested = false) => (
     <View style={[styles.macroGridRow, nested && styles.macroGridRowNested]}>
@@ -345,11 +346,11 @@ export default function NutritionScreen() {
                   <View style={styles.mealSummaryStrip}>
                     {renderMacroGridRow(
                       {
-                        fats: `${formatNumber(subtotal.fats)} g`,
-                        carbs: `${formatNumber(subtotal.carbs)} g`,
-                        protein: `${formatNumber(subtotal.protein)} g`,
+                        fats: formatCompactMacroValue(subtotal.fats),
+                        carbs: formatCompactMacroValue(subtotal.carbs),
+                        protein: formatCompactMacroValue(subtotal.protein),
                         target: mealTargetPercentLabel,
-                        calories: `${formatNumber(subtotal.calories)} kcal`,
+                        calories: formatCompactMacroValue(subtotal.calories),
                       },
                       false
                     )}
@@ -363,11 +364,12 @@ export default function NutritionScreen() {
                           const foodTargetPercent = nutritionTargets.calories > 0 ? Math.round((entry.calories / nutritionTargets.calories) * 100) : 0;
                           const foodTargetPercentLabel = nutritionTargets.calories > 0 ? `${foodTargetPercent}%` : '--';
                           const foodMetadata = [entry.brandName, servingInfo].filter(Boolean).join(' · ');
+                          const foodAccessibilityLabel = `Edit ${entry.name}, ${foodMetadata || 'no metadata'}, ${formatCompactMacroValue(entry.fats)} fat, ${formatCompactMacroValue(entry.carbs)} carbs, ${formatCompactMacroValue(entry.protein)} protein, ${foodTargetPercentLabel} of target, ${formatCompactMacroValue(entry.calories)} calories`;
                           return (
                             <Pressable
                               key={entry.id}
                               accessibilityHint="Tap to edit this food entry"
-                              accessibilityLabel={`Edit ${entry.name}`}
+                              accessibilityLabel={foodAccessibilityLabel}
                               hitSlop={10}
                               onPress={() => editFoodEntry(entry)}
                               style={[styles.foodRow, index > 0 && styles.foodRowDivider]}>
@@ -380,18 +382,15 @@ export default function NutritionScreen() {
                                     {foodMetadata || '—'}
                                   </Text>
                                 </View>
-                                <Text selectable numberOfLines={1} style={styles.foodRowCalories}>
-                                  {formatNumber(entry.calories)} kcal
-                                </Text>
                               </View>
 
                               {renderMacroGridRow(
                                 {
-                                  fats: `${formatNumber(entry.fats)} g`,
-                                  carbs: `${formatNumber(entry.carbs)} g`,
-                                  protein: `${formatNumber(entry.protein)} g`,
+                                  fats: formatCompactMacroValue(entry.fats),
+                                  carbs: formatCompactMacroValue(entry.carbs),
+                                  protein: formatCompactMacroValue(entry.protein),
                                   target: foodTargetPercentLabel,
-                                  calories: `${formatNumber(entry.calories)} kcal`,
+                                  calories: formatCompactMacroValue(entry.calories),
                                 },
                                 false,
                                 true
@@ -494,13 +493,6 @@ const createStyles = (colors: typeof Colors.dark) =>
     foodRow: {
       gap: Spacing.one,
       minHeight: 44,
-    },
-    foodRowCalories: {
-      color: colors.textPrimary,
-      fontSize: 13,
-      fontWeight: '800',
-      fontVariant: ['tabular-nums'],
-      textAlign: 'right',
     },
     foodRowTop: {
       alignItems: 'flex-start',

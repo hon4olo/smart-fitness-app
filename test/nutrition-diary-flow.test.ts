@@ -51,12 +51,12 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('mealActionButton');
     expect(source).toContain('mealActionIcon');
     expect(source).toContain('foodRow');
-    expect(source).toContain('foodRowCalories');
     expect(source).toContain('foodRowTop');
     expect(source).toContain('foodRowDetail');
     expect(source).toContain('ellipsizeMode="tail"');
     expect(source).toContain('detailsSection');
     expect(source).toContain('detailRow');
+    expect(source).not.toContain('foodRowCalories');
     expect(source).not.toContain('foodRowMacroServing');
     expect(source).not.toContain('foodRowMacroLine');
     expect(source).not.toContain('remaining');
@@ -89,11 +89,11 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('chevronText');
     expect(source).toContain('foodRowDivider');
     expect(source).toContain('foodRowTop');
-    expect(source).toContain('foodRowCalories');
     expect(source).toContain('foodMetadata');
     expect(source).not.toContain('mealSummaryLabel');
     expect(source).not.toContain('mealSummaryMetric');
     expect(source).not.toContain('mealSubtotal');
+    expect(source).not.toContain('foodRowCalories');
     expect(source).not.toContain('foodRowMacroLine');
     expect(source).not.toContain('foodRowMacroServing');
     expect(source).not.toContain('Delete ${entry.name}');

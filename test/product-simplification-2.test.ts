@@ -54,11 +54,11 @@ describe('product simplification 2.0', () => {
     expect(source).toContain('macroGridRow');
     expect(source).toContain('macroGridValue');
     expect(source).toContain('foodRowTop');
-    expect(source).toContain('foodRowCalories');
     expect(source).toContain('foodMetadata');
     expect(source).toContain('detailsSection');
     expect(source).toContain('detailRow');
     expect(source).not.toContain('mealSummaryValue');
+    expect(source).not.toContain('foodRowCalories');
     expect(source).not.toContain('foodRowMacroLine');
     expect(source).not.toContain('foodRowMacroValue');
     expect(source).not.toContain('foodRowMacroServing');
