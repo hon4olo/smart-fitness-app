@@ -486,22 +486,22 @@ const createStyles = (colors: typeof Colors.dark) =>
       backgroundColor: colors.surfaceSecondary,
       borderTopColor: colors.borderSubtle,
       borderTopWidth: StyleSheet.hairlineWidth,
-      gap: Spacing.one,
+      gap: 0,
       paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
+      paddingVertical: Spacing.one,
     },
     foodRow: {
-      gap: Spacing.one,
+      gap: 0,
       minHeight: 44,
     },
     foodRowTop: {
       alignItems: 'flex-start',
       flexDirection: 'row',
-      gap: Spacing.two,
+      gap: Spacing.one,
     },
     foodRowCopy: {
       flex: 1,
-      gap: 1,
+      gap: 0,
       minWidth: 0,
     },
     foodRowDetail: {
@@ -512,7 +512,7 @@ const createStyles = (colors: typeof Colors.dark) =>
     foodRowDivider: {
       borderTopColor: colors.borderSubtle,
       borderTopWidth: StyleSheet.hairlineWidth,
-      paddingTop: Spacing.two,
+      paddingTop: Spacing.one,
     },
     foodRowTitle: {
       color: colors.textPrimary,
@@ -618,8 +618,8 @@ const createStyles = (colors: typeof Colors.dark) =>
       gap: Spacing.two,
     },
     mealSectionList: {
-      gap: Spacing.one,
-      marginTop: Spacing.five,
+      gap: Spacing.two,
+      marginTop: Spacing.two,
     },
     mealSummaryStrip: {
       backgroundColor: colors.backgroundSecondary,
