@@ -77,6 +77,17 @@ type MealSummary = {
   subtotal: ReturnType<typeof sumNutritionTotals>;
 };
 
+const macroGridColumns = [
+  { key: 'fats', label: 'Fat', flex: 1.6 },
+  { key: 'carbs', label: 'Carbs', flex: 1.8 },
+  { key: 'protein', label: 'Protein', flex: 2 },
+  { key: 'target', label: 'Target', flex: 1.6 },
+  { key: 'calories', label: 'Calories', flex: 3 },
+] as const;
+
+type MacroGridKey = (typeof macroGridColumns)[number]['key'];
+type MacroGridValues = Record<MacroGridKey, string>;
+
 export default function NutritionScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -179,6 +190,29 @@ export default function NutritionScreen() {
   const targetPercent = nutritionTargets.calories > 0 ? Math.round((nutritionSummary.consumed.calories / nutritionTargets.calories) * 100) : 0;
   const targetPercentLabel = nutritionTargets.calories > 0 ? `${targetPercent}%` : '--';
 
+  const renderMacroGridRow = (values: MacroGridValues, showLabels = false, nested = false) => (
+    <View style={[styles.macroGridRow, nested && styles.macroGridRowNested]}>
+      {macroGridColumns.map((column, index) => (
+        <View
+          key={column.key}
+          style={[
+            styles.macroGridCell,
+            { flexGrow: column.flex, flexBasis: 0 },
+            index > 0 && styles.macroGridCellWithBorder,
+          ]}>
+          {showLabels ? (
+            <Text numberOfLines={1} selectable style={styles.macroGridLabel}>
+              {column.label}
+            </Text>
+          ) : null}
+          <Text numberOfLines={1} selectable style={styles.macroGridValue}>
+            {values[column.key]}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
@@ -247,31 +281,16 @@ export default function NutritionScreen() {
         </View>
 
         <View style={styles.summarySection}>
-          <View style={styles.summaryGrid}>
-            {[
-              { label: 'Fat', value: `${formatNumber(nutritionSummary.consumed.fats)} g`, width: 1.6 },
-              { label: 'Carbs', value: `${formatNumber(nutritionSummary.consumed.carbs)} g`, width: 1.8 },
-              { label: 'Protein', value: `${formatNumber(nutritionSummary.consumed.protein)} g`, width: 2 },
-              { label: 'TARGET', value: targetPercentLabel, width: 1.6 },
-              { label: 'Calories', value: `${formatNumber(nutritionSummary.consumed.calories)} kcal`, emphasis: true, width: 3 },
-            ].map((metric, index) => (
-              <View
-                key={metric.label}
-                style={[
-                  styles.summaryMetric,
-                  { flexGrow: metric.width, flexBasis: 0 },
-                  metric.emphasis && styles.summaryMetricEmphasis,
-                  index > 0 && styles.summaryMetricWithBorder,
-                ]}>
-                <Text numberOfLines={1} selectable style={styles.summaryMetricLabel}>
-                  {metric.label}
-                </Text>
-                <Text numberOfLines={1} selectable style={[styles.summaryMetricValue, metric.emphasis && styles.summaryMetricValueEmphasis]}>
-                  {metric.value}
-                </Text>
-              </View>
-            ))}
-          </View>
+          {renderMacroGridRow(
+            {
+              fats: `${formatNumber(nutritionSummary.consumed.fats)} g`,
+              carbs: `${formatNumber(nutritionSummary.consumed.carbs)} g`,
+              protein: `${formatNumber(nutritionSummary.consumed.protein)} g`,
+              target: targetPercentLabel,
+              calories: `${formatNumber(nutritionSummary.consumed.calories)} kcal`,
+            },
+            true
+          )}
         </View>
 
         <View style={styles.mealSectionList}>
@@ -309,9 +328,6 @@ export default function NutritionScreen() {
                     </View>
 
                     <View style={styles.mealHeaderActions}>
-                      <Text selectable style={styles.mealSubtotal}>
-                        {formatNumber(subtotal.calories)} kcal
-                      </Text>
                       <Pressable
                         accessibilityLabel={`Add food to ${mealTypeLabels[mealType]}`}
                         hitSlop={12}
@@ -327,24 +343,16 @@ export default function NutritionScreen() {
                   </Pressable>
 
                   <View style={styles.mealSummaryStrip}>
-                    {[
-                      { key: 'fats', value: `${formatNumber(subtotal.fats)} g`, width: 1.6 },
-                      { key: 'carbs', value: `${formatNumber(subtotal.carbs)} g`, width: 1.8 },
-                      { key: 'protein', value: `${formatNumber(subtotal.protein)} g`, width: 2 },
-                      { key: 'target', value: mealTargetPercentLabel, width: 1.6 },
-                    ].map((metric, index) => (
-                      <View
-                        key={metric.key}
-                        style={[
-                          styles.mealSummaryMetric,
-                          { flexGrow: metric.width, flexBasis: 0 },
-                          index > 0 && styles.mealSummaryMetricWithBorder,
-                        ]}>
-                        <Text selectable style={styles.mealSummaryValue}>
-                          {metric.value}
-                        </Text>
-                      </View>
-                    ))}
+                    {renderMacroGridRow(
+                      {
+                        fats: `${formatNumber(subtotal.fats)} g`,
+                        carbs: `${formatNumber(subtotal.carbs)} g`,
+                        protein: `${formatNumber(subtotal.protein)} g`,
+                        target: mealTargetPercentLabel,
+                        calories: `${formatNumber(subtotal.calories)} kcal`,
+                      },
+                      false
+                    )}
                   </View>
 
                   {expanded ? (
@@ -354,6 +362,7 @@ export default function NutritionScreen() {
                           const servingInfo = getServingInfo(entry);
                           const foodTargetPercent = nutritionTargets.calories > 0 ? Math.round((entry.calories / nutritionTargets.calories) * 100) : 0;
                           const foodTargetPercentLabel = nutritionTargets.calories > 0 ? `${foodTargetPercent}%` : '--';
+                          const foodMetadata = [entry.brandName, servingInfo].filter(Boolean).join(' · ');
                           return (
                             <Pressable
                               key={entry.id}
@@ -364,42 +373,29 @@ export default function NutritionScreen() {
                               style={[styles.foodRow, index > 0 && styles.foodRowDivider]}>
                               <View style={styles.foodRowTop}>
                                 <View style={styles.foodRowCopy}>
-                                  <Text selectable style={styles.foodRowTitle}>
+                                  <Text selectable numberOfLines={1} ellipsizeMode="tail" style={styles.foodRowTitle}>
                                     {entry.name}
                                   </Text>
-                                  <Text selectable style={styles.foodRowDetail}>
-                                    {entry.brandName || servingInfo ? [entry.brandName, servingInfo].filter(Boolean).join(' · ') : '—'}
+                                  <Text selectable numberOfLines={1} ellipsizeMode="tail" style={styles.foodRowDetail}>
+                                    {foodMetadata || '—'}
                                   </Text>
                                 </View>
-                                <Text selectable style={styles.foodRowCalories}>
+                                <Text selectable numberOfLines={1} style={styles.foodRowCalories}>
                                   {formatNumber(entry.calories)} kcal
                                 </Text>
                               </View>
 
-                              <View style={styles.foodRowMacroLine}>
-                                <Text selectable style={styles.foodRowMacroServing}>
-                                  {servingInfo || '—'}
-                                </Text>
-
-                                {[
-                                  { key: 'fats', value: `${formatNumber(entry.fats)} g`, width: 1.6 },
-                                  { key: 'carbs', value: `${formatNumber(entry.carbs)} g`, width: 1.8 },
-                                  { key: 'protein', value: `${formatNumber(entry.protein)} g`, width: 2 },
-                                  { key: 'target', value: foodTargetPercentLabel, width: 1.6 },
-                                ].map((metric, metricIndex) => (
-                                  <View
-                                    key={metric.key}
-                                    style={[
-                                      styles.foodRowMacroMetric,
-                                      { flexGrow: metric.width, flexBasis: 0 },
-                                      metricIndex > 0 && styles.foodRowMacroMetricWithBorder,
-                                    ]}>
-                                    <Text selectable style={styles.foodRowMacroValue}>
-                                      {metric.value}
-                                    </Text>
-                                  </View>
-                                ))}
-                              </View>
+                              {renderMacroGridRow(
+                                {
+                                  fats: `${formatNumber(entry.fats)} g`,
+                                  carbs: `${formatNumber(entry.carbs)} g`,
+                                  protein: `${formatNumber(entry.protein)} g`,
+                                  target: foodTargetPercentLabel,
+                                  calories: `${formatNumber(entry.calories)} kcal`,
+                                },
+                                false,
+                                true
+                              )}
                             </Pressable>
                           );
                         })
@@ -505,35 +501,6 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontWeight: '800',
       fontVariant: ['tabular-nums'],
       textAlign: 'right',
-    },
-    foodRowMacroLine: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: 0,
-      minHeight: 22,
-    },
-    foodRowMacroMetric: {
-      flex: 1,
-      minWidth: 0,
-      paddingHorizontal: Spacing.one,
-    },
-    foodRowMacroMetricWithBorder: {
-      borderLeftColor: colors.borderSubtle,
-      borderLeftWidth: StyleSheet.hairlineWidth,
-    },
-    foodRowMacroServing: {
-      color: colors.textSecondary,
-      flex: 1.2,
-      fontSize: 11,
-      fontWeight: '700',
-      minWidth: 0,
-    },
-    foodRowMacroValue: {
-      color: colors.textPrimary,
-      fontSize: 11,
-      fontWeight: '800',
-      fontVariant: ['tabular-nums'],
-      textAlign: 'center',
     },
     foodRowTop: {
       alignItems: 'flex-start',
@@ -662,37 +629,10 @@ const createStyles = (colors: typeof Colors.dark) =>
       gap: Spacing.one,
       marginTop: Spacing.five,
     },
-    mealSubtotal: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      fontVariant: ['tabular-nums'],
-      fontWeight: '700',
-    },
     mealSummaryStrip: {
       backgroundColor: colors.backgroundSecondary,
       borderTopColor: colors.borderSubtle,
       borderTopWidth: StyleSheet.hairlineWidth,
-      flexDirection: 'row',
-      gap: 0,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
-    },
-    mealSummaryMetric: {
-      flex: 1,
-      minWidth: 0,
-      paddingHorizontal: Spacing.one,
-    },
-    mealSummaryMetricWithBorder: {
-      borderLeftColor: colors.borderSubtle,
-      borderLeftWidth: StyleSheet.hairlineWidth,
-    },
-    mealSummaryValue: {
-      color: colors.textPrimary,
-      fontSize: 13,
-      fontWeight: '800',
-      fontVariant: ['tabular-nums'],
-      lineHeight: 16,
-      textAlign: 'center',
     },
     mealTitle: {
       color: colors.textPrimary,
@@ -777,26 +717,28 @@ const createStyles = (colors: typeof Colors.dark) =>
       borderCurve: 'continuous',
       borderRadius: Radii.medium,
       borderWidth: StyleSheet.hairlineWidth,
-      gap: 0,
       overflow: 'hidden',
     },
-    summaryGrid: {
+    macroGridRow: {
       flexDirection: 'row',
       gap: 0,
-      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
     },
-    summaryMetric: {
+    macroGridRowNested: {
+      paddingHorizontal: 0,
+    },
+    macroGridCell: {
       alignItems: 'center',
-      flex: 1,
       gap: 2,
       minWidth: 0,
       paddingHorizontal: Spacing.one,
-      paddingVertical: Spacing.two,
     },
-    summaryMetricEmphasis: {
-      minWidth: 0,
+    macroGridCellWithBorder: {
+      borderLeftColor: colors.borderSubtle,
+      borderLeftWidth: StyleSheet.hairlineWidth,
     },
-    summaryMetricLabel: {
+    macroGridLabel: {
       color: colors.textSecondary,
       fontSize: 9,
       fontWeight: '800',
@@ -804,7 +746,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       textAlign: 'center',
       textTransform: 'uppercase',
     },
-    summaryMetricValue: {
+    macroGridValue: {
       color: colors.textPrimary,
       fontSize: 13,
       fontWeight: '800',
@@ -812,14 +754,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       lineHeight: 16,
       textAlign: 'center',
     },
-    summaryMetricValueEmphasis: {
-      fontSize: 15,
-      fontWeight: '900',
-    },
-    summaryMetricWithBorder: {
-      borderLeftColor: colors.borderSubtle,
-      borderLeftWidth: StyleSheet.hairlineWidth,
-    },
+
     title: {
       color: colors.textPrimary,
       fontSize: 24,

@@ -26,6 +26,11 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('weekDayHitArea');
     expect(source).toContain('weekDayCircleLogged');
     expect(source).toContain('weekDayCheck');
+    expect(source).toContain('renderMacroGridRow');
+    expect(source).toContain('macroGridRow');
+    expect(source).toContain('macroGridCell');
+    expect(source).toContain('macroGridLabel');
+    expect(source).toContain('macroGridValue');
     expect(count(source, 'weekDayButton')).toBe(2); // style + JSX usage
     expect(source).toContain('summarySection');
     expect(source).toContain('mealSectionList');
@@ -34,28 +39,26 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('mealIcon');
     expect(source).toContain('mealHeaderMeta');
     expect(source).toContain('mealSummaryStrip');
-    expect(source).toContain('mealSummaryMetricWithBorder');
-    expect(source).toContain('mealSummaryValue');
+    expect(source).toContain('mealHeaderActions');
     expect(source).toContain('surfaceSecondary');
     expect(source).not.toContain('mealSummaryLabel');
-    expect(source).not.toContain('mealSummaryCount');
+    expect(source).not.toContain('mealSummaryMetric');
+    expect(source).not.toContain('mealSubtotal');
     expect(source).not.toContain('Consumed today');
     expect(source).not.toContain('This week');
     expect(source).not.toContain('Daily summary');
     expect(source).not.toContain('progress');
-    expect(source).toContain('mealHeaderActions');
-    expect(source).toContain('accessibilityState={{ expanded }}');
-    expect(source).toContain('toggleMealExpansion(mealType)');
-    expect(source).toContain('openMealPicker(mealType)');
     expect(source).toContain('mealActionButton');
     expect(source).toContain('mealActionIcon');
     expect(source).toContain('foodRow');
     expect(source).toContain('foodRowCalories');
-    expect(source).toContain('foodRowMacroLine');
-    expect(source).toContain('foodRowMacroServing');
-    expect(source).toContain('foodRowMacroValue');
+    expect(source).toContain('foodRowTop');
+    expect(source).toContain('foodRowDetail');
+    expect(source).toContain('ellipsizeMode="tail"');
     expect(source).toContain('detailsSection');
     expect(source).toContain('detailRow');
+    expect(source).not.toContain('foodRowMacroServing');
+    expect(source).not.toContain('foodRowMacroLine');
     expect(source).not.toContain('remaining');
     expect(source).not.toContain('No food logged');
   });
@@ -76,18 +79,23 @@ describe('nutrition compact diary 5.0', () => {
 
     expect(source).toContain('mealGroup');
     expect(source).toContain('mealSummaryStrip');
-    expect(source).toContain('mealSummaryValue');
-    expect(source).toContain('mealSummaryMetricWithBorder');
+    expect(source).toContain('renderMacroGridRow');
+    expect(source).toContain('macroGridRow');
+    expect(source).toContain('macroGridValue');
     expect(source).toContain('mealHeaderMeta');
     expect(source).toContain('formatMealItemCount');
     expect(source).toContain('mealHeaderActions');
     expect(source).toContain('mealActionButton');
     expect(source).toContain('chevronText');
     expect(source).toContain('foodRowDivider');
-    expect(source).toContain('foodRowMacroLine');
-    expect(source).toContain('foodRowMacroServing');
+    expect(source).toContain('foodRowTop');
+    expect(source).toContain('foodRowCalories');
+    expect(source).toContain('foodMetadata');
     expect(source).not.toContain('mealSummaryLabel');
-    expect(source).not.toContain('mealSummaryCount');
+    expect(source).not.toContain('mealSummaryMetric');
+    expect(source).not.toContain('mealSubtotal');
+    expect(source).not.toContain('foodRowMacroLine');
+    expect(source).not.toContain('foodRowMacroServing');
     expect(source).not.toContain('Delete ${entry.name}');
     expect(source).not.toContain('deleteButton');
     expect(source).not.toContain('×');
@@ -96,7 +104,7 @@ describe('nutrition compact diary 5.0', () => {
   test('picker returns to the selected meal and exposes a quiet delete action for edited entries', () => {
     const source = readSource('src/app/nutrition/add-food.tsx');
 
-    expect(source).toContain('router.replace({ pathname: \'/nutrition\', params: { date: selectedDate, openMeal: selectedMeal } })');
+    expect(source).toContain("router.replace({ pathname: '/nutrition', params: { date: selectedDate, openMeal: selectedMeal } })");
     expect(source).toContain('Delete entry');
     expect(source).toContain('deleteSelectedDraft');
     expect(source).toContain('Save changes');
