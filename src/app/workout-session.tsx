@@ -91,7 +91,9 @@ export default function WorkoutSessionScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const resolvedWorkoutId = Array.isArray(workoutId) ? workoutId[0] : workoutId;
-  const [bootstrappedDraft, setBootstrappedDraft] = useState<WorkoutSessionDraft | null | undefined>(undefined);
+  const [bootstrappedDraft, setBootstrappedDraft] = useState<
+    WorkoutSessionDraft | null | undefined
+  >(undefined);
   const [startedAt, setStartedAt] = useState('');
   const [sets, setSets] = useState<DraftSet[]>([]);
   const [draftInputs, setDraftInputs] = useState<DraftInputs>({});
