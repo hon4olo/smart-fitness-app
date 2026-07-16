@@ -47,8 +47,9 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(count(source, 'Create Program')).toBe(2);
     expect(source).not.toContain('Add Program');
     expect(source).not.toContain('Pick one workout and start');
+    expect(source).not.toContain('Recommendation');
     expect(source).toContain("label={activeDraft ? 'Continue workout' : 'Start workout'}");
-    expect(source).toContain('Workout ready');
+    expect(source).toContain('Ready to train');
   });
 
   test('progress moves add-weight into a dedicated flow and keeps the summary compact', () => {

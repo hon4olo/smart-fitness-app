@@ -15,10 +15,13 @@ describe('product simplification 2.0', () => {
     const source = readSource('src/app/(tabs)/workouts.tsx');
 
     expect(count(source, 'Start Empty Workout')).toBe(1);
-    expect(count(source, 'actionLabel="Create Program"')).toBe(1);
+    expect(count(source, 'Create Program')).toBe(2);
     expect(count(source, 'label="Add Program"')).toBe(0);
     expect(source).toContain("label={activeDraft ? 'Continue workout' : 'Start workout'}");
-    expect(source).toContain('Workout ready');
+    expect(source).toContain('Ready to train');
+    expect(source).toContain('Workout in progress');
+    expect(source).not.toContain('Recommendation');
+    expect(source).toContain('useAppTheme');
   });
 
   test('progress screen keeps one weight summary and hides duplicate analytics blocks', () => {
