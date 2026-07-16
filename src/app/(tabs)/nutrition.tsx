@@ -18,6 +18,13 @@ const mealTypeLabels: Record<MealType, string> = {
   snack: 'Snack',
 };
 
+const mealTypeIcons: Record<MealType, string> = {
+  breakfast: '☀',
+  lunch: '◐',
+  dinner: '☾',
+  snack: '◦',
+};
+
 const formatDisplayDate = (dateLabel: string) => {
   const parsedDate = new Date(`${dateLabel}T12:00:00`);
   if (Number.isNaN(parsedDate.getTime())) return dateLabel;
@@ -260,23 +267,27 @@ export default function NutritionScreen() {
             {meals.map(({ entries, mealType, subtotal }) => {
               const expanded = expandedMeals.includes(mealType);
               const itemCount = entries.length;
-              const macroSummary = `P ${formatNumber(subtotal.protein)} · C ${formatNumber(subtotal.carbs)} · F ${formatNumber(subtotal.fats)}`;
+              const mealTargetPercent = nutritionTargets.calories > 0 ? Math.round((subtotal.calories / nutritionTargets.calories) * 100) : 0;
+              const mealTargetPercentLabel = nutritionTargets.calories > 0 ? `${mealTargetPercent}%` : '--';
 
               return (
-                <View key={mealType} style={styles.mealSection}>
+                <View key={mealType} style={styles.mealGroup}>
                   <Pressable
                     accessibilityLabel={`${mealTypeLabels[mealType]} meal`}
                     accessibilityState={{ expanded }}
                     hitSlop={12}
                     onPress={() => toggleMealExpansion(mealType)}
                     style={styles.mealHeader}>
-                    <View style={styles.mealHeaderCopy}>
-                      <Text selectable style={styles.mealTitle}>
-                        {mealTypeLabels[mealType]}
-                      </Text>
-                      <Text selectable style={styles.mealSummaryLine}>
-                        {itemCount > 0 ? `${itemCount} item${itemCount === 1 ? '' : 's'} · ${macroSummary}` : macroSummary}
-                      </Text>
+                    <View style={styles.mealHeaderLeft}>
+                      <Text style={styles.mealIcon}>{mealTypeIcons[mealType]}</Text>
+                      <View style={styles.mealHeaderCopy}>
+                        <Text selectable style={styles.mealTitle}>
+                          {mealTypeLabels[mealType]}
+                        </Text>
+                        <Text selectable style={styles.mealHeaderMeta}>
+                          {itemCount > 0 ? `${itemCount} item${itemCount === 1 ? '' : 's'}` : 'No items yet'}
+                        </Text>
+                      </View>
                     </View>
 
                     <View style={styles.mealHeaderActions}>
@@ -297,12 +308,57 @@ export default function NutritionScreen() {
                     </View>
                   </Pressable>
 
-                  <View style={styles.mealDivider} />
+                  <View style={styles.mealSummaryStrip}>
+                    <View style={styles.mealSummaryCount}>
+                      <Text selectable style={styles.mealSummaryCountValue}>
+                        {itemCount > 0 ? `${itemCount}` : '0'}
+                      </Text>
+                      <Text selectable style={styles.mealSummaryCountLabel}>
+                        items
+                      </Text>
+                    </View>
+
+                    <View style={styles.mealSummaryMetric}>
+                      <Text selectable style={styles.mealSummaryLabel}>
+                        Fat
+                      </Text>
+                      <Text selectable style={styles.mealSummaryValue}>
+                        {formatNumber(subtotal.fats)} g
+                      </Text>
+                    </View>
+
+                    <View style={styles.mealSummaryMetric}>
+                      <Text selectable style={styles.mealSummaryLabel}>
+                        Carbs
+                      </Text>
+                      <Text selectable style={styles.mealSummaryValue}>
+                        {formatNumber(subtotal.carbs)} g
+                      </Text>
+                    </View>
+
+                    <View style={styles.mealSummaryMetric}>
+                      <Text selectable style={styles.mealSummaryLabel}>
+                        Protein
+                      </Text>
+                      <Text selectable style={styles.mealSummaryValue}>
+                        {formatNumber(subtotal.protein)} g
+                      </Text>
+                    </View>
+
+                    <View style={styles.mealSummaryMetric}>
+                      <Text selectable style={styles.mealSummaryLabel}>
+                        %
+                      </Text>
+                      <Text selectable style={styles.mealSummaryValue}>
+                        {mealTargetPercentLabel}
+                      </Text>
+                    </View>
+                  </View>
 
                   {expanded ? (
                     <View style={styles.foodList}>
                       {entries.length > 0 ? (
-                        entries.map((entry) => {
+                        entries.map((entry, index) => {
                           const detailParts = [entry.brandName, getServingInfo(entry)].filter(Boolean);
                           return (
                             <Pressable
@@ -311,7 +367,7 @@ export default function NutritionScreen() {
                               accessibilityLabel={`Edit ${entry.name}`}
                               hitSlop={10}
                               onPress={() => editFoodEntry(entry)}
-                              style={styles.foodRow}>
+                              style={[styles.foodRow, index > 0 && styles.foodRowDivider]}>
                               <View style={styles.foodRowCopy}>
                                 <Text selectable style={styles.foodRowTitle}>
                                   {entry.name}
@@ -411,8 +467,12 @@ const createStyles = (colors: typeof Colors.dark) =>
       paddingTop: Spacing.three,
     },
     foodList: {
-      gap: Spacing.two,
-      paddingTop: Spacing.two,
+      backgroundColor: colors.backgroundSecondary,
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      gap: Spacing.one,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
     },
     foodRow: {
       alignItems: 'center',
@@ -435,6 +495,11 @@ const createStyles = (colors: typeof Colors.dark) =>
       color: colors.textSecondary,
       fontSize: 12,
       lineHeight: 16,
+    },
+    foodRowDivider: {
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      paddingTop: Spacing.two,
     },
     foodRowTitle: {
       color: colors.textPrimary,
@@ -490,17 +555,22 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontWeight: '900',
       lineHeight: 16,
     },
-    mealDivider: {
-      borderTopColor: colors.borderSubtle,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      marginTop: Spacing.one,
+    mealGroup: {
+      backgroundColor: colors.surfacePrimary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.medium,
+      borderWidth: StyleSheet.hairlineWidth,
+      overflow: 'hidden',
     },
     mealHeader: {
       alignItems: 'center',
       flexDirection: 'row',
       gap: Spacing.two,
       justifyContent: 'space-between',
-      minHeight: 44,
+      minHeight: 52,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
     },
     mealHeaderActions: {
       alignItems: 'center',
@@ -509,17 +579,34 @@ const createStyles = (colors: typeof Colors.dark) =>
     },
     mealHeaderCopy: {
       flex: 1,
-      gap: 2,
+      gap: 1,
       minWidth: 0,
     },
-    mealList: {
-      gap: Spacing.one,
+    mealHeaderLeft: {
+      alignItems: 'center',
+      flex: 1,
+      flexDirection: 'row',
+      gap: Spacing.two,
+      minWidth: 0,
     },
-    mealSection: {
-      paddingTop: Spacing.one,
+    mealHeaderMeta: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 16,
+    },
+    mealIcon: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: '900',
+      width: 16,
+    },
+    mealList: {
+      gap: Spacing.two,
     },
     mealSectionList: {
       gap: Spacing.one,
+      marginTop: Spacing.five,
     },
     mealSubtotal: {
       color: colors.textSecondary,
@@ -527,10 +614,50 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontVariant: ['tabular-nums'],
       fontWeight: '700',
     },
-    mealSummaryLine: {
+    mealSummaryStrip: {
+      backgroundColor: colors.backgroundSecondary,
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      flexDirection: 'row',
+      gap: Spacing.one,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+    },
+    mealSummaryCount: {
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+      minWidth: 34,
+    },
+    mealSummaryCountLabel: {
       color: colors.textSecondary,
-      fontSize: 12,
+      fontSize: 10,
       fontWeight: '700',
+      lineHeight: 12,
+      textTransform: 'uppercase',
+    },
+    mealSummaryCountValue: {
+      color: colors.textPrimary,
+      fontSize: 13,
+      fontWeight: '800',
+      fontVariant: ['tabular-nums'],
+      lineHeight: 16,
+    },
+    mealSummaryLabel: {
+      color: colors.textSecondary,
+      fontSize: 10,
+      fontWeight: '700',
+      lineHeight: 12,
+      textTransform: 'uppercase',
+    },
+    mealSummaryMetric: {
+      flex: 1,
+      minWidth: 0,
+    },
+    mealSummaryValue: {
+      color: colors.textPrimary,
+      fontSize: 13,
+      fontWeight: '800',
+      fontVariant: ['tabular-nums'],
       lineHeight: 16,
     },
     mealTitle: {

@@ -24,6 +24,14 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('weekDayHitArea');
     expect(count(source, 'weekDayButton')).toBe(2); // style + JSX usage
     expect(source).toContain('summarySection');
+    expect(source).toContain('mealSectionList');
+    expect(source).toContain('mealGroup');
+    expect(source).toContain('mealHeaderLeft');
+    expect(source).toContain('mealIcon');
+    expect(source).toContain('mealHeaderMeta');
+    expect(source).toContain('mealSummaryStrip');
+    expect(source).toContain('mealSummaryMetric');
+    expect(source).toContain('mealSummaryCount');
     expect(source).toContain('TARGET');
     expect(source).toContain('Calories');
     expect(source).not.toContain('Consumed today');
@@ -58,11 +66,14 @@ describe('nutrition compact diary 5.0', () => {
   test('meal rows stay compact and use additive expansion without delete controls in the diary', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
 
-    expect(source).toContain('mealSummaryLine');
-    expect(source).toContain('P ');
-    expect(source).toContain('C ');
-    expect(source).toContain('F ');
+    expect(source).toContain('mealGroup');
+    expect(source).toContain('mealSummaryStrip');
+    expect(source).toContain('mealSummaryCount');
+    expect(source).toContain('mealSummaryMetric');
+    expect(source).toContain('mealHeaderActions');
+    expect(source).toContain('mealActionButton');
     expect(source).toContain('chevronText');
+    expect(source).toContain('foodRowDivider');
     expect(source).not.toContain('Delete ${entry.name}');
     expect(source).not.toContain('deleteButton');
     expect(source).not.toContain('×');

@@ -47,8 +47,12 @@ describe('product simplification 2.0', () => {
     expect(source).toContain('Nutrition');
     expect(source).toContain('calendarButton');
     expect(source).toContain('summarySection');
+    expect(source).toContain('mealSectionList');
+    expect(source).toContain('mealGroup');
+    expect(source).toContain('mealSummaryStrip');
     expect(source).toContain('mealHeaderActions');
-    expect(source).toContain('nutrientCardRow');
+    expect(source).toContain('detailsSection');
+    expect(source).toContain('detailRow');
     expect(source).toContain("router.push({ pathname: '/nutrition/add-food'");
     expect(source).toContain("pathname: '/nutrition/date-picker'");
     expect(source).toContain('todayButton');
