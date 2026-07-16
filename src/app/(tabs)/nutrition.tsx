@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppCard } from '@/components/ui/AppCard';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { addDays, formatLocalDate, getServingInfo, sumNutritionTotals } from '@/lib';
@@ -199,18 +198,20 @@ export default function NutritionScreen() {
           </Pressable>
         </View>
 
-        <AppCard style={styles.weekCard}>
+        <View style={styles.weekSection}>
           <View style={styles.weekStrip}>
             {weekDays.map((day) => (
               <Pressable
                 key={day.dateKey}
                 accessibilityLabel={`${day.dayLabel} ${day.dayNumber}${day.isToday ? ', today' : ''}`}
                 accessibilityState={{ selected: day.isSelected }}
-                hitSlop={10}
+                hitSlop={12}
                 onPress={() => updateSelectedDate(day.dateKey)}
                 style={styles.weekDayButton}>
-                <View style={[styles.weekDayCircle, day.isSelected && styles.weekDayCircleSelected, day.isToday && styles.weekDayCircleToday, day.isSelected && day.isToday && styles.weekDayCircleTodaySelected]}>
-                  {day.isToday ? <View style={[styles.weekDayTodayDot, day.isSelected && styles.weekDayTodayDotSelected]} /> : null}
+                <View style={styles.weekDayHitArea}>
+                  <View style={[styles.weekDayCircle, day.isSelected && styles.weekDayCircleSelected, day.isToday && styles.weekDayCircleToday, day.isSelected && day.isToday && styles.weekDayCircleTodaySelected]}>
+                    {day.isToday ? <View style={[styles.weekDayTodayDot, day.isSelected && styles.weekDayTodayDotSelected]} /> : null}
+                  </View>
                 </View>
                 <Text numberOfLines={1} selectable style={[styles.weekDayLabel, day.isSelected && styles.weekDayLabelSelected]}>
                   {day.dayLabel}
@@ -218,18 +219,25 @@ export default function NutritionScreen() {
               </Pressable>
             ))}
           </View>
-        </AppCard>
+        </View>
 
-        <AppCard style={styles.summaryCard}>
+        <View style={styles.summarySection}>
           <View style={styles.summaryGrid}>
             {[
-              { label: 'Fat', value: `${formatNumber(nutritionSummary.consumed.fats)} g` },
-              { label: 'Carbs', value: `${formatNumber(nutritionSummary.consumed.carbs)} g` },
-              { label: 'Protein', value: `${formatNumber(nutritionSummary.consumed.protein)} g` },
-              { label: 'TARGET', value: targetPercentLabel },
-              { label: 'Calories', value: `${formatNumber(nutritionSummary.consumed.calories)} kcal`, emphasis: true },
+              { label: 'Fat', value: `${formatNumber(nutritionSummary.consumed.fats)} g`, width: 1.6 },
+              { label: 'Carbs', value: `${formatNumber(nutritionSummary.consumed.carbs)} g`, width: 1.8 },
+              { label: 'Protein', value: `${formatNumber(nutritionSummary.consumed.protein)} g`, width: 2 },
+              { label: 'TARGET', value: targetPercentLabel, width: 1.6 },
+              { label: 'Calories', value: `${formatNumber(nutritionSummary.consumed.calories)} kcal`, emphasis: true, width: 3 },
             ].map((metric, index) => (
-              <View key={metric.label} style={[styles.summaryMetric, metric.emphasis && styles.summaryMetricEmphasis, index > 0 && styles.summaryMetricWithBorder]}>
+              <View
+                key={metric.label}
+                style={[
+                  styles.summaryMetric,
+                  { flexGrow: metric.width, flexBasis: 0 },
+                  metric.emphasis && styles.summaryMetricEmphasis,
+                  index > 0 && styles.summaryMetricWithBorder,
+                ]}>
                 <Text numberOfLines={1} selectable style={styles.summaryMetricLabel}>
                   {metric.label}
                 </Text>
@@ -239,9 +247,9 @@ export default function NutritionScreen() {
               </View>
             ))}
           </View>
-        </AppCard>
+        </View>
 
-        <AppCard style={styles.mealCard}>
+        <View style={styles.mealSectionList}>
           <View style={styles.sectionHeader}>
             <Text selectable style={styles.sectionTitle}>
               Meal diary
@@ -259,7 +267,7 @@ export default function NutritionScreen() {
                   <Pressable
                     accessibilityLabel={`${mealTypeLabels[mealType]} meal`}
                     accessibilityState={{ expanded }}
-                    hitSlop={10}
+                    hitSlop={12}
                     onPress={() => toggleMealExpansion(mealType)}
                     style={styles.mealHeader}>
                     <View style={styles.mealHeaderCopy}>
@@ -277,7 +285,7 @@ export default function NutritionScreen() {
                       </Text>
                       <Pressable
                         accessibilityLabel={`Add food to ${mealTypeLabels[mealType]}`}
-                        hitSlop={10}
+                        hitSlop={12}
                         onPress={(event) => {
                           event.stopPropagation();
                           openMealPicker(mealType);
@@ -288,6 +296,8 @@ export default function NutritionScreen() {
                       <Text style={styles.chevronText}>{expanded ? '▾' : '▸'}</Text>
                     </View>
                   </Pressable>
+
+                  <View style={styles.mealDivider} />
 
                   {expanded ? (
                     <View style={styles.foodList}>
@@ -323,24 +333,24 @@ export default function NutritionScreen() {
               );
             })}
           </View>
-        </AppCard>
+        </View>
 
         {fiberBreakdown.hasFiberData ? (
-          <AppCard style={styles.nutrientCard}>
-            <View style={styles.nutrientCardRow}>
-              <View style={styles.nutrientCardCopy}>
-                <Text selectable style={styles.nutrientLabel}>
-                  Nutrition details
-                </Text>
-                <Text selectable style={styles.nutrientHint}>
-                  Fiber
-                </Text>
-              </View>
-              <Text selectable style={styles.nutrientValue}>
+          <View style={styles.detailsSection}>
+            <View style={styles.sectionHeader}>
+              <Text selectable style={styles.sectionTitle}>
+                Nutrition details
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text selectable style={styles.detailLabel}>
+                Fiber
+              </Text>
+              <Text selectable style={styles.detailValue}>
                 {formatNumber(fiberBreakdown.totalFiber)} g
               </Text>
             </View>
-          </AppCard>
+          </View>
         ) : null}
       </View>
     </ScrollView>
@@ -431,6 +441,31 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontSize: 14,
       fontWeight: '800',
     },
+    detailLabel: {
+      color: colors.textPrimary,
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '800',
+      minWidth: 0,
+    },
+    detailRow: {
+      alignItems: 'center',
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      flexDirection: 'row',
+      gap: Spacing.two,
+      justifyContent: 'space-between',
+      paddingVertical: Spacing.two,
+    },
+    detailValue: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '800',
+      fontVariant: ['tabular-nums'],
+    },
+    detailsSection: {
+      gap: Spacing.one,
+    },
     headerRow: {
       alignItems: 'center',
       flexDirection: 'row',
@@ -455,8 +490,10 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontWeight: '900',
       lineHeight: 16,
     },
-    mealCard: {
-      gap: Spacing.two,
+    mealDivider: {
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      marginTop: Spacing.one,
     },
     mealHeader: {
       alignItems: 'center',
@@ -476,13 +513,13 @@ const createStyles = (colors: typeof Colors.dark) =>
       minWidth: 0,
     },
     mealList: {
-      gap: Spacing.two,
+      gap: Spacing.one,
     },
     mealSection: {
-      borderColor: colors.borderSubtle,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      gap: Spacing.two,
-      paddingTop: Spacing.two,
+      paddingTop: Spacing.one,
+    },
+    mealSectionList: {
+      gap: Spacing.one,
     },
     mealSubtotal: {
       color: colors.textSecondary,
@@ -573,9 +610,8 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontSize: 12,
       fontWeight: '800',
     },
-    summaryCard: {
-      gap: Spacing.two,
-      paddingVertical: Spacing.two,
+    summarySection: {
+      gap: Spacing.one,
     },
     summaryGrid: {
       flexDirection: 'row',
@@ -583,11 +619,11 @@ const createStyles = (colors: typeof Colors.dark) =>
       justifyContent: 'space-between',
     },
     summaryMetric: {
+      alignItems: 'center',
       flex: 1,
       gap: 2,
       minWidth: 0,
       paddingHorizontal: Spacing.one,
-      alignItems: 'center',
     },
     summaryMetricEmphasis: {
       minWidth: 0,
@@ -641,17 +677,13 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontSize: 13,
       fontWeight: '800',
     },
-    weekCard: {
-      gap: Spacing.one,
-      paddingVertical: Spacing.one,
-    },
     weekDayButton: {
       alignItems: 'center',
       flex: 1,
       gap: 2,
-      justifyContent: 'flex-start',
+      justifyContent: 'center',
       minHeight: 44,
-      paddingBottom: 0,
+      paddingVertical: 0,
     },
     weekDayCircle: {
       alignItems: 'center',
@@ -675,6 +707,12 @@ const createStyles = (colors: typeof Colors.dark) =>
     weekDayCircleTodaySelected: {
       borderColor: colors.textOnAccent,
     },
+    weekDayHitArea: {
+      alignItems: 'center',
+      height: 28,
+      justifyContent: 'center',
+      width: 28,
+    },
     weekDayLabel: {
       color: colors.textSecondary,
       fontSize: 10,
@@ -693,6 +731,13 @@ const createStyles = (colors: typeof Colors.dark) =>
     },
     weekDayTodayDotSelected: {
       backgroundColor: colors.textOnAccent,
+    },
+    weekSection: {
+      borderBottomColor: colors.borderSubtle,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      paddingVertical: Spacing.one,
     },
     weekStrip: {
       flexDirection: 'row',

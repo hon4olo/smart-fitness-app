@@ -19,10 +19,11 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('streakChip');
     expect(source).toContain('metaRow');
     expect(source).toContain('todayButton');
-    expect(source).toContain('weekCard');
+    expect(source).toContain('weekSection');
     expect(source).toContain('weekDayButton');
+    expect(source).toContain('weekDayHitArea');
     expect(count(source, 'weekDayButton')).toBe(2); // style + JSX usage
-    expect(source).toContain('summaryGrid');
+    expect(source).toContain('summarySection');
     expect(source).toContain('TARGET');
     expect(source).toContain('Calories');
     expect(source).not.toContain('Consumed today');
@@ -37,7 +38,8 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('mealActionIcon');
     expect(source).toContain('foodRow');
     expect(source).toContain('foodRowCalories');
-    expect(source).toContain('nutrientCardRow');
+    expect(source).toContain('detailsSection');
+    expect(source).toContain('detailRow');
     expect(source).not.toContain('remaining');
     expect(source).not.toContain('No food logged');
   });
