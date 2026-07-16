@@ -1,8 +1,10 @@
-import { Text, TextInput, View } from 'react-native';
+import { Text } from 'react-native';
 
-import { AppButton } from '@/components/ui/AppButton';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { FormField } from '@/components/ui/FormField';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 
 type ProfileGoalsCardProps = {
   goalType: 'lose_fat' | 'maintain' | 'gain_muscle';
@@ -17,6 +19,12 @@ type ProfileGoalsCardProps = {
   trainingDaysPerWeek: string;
   weeklyWeightChangeGoal: string;
 };
+
+const goalOptions = [
+  { label: 'Lose fat', value: 'lose_fat' as const },
+  { label: 'Maintain', value: 'maintain' as const },
+  { label: 'Gain muscle', value: 'gain_muscle' as const },
+];
 
 export function ProfileGoalsCard({
   goalType,
@@ -33,140 +41,90 @@ export function ProfileGoalsCard({
 }: ProfileGoalsCardProps) {
   return (
     <AppCard>
-      <Text style={styles.sectionTitle}>Goal settings</Text>
-      <Text style={styles.helpText}>These numbers drive nutrition targets and coaching suggestions.</Text>
+      <Text style={styles.sectionTitle}>Goals</Text>
+      <Text style={styles.helpText}>These numbers shape the app’s training and nutrition targets.</Text>
 
-      <View style={styles.goalSummaryRow}>
-        <Text style={styles.label}>Current logged weight</Text>
-        <Text style={styles.value}>{latestWeightLabel}</Text>
-      </View>
+      <Text style={styles.summaryLabel}>Current logged weight</Text>
+      <Text style={styles.summaryValue}>{latestWeightLabel}</Text>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Target weight (kg)</Text>
-        <TextInput
-          keyboardType="decimal-pad"
-          onChangeText={onTargetWeightChange}
-          placeholder="75"
-          placeholderTextColor={Colors.dark.textSecondary}
-          style={styles.input}
-          value={targetWeight}
-        />
-      </View>
+      <FormField
+        keyboardType="decimal-pad"
+        label="Target weight (kg)"
+        onChangeText={onTargetWeightChange}
+        placeholder="75"
+        textContentType="none"
+        value={targetWeight}
+      />
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Weekly weight change goal (kg/week)</Text>
-        <TextInput
-          keyboardType="decimal-pad"
-          onChangeText={onWeeklyWeightChangeGoalChange}
-          placeholder="0.25"
-          placeholderTextColor={Colors.dark.textSecondary}
-          style={styles.input}
-          value={weeklyWeightChangeGoal}
-        />
-      </View>
+      <FormField
+        keyboardType="decimal-pad"
+        label="Weekly weight change goal (kg/week)"
+        onChangeText={onWeeklyWeightChangeGoalChange}
+        placeholder="0.25"
+        textContentType="none"
+        value={weeklyWeightChangeGoal}
+      />
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Training days per week</Text>
-        <TextInput
-          keyboardType="number-pad"
-          onChangeText={onTrainingDaysPerWeekChange}
-          placeholder="3"
-          placeholderTextColor={Colors.dark.textSecondary}
-          style={styles.input}
-          value={trainingDaysPerWeek}
-        />
-      </View>
+      <FormField
+        keyboardType="number-pad"
+        label="Training days per week"
+        onChangeText={onTrainingDaysPerWeekChange}
+        placeholder="3"
+        textContentType="none"
+        value={trainingDaysPerWeek}
+      />
 
-      <Text style={styles.inputLabel}>Primary goal</Text>
+      <Text style={styles.goalLabel}>Primary goal</Text>
       <Text style={styles.helpTextCompact}>Pick the closest match to your current phase.</Text>
-      <View style={styles.goalTypeRow}>
-        <AppButton
-          label="Lose fat"
-          onPress={() => onGoalTypeChange('lose_fat')}
-          variant={goalType === 'lose_fat' ? 'primary' : 'secondary'}
-        />
-        <AppButton
-          label="Maintain"
-          onPress={() => onGoalTypeChange('maintain')}
-          variant={goalType === 'maintain' ? 'primary' : 'secondary'}
-        />
-        <AppButton
-          label="Gain muscle"
-          onPress={() => onGoalTypeChange('gain_muscle')}
-          variant={goalType === 'gain_muscle' ? 'primary' : 'secondary'}
-        />
-      </View>
+      <SegmentedControl
+        accessibilityLabel="Primary goal"
+        onChange={onGoalTypeChange}
+        options={goalOptions}
+        value={goalType}
+      />
 
-      <AppButton disabled={isSaveDisabled} label="Save goals" onPress={onSaveGoals} />
+      <PrimaryButton disabled={isSaveDisabled} label="Save goals" onPress={onSaveGoals} />
     </AppCard>
   );
 }
 
 const styles = {
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 14,
-    fontWeight: '800' as const,
-    letterSpacing: 0.4,
-    marginBottom: 2,
-    textTransform: 'uppercase' as const,
+  goalLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.caption.fontSize,
+    fontWeight: Typography.caption.fontWeight,
+    lineHeight: Typography.caption.lineHeight,
   },
   helpText: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
     marginBottom: Spacing.two,
   },
   helpTextCompact: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-    lineHeight: 17,
-    marginBottom: Spacing.one,
-    marginTop: 2,
+    color: Colors.dark.textMuted,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
   },
-  goalSummaryRow: {
-    alignItems: 'center' as const,
-    flexDirection: 'row' as const,
-    gap: Spacing.three,
-    justifyContent: 'space-between' as const,
-    paddingBottom: Spacing.two,
-  },
-  label: {
-    color: Colors.dark.textSecondary,
-    fontSize: 15,
-  },
-  value: {
+  sectionTitle: {
     color: Colors.dark.text,
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '800' as const,
-    textAlign: 'right' as const,
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    letterSpacing: Typography.sectionTitle.letterSpacing,
+    lineHeight: Typography.sectionTitle.lineHeight,
+    textTransform: Typography.sectionTitle.textTransform,
   },
-  inputGroup: {
-    gap: Spacing.one,
-    marginBottom: Spacing.two,
-  },
-  inputLabel: {
+  summaryLabel: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700' as const,
+    fontSize: Typography.caption.fontSize,
+    fontWeight: Typography.caption.fontWeight,
+    lineHeight: Typography.caption.lineHeight,
   },
-  input: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous' as const,
-    borderRadius: 8,
-    borderWidth: 1,
+  summaryValue: {
     color: Colors.dark.text,
-    fontSize: 16,
-    minHeight: 48,
-    paddingHorizontal: Spacing.two,
-  },
-  goalTypeRow: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    gap: Spacing.two,
+    fontSize: Typography.bodyStrong.fontSize,
+    fontWeight: Typography.bodyStrong.fontWeight,
+    lineHeight: Typography.bodyStrong.lineHeight,
     marginBottom: Spacing.two,
-    marginTop: Spacing.one,
   },
 };

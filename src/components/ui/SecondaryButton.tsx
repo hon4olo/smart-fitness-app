@@ -1,23 +1,34 @@
-import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { resolveButtonState } from './button-state';
 
 type SecondaryButtonProps = {
+  accessibilityHint?: string;
+  accessibilityLabel?: string;
   disabled?: boolean;
   label: string;
+  loading?: boolean;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 };
 
-export function SecondaryButton({ disabled = false, label, onPress, style }: SecondaryButtonProps) {
+export function SecondaryButton({ accessibilityHint, accessibilityLabel, disabled, label, loading, onPress, style }: SecondaryButtonProps) {
+  const state = resolveButtonState({ disabled, loading });
+
   return (
     <Pressable
+      accessibilityHint={accessibilityHint}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={disabled ? undefined : onPress}
-      style={({ pressed }) => [styles.button, pressed && !disabled && styles.pressed, disabled && styles.disabled, style]}>
-      <Text style={styles.label}>{label}</Text>
+      accessibilityState={state.accessibilityState}
+      disabled={state.disabled}
+      onPress={state.disabled ? undefined : onPress}
+      style={({ pressed }) => [styles.button, pressed && !state.disabled && styles.pressed, state.disabled && styles.disabled, style]}>
+      <View style={styles.content}>
+        {state.loading ? <ActivityIndicator color={Colors.dark.text} /> : null}
+        <Text style={styles.label}>{state.loading ? `${label}…` : label}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -29,20 +40,27 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.backgroundSelected,
     borderColor: Colors.dark.border,
     borderCurve: 'continuous',
-    borderRadius: 14,
+    borderRadius: Radii.large,
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 44,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingVertical: Spacing.one,
+  },
+  content: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: Spacing.one,
+    justifyContent: 'center',
   },
   disabled: {
-    opacity: 0.45,
+    opacity: 0.5,
   },
   label: {
     color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: Typography.button.fontSize,
+    fontWeight: Typography.button.fontWeight,
+    lineHeight: Typography.button.lineHeight,
   },
   pressed: {
     opacity: 0.84,

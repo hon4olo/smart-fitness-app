@@ -10,6 +10,7 @@ export default function RegisterScreen() {
   return (
     <AuthFormScreen
       mode="register"
+      onBack={() => router.back()}
       onSubmit={async (values) => {
         const registerValues = values as { email: string; password: string; displayName?: string };
         await register({

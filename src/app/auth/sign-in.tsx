@@ -10,6 +10,7 @@ export default function SignInScreen() {
   return (
     <AuthFormScreen
       mode="login"
+      onBack={() => router.back()}
       onSubmit={async (values) => {
         await login({ email: values.email, password: values.password });
         router.replace('/(tabs)/profile');

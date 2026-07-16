@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Spacing } from '@/constants/theme';
-
+import { Colors, Spacing, Typography } from '@/constants/theme';
 
 type SectionHeaderProps = {
   title: string;
@@ -11,14 +10,8 @@ type SectionHeaderProps = {
 export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
   return (
     <View style={styles.container}>
-      <Text selectable style={styles.title}>
-        {title}
-      </Text>
-      {subtitle ? (
-        <Text selectable style={styles.subtitle}>
-          {subtitle}
-        </Text>
-      ) : null}
+      <Text style={styles.title}>{title}</Text>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
 }
@@ -29,12 +22,15 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
   },
   title: {
     color: Colors.dark.text,
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    letterSpacing: Typography.sectionTitle.letterSpacing,
+    lineHeight: Typography.sectionTitle.lineHeight,
+    textTransform: Typography.sectionTitle.textTransform,
   },
 });

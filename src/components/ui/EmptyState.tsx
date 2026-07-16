@@ -1,8 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 
 type EmptyStateProps = {
   actionLabel?: string;
@@ -16,9 +15,9 @@ type EmptyStateProps = {
 function EmptyStateContent({ actionLabel, description, message, onActionPress, title }: EmptyStateProps) {
   return (
     <View style={styles.container}>
-      {title ? <Text selectable style={styles.title}>{title}</Text> : null}
-      {message ? <Text selectable style={styles.message}>{message}</Text> : null}
-      {description ? <Text selectable style={styles.description}>{description}</Text> : null}
+      {title ? <Text style={styles.title}>{title}</Text> : null}
+      {message ? <Text style={styles.message}>{message}</Text> : null}
+      {description ? <Text style={styles.description}>{description}</Text> : null}
       {actionLabel && onActionPress ? <PrimaryButton label={actionLabel} onPress={onActionPress} /> : null}
     </View>
   );
@@ -30,30 +29,41 @@ export function EmptyState(props: EmptyStateProps) {
   }
 
   return (
-    <AppCard>
+    <View style={styles.card}>
       <EmptyStateContent {...props} />
-    </AppCard>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  card: {
+    backgroundColor: Colors.dark.backgroundElement,
+    borderColor: Colors.dark.border,
+    borderCurve: 'continuous',
+    borderRadius: Radii.large,
+    borderWidth: 1,
+    padding: Spacing.three,
+  },
   container: {
     gap: Spacing.two,
   },
   description: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
   },
   message: {
     color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 21,
+    fontSize: Typography.body.fontSize,
+    fontWeight: Typography.bodyStrong.fontWeight,
+    lineHeight: Typography.body.lineHeight,
   },
   title: {
     color: Colors.dark.text,
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    letterSpacing: Typography.sectionTitle.letterSpacing,
+    lineHeight: Typography.sectionTitle.lineHeight,
+    textTransform: Typography.sectionTitle.textTransform,
   },
 });

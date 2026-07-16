@@ -2,9 +2,10 @@ import { Text } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { formatShortDateTime } from '@/lib';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 
 import { useWeightSync } from '@/context/SyncContext';
+import { formatShortDateTime } from '@/lib';
 
 const STATUS_LABELS: Record<string, string> = {
   'local-only': 'Local only',
@@ -21,8 +22,8 @@ export function ProfileSyncStatusCard() {
 
   return (
     <AppCard>
-      <Text style={styles.title}>Weight sync</Text>
-      <Text style={styles.subtitle}>Only weight history is currently cloud-enabled.</Text>
+      <Text style={styles.title}>Sync & backup</Text>
+      <Text style={styles.subtitle}>Only weight history is backed up in this phase.</Text>
 
       <Text style={styles.badge}>{label}</Text>
       <Text style={styles.meta}>Last sync: {lastSyncAt ? formatShortDateTime(lastSyncAt) : 'Never'}</Text>
@@ -30,52 +31,53 @@ export function ProfileSyncStatusCard() {
       {conflictCount > 0 ? <Text style={styles.conflict}>Conflicts: {conflictCount}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <AppButton label={status === 'syncing' ? 'Syncing...' : 'Sync now'} onPress={() => void syncNow()} disabled={status === 'syncing'} />
+      <AppButton label="Sync now" loading={status === 'syncing'} onPress={() => void syncNow()} disabled={status === 'syncing'} />
     </AppCard>
   );
 }
 
 const styles = {
-  title: {
-    color: '#0f172a',
-    fontSize: 16,
-    fontWeight: '800' as const,
-    marginBottom: 2,
-  },
-  subtitle: {
-    color: '#64748b',
-    fontSize: 12,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
   badge: {
     alignSelf: 'flex-start' as const,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: Colors.dark.backgroundSelected,
     borderRadius: 999,
-    color: '#334155',
+    color: Colors.dark.text,
     fontSize: 12,
     fontWeight: '700' as const,
-    marginBottom: 8,
-    overflow: 'hidden' as const,
-    paddingHorizontal: 10,
+    marginBottom: Spacing.one,
+    paddingHorizontal: Spacing.two,
     paddingVertical: 4,
   },
-  meta: {
-    color: '#475569',
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: 4,
-  },
   conflict: {
-    color: '#b45309',
-    fontSize: 13,
-    lineHeight: 19,
+    color: Colors.dark.warning,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
     marginBottom: 4,
   },
   error: {
-    color: '#be123c',
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: 8,
+    color: Colors.dark.error,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
+    marginBottom: Spacing.one,
+  },
+  meta: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
+    marginBottom: 4,
+  },
+  subtitle: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
+    marginBottom: Spacing.two,
+  },
+  title: {
+    color: Colors.dark.text,
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    letterSpacing: Typography.sectionTitle.letterSpacing,
+    lineHeight: Typography.sectionTitle.lineHeight,
+    textTransform: Typography.sectionTitle.textTransform,
   },
 };

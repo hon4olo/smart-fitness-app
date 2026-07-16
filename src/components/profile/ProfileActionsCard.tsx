@@ -1,8 +1,8 @@
 import { Text } from 'react-native';
 
-import { AppButton } from '@/components/ui/AppButton';
+import { DestructiveButton } from '@/components/ui/DestructiveButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 
 type ProfileActionsCardProps = {
   onResetOnboarding: () => void;
@@ -11,26 +11,26 @@ type ProfileActionsCardProps = {
 export function ProfileActionsCard({ onResetOnboarding }: ProfileActionsCardProps) {
   return (
     <AppCard>
-      <Text style={styles.title}>Quick actions</Text>
-      <Text style={styles.helpText}>Need the setup flow again? Reset onboarding from here.</Text>
-      <AppButton label="Reset onboarding" onPress={onResetOnboarding} variant="secondary" />
+      <Text style={styles.title}>Developer settings</Text>
+      <Text style={styles.helpText}>Reset onboarding and other owner-only tools stay below the regular settings.</Text>
+      <DestructiveButton accessibilityHint="Resets the setup flow for this device" label="Reset onboarding" onPress={onResetOnboarding} />
     </AppCard>
   );
 }
 
 const styles = {
-  title: {
-    color: Colors.dark.text,
-    fontSize: 14,
-    fontWeight: '800' as const,
-    letterSpacing: 0.4,
-    marginBottom: 2,
-    textTransform: 'uppercase' as const,
-  },
   helpText: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
     marginBottom: Spacing.two,
+  },
+  title: {
+    color: Colors.dark.text,
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    letterSpacing: Typography.sectionTitle.letterSpacing,
+    lineHeight: Typography.sectionTitle.lineHeight,
+    textTransform: Typography.sectionTitle.textTransform,
   },
 };

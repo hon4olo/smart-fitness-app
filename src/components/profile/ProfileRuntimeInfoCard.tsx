@@ -2,15 +2,7 @@ import { Text, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
-
-type ProfileRuntimeInfoCardProps = {
-  channel: string;
-  createdAt: string;
-  onCheckForOtaUpdate: () => void;
-  runtimeVersion: string;
-  updateId: string;
-};
+import { Colors, Spacing, Typography } from '@/constants/theme';
 
 export function ProfileRuntimeInfoCard({
   channel,
@@ -18,14 +10,20 @@ export function ProfileRuntimeInfoCard({
   onCheckForOtaUpdate,
   runtimeVersion,
   updateId,
-}: ProfileRuntimeInfoCardProps) {
+}: {
+  channel: string;
+  createdAt: string;
+  onCheckForOtaUpdate: () => void;
+  runtimeVersion: string;
+  updateId: string;
+}) {
   return (
     <AppCard>
-      <Text style={styles.title}>Runtime info</Text>
-      <Text style={styles.helpText}>Debug info and OTA controls stay here, below your profile settings.</Text>
+      <Text style={styles.title}>Runtime metadata</Text>
+      <Text style={styles.helpText}>Build and update details stay below the regular profile controls.</Text>
 
       <View style={styles.otaCard}>
-        <Text style={styles.otaTitle}>OTA Update</Text>
+        <Text style={styles.otaTitle}>OTA update</Text>
 
         <View style={styles.otaRow}>
           <Text style={styles.otaLabel}>runtimeVersion</Text>
@@ -51,18 +49,10 @@ export function ProfileRuntimeInfoCard({
 }
 
 const styles = {
-  title: {
-    color: Colors.dark.text,
-    fontSize: 14,
-    fontWeight: '800' as const,
-    letterSpacing: 0.4,
-    marginBottom: 2,
-    textTransform: 'uppercase' as const,
-  },
   helpText: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
     marginBottom: Spacing.two,
   },
   otaCard: {
@@ -71,9 +61,10 @@ const styles = {
   otaLabel: {
     color: Colors.dark.textSecondary,
     flex: 1,
-    fontSize: 12,
-    fontWeight: '700' as const,
-    textTransform: 'uppercase' as const,
+    fontSize: Typography.metricSmall.fontSize,
+    fontWeight: Typography.metricSmall.fontWeight,
+    lineHeight: Typography.metricSmall.lineHeight,
+    textTransform: Typography.metricSmall.textTransform,
   },
   otaRow: {
     borderColor: Colors.dark.border,
@@ -84,13 +75,23 @@ const styles = {
   },
   otaTitle: {
     color: Colors.dark.text,
-    fontSize: 16,
-    fontWeight: '800' as const,
+    fontSize: Typography.bodyStrong.fontSize,
+    fontWeight: Typography.bodyStrong.fontWeight,
+    lineHeight: Typography.bodyStrong.lineHeight,
   },
   otaValue: {
     color: Colors.dark.text,
     flex: 1,
-    fontSize: 12,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
     textAlign: 'right' as const,
+  },
+  title: {
+    color: Colors.dark.text,
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    letterSpacing: Typography.sectionTitle.letterSpacing,
+    lineHeight: Typography.sectionTitle.lineHeight,
+    textTransform: Typography.sectionTitle.textTransform,
   },
 };

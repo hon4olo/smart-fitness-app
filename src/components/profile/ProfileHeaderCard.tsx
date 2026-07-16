@@ -1,31 +1,23 @@
 import { Text, View } from 'react-native';
 
+import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
-
-type ProfileHeaderRow = {
-  label: string;
-  value: string;
-};
+import { Colors, Spacing, Typography } from '@/constants/theme';
 
 type ProfileHeaderCardProps = {
-  rows: ProfileHeaderRow[];
+  rows: Array<{ label: string; value: string }>;
 };
 
 export function ProfileHeaderCard({ rows }: ProfileHeaderCardProps) {
   return (
     <AppCard>
-      <Text style={styles.title}>At a glance</Text>
-      <Text style={styles.helpText}>A quick snapshot of the values used across workouts, nutrition, and goals.</Text>
+      <Text style={styles.title}>Account snapshot</Text>
+      <Text style={styles.helpText}>A quick view of the values that shape training and nutrition recommendations.</Text>
 
       {rows.map((row) => (
         <View key={row.label} style={styles.row}>
-          <Text selectable style={styles.label}>
-            {row.label}
-          </Text>
-          <Text selectable style={styles.value}>
-            {row.value}
-          </Text>
+          <Text style={styles.label}>{row.label}</Text>
+          <Text style={styles.value}>{row.value}</Text>
         </View>
       ))}
     </AppCard>
@@ -35,16 +27,16 @@ export function ProfileHeaderCard({ rows }: ProfileHeaderCardProps) {
 const styles = {
   title: {
     color: Colors.dark.text,
-    fontSize: 14,
-    fontWeight: '800' as const,
-    letterSpacing: 0.4,
-    marginBottom: 2,
-    textTransform: 'uppercase' as const,
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    letterSpacing: Typography.sectionTitle.letterSpacing,
+    lineHeight: Typography.sectionTitle.lineHeight,
+    textTransform: Typography.sectionTitle.textTransform,
   },
   helpText: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
     marginBottom: Spacing.two,
   },
   row: {
@@ -58,13 +50,15 @@ const styles = {
   },
   label: {
     color: Colors.dark.textSecondary,
-    fontSize: 15,
+    fontSize: Typography.body.fontSize,
+    lineHeight: Typography.body.lineHeight,
   },
   value: {
     color: Colors.dark.text,
     flex: 1,
-    fontSize: 16,
-    fontWeight: '800' as const,
+    fontSize: Typography.bodyStrong.fontSize,
+    fontWeight: Typography.bodyStrong.fontWeight,
+    lineHeight: Typography.bodyStrong.lineHeight,
     textAlign: 'right' as const,
   },
 };

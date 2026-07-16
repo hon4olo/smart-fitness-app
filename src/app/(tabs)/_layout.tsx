@@ -1,8 +1,16 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 import { Colors } from '@/constants/theme';
+import { TAB_DEFINITIONS } from '@/components/ui/tab-definitions';
 
 const colors = Colors.dark;
+const TAB_ICON_PROPS = {
+  index: { md: { default: 'home', selected: 'home' } },
+  labs: { md: { default: 'fitness_center', selected: 'fitness_center' } },
+  track: { md: { default: 'restaurant', selected: 'restaurant' } },
+  eat: { md: { default: 'query_stats', selected: 'query_stats' } },
+  profile: { md: { default: 'person', selected: 'person' } },
+} as const;
 
 export default function TabsLayout() {
   return (
@@ -15,26 +23,12 @@ export default function TabsLayout() {
         selected: { color: colors.text },
       }}
       tintColor={colors.accent}>
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>AI Coach</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="labs">
-        <NativeTabs.Trigger.Label>Labs</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="track">
-        <NativeTabs.Trigger.Label>Track</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="eat">
-        <NativeTabs.Trigger.Label>Eat</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="profile">
-        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
+      {TAB_DEFINITIONS.map((tab) => (
+        <NativeTabs.Trigger key={tab.name} name={tab.name}>
+          <NativeTabs.Trigger.Icon {...((TAB_ICON_PROPS as any)[tab.name])} />
+          <NativeTabs.Trigger.Label>{tab.label}</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+      ))}
     </NativeTabs>
   );
 }
-

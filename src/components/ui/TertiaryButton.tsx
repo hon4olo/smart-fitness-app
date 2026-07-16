@@ -1,9 +1,10 @@
-import { ActivityIndicator, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { resolveButtonState } from './button-state';
 
-type PrimaryButtonProps = {
+type TertiaryButtonProps = {
   accessibilityHint?: string;
   accessibilityLabel?: string;
   disabled?: boolean;
@@ -13,7 +14,7 @@ type PrimaryButtonProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-export function PrimaryButton({ accessibilityHint, accessibilityLabel, disabled, label, loading, onPress, style }: PrimaryButtonProps) {
+export function TertiaryButton({ accessibilityHint, accessibilityLabel, disabled, label, loading, onPress, style }: TertiaryButtonProps) {
   const state = resolveButtonState({ disabled, loading });
 
   return (
@@ -25,10 +26,7 @@ export function PrimaryButton({ accessibilityHint, accessibilityLabel, disabled,
       disabled={state.disabled}
       onPress={state.disabled ? undefined : onPress}
       style={({ pressed }) => [styles.button, pressed && !state.disabled && styles.pressed, state.disabled && styles.disabled, style]}>
-      <View style={styles.content}>
-        {state.loading ? <ActivityIndicator color="#07110B" /> : null}
-        <Text style={styles.label}>{state.loading ? `${label}…` : label}</Text>
-      </View>
+      <Text style={styles.label}>{loading ? `${label}…` : label}</Text>
     </Pressable>
   );
 }
@@ -36,29 +34,21 @@ export function PrimaryButton({ accessibilityHint, accessibilityLabel, disabled,
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    alignSelf: 'stretch',
-    backgroundColor: Colors.dark.accent,
-    borderCurve: 'continuous',
-    borderRadius: Radii.large,
+    alignSelf: 'flex-start',
+    borderRadius: Radii.pill,
     justifyContent: 'center',
-    minHeight: 48,
-    paddingHorizontal: Spacing.three,
+    minHeight: 44,
+    paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.one,
-  },
-  content: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: Spacing.one,
-    justifyContent: 'center',
   },
   disabled: {
     opacity: 0.5,
   },
   label: {
-    color: '#07110B',
-    fontSize: Typography.button.fontSize,
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.caption.fontSize,
     fontWeight: Typography.button.fontWeight,
-    lineHeight: Typography.button.lineHeight,
+    lineHeight: Typography.caption.lineHeight,
   },
   pressed: {
     opacity: 0.84,
