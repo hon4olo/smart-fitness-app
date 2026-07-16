@@ -172,36 +172,34 @@ export default function NutritionScreen() {
       style={styles.screen}>
       <View style={styles.container}>
         <View style={styles.headerRow}>
-          <View style={styles.headerCopy}>
-            <Text selectable style={styles.title}>
-              Nutrition
-            </Text>
-            <View style={styles.streakPill}>
-              <Text style={styles.streakEmoji}>🔥</Text>
-              <Text selectable style={styles.streakText}>
-                {nutritionStreak}
-              </Text>
-            </View>
-          </View>
-
+          <Text selectable style={styles.title}>
+            Nutrition
+          </Text>
           <Pressable accessibilityLabel={`Open calendar for ${selectedDateLabel}`} hitSlop={10} onPress={openCalendar} style={styles.calendarButton}>
             <Text style={styles.calendarButtonText}>🗓</Text>
           </Pressable>
         </View>
 
-        <View style={styles.weekStripCard}>
-          <View style={styles.todaySlotRow}>
-            <Pressable
-              accessibilityLabel={isToday(selectedDate) ? 'Today selected' : 'Jump to today'}
-              accessibilityState={{ disabled: isToday(selectedDate) }}
-              disabled={isToday(selectedDate)}
-              hitSlop={10}
-              onPress={() => updateSelectedDate(todayKey)}
-              style={[styles.todayButton, isToday(selectedDate) && styles.todayButtonDisabled]}>
-              <Text style={styles.todayButtonText}>Today</Text>
-            </Pressable>
+        <View style={styles.metaRow}>
+          <View style={styles.streakChip}>
+            <Text style={styles.streakEmoji}>🔥</Text>
+            <Text selectable style={styles.streakText}>
+              {nutritionStreak} day streak
+            </Text>
           </View>
 
+          <Pressable
+            accessibilityLabel={isToday(selectedDate) ? 'Today selected' : 'Jump to today'}
+            accessibilityState={{ disabled: isToday(selectedDate) }}
+            disabled={isToday(selectedDate)}
+            hitSlop={10}
+            onPress={() => updateSelectedDate(todayKey)}
+            style={[styles.todayButton, isToday(selectedDate) && styles.todayButtonDisabled]}>
+            <Text style={styles.todayButtonText}>Today</Text>
+          </Pressable>
+        </View>
+
+        <AppCard style={styles.weekCard}>
           <View style={styles.weekStrip}>
             {weekDays.map((day) => (
               <Pressable
@@ -220,7 +218,7 @@ export default function NutritionScreen() {
               </Pressable>
             ))}
           </View>
-        </View>
+        </AppCard>
 
         <AppCard style={styles.summaryCard}>
           <View style={styles.summaryGrid}>
@@ -230,8 +228,8 @@ export default function NutritionScreen() {
               { label: 'Protein', value: `${formatNumber(nutritionSummary.consumed.protein)} g` },
               { label: 'Target %', value: targetPercentLabel },
               { label: 'Calories', value: `${formatNumber(nutritionSummary.consumed.calories)} kcal`, emphasis: true },
-            ].map((metric) => (
-              <View key={metric.label} style={[styles.summaryMetric, metric.emphasis && styles.summaryMetricEmphasis]}>
+            ].map((metric, index) => (
+              <View key={metric.label} style={[styles.summaryMetric, metric.emphasis && styles.summaryMetricEmphasis, index > 0 && styles.summaryMetricWithBorder]}>
                 <Text selectable style={styles.summaryMetricLabel}>
                   {metric.label}
                 </Text>
@@ -284,8 +282,8 @@ export default function NutritionScreen() {
                           event.stopPropagation();
                           openMealPicker(mealType);
                         }}
-                        style={styles.addButton}>
-                        <Text style={styles.addButtonText}>+</Text>
+                        style={styles.mealActionButton}>
+                        <Text style={styles.mealActionIcon}>+</Text>
                       </Pressable>
                       <Text style={styles.chevronText}>{expanded ? '▾' : '▸'}</Text>
                     </View>
@@ -329,13 +327,13 @@ export default function NutritionScreen() {
 
         {fiberBreakdown.hasFiberData ? (
           <AppCard style={styles.nutrientCard}>
-            <View style={styles.nutrientRow}>
-              <View>
+            <View style={styles.nutrientCardRow}>
+              <View style={styles.nutrientCardCopy}>
                 <Text selectable style={styles.nutrientLabel}>
-                  Fiber
+                  Nutrition details
                 </Text>
                 <Text selectable style={styles.nutrientHint}>
-                  Compact nutrition details
+                  Fiber
                 </Text>
               </View>
               <Text selectable style={styles.nutrientValue}>
@@ -358,15 +356,15 @@ const createStyles = (colors: typeof Colors.dark) =>
       borderCurve: 'continuous',
       borderRadius: 999,
       borderWidth: StyleSheet.hairlineWidth,
-      height: 44,
+      height: 36,
       justifyContent: 'center',
-      width: 44,
+      width: 36,
     },
     addButtonText: {
       color: colors.textPrimary,
-      fontSize: 20,
+      fontSize: 16,
       fontWeight: '900',
-      lineHeight: 20,
+      lineHeight: 16,
     },
     calendarButton: {
       alignItems: 'center',
@@ -393,13 +391,14 @@ const createStyles = (colors: typeof Colors.dark) =>
       width: 14,
     },
     container: {
-      gap: Spacing.two,
+      gap: Spacing.three,
       maxWidth: MaxContentWidth,
       width: '100%',
     },
     content: {
       alignItems: 'center',
-      padding: Spacing.three,
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.three,
     },
     foodList: {
       gap: Spacing.two,
@@ -432,14 +431,29 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontSize: 14,
       fontWeight: '800',
     },
-    headerCopy: {
-      flex: 1,
-      gap: 4,
-    },
     headerRow: {
-      alignItems: 'flex-start',
+      alignItems: 'center',
       flexDirection: 'row',
+      justifyContent: 'space-between',
       gap: Spacing.two,
+      minHeight: 44,
+    },
+    mealActionButton: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
+      height: 36,
+      justifyContent: 'center',
+      width: 36,
+    },
+    mealActionIcon: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '900',
+      lineHeight: 16,
     },
     mealCard: {
       gap: Spacing.two,
@@ -449,6 +463,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       flexDirection: 'row',
       gap: Spacing.two,
       justifyContent: 'space-between',
+      minHeight: 44,
     },
     mealHeaderActions: {
       alignItems: 'center',
@@ -486,8 +501,26 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontSize: 15,
       fontWeight: '800',
     },
+    metaRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: Spacing.two,
+      minHeight: 36,
+    },
     nutrientCard: {
       paddingVertical: Spacing.two,
+    },
+    nutrientCardCopy: {
+      flex: 1,
+      gap: 2,
+      minWidth: 0,
+    },
+    nutrientCardRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: Spacing.two,
     },
     nutrientHint: {
       color: colors.textSecondary,
@@ -498,12 +531,6 @@ const createStyles = (colors: typeof Colors.dark) =>
       color: colors.textPrimary,
       fontSize: 14,
       fontWeight: '800',
-    },
-    nutrientRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: Spacing.two,
     },
     nutrientValue: {
       color: colors.textPrimary,
@@ -523,12 +550,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontSize: 18,
       fontWeight: '800',
     },
-    streakEmoji: {
-      color: colors.textPrimary,
-      fontSize: 13,
-      fontWeight: '900',
-    },
-    streakPill: {
+    streakChip: {
       alignItems: 'center',
       alignSelf: 'flex-start',
       backgroundColor: colors.surfaceSecondary,
@@ -538,8 +560,13 @@ const createStyles = (colors: typeof Colors.dark) =>
       borderWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
       gap: Spacing.one,
-      minHeight: 28,
+      minHeight: 36,
       paddingHorizontal: Spacing.two,
+    },
+    streakEmoji: {
+      color: colors.textPrimary,
+      fontSize: 13,
+      fontWeight: '900',
     },
     streakText: {
       color: colors.textPrimary,
@@ -552,13 +579,14 @@ const createStyles = (colors: typeof Colors.dark) =>
     },
     summaryGrid: {
       flexDirection: 'row',
-      gap: Spacing.one,
+      gap: 0,
       justifyContent: 'space-between',
     },
     summaryMetric: {
       flex: 1,
       gap: 2,
       minWidth: 0,
+      paddingHorizontal: Spacing.one,
     },
     summaryMetricEmphasis: {
       minWidth: 64,
@@ -578,6 +606,10 @@ const createStyles = (colors: typeof Colors.dark) =>
     summaryMetricValueEmphasis: {
       fontSize: 20,
       fontWeight: '900',
+    },
+    summaryMetricWithBorder: {
+      borderLeftColor: colors.borderSubtle,
+      borderLeftWidth: StyleSheet.hairlineWidth,
     },
     title: {
       color: colors.textPrimary,
@@ -604,11 +636,9 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontSize: 13,
       fontWeight: '800',
     },
-    todaySlotRow: {
-      alignItems: 'flex-end',
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      minHeight: 36,
+    weekCard: {
+      gap: Spacing.two,
+      paddingVertical: Spacing.two,
     },
     weekDayButton: {
       alignItems: 'center',
@@ -660,8 +690,5 @@ const createStyles = (colors: typeof Colors.dark) =>
     weekStrip: {
       flexDirection: 'row',
       gap: 0,
-    },
-    weekStripCard: {
-      gap: Spacing.two,
     },
   });

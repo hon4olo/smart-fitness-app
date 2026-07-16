@@ -16,11 +16,12 @@ describe('nutrition compact diary 5.0', () => {
 
     expect(source).toContain('Nutrition');
     expect(source).toContain('calendarButton');
-    expect(source).toContain('streakPill');
+    expect(source).toContain('streakChip');
+    expect(source).toContain('metaRow');
     expect(source).toContain('todayButton');
+    expect(source).toContain('weekCard');
     expect(source).toContain('weekDayButton');
     expect(count(source, 'weekDayButton')).toBe(2); // style + JSX usage
-    expect(count(source, 'weekDayCircle')).toBeGreaterThanOrEqual(4);
     expect(source).toContain('summaryGrid');
     expect(source).toContain('Target %');
     expect(source).toContain('Calories');
@@ -32,9 +33,11 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('accessibilityState={{ expanded }}');
     expect(source).toContain('toggleMealExpansion(mealType)');
     expect(source).toContain('openMealPicker(mealType)');
+    expect(source).toContain('mealActionButton');
+    expect(source).toContain('mealActionIcon');
     expect(source).toContain('foodRow');
     expect(source).toContain('foodRowCalories');
-    expect(source).toContain('nutrientCard');
+    expect(source).toContain('nutrientCardRow');
     expect(source).not.toContain('remaining');
     expect(source).not.toContain('No food logged');
   });
@@ -42,7 +45,6 @@ describe('nutrition compact diary 5.0', () => {
   test('today and calendar actions remain layout-stable and date switching uses the compact route', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
 
-    expect(source).toContain('todaySlotRow');
     expect(source).toContain('todayButtonDisabled');
     expect(source).toContain("router.replace({ pathname: '/nutrition', params: { date: nextDate } })");
     expect(source).toContain("pathname: '/nutrition/date-picker'");
@@ -80,7 +82,7 @@ describe('nutrition compact diary 5.0', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
 
     expect(source).toContain('fiberBreakdown.hasFiberData');
-    expect(source).toContain('Compact nutrition details');
+    expect(source).toContain('Nutrition details');
     expect(source).not.toContain('Sodium, cholesterol, sugar');
     expect(source).not.toContain('Not available yet');
   });
