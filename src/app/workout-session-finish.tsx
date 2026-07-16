@@ -85,8 +85,8 @@ export default function WorkoutSessionFinishRoute() {
 
     saveWorkoutSession(completedSnapshot);
     setCompletedSession(completedSnapshot);
-    clearActiveWorkoutSessionDraft();
     setSaved(true);
+    clearActiveWorkoutSessionDraft();
   };
 
   if (saved) {
