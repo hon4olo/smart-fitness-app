@@ -498,7 +498,9 @@ export function AppProvider({ children }: PropsWithChildren) {
     setState((currentState) => {
       const nextState = {
         ...currentState,
-        workoutSessions: [...currentState.workoutSessions, session],
+        workoutSessions: currentState.workoutSessions.some((existingSession) => existingSession.id === session.id)
+          ? currentState.workoutSessions.map((existingSession) => (existingSession.id === session.id ? session : existingSession))
+          : [...currentState.workoutSessions, session],
       };
       void repository.saveState(nextState);
       return nextState;

@@ -50,15 +50,31 @@ function RootNavigator() {
           <Stack.Screen
             name="workout-session"
             options={{
-              headerBackTitle: 'Back',
-              title: 'Workout Session',
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="workout-session-finish"
+            options={{
+              headerShown: false,
             }}
           />
           <Stack.Screen
             name="workouts/builder"
             options={{
-              headerBackTitle: 'Back',
-              title: 'Program Builder',
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="workouts/program/[programId]"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="workouts/template/[workoutId]"
+            options={{
+              headerShown: false,
             }}
           />
         </Stack>

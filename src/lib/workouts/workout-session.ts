@@ -66,7 +66,7 @@ export const getWorkoutSessionProgress = (
 ) => {
   const selectedExercise = workoutExercises.find((exercise) => exercise.id === selectedExerciseId) ?? workoutExercises[0];
   const selectedExerciseIndex = Math.max(0, workoutExercises.findIndex((exercise) => exercise.id === selectedExercise?.id));
-  const completedExerciseIds = new Set(loggedSets.map((set) => set.exerciseId));
+  const completedExerciseIds = new Set(loggedSets.filter((set) => set.completed !== false).map((set) => set.exerciseId));
   const completedExerciseCount = workoutExercises.filter((exercise) => completedExerciseIds.has(exercise.id)).length;
   const progressLabel = workoutExercises.length > 0 ? `${completedExerciseCount} of ${workoutExercises.length} exercises completed` : '0 of 0 exercises completed';
   const nextExercise = workoutExercises[selectedExerciseIndex + 1];

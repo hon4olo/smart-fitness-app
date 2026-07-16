@@ -1,185 +1,94 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
-import { AppCard } from '@/components/ui/AppCard';
-import { BottomTabInset, Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
+import { BottomTabInset, Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import {
-  createDefaultTrainingProgram,
-  getActiveWorkoutSessionDraft,
-  getSessionExercises,
-  getSessionVolume,
-  getWorkoutHubViewModel,
-  getWorkoutProgramSchedule,
-  getWorkoutProgramSummary,
-  getWorkoutPrograms,
-  getWorkoutTemplateSummary,
-  startEmptyWorkoutSessionDraft,
-  startWorkoutSessionDraft,
-} from '@/lib/workouts';
+import { createDefaultTrainingProgram, getActiveWorkoutSessionDraft, getWorkoutPrograms, getWorkoutTemplateSummary, hydrateActiveWorkoutSessionDraft, saveWorkoutProgram, startEmptyWorkoutSessionDraft, startWorkoutSessionDraft, toggleWorkoutProgramFavorite } from '@/lib/workouts';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
-const viewModeOptions = [
+const segmentedTabs = [
   { label: 'Start now', value: 'start-now' as const },
   { label: 'Programs', value: 'programs' as const },
 ];
 
-type ViewMode = (typeof viewModeOptions)[number]['value'];
+type ViewMode = (typeof segmentedTabs)[number]['value'];
 
-type WorkoutStyles = ReturnType<typeof createStyles>;
+type Styles = ReturnType<typeof createStyles>;
 
 const sessionDateFormatter = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
 
-const formatDurationLabel = (startedAt: string, finishedAt: string) => {
-  const elapsedMs = Math.max(0, new Date(finishedAt).getTime() - new Date(startedAt).getTime());
-  const totalMinutes = Math.max(0, Math.round(elapsedMs / 60000));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-
-  return `${minutes}m`;
-};
-
-function SectionHeaderRow({ actionLabel, onActionPress, styles, subtitle, title }: { actionLabel?: string; onActionPress?: () => void; styles: WorkoutStyles; subtitle?: string; title: string }) {
-  return (
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionHeaderCopy}>
-        <Text selectable style={styles.sectionTitle}>
-          {title}
-        </Text>
-        {subtitle ? <Text selectable style={styles.sectionSubtitle}>{subtitle}</Text> : null}
-      </View>
-      {actionLabel && onActionPress ? (
-        <Pressable accessibilityRole="button" onPress={onActionPress} style={({ pressed }) => [styles.sectionAction, pressed && styles.sectionActionPressed]}>
-          <Text style={styles.sectionActionLabel}>{actionLabel}</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
-function StartRow({
+function Row({
+  children,
   onPress,
   styles,
-  title,
-  meta,
-  extra,
 }: {
-  extra?: string;
-  meta: string;
-  onPress: () => void;
-  styles: WorkoutStyles;
-  title: string;
+  children: React.ReactNode;
+  onPress?: () => void;
+  styles: Styles;
 }) {
+  if (!onPress) {
+    return <View style={styles.row}>{children}</View>;
+  }
+
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.templateRow, pressed && styles.rowPressed]}>
-      <View style={styles.rowCopy}>
-        <View style={styles.rowTitleLine}>
-          <Text numberOfLines={1} selectable style={styles.rowTitle}>
-            {title}
-          </Text>
-          <Text style={styles.rowChevron}>›</Text>
-        </View>
-        <Text selectable style={styles.rowMeta}>
-          {meta}
-        </Text>
-        {extra ? (
-          <Text numberOfLines={1} selectable style={styles.rowSecondary}>
-            {extra}
-          </Text>
-        ) : null}
-      </View>
-      <View style={styles.rowActionPill}>
-        <Text style={styles.rowActionPillLabel}>Start</Text>
-      </View>
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
+      {children}
     </Pressable>
   );
 }
 
-function SessionInfoRow({
-  styles,
-  title,
-  dateLabel,
-  meta,
-  volumeLabel,
-}: {
-  dateLabel: string;
-  meta: string;
-  styles: WorkoutStyles;
-  title: string;
-  volumeLabel: string;
-}) {
+function TitleLine({ label, meta, secondary, styles }: { label: string; meta?: string; secondary?: string; styles: Styles }) {
   return (
-    <View style={styles.sessionRow}>
-      <View style={styles.rowCopy}>
-        <View style={styles.rowTitleLine}>
-          <Text selectable style={styles.rowTitle}>
-            {dateLabel}
-          </Text>
-          <Text style={styles.rowChevron}>·</Text>
-          <Text selectable style={styles.sessionWorkoutName} numberOfLines={1}>
-            {title}
-          </Text>
-        </View>
-        <Text selectable style={styles.rowMeta}>
+    <View style={styles.rowCopy}>
+      <View style={styles.rowHeading}>
+        <Text numberOfLines={1} selectable style={styles.rowTitle}>
+          {label}
+        </Text>
+        <Text style={styles.chevron}>›</Text>
+      </View>
+      {meta ? (
+        <Text numberOfLines={1} selectable style={styles.rowMeta}>
           {meta}
         </Text>
-      </View>
-      <Text selectable style={styles.sessionVolume}>
-        {volumeLabel}
-      </Text>
+      ) : null}
+      {secondary ? (
+        <Text numberOfLines={1} selectable style={styles.rowSecondary}>
+          {secondary}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
-function ProgramCard({
-  active,
-  onOpen,
-  scheduleLabel,
-  styles,
-  summary,
-}: {
-  active: boolean;
-  onOpen: () => void;
-  scheduleLabel?: string;
-  styles: WorkoutStyles;
-  summary: ReturnType<typeof getWorkoutProgramSummary>;
-}) {
+function MenuButton({ label, onPress, styles }: { label: string; onPress: () => void; styles: Styles }) {
   return (
-    <AppCard style={styles.programCard}>
-      <View style={styles.programTopRow}>
-        <View style={styles.programCopy}>
-          <Text selectable style={styles.programTitle}>
-            {summary.program.name}
-          </Text>
-          <Text selectable style={styles.programMeta}>
-            {summary.workoutCount} weekly workouts · {summary.program.durationWeeks} weeks
-          </Text>
-        </View>
-        <View style={[styles.statePill, active ? styles.statePillActive : styles.statePillInactive]}>
-          <Text style={[styles.statePillLabel, active ? styles.statePillLabelActive : styles.statePillLabelInactive]}>{active ? 'Active' : 'Inactive'}</Text>
-        </View>
-      </View>
-
-      <Text selectable style={styles.programSecondary}>
-        {summary.subtitle}
-      </Text>
-
-      {scheduleLabel ? (
-        <Text selectable style={styles.programNext}>
-          Next: {scheduleLabel}
-        </Text>
-      ) : null}
-
-      <AppButton label="Open program" onPress={onOpen} variant="secondary" />
-    </AppCard>
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={12} style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
+      <Text style={styles.menuLabel}>{label}</Text>
+    </Pressable>
   );
+}
+
+function alertProgramActions({
+  programId,
+  programTitle,
+  onDelete,
+  onToggleFavorite,
+  styles,
+}: {
+  onDelete: () => void;
+  onToggleFavorite: () => void;
+  programId: string;
+  programTitle: string;
+  styles: Styles;
+}) {
+  Alert.alert(programTitle, undefined, [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Favorite', onPress: onToggleFavorite },
+    { text: 'Delete', style: 'destructive', onPress: onDelete },
+  ]);
 }
 
 export default function WorkoutsScreen() {
@@ -187,20 +96,28 @@ export default function WorkoutsScreen() {
   const { colors } = useAppTheme();
   const safeAreaInsets = useSafeAreaInsets();
   const [viewMode, setViewMode] = useState<ViewMode>('start-now');
+  const [draftReady, setDraftReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void hydrateActiveWorkoutSessionDraft().then(() => {
+      if (!cancelled) {
+        setDraftReady(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const currentProgram = useMemo(() => createDefaultTrainingProgram(workouts), [workouts]);
-  const hub = useMemo(() => getWorkoutHubViewModel({ activeProgram: currentProgram, workouts, workoutSessions }), [currentProgram, workoutSessions, workouts]);
-  const allPrograms = useMemo(() => getWorkoutPrograms(workouts), [workouts]);
-  const currentProgramSummary = useMemo(() => getWorkoutProgramSummary(currentProgram, workouts, workoutSessions), [currentProgram, workoutSessions, workouts]);
-  const programSummaries = useMemo(() => allPrograms.map((program) => getWorkoutProgramSummary(program, workouts, workoutSessions)), [allPrograms, workoutSessions, workouts]);
-  const savedProgramSummaries = useMemo(() => programSummaries.filter((item) => item.program.isCustom), [programSummaries]);
+  const activeDraft = draftReady ? getActiveWorkoutSessionDraft() : null;
+  const defaultProgram = useMemo(() => createDefaultTrainingProgram(workouts), [workouts]);
+  const programs = useMemo(() => getWorkoutPrograms(workouts), [workouts]);
   const templateSummaries = useMemo(() => workouts.map((workout) => getWorkoutTemplateSummary(workout, workoutSessions)), [workouts, workoutSessions]);
-  const recentSessions = useMemo(() => [...workoutSessions].sort((left, right) => right.finishedAt.localeCompare(left.finishedAt)).slice(0, 3), [workoutSessions]);
-  const activeDraft = getActiveWorkoutSessionDraft();
-  const activeWorkoutSummary = hub.activeWorkout;
-  const hasHistory = workoutSessions.length > 0;
-  const hasSavedPrograms = savedProgramSummaries.length > 0;
+  const sortedRecentSessions = useMemo(() => [...workoutSessions].sort((left, right) => right.finishedAt.localeCompare(left.finishedAt)).slice(0, 4), [workoutSessions]);
 
   const openWorkout = (workoutId: string) => {
     const workout = workouts.find((item) => item.id === workoutId);
@@ -217,514 +134,340 @@ export default function WorkoutsScreen() {
     router.push('/workout-session');
   };
 
+  const openProgram = (programId: string) => {
+    router.push({ pathname: '/workouts/program/[programId]', params: { programId } });
+  };
+
+  const handleAddProgram = () => {
+    router.push('/workouts/builder');
+  };
+
   const handleStartEmpty = () => {
     startEmptyWorkoutSessionDraft();
     router.push('/workout-session');
   };
 
-  const handleOpenProgramBuilder = () => {
-    router.push('/workouts/builder');
-  };
-
-  const openProgram = (programId: string) => {
-    router.push({ pathname: '/workouts/program/[programId]', params: { programId } });
-  };
-
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + BottomTabInset + Spacing.six }]}
-      showsVerticalScrollIndicator={false}
-      style={styles.screen}>
-      <View style={styles.container}>
-        <View style={styles.headerBlock}>
-          <Text selectable style={styles.screenTitle}>
-            Workouts
-          </Text>
-          <View style={styles.segmentedControl}>
-            {viewModeOptions.map((option) => {
-              const selected = viewMode === option.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected }}
-                  onPress={() => setViewMode(option.value)}
-                  style={({ pressed }) => [styles.segment, selected && styles.segmentSelected, pressed && !selected && styles.segmentPressed]}>
-                  <Text style={[styles.segmentLabel, selected && styles.segmentLabelSelected]}>{option.label}</Text>
-                </Pressable>
-              );
-            })}
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + BottomTabInset + 104 }]}
+        showsVerticalScrollIndicator={false}
+        style={styles.scrollView}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text selectable style={styles.screenTitle}>
+              Workouts
+            </Text>
+            <View style={styles.segmentedControl}>
+              {segmentedTabs.map((tab) => {
+                const selected = viewMode === tab.value;
+                return (
+                  <Pressable
+                    key={tab.value}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected }}
+                    onPress={() => setViewMode(tab.value)}
+                    style={({ pressed }) => [styles.segment, selected && styles.segmentSelected, pressed && !selected && styles.segmentPressed]}>
+                    <Text style={[styles.segmentLabel, selected && styles.segmentLabelSelected]}>{tab.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-        </View>
 
-        {viewMode === 'start-now' ? (
-          <>
-            {activeWorkoutSummary ? (
-              <AppCard style={styles.activeCard}>
-                <Text selectable style={styles.activeBadge}>
-                  Workout in progress
-                </Text>
-                <View style={styles.activeHeaderRow}>
-                  <Text selectable style={styles.activeTitle}>
-                    {activeWorkoutSummary.workout.title}
-                  </Text>
-                  <Text selectable style={styles.activeElapsed}>
-                    {activeWorkoutSummary.elapsedLabel}
-                  </Text>
-                </View>
-                <Text selectable style={styles.activeMeta}>
-                  {activeWorkoutSummary.completedExercises} of {activeWorkoutSummary.exerciseCount} exercises completed
-                </Text>
-                <AppButton label="Continue workout" onPress={() => router.push('/workout-session')} />
-              </AppCard>
-            ) : null}
-
-            <AppCard style={styles.sectionCard}>
-              <SectionHeaderRow
-                styles={styles}
-                subtitle={activeDraft ? 'Start another session or jump into a template.' : 'Start from scratch or pick a template.'}
-                title="Quick start"
-              />
-              <AppButton label="Start empty workout" onPress={handleStartEmpty} />
-
-              <View style={styles.rowGroup}>
-                {templateSummaries.map((summary, index) => (
-                  <View key={summary.workout.id} style={[styles.rowWrap, index > 0 && styles.rowDivider]}>
-                    <StartRow
-                      extra={summary.lastUsedLabel ? `Last used ${summary.lastUsedLabel}` : undefined}
-                      meta={`${summary.exerciseCount} exercises · ${summary.estimatedDuration}`}
-                      onPress={() => openWorkout(summary.workout.id)}
+          {viewMode === 'start-now' ? (
+            <View style={styles.list}>
+              {activeDraft ? (
+                <View style={styles.rowGroup}>
+                  <Row onPress={() => router.push('/workout-session')} styles={styles}>
+                    <TitleLine
+                      label="Workout in progress"
+                      meta={`${activeDraft.workoutTitle} · ${sessionDateFormatter.format(new Date(activeDraft.startedAt))}`}
+                      secondary={`${activeDraft.sets.length} set${activeDraft.sets.length === 1 ? '' : 's'} logged`}
                       styles={styles}
-                      title={summary.workout.title}
                     />
+                    <View style={styles.inlineAction}>
+                      <Text style={styles.inlineActionLabel}>Continue workout</Text>
+                    </View>
+                  </Row>
+                </View>
+              ) : null}
+
+              <View style={styles.sectionLabelRow}>
+                <Text selectable style={styles.sectionLabel}>
+                  Templates
+                </Text>
+              </View>
+
+              <View style={styles.listGroup}>
+                {templateSummaries.map((summary, index) => (
+                  <View key={summary.workout.id} style={[styles.rowGroup, index > 0 && styles.dividerTop]}>
+                    <Row onPress={() => openWorkout(summary.workout.id)} styles={styles}>
+                      <View style={styles.templateIcon}>
+                        <Text style={styles.templateIconLabel}>{summary.workout.title.slice(0, 1).toUpperCase()}</Text>
+                      </View>
+                      <TitleLine
+                        label={summary.workout.title}
+                        meta={`${summary.exerciseCount} exercises`}
+                        secondary={summary.subtitle || summary.estimatedDuration}
+                        styles={styles}
+                      />
+                    </Row>
                   </View>
                 ))}
               </View>
-            </AppCard>
+            </View>
+          ) : (
+            <View style={styles.list}>
+              <Pressable accessibilityRole="button" onPress={handleAddProgram} style={({ pressed }) => [styles.addRow, pressed && styles.rowPressed]}>
+                <Text style={styles.addRowPlus}>+</Text>
+                <View style={styles.rowCopy}>
+                  <Text selectable style={styles.rowTitle}>
+                    Create program
+                  </Text>
+                </View>
+              </Pressable>
 
-            <AppCard style={styles.sectionCard}>
-              <SectionHeaderRow actionLabel={hasHistory ? 'View history' : undefined} onActionPress={hasHistory ? () => router.push('/workouts/history') : undefined} styles={styles} subtitle="Latest completed sessions." title="Recent workouts" />
+              <View style={styles.listGroup}>
+                {programs.map((program, index) => {
+                  const workoutCount = program.days.filter((day) => !day.restDay && Boolean(day.workoutTemplateId)).length;
+                  const isDefaultProgram = program.id === defaultProgram.id;
 
-              {recentSessions.length > 0 ? (
-                <View style={styles.rowGroup}>
-                  {recentSessions.map((session, index) => {
-                    const completedExercises = getSessionExercises(session).length;
-                    const volume = getSessionVolume(session);
-                    const duration = formatDurationLabel(session.startedAt, session.finishedAt);
-                    const dateLabel = sessionDateFormatter.format(new Date(session.finishedAt));
-
-                    return (
-                      <View key={session.id} style={[styles.rowWrap, index > 0 && styles.rowDivider]}>
-                        <SessionInfoRow
-                          dateLabel={dateLabel}
-                          meta={`${duration} · ${completedExercises} exercises`}
+                  return (
+                    <View key={program.id} style={[styles.rowGroup, index > 0 && styles.dividerTop]}>
+                      <Row onPress={() => openProgram(program.id)} styles={styles}>
+                        <View style={styles.templateIcon}>
+                          <Text style={styles.templateIconLabel}>P</Text>
+                        </View>
+                        <TitleLine
+                          label={program.name}
+                          meta={`${workoutCount} workout${workoutCount === 1 ? '' : 's'}`}
+                          secondary={isDefaultProgram ? 'Default program' : undefined}
                           styles={styles}
-                          title={session.workoutTitle}
-                          volumeLabel={`${volume.toLocaleString()} kg`}
                         />
-                      </View>
-                    );
-                  })}
-                </View>
-              ) : (
-                <Text selectable style={styles.sectionEmptyText}>
-                  Complete a workout to see recent sessions here.
-                </Text>
-              )}
-            </AppCard>
-          </>
-        ) : (
-          <View style={styles.sectionStack}>
-            <AppCard style={styles.sectionCard}>
-              <SectionHeaderRow styles={styles} subtitle="Saved plans stay separate from workout templates." title="Programs" />
-
-              <AppCard style={styles.programCard}>
-                <View style={styles.programTopRow}>
-                  <View style={styles.programCopy}>
-                    <Text selectable style={styles.programTitle}>
-                      {currentProgramSummary.program.name}
-                    </Text>
-                    <Text selectable style={styles.programMeta}>
-                      {currentProgramSummary.workoutCount} weekly workouts · {currentProgramSummary.program.durationWeeks} weeks
-                    </Text>
-                  </View>
-                  <View style={[styles.statePill, styles.statePillActive]}>
-                    <Text style={[styles.statePillLabel, styles.statePillLabelActive]}>Active</Text>
-                  </View>
-                </View>
-                <Text selectable style={styles.programSecondary}>
-                  {currentProgramSummary.subtitle}
-                </Text>
-                {getWorkoutProgramSchedule(currentProgram).nextWorkout?.workoutTemplateName ? (
-                  <Text selectable style={styles.programNext}>
-                    Next: {getWorkoutProgramSchedule(currentProgram).nextWorkout?.workoutTemplateName}
-                  </Text>
-                ) : null}
-                <AppButton label="Open program" onPress={() => openProgram(currentProgramSummary.program.id)} variant="secondary" />
-              </AppCard>
-
-              {hasSavedPrograms ? (
-                <View style={styles.programList}>
-                  {savedProgramSummaries.map((summary, index) => {
-                    const schedule = getWorkoutProgramSchedule(summary.program);
-                    return (
-                      <View key={summary.program.id} style={[styles.programRowWrap, index > 0 && styles.rowDivider]}>
-                        <ProgramCard
-                          active={false}
-                          onOpen={() => openProgram(summary.program.id)}
-                          scheduleLabel={schedule.nextWorkout?.workoutTemplateName}
+                        <MenuButton
+                          label="⋯"
+                          onPress={() =>
+                            alertProgramActions({
+                              onDelete: () => Alert.alert('Default program', 'Only custom programs can be deleted.'),
+                              onToggleFavorite: () => toggleWorkoutProgramFavorite(program.id),
+                              programId: program.id,
+                              programTitle: program.name,
+                              styles,
+                            })
+                          }
                           styles={styles}
-                          summary={summary}
                         />
-                      </View>
-                    );
-                  })}
-                </View>
-              ) : (
-                <View style={styles.emptyProgramsCard}>
-                  <Text selectable style={styles.emptyProgramsTitle}>
-                    No saved programs yet
-                  </Text>
-                  <Text selectable style={styles.emptyProgramsCopy}>
-                    Templates can still be used without creating a program.
-                  </Text>
-                  <AppButton label="Create program" onPress={handleOpenProgramBuilder} />
-                </View>
-              )}
-            </AppCard>
-          </View>
-        )}
+                      </Row>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: safeAreaInsets.bottom + Spacing.two }]}>
+        <View style={styles.container}>
+          <AppButton label="Start empty workout" onPress={handleStartEmpty} />
+        </View>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
-const createStyles = (colors: typeof Colors.dark) =>
+const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
-    activeBadge: {
-      color: colors.accent,
-      fontSize: Typography.sectionTitle.fontSize,
-      fontWeight: Typography.sectionTitle.fontWeight,
-      letterSpacing: Typography.sectionTitle.letterSpacing,
-      textTransform: Typography.sectionTitle.textTransform,
-    },
-    activeCard: {
-      gap: Spacing.two,
-    },
-    activeElapsed: {
-      color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      fontVariant: ['tabular-nums'],
-      lineHeight: Typography.callout.lineHeight,
-    },
-    activeHeaderRow: {
-      alignItems: 'baseline',
+    addRow: {
+      alignItems: 'center',
       flexDirection: 'row',
       gap: Spacing.two,
-      justifyContent: 'space-between',
+      minHeight: 54,
+      paddingVertical: Spacing.two,
     },
-    activeMeta: {
+    addRowPlus: {
+      color: colors.accent,
+      fontSize: 24,
+      fontWeight: '700',
+      lineHeight: 24,
+      width: 24,
+    },
+    chevron: {
       color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      lineHeight: Typography.callout.lineHeight,
-    },
-    activeTitle: {
-      color: colors.textPrimary,
-      flex: 1,
-      fontSize: Typography.cardTitle.fontSize,
-      fontWeight: '900',
-      lineHeight: Typography.cardTitle.lineHeight,
+      fontSize: 18,
+      fontWeight: '800',
+      lineHeight: 18,
+      marginLeft: Spacing.one,
     },
     container: {
-      alignSelf: 'center',
-      gap: Spacing.three,
       maxWidth: MaxContentWidth,
       width: '100%',
     },
     content: {
-      padding: Spacing.three,
+      alignItems: 'center',
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.three,
     },
-    emptyProgramsCard: {
-      gap: Spacing.two,
-      paddingTop: Spacing.one,
-    },
-    emptyProgramsCopy: {
-      color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      lineHeight: Typography.callout.lineHeight,
-    },
-    emptyProgramsTitle: {
-      color: colors.textPrimary,
-      fontSize: Typography.cardTitle.fontSize,
-      fontWeight: '900',
-      lineHeight: Typography.cardTitle.lineHeight,
-    },
-    headerBlock: {
-      gap: Spacing.two,
-    },
-    programCard: {
-      gap: Spacing.three,
-      padding: Spacing.four,
-    },
-    programCopy: {
-      flex: 1,
-      gap: 2,
-      minWidth: 0,
-    },
-    programList: {
-      gap: Spacing.two,
-    },
-    programMeta: {
-      color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      lineHeight: Typography.callout.lineHeight,
-    },
-    programNext: {
-      color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      lineHeight: Typography.callout.lineHeight,
-    },
-    programRowWrap: {
+    dividerTop: {
       borderTopColor: colors.borderSubtle,
       borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    footer: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      left: 0,
+      paddingHorizontal: Spacing.three,
       paddingTop: Spacing.two,
+      position: 'absolute',
+      right: 0,
+      bottom: 0,
     },
-    programSecondary: {
-      color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      lineHeight: Typography.callout.lineHeight,
+    header: {
+      gap: Spacing.three,
+      marginBottom: Spacing.two,
     },
-    programTitle: {
-      color: colors.textPrimary,
-      fontSize: Typography.cardTitle.fontSize,
-      fontWeight: '900',
-      lineHeight: Typography.cardTitle.lineHeight,
-    },
-    programTopRow: {
-      alignItems: 'flex-start',
-      flexDirection: 'row',
-      gap: Spacing.two,
-      justifyContent: 'space-between',
-    },
-    rowActionPill: {
-      alignItems: 'center',
-      backgroundColor: colors.backgroundSelected,
+    inlineAction: {
+      backgroundColor: colors.accent,
       borderCurve: 'continuous',
-      borderRadius: Radii.pill,
+      borderRadius: 999,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: 8,
+    },
+    inlineActionLabel: {
+      color: colors.textOnAccent,
+      fontSize: 13,
+      fontWeight: Typography.button.fontWeight,
+    },
+    list: {
+      gap: Spacing.two,
+    },
+    listGroup: {
+      gap: 0,
+    },
+    menuButton: {
+      alignItems: 'center',
       justifyContent: 'center',
-      minHeight: 32,
-      minWidth: 56,
-      paddingHorizontal: Spacing.two,
+      minHeight: 36,
+      minWidth: 36,
     },
-    rowActionPillLabel: {
-      color: colors.textPrimary,
-      fontSize: Typography.caption.fontSize,
-      fontWeight: '800',
-      lineHeight: Typography.caption.lineHeight,
+    menuButtonPressed: {
+      opacity: 0.65,
     },
-    rowChevron: {
+    menuLabel: {
       color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      fontWeight: '800',
-      lineHeight: Typography.callout.lineHeight,
+      fontSize: 22,
+      fontWeight: '700',
+      lineHeight: 22,
+    },
+    row: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.three,
+      minHeight: 56,
+      paddingVertical: Spacing.two,
     },
     rowCopy: {
       flex: 1,
       gap: 4,
-      minWidth: 0,
     },
-    rowDivider: {
-      borderTopColor: colors.borderSubtle,
-      borderTopWidth: StyleSheet.hairlineWidth,
-    },
-    rowGroup: {
-      gap: Spacing.two,
+    rowHeading: {
+      alignItems: 'center',
+      flexDirection: 'row',
     },
     rowMeta: {
       color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      lineHeight: Typography.callout.lineHeight,
+      fontSize: 13,
+      fontVariant: ['tabular-nums'],
     },
     rowPressed: {
-      opacity: 0.88,
+      opacity: 0.7,
     },
     rowSecondary: {
       color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      lineHeight: Typography.callout.lineHeight,
+      fontSize: 12,
+      lineHeight: 17,
     },
     rowTitle: {
       color: colors.textPrimary,
-      fontSize: Typography.bodyEmphasized.fontSize,
-      fontWeight: Typography.bodyEmphasized.fontWeight,
-      lineHeight: Typography.bodyEmphasized.lineHeight,
+      flexShrink: 1,
+      fontSize: 15,
+      fontWeight: '800',
+      lineHeight: 21,
     },
-    rowTitleLine: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: 4,
-      minWidth: 0,
+    rowGroup: {
+      paddingVertical: 2,
     },
     screen: {
-      backgroundColor: colors.background,
+      flex: 1,
+    },
+    scrollView: {
       flex: 1,
     },
     screenTitle: {
       color: colors.textPrimary,
-      fontSize: 28,
+      fontSize: 30,
       fontWeight: '900',
+      letterSpacing: -0.6,
       lineHeight: 34,
     },
-    sectionAction: {
-      alignItems: 'center',
-      alignSelf: 'flex-start',
-      minHeight: 44,
-      justifyContent: 'center',
-      paddingHorizontal: 2,
-    },
-    sectionActionLabel: {
-      color: colors.accent,
-      fontSize: Typography.callout.fontSize,
-      fontWeight: '800',
-      lineHeight: Typography.callout.lineHeight,
-    },
-    sectionActionPressed: {
-      opacity: 0.8,
-    },
-    sectionCard: {
-      gap: Spacing.three,
-      padding: Spacing.four,
-    },
-    sectionEmptyText: {
+    sectionLabel: {
       color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      lineHeight: Typography.callout.lineHeight,
-    },
-    sectionHeader: {
-      alignItems: 'flex-start',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: Spacing.two,
-    },
-    sectionHeaderCopy: {
-      flex: 1,
-      gap: 4,
-      minWidth: 0,
-    },
-    sectionStack: {
-      gap: Spacing.three,
-    },
-    sectionSubtitle: {
-      color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      lineHeight: Typography.callout.lineHeight,
-    },
-    sectionTitle: {
-      color: colors.textPrimary,
-      fontSize: Typography.cardTitle.fontSize,
-      fontWeight: '900',
-      lineHeight: Typography.cardTitle.lineHeight,
-    },
-    segmentedControl: {
-      backgroundColor: colors.surfaceSecondary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      flexDirection: 'row',
-      gap: Spacing.one,
-      padding: 2,
-    },
-    sessionRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: Spacing.two,
-      justifyContent: 'space-between',
-      minHeight: 64,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
-    },
-    sessionVolume: {
-      color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      fontVariant: ['tabular-nums'],
-      lineHeight: Typography.callout.lineHeight,
-    },
-    sessionWorkoutName: {
-      color: colors.textPrimary,
-      flexShrink: 1,
-      fontSize: Typography.bodyEmphasized.fontSize,
+      fontSize: 12,
       fontWeight: '800',
-      lineHeight: Typography.bodyEmphasized.lineHeight,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
     },
-    statePill: {
-      alignItems: 'center',
-      borderCurve: 'continuous',
-      borderRadius: Radii.pill,
-      minHeight: 28,
-      justifyContent: 'center',
-      paddingHorizontal: Spacing.two,
-    },
-    statePillActive: {
-      backgroundColor: colors.accentSoft,
-    },
-    statePillInactive: {
-      backgroundColor: colors.backgroundSelected,
-    },
-    statePillLabel: {
-      fontSize: Typography.caption.fontSize,
-      fontWeight: '800',
-      lineHeight: Typography.caption.lineHeight,
-    },
-    statePillLabelActive: {
-      color: colors.accent,
-    },
-    statePillLabelInactive: {
-      color: colors.textSecondary,
-    },
-    templateRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: Spacing.two,
-      justifyContent: 'space-between',
-      minHeight: 64,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
-    },
-    rowLabel: {
-      color: colors.textPrimary,
-      fontSize: Typography.bodyEmphasized.fontSize,
-      fontWeight: '800',
-      lineHeight: Typography.bodyEmphasized.lineHeight,
-    },
-    rowWrap: {
-      borderTopColor: colors.borderSubtle,
-      borderTopWidth: StyleSheet.hairlineWidth,
+    sectionLabelRow: {
+      paddingTop: Spacing.one,
     },
     segment: {
       alignItems: 'center',
       borderCurve: 'continuous',
-      borderRadius: Radii.large,
+      borderRadius: 999,
       flex: 1,
       justifyContent: 'center',
-      minHeight: 44,
-      paddingHorizontal: Spacing.two,
-      paddingVertical: 10,
+      minHeight: 40,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: 9,
     },
     segmentLabel: {
       color: colors.textSecondary,
-      fontSize: Typography.label.fontSize,
-      fontWeight: Typography.label.fontWeight,
-      lineHeight: Typography.label.lineHeight,
+      fontSize: 13,
+      fontWeight: '700',
     },
     segmentLabelSelected: {
       color: colors.textPrimary,
+      fontWeight: '800',
     },
     segmentPressed: {
-      backgroundColor: colors.backgroundSelected,
+      backgroundColor: colors.surfaceSecondary,
     },
     segmentSelected: {
-      backgroundColor: colors.surfacePrimary,
+      backgroundColor: colors.surfaceSecondary,
+    },
+    segmentedControl: {
+      backgroundColor: colors.surface,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
+      flexDirection: 'row',
+      gap: 4,
+      padding: 4,
+    },
+    templateIcon: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderCurve: 'continuous',
+      borderRadius: 12,
+      height: 34,
+      justifyContent: 'center',
+      width: 34,
+    },
+    templateIconLabel: {
+      color: colors.accent,
+      fontSize: 13,
+      fontWeight: '900',
     },
   });

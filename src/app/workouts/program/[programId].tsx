@@ -1,229 +1,263 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
-import { AppCard } from '@/components/ui/AppCard';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { SectionHeader } from '@/components/ui/SectionHeader';
-import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BottomTabInset, Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import {
-  deleteWorkoutProgram,
-  duplicateWorkoutProgram,
-  getWorkoutProgramById,
-  getWorkoutProgramSchedule,
-  getWorkoutProgramSummary,
-  getWorkoutTemplateById,
-  saveWorkoutProgram,
-  startWorkoutSessionDraft,
-  toggleWorkoutProgramFavorite,
-} from '@/lib/workouts';
+import { deleteWorkoutProgram, duplicateWorkoutProgram, getWorkoutProgramById, saveWorkoutProgram, toggleWorkoutProgramFavorite } from '@/lib/workouts';
+import { useAppTheme } from '@/theme/AppThemeProvider';
+import { SimpleProgramEditor } from '@/components/workouts/SimpleProgramEditor';
+import type { TrainingProgram } from '@/types/programs';
+
+const createDraftProgram = (program: TrainingProgram): TrainingProgram => ({
+  ...program,
+  days: program.days.map((day) => ({ ...day })),
+});
 
 export default function ProgramDetailRoute() {
-  const { programId } = useLocalSearchParams<{ programId?: string }>();
-  const { workouts, workoutSessions } = useAppContext();
+  const params = useLocalSearchParams<{ programId?: string }>();
+  const programId = Array.isArray(params.programId) ? params.programId[0] : params.programId;
+  const { workouts } = useAppContext();
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const resolvedProgramId = Array.isArray(programId) ? programId[0] : programId;
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const program = useMemo(() => (resolvedProgramId ? getWorkoutProgramById(resolvedProgramId, workouts) : null), [resolvedProgramId, workouts]);
-  const summary = useMemo(() => (program ? getWorkoutProgramSummary(program, workouts, workoutSessions) : null), [program, workoutSessions, workouts]);
-  const schedule = useMemo(() => (program ? getWorkoutProgramSchedule(program) : null), [program]);
+  const program = useMemo(() => (programId ? getWorkoutProgramById(programId, workouts) : null), [programId, workouts]);
+  const [draftName, setDraftName] = useState(program?.name ?? '');
+  const [draftProgram, setDraftProgram] = useState<TrainingProgram | null>(() => (program ? createDraftProgram(program) : null));
 
-  if (!program || !summary || !schedule) {
+  const workoutRows = useMemo(
+    () =>
+      (draftProgram?.days ?? [])
+        .filter((day) => !day.restDay && Boolean(day.workoutTemplateId))
+        .map((day, index) => ({
+          id: day.id ?? `${day.weekday}-${index}`,
+          title: day.workoutTemplateName ?? day.workoutTemplateId ?? 'Workout',
+          exerciseCount: workouts.find((workout) => workout.id === day.workoutTemplateId)?.exercises.length ?? 0,
+          secondary: day.notes?.trim() ? day.notes.trim() : undefined,
+        })),
+    [draftProgram, workouts],
+  );
+
+  if (!program || !draftProgram) {
     return (
-      <View style={styles.screen}>
-        <EmptyState compact message="This program no longer exists." title="Program not found" />
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <View style={styles.emptyWrap}>
+          <Text selectable style={styles.emptyTitle}>
+            Program not found
+          </Text>
+          <AppButton label="Back to workouts" onPress={() => router.back()} />
+        </View>
       </View>
     );
   }
 
-  const nextWorkoutId = schedule.nextWorkout?.workoutTemplateId ?? program.days.find((day) => !day.restDay && day.workoutTemplateId)?.workoutTemplateId;
-  const nextWorkout = nextWorkoutId ? getWorkoutTemplateById(nextWorkoutId, workouts) : null;
+  const addWorkout = () => {
+    const available = workouts.slice(0, 10);
+    const buttons = available.map((workout) => ({
+      text: workout.title,
+      onPress: () => {
+        const nextIndex = draftProgram.days.findIndex((day) => day.restDay || !day.workoutTemplateId);
+        if (nextIndex === -1) {
+          Alert.alert('Program full', 'Remove a workout before adding another one.');
+          return;
+        }
 
-  const handleStart = () => {
-    if (!nextWorkout) {
-      Alert.alert('No workout assigned', 'Assign a workout template before starting.');
-      return;
-    }
+        const nextDays = draftProgram.days.map((day, index) =>
+          index === nextIndex
+            ? {
+                ...day,
+                notes: undefined,
+                restDay: false,
+                workoutTemplateId: workout.id,
+                workoutTemplateName: workout.title,
+              }
+            : day,
+        );
 
-    startWorkoutSessionDraft(nextWorkout);
-    router.push({ pathname: '/workout-session', params: { workoutId: nextWorkout.id } });
+        setDraftProgram({ ...draftProgram, days: nextDays });
+      },
+    }));
+
+    Alert.alert('Add workout', 'Pick a template', [{ text: 'Cancel', style: 'cancel' }, ...buttons]);
   };
 
-  const handleDelete = () => {
-    if (!program.isCustom) {
-      return;
-    }
+  const removeWorkout = (rowId: string) => {
+    const nextDays = draftProgram.days.map((day, index) =>
+      (day.id ?? `${day.weekday}-${index}`) === rowId
+        ? {
+            ...day,
+            notes: undefined,
+            restDay: true,
+            workoutTemplateId: undefined,
+            workoutTemplateName: undefined,
+          }
+        : day,
+    );
 
-    Alert.alert('Delete program?', 'This will remove the program definition only. Completed workout history stays intact.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
+    setDraftProgram({ ...draftProgram, days: nextDays });
+  };
+
+  const openWorkout = (rowId: string) => {
+    const row = draftProgram.days.find((day, index) => (day.id ?? `${day.weekday}-${index}`) === rowId);
+    const workoutId = row?.workoutTemplateId;
+    if (workoutId) {
+      router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId } });
+    }
+  };
+
+  const saveProgram = () => {
+    const nextProgram: TrainingProgram = {
+      ...draftProgram,
+      id: program.isCustom ? program.id : `program-${Date.now()}`,
+      isCustom: true,
+      name: draftName.trim() || program.name,
+    };
+
+    saveWorkoutProgram(nextProgram);
+    router.back();
+  };
+
+  const showOverflow = () => {
+    const duplicate = () => {
+      const duplicated = duplicateWorkoutProgram(program.id, workouts);
+      if (duplicated) {
+        router.replace({ pathname: '/workouts/program/[programId]', params: { programId: duplicated.id } });
+      }
+    };
+
+    const buttons: any[] = [{ text: 'Duplicate program', onPress: duplicate }];
+
+    if (program.isCustom) {
+      buttons.push({
+        text: 'Delete program',
         style: 'destructive',
         onPress: () => {
-          deleteWorkoutProgram(program.id);
-          router.back();
+          Alert.alert('Delete program?', 'This removes the program definition only. Completed workout history stays intact.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete',
+              style: 'destructive',
+              onPress: () => {
+                deleteWorkoutProgram(program.id);
+                router.back();
+              },
+            },
+          ]);
         },
-      },
-    ]);
+      });
+    }
+
+    buttons.push({ text: 'Favorite / unfavorite', onPress: () => toggleWorkoutProgramFavorite(program.id) });
+    buttons.push({ text: 'Advanced settings', onPress: () => Alert.alert('Advanced settings', 'Hidden fields are preserved automatically.') });
+
+    Alert.alert(program.name, undefined, [{ text: 'Cancel', style: 'cancel' }, ...buttons]);
   };
 
   return (
-    <View style={styles.screen}>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 120 }]} style={styles.scrollView}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 104 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        style={styles.scrollView}>
         <View style={styles.container}>
-          <SectionHeader subtitle={summary.subtitle} title={program.name} />
-
-          <AppCard style={styles.heroCard}>
-            <Text selectable style={styles.heroMeta}>
-              {program.goal} · {program.difficulty} · {program.durationWeeks} weeks
+          <View style={styles.headerRow}>
+            <Text selectable style={styles.title}>
+              Program
             </Text>
-            <Text selectable style={styles.heroDescription}>
-              {program.description ?? 'Program details and weekly schedule.'}
-            </Text>
-            {schedule.isRestDayToday ? (
-              <Text selectable style={styles.restCallout}>
-                Rest day today · next scheduled workout: {schedule.nextWorkout?.workoutTemplateName ?? 'Unassigned'}
-              </Text>
-            ) : null}
-            <AppButton label="Start Next Workout" onPress={handleStart} />
-            {schedule.isRestDayToday ? <AppButton label="Start Anyway" onPress={handleStart} variant="secondary" /> : null}
-          </AppCard>
-
-          <AppCard>
-            <Text selectable style={styles.sectionTitle}>
-              Weekly schedule
-            </Text>
-            <View style={styles.scheduleList}>
-              {program.days.map((day) => (
-                <View key={day.id} style={styles.scheduleRow}>
-                  <Text style={styles.scheduleDay}>{day.weekday.slice(0, 3).toUpperCase()}</Text>
-                  <View style={styles.scheduleCopy}>
-                    <Text selectable style={styles.scheduleTitle}>
-                      {day.restDay ? 'Rest day' : day.workoutTemplateName ?? 'Unassigned workout'}
-                    </Text>
-                    <Text selectable style={styles.scheduleMeta}>
-                      {day.restDay ? 'Recovery focus' : day.notes ?? 'Training day'}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </AppCard>
-
-          <AppCard>
-            <Text selectable style={styles.sectionTitle}>
-              Summary metadata
-            </Text>
-            <Text selectable style={styles.summaryLine}>
-              {summary.workoutCount} workout days · {summary.daysPerWeek} active days/week
-            </Text>
-            <Text selectable style={styles.summaryLine}>
-              {summary.goalLabel} · {summary.difficultyLabel}
-            </Text>
-            <Text selectable style={styles.summaryLine}>
-              {program.createdAt ? `Created ${new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(program.createdAt))}` : 'Created recently'}
-            </Text>
-          </AppCard>
-
-          <View style={styles.actions}>
-            <AppButton label="Edit Program" onPress={() => router.push('/workouts/builder')} variant="secondary" />
-            <AppButton
-              label="Duplicate"
-              onPress={() => {
-                const duplicate = duplicateWorkoutProgram(program.id, workouts);
-                if (duplicate) {
-                  router.push({ pathname: '/workouts/program/[programId]', params: { programId: duplicate.id } });
-                }
-              }}
-              variant="secondary"
-            />
-            <AppButton label={summary.isFavorite ? 'Unfavorite' : 'Favorite'} onPress={() => toggleWorkoutProgramFavorite(program.id)} variant="secondary" />
-            {program.isCustom ? <AppButton label="Delete" onPress={handleDelete} variant="secondary" /> : null}
+            <Pressable accessibilityRole="button" hitSlop={12} onPress={showOverflow} style={({ pressed }) => [styles.menuButton, pressed && styles.menuPressed]}>
+              <Text style={styles.menuLabel}>⋯</Text>
+            </Pressable>
           </View>
+
+          <SimpleProgramEditor
+            colors={colors}
+            name={draftName}
+            onAddWorkout={addWorkout}
+            onNameChange={setDraftName}
+            onOpenWorkout={openWorkout}
+            onRemoveWorkout={removeWorkout}
+            workoutRows={workoutRows}
+          />
         </View>
       </ScrollView>
+
+      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>
+        <View style={styles.container}>
+          <AppButton label="Save program" onPress={saveProgram} />
+        </View>
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  actions: {
-    gap: Spacing.two,
-  },
-  container: {
-    gap: Spacing.three,
-    maxWidth: MaxContentWidth,
-    width: '100%',
-  },
-  content: {
-    alignItems: 'center',
-    padding: Spacing.three,
-  },
-  heroCard: {
-    gap: Spacing.two,
-  },
-  heroDescription: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  heroMeta: {
-    color: Colors.dark.accent,
-    fontSize: 13,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  restCallout: {
-    color: Colors.dark.text,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  scheduleCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  scheduleDay: {
-    color: Colors.dark.accent,
-    fontSize: 12,
-    fontWeight: '900',
-    width: 36,
-  },
-  scheduleList: {
-    gap: Spacing.two,
-  },
-  scheduleMeta: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-  },
-  scheduleRow: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  scheduleTitle: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  screen: {
-    backgroundColor: Colors.dark.background,
-    flex: 1,
-  },
-  scrollView: {
-    backgroundColor: Colors.dark.background,
-    flex: 1,
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  summaryLine: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-});
+const createStyles = (colors: typeof Colors.light) =>
+  StyleSheet.create({
+    container: {
+      maxWidth: MaxContentWidth,
+      width: '100%',
+    },
+    content: {
+      alignItems: 'center',
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.three,
+    },
+    emptyTitle: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontWeight: '900',
+    },
+    emptyWrap: {
+      alignItems: 'center',
+      flex: 1,
+      gap: Spacing.three,
+      justifyContent: 'center',
+      padding: Spacing.three,
+    },
+    footer: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      left: 0,
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.two,
+      position: 'absolute',
+      right: 0,
+      bottom: 0,
+    },
+    headerRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.three,
+    },
+    menuButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 32,
+      minWidth: 32,
+    },
+    menuPressed: {
+      opacity: 0.65,
+    },
+    menuLabel: {
+      color: colors.textSecondary,
+      fontSize: 22,
+      fontWeight: '700',
+      lineHeight: 22,
+    },
+    screen: {
+      flex: 1,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 26,
+      fontWeight: '900',
+      letterSpacing: -0.5,
+    },
+  });

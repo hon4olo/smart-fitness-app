@@ -10,44 +10,43 @@ const projectRoot = resolve(__dirname, '..');
 const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 const count = (source: string, needle: string) => (source.match(new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) ?? []).length;
 
-describe('workout session redesign 8.1', () => {
-  test('the active session screen uses a compact workflow and safe footer labels', () => {
+describe('workout session redesign', () => {
+  test('the active session screen is sequential and low-chrome', () => {
     const screen = readSource('src/app/workout-session.tsx');
-    const header = readSource('src/components/workouts/WorkoutSessionHeader.tsx');
-    const navigator = readSource('src/components/workouts/WorkoutSessionExerciseNavigator.tsx');
-    const editor = readSource('src/components/workouts/WorkoutSessionSetEditor.tsx');
-    const history = readSource('src/components/workouts/WorkoutSessionSetHistory.tsx');
-    const emptyState = readSource('src/components/workouts/WorkoutSessionEmptyState.tsx');
+    const storage = readSource('src/lib/workouts.ts');
 
-    expect(screen).toContain('WorkoutSessionHeader');
-    expect(screen).toContain('WorkoutSessionExerciseNavigator');
-    expect(screen).toContain('WorkoutSessionSetEditor');
-    expect(screen).toContain('WorkoutSessionSetHistory');
-    expect(screen).toContain('WorkoutSessionEmptyState');
-    expect(screen).not.toContain('WorkoutSessionProgressCard');
-    expect(screen).toContain("keyboardShouldPersistTaps=\"handled\"");
-    expect(screen).toContain("Alert.alert('Delete set?'");
-    expect(screen).toContain("Alert.alert('Cancel workout?'");
-    expect(screen).toContain('Cancel');
-    expect(screen).toContain('Finish workout');
-    expect(screen).not.toContain('Cancel Workout');
-    expect(count(screen, 'Workout Session')).toBe(0);
+    expect(screen).toContain('hydrateActiveWorkoutSessionDraft');
+    expect(screen).toContain('Finish');
+    expect(screen).toContain('+ Add set');
+    expect(screen).toContain('Rest ·');
+    expect(screen).toContain('onLongPress');
+    expect(screen).toContain('toggleSetCompletion');
+    expect(screen).toContain('keyboardShouldPersistTaps="handled"');
+    expect(screen).toContain("Alert.alert('Discard workout?'");
+    expect(screen).toContain('Complete');
+    expect(count(screen, 'Exercise X of Y')).toBe(0);
+    expect(count(screen, 'WorkoutSessionExerciseNavigator')).toBe(0);
+    expect(count(screen, 'Save set')).toBe(0);
+    expect(count(screen, 'Edit set')).toBe(0);
 
-    expect(header).toContain('Next:');
-    expect(header).toContain('progressTrack');
-    expect(navigator).toContain('ScrollView');
-    expect(navigator).toContain('showsHorizontalScrollIndicator={false}');
-    expect(navigator).toContain('Exercises');
-    expect(editor).toContain('Weight');
-    expect(editor).toContain('Reps');
-    expect(editor).toContain('Add set');
-    expect(editor).toContain('Save set');
-    expect(editor).toContain('Cancel edit');
-    expect(editor).toContain('Previous:');
-    expect(history).toContain('Sets');
-    expect(history).toContain('No sets logged yet.');
-    expect(history).toContain('Delete');
-    expect(screen).toContain('does not support adding exercises in-session');
-    expect(screen).toContain('Return to Workouts');
+    expect(storage).toContain('hydrateActiveWorkoutSessionDraft');
+    expect(storage).toContain('persistActiveWorkoutSessionDraft');
+    expect(storage).toContain('active-workout-session-draft');
+  });
+
+  test('the finish flow stays minimal', () => {
+    const finish = readSource('src/app/workout-session-finish.tsx');
+
+    expect(finish).toContain('Finish Workout');
+    expect(finish).toContain('Workout');
+    expect(finish).toContain('Date & time');
+    expect(finish).toContain('Duration');
+    expect(finish).toContain('Notes');
+    expect(finish).toContain('Save');
+    expect(finish).toContain('Discard workout');
+    expect(finish).toContain('Workout saved');
+    expect(finish).not.toContain('Photo');
+    expect(finish).not.toContain('analytics');
+    expect(finish).not.toContain('statistics');
   });
 });

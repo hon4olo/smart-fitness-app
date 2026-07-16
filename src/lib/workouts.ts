@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import type { Exercise, TrainingProgram, TrainingProgramDay, WeekdayKey, Workout, WorkoutSession } from '@/types';
 
 import { WEEKDAY_KEYS, type ExerciseDifficulty, type ExerciseType } from '@/domain/models';
@@ -678,7 +680,10 @@ const workoutProgramsStore = {
   programs: [] as TrainingProgram[],
 };
 
+const ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY = 'active-workout-session-draft';
+
 let activeWorkoutSessionDraft: WorkoutSessionDraft | null = null;
+let activeWorkoutSessionDraftWriteQueue = Promise.resolve();
 const workoutTemplateFavorites = new Set<string>();
 
 const cloneSet = (set: WorkoutSession['sets'][number]) => ({ ...set });
@@ -688,6 +693,60 @@ const cloneProgram = (program: TrainingProgram): TrainingProgram => ({
   progression: program.progression ? { ...program.progression } : undefined,
   metadata: program.metadata ? { ...program.metadata } : undefined,
 });
+
+const cloneWorkoutSessionDraft = (draft: WorkoutSessionDraft): WorkoutSessionDraft => ({
+  ...draft,
+  sets: draft.sets.map(cloneSet),
+});
+
+const parseWorkoutSessionDraft = (value: string | null): WorkoutSessionDraft | null => {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Partial<WorkoutSessionDraft> | null;
+
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+
+    if (
+      typeof parsed.id !== 'string' ||
+      typeof parsed.workoutId !== 'string' ||
+      typeof parsed.workoutTitle !== 'string' ||
+      typeof parsed.startedAt !== 'string' ||
+      !Array.isArray(parsed.sets)
+    ) {
+      return null;
+    }
+
+    return {
+      id: parsed.id,
+      workoutId: parsed.workoutId,
+      workoutTitle: parsed.workoutTitle,
+      startedAt: parsed.startedAt,
+      sets: parsed.sets.filter((set): set is WorkoutSession['sets'][number] => Boolean(set)).map(cloneSet),
+    };
+  } catch {
+    return null;
+  }
+};
+
+const persistActiveWorkoutSessionDraft = (draft: WorkoutSessionDraft | null) => {
+  activeWorkoutSessionDraftWriteQueue = activeWorkoutSessionDraftWriteQueue
+    .catch(() => undefined)
+    .then(() => {
+      if (draft) {
+        return AsyncStorage.setItem(ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY, JSON.stringify(cloneWorkoutSessionDraft(draft)));
+      }
+
+      return AsyncStorage.removeItem(ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY);
+    })
+    .catch(() => undefined);
+
+  return activeWorkoutSessionDraftWriteQueue;
+};
 
 const normalizeWorkoutText = (value: string) =>
   value
@@ -744,13 +803,19 @@ export const resetWorkoutHubState = () => {
   workoutProgramsStore.favorites.clear();
   workoutProgramsStore.programs = [];
   workoutTemplateFavorites.clear();
-  activeWorkoutSessionDraft = null;
+  void clearActiveWorkoutSessionDraft();
 };
 
 export const getActiveWorkoutSessionDraft = () => (activeWorkoutSessionDraft ? { ...activeWorkoutSessionDraft, sets: activeWorkoutSessionDraft.sets.map(cloneSet) } : null);
 
+export const hydrateActiveWorkoutSessionDraft = async () => {
+  activeWorkoutSessionDraft = parseWorkoutSessionDraft(await AsyncStorage.getItem(ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY));
+  return getActiveWorkoutSessionDraft();
+};
+
 export const setActiveWorkoutSessionDraft = (draft: WorkoutSessionDraft | null) => {
-  activeWorkoutSessionDraft = draft ? { ...draft, sets: draft.sets.map(cloneSet) } : null;
+  activeWorkoutSessionDraft = draft ? cloneWorkoutSessionDraft(draft) : null;
+  void persistActiveWorkoutSessionDraft(activeWorkoutSessionDraft);
 };
 
 export const startWorkoutSessionDraft = (workout: Workout, startedAt = new Date().toISOString()) => {
@@ -791,6 +856,7 @@ export const updateActiveWorkoutSessionDraft = (updater: (current: WorkoutSessio
 
 export const clearActiveWorkoutSessionDraft = () => {
   activeWorkoutSessionDraft = null;
+  void persistActiveWorkoutSessionDraft(null);
 };
 
 export const getWorkoutTemplateSummary = (workout: Workout, sessions: WorkoutSession[]): WorkoutTemplateSummary => {
@@ -865,9 +931,9 @@ export const getWorkoutHubViewModel = (input: { activeProgram?: TrainingProgram 
     activeWorkout: activeSummary && activeWorkoutDraft
       ? {
           ...activeSummary,
-          completedExercises: new Set(activeWorkoutDraft.sets.map((set) => set.exerciseId)).size,
+          completedExercises: new Set(activeWorkoutDraft.sets.filter((set) => set.completed !== false).map((set) => set.exerciseId)).size,
           elapsedLabel: formatElapsedLabel(activeWorkoutDraft.startedAt),
-          progressLabel: `${new Set(activeWorkoutDraft.sets.map((set) => set.exerciseId)).size}/${activeWorkoutExerciseCount} exercises`,
+          progressLabel: `${new Set(activeWorkoutDraft.sets.filter((set) => set.completed !== false).map((set) => set.exerciseId)).size}/${activeWorkoutExerciseCount} exercises`,
         }
       : undefined,
     favoritePrograms: programSummaries.filter((program) => program.isFavorite),

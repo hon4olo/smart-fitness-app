@@ -18,6 +18,7 @@ export type WorkoutSet = {
   exerciseName: string;
   weight: number;
   reps: number;
+  completed?: boolean;
 };
 
 export type WorkoutSession = {
@@ -27,4 +28,6 @@ export type WorkoutSession = {
   startedAt: string;
   finishedAt: string;
   sets: WorkoutSet[];
+  notes?: string;
+  photoUri?: string;
 };
