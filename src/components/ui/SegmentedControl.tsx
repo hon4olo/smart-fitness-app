@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type SegmentedOption<Value extends string> = {
   label: string;
@@ -15,6 +17,9 @@ type SegmentedControlProps<Value extends string> = {
 };
 
 export function SegmentedControl<Value extends string>({ accessibilityLabel, onChange, options, value }: SegmentedControlProps<Value>) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View accessibilityLabel={accessibilityLabel} accessibilityRole="tablist" style={styles.container}>
       {options.map((option) => {
@@ -35,40 +40,41 @@ export function SegmentedControl<Value extends string>({ accessibilityLabel, onC
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: Colors.dark.surfaceSecondary,
-    borderColor: Colors.dark.borderSubtle,
-    borderCurve: 'continuous',
-    borderRadius: Radii.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    gap: Spacing.one,
-    padding: Spacing.one,
-  },
-  label: {
-    color: Colors.dark.textSecondary,
-    fontSize: Typography.label.fontSize,
-    fontWeight: Typography.label.fontWeight,
-    lineHeight: Typography.label.lineHeight,
-  },
-  labelSelected: {
-    color: Colors.dark.textPrimary,
-  },
-  pressed: {
-    backgroundColor: Colors.dark.backgroundSelected,
-  },
-  segment: {
-    alignItems: 'center',
-    borderCurve: 'continuous',
-    borderRadius: Radii.medium,
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-  },
-  segmentSelected: {
-    backgroundColor: Colors.dark.surfacePrimary,
-  },
-});
+const createStyles = (colors: typeof Colors.dark) =>
+  StyleSheet.create({
+    container: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      flexDirection: 'row',
+      gap: Spacing.one,
+      padding: Spacing.one,
+    },
+    label: {
+      color: colors.textSecondary,
+      fontSize: Typography.label.fontSize,
+      fontWeight: Typography.label.fontWeight,
+      lineHeight: Typography.label.lineHeight,
+    },
+    labelSelected: {
+      color: colors.textPrimary,
+    },
+    pressed: {
+      backgroundColor: colors.backgroundSelected,
+    },
+    segment: {
+      alignItems: 'center',
+      borderCurve: 'continuous',
+      borderRadius: Radii.medium,
+      flex: 1,
+      justifyContent: 'center',
+      minHeight: 44,
+      paddingHorizontal: Spacing.two,
+      paddingVertical: Spacing.one,
+    },
+    segmentSelected: {
+      backgroundColor: colors.surfacePrimary,
+    },
+  });

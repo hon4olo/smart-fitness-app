@@ -44,6 +44,10 @@ function RootNavigator() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
+            name="nutrition/date-picker"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
             name="workout-session"
             options={{
               headerBackTitle: 'Back',

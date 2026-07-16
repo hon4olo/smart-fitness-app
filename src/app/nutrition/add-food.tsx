@@ -372,7 +372,7 @@ export default function NutritionAddFoodScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.six }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.six, paddingTop: insets.top + Spacing.three }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
@@ -596,9 +596,13 @@ export default function NutritionAddFoodScreen() {
                 </Text>
               </View>
 
-              <View style={styles.secondaryActions}>
-                <AppButton label="Create Meal" onPress={() => setCreateMealOpen((current) => !current)} variant="secondary" />
-                <AppButton label="Manage Meals" onPress={() => setManageMealsOpen((current) => !current)} variant="secondary" />
+              <View style={styles.quietActionRow}>
+                <Pressable accessibilityLabel="Create meal" hitSlop={10} onPress={() => setCreateMealOpen((current) => !current)} style={styles.quietActionButton}>
+                  <Text style={styles.quietActionText}>Create meal</Text>
+                </Pressable>
+                <Pressable accessibilityLabel="Manage meals" hitSlop={10} onPress={() => setManageMealsOpen((current) => !current)} style={styles.quietActionButton}>
+                  <Text style={styles.quietActionText}>{manageMealsOpen ? 'Hide delete' : 'Manage meals'}</Text>
+                </Pressable>
               </View>
 
               {createMealOpen ? (
@@ -665,108 +669,105 @@ export default function NutritionAddFoodScreen() {
             </AppCard>
           ) : null}
 
-          <AppCard>
-            <View style={styles.sectionHeader}>
-              <Text selectable style={styles.sectionTitle}>
-                Footer actions
-              </Text>
-            </View>
-            <View style={styles.secondaryActions}>
-              <AppButton label="Create Food" onPress={() => setCreateFoodOpen((current) => !current)} variant="secondary" />
-              <AppButton label="Create Meal" onPress={() => setMode('meals')} variant="secondary" />
-            </View>
-            {createFoodOpen ? (
-              <View style={styles.inlineForm}>
+          <View style={styles.quietActionRow}>
+            <Pressable accessibilityLabel="Create food" hitSlop={10} onPress={() => setCreateFoodOpen((current) => !current)} style={styles.quietActionButton}>
+              <Text style={styles.quietActionText}>{createFoodOpen ? 'Hide create food' : 'Create food'}</Text>
+            </Pressable>
+            <Pressable accessibilityLabel="Go to meals mode" hitSlop={10} onPress={() => setMode('meals')} style={styles.quietActionButton}>
+              <Text style={styles.quietActionText}>Create meal</Text>
+            </Pressable>
+          </View>
+          {createFoodOpen ? (
+            <View style={styles.inlineForm}>
+              <TextInput
+                accessibilityLabel="Food name"
+                autoCapitalize="words"
+                onChangeText={setFoodName}
+                placeholder="Food name"
+                placeholderTextColor={colors.textSecondary}
+                style={styles.input}
+                value={foodName}
+              />
+              <TextInput
+                accessibilityLabel="Brand"
+                autoCapitalize="words"
+                onChangeText={setFoodBrand}
+                placeholder="Brand (optional)"
+                placeholderTextColor={colors.textSecondary}
+                style={styles.input}
+                value={foodBrand}
+              />
+              <View style={styles.grid}>
                 <TextInput
-                  accessibilityLabel="Food name"
-                  autoCapitalize="words"
-                  onChangeText={setFoodName}
-                  placeholder="Food name"
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.input}
-                  value={foodName}
-                />
-                <TextInput
-                  accessibilityLabel="Brand"
-                  autoCapitalize="words"
-                  onChangeText={setFoodBrand}
-                  placeholder="Brand (optional)"
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.input}
-                  value={foodBrand}
-                />
-                <View style={styles.grid}>
-                  <TextInput
-                    accessibilityLabel="Serving size"
-                    keyboardType="decimal-pad"
-                    onChangeText={setFoodServingSize}
-                    placeholder="Serving size"
-                    placeholderTextColor={colors.textSecondary}
-                    style={styles.input}
-                    value={foodServingSize}
-                  />
-                  <TextInput
-                    accessibilityLabel="Serving unit"
-                    onChangeText={setFoodServingUnit}
-                    placeholder="Serving unit"
-                    placeholderTextColor={colors.textSecondary}
-                    style={styles.input}
-                    value={foodServingUnit}
-                  />
-                </View>
-                <TextInput
-                  accessibilityLabel="Quantity"
+                  accessibilityLabel="Serving size"
                   keyboardType="decimal-pad"
-                  onChangeText={setFoodQuantity}
-                  placeholder="Quantity"
+                  onChangeText={setFoodServingSize}
+                  placeholder="Serving size"
                   placeholderTextColor={colors.textSecondary}
                   style={styles.input}
-                  value={foodQuantity}
+                  value={foodServingSize}
                 />
-                <View style={styles.grid}>
-                  <TextInput
-                    accessibilityLabel="Calories"
-                    keyboardType="decimal-pad"
-                    onChangeText={setFoodCalories}
-                    placeholder="Calories"
-                    placeholderTextColor={colors.textSecondary}
-                    style={styles.input}
-                    value={foodCalories}
-                  />
-                  <TextInput
-                    accessibilityLabel="Protein"
-                    keyboardType="decimal-pad"
-                    onChangeText={setFoodProtein}
-                    placeholder="Protein"
-                    placeholderTextColor={colors.textSecondary}
-                    style={styles.input}
-                    value={foodProtein}
-                  />
-                </View>
-                <View style={styles.grid}>
-                  <TextInput
-                    accessibilityLabel="Carbs"
-                    keyboardType="decimal-pad"
-                    onChangeText={setFoodCarbs}
-                    placeholder="Carbs"
-                    placeholderTextColor={colors.textSecondary}
-                    style={styles.input}
-                    value={foodCarbs}
-                  />
-                  <TextInput
-                    accessibilityLabel="Fats"
-                    keyboardType="decimal-pad"
-                    onChangeText={setFoodFats}
-                    placeholder="Fats"
-                    placeholderTextColor={colors.textSecondary}
-                    style={styles.input}
-                    value={foodFats}
-                  />
-                </View>
-                <AppButton label="Add food" onPress={saveCustomFood} />
+                <TextInput
+                  accessibilityLabel="Serving unit"
+                  onChangeText={setFoodServingUnit}
+                  placeholder="Serving unit"
+                  placeholderTextColor={colors.textSecondary}
+                  style={styles.input}
+                  value={foodServingUnit}
+                />
               </View>
-            ) : null}
-          </AppCard>
+              <TextInput
+                accessibilityLabel="Quantity"
+                keyboardType="decimal-pad"
+                onChangeText={setFoodQuantity}
+                placeholder="Quantity"
+                placeholderTextColor={colors.textSecondary}
+                style={styles.input}
+                value={foodQuantity}
+              />
+              <View style={styles.grid}>
+                <TextInput
+                  accessibilityLabel="Calories"
+                  keyboardType="decimal-pad"
+                  onChangeText={setFoodCalories}
+                  placeholder="Calories"
+                  placeholderTextColor={colors.textSecondary}
+                  style={styles.input}
+                  value={foodCalories}
+                />
+                <TextInput
+                  accessibilityLabel="Protein"
+                  keyboardType="decimal-pad"
+                  onChangeText={setFoodProtein}
+                  placeholder="Protein"
+                  placeholderTextColor={colors.textSecondary}
+                  style={styles.input}
+                  value={foodProtein}
+                />
+              </View>
+              <View style={styles.grid}>
+                <TextInput
+                  accessibilityLabel="Carbs"
+                  keyboardType="decimal-pad"
+                  onChangeText={setFoodCarbs}
+                  placeholder="Carbs"
+                  placeholderTextColor={colors.textSecondary}
+                  style={styles.input}
+                  value={foodCarbs}
+                />
+                <TextInput
+                  accessibilityLabel="Fats"
+                  keyboardType="decimal-pad"
+                  onChangeText={setFoodFats}
+                  placeholder="Fats"
+                  placeholderTextColor={colors.textSecondary}
+                  style={styles.input}
+                  value={foodFats}
+                />
+              </View>
+              <AppButton label="Add food" onPress={saveCustomFood} />
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -900,6 +901,22 @@ const createStyles = (colors: typeof Colors.dark) =>
       alignItems: 'center',
       flexDirection: 'row',
       gap: Spacing.one,
+    },
+    quietActionButton: {
+      alignItems: 'center',
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.one,
+    },
+    quietActionRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.three,
+    },
+    quietActionText: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '800',
     },
     headerSpacer: {
       width: 72,

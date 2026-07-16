@@ -44,25 +44,29 @@ describe('product simplification 2.0', () => {
   test('nutrition screen stays diary-first and pushes add food into a dedicated picker route', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
 
-    expect(source).toContain('Daily summary');
+    expect(source).toContain('This week');
+    expect(source).toContain('Consumed today');
     expect(source).toContain('Meal diary');
+    expect(source).toContain('Nutrient breakdown');
+    expect(source).toContain('Calendar');
     expect(source).toContain("router.push({ pathname: '/nutrition/add-food'");
-    expect(source).toContain('Add food to');
+    expect(source).toContain("pathname: '/nutrition/date-picker'");
     expect(source).not.toContain('AddFoodFormSection');
     expect(source).not.toContain('NutritionOverviewCard');
     expect(source).not.toContain('Recent foods');
     expect(source).not.toContain('Saved meals');
+    expect(source).not.toContain('Footer actions');
   });
 
-  test('nutrition picker route exposes meal-aware modes and secondary create actions', () => {
+  test('nutrition picker route exposes meal-aware modes and quieter create actions', () => {
     const source = readSource('src/app/nutrition/add-food.tsx');
 
     expect(source).toContain("label: 'Food'");
     expect(source).toContain("label: 'Recent'");
     expect(source).toContain("label: 'Favorites'");
     expect(source).toContain("label: 'Meals'");
-    expect(source).toContain('Create Food');
-    expect(source).toContain('Create Meal');
+    expect(source).toContain('Create food');
+    expect(source).toContain('Create meal');
     expect(source).toContain('Quick add');
     expect(source).toContain('Save changes');
     expect(source).toContain('Quantity');
