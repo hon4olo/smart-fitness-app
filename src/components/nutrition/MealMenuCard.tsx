@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
 import type { FoodEntry, MealType } from '@/context/AppContext';
@@ -22,35 +21,19 @@ type MealMenuCardProps = {
   expandedMealType: MealType | null;
   formatServingInfo: (entry: FoodEntry) => string;
   mealTypeLabels: Record<MealType, string>;
-  onAddFoodToMeal: (mealType: MealType) => void;
   onDeleteFoodEntry: (entryId: string) => void;
   onEditFoodEntry: (entry: FoodEntry) => void;
   onToggleExpandedMeal: (mealType: MealType) => void;
   selectedMealType: MealType;
 };
 
-export function MealMenuCard({
-  entriesByMeal,
-  expandedMealType,
-  formatServingInfo,
-  mealTypeLabels,
-  onAddFoodToMeal,
-  onDeleteFoodEntry,
-  onEditFoodEntry,
-  onToggleExpandedMeal,
-  selectedMealType,
-}: MealMenuCardProps) {
+export function MealMenuCard({ entriesByMeal, expandedMealType, formatServingInfo, mealTypeLabels, onDeleteFoodEntry, onEditFoodEntry, onToggleExpandedMeal, selectedMealType }: MealMenuCardProps) {
   return (
     <AppCard>
       <View style={styles.header}>
-        <View style={styles.headerCopy}>
-          <Text selectable style={styles.title}>
-            Meal diary
-          </Text>
-          <Text selectable style={styles.subtitle}>
-            Breakfast, lunch, dinner, and snacks with quick add actions.
-          </Text>
-        </View>
+        <Text selectable style={styles.title}>
+          Meal diary
+        </Text>
       </View>
 
       <View style={styles.list}>
@@ -60,31 +43,23 @@ export function MealMenuCard({
           const subtotalLabel = entries.length > 0 ? formatCompactMacroTotals(subtotal) : 'No food logged yet';
 
           return (
-            <View key={type} style={[styles.mealCard, isSelected && styles.mealCardSelected]}>
-              <View style={styles.mealCardHeader}>
-                <Pressable onPress={() => onToggleExpandedMeal(type)} style={styles.mealHeaderPressable}>
-                  <View style={styles.mealHeaderCopy}>
-                    <View style={styles.mealTitleRow}>
-                      <Text selectable style={styles.mealTitle}>
-                        {mealTypeLabels[type]}
-                      </Text>
-                      <Text selectable style={styles.mealCount}>
-                        {entries.length === 0 ? 'No food yet' : `${entries.length} item${entries.length === 1 ? '' : 's'}`}
-                      </Text>
-                    </View>
-                    <Text selectable style={styles.mealSubtotal}>
-                      {subtotalLabel}
+            <View key={type} style={[styles.mealRow, isSelected && styles.mealRowSelected]}>
+              <Pressable onPress={() => onToggleExpandedMeal(type)} style={styles.mealHeaderPressable}>
+                <View style={styles.mealHeaderCopy}>
+                  <View style={styles.mealTitleRow}>
+                    <Text selectable style={styles.mealTitle}>
+                      {mealTypeLabels[type]}
+                    </Text>
+                    <Text selectable style={styles.mealCount}>
+                      {entries.length === 0 ? 'No food yet' : `${entries.length} item${entries.length === 1 ? '' : 's'}`}
                     </Text>
                   </View>
-                </Pressable>
-
-                <View style={styles.mealHeaderActions}>
-                  <AppButton label="Add Food" onPress={() => onAddFoodToMeal(type)} variant={isSelected ? 'primary' : 'secondary'} />
-                  <Text selectable style={styles.chevron}>
-                    {isExpanded ? '−' : '+'}
+                  <Text selectable style={styles.mealSubtotal}>
+                    {subtotalLabel}
                   </Text>
                 </View>
-              </View>
+                <Text style={styles.chevron}>{isExpanded ? '−' : '+'}</Text>
+              </Pressable>
 
               {isExpanded ? (
                 <View style={styles.mealContent}>
@@ -100,24 +75,19 @@ export function MealMenuCard({
                             <Text selectable style={styles.foodName}>
                               {entry.name}
                             </Text>
-                            {entry.brandName ? (
-                              <Text selectable style={styles.foodBrand}>
-                                {entry.brandName}
-                              </Text>
-                            ) : null}
-                            {formatServingInfo(entry) ? (
-                              <Text selectable style={styles.foodServing}>
-                                Serving: {formatServingInfo(entry)}
-                              </Text>
-                            ) : null}
+                            {entry.brandName ? <Text selectable style={styles.foodBrand}>{entry.brandName}</Text> : null}
+                            {formatServingInfo(entry) ? <Text selectable style={styles.foodServing}>Serving: {formatServingInfo(entry)}</Text> : null}
                             <Text selectable style={styles.foodMeta}>
-                              {formatNumber(entry.calories)} kcal · {formatNumber(entry.protein)}P · {formatNumber(entry.carbs)}C ·{' '}
-                              {formatNumber(entry.fats)}F
+                              {formatNumber(entry.calories)} kcal · {formatNumber(entry.protein)}P · {formatNumber(entry.carbs)}C · {formatNumber(entry.fats)}F
                             </Text>
                           </View>
                           <View style={styles.entryActions}>
-                            <AppButton label="Edit" onPress={() => onEditFoodEntry(entry)} variant="secondary" />
-                            <AppButton label="Delete" onPress={() => onDeleteFoodEntry(entry.id)} variant="secondary" />
+                            <Text style={styles.actionLabel} onPress={() => onEditFoodEntry(entry)}>
+                              Edit
+                            </Text>
+                            <Text style={styles.actionLabel} onPress={() => onDeleteFoodEntry(entry.id)}>
+                              Delete
+                            </Text>
                           </View>
                         </View>
                       ))}
@@ -134,6 +104,11 @@ export function MealMenuCard({
 }
 
 const styles = StyleSheet.create({
+  actionLabel: {
+    color: Colors.dark.accent,
+    fontSize: 13,
+    fontWeight: '700',
+  },
   chevron: {
     color: Colors.dark.textSecondary,
     fontSize: 18,
@@ -150,8 +125,7 @@ const styles = StyleSheet.create({
   },
   entryActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
+    gap: Spacing.three,
   },
   foodBrand: {
     color: Colors.dark.textSecondary,
@@ -169,7 +143,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   foodName: {
-    color: Colors.dark.text,
+    color: Colors.dark.textPrimary,
     fontSize: 15,
     fontWeight: '800',
     lineHeight: 21,
@@ -186,31 +160,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   header: {
-    gap: 2,
-  },
-  headerCopy: {
-    gap: 2,
+    marginBottom: Spacing.two,
   },
   list: {
     gap: Spacing.two,
-  },
-  mealCard: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: Spacing.two,
-    padding: Spacing.two,
-  },
-  mealCardHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-  },
-  mealCardSelected: {
-    borderColor: Colors.dark.accent,
   },
   mealContent: {
     borderColor: Colors.dark.border,
@@ -223,17 +176,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  mealHeaderActions: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
   mealHeaderCopy: {
     flex: 1,
     gap: 2,
   },
   mealHeaderPressable: {
-    flex: 1,
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  mealRow: {
+    borderColor: Colors.dark.border,
+    borderTopWidth: 1,
+    paddingTop: Spacing.two,
+  },
+  mealRowSelected: {
+    borderColor: Colors.dark.accent,
   },
   mealSubtotal: {
     color: Colors.dark.textSecondary,
@@ -241,23 +200,18 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   mealTitle: {
-    color: Colors.dark.text,
-    fontSize: 16,
+    color: Colors.dark.textPrimary,
+    fontSize: 15,
     fontWeight: '800',
   },
   mealTitleRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: Spacing.two,
-  },
-  subtitle: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
+    justifyContent: 'space-between',
   },
   title: {
-    color: Colors.dark.text,
+    color: Colors.dark.textPrimary,
     fontSize: 18,
     fontWeight: '800',
   },

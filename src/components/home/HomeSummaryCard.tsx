@@ -9,9 +9,7 @@ type HomeSummaryCardProps = {
   isCaloriesOverTarget: boolean;
   latestWorkoutLabel: string;
   motivation: string;
-  nutritionCompletionLabel: string;
   streakLabel?: string;
-  workoutCompletionLabel: string;
 };
 
 function MiniStat({ label, value }: { label: string; value: string }) {
@@ -27,25 +25,16 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function HomeSummaryCard({
-  caloriesRemainingLabel,
-  currentWeightLabel,
-  isCaloriesOverTarget,
-  latestWorkoutLabel,
-  motivation,
-  nutritionCompletionLabel,
-  streakLabel,
-  workoutCompletionLabel,
-}: HomeSummaryCardProps) {
+export function HomeSummaryCard({ caloriesRemainingLabel, currentWeightLabel, isCaloriesOverTarget, latestWorkoutLabel, motivation, streakLabel }: HomeSummaryCardProps) {
   return (
-    <AppCard style={styles.card}>
+    <AppCard style={[styles.card, isCaloriesOverTarget && styles.cardWarning]}>
       <View style={styles.hero}>
         <View style={styles.headerCopy}>
           <Text selectable style={styles.kicker}>
-            Today’s summary
+            Today
           </Text>
           <Text selectable style={styles.title}>
-            Fitness status at a glance
+            What matters now
           </Text>
           <Text selectable style={styles.subheadline}>
             {motivation}
@@ -67,25 +56,6 @@ export function HomeSummaryCard({
         <MiniStat label="Latest workout" value={latestWorkoutLabel} />
         <MiniStat label="Streak" value={streakLabel ?? '—'} />
       </View>
-
-      <View style={styles.statusList}>
-        <View style={styles.statusRow}>
-          <Text selectable style={styles.statusLabel}>
-            Nutrition completion
-          </Text>
-          <Text selectable style={styles.statusValue}>
-            {nutritionCompletionLabel}
-          </Text>
-        </View>
-        <View style={styles.statusRow}>
-          <Text selectable style={styles.statusLabel}>
-            Workout completion
-          </Text>
-          <Text selectable style={styles.statusValue}>
-            {workoutCompletionLabel}
-          </Text>
-        </View>
-      </View>
     </AppCard>
   );
 }
@@ -93,6 +63,9 @@ export function HomeSummaryCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.dark.surfaceAccent,
+  },
+  cardWarning: {
+    backgroundColor: Colors.dark.warningSoft,
   },
   caloriesBadge: {
     alignItems: 'flex-end',
@@ -109,7 +82,6 @@ const styles = StyleSheet.create({
     color: Colors.dark.textSecondary,
     fontSize: Typography.caption.fontSize,
     fontWeight: Typography.label.fontWeight,
-    textTransform: 'uppercase',
   },
   caloriesBadgeValue: {
     color: Colors.dark.textPrimary,
@@ -121,8 +93,8 @@ const styles = StyleSheet.create({
     color: Colors.dark.warning,
   },
   caloriesBadgeWarning: {
-    backgroundColor: Colors.dark.warningSoft,
-    borderColor: Colors.dark.warning,
+    backgroundColor: Colors.dark.surfacePrimary,
+    borderColor: Colors.dark.warningSoft,
   },
   headerCopy: {
     flex: 1,
@@ -139,8 +111,6 @@ const styles = StyleSheet.create({
     color: Colors.dark.accent,
     fontSize: Typography.label.fontSize,
     fontWeight: Typography.label.fontWeight,
-    letterSpacing: Typography.sectionTitle.letterSpacing,
-    textTransform: 'uppercase',
   },
   miniStat: {
     backgroundColor: Colors.dark.surfacePrimary,
@@ -156,7 +126,6 @@ const styles = StyleSheet.create({
     color: Colors.dark.textSecondary,
     fontSize: Typography.caption.fontSize,
     fontWeight: Typography.label.fontWeight,
-    textTransform: 'uppercase',
   },
   miniStatValue: {
     color: Colors.dark.textPrimary,
@@ -168,25 +137,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
-  },
-  statusLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: Typography.caption.fontSize,
-    fontWeight: Typography.label.fontWeight,
-  },
-  statusList: {
-    gap: Spacing.two,
-  },
-  statusRow: {
-    borderColor: Colors.dark.divider,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 2,
-    paddingTop: Spacing.two,
-  },
-  statusValue: {
-    color: Colors.dark.textPrimary,
-    fontSize: Typography.callout.fontSize,
-    fontWeight: Typography.bodyEmphasized.fontWeight,
   },
   subheadline: {
     color: Colors.dark.textSecondary,

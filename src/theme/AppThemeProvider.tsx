@@ -6,7 +6,7 @@ import { Colors, type AppearanceMode, type ResolvedAppearance } from '@/constant
 import { loadAppearanceMode, resolveAppearance, saveAppearanceMode } from './appearance';
 
 export type AppThemeContextValue = {
-  colors: typeof Colors.dark;
+  colors: typeof Colors.light;
   mode: AppearanceMode;
   resolvedAppearance: ResolvedAppearance;
   setMode: (mode: AppearanceMode) => void;
@@ -51,7 +51,7 @@ export function AppThemeProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<AppThemeContextValue>(
     () => ({
-      colors: Colors.dark,
+      colors: Colors[resolvedAppearance],
       mode,
       resolvedAppearance,
       setMode: setModeState,

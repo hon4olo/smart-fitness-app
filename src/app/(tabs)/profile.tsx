@@ -7,14 +7,12 @@ import * as Updates from 'expo-updates';
 import { AuthGateCard } from '@/components/auth';
 import { ProfileActionsCard } from '@/components/profile/ProfileActionsCard';
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
-import { ProfileHeaderCard } from '@/components/profile/ProfileHeaderCard';
 import { ProfilePreferencesCard } from '@/components/profile/ProfilePreferencesCard';
 import { ProfileRuntimeInfoCard } from '@/components/profile/ProfileRuntimeInfoCard';
 import { ProfileSyncStatusCard } from '@/components/profile/ProfileSyncStatusCard';
-import { getProfileSectionDescriptors } from '@/components/profile/profile-sections';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
-import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import type { ProfileGoalType } from '@/types';
 import { useAppTheme } from '@/theme/AppThemeProvider';
@@ -22,14 +20,8 @@ import { useAppTheme } from '@/theme/AppThemeProvider';
 type OtaValueSource = Record<string, unknown>;
 
 const goalTypeLabel = (value: ProfileGoalType) => {
-  if (value === 'lose_fat') {
-    return 'Lose fat';
-  }
-
-  if (value === 'maintain') {
-    return 'Maintain';
-  }
-
+  if (value === 'lose_fat') return 'Lose fat';
+  if (value === 'maintain') return 'Maintain';
   return 'Gain muscle';
 };
 
@@ -39,10 +31,7 @@ const formatOtaValue = (value: unknown) => {
   }
 
   if (value instanceof Date) {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(value);
+    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(value);
   }
 
   return String(value);
@@ -94,20 +83,9 @@ export default function ProfileScreen() {
   const handleResetOnboarding = () => {
     Alert.alert('Reset onboarding?', 'This will show Quick Setup again on this device.', [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reset',
-        style: 'destructive',
-        onPress: () => resetOnboarding(),
-      },
+      { text: 'Reset', style: 'destructive', onPress: () => resetOnboarding() },
     ]);
   };
-
-  const rows = [
-    { label: 'Height', value: profile.height },
-    { label: 'Weight', value: latestWeight ? `${latestWeight.weight.toFixed(1)} kg` : profile.weight },
-    { label: 'Goal type', value: goalTypeLabel(profile.goalType) },
-    { label: 'Activity level', value: profile.activityLevel },
-  ];
 
   const otaRuntimeVersion = formatOtaValue((Updates as OtaValueSource).runtimeVersion);
   const otaUpdateId = formatOtaValue((Updates as OtaValueSource).updateId);
@@ -132,26 +110,21 @@ export default function ProfileScreen() {
     }
   };
 
-  const sectionDescriptors = getProfileSectionDescriptors(
-    {
-      account: {
-        title: 'Account',
-        subtitle: 'Your sign-in and account snapshot.',
-        content: (
-          <View style={styles.sectionStack}>
-            <AuthGateCard />
-            <ProfileHeaderCard rows={rows} />
-          </View>
-        ),
-      },
-      goals: {
-        title: 'Goals',
-        subtitle: 'Update the targets that drive your plan.',
-        content: (
+  return (
+    <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} style={styles.screen}>
+      <View style={styles.container}>
+        <ScreenHeader title="Profile" />
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          <AuthGateCard />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Goals and personal settings</Text>
           <ProfileGoalsCard
             goalType={goalType}
             isSaveDisabled={isSaveDisabled}
-            latestWeightLabel={latestWeight ? `${latestWeight.weight.toFixed(1)} kg` : 'No weight logged yet'}
             onGoalTypeChange={setGoalType}
             onSaveGoals={handleSaveGoals}
             onTargetWeightChange={setTargetWeight}
@@ -161,17 +134,10 @@ export default function ProfileScreen() {
             trainingDaysPerWeek={trainingDaysPerWeek}
             weeklyWeightChangeGoal={weeklyWeightChangeGoal}
           />
-        ),
-      },
-      sync: {
-        title: 'Sync & Backup',
-        subtitle: 'Keep weight history backed up.',
-        content: <ProfileSyncStatusCard />,
-      },
-      preferences: {
-        title: 'Preferences',
-        subtitle: 'How your settings are interpreted.',
-        content: (
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>App preferences</Text>
           <ProfilePreferencesCard
             activityLevel={profile.activityLevel}
             appearanceMode={mode}
@@ -179,55 +145,26 @@ export default function ProfileScreen() {
             onAppearanceModeChange={setMode}
             trainingDaysPerWeek={trainingDaysPerWeek}
           />
-        ),
-      },
-      developer: {
-        title: 'Developer Settings',
-        subtitle: 'Owner-only tools stay collapsed by default.',
-        content: (
-          <View style={styles.sectionStack}>
-            <ProfileActionsCard onResetOnboarding={handleResetOnboarding} />
-            <ProfileRuntimeInfoCard
-              channel={otaChannel}
-              createdAt={otaCreatedAt}
-              onCheckForOtaUpdate={handleCheckForOtaUpdate}
-              runtimeVersion={otaRuntimeVersion}
-              updateId={otaUpdateId}
-            />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sync & Backup</Text>
+          <ProfileSyncStatusCard />
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Developer settings</Text>
+            <SecondaryButton label={developerExpanded ? 'Hide tools' : 'Show tools'} onPress={() => setDeveloperExpanded((current) => !current)} />
           </View>
-        ),
-      },
-    },
-    { developerExpanded }
-  );
 
-  return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]}>
-      <View style={styles.container}>
-        <ScreenHeader subtitle="Review your account, goals, and backup settings." title="Profile" />
-
-        {sectionDescriptors.map((section) => (
-          <View key={section.key} style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionCopy}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-                {section.subtitle ? <Text style={styles.sectionSubtitle}>{section.subtitle}</Text> : null}
-              </View>
-
-              {section.key === 'developer' ? (
-                <SecondaryButton
-                  label={section.collapsed ? 'Show tools' : 'Hide tools'}
-                  onPress={() => setDeveloperExpanded((current) => !current)}
-                />
-              ) : null}
+          {developerExpanded ? (
+            <View style={styles.sectionStack}>
+              <ProfileActionsCard onResetOnboarding={handleResetOnboarding} />
+              <ProfileRuntimeInfoCard channel={otaChannel} createdAt={otaCreatedAt} onCheckForOtaUpdate={handleCheckForOtaUpdate} runtimeVersion={otaRuntimeVersion} updateId={otaUpdateId} />
             </View>
-
-            {section.key === 'developer' && section.collapsed ? null : section.content}
-          </View>
-        ))}
+          ) : null}
+        </View>
       </View>
     </ScrollView>
   );
@@ -250,30 +187,17 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.two,
   },
-  sectionCopy: {
-    flex: 1,
-    gap: 2,
-  },
   sectionHeader: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: Spacing.three,
   },
   sectionStack: {
-    gap: Spacing.three,
-  },
-  sectionSubtitle: {
-    color: Colors.dark.textSecondary,
-    fontSize: Typography.callout.fontSize,
-    lineHeight: Typography.callout.lineHeight,
+    gap: Spacing.two,
   },
   sectionTitle: {
     color: Colors.dark.textPrimary,
-    fontSize: Typography.sectionTitle.fontSize,
-    fontWeight: Typography.sectionTitle.fontWeight,
-    letterSpacing: Typography.sectionTitle.letterSpacing,
-    lineHeight: Typography.sectionTitle.lineHeight,
-    textTransform: Typography.sectionTitle.textTransform,
+    fontSize: 18,
+    fontWeight: '800',
   },
 });

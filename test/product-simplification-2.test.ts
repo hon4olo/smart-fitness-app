@@ -1,0 +1,94 @@
+import { describe, expect, test } from 'vitest';
+
+declare const __dirname: string;
+declare const require: any;
+
+const { readFileSync } = require('fs') as { readFileSync: (path: string, encoding: string) => string };
+const { resolve } = require('path') as { resolve: (...parts: string[]) => string };
+
+const projectRoot = resolve(__dirname, '..');
+const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
+const count = (source: string, needle: string) => (source.match(new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) ?? []).length;
+
+describe('product simplification 2.0', () => {
+  test('workouts screen keeps a single empty-state start-empty action and a single program creation CTA in the fresh state', () => {
+    const source = readSource('src/app/(tabs)/workouts.tsx');
+
+    expect(count(source, 'Start Empty Workout')).toBe(1);
+    expect(count(source, 'actionLabel="Create Program"')).toBe(1);
+    expect(count(source, 'label="Add Program"')).toBe(1);
+    expect(source).toContain("label={activeDraft ? 'Continue workout' : 'Start workout'}");
+  });
+
+  test('progress screen keeps one weight summary and hides duplicate analytics blocks', () => {
+    const source = readSource('src/app/(tabs)/progress.tsx');
+
+    expect(source).toContain('Current weight');
+    expect(source).not.toContain('7-day');
+    expect(source).not.toContain('30-day');
+    expect(source).not.toContain('weekly average');
+    expect(source).toContain('Weight details');
+  });
+
+  test('home screen stays within three primary content sections', () => {
+    const source = readSource('src/app/(tabs)/index.tsx');
+
+    expect(source).toContain('HomeSummaryCard');
+    expect(source).toContain('QuickActionsCard');
+    expect(source).toContain('HomeSnapshotCard');
+    expect(source).not.toContain('HomeActivityCard');
+    expect(source).not.toContain('HomeIntelligenceCard');
+  });
+
+  test('nutrition main screen only keeps the required sections', () => {
+    const source = readSource('src/app/(tabs)/nutrition.tsx');
+
+    expect(source).toContain('NutritionOverviewCard');
+    expect(source).toContain('MealMenuCard');
+    expect(source).toContain('AddFoodFormSection');
+    expect(source).not.toContain('NutritionActionsCard');
+    expect(source).not.toContain('RecentFoodsSection');
+    expect(source).not.toContain('SavedMealsSection');
+  });
+
+  test('profile screen does not render a duplicated account snapshot', () => {
+    const source = readSource('src/app/(tabs)/profile.tsx');
+
+    expect(source).not.toContain('ProfileHeaderCard');
+    expect(source).not.toContain('Account Snapshot');
+    expect(source).toContain('ProfileGoalsCard');
+    expect(source).toContain('ProfilePreferencesCard');
+  });
+
+  test('tab bar is compact and conventional', () => {
+    const source = readSource('src/app/(tabs)/_layout.tsx');
+
+    expect(source).toContain('Tabs');
+    expect(source).not.toContain('NativeTabs');
+    expect(source).toContain('height: 56');
+    expect(source).toContain('borderTopWidth: 0.5');
+    expect(source).not.toContain('capsule');
+  });
+
+  test('theme tokens remain valid', () => {
+    const themeSource = readSource('src/constants/theme.ts');
+
+    expect(themeSource).toContain("'system'");
+    expect(themeSource).toContain("'light'");
+    expect(themeSource).toContain("'dark'");
+    expect(themeSource).toContain('surfacePrimary');
+    expect(themeSource).toContain('textPrimary');
+  });
+
+  test('business actions remain reachable in source', () => {
+    const workouts = readSource('src/app/(tabs)/workouts.tsx');
+    const nutrition = readSource('src/app/(tabs)/nutrition.tsx');
+    const profile = readSource('src/app/(tabs)/profile.tsx');
+
+    expect(workouts).toContain('Start workout');
+    expect(workouts).toContain('Create Program');
+    expect(nutrition).toContain('AddFoodFormSection');
+    expect(nutrition).toContain('MealMenuCard');
+    expect(profile).toContain('Appearance');
+  });
+});

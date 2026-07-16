@@ -5,11 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddFoodFormSection } from '@/components/nutrition/AddFoodFormSection';
 import { FoodDetailSheet } from '@/components/nutrition/FoodDetailSheet';
 import { MealMenuCard } from '@/components/nutrition/MealMenuCard';
-import { NutritionActionsCard } from '@/components/nutrition/NutritionActionsCard';
-import { NutritionEmptyState } from '@/components/nutrition/NutritionEmptyState';
 import { NutritionOverviewCard } from '@/components/nutrition/NutritionOverviewCard';
-import { RecentFoodsSection } from '@/components/nutrition/RecentFoodsSection';
-import { SavedMealsSection } from '@/components/nutrition/SavedMealsSection';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { foodCatalog, foodCategoryLabels, foodCategoryOrder } from '@/data/foods';
 import { useAppContext } from '@/context/AppContext';
@@ -551,7 +547,7 @@ export default function NutritionScreen() {
           Nutrition
         </Text>
         <Text selectable style={styles.pageSubtitle}>
-          Fast food diary, grouped actions, and clear daily progress.
+          Date, meals, and one add-food entry point.
         </Text>
 
         <View style={styles.dateRow}>
@@ -570,21 +566,12 @@ export default function NutritionScreen() {
         </View>
 
         <NutritionOverviewCard dateLabel={selectedDateLabel} summary={nutritionSummary} />
-        <NutritionActionsCard onAddFood={handleOpenAddFood} onOpenRecentFoods={handleOpenRecentFoods} onOpenSavedMeals={handleOpenSavedMeals} onOpenSearch={handleOpenSearch} />
-
-        {!hasFoodLoggedToday ? (
-          <NutritionEmptyState
-            description="Start the diary by logging one food item. The meal cards below will stay ready for quick entry."
-            title="No food logged today"
-          />
-        ) : null}
 
         <MealMenuCard
           entriesByMeal={selectedDateMeals}
           expandedMealType={expandedMealType}
           formatServingInfo={getServingInfo}
           mealTypeLabels={mealTypeLabels}
-          onAddFoodToMeal={handleAddFoodToMeal}
           onDeleteFoodEntry={confirmDeleteFoodEntry}
           onEditFoodEntry={handleEditFoodEntry}
           onToggleExpandedMeal={handleToggleExpandedMeal}
@@ -641,44 +628,6 @@ export default function NutritionScreen() {
             servingSize={servingSize}
             servingUnit={servingUnit}
             categoryChips={browserCategoryChips}
-          />
-        </View>
-
-        <View
-          onLayout={(event: LayoutChangeEvent) => {
-            sectionOffsets.current.recentFoods = event.nativeEvent.layout.y;
-          }}>
-          <RecentFoodsSection
-            formatServingInfo={getServingInfo}
-            isExpanded={isRecentFoodsExpanded}
-            onToggleExpanded={() => setIsRecentFoodsExpanded((current) => !current)}
-            onUseRecentFood={handleUseRecentFood}
-            recentFoods={recentFoods}
-          />
-        </View>
-
-        <View
-          onLayout={(event: LayoutChangeEvent) => {
-            sectionOffsets.current.savedMeals = event.nativeEvent.layout.y;
-          }}>
-          <SavedMealsSection
-            currentMealCount={currentMealEntriesCount}
-            currentMealLabel={currentMealLabel}
-            currentMealNutritionLabel={currentMealTotalLabel}
-            isExpanded={isSavedMealsExpanded}
-            isMealTemplateSaveDisabled={isMealTemplateSaveDisabled}
-            mealTemplateButtonLabel={mealTemplateButtonLabel}
-            mealTemplateName={mealTemplateName}
-            mealTemplates={mealTemplates}
-            onDeleteMealTemplate={confirmDeleteMealTemplate}
-            onDuplicateMealTemplate={handleDuplicateMealTemplate}
-            onMealTemplateNameChange={setMealTemplateName}
-            onSaveMealTemplate={handleSaveMealTemplate}
-            onToggleExpanded={() => setIsSavedMealsExpanded((current) => !current)}
-            onUseMealTemplate={handleUseMealTemplate}
-            selectedDateLabel={selectedDateLabel}
-            selectedMealEntriesCount={currentMealEntriesCount}
-            selectedMealTypeLabel={currentMealLabel}
           />
         </View>
 
