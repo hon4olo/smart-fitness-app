@@ -23,7 +23,7 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('weekDayButton');
     expect(count(source, 'weekDayButton')).toBe(2); // style + JSX usage
     expect(source).toContain('summaryGrid');
-    expect(source).toContain('Target %');
+    expect(source).toContain('TARGET');
     expect(source).toContain('Calories');
     expect(source).not.toContain('Consumed today');
     expect(source).not.toContain('This week');

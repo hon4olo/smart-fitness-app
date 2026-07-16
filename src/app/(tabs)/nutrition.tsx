@@ -212,7 +212,7 @@ export default function NutritionScreen() {
                 <View style={[styles.weekDayCircle, day.isSelected && styles.weekDayCircleSelected, day.isToday && styles.weekDayCircleToday, day.isSelected && day.isToday && styles.weekDayCircleTodaySelected]}>
                   {day.isToday ? <View style={[styles.weekDayTodayDot, day.isSelected && styles.weekDayTodayDotSelected]} /> : null}
                 </View>
-                <Text selectable style={[styles.weekDayLabel, day.isSelected && styles.weekDayLabelSelected]}>
+                <Text numberOfLines={1} selectable style={[styles.weekDayLabel, day.isSelected && styles.weekDayLabelSelected]}>
                   {day.dayLabel}
                 </Text>
               </Pressable>
@@ -226,14 +226,14 @@ export default function NutritionScreen() {
               { label: 'Fat', value: `${formatNumber(nutritionSummary.consumed.fats)} g` },
               { label: 'Carbs', value: `${formatNumber(nutritionSummary.consumed.carbs)} g` },
               { label: 'Protein', value: `${formatNumber(nutritionSummary.consumed.protein)} g` },
-              { label: 'Target %', value: targetPercentLabel },
+              { label: 'TARGET', value: targetPercentLabel },
               { label: 'Calories', value: `${formatNumber(nutritionSummary.consumed.calories)} kcal`, emphasis: true },
             ].map((metric, index) => (
               <View key={metric.label} style={[styles.summaryMetric, metric.emphasis && styles.summaryMetricEmphasis, index > 0 && styles.summaryMetricWithBorder]}>
-                <Text selectable style={styles.summaryMetricLabel}>
+                <Text numberOfLines={1} selectable style={styles.summaryMetricLabel}>
                   {metric.label}
                 </Text>
-                <Text selectable style={[styles.summaryMetricValue, metric.emphasis && styles.summaryMetricValueEmphasis]}>
+                <Text numberOfLines={1} selectable style={[styles.summaryMetricValue, metric.emphasis && styles.summaryMetricValueEmphasis]}>
                   {metric.value}
                 </Text>
               </View>
@@ -587,24 +587,29 @@ const createStyles = (colors: typeof Colors.dark) =>
       gap: 2,
       minWidth: 0,
       paddingHorizontal: Spacing.one,
+      alignItems: 'center',
     },
     summaryMetricEmphasis: {
-      minWidth: 64,
+      minWidth: 0,
     },
     summaryMetricLabel: {
       color: colors.textSecondary,
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: '800',
+      lineHeight: 11,
+      textAlign: 'center',
       textTransform: 'uppercase',
     },
     summaryMetricValue: {
       color: colors.textPrimary,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '800',
       fontVariant: ['tabular-nums'],
+      lineHeight: 16,
+      textAlign: 'center',
     },
     summaryMetricValueEmphasis: {
-      fontSize: 20,
+      fontSize: 15,
       fontWeight: '900',
     },
     summaryMetricWithBorder: {
@@ -637,15 +642,16 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontWeight: '800',
     },
     weekCard: {
-      gap: Spacing.two,
-      paddingVertical: Spacing.two,
+      gap: Spacing.one,
+      paddingVertical: Spacing.one,
     },
     weekDayButton: {
       alignItems: 'center',
       flex: 1,
-      gap: 4,
+      gap: 2,
       justifyContent: 'flex-start',
-      minHeight: 60,
+      minHeight: 44,
+      paddingBottom: 0,
     },
     weekDayCircle: {
       alignItems: 'center',
@@ -654,9 +660,9 @@ const createStyles = (colors: typeof Colors.dark) =>
       borderCurve: 'continuous',
       borderRadius: 999,
       borderWidth: StyleSheet.hairlineWidth,
-      height: 24,
+      height: 22,
       justifyContent: 'center',
-      width: 24,
+      width: 22,
     },
     weekDayCircleSelected: {
       backgroundColor: colors.accent,
@@ -671,8 +677,9 @@ const createStyles = (colors: typeof Colors.dark) =>
     },
     weekDayLabel: {
       color: colors.textSecondary,
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '800',
+      lineHeight: 12,
       textTransform: 'uppercase',
     },
     weekDayLabelSelected: {
@@ -681,8 +688,8 @@ const createStyles = (colors: typeof Colors.dark) =>
     weekDayTodayDot: {
       backgroundColor: colors.accent,
       borderRadius: 999,
-      height: 6,
-      width: 6,
+      height: 5,
+      width: 5,
     },
     weekDayTodayDotSelected: {
       backgroundColor: colors.textOnAccent,
@@ -690,5 +697,6 @@ const createStyles = (colors: typeof Colors.dark) =>
     weekStrip: {
       flexDirection: 'row',
       gap: 0,
+      paddingHorizontal: 0,
     },
   });
