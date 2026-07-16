@@ -4,7 +4,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/ui/AppCard';
-import { ListRow } from '@/components/ui/ListRow';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { addDays, formatLocalDate, getServingInfo, sumNutritionTotals } from '@/lib';
@@ -22,34 +21,21 @@ const mealTypeLabels: Record<MealType, string> = {
 
 const formatDisplayDate = (dateLabel: string) => {
   const parsedDate = new Date(`${dateLabel}T12:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return dateLabel;
 
-  if (Number.isNaN(parsedDate.getTime())) {
-    return dateLabel;
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    month: 'short',
-    weekday: 'short',
-  }).format(parsedDate);
+  return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', weekday: 'short' }).format(parsedDate);
 };
 
 const formatWeekdayLabel = (dateLabel: string) => {
   const parsedDate = new Date(`${dateLabel}T12:00:00`);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return dateLabel.slice(5, 10);
-  }
+  if (Number.isNaN(parsedDate.getTime())) return dateLabel.slice(5, 10);
 
   return new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(parsedDate);
 };
 
 const formatDayNumber = (dateLabel: string) => {
   const parsedDate = new Date(`${dateLabel}T12:00:00`);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return dateLabel.slice(-2);
-  }
+  if (Number.isNaN(parsedDate.getTime())) return dateLabel.slice(-2);
 
   return new Intl.DateTimeFormat(undefined, { day: 'numeric' }).format(parsedDate);
 };
@@ -63,36 +49,52 @@ const getWeekStart = (dateLabel: string) => {
 
 const isToday = (dateLabel: string) => dateLabel === formatLocalDate(new Date());
 
+type WeekDay = {
+  dateKey: string;
+  dayLabel: string;
+  dayNumber: string;
+  isSelected: boolean;
+  isToday: boolean;
+};
+
+type MealSummary = {
+  entries: FoodEntry[];
+  mealType: MealType;
+  subtotal: ReturnType<typeof sumNutritionTotals>;
+};
+
 export default function NutritionScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { deleteFoodEntry, foodEntries, nutritionTargets } = useAppContext();
-  const params = useLocalSearchParams<{ date?: string }>();
+  const params = useLocalSearchParams<{ date?: string; openMeal?: MealType }>();
+
   const todayKey = useMemo(() => formatLocalDate(new Date()), []);
   const initialDate = typeof params.date === 'string' && params.date.length > 0 ? params.date : todayKey;
   const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [expandedMeals, setExpandedMeals] = useState<MealType[]>([]);
 
   useEffect(() => {
     if (typeof params.date === 'string' && params.date.length > 0 && params.date !== selectedDate) {
       setSelectedDate(params.date);
+      setExpandedMeals([]);
     }
   }, [params.date, selectedDate]);
 
-  const selectedDateEntries = useMemo(
-    () => foodEntries.filter((entry) => entry.date === selectedDate),
-    [foodEntries, selectedDate]
-  );
+  useEffect(() => {
+    if (params.openMeal === 'breakfast' || params.openMeal === 'lunch' || params.openMeal === 'dinner' || params.openMeal === 'snack') {
+      setExpandedMeals([params.openMeal]);
+    }
+  }, [params.openMeal]);
 
+  const selectedDateEntries = useMemo(() => foodEntries.filter((entry) => entry.date === selectedDate), [foodEntries, selectedDate]);
   const selectedDateNutrition = useMemo(() => sumNutritionTotals(selectedDateEntries), [selectedDateEntries]);
-  const nutritionSummary = useMemo(
-    () => getNutritionSummary(selectedDateNutrition, nutritionTargets),
-    [nutritionTargets, selectedDateNutrition]
-  );
+  const nutritionSummary = useMemo(() => getNutritionSummary(selectedDateNutrition, nutritionTargets), [nutritionTargets, selectedDateNutrition]);
   const selectedDateLabel = useMemo(() => formatDisplayDate(selectedDate), [selectedDate]);
-  const weekDays = useMemo(() => {
-    const weekStart = getWeekStart(selectedDate);
 
+  const weekDays = useMemo<WeekDay[]>(() => {
+    const weekStart = getWeekStart(selectedDate);
     return Array.from({ length: 7 }, (_, index) => {
       const dateKey = addDays(weekStart, index);
       return {
@@ -109,16 +111,14 @@ export default function NutritionScreen() {
   const nutritionStreak = useMemo(() => {
     let streak = 0;
     let cursor = todayKey;
-
     while (streakDays.has(cursor)) {
       streak += 1;
       cursor = addDays(cursor, -1);
     }
-
     return streak;
   }, [streakDays, todayKey]);
 
-  const meals = useMemo(
+  const meals = useMemo<MealSummary[]>(
     () =>
       mealTypeOrder.map((mealType) => {
         const entries = selectedDateEntries.filter((entry) => entry.mealType === mealType);
@@ -133,9 +133,7 @@ export default function NutritionScreen() {
 
     for (const entry of selectedDateEntries) {
       const catalogFood = resolveFoodCatalogItem(entry);
-      if (catalogFood?.fiber == null) {
-        continue;
-      }
+      if (catalogFood?.fiber == null) continue;
 
       hasFiberData = true;
       const servings = entry.servingSize && entry.quantity ? entry.quantity / entry.servingSize : 1;
@@ -148,7 +146,8 @@ export default function NutritionScreen() {
 
   const updateSelectedDate = (nextDate: string) => {
     setSelectedDate(nextDate);
-    (router as any).setParams?.({ date: nextDate });
+    setExpandedMeals([]);
+    router.replace({ pathname: '/nutrition', params: { date: nextDate } });
   };
 
   const openCalendar = () => router.push({ pathname: '/nutrition/date-picker', params: { date: selectedDate } });
@@ -156,12 +155,13 @@ export default function NutritionScreen() {
     router.push({ pathname: '/nutrition/add-food', params: { date: selectedDate, meal: mealType } });
   const editFoodEntry = (entry: FoodEntry) =>
     router.push({ pathname: '/nutrition/add-food', params: { date: selectedDate, meal: entry.mealType, entryId: entry.id } });
-  const handleDeleteFoodEntry = (entryId: string) => deleteFoodEntry(entryId);
 
-  const calorieProgressLabel =
-    nutritionTargets.calories > 0
-      ? `${Math.round(nutritionSummary.calorieProgress * 100)}% of daily target`
-      : 'Daily target not set';
+  const toggleMealExpansion = (mealType: MealType) => {
+    setExpandedMeals((current) => (current.includes(mealType) ? current.filter((item) => item !== mealType) : [...current, mealType]));
+  };
+
+  const targetPercent = nutritionTargets.calories > 0 ? Math.round((nutritionSummary.consumed.calories / nutritionTargets.calories) * 100) : 0;
+  const targetPercentLabel = nutritionTargets.calories > 0 ? `${targetPercent}%` : '--';
 
   return (
     <ScrollView
@@ -179,31 +179,30 @@ export default function NutritionScreen() {
             <View style={styles.streakPill}>
               <Text style={styles.streakEmoji}>🔥</Text>
               <Text selectable style={styles.streakText}>
-                {nutritionStreak} day streak
+                {nutritionStreak}
               </Text>
             </View>
           </View>
 
-          <View style={styles.headerActions}>
-            <Pressable accessibilityLabel={`Open calendar for ${selectedDateLabel}`} hitSlop={10} onPress={openCalendar} style={styles.headerButton}>
-              <Text style={styles.headerButtonText}>Calendar</Text>
-            </Pressable>
-          </View>
+          <Pressable accessibilityLabel={`Open calendar for ${selectedDateLabel}`} hitSlop={10} onPress={openCalendar} style={styles.calendarButton}>
+            <Text style={styles.calendarButtonText}>🗓</Text>
+          </Pressable>
         </View>
 
         <View style={styles.weekStripCard}>
-          <View style={styles.weekStripHeader}>
-            <Text selectable style={styles.weekStripTitle}>
-              This week
-            </Text>
-            {!isToday(selectedDate) ? (
-              <Pressable accessibilityLabel="Jump to today" hitSlop={10} onPress={() => updateSelectedDate(todayKey)} style={styles.weekStripLink}>
-                <Text style={styles.weekStripLinkText}>Today</Text>
-              </Pressable>
-            ) : null}
+          <View style={styles.todaySlotRow}>
+            <Pressable
+              accessibilityLabel={isToday(selectedDate) ? 'Today selected' : 'Jump to today'}
+              accessibilityState={{ disabled: isToday(selectedDate) }}
+              disabled={isToday(selectedDate)}
+              hitSlop={10}
+              onPress={() => updateSelectedDate(todayKey)}
+              style={[styles.todayButton, isToday(selectedDate) && styles.todayButtonDisabled]}>
+              <Text style={styles.todayButtonText}>Today</Text>
+            </Pressable>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weekStrip}>
+          <View style={styles.weekStrip}>
             {weekDays.map((day) => (
               <Pressable
                 key={day.dateKey}
@@ -211,46 +210,33 @@ export default function NutritionScreen() {
                 accessibilityState={{ selected: day.isSelected }}
                 hitSlop={10}
                 onPress={() => updateSelectedDate(day.dateKey)}
-                style={[styles.dayPill, day.isSelected && styles.dayPillSelected]}>
-                <Text selectable style={[styles.dayLabel, day.isSelected && styles.dayLabelSelected]}>
+                style={styles.weekDayButton}>
+                <View style={[styles.weekDayCircle, day.isSelected && styles.weekDayCircleSelected, day.isToday && styles.weekDayCircleToday, day.isSelected && day.isToday && styles.weekDayCircleTodaySelected]}>
+                  {day.isToday ? <View style={[styles.weekDayTodayDot, day.isSelected && styles.weekDayTodayDotSelected]} /> : null}
+                </View>
+                <Text selectable style={[styles.weekDayLabel, day.isSelected && styles.weekDayLabelSelected]}>
                   {day.dayLabel}
                 </Text>
-                <Text selectable style={[styles.dayNumber, day.isSelected && styles.dayNumberSelected]}>
-                  {day.dayNumber}
-                </Text>
-                {day.isToday ? <View style={[styles.todayDot, day.isSelected && styles.todayDotSelected]} /> : null}
               </Pressable>
             ))}
-          </ScrollView>
+          </View>
         </View>
 
         <AppCard style={styles.summaryCard}>
-          <View style={styles.summaryTopRow}>
-            <View style={styles.summaryCopy}>
-              <Text selectable style={styles.sectionEyebrow}>
-                Consumed today
-              </Text>
-              <Text selectable style={styles.summaryCalories}>
-                {formatNumber(nutritionSummary.consumed.calories)} kcal
-              </Text>
-              <Text selectable style={styles.summaryPercent}>
-                {calorieProgressLabel}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.macroChips}>
+          <View style={styles.summaryGrid}>
             {[
-              { label: 'Protein', value: nutritionSummary.consumed.protein, suffix: 'g' },
-              { label: 'Carbs', value: nutritionSummary.consumed.carbs, suffix: 'g' },
-              { label: 'Fat', value: nutritionSummary.consumed.fats, suffix: 'g' },
-            ].map((macro) => (
-              <View key={macro.label} style={styles.macroChip}>
-                <Text selectable style={styles.macroChipLabel}>
-                  {macro.label}
+              { label: 'Fat', value: `${formatNumber(nutritionSummary.consumed.fats)} g` },
+              { label: 'Carbs', value: `${formatNumber(nutritionSummary.consumed.carbs)} g` },
+              { label: 'Protein', value: `${formatNumber(nutritionSummary.consumed.protein)} g` },
+              { label: 'Target %', value: targetPercentLabel },
+              { label: 'Calories', value: `${formatNumber(nutritionSummary.consumed.calories)} kcal`, emphasis: true },
+            ].map((metric) => (
+              <View key={metric.label} style={[styles.summaryMetric, metric.emphasis && styles.summaryMetricEmphasis]}>
+                <Text selectable style={styles.summaryMetricLabel}>
+                  {metric.label}
                 </Text>
-                <Text selectable style={styles.macroChipValue}>
-                  {formatNumber(macro.value)} {macro.suffix}
+                <Text selectable style={[styles.summaryMetricValue, metric.emphasis && styles.summaryMetricValueEmphasis]}>
+                  {metric.value}
                 </Text>
               </View>
             ))}
@@ -265,97 +251,99 @@ export default function NutritionScreen() {
           </View>
 
           <View style={styles.mealList}>
-            {meals.map(({ entries, mealType, subtotal }) => (
-              <View key={mealType} style={styles.mealSection}>
-                <View style={styles.mealHeader}>
-                  <View style={styles.mealHeaderCopy}>
-                    <Text selectable style={styles.mealTitle}>
-                      {mealTypeLabels[mealType]}
-                    </Text>
-                    <Text selectable style={styles.mealSubtotal}>
-                      {formatNumber(subtotal.calories)} kcal
-                    </Text>
-                  </View>
+            {meals.map(({ entries, mealType, subtotal }) => {
+              const expanded = expandedMeals.includes(mealType);
+              const itemCount = entries.length;
+              const macroSummary = `P ${formatNumber(subtotal.protein)} · C ${formatNumber(subtotal.carbs)} · F ${formatNumber(subtotal.fats)}`;
 
+              return (
+                <View key={mealType} style={styles.mealSection}>
                   <Pressable
-                    accessibilityLabel={`Add food to ${mealTypeLabels[mealType]}`}
+                    accessibilityLabel={`${mealTypeLabels[mealType]} meal`}
+                    accessibilityState={{ expanded }}
                     hitSlop={10}
-                    onPress={() => openMealPicker(mealType)}
-                    style={styles.addButton}>
-                    <Text style={styles.addButtonText}>+</Text>
-                  </Pressable>
-                </View>
+                    onPress={() => toggleMealExpansion(mealType)}
+                    style={styles.mealHeader}>
+                    <View style={styles.mealHeaderCopy}>
+                      <Text selectable style={styles.mealTitle}>
+                        {mealTypeLabels[mealType]}
+                      </Text>
+                      <Text selectable style={styles.mealSummaryLine}>
+                        {itemCount > 0 ? `${itemCount} item${itemCount === 1 ? '' : 's'} · ${macroSummary}` : macroSummary}
+                      </Text>
+                    </View>
 
-                {entries.length > 0 ? (
-                  <View style={styles.foodList}>
-                    {entries.map((entry) => {
-                      const detailParts = [entry.brandName, getServingInfo(entry)].filter(Boolean);
-                      return (
-                        <ListRow
-                          key={entry.id}
-                          accessibilityHint="Tap to edit this food entry"
-                          detail={detailParts.join(' · ')}
-                          onPress={() => editFoodEntry(entry)}
-                          title={entry.name}
-                          trailing={
+                    <View style={styles.mealHeaderActions}>
+                      <Text selectable style={styles.mealSubtotal}>
+                        {formatNumber(subtotal.calories)} kcal
+                      </Text>
+                      <Pressable
+                        accessibilityLabel={`Add food to ${mealTypeLabels[mealType]}`}
+                        hitSlop={10}
+                        onPress={(event) => {
+                          event.stopPropagation();
+                          openMealPicker(mealType);
+                        }}
+                        style={styles.addButton}>
+                        <Text style={styles.addButtonText}>+</Text>
+                      </Pressable>
+                      <Text style={styles.chevronText}>{expanded ? '▾' : '▸'}</Text>
+                    </View>
+                  </Pressable>
+
+                  {expanded ? (
+                    <View style={styles.foodList}>
+                      {entries.length > 0 ? (
+                        entries.map((entry) => {
+                          const detailParts = [entry.brandName, getServingInfo(entry)].filter(Boolean);
+                          return (
                             <Pressable
-                              accessibilityLabel={`Delete ${entry.name}`}
+                              key={entry.id}
+                              accessibilityHint="Tap to edit this food entry"
+                              accessibilityLabel={`Edit ${entry.name}`}
                               hitSlop={10}
-                              onPress={(event) => {
-                                event.stopPropagation();
-                                handleDeleteFoodEntry(entry.id);
-                              }}
-                              style={styles.deleteButton}>
-                              <Text style={styles.deleteButtonText}>×</Text>
+                              onPress={() => editFoodEntry(entry)}
+                              style={styles.foodRow}>
+                              <View style={styles.foodRowCopy}>
+                                <Text selectable style={styles.foodRowTitle}>
+                                  {entry.name}
+                                </Text>
+                                <Text selectable style={styles.foodRowDetail}>
+                                  {detailParts.join(' · ')}
+                                </Text>
+                              </View>
+                              <Text selectable style={styles.foodRowCalories}>
+                                {formatNumber(entry.calories)} kcal
+                              </Text>
                             </Pressable>
-                          }
-                          value={`${formatNumber(entry.calories)} kcal`}
-                        />
-                      );
-                    })}
-                  </View>
-                ) : (
-                  <Text selectable style={styles.emptyMealLine}>
-                    No food logged
-                  </Text>
-                )}
-              </View>
-            ))}
+                          );
+                        })
+                      ) : null}
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
           </View>
         </AppCard>
 
-        <AppCard style={styles.secondaryCard}>
-          <View style={styles.sectionHeader}>
-            <Text selectable style={styles.secondaryTitle}>
-              Nutrient breakdown
-            </Text>
-          </View>
-
-          {fiberBreakdown.hasFiberData ? (
+        {fiberBreakdown.hasFiberData ? (
+          <AppCard style={styles.nutrientCard}>
             <View style={styles.nutrientRow}>
               <View>
                 <Text selectable style={styles.nutrientLabel}>
                   Fiber
                 </Text>
                 <Text selectable style={styles.nutrientHint}>
-                  From catalog foods only
+                  Compact nutrition details
                 </Text>
               </View>
               <Text selectable style={styles.nutrientValue}>
                 {formatNumber(fiberBreakdown.totalFiber)} g
               </Text>
             </View>
-          ) : (
-            <View style={styles.emptyNutrientState}>
-              <Text selectable style={styles.emptyNutrientText}>
-                Not available yet.
-              </Text>
-              <Text selectable style={styles.emptyNutrientHint}>
-                Sodium, cholesterol, sugar, saturated fat, and other detailed nutrients are not stored in the current food data.
-              </Text>
-            </View>
-          )}
-        </AppCard>
+          </AppCard>
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -380,92 +368,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontWeight: '900',
       lineHeight: 20,
     },
-    container: {
-      gap: Spacing.three,
-      maxWidth: MaxContentWidth,
-      width: '100%',
-    },
-    content: {
-      alignItems: 'center',
-      padding: Spacing.three,
-    },
-    dayLabel: {
-      color: colors.textSecondary,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-    },
-    dayLabelSelected: {
-      color: colors.textPrimary,
-    },
-    dayNumber: {
-      color: colors.textPrimary,
-      fontSize: 16,
-      fontWeight: '900',
-      fontVariant: ['tabular-nums'],
-    },
-    dayNumberSelected: {
-      color: colors.textOnAccent,
-    },
-    dayPill: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      gap: 2,
-      minHeight: 64,
-      justifyContent: 'center',
-      paddingHorizontal: Spacing.two,
-      paddingVertical: Spacing.two,
-      width: 48,
-    },
-    dayPillSelected: {
-      backgroundColor: colors.accent,
-      borderColor: colors.accent,
-    },
-    deleteButton: {
-      alignItems: 'center',
-      borderRadius: 999,
-      height: 44,
-      justifyContent: 'center',
-      width: 44,
-    },
-    deleteButtonText: {
-      color: colors.textSecondary,
-      fontSize: 24,
-      fontWeight: '700',
-      lineHeight: 24,
-    },
-    emptyMealLine: {
-      color: colors.textSecondary,
-      fontSize: Typography.caption.fontSize,
-      lineHeight: Typography.caption.lineHeight,
-      paddingVertical: Spacing.two,
-    },
-    emptyNutrientHint: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      lineHeight: 16,
-    },
-    emptyNutrientState: {
-      gap: Spacing.one,
-    },
-    emptyNutrientText: {
-      color: colors.textPrimary,
-      fontSize: 14,
-      fontWeight: '800',
-    },
-    foodList: {
-      gap: Spacing.two,
-      paddingTop: Spacing.two,
-    },
-    headerActions: {
-      alignItems: 'flex-end',
-      gap: Spacing.one,
-    },
-    headerButton: {
+    calendarButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceSecondary,
       borderColor: colors.borderSubtle,
@@ -475,11 +378,58 @@ const createStyles = (colors: typeof Colors.dark) =>
       height: 44,
       justifyContent: 'center',
       minWidth: 44,
-      paddingHorizontal: Spacing.three,
+      paddingHorizontal: Spacing.two,
     },
-    headerButtonText: {
+    calendarButtonText: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontWeight: '900',
+      lineHeight: 18,
+    },
+    chevronText: {
+      color: colors.textSecondary,
+      fontSize: 16,
+      fontWeight: '900',
+      width: 14,
+    },
+    container: {
+      gap: Spacing.two,
+      maxWidth: MaxContentWidth,
+      width: '100%',
+    },
+    content: {
+      alignItems: 'center',
+      padding: Spacing.three,
+    },
+    foodList: {
+      gap: Spacing.two,
+      paddingTop: Spacing.two,
+    },
+    foodRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      minHeight: 44,
+    },
+    foodRowCalories: {
       color: colors.textPrimary,
       fontSize: 13,
+      fontWeight: '800',
+      fontVariant: ['tabular-nums'],
+    },
+    foodRowCopy: {
+      flex: 1,
+      gap: 1,
+      minWidth: 0,
+    },
+    foodRowDetail: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      lineHeight: 16,
+    },
+    foodRowTitle: {
+      color: colors.textPrimary,
+      fontSize: 14,
       fontWeight: '800',
     },
     headerCopy: {
@@ -491,37 +441,8 @@ const createStyles = (colors: typeof Colors.dark) =>
       flexDirection: 'row',
       gap: Spacing.two,
     },
-    macroChip: {
-      backgroundColor: colors.surfaceSecondary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      flex: 1,
-      gap: 2,
-      minWidth: 92,
-      paddingHorizontal: Spacing.two,
-      paddingVertical: Spacing.two,
-    },
-    macroChipLabel: {
-      color: colors.textSecondary,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-    },
-    macroChipValue: {
-      color: colors.textPrimary,
-      fontSize: 14,
-      fontWeight: '800',
-      fontVariant: ['tabular-nums'],
-    },
-    macroChips: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: Spacing.two,
-    },
     mealCard: {
-      gap: Spacing.three,
+      gap: Spacing.two,
     },
     mealHeader: {
       alignItems: 'center',
@@ -529,18 +450,24 @@ const createStyles = (colors: typeof Colors.dark) =>
       gap: Spacing.two,
       justifyContent: 'space-between',
     },
+    mealHeaderActions: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.one,
+    },
     mealHeaderCopy: {
       flex: 1,
       gap: 2,
+      minWidth: 0,
     },
     mealList: {
-      gap: Spacing.three,
+      gap: Spacing.two,
     },
     mealSection: {
       borderColor: colors.borderSubtle,
       borderTopWidth: StyleSheet.hairlineWidth,
       gap: Spacing.two,
-      paddingTop: Spacing.three,
+      paddingTop: Spacing.two,
     },
     mealSubtotal: {
       color: colors.textSecondary,
@@ -548,10 +475,19 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontVariant: ['tabular-nums'],
       fontWeight: '700',
     },
+    mealSummaryLine: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 16,
+    },
     mealTitle: {
       color: colors.textPrimary,
       fontSize: 15,
       fontWeight: '800',
+    },
+    nutrientCard: {
+      paddingVertical: Spacing.two,
     },
     nutrientHint: {
       color: colors.textSecondary,
@@ -578,22 +514,6 @@ const createStyles = (colors: typeof Colors.dark) =>
     screen: {
       backgroundColor: colors.background,
       flex: 1,
-    },
-    secondaryCard: {
-      gap: Spacing.three,
-      opacity: 0.96,
-    },
-    secondaryTitle: {
-      color: colors.textSecondary,
-      fontSize: 14,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-    },
-    sectionEyebrow: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '800',
-      textTransform: 'uppercase',
     },
     sectionHeader: {
       marginBottom: Spacing.one,
@@ -626,63 +546,45 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontSize: 12,
       fontWeight: '800',
     },
-    summaryCalories: {
-      color: colors.textPrimary,
-      fontSize: 28,
-      fontWeight: '900',
-      fontVariant: ['tabular-nums'],
-      lineHeight: 32,
-    },
     summaryCard: {
-      gap: Spacing.three,
-    },
-    summaryCopy: {
-      gap: 2,
-    },
-    summaryPercent: {
-      color: colors.textSecondary,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    summaryTopRow: {
       gap: Spacing.two,
+      paddingVertical: Spacing.two,
     },
-    todayDot: {
-      backgroundColor: colors.accentSoft,
-      borderColor: colors.accent,
-      borderRadius: 999,
-      borderWidth: 1,
-      height: 6,
-      width: 6,
+    summaryGrid: {
+      flexDirection: 'row',
+      gap: Spacing.one,
+      justifyContent: 'space-between',
     },
-    todayDotSelected: {
-      backgroundColor: colors.textOnAccent,
-      borderColor: colors.textOnAccent,
+    summaryMetric: {
+      flex: 1,
+      gap: 2,
+      minWidth: 0,
+    },
+    summaryMetricEmphasis: {
+      minWidth: 64,
+    },
+    summaryMetricLabel: {
+      color: colors.textSecondary,
+      fontSize: 10,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+    },
+    summaryMetricValue: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '800',
+      fontVariant: ['tabular-nums'],
+    },
+    summaryMetricValueEmphasis: {
+      fontSize: 20,
+      fontWeight: '900',
     },
     title: {
       color: colors.textPrimary,
       fontSize: 24,
       fontWeight: '900',
     },
-    weekStrip: {
-      gap: Spacing.two,
-      paddingRight: Spacing.one,
-    },
-    weekStripActions: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: Spacing.one,
-    },
-    weekStripCard: {
-      gap: Spacing.two,
-    },
-    weekStripHeader: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: Spacing.two,
-    },
-    weekStripLink: {
+    todayButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceSecondary,
       borderColor: colors.borderSubtle,
@@ -691,18 +593,75 @@ const createStyles = (colors: typeof Colors.dark) =>
       borderWidth: StyleSheet.hairlineWidth,
       height: 36,
       justifyContent: 'center',
-      minWidth: 36,
+      minWidth: 72,
       paddingHorizontal: Spacing.two,
     },
-    weekStripLinkText: {
+    todayButtonDisabled: {
+      opacity: 0.35,
+    },
+    todayButtonText: {
       color: colors.textPrimary,
       fontSize: 13,
       fontWeight: '800',
     },
-    weekStripTitle: {
-      color: colors.textPrimary,
-      fontSize: 13,
+    todaySlotRow: {
+      alignItems: 'flex-end',
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      minHeight: 36,
+    },
+    weekDayButton: {
+      alignItems: 'center',
+      flex: 1,
+      gap: 4,
+      justifyContent: 'flex-start',
+      minHeight: 60,
+    },
+    weekDayCircle: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
+      height: 24,
+      justifyContent: 'center',
+      width: 24,
+    },
+    weekDayCircleSelected: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    weekDayCircleToday: {
+      borderColor: colors.accentSoft,
+      borderWidth: 1,
+    },
+    weekDayCircleTodaySelected: {
+      borderColor: colors.textOnAccent,
+    },
+    weekDayLabel: {
+      color: colors.textSecondary,
+      fontSize: 11,
       fontWeight: '800',
       textTransform: 'uppercase',
+    },
+    weekDayLabelSelected: {
+      color: colors.textPrimary,
+    },
+    weekDayTodayDot: {
+      backgroundColor: colors.accent,
+      borderRadius: 999,
+      height: 6,
+      width: 6,
+    },
+    weekDayTodayDotSelected: {
+      backgroundColor: colors.textOnAccent,
+    },
+    weekStrip: {
+      flexDirection: 'row',
+      gap: 0,
+    },
+    weekStripCard: {
+      gap: Spacing.two,
     },
   });

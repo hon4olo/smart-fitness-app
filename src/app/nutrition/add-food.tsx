@@ -85,6 +85,7 @@ export default function NutritionAddFoodScreen() {
     addFoodEntries,
     addFoodEntry,
     addMealTemplate,
+    deleteFoodEntry,
     deleteMealTemplate,
     foodEntries,
     mealTemplates,
@@ -294,6 +295,17 @@ export default function NutritionAddFoodScreen() {
     }
 
     setSelectedDraft(null);
+    router.replace({ pathname: '/nutrition', params: { date: selectedDate, openMeal: selectedMeal } });
+  };
+
+  const deleteSelectedDraft = () => {
+    if (!selectedDraft?.originalEntryId) {
+      return;
+    }
+
+    deleteFoodEntry(selectedDraft.originalEntryId);
+    setSelectedDraft(null);
+    router.replace({ pathname: '/nutrition', params: { date: selectedDate, openMeal: selectedMeal } });
   };
 
   const saveCustomFood = () => {
@@ -828,6 +840,10 @@ export default function NutritionAddFoodScreen() {
             <Text selectable style={styles.sheetHint}>
               {selectedDraft.originalEntryId ? 'Update the selected entry and keep the diary context unchanged.' : 'Add this food to the selected meal without leaving the picker.'}
             </Text>
+
+            {selectedDraft.originalEntryId ? (
+              <AppButton label="Delete entry" onPress={deleteSelectedDraft} variant="secondary" />
+            ) : null}
 
             <AppButton
               label={selectedDraft.originalEntryId ? `Save changes` : `Add to ${selectedMealLabel}`}

@@ -10,75 +10,78 @@ const projectRoot = resolve(__dirname, '..');
 const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 const count = (source: string, needle: string) => (source.match(new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) ?? []).length;
 
-describe('nutrition diary and meal-aware add flow 5.0', () => {
-  test('main nutrition tab is diary-first and keeps the old add-food surface out of the main screen', () => {
+describe('nutrition compact diary 5.0', () => {
+  test('main nutrition screen keeps a stable compact header, seven-day selector, summary row, and collapsed meals', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
 
     expect(source).toContain('Nutrition');
-    expect(source).toContain('This week');
-    expect(source).toContain('Consumed today');
-    expect(source).toContain('Meal diary');
-    expect(source).toContain('Nutrient breakdown');
-    expect(source).toContain('Calendar');
-    expect(source).toContain("router.push({ pathname: '/nutrition/add-food'");
-    expect(source).toContain('Add food to');
-    expect(source).toContain('No food logged');
+    expect(source).toContain('calendarButton');
+    expect(source).toContain('streakPill');
+    expect(source).toContain('todayButton');
+    expect(source).toContain('weekDayButton');
+    expect(count(source, 'weekDayButton')).toBe(2); // style + JSX usage
+    expect(count(source, 'weekDayCircle')).toBeGreaterThanOrEqual(4);
+    expect(source).toContain('summaryGrid');
+    expect(source).toContain('Target %');
+    expect(source).toContain('Calories');
+    expect(source).not.toContain('Consumed today');
+    expect(source).not.toContain('This week');
     expect(source).not.toContain('Daily summary');
-    expect(source).not.toContain('AddFoodFormSection');
-    expect(source).not.toContain('Recent foods');
-    expect(source).not.toContain('Saved meals');
-    expect(source).not.toContain('Footer actions');
-    expect(source).not.toContain('Create Food');
+    expect(source).not.toContain('progress');
+    expect(source).toContain('mealHeaderActions');
+    expect(source).toContain('accessibilityState={{ expanded }}');
+    expect(source).toContain('toggleMealExpansion(mealType)');
+    expect(source).toContain('openMealPicker(mealType)');
+    expect(source).toContain('foodRow');
+    expect(source).toContain('foodRowCalories');
+    expect(source).toContain('nutrientCard');
+    expect(source).not.toContain('remaining');
+    expect(source).not.toContain('No food logged');
   });
 
-  test('main nutrition tab keeps week navigation and one add button per visible meal', () => {
+  test('today and calendar actions remain layout-stable and date switching uses the compact route', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
 
-    expect(count(source, 'This week')).toBe(1);
-    expect(count(source, 'accessibilityLabel={`Add food to ${mealTypeLabels[mealType]}`}')).toBe(1);
-    expect(count(source, 'openMealPicker(mealType)')).toBe(1);
-    expect(count(source, 'No food logged')).toBe(1);
+    expect(source).toContain('todaySlotRow');
+    expect(source).toContain('todayButtonDisabled');
+    expect(source).toContain("router.replace({ pathname: '/nutrition', params: { date: nextDate } })");
     expect(source).toContain("pathname: '/nutrition/date-picker'");
-  });
-
-  test('meal-aware picker exposes food, recent, favorites, and meals modes', () => {
-    const source = readSource('src/app/nutrition/add-food.tsx');
-
-    expect(source).toContain("label: 'Food'");
-    expect(source).toContain("label: 'Recent'");
-    expect(source).toContain("label: 'Favorites'");
-    expect(source).toContain("label: 'Meals'");
-    expect(readSource('src/app/_layout.tsx')).toContain('name="nutrition/add-food"');
-    expect(source).toContain('selectedMealLabel');
     expect(source).toContain('selectedDateLabel');
-    expect(source).toContain('Quick add');
-    expect(source).toContain('Create food');
-    expect(source).toContain('Create meal');
+    expect(source).toContain('formatWeekdayLabel');
+    expect(source).toContain('formatDayNumber');
   });
 
-  test('picker keeps meal/date context stable and supports portion editing plus quick add', () => {
+  test('meal rows stay compact and use additive expansion without delete controls in the diary', () => {
+    const source = readSource('src/app/(tabs)/nutrition.tsx');
+
+    expect(source).toContain('mealSummaryLine');
+    expect(source).toContain('P ');
+    expect(source).toContain('C ');
+    expect(source).toContain('F ');
+    expect(source).toContain('chevronText');
+    expect(source).not.toContain('Delete ${entry.name}');
+    expect(source).not.toContain('deleteButton');
+    expect(source).not.toContain('×');
+  });
+
+  test('picker returns to the selected meal and exposes a quiet delete action for edited entries', () => {
     const source = readSource('src/app/nutrition/add-food.tsx');
 
-    expect(source).toContain('Add to ${selectedMealLabel}');
+    expect(source).toContain('router.replace({ pathname: \'/nutrition\', params: { date: selectedDate, openMeal: selectedMeal } })');
+    expect(source).toContain('Delete entry');
+    expect(source).toContain('deleteSelectedDraft');
     expect(source).toContain('Save changes');
-    expect(source).toContain('Quantity');
-    expect(source).toContain('Cancel');
-    expect(source).toContain('No recent foods yet.');
-    expect(source).toContain('No favorites yet.');
-    expect(source).toContain('No saved meals yet.');
-    expect(source).toContain('selectedDate');
+    expect(source).toContain('Add to ${selectedMealLabel}');
     expect(source).toContain('selectedMeal');
+    expect(source).toContain('selectedDate');
   });
 
-  test('picker preserves recent, favorites, and saved meal behaviors in source', () => {
-    const source = readSource('src/app/nutrition/add-food.tsx');
+  test('nutrient breakdown is compact and only renders useful nutrient data', () => {
+    const source = readSource('src/app/(tabs)/nutrition.tsx');
 
-    expect(source).toContain('quickAddRecent');
-    expect(source).toContain('quickAddMealTemplate');
-    expect(source).toContain('toggleFavorite');
-    expect(source).toContain('addMealTemplate');
-    expect(source).toContain('deleteMealTemplate');
-    expect(source).toContain('addFoodEntries');
-    expect(source).toContain('updateFoodEntry');
+    expect(source).toContain('fiberBreakdown.hasFiberData');
+    expect(source).toContain('Compact nutrition details');
+    expect(source).not.toContain('Sodium, cholesterol, sugar');
+    expect(source).not.toContain('Not available yet');
   });
 });

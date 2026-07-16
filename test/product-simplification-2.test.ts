@@ -41,24 +41,25 @@ describe('product simplification 2.0', () => {
     expect(source).not.toContain('HomeIntelligenceCard');
   });
 
-  test('nutrition screen stays diary-first and pushes add food into a dedicated picker route', () => {
+  test('nutrition screen stays compact, diary-first, and uses dedicated date and add-food routes', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
 
-    expect(source).toContain('This week');
-    expect(source).toContain('Consumed today');
-    expect(source).toContain('Meal diary');
-    expect(source).toContain('Nutrient breakdown');
-    expect(source).toContain('Calendar');
+    expect(source).toContain('Nutrition');
+    expect(source).toContain('calendarButton');
+    expect(source).toContain('summaryGrid');
+    expect(source).toContain('mealHeaderActions');
+    expect(source).toContain('nutrientCard');
     expect(source).toContain("router.push({ pathname: '/nutrition/add-food'");
     expect(source).toContain("pathname: '/nutrition/date-picker'");
-    expect(source).not.toContain('AddFoodFormSection');
-    expect(source).not.toContain('NutritionOverviewCard');
-    expect(source).not.toContain('Recent foods');
-    expect(source).not.toContain('Saved meals');
+    expect(source).toContain('todayButton');
+    expect(source).toContain('weekDayButton');
+    expect(source).not.toContain('Consumed today');
+    expect(source).not.toContain('This week');
+    expect(source).not.toContain('Daily summary');
     expect(source).not.toContain('Footer actions');
   });
 
-  test('nutrition picker route exposes meal-aware modes and quieter create actions', () => {
+  test('nutrition picker route keeps the meal-aware modes and quiet edit/delete path', () => {
     const source = readSource('src/app/nutrition/add-food.tsx');
 
     expect(source).toContain("label: 'Food'");
@@ -68,8 +69,9 @@ describe('product simplification 2.0', () => {
     expect(source).toContain('Create food');
     expect(source).toContain('Create meal');
     expect(source).toContain('Quick add');
+    expect(source).toContain('Delete entry');
     expect(source).toContain('Save changes');
-    expect(source).toContain('Quantity');
+    expect(source).toContain('Add to ${selectedMealLabel}');
   });
 
   test('profile screen does not render a duplicated account snapshot', () => {
