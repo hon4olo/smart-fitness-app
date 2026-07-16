@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { addDays, formatLocalDate, getServingInfo, sumNutritionTotals } from '@/lib';
-import { formatNumber, getNutritionSummary, resolveFoodCatalogItem } from '@/lib/nutrition';
+import { formatNumber, formatMealItemCount, getLoggedFoodDates, getNutritionSummary, resolveFoodCatalogItem } from '@/lib/nutrition';
 import type { FoodEntry, MealType } from '@/types';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
@@ -39,6 +39,13 @@ const formatWeekdayLabel = (dateLabel: string) => {
   return new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(parsedDate);
 };
 
+const formatWeekdayLong = (dateLabel: string) => {
+  const parsedDate = new Date(`${dateLabel}T12:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return dateLabel;
+
+  return new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(parsedDate);
+};
+
 const formatDayNumber = (dateLabel: string) => {
   const parsedDate = new Date(`${dateLabel}T12:00:00`);
   if (Number.isNaN(parsedDate.getTime())) return dateLabel.slice(-2);
@@ -61,6 +68,7 @@ type WeekDay = {
   dayNumber: string;
   isSelected: boolean;
   isToday: boolean;
+  isLogged: boolean;
 };
 
 type MealSummary = {
@@ -99,6 +107,8 @@ export default function NutritionScreen() {
   const nutritionSummary = useMemo(() => getNutritionSummary(selectedDateNutrition, nutritionTargets), [nutritionTargets, selectedDateNutrition]);
   const selectedDateLabel = useMemo(() => formatDisplayDate(selectedDate), [selectedDate]);
 
+  const streakDays = useMemo(() => new Set(foodEntries.map((entry) => entry.date)), [foodEntries]);
+  const loggedDaySet = useMemo(() => getLoggedFoodDates(foodEntries), [foodEntries]);
   const weekDays = useMemo<WeekDay[]>(() => {
     const weekStart = getWeekStart(selectedDate);
     return Array.from({ length: 7 }, (_, index) => {
@@ -109,11 +119,11 @@ export default function NutritionScreen() {
         dayNumber: formatDayNumber(dateKey),
         isSelected: dateKey === selectedDate,
         isToday: dateKey === todayKey,
+        isLogged: loggedDaySet.has(dateKey),
       };
     });
-  }, [selectedDate, todayKey]);
+  }, [selectedDate, todayKey, loggedDaySet]);
 
-  const streakDays = useMemo(() => new Set(foodEntries.map((entry) => entry.date)), [foodEntries]);
   const nutritionStreak = useMemo(() => {
     let streak = 0;
     let cursor = todayKey;
@@ -210,7 +220,7 @@ export default function NutritionScreen() {
             {weekDays.map((day) => (
               <Pressable
                 key={day.dateKey}
-                accessibilityLabel={`${day.dayLabel} ${day.dayNumber}${day.isToday ? ', today' : ''}`}
+                accessibilityLabel={`${formatWeekdayLong(day.dateKey)}, ${day.isLogged ? 'food logged' : 'no food logged'}${day.isToday ? ', today' : ''}`}
                 accessibilityState={{ selected: day.isSelected }}
                 hitSlop={12}
                 onPress={() => updateSelectedDate(day.dateKey)}
@@ -218,6 +228,7 @@ export default function NutritionScreen() {
                 <View style={styles.weekDayHitArea}>
                   <View style={[styles.weekDayCircle, day.isSelected && styles.weekDayCircleSelected, day.isToday && styles.weekDayCircleToday, day.isSelected && day.isToday && styles.weekDayCircleTodaySelected]}>
                     {day.isToday ? <View style={[styles.weekDayTodayDot, day.isSelected && styles.weekDayTodayDotSelected]} /> : null}
+                    {day.isLogged ? <Text style={[styles.weekDayCheck, day.isSelected && styles.weekDayCheckSelected]}>✓</Text> : null}
                   </View>
                 </View>
                 <Text numberOfLines={1} selectable style={[styles.weekDayLabel, day.isSelected && styles.weekDayLabelSelected]}>
@@ -285,7 +296,7 @@ export default function NutritionScreen() {
                           {mealTypeLabels[mealType]}
                         </Text>
                         <Text selectable style={styles.mealHeaderMeta}>
-                          {itemCount > 0 ? `${itemCount} item${itemCount === 1 ? '' : 's'}` : 'No items yet'}
+                          {formatMealItemCount(itemCount)}
                         </Text>
                       </View>
                     </View>
@@ -309,15 +320,6 @@ export default function NutritionScreen() {
                   </Pressable>
 
                   <View style={styles.mealSummaryStrip}>
-                    <View style={styles.mealSummaryCount}>
-                      <Text selectable style={styles.mealSummaryCountValue}>
-                        {itemCount > 0 ? `${itemCount}` : '0'}
-                      </Text>
-                      <Text selectable style={styles.mealSummaryCountLabel}>
-                        items
-                      </Text>
-                    </View>
-
                     <View style={styles.mealSummaryMetric}>
                       <Text selectable style={styles.mealSummaryLabel}>
                         Fat
@@ -615,32 +617,13 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontWeight: '700',
     },
     mealSummaryStrip: {
-      backgroundColor: colors.backgroundSecondary,
+      backgroundColor: colors.surfaceSecondary,
       borderTopColor: colors.borderSubtle,
       borderTopWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
       gap: Spacing.one,
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
-    },
-    mealSummaryCount: {
-      alignItems: 'flex-start',
-      justifyContent: 'center',
-      minWidth: 34,
-    },
-    mealSummaryCountLabel: {
-      color: colors.textSecondary,
-      fontSize: 10,
-      fontWeight: '700',
-      lineHeight: 12,
-      textTransform: 'uppercase',
-    },
-    mealSummaryCountValue: {
-      color: colors.textPrimary,
-      fontSize: 13,
-      fontWeight: '800',
-      fontVariant: ['tabular-nums'],
-      lineHeight: 16,
     },
     mealSummaryLabel: {
       color: colors.textSecondary,
@@ -833,6 +816,17 @@ const createStyles = (colors: typeof Colors.dark) =>
     },
     weekDayCircleTodaySelected: {
       borderColor: colors.textOnAccent,
+    },
+    weekDayCheck: {
+      color: colors.accent,
+      fontSize: 9,
+      fontWeight: '900',
+      position: 'absolute',
+      right: -1,
+      top: -1,
+    },
+    weekDayCheckSelected: {
+      color: colors.textOnAccent,
     },
     weekDayHitArea: {
       alignItems: 'center',

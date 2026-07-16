@@ -147,6 +147,16 @@ export const formatFoodServing = (food: Pick<FoodCatalogItem, 'servingSize' | 's
   return `${formatNumber(food.servingSize)} ${food.servingUnit}`;
 };
 
+export const formatMealItemCount = (itemCount: number) => {
+  if (itemCount <= 0) {
+    return 'No items yet';
+  }
+
+  return `${itemCount} item${itemCount === 1 ? '' : 's'}`;
+};
+
+export const getLoggedFoodDates = (entries: Pick<FoodEntry, 'date'>[]) => new Set(entries.map((entry) => entry.date));
+
 export const formatFoodMacros = (food: Pick<FoodCatalogItem, 'calories' | 'carbs' | 'fat' | 'protein'>, servings = 1) => {
   return `${formatNumber(food.calories * servings)} kcal · ${formatNumber(food.protein * servings)}P · ${formatNumber(food.carbs * servings)}C · ${formatNumber(food.fat * servings)}F`;
 };

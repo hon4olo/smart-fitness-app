@@ -7,6 +7,8 @@ import { AppCard } from '@/components/ui/AppCard';
 import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { addDays, formatLocalDate } from '@/lib';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { useAppContext } from '@/context/AppContext';
+import { getLoggedFoodDates } from '@/lib/nutrition';
 
 const formatMonthTitle = (date: Date) =>
   new Intl.DateTimeFormat(undefined, {
@@ -45,6 +47,7 @@ export default function NutritionDatePickerScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
+  const { foodEntries } = useAppContext();
   const params = useLocalSearchParams<{ date?: string }>();
   const todayKey = useMemo(() => formatLocalDate(new Date()), []);
   const initialDate = typeof params.date === 'string' && params.date.length > 0 ? params.date : todayKey;
@@ -60,6 +63,7 @@ export default function NutritionDatePickerScreen() {
   }, [monthAnchor, todayKey]);
 
   const monthTitle = useMemo(() => formatMonthTitle(monthDate), [monthDate]);
+  const loggedDaySet = useMemo(() => getLoggedFoodDates(foodEntries), [foodEntries]);
   const dayCells = useMemo(() => {
     const gridStart = getMonthGridStart(monthDate.getFullYear(), monthDate.getMonth());
     return Array.from({ length: 42 }, (_, index) => {
@@ -72,9 +76,10 @@ export default function NutritionDatePickerScreen() {
         inMonth: cellDate.getMonth() === monthDate.getMonth(),
         isSelected: dateKey === selectedDate,
         isToday: dateKey === todayKey,
+        isLogged: loggedDaySet.has(dateKey),
       };
     });
-  }, [monthDate, selectedDate, todayKey]);
+  }, [monthDate, selectedDate, todayKey, loggedDaySet]);
 
   const goToPreviousMonth = () => {
     const previousMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1, 12, 0, 0);
@@ -144,7 +149,7 @@ export default function NutritionDatePickerScreen() {
               {dayCells.map((day) => (
                 <Pressable
                   key={day.dateKey}
-                  accessibilityLabel={`${day.weekdayLabel} ${day.dayLabel}${day.isToday ? ', today' : ''}`}
+                  accessibilityLabel={`${day.weekdayLabel} ${day.dayLabel}${day.isToday ? ', today' : ''}${day.isLogged ? ', food logged' : ', no food logged'}`}
                   accessibilityState={{ selected: day.isSelected }}
                   hitSlop={8}
                   onPress={() => applyDate(day.dateKey)}
@@ -163,6 +168,7 @@ export default function NutritionDatePickerScreen() {
                     ]}>
                     {day.dayLabel}
                   </Text>
+                  {day.isLogged ? <Text style={[styles.dayCellCheck, day.isSelected && styles.dayCellCheckSelected]}>✓</Text> : null}
                   {day.isToday ? <View style={[styles.todayDot, day.isSelected && styles.todayDotSelected]} /> : null}
                 </Pressable>
               ))}
@@ -218,6 +224,17 @@ const createStyles = (colors: typeof Colors.dark) =>
       color: colors.textSecondary,
     },
     dayCellTextSelected: {
+      color: colors.textOnAccent,
+    },
+    dayCellCheck: {
+      color: colors.accent,
+      fontSize: 9,
+      fontWeight: '900',
+      position: 'absolute',
+      right: 4,
+      top: 4,
+    },
+    dayCellCheckSelected: {
       color: colors.textOnAccent,
     },
     dayCellToday: {

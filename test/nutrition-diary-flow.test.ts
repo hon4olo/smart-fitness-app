@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
+import { formatMealItemCount, getLoggedFoodDates } from '@/lib/nutrition';
+
 declare const __dirname: string;
 declare const require: any;
 
@@ -22,6 +24,7 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('weekSection');
     expect(source).toContain('weekDayButton');
     expect(source).toContain('weekDayHitArea');
+    expect(source).toContain('weekDayCheck');
     expect(count(source, 'weekDayButton')).toBe(2); // style + JSX usage
     expect(source).toContain('summarySection');
     expect(source).toContain('mealSectionList');
@@ -31,9 +34,8 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('mealHeaderMeta');
     expect(source).toContain('mealSummaryStrip');
     expect(source).toContain('mealSummaryMetric');
-    expect(source).toContain('mealSummaryCount');
-    expect(source).toContain('TARGET');
-    expect(source).toContain('Calories');
+    expect(source).toContain('surfaceSecondary');
+    expect(source).not.toContain('mealSummaryCount');
     expect(source).not.toContain('Consumed today');
     expect(source).not.toContain('This week');
     expect(source).not.toContain('Daily summary');
@@ -68,12 +70,14 @@ describe('nutrition compact diary 5.0', () => {
 
     expect(source).toContain('mealGroup');
     expect(source).toContain('mealSummaryStrip');
-    expect(source).toContain('mealSummaryCount');
     expect(source).toContain('mealSummaryMetric');
+    expect(source).toContain('mealHeaderMeta');
+    expect(source).toContain('formatMealItemCount');
     expect(source).toContain('mealHeaderActions');
     expect(source).toContain('mealActionButton');
     expect(source).toContain('chevronText');
     expect(source).toContain('foodRowDivider');
+    expect(source).not.toContain('mealSummaryCount');
     expect(source).not.toContain('Delete ${entry.name}');
     expect(source).not.toContain('deleteButton');
     expect(source).not.toContain('×');
@@ -98,5 +102,30 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('Nutrition details');
     expect(source).not.toContain('Sodium, cholesterol, sugar');
     expect(source).not.toContain('Not available yet');
+  });
+
+  test('calendar date picker marks logged dates without changing layout', () => {
+    const source = readSource('src/app/nutrition/date-picker.tsx');
+
+    expect(source).toContain('useAppContext');
+    expect(source).toContain('getLoggedFoodDates');
+    expect(source).toContain('dayCellCheck');
+    expect(source).toContain('food logged');
+    expect(source).toContain('no food logged');
+    expect(source).not.toContain('new dependency');
+  });
+
+  test('meal count helper uses singular/plural copy and logged-day helper tracks persisted dates', () => {
+    expect(formatMealItemCount(0)).toBe('No items yet');
+    expect(formatMealItemCount(1)).toBe('1 item');
+    expect(formatMealItemCount(2)).toBe('2 items');
+
+    const dates = getLoggedFoodDates([{ date: '2026-01-02' }, { date: '2026-01-02' }, { date: '2026-01-03' }]);
+    expect(dates.has('2026-01-02')).toBe(true);
+    expect(dates.has('2026-01-03')).toBe(true);
+    expect(dates.has('2026-01-04')).toBe(false);
+
+    const afterDeleteLastEntry = getLoggedFoodDates([{ date: '2026-01-03' }]);
+    expect(afterDeleteLastEntry.has('2026-01-02')).toBe(false);
   });
 });
