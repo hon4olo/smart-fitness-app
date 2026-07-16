@@ -13,6 +13,8 @@ export type WorkoutPlanExercise = {
   targetSets?: number;
 };
 
+export type WorkoutTemplateDraftExercise = WorkoutPlanExercise;
+
 const WORKOUT_PLAN_HEADER = 'Workout plan:';
 
 const normalizeExerciseText = (value: string) =>
@@ -642,6 +644,42 @@ export type WorkoutSessionDraft = {
   startedAt: string;
   sets: WorkoutSession['sets'];
 };
+
+export const buildWorkoutTemplateSavePayload = (
+  workout: Workout,
+  draftTitle: string,
+  draftExercises: WorkoutTemplateDraftExercise[],
+) => {
+  const normalizedTitle = draftTitle.trim() || workout.title;
+
+  return {
+    title: normalizedTitle,
+    description: formatWorkoutPlanDescription(workout.description ?? '', draftExercises),
+    exercises: draftExercises.map((exercise) => exercise.name),
+  };
+};
+
+export const buildCompletedWorkoutSessionSnapshot = (
+  draft: WorkoutSessionDraft,
+  options: { finishedAt?: string; notes?: string } = {},
+) => {
+  const finishedAt = options.finishedAt ?? new Date().toISOString();
+
+  return {
+    id: draft.id,
+    workoutId: draft.workoutId,
+    workoutTitle: draft.workoutTitle,
+    startedAt: draft.startedAt,
+    finishedAt,
+    notes: options.notes?.trim() || undefined,
+    sets: draft.sets.map(cloneSet),
+  } satisfies WorkoutSession;
+};
+
+export const upsertWorkoutSessionById = (sessions: WorkoutSession[], session: WorkoutSession) =>
+  sessions.some((existingSession) => existingSession.id === session.id)
+    ? sessions.map((existingSession) => (existingSession.id === session.id ? session : existingSession))
+    : [...sessions, session];
 
 export type WorkoutTemplateSummary = {
   workout: Workout;

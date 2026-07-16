@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui/AppButton';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft } from '@/lib/workouts';
+import { clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, buildCompletedWorkoutSessionSnapshot } from '@/lib/workouts';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 const formatDurationLabel = (startedAt: string, finishedAt = new Date().toISOString()) => {
@@ -39,8 +39,10 @@ export default function WorkoutSessionFinishRoute() {
   const draft = getActiveWorkoutSessionDraft();
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
+  const [completedSession, setCompletedSession] = useState<ReturnType<typeof buildCompletedWorkoutSessionSnapshot> | null>(null);
 
-  if (!draft) {
+  const sessionToRender = completedSession ?? draft;
+  if (!sessionToRender) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <View style={styles.emptyState}>
@@ -58,10 +60,10 @@ export default function WorkoutSessionFinishRoute() {
     );
   }
 
-  const workoutName = draft.workoutTitle;
-  const dateTimeLabel = formatDateTimeLabel(draft.startedAt);
-  const durationLabel = formatDurationLabel(draft.startedAt);
-  const completedSets = draft.sets.filter((set) => set.completed !== false);
+  const workoutName = sessionToRender.workoutTitle;
+  const dateTimeLabel = formatDateTimeLabel(sessionToRender.startedAt);
+  const durationLabel = formatDurationLabel(sessionToRender.startedAt, completedSession?.finishedAt ?? new Date().toISOString());
+  const completedSets = sessionToRender.sets.filter((set) => set.completed !== false);
 
   const handleSave = () => {
     if (saved) {
@@ -73,15 +75,16 @@ export default function WorkoutSessionFinishRoute() {
       return;
     }
 
-    saveWorkoutSession({
-      id: draft.id,
-      workoutId: draft.workoutId,
-      workoutTitle: workoutName,
-      startedAt: draft.startedAt,
-      finishedAt: new Date().toISOString(),
-      notes: notes.trim() || undefined,
+    const completedSnapshot = {
+      ...buildCompletedWorkoutSessionSnapshot(sessionToRender, {
+        notes,
+        finishedAt: new Date().toISOString(),
+      }),
       sets: completedSets,
-    });
+    };
+
+    saveWorkoutSession(completedSnapshot);
+    setCompletedSession(completedSnapshot);
     clearActiveWorkoutSessionDraft();
     setSaved(true);
   };
@@ -115,7 +118,7 @@ export default function WorkoutSessionFinishRoute() {
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.three + 84 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.three, paddingBottom: insets.bottom + Spacing.three + 84 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>

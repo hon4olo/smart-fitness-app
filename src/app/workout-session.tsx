@@ -542,8 +542,8 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     cell: {
       color: colors.textPrimary,
-      fontSize: 14,
-      lineHeight: 20,
+      fontSize: 15,
+      lineHeight: 22,
     },
     checkButton: {
       alignItems: 'center',
@@ -564,20 +564,20 @@ const createStyles = (colors: typeof Colors.light) =>
       color: '#27C46A',
     },
     colCheck: {
-      width: 34,
+      width: 40,
     },
     colPrevious: {
-      width: 86,
+      width: 104,
     },
     colReps: {
-      width: 54,
+      width: 60,
     },
     colSet: {
-      width: 34,
+      width: 36,
     },
     colWeight: {
       flex: 1,
-      minWidth: 68,
+      minWidth: 76,
     },
     container: {
       maxWidth: MaxContentWidth,
@@ -700,12 +700,13 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     inputCell: {
       color: colors.textPrimary,
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '700',
-      minHeight: 28,
+      minHeight: 32,
       paddingHorizontal: 0,
-      paddingVertical: 2,
+      paddingVertical: 3,
       textAlign: 'center',
+      fontVariant: ['tabular-nums'],
     },
     notesAction: {
       alignSelf: 'flex-start',
@@ -718,7 +719,9 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     previousCell: {
       color: colors.textSecondary,
+      fontSize: 13,
       fontVariant: ['tabular-nums'],
+      lineHeight: 18,
     },
     rowMenuButton: {
       alignItems: 'center',
@@ -767,9 +770,10 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     tableHeaderText: {
       color: colors.textSecondary,
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.3,
+      lineHeight: 14,
       textTransform: 'uppercase',
     },
     tableRow: {
@@ -780,9 +784,9 @@ const createStyles = (colors: typeof Colors.light) =>
       borderWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
       gap: Spacing.one,
-      minHeight: 40,
+      minHeight: 48,
       paddingHorizontal: Spacing.two,
-      paddingVertical: 6,
+      paddingVertical: 8,
     },
     tableRowCompleted: {
       backgroundColor: 'rgba(39, 196, 106, 0.10)',

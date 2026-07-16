@@ -35,6 +35,7 @@ import type {
 } from '@/types';
 import { defaultState as defaultAppState } from '@/data/defaults';
 import { createExerciseId, getLastWorkoutSession as getLastWorkoutSessionFromState } from '@/lib/appState';
+import { upsertWorkoutSessionById } from '@/lib/workouts';
 import { createRepositoryFactory } from '@/repositories';
 import { createAsyncStorageAdapter } from '@/storage';
 import { AuthProvider } from '@/auth';
@@ -498,9 +499,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     setState((currentState) => {
       const nextState = {
         ...currentState,
-        workoutSessions: currentState.workoutSessions.some((existingSession) => existingSession.id === session.id)
-          ? currentState.workoutSessions.map((existingSession) => (existingSession.id === session.id ? session : existingSession))
-          : [...currentState.workoutSessions, session],
+        workoutSessions: upsertWorkoutSessionById(currentState.workoutSessions, session),
       };
       void repository.saveState(nextState);
       return nextState;

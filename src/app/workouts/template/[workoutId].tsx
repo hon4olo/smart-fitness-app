@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui/AppButton';
 import { BottomTabInset, Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { getWorkoutTemplateById, parseWorkoutPlanDescription, startWorkoutSessionDraft, toggleWorkoutTemplateFavorite, formatWorkoutPlanDescription } from '@/lib/workouts';
+import { getWorkoutTemplateById, parseWorkoutPlanDescription, startWorkoutSessionDraft, toggleWorkoutTemplateFavorite, buildWorkoutTemplateSavePayload } from '@/lib/workouts';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { Exercise, Workout } from '@/types';
 
@@ -141,27 +141,33 @@ export default function WorkoutDetailRoute() {
   };
 
   const saveWorkout = (): Workout => {
-    const baseDescription = workout.description ?? '';
     const nextWorkout: Workout = {
       ...workout,
       id: workout.id,
       title: normalizedDraftTitle || workout.title,
-      description: formatWorkoutPlanDescription(baseDescription, draftExercises.map((exercise) => ({ ...exercise, notes: undefined }))),
+      description: buildWorkoutTemplateSavePayload(workout, normalizedDraftTitle, draftExercises).description,
       exercises: draftExercises.map((exercise, index) => ({
-      id: `${workout.id}-exercise-${index}`,
-      name: exercise.name,
-      createdAt: workout.createdAt ?? new Date().toISOString(),
-      isCustom: true,
+        id: `${workout.id}-exercise-${index}`,
+        name: exercise.name,
+        createdAt: workout.createdAt ?? new Date().toISOString(),
+        isCustom: true,
       })),
       isCustom: true,
     };
+    const savedTemplate = buildWorkoutTemplateSavePayload(workout, normalizedDraftTitle, draftExercises);
 
     if (workout.isCustom) {
-      updateWorkoutTemplate(workout.id, nextWorkout as any);
+      updateWorkoutTemplate(workout.id, savedTemplate);
       return nextWorkout;
     }
 
-    addWorkoutTemplate(nextWorkout as any);
+    addWorkoutTemplate({
+      id: workout.id,
+      title: savedTemplate.title,
+      description: savedTemplate.description,
+      exercises: savedTemplate.exercises,
+      createdAt: workout.createdAt ?? new Date().toISOString(),
+    });
     return nextWorkout;
   };
 
@@ -178,7 +184,13 @@ export default function WorkoutDetailRoute() {
         onPress: () => {
           const nextWorkout = saveWorkout();
           const nextId = `workout-${Date.now()}`;
-          addWorkoutTemplate({ ...nextWorkout, id: nextId, title: `${nextWorkout.title} Copy`, isCustom: true } as any);
+          addWorkoutTemplate({
+            id: nextId,
+            title: `${nextWorkout.title} Copy`,
+            description: nextWorkout.description,
+            exercises: nextWorkout.exercises.map((exercise) => exercise.name),
+            createdAt: nextWorkout.createdAt ?? new Date().toISOString(),
+          });
           router.replace({ pathname: '/workouts/template/[workoutId]', params: { workoutId: nextId } });
         },
       },
