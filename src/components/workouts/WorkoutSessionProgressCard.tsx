@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type WorkoutSessionProgressCardProps = {
   nextExerciseName?: string;
@@ -11,89 +13,72 @@ type WorkoutSessionProgressCardProps = {
 };
 
 export function WorkoutSessionProgressCard({ nextExerciseName, progressLabel, progressPercent, selectedExerciseName }: WorkoutSessionProgressCardProps) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const clampedProgress = Math.max(0, Math.min(100, progressPercent));
+  const nextLabel = nextExerciseName ? `Next: ${nextExerciseName}` : null;
+
   return (
-    <AppCard>
-      <View style={styles.progressHeader}>
-        <View style={styles.progressCopy}>
-          <Text selectable style={styles.sectionTitle}>
-            Current exercise
+    <AppCard style={styles.card}>
+      <View style={styles.copyBlock}>
+        {selectedExerciseName ? (
+          <Text numberOfLines={2} selectable style={styles.title}>
+            {selectedExerciseName}
           </Text>
-          <Text selectable style={styles.currentExerciseName}>
-            {selectedExerciseName ?? 'No exercise selected'}
+        ) : null}
+        <Text selectable style={styles.summaryLabel}>
+          {progressLabel}
+        </Text>
+        {nextLabel ? (
+          <Text numberOfLines={1} selectable style={styles.nextLabel}>
+            {nextLabel}
           </Text>
-          <Text selectable style={styles.progressMeta}>
-            {progressLabel}
-            {nextExerciseName ? ` · Next: ${nextExerciseName}` : ''}
-          </Text>
-        </View>
-        <View style={styles.currentBadge}>
-          <Text style={styles.currentBadgeLabel}>Now</Text>
-        </View>
+        ) : null}
       </View>
 
-      <View style={styles.progressBarTrack}>
-        <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${clampedProgress}%` }]} />
       </View>
     </AppCard>
   );
 }
 
-const styles = StyleSheet.create({
-  currentBadge: {
-    alignItems: 'center',
-    backgroundColor: Colors.dark.accentMuted,
-    borderColor: Colors.dark.accent,
-    borderCurve: 'continuous',
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minWidth: 72,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-  },
-  currentBadgeLabel: {
-    color: Colors.dark.accent,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  currentExerciseName: {
-    color: Colors.dark.text,
-    fontSize: 24,
-    fontWeight: '900',
-  },
-  progressBarFill: {
-    backgroundColor: Colors.dark.accent,
-    borderCurve: 'continuous',
-    borderRadius: 999,
-    height: 8,
-  },
-  progressBarTrack: {
-    backgroundColor: Colors.dark.backgroundSelected,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 10,
-    overflow: 'hidden',
-  },
-  progressCopy: {
-    flex: 1,
-    gap: Spacing.one,
-  },
-  progressHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'space-between',
-  },
-  progressMeta: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-});
+const createStyles = (colors: typeof Colors.dark) =>
+  StyleSheet.create({
+    card: {
+      gap: Spacing.two,
+      padding: Spacing.four,
+    },
+    copyBlock: {
+      gap: 4,
+    },
+    nextLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    progressFill: {
+      backgroundColor: colors.accent,
+      borderCurve: 'continuous',
+      borderRadius: Radii.pill,
+      height: 6,
+    },
+    progressTrack: {
+      backgroundColor: colors.backgroundSelected,
+      borderCurve: 'continuous',
+      borderRadius: Radii.pill,
+      height: 8,
+      overflow: 'hidden',
+    },
+    summaryLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: '900',
+      lineHeight: Typography.cardTitle.lineHeight,
+    },
+  });

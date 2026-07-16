@@ -1,9 +1,10 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { useMemo } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
-import type { WorkoutSessionPreviousSet, WorkoutSessionPr, PlannedExercise } from '@/lib/workouts/workout-session';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import type { PlannedExercise, WorkoutSessionPreviousSet, WorkoutSessionPr } from '@/lib/workouts/workout-session';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type WorkoutSessionSetEditorProps = {
   editingSetId?: string;
@@ -15,8 +16,20 @@ type WorkoutSessionSetEditorProps = {
   previousSets: WorkoutSessionPreviousSet[];
   reps: string;
   selectedExercise?: PlannedExercise;
+  selectedExerciseIndex: number;
+  totalExercises: number;
   weight: string;
 };
+
+const formatCompactSet = (set: WorkoutSessionPreviousSet) => `${set.weight} kg × ${set.reps}`;
+
+const formatPrSummary = (exercisePrs: WorkoutSessionPr[]) =>
+  `PR: ${exercisePrs
+    .map((pr) => `${pr.label} ${pr.value}`)
+    .join(' · ')}`;
+
+const formatPreviousSummary = (previousSets: WorkoutSessionPreviousSet[]) =>
+  `Previous: ${previousSets.slice(0, 3).map(formatCompactSet).join(', ')}${previousSets.length > 3 ? `, +${previousSets.length - 3} more` : ''}`;
 
 export function WorkoutSessionSetEditor({
   editingSetId,
@@ -28,76 +41,57 @@ export function WorkoutSessionSetEditor({
   previousSets,
   reps,
   selectedExercise,
+  selectedExerciseIndex,
+  totalExercises,
   weight,
 }: WorkoutSessionSetEditorProps) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  if (!selectedExercise) {
+    return (
+      <AppCard style={styles.card}>
+        <Text selectable style={styles.exerciseName}>
+          No exercise selected
+        </Text>
+        <Text selectable style={styles.quietText}>
+          Choose an exercise to log your next set.
+        </Text>
+      </AppCard>
+    );
+  }
+
+  const previousSummary = previousSets.length > 0 ? formatPreviousSummary(previousSets) : null;
+  const prSummary = exercisePrs.length > 0 ? formatPrSummary(exercisePrs) : null;
+  const prescriptionLabel = `${selectedExercise.targetSets ?? 3} × ${selectedExercise.targetReps ?? 8} · ${selectedExercise.restSeconds ?? 90}s rest`;
+
   return (
-    <AppCard>
-      <Text selectable style={styles.sectionTitle}>
-        Selected exercise
-      </Text>
-      <Text selectable style={styles.selectedExerciseName}>
-        {selectedExercise?.name ?? 'No exercise selected'}
-      </Text>
-
-      <View style={styles.infoGrid}>
-        <View style={styles.infoPill}>
-          <Text style={styles.infoLabel}>Targets</Text>
-          <Text style={styles.infoValue}>{selectedExercise ? `${selectedExercise.targetSets ?? 3} x ${selectedExercise.targetReps ?? 8}` : '—'}</Text>
-        </View>
-        <View style={styles.infoPill}>
-          <Text style={styles.infoLabel}>Rest</Text>
-          <Text style={styles.infoValue}>{selectedExercise ? `${selectedExercise.restSeconds ?? 90}s` : '—'}</Text>
+    <AppCard style={styles.card}>
+      <View style={styles.headerRow}>
+        <View style={styles.headerCopy}>
+          <Text numberOfLines={2} selectable style={styles.exerciseName}>
+            {selectedExercise.name}
+          </Text>
+          <Text selectable style={styles.positionText}>
+            Exercise {selectedExerciseIndex + 1} of {totalExercises}
+          </Text>
         </View>
       </View>
 
-      <View style={styles.historyBlock}>
-        <Text selectable style={styles.historyTitle}>
-          Previous sets
-        </Text>
-        {previousSets.length === 0 ? (
-          <Text selectable style={styles.emptyHistory}>
-            No previous sets yet.
-          </Text>
-        ) : (
-          previousSets.map((set) => (
-            <View key={set.id} style={styles.historyRow}>
-              <Text selectable style={styles.historyDate}>
-                {set.workoutDate}
-              </Text>
-              <Text selectable style={styles.historyMeta}>
-                {set.weight} kg x {set.reps}
-              </Text>
-            </View>
-          ))
-        )}
-      </View>
+      <Text selectable style={styles.prescriptionText}>
+        {prescriptionLabel}
+      </Text>
 
-      <View style={styles.historyBlock}>
-        <Text selectable style={styles.historyTitle}>
-          Exercise PRs
+      {previousSummary ? (
+        <Text numberOfLines={2} selectable style={styles.quietText}>
+          {previousSummary}
         </Text>
-        {exercisePrs.length === 0 ? (
-          <Text selectable style={styles.emptyHistory}>
-            No PRs yet.
-          </Text>
-        ) : (
-          exercisePrs.map((pr) => (
-            <View key={pr.id} style={styles.prRow}>
-              <View style={styles.prContent}>
-                <Text selectable style={styles.prLabel}>
-                  {pr.label}
-                </Text>
-                <Text selectable style={styles.prValue}>
-                  {pr.value}
-                </Text>
-              </View>
-              <Text selectable style={styles.historyDate}>
-                {pr.date}
-              </Text>
-            </View>
-          ))
-        )}
-      </View>
+      ) : null}
+      {prSummary ? (
+        <Text numberOfLines={2} selectable style={styles.quietText}>
+          {prSummary}
+        </Text>
+      ) : null}
 
       <View style={styles.inputsRow}>
         <View style={styles.inputGroup}>
@@ -105,10 +99,14 @@ export function WorkoutSessionSetEditor({
             Weight
           </Text>
           <TextInput
+            accessibilityLabel="Weight"
+            autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="decimal-pad"
             onChangeText={onWeightChange}
             placeholder="0"
-            placeholderTextColor={Colors.dark.textSecondary}
+            placeholderTextColor={colors.textMuted}
+            selectionColor={colors.accent}
             style={styles.input}
             value={weight}
           />
@@ -119,136 +117,130 @@ export function WorkoutSessionSetEditor({
             Reps
           </Text>
           <TextInput
+            accessibilityLabel="Reps"
+            autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="number-pad"
             onChangeText={onRepsChange}
             placeholder="0"
-            placeholderTextColor={Colors.dark.textSecondary}
+            placeholderTextColor={colors.textMuted}
+            selectionColor={colors.accent}
             style={styles.input}
             value={reps}
           />
         </View>
       </View>
 
-      <AppButton label={editingSetId ? 'Save set' : 'Add set'} onPress={onSaveSet} />
-      {editingSetId ? <AppButton label="Cancel edit" onPress={onCancelEdit} variant="secondary" /> : null}
+      <Pressable accessibilityRole="button" onPress={onSaveSet} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
+        <Text style={styles.primaryLabel}>{editingSetId ? 'Save set' : 'Add set'}</Text>
+      </Pressable>
+
+      {editingSetId ? (
+        <Pressable accessibilityRole="button" onPress={onCancelEdit} style={({ pressed }) => [styles.cancelEditButton, pressed && styles.cancelEditPressed]}>
+          <Text style={styles.cancelEditLabel}>Cancel edit</Text>
+        </Pressable>
+      ) : null}
     </AppCard>
   );
 }
 
-const styles = StyleSheet.create({
-  emptyHistory: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-  },
-  historyBlock: {
-    gap: Spacing.one,
-  },
-  historyDate: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-  },
-  historyMeta: {
-    color: Colors.dark.text,
-    fontSize: 14,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '800',
-  },
-  historyRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'space-between',
-  },
-  historyTitle: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  infoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  infoLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  infoPill: {
-    backgroundColor: Colors.dark.backgroundSelected,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 12,
-    borderWidth: 1,
-    flex: 1,
-    gap: 4,
-    minWidth: 120,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.two,
-  },
-  infoValue: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  input: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 8,
-    borderWidth: 1,
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontVariant: ['tabular-nums'],
-    minHeight: 48,
-    paddingHorizontal: Spacing.two,
-  },
-  inputGroup: {
-    flex: 1,
-    gap: Spacing.one,
-    minWidth: 120,
-  },
-  inputLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  inputsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  prContent: {
-    flex: 1,
-    gap: Spacing.one,
-  },
-  prLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  prRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'space-between',
-  },
-  prValue: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '800',
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  selectedExerciseName: {
-    color: Colors.dark.accent,
-    fontSize: 20,
-    fontWeight: '900',
-  },
-});
+const createStyles = (colors: typeof Colors.dark) =>
+  StyleSheet.create({
+    card: {
+      gap: Spacing.three,
+      padding: Spacing.four,
+    },
+    cancelEditButton: {
+      alignSelf: 'flex-start',
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: 2,
+    },
+    cancelEditLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      fontWeight: Typography.button.fontWeight,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    cancelEditPressed: {
+      opacity: 0.72,
+    },
+    exerciseName: {
+      color: colors.textPrimary,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: '900',
+      lineHeight: Typography.cardTitle.lineHeight,
+    },
+    headerCopy: {
+      gap: 2,
+      minWidth: 0,
+    },
+    headerRow: {
+      gap: Spacing.one,
+    },
+    input: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.medium,
+      borderWidth: StyleSheet.hairlineWidth,
+      color: colors.textPrimary,
+      flex: 1,
+      fontSize: 18,
+      fontVariant: ['tabular-nums'],
+      minHeight: 48,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: 12,
+    },
+    inputGroup: {
+      flex: 1,
+      gap: 4,
+      minWidth: 0,
+    },
+    inputLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.label.fontSize,
+      fontWeight: Typography.label.fontWeight,
+      lineHeight: Typography.label.lineHeight,
+    },
+    inputsRow: {
+      flexDirection: 'row',
+      gap: Spacing.two,
+    },
+    positionText: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    prescriptionText: {
+      color: colors.textPrimary,
+      fontSize: Typography.bodyEmphasized.fontSize,
+      fontWeight: Typography.bodyEmphasized.fontWeight,
+      lineHeight: Typography.bodyEmphasized.lineHeight,
+    },
+    primaryButton: {
+      alignItems: 'center',
+      alignSelf: 'stretch',
+      backgroundColor: colors.accent,
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      justifyContent: 'center',
+      minHeight: 48,
+      paddingHorizontal: Spacing.four,
+      paddingVertical: Spacing.two,
+    },
+    primaryLabel: {
+      color: colors.textOnAccent,
+      fontSize: Typography.button.fontSize,
+      fontWeight: Typography.button.fontWeight,
+      lineHeight: Typography.button.lineHeight,
+    },
+    primaryPressed: {
+      backgroundColor: colors.accentPressed,
+    },
+    quietText: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+  });

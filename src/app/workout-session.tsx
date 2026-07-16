@@ -1,17 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WorkoutSessionEmptyState } from '@/components/workouts/WorkoutSessionEmptyState';
 import { WorkoutSessionExerciseNavigator } from '@/components/workouts/WorkoutSessionExerciseNavigator';
 import { WorkoutSessionHeader } from '@/components/workouts/WorkoutSessionHeader';
-import { WorkoutSessionProgressCard } from '@/components/workouts/WorkoutSessionProgressCard';
 import { WorkoutSessionSetEditor } from '@/components/workouts/WorkoutSessionSetEditor';
 import { WorkoutSessionSetHistory } from '@/components/workouts/WorkoutSessionSetHistory';
-import { AppButton } from '@/components/ui/AppButton';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext, WorkoutSet } from '@/context/AppContext';
 import {
   clearActiveWorkoutSessionDraft,
@@ -19,19 +16,19 @@ import {
   setActiveWorkoutSessionDraft,
 } from '@/lib/workouts';
 import {
-  getWorkoutSessionEstimatedDuration,
   getWorkoutSessionExercisePrs,
   getWorkoutSessionPreviousSets,
   getWorkoutSessionProgress,
   resolveWorkoutSessionExercises,
 } from '@/lib/workouts/workout-session';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 export default function WorkoutSessionScreen() {
   const { workouts, workoutSessions, saveWorkoutSession } = useAppContext();
   const { workoutId } = useLocalSearchParams();
+  const { colors } = useAppTheme();
   const safeAreaInsets = useSafeAreaInsets();
   const requestedWorkoutId = Array.isArray(workoutId) ? workoutId[0] : workoutId;
-  const activeWorkoutDraft = useMemo(() => getActiveWorkoutSessionDraft(), [requestedWorkoutId]);
   const workout = useMemo(() => {
     if (requestedWorkoutId === 'empty-workout') {
       return {
@@ -48,7 +45,7 @@ export default function WorkoutSessionScreen() {
     return workouts.find((candidate) => candidate.id === requestedWorkoutId) ?? workouts[0] ?? null;
   }, [requestedWorkoutId, workouts]);
   const workoutExercises = useMemo(() => (workout ? resolveWorkoutSessionExercises(workout) : []), [workout]);
-  const estimatedDuration = useMemo(() => (workout ? getWorkoutSessionEstimatedDuration(workout) : '0 min'), [workout]);
+  const activeWorkoutDraft = useMemo(() => getActiveWorkoutSessionDraft(), [requestedWorkoutId]);
   const initialDraft = workout && activeWorkoutDraft?.workoutId === workout.id ? activeWorkoutDraft : null;
   const [startedAt, setStartedAt] = useState(initialDraft?.startedAt ?? new Date().toISOString());
   const [selectedExerciseId, setSelectedExerciseId] = useState(initialDraft?.sets.at(-1)?.exerciseId ?? workoutExercises[0]?.id ?? '');
@@ -104,11 +101,22 @@ export default function WorkoutSessionScreen() {
   const progress = useMemo(() => getWorkoutSessionProgress(workoutExercises, selectedExerciseId), [workoutExercises, selectedExerciseId]);
   const previousSets = useMemo(() => getWorkoutSessionPreviousSets(progress.selectedExercise, workoutSessions), [progress.selectedExercise, workoutSessions]);
   const exercisePrs = useMemo(() => getWorkoutSessionExercisePrs(progress.selectedExercise, workoutSessions), [progress.selectedExercise, workoutSessions]);
+  const hasWorkout = Boolean(workout);
+  const hasExercises = workoutExercises.length > 0;
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const progressSummary = hasExercises
+    ? `Exercise ${progress.selectedExerciseIndex + 1} of ${workoutExercises.length} · ${sets.length} ${sets.length === 1 ? 'set' : 'sets'}`
+    : 'No exercises';
 
-  if (!workout) {
+  if (!hasWorkout) {
     return (
-      <View style={styles.screen}>
-        <WorkoutSessionEmptyState onGoBack={() => router.replace('/')} />
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <WorkoutSessionEmptyState
+          actionLabel="Back to Workouts"
+          description="Open a workout from the Workouts tab to continue logging sets."
+          onAction={() => router.replace('/workouts')}
+          title="No workout selected"
+        />
       </View>
     );
   }
@@ -153,14 +161,23 @@ export default function WorkoutSessionScreen() {
     setReps(`${set.reps}`);
   };
 
-  const handleDeleteSet = (setId: string) => {
-    setSets((currentSets) => currentSets.filter((set) => set.id !== setId));
+  const handleRequestDeleteSet = (set: WorkoutSet) => {
+    Alert.alert('Delete set?', `Delete ${set.exerciseName} · ${set.weight} kg × ${set.reps}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete set',
+        style: 'destructive',
+        onPress: () => {
+          setSets((currentSets) => currentSets.filter((item) => item.id !== set.id));
 
-    if (editingSetId === setId) {
-      setEditingSetId(undefined);
-      setWeight('60');
-      setReps('8');
-    }
+          if (editingSetId === set.id) {
+            setEditingSetId(undefined);
+            setWeight('60');
+            setReps('8');
+          }
+        },
+      },
+    ]);
   };
 
   const handleFinishWorkout = () => {
@@ -201,107 +218,152 @@ export default function WorkoutSessionScreen() {
     ]);
   };
 
+  const zeroExerciseDescription = 'This workout has no exercises yet. The current empty-workout draft does not support adding exercises in-session, so return to Workouts to choose another plan.';
+
   return (
-    <View style={styles.screen}>
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]}
-        keyboardShouldPersistTaps="handled"
-        style={styles.scrollView}>
-        <View style={styles.container}>
-          <WorkoutSessionHeader estimatedDuration={estimatedDuration} setsCount={sets.length} workoutTitle={workout.title} />
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.screen, { backgroundColor: colors.background }]}>
+      <View style={styles.fill}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 192 }]}
+          keyboardShouldPersistTaps="handled"
+          style={styles.scrollView}>
+          <View style={styles.container}>
+            {hasExercises ? (
+              <>
+                <WorkoutSessionHeader
+                  nextExerciseName={progress.nextExercise?.name}
+                  progressPercent={progress.progressPercent}
+                  summaryLabel={progressSummary}
+                  workoutTitle={workout.title}
+                />
 
-          <WorkoutSessionProgressCard
-            nextExerciseName={progress.nextExercise?.name}
-            progressLabel={progress.progressLabel}
-            progressPercent={progress.progressPercent}
-            selectedExerciseName={progress.selectedExercise?.name}
-          />
+                <WorkoutSessionExerciseNavigator
+                  onSelectExercise={setSelectedExerciseId}
+                  selectedExerciseId={selectedExerciseId}
+                  selectedExerciseIndex={progress.selectedExerciseIndex}
+                  workoutExercises={workoutExercises}
+                />
 
-          <WorkoutSessionExerciseNavigator
-            onSelectExercise={setSelectedExerciseId}
-            selectedExerciseId={selectedExerciseId}
-            selectedExerciseIndex={progress.selectedExerciseIndex}
-            workoutExercises={workoutExercises}
-          />
+                <WorkoutSessionSetEditor
+                  editingSetId={editingSetId}
+                  exercisePrs={exercisePrs}
+                  onCancelEdit={() => setEditingSetId(undefined)}
+                  onRepsChange={setReps}
+                  onSaveSet={handleSaveSet}
+                  onWeightChange={setWeight}
+                  previousSets={previousSets}
+                  reps={reps}
+                  selectedExercise={progress.selectedExercise}
+                  selectedExerciseIndex={progress.selectedExerciseIndex}
+                  totalExercises={workoutExercises.length}
+                  weight={weight}
+                />
 
-          <WorkoutSessionSetEditor
-            editingSetId={editingSetId}
-            exercisePrs={exercisePrs}
-            onCancelEdit={() => setEditingSetId(undefined)}
-            onRepsChange={setReps}
-            onSaveSet={handleSaveSet}
-            onWeightChange={setWeight}
-            previousSets={previousSets}
-            reps={reps}
-            selectedExercise={progress.selectedExercise}
-            weight={weight}
-          />
-
-          <WorkoutSessionSetHistory onDeleteSet={handleDeleteSet} onEditSet={handleEditSet} sets={sets} />
-        </View>
-      </ScrollView>
-
-      <View
-        style={[
-          styles.footer,
-          {
-            paddingBottom: safeAreaInsets.bottom + Spacing.two,
-          },
-        ]}>
-        <View style={styles.footerInner}>
-          <View style={styles.cancelButtonSlot}>
-            <AppButton label="Cancel workout" onPress={handleCancelWorkout} variant="secondary" />
+                <WorkoutSessionSetHistory onDeleteSet={handleRequestDeleteSet} onEditSet={handleEditSet} sets={sets} />
+              </>
+            ) : (
+              <WorkoutSessionEmptyState actionLabel="Return to Workouts" description={zeroExerciseDescription} onAction={() => router.replace('/workouts')} title={workout.title} />
+            )}
           </View>
-          <View style={styles.finishButtonSlot}>
-            <AppButton disabled={sets.length === 0} label="Finish workout" onPress={handleFinishWorkout} />
+        </ScrollView>
+
+        <View style={[styles.footer, { backgroundColor: colors.background, borderColor: colors.borderSubtle, paddingBottom: safeAreaInsets.bottom + Spacing.two }]}>
+          <View style={styles.footerInner}>
+            <Pressable accessibilityRole="button" onPress={handleCancelWorkout} style={({ pressed }) => [styles.footerButton, styles.footerCancelButton, pressed && styles.footerPressed]}>
+              <Text style={styles.footerCancelLabel}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: sets.length === 0 }}
+              disabled={sets.length === 0}
+              onPress={handleFinishWorkout}
+              style={({ pressed }) => [styles.footerButton, styles.footerFinishButton, sets.length === 0 && styles.footerDisabled, pressed && sets.length > 0 && styles.footerPressed]}>
+              <Text style={[styles.footerFinishLabel, sets.length === 0 && styles.footerLabelDisabled]}>Finish workout</Text>
+            </Pressable>
           </View>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  cancelButtonSlot: {
-    flex: 1,
-  },
-  container: {
-    gap: Spacing.three,
-    maxWidth: MaxContentWidth,
-    width: '100%',
-  },
-  content: {
-    alignItems: 'center',
-    padding: Spacing.three,
-  },
-  finishButtonSlot: {
-    flex: 1.6,
-  },
-  footer: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
-    bottom: 0,
-    left: 0,
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.two,
-    position: 'absolute',
-    right: 0,
-  },
-  footerInner: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    gap: Spacing.two,
-    maxWidth: MaxContentWidth,
-    width: '100%',
-  },
-  screen: {
-    backgroundColor: Colors.dark.background,
-    flex: 1,
-  },
-  scrollView: {
-    backgroundColor: Colors.dark.background,
-    flex: 1,
-  },
-});
+const createStyles = (colors: typeof Colors.dark) =>
+  StyleSheet.create({
+    container: {
+      gap: Spacing.three,
+      maxWidth: MaxContentWidth,
+      width: '100%',
+    },
+    content: {
+      alignItems: 'center',
+      padding: Spacing.three,
+      paddingTop: Spacing.three,
+    },
+    fill: {
+      flex: 1,
+    },
+    footer: {
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.two,
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    footerButton: {
+      alignItems: 'center',
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      justifyContent: 'center',
+      minHeight: 48,
+      paddingHorizontal: Spacing.four,
+      paddingVertical: Spacing.two,
+    },
+    footerCancelButton: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderWidth: StyleSheet.hairlineWidth,
+      flex: 0.92,
+    },
+    footerCancelLabel: {
+      color: colors.textPrimary,
+      fontSize: Typography.button.fontSize,
+      fontWeight: Typography.button.fontWeight,
+      lineHeight: Typography.button.lineHeight,
+    },
+    footerDisabled: {
+      opacity: 0.45,
+    },
+    footerFinishButton: {
+      backgroundColor: colors.accent,
+      flex: 1.35,
+    },
+    footerFinishLabel: {
+      color: colors.textOnAccent,
+      fontSize: Typography.button.fontSize,
+      fontWeight: Typography.button.fontWeight,
+      lineHeight: Typography.button.lineHeight,
+    },
+    footerInner: {
+      alignSelf: 'center',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      maxWidth: MaxContentWidth,
+      width: '100%',
+    },
+    footerLabelDisabled: {
+      color: colors.textSecondary,
+    },
+    footerPressed: {
+      opacity: 0.82,
+    },
+    screen: {
+      flex: 1,
+    },
+    scrollView: {
+      flex: 1,
+    },
+  });

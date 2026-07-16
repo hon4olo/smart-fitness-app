@@ -1,39 +1,78 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AppButton } from '@/components/ui/AppButton';
-import { Colors, Spacing } from '@/constants/theme';
+import { AppCard } from '@/components/ui/AppCard';
+import { Colors, Spacing, Typography } from '@/constants/theme';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type WorkoutSessionEmptyStateProps = {
-  onGoBack: () => void;
+  actionLabel: string;
+  description: string;
+  onAction: () => void;
+  title: string;
 };
 
-export function WorkoutSessionEmptyState({ onGoBack }: WorkoutSessionEmptyStateProps) {
+export function WorkoutSessionEmptyState({ actionLabel, description, onAction, title }: WorkoutSessionEmptyStateProps) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
-    <View style={styles.emptyScreen}>
-      <Text style={styles.emptyTitle}>No workout selected</Text>
-      <Text style={styles.emptyDescription}>Create a template first, then start a session from the workouts tab.</Text>
-      <AppButton label="Go back" onPress={onGoBack} />
-    </View>
+    <AppCard style={styles.card}>
+      <View style={styles.copy}>
+        <Text selectable style={styles.title}>
+          {title}
+        </Text>
+        <Text selectable style={styles.description}>
+          {description}
+        </Text>
+      </View>
+
+      <Pressable accessibilityRole="button" onPress={onAction} style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}>
+        <Text style={styles.buttonLabel}>{actionLabel}</Text>
+      </Pressable>
+    </AppCard>
   );
 }
 
-const styles = StyleSheet.create({
-  emptyDescription: {
-    color: Colors.dark.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  emptyScreen: {
-    alignItems: 'center',
-    flex: 1,
-    gap: Spacing.two,
-    justifyContent: 'center',
-    padding: Spacing.four,
-  },
-  emptyTitle: {
-    color: Colors.dark.text,
-    fontSize: 20,
-    fontWeight: '900',
-  },
-});
+const createStyles = (colors: typeof Colors.dark) =>
+  StyleSheet.create({
+    button: {
+      alignItems: 'center',
+      alignSelf: 'stretch',
+      backgroundColor: colors.accent,
+      borderCurve: 'continuous',
+      borderRadius: 16,
+      justifyContent: 'center',
+      minHeight: 48,
+      paddingHorizontal: Spacing.four,
+      paddingVertical: Spacing.two,
+    },
+    buttonLabel: {
+      color: colors.textOnAccent,
+      fontSize: Typography.button.fontSize,
+      fontWeight: Typography.button.fontWeight,
+      lineHeight: Typography.button.lineHeight,
+    },
+    buttonPressed: {
+      backgroundColor: colors.accentPressed,
+    },
+    card: {
+      alignSelf: 'stretch',
+      gap: Spacing.three,
+      padding: Spacing.four,
+    },
+    copy: {
+      gap: Spacing.one,
+    },
+    description: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: '900',
+      lineHeight: Typography.cardTitle.lineHeight,
+    },
+  });
