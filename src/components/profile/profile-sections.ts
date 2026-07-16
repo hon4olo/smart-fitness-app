@@ -10,7 +10,7 @@ export type ProfileSectionDescriptor = {
   title: string;
 };
 
-export const PROFILE_SECTION_ORDER: ProfileSectionKey[] = ['account', 'goals', 'sync', 'preferences', 'developer'];
+export const PROFILE_SECTION_ORDER: ProfileSectionKey[] = ['account', 'goals', 'preferences', 'sync', 'developer'];
 
 export const getProfileSectionDescriptors = (
   sections: Record<ProfileSectionKey, Omit<ProfileSectionDescriptor, 'key'>>,

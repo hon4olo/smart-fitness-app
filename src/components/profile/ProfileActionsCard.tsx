@@ -12,18 +12,24 @@ export function ProfileActionsCard({ onResetOnboarding }: ProfileActionsCardProp
   return (
     <AppCard>
       <Text style={styles.title}>Developer settings</Text>
-      <Text style={styles.helpText}>Reset onboarding and other owner-only tools stay below the regular settings.</Text>
+      <Text style={styles.badge}>Developer</Text>
       <DestructiveButton accessibilityHint="Resets the setup flow for this device" label="Reset onboarding" onPress={onResetOnboarding} />
     </AppCard>
   );
 }
 
 const styles = {
-  helpText: {
+  badge: {
+    alignSelf: 'flex-start' as const,
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderRadius: 999,
     color: Colors.dark.textSecondary,
     fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
+    fontWeight: '700' as const,
     marginBottom: Spacing.two,
+    marginTop: Spacing.one,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 4,
   },
   title: {
     color: Colors.dark.text,

@@ -65,7 +65,7 @@ describe('consumer design foundation', () => {
   });
 
   it('keeps profile section order stable', () => {
-    expect(PROFILE_SECTION_ORDER).toEqual(['account', 'goals', 'sync', 'preferences', 'developer']);
+    expect(PROFILE_SECTION_ORDER).toEqual(['account', 'goals', 'preferences', 'sync', 'developer']);
   });
 
   it('keeps developer settings collapsed by default and exposes them when expanded', () => {

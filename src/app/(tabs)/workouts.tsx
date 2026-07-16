@@ -79,10 +79,7 @@ export default function WorkoutsScreen() {
             <AppCard>
               <View style={styles.sectionHeader}>
                 <Text selectable style={styles.sectionTitle}>
-                  {activeDraft ? 'Continue workout' : hasHistory ? 'Next workout' : 'Start now'}
-                </Text>
-                <Text selectable style={styles.sectionSubtitle}>
-                  {activeDraft ? activeDraft.progressLabel : starterSummary ? `${starterSummary.exerciseCount} exercises · ${starterSummary.estimatedDuration}` : 'Pick one workout and start'}
+                  {activeDraft ? 'Continue workout' : hasHistory ? 'Next workout' : 'Workout ready'}
                 </Text>
               </View>
 
@@ -104,9 +101,6 @@ export default function WorkoutsScreen() {
                 <View style={styles.sectionHeader}>
                   <Text selectable style={styles.sectionTitle}>
                     Recently used
-                  </Text>
-                  <Text selectable style={styles.sectionSubtitle}>
-                    Compact history
                   </Text>
                 </View>
 
@@ -147,19 +141,10 @@ export default function WorkoutsScreen() {
         ) : (
           <>
             {hasCustomPrograms ? (
-              <View style={styles.addProgramRow}>
-                <AppButton label="Add Program" onPress={handleOpenProgramBuilder} />
-              </View>
-            ) : null}
-
-            {hasCustomPrograms ? (
               <AppCard>
                 <View style={styles.sectionHeader}>
                   <Text selectable style={styles.sectionTitle}>
                     Programs
-                  </Text>
-                  <Text selectable style={styles.sectionSubtitle}>
-                    Saved plans
                   </Text>
                 </View>
 
@@ -174,6 +159,8 @@ export default function WorkoutsScreen() {
                     />
                   ))}
                 </View>
+
+                <AppButton label="Create Program" onPress={handleOpenProgramBuilder} variant="secondary" />
               </AppCard>
             ) : (
               <EmptyState

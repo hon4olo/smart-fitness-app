@@ -57,7 +57,6 @@ export default function HomeScreen() {
 
   const latestWeightEntry = progressAnalytics.weight.currentWeightEntry;
   const currentWeightLabel = latestWeightEntry ? `${latestWeightEntry.weight.toFixed(1)} kg` : profile.weight || '—';
-  const latestWorkoutLabel = currentWorkout ? currentWorkout.workoutTitle : 'No workouts yet';
   const caloriesRemaining = nutritionTargets.calories - todaysNutrition.calories;
   const caloriesRemainingLabel = caloriesRemaining < 0 ? `Over by ${Math.abs(caloriesRemaining).toFixed(0)} kcal` : `${caloriesRemaining.toFixed(0)} kcal left`;
 
@@ -149,7 +148,7 @@ export default function HomeScreen() {
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.screen}>
       <View style={styles.container}>
-        <SectionHeader title="Home" subtitle="Today’s essentials" />
+        <SectionHeader title="Home" />
 
         {!onboardingCompleted ? (
           <AppCard>
@@ -161,7 +160,7 @@ export default function HomeScreen() {
             </Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Current weight</Text>
+              <Text style={styles.inputLabel}>Starting weight</Text>
               <TextInput keyboardType="decimal-pad" onChangeText={setCurrentWeightInput} placeholder="82.7" placeholderTextColor={Colors.dark.textSecondary} style={styles.input} value={currentWeightInput} />
             </View>
 
@@ -190,7 +189,6 @@ export default function HomeScreen() {
               caloriesRemainingLabel={caloriesRemainingLabel}
               currentWeightLabel={currentWeightLabel}
               isCaloriesOverTarget={caloriesRemaining < 0}
-              latestWorkoutLabel={latestWorkoutLabel}
               motivation={motivation}
               streakLabel={currentWorkoutStreak ? `${currentWorkoutStreak.days}-day streak` : undefined}
             />
@@ -202,7 +200,7 @@ export default function HomeScreen() {
               }}
               secondaryActions={[
                 { label: 'Add food', onPress: () => router.push('/track') },
-                { label: 'Log weight', onPress: () => router.push('/progress') },
+                { label: 'Log weight', onPress: () => router.push('/weight-entry') },
               ]}
               title="Next action"
             />

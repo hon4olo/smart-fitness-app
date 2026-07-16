@@ -16,8 +16,9 @@ describe('product simplification 2.0', () => {
 
     expect(count(source, 'Start Empty Workout')).toBe(1);
     expect(count(source, 'actionLabel="Create Program"')).toBe(1);
-    expect(count(source, 'label="Add Program"')).toBe(1);
+    expect(count(source, 'label="Add Program"')).toBe(0);
     expect(source).toContain("label={activeDraft ? 'Continue workout' : 'Start workout'}");
+    expect(source).toContain('Workout ready');
   });
 
   test('progress screen keeps one weight summary and hides duplicate analytics blocks', () => {
@@ -65,8 +66,9 @@ describe('product simplification 2.0', () => {
 
     expect(source).toContain('Tabs');
     expect(source).not.toContain('NativeTabs');
-    expect(source).toContain('height: 56');
+    expect(source).toContain('tabBarHeight');
     expect(source).toContain('borderTopWidth: 0.5');
+    expect(source).toContain('paddingBottom: Math.max(insets.bottom, 6)');
     expect(source).not.toContain('capsule');
   });
 

@@ -38,10 +38,9 @@ const formatOtaValue = (value: unknown) => {
 };
 
 export default function ProfileScreen() {
-  const { profile, resetOnboarding, updateProfileGoals, weightHistory } = useAppContext();
+  const { profile, resetOnboarding, updateProfileGoals } = useAppContext();
   const { mode, setMode } = useAppTheme();
   const safeAreaInsets = useSafeAreaInsets();
-  const latestWeight = weightHistory[0];
   const [targetWeight, setTargetWeight] = useState(`${profile.targetWeight}`);
   const [goalType, setGoalType] = useState(profile.goalType);
   const [weeklyWeightChangeGoal, setWeeklyWeightChangeGoal] = useState(`${profile.weeklyWeightChangeGoal}`);
@@ -121,7 +120,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Goals and personal settings</Text>
+          <Text style={styles.sectionTitle}>Goals</Text>
           <ProfileGoalsCard
             goalType={goalType}
             isSaveDisabled={isSaveDisabled}
@@ -137,7 +136,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App preferences</Text>
+          <Text style={styles.sectionTitle}>Preferences</Text>
           <ProfilePreferencesCard
             activityLevel={profile.activityLevel}
             appearanceMode={mode}

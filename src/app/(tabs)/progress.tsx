@@ -4,7 +4,6 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddBodyMeasurementCard } from '@/components/progress/AddBodyMeasurementCard';
-import { AddWeightEntryCard } from '@/components/progress/AddWeightEntryCard';
 import { EmptyProgressState } from '@/components/progress/EmptyProgressState';
 import { ProgressTrendChart, type ProgressTrendPoint } from '@/components/progress/ProgressTrendChart';
 import { AppButton } from '@/components/ui/AppButton';
@@ -34,9 +33,8 @@ const SectionRow = memo(function SectionRow({ label, value, detail }: { detail?:
 });
 
 export default function ProgressScreen() {
-  const { addBodyMeasurement, addWeightEntry, bodyMeasurements, exercises, weightHistory, workoutSessions } = useAppContext();
+  const { addBodyMeasurement, bodyMeasurements, exercises, weightHistory, workoutSessions } = useAppContext();
   const safeAreaInsets = useSafeAreaInsets();
-  const [weight, setWeight] = useState('');
   const [measurementLabel, setMeasurementLabel] = useState('');
   const [measurementValue, setMeasurementValue] = useState('');
 
@@ -72,22 +70,10 @@ export default function ProgressScreen() {
   const weightTrendLabel = weightChange7d !== null ? `${formatProgressDelta(weightChange7d, 'kg')} this week` : 'No recent trend yet';
   const weightDetailLabel = analytics.weight.currentWeightEntry ? `Latest check-in · ${toDateLabel(analytics.weight.currentWeightEntry.createdAt)}` : 'Add a weight check-in to start tracking';
 
-  const isWeightDisabled = !Number.isFinite(Number(weight)) || Number(weight) <= 0;
   const isMeasurementDisabled = measurementLabel.trim().length === 0 || measurementValue.trim().length === 0;
 
-  const saveWeight = () => {
-    if (isWeightDisabled) {
-      return;
-    }
-
-    const now = new Date();
-    addWeightEntry({
-      id: `${Date.now()}`,
-      date: formatShortDate(now.toISOString()),
-      weight: Number(weight),
-      createdAt: now.toISOString(),
-    });
-    setWeight('');
+  const handleOpenWeightEntry = () => {
+    router.push('/weight-entry');
   };
 
   const saveMeasurement = () => {
@@ -150,16 +136,16 @@ export default function ProgressScreen() {
             <EmptyProgressState description="Add a couple of weigh-ins and the chart will appear here." message="No weight chart yet." title="Track a baseline" />
           )}
 
-          <AddWeightEntryCard isDisabled={isWeightDisabled} onChangeWeight={setWeight} onSave={saveWeight} weight={weight} />
+          <View style={styles.weightActions}>
+            <AppButton label="Add weight" onPress={handleOpenWeightEntry} />
+            <AppButton label="Training details" onPress={() => router.push('/weight-details')} variant="secondary" />
+          </View>
         </AppCard>
 
         <AppCard>
           <View style={styles.sectionHeader}>
             <Text selectable style={styles.sectionTitle}>
               Body measurements
-            </Text>
-            <Text selectable style={styles.sectionSubtitle}>
-              Latest readings only.
             </Text>
           </View>
 
@@ -207,6 +193,10 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     maxWidth: MaxContentWidth,
     width: '100%',
+  },
+  weightActions: {
+    gap: Spacing.two,
+    marginTop: Spacing.two,
   },
   content: {
     alignItems: 'center',

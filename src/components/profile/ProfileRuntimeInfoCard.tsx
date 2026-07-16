@@ -20,7 +20,6 @@ export function ProfileRuntimeInfoCard({
   return (
     <AppCard>
       <Text style={styles.title}>Runtime metadata</Text>
-      <Text style={styles.helpText}>Build and update details stay below the regular profile controls.</Text>
 
       <View style={styles.otaCard}>
         <Text style={styles.otaTitle}>OTA update</Text>
@@ -49,14 +48,9 @@ export function ProfileRuntimeInfoCard({
 }
 
 const styles = {
-  helpText: {
-    color: Colors.dark.textSecondary,
-    fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
-    marginBottom: Spacing.two,
-  },
   otaCard: {
     gap: Spacing.two,
+    marginTop: Spacing.two,
   },
   otaLabel: {
     color: Colors.dark.textSecondary,

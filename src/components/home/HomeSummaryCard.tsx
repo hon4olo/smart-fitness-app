@@ -7,7 +7,6 @@ type HomeSummaryCardProps = {
   caloriesRemainingLabel: string;
   currentWeightLabel: string;
   isCaloriesOverTarget: boolean;
-  latestWorkoutLabel: string;
   motivation: string;
   streakLabel?: string;
 };
@@ -25,7 +24,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function HomeSummaryCard({ caloriesRemainingLabel, currentWeightLabel, isCaloriesOverTarget, latestWorkoutLabel, motivation, streakLabel }: HomeSummaryCardProps) {
+export function HomeSummaryCard({ caloriesRemainingLabel, currentWeightLabel, isCaloriesOverTarget, motivation, streakLabel }: HomeSummaryCardProps) {
   return (
     <AppCard style={[styles.card, isCaloriesOverTarget && styles.cardWarning]}>
       <View style={styles.hero}>
@@ -53,7 +52,6 @@ export function HomeSummaryCard({ caloriesRemainingLabel, currentWeightLabel, is
 
       <View style={styles.statsGrid}>
         <MiniStat label="Current weight" value={currentWeightLabel} />
-        <MiniStat label="Latest workout" value={latestWorkoutLabel} />
         <MiniStat label="Streak" value={streakLabel ?? '—'} />
       </View>
     </AppCard>
