@@ -24,6 +24,7 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('weekSection');
     expect(source).toContain('weekDayButton');
     expect(source).toContain('weekDayHitArea');
+    expect(source).toContain('weekDayCircleLogged');
     expect(source).toContain('weekDayCheck');
     expect(count(source, 'weekDayButton')).toBe(2); // style + JSX usage
     expect(source).toContain('summarySection');
@@ -33,8 +34,10 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('mealIcon');
     expect(source).toContain('mealHeaderMeta');
     expect(source).toContain('mealSummaryStrip');
-    expect(source).toContain('mealSummaryMetric');
+    expect(source).toContain('mealSummaryMetricWithBorder');
+    expect(source).toContain('mealSummaryValue');
     expect(source).toContain('surfaceSecondary');
+    expect(source).not.toContain('mealSummaryLabel');
     expect(source).not.toContain('mealSummaryCount');
     expect(source).not.toContain('Consumed today');
     expect(source).not.toContain('This week');
@@ -48,6 +51,9 @@ describe('nutrition compact diary 5.0', () => {
     expect(source).toContain('mealActionIcon');
     expect(source).toContain('foodRow');
     expect(source).toContain('foodRowCalories');
+    expect(source).toContain('foodRowMacroLine');
+    expect(source).toContain('foodRowMacroServing');
+    expect(source).toContain('foodRowMacroValue');
     expect(source).toContain('detailsSection');
     expect(source).toContain('detailRow');
     expect(source).not.toContain('remaining');
@@ -70,13 +76,17 @@ describe('nutrition compact diary 5.0', () => {
 
     expect(source).toContain('mealGroup');
     expect(source).toContain('mealSummaryStrip');
-    expect(source).toContain('mealSummaryMetric');
+    expect(source).toContain('mealSummaryValue');
+    expect(source).toContain('mealSummaryMetricWithBorder');
     expect(source).toContain('mealHeaderMeta');
     expect(source).toContain('formatMealItemCount');
     expect(source).toContain('mealHeaderActions');
     expect(source).toContain('mealActionButton');
     expect(source).toContain('chevronText');
     expect(source).toContain('foodRowDivider');
+    expect(source).toContain('foodRowMacroLine');
+    expect(source).toContain('foodRowMacroServing');
+    expect(source).not.toContain('mealSummaryLabel');
     expect(source).not.toContain('mealSummaryCount');
     expect(source).not.toContain('Delete ${entry.name}');
     expect(source).not.toContain('deleteButton');
@@ -109,6 +119,7 @@ describe('nutrition compact diary 5.0', () => {
 
     expect(source).toContain('useAppContext');
     expect(source).toContain('getLoggedFoodDates');
+    expect(source).toContain('dayCellLogged');
     expect(source).toContain('dayCellCheck');
     expect(source).toContain('food logged');
     expect(source).toContain('no food logged');
@@ -119,6 +130,8 @@ describe('nutrition compact diary 5.0', () => {
     expect(formatMealItemCount(0)).toBe('No items yet');
     expect(formatMealItemCount(1)).toBe('1 item');
     expect(formatMealItemCount(2)).toBe('2 items');
+
+    expect(getLoggedFoodDates([]).has('2026-01-02')).toBe(false);
 
     const dates = getLoggedFoodDates([{ date: '2026-01-02' }, { date: '2026-01-02' }, { date: '2026-01-03' }]);
     expect(dates.has('2026-01-02')).toBe(true);

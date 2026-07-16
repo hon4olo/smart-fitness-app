@@ -156,7 +156,8 @@ export default function NutritionDatePickerScreen() {
                   style={[
                     styles.dayCell,
                     !day.inMonth && styles.dayCellMuted,
-                    day.isToday && styles.dayCellToday,
+                    day.isLogged && styles.dayCellLogged,
+                    day.isToday && !day.isLogged && styles.dayCellToday,
                     day.isSelected && styles.dayCellSelected,
                   ]}>
                   <Text
@@ -169,7 +170,7 @@ export default function NutritionDatePickerScreen() {
                     {day.dayLabel}
                   </Text>
                   {day.isLogged ? <Text style={[styles.dayCellCheck, day.isSelected && styles.dayCellCheckSelected]}>✓</Text> : null}
-                  {day.isToday ? <View style={[styles.todayDot, day.isSelected && styles.todayDotSelected]} /> : null}
+                  {day.isToday && !day.isLogged ? <View style={[styles.todayDot, day.isSelected && styles.todayDotSelected]} /> : null}
                 </Pressable>
               ))}
             </View>
@@ -228,14 +229,17 @@ const createStyles = (colors: typeof Colors.dark) =>
     },
     dayCellCheck: {
       color: colors.accent,
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: '900',
-      position: 'absolute',
-      right: 4,
-      top: 4,
+      lineHeight: 8,
+      textAlign: 'center',
     },
     dayCellCheckSelected: {
       color: colors.textOnAccent,
+    },
+    dayCellLogged: {
+      borderColor: colors.accentSoft,
+      borderWidth: 1,
     },
     dayCellToday: {
       borderColor: colors.accent,

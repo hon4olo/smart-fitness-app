@@ -226,9 +226,16 @@ export default function NutritionScreen() {
                 onPress={() => updateSelectedDate(day.dateKey)}
                 style={styles.weekDayButton}>
                 <View style={styles.weekDayHitArea}>
-                  <View style={[styles.weekDayCircle, day.isSelected && styles.weekDayCircleSelected, day.isToday && styles.weekDayCircleToday, day.isSelected && day.isToday && styles.weekDayCircleTodaySelected]}>
-                    {day.isToday ? <View style={[styles.weekDayTodayDot, day.isSelected && styles.weekDayTodayDotSelected]} /> : null}
+                  <View
+                    style={[
+                      styles.weekDayCircle,
+                      day.isLogged && styles.weekDayCircleLogged,
+                      day.isSelected && styles.weekDayCircleSelected,
+                      day.isToday && !day.isLogged && styles.weekDayCircleToday,
+                      day.isSelected && day.isToday && styles.weekDayCircleTodaySelected,
+                    ]}>
                     {day.isLogged ? <Text style={[styles.weekDayCheck, day.isSelected && styles.weekDayCheckSelected]}>✓</Text> : null}
+                    {day.isToday && !day.isLogged ? <View style={[styles.weekDayTodayDot, day.isSelected && styles.weekDayTodayDotSelected]} /> : null}
                   </View>
                 </View>
                 <Text numberOfLines={1} selectable style={[styles.weekDayLabel, day.isSelected && styles.weekDayLabelSelected]}>
@@ -320,48 +327,33 @@ export default function NutritionScreen() {
                   </Pressable>
 
                   <View style={styles.mealSummaryStrip}>
-                    <View style={styles.mealSummaryMetric}>
-                      <Text selectable style={styles.mealSummaryLabel}>
-                        Fat
-                      </Text>
-                      <Text selectable style={styles.mealSummaryValue}>
-                        {formatNumber(subtotal.fats)} g
-                      </Text>
-                    </View>
-
-                    <View style={styles.mealSummaryMetric}>
-                      <Text selectable style={styles.mealSummaryLabel}>
-                        Carbs
-                      </Text>
-                      <Text selectable style={styles.mealSummaryValue}>
-                        {formatNumber(subtotal.carbs)} g
-                      </Text>
-                    </View>
-
-                    <View style={styles.mealSummaryMetric}>
-                      <Text selectable style={styles.mealSummaryLabel}>
-                        Protein
-                      </Text>
-                      <Text selectable style={styles.mealSummaryValue}>
-                        {formatNumber(subtotal.protein)} g
-                      </Text>
-                    </View>
-
-                    <View style={styles.mealSummaryMetric}>
-                      <Text selectable style={styles.mealSummaryLabel}>
-                        %
-                      </Text>
-                      <Text selectable style={styles.mealSummaryValue}>
-                        {mealTargetPercentLabel}
-                      </Text>
-                    </View>
+                    {[
+                      { key: 'fats', value: `${formatNumber(subtotal.fats)} g`, width: 1.6 },
+                      { key: 'carbs', value: `${formatNumber(subtotal.carbs)} g`, width: 1.8 },
+                      { key: 'protein', value: `${formatNumber(subtotal.protein)} g`, width: 2 },
+                      { key: 'target', value: mealTargetPercentLabel, width: 1.6 },
+                    ].map((metric, index) => (
+                      <View
+                        key={metric.key}
+                        style={[
+                          styles.mealSummaryMetric,
+                          { flexGrow: metric.width, flexBasis: 0 },
+                          index > 0 && styles.mealSummaryMetricWithBorder,
+                        ]}>
+                        <Text selectable style={styles.mealSummaryValue}>
+                          {metric.value}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
 
                   {expanded ? (
                     <View style={styles.foodList}>
                       {entries.length > 0 ? (
                         entries.map((entry, index) => {
-                          const detailParts = [entry.brandName, getServingInfo(entry)].filter(Boolean);
+                          const servingInfo = getServingInfo(entry);
+                          const foodTargetPercent = nutritionTargets.calories > 0 ? Math.round((entry.calories / nutritionTargets.calories) * 100) : 0;
+                          const foodTargetPercentLabel = nutritionTargets.calories > 0 ? `${foodTargetPercent}%` : '--';
                           return (
                             <Pressable
                               key={entry.id}
@@ -370,17 +362,44 @@ export default function NutritionScreen() {
                               hitSlop={10}
                               onPress={() => editFoodEntry(entry)}
                               style={[styles.foodRow, index > 0 && styles.foodRowDivider]}>
-                              <View style={styles.foodRowCopy}>
-                                <Text selectable style={styles.foodRowTitle}>
-                                  {entry.name}
-                                </Text>
-                                <Text selectable style={styles.foodRowDetail}>
-                                  {detailParts.join(' · ')}
+                              <View style={styles.foodRowTop}>
+                                <View style={styles.foodRowCopy}>
+                                  <Text selectable style={styles.foodRowTitle}>
+                                    {entry.name}
+                                  </Text>
+                                  <Text selectable style={styles.foodRowDetail}>
+                                    {entry.brandName || servingInfo ? [entry.brandName, servingInfo].filter(Boolean).join(' · ') : '—'}
+                                  </Text>
+                                </View>
+                                <Text selectable style={styles.foodRowCalories}>
+                                  {formatNumber(entry.calories)} kcal
                                 </Text>
                               </View>
-                              <Text selectable style={styles.foodRowCalories}>
-                                {formatNumber(entry.calories)} kcal
-                              </Text>
+
+                              <View style={styles.foodRowMacroLine}>
+                                <Text selectable style={styles.foodRowMacroServing}>
+                                  {servingInfo || '—'}
+                                </Text>
+
+                                {[
+                                  { key: 'fats', value: `${formatNumber(entry.fats)} g`, width: 1.6 },
+                                  { key: 'carbs', value: `${formatNumber(entry.carbs)} g`, width: 1.8 },
+                                  { key: 'protein', value: `${formatNumber(entry.protein)} g`, width: 2 },
+                                  { key: 'target', value: foodTargetPercentLabel, width: 1.6 },
+                                ].map((metric, metricIndex) => (
+                                  <View
+                                    key={metric.key}
+                                    style={[
+                                      styles.foodRowMacroMetric,
+                                      { flexGrow: metric.width, flexBasis: 0 },
+                                      metricIndex > 0 && styles.foodRowMacroMetricWithBorder,
+                                    ]}>
+                                    <Text selectable style={styles.foodRowMacroValue}>
+                                      {metric.value}
+                                    </Text>
+                                  </View>
+                                ))}
+                              </View>
                             </Pressable>
                           );
                         })
@@ -469,7 +488,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       paddingTop: Spacing.three,
     },
     foodList: {
-      backgroundColor: colors.backgroundSecondary,
+      backgroundColor: colors.surfaceSecondary,
       borderTopColor: colors.borderSubtle,
       borderTopWidth: StyleSheet.hairlineWidth,
       gap: Spacing.one,
@@ -477,9 +496,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       paddingVertical: Spacing.two,
     },
     foodRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: Spacing.two,
+      gap: Spacing.one,
       minHeight: 44,
     },
     foodRowCalories: {
@@ -487,6 +504,41 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontSize: 13,
       fontWeight: '800',
       fontVariant: ['tabular-nums'],
+      textAlign: 'right',
+    },
+    foodRowMacroLine: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 0,
+      minHeight: 22,
+    },
+    foodRowMacroMetric: {
+      flex: 1,
+      minWidth: 0,
+      paddingHorizontal: Spacing.one,
+    },
+    foodRowMacroMetricWithBorder: {
+      borderLeftColor: colors.borderSubtle,
+      borderLeftWidth: StyleSheet.hairlineWidth,
+    },
+    foodRowMacroServing: {
+      color: colors.textSecondary,
+      flex: 1.2,
+      fontSize: 11,
+      fontWeight: '700',
+      minWidth: 0,
+    },
+    foodRowMacroValue: {
+      color: colors.textPrimary,
+      fontSize: 11,
+      fontWeight: '800',
+      fontVariant: ['tabular-nums'],
+      textAlign: 'center',
+    },
+    foodRowTop: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: Spacing.two,
     },
     foodRowCopy: {
       flex: 1,
@@ -617,24 +669,22 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontWeight: '700',
     },
     mealSummaryStrip: {
-      backgroundColor: colors.surfaceSecondary,
+      backgroundColor: colors.backgroundSecondary,
       borderTopColor: colors.borderSubtle,
       borderTopWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
-      gap: Spacing.one,
+      gap: 0,
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
-    },
-    mealSummaryLabel: {
-      color: colors.textSecondary,
-      fontSize: 10,
-      fontWeight: '700',
-      lineHeight: 12,
-      textTransform: 'uppercase',
     },
     mealSummaryMetric: {
       flex: 1,
       minWidth: 0,
+      paddingHorizontal: Spacing.one,
+    },
+    mealSummaryMetricWithBorder: {
+      borderLeftColor: colors.borderSubtle,
+      borderLeftWidth: StyleSheet.hairlineWidth,
     },
     mealSummaryValue: {
       color: colors.textPrimary,
@@ -642,6 +692,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontWeight: '800',
       fontVariant: ['tabular-nums'],
       lineHeight: 16,
+      textAlign: 'center',
     },
     mealTitle: {
       color: colors.textPrimary,
@@ -721,7 +772,13 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontWeight: '800',
     },
     summarySection: {
-      gap: Spacing.one,
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.medium,
+      borderWidth: StyleSheet.hairlineWidth,
+      gap: 0,
+      overflow: 'hidden',
     },
     summaryGrid: {
       flexDirection: 'row',
@@ -734,6 +791,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       gap: 2,
       minWidth: 0,
       paddingHorizontal: Spacing.one,
+      paddingVertical: Spacing.two,
     },
     summaryMetricEmphasis: {
       minWidth: 0,
@@ -810,6 +868,10 @@ const createStyles = (colors: typeof Colors.dark) =>
       backgroundColor: colors.accent,
       borderColor: colors.accent,
     },
+    weekDayCircleLogged: {
+      borderColor: colors.accentSoft,
+      borderWidth: 1,
+    },
     weekDayCircleToday: {
       borderColor: colors.accentSoft,
       borderWidth: 1,
@@ -821,9 +883,6 @@ const createStyles = (colors: typeof Colors.dark) =>
       color: colors.accent,
       fontSize: 9,
       fontWeight: '900',
-      position: 'absolute',
-      right: -1,
-      top: -1,
     },
     weekDayCheckSelected: {
       color: colors.textOnAccent,
