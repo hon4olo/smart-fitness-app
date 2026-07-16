@@ -41,15 +41,31 @@ describe('product simplification 2.0', () => {
     expect(source).not.toContain('HomeIntelligenceCard');
   });
 
-  test('nutrition main screen only keeps the required sections', () => {
+  test('nutrition screen stays diary-first and pushes add food into a dedicated picker route', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
 
-    expect(source).toContain('NutritionOverviewCard');
-    expect(source).toContain('MealMenuCard');
-    expect(source).toContain('AddFoodFormSection');
-    expect(source).not.toContain('NutritionActionsCard');
-    expect(source).not.toContain('RecentFoodsSection');
-    expect(source).not.toContain('SavedMealsSection');
+    expect(source).toContain('Daily summary');
+    expect(source).toContain('Meal diary');
+    expect(source).toContain("router.push({ pathname: '/nutrition/add-food'");
+    expect(source).toContain('Add food to');
+    expect(source).not.toContain('AddFoodFormSection');
+    expect(source).not.toContain('NutritionOverviewCard');
+    expect(source).not.toContain('Recent foods');
+    expect(source).not.toContain('Saved meals');
+  });
+
+  test('nutrition picker route exposes meal-aware modes and secondary create actions', () => {
+    const source = readSource('src/app/nutrition/add-food.tsx');
+
+    expect(source).toContain("label: 'Food'");
+    expect(source).toContain("label: 'Recent'");
+    expect(source).toContain("label: 'Favorites'");
+    expect(source).toContain("label: 'Meals'");
+    expect(source).toContain('Create Food');
+    expect(source).toContain('Create Meal');
+    expect(source).toContain('Quick add');
+    expect(source).toContain('Save changes');
+    expect(source).toContain('Quantity');
   });
 
   test('profile screen does not render a duplicated account snapshot', () => {
@@ -85,12 +101,13 @@ describe('product simplification 2.0', () => {
   test('business actions remain reachable in source', () => {
     const workouts = readSource('src/app/(tabs)/workouts.tsx');
     const nutrition = readSource('src/app/(tabs)/nutrition.tsx');
+    const nutritionPicker = readSource('src/app/nutrition/add-food.tsx');
     const profile = readSource('src/app/(tabs)/profile.tsx');
 
     expect(workouts).toContain('Start workout');
     expect(workouts).toContain('Create Program');
-    expect(nutrition).toContain('AddFoodFormSection');
-    expect(nutrition).toContain('MealMenuCard');
+    expect(nutrition).toContain("router.push({ pathname: '/nutrition/add-food'");
+    expect(nutritionPicker).toContain('addFoodEntries');
     expect(profile).toContain('Appearance');
   });
 });

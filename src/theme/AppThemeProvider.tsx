@@ -40,10 +40,13 @@ export function AppThemeProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    if (mode === 'system') {
-      (Appearance as any).setColorScheme(null);
-    } else {
-      Appearance.setColorScheme(mode);
+    const setColorScheme = (Appearance as any).setColorScheme;
+    if (typeof setColorScheme === 'function') {
+      if (mode === 'system') {
+        setColorScheme(null);
+      } else {
+        setColorScheme(mode);
+      }
     }
 
     void saveAppearanceMode(mode);

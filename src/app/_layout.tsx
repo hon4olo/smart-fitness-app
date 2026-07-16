@@ -40,6 +40,10 @@ function RootNavigator() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="auth" options={{ headerShown: false }} />
           <Stack.Screen
+            name="nutrition/add-food"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
             name="workout-session"
             options={{
               headerBackTitle: 'Back',
