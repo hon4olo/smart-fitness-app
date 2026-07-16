@@ -1,9 +1,8 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
-import { Colors } from '@/constants/theme';
 import { TAB_DEFINITIONS } from '@/components/ui/tab-definitions';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
-const colors = Colors.dark;
 const TAB_ICON_PROPS = {
   index: { md: { default: 'home', selected: 'home' } },
   labs: { md: { default: 'fitness_center', selected: 'fitness_center' } },
@@ -13,14 +12,16 @@ const TAB_ICON_PROPS = {
 } as const;
 
 export default function TabsLayout() {
+  const { colors } = useAppTheme();
+
   return (
     <NativeTabs
       backgroundColor={colors.background}
-      indicatorColor={colors.accentMuted}
-      iconColor={{ default: colors.textSecondary, selected: colors.accent }}
+      indicatorColor={colors.accentSoft}
+      iconColor={{ default: colors.textMuted, selected: colors.accent }}
       labelStyle={{
-        default: { color: colors.textSecondary },
-        selected: { color: colors.text },
+        default: { color: colors.textMuted },
+        selected: { color: colors.textPrimary },
       }}
       tintColor={colors.accent}>
       {TAB_DEFINITIONS.map((tab) => (

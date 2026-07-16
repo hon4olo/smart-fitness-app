@@ -50,22 +50,34 @@ Do not use:
 Each main tab must define one primary purpose, one main CTA, no more than 3 initial content groups, and secondary drill-down routes for management-heavy features.
 Use segmented controls only for peer modes inside a single tab, not as a second navigation system.
 ## 4) Visual system
-Use:
-- current dark theme unless explicitly changed
-- one main accent color
-- semantic color tokens
-- restrained borders
-- whitespace before extra containers
-- consistent spacing scale
-- readable iPhone typography
-- 44x44 minimum tap targets
-- 48px preferred for primary controls
-Icon sizes:
-- 16 inline/meta
-- 20 list rows
-- 24 navigation and major actions
-- 28+ only for hero/empty states
-Avoid arbitrary screen-local colors and spacing. Prefer a clean system-native look over decorative styling.
+Use a full appearance system:
+- System, Light, and Dark modes
+- resolved centrally; do not scatter color-scheme checks in screens
+- semantic tokens only; no raw hex inside screens
+- theme-aware components that work in both modes without app restart
+- one main accent color, restrained borders, and purposeful surfaces
+Surface hierarchy:
+- HeroSection for the daily summary / primary CTA
+- GroupedSection for lists, settings, workouts, meals
+- SummaryCard for compact highlights only
+- InsetPanel for notes, sync state, empty/offline guidance
+- PlainSection when no container is needed
+Typography:
+- largeTitle, screenTitle, heroMetric, sectionTitle, cardTitle, body, bodyEmphasized, callout, label, caption, button
+Spacing:
+- use 4/8/12/16/20/24/32/40/48 scale and semantic layout tokens for screen padding, section gaps, row height, and control height
+Controls:
+- 44x44 minimum touch target
+- 48px preferred primary controls
+- prefer list rows over one-card-per-item layouts
+Charts:
+- one primary data color, quiet grid/context colors, readable labels, and a text summary
+Avoid:
+- admin-dashboard appearance
+- card-everywhere layouts
+- arbitrary screen-local colors and spacing
+- excessive borders or decorative gradients
+- low-contrast graphs
 ## 5) Component selection rules
 Before creating a card, ask:
 - Is this a summary or highlighted state?

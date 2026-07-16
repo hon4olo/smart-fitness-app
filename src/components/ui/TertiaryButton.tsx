@@ -45,12 +45,12 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   label: {
-    color: Colors.dark.textSecondary,
-    fontSize: Typography.caption.fontSize,
-    fontWeight: Typography.button.fontWeight,
-    lineHeight: Typography.caption.lineHeight,
+    color: Colors.dark.accent,
+    fontSize: Typography.label.fontSize,
+    fontWeight: Typography.label.fontWeight,
+    lineHeight: Typography.label.lineHeight,
   },
   pressed: {
-    opacity: 0.84,
+    backgroundColor: Colors.dark.accentSoft,
   },
 });

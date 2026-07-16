@@ -843,7 +843,7 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   favoriteBadge: {
-    color: '#F8C96B',
+    color: Colors.dark.warning,
     fontSize: 14,
     fontWeight: '900',
   },
@@ -859,7 +859,7 @@ const styles = StyleSheet.create({
     width: 44,
   },
   favoriteToggleActive: {
-    borderColor: '#8A6B20',
+    borderColor: Colors.dark.warning,
   },
   favoriteToggleLabel: {
     color: Colors.dark.textSecondary,
@@ -867,7 +867,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   favoriteToggleLabelActive: {
-    color: '#F8C96B',
+    color: Colors.dark.warning,
   },
   filterChip: {
     alignItems: 'center',
@@ -1088,7 +1088,7 @@ const styles = StyleSheet.create({
     width: 46,
   },
   sheetFavoriteActive: {
-    borderColor: '#8A6B20',
+    borderColor: Colors.dark.warning,
   },
   sheetFavoriteLabel: {
     color: Colors.dark.textSecondary,
@@ -1096,7 +1096,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   sheetFavoriteLabelActive: {
-    color: '#F8C96B',
+    color: Colors.dark.warning,
   },
   sheetFooter: {
     gap: Spacing.two,

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 
 type IntelligenceTileProps = {
   detail: string;
@@ -41,7 +41,7 @@ export function HomeIntelligenceCard({ motivation, nutritionDetail, nutritionSta
     <AppCard>
       <View style={styles.header}>
         <Text selectable style={styles.title}>
-          Fitness Intelligence
+          Fitness intelligence
         </Text>
         <Text selectable style={styles.subtitle}>
           Deterministic local recommendations from training, recovery, and nutrition data.
@@ -50,7 +50,7 @@ export function HomeIntelligenceCard({ motivation, nutritionDetail, nutritionSta
 
       <View style={styles.primaryRecommendation}>
         <Text selectable style={styles.primaryLabel}>
-          Today&apos;s recommendation
+          Today’s recommendation
         </Text>
         <Text selectable style={styles.primaryValue}>
           {primaryRecommendation}
@@ -74,73 +74,76 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   header: {
-    gap: 2,
+    gap: 4,
     marginBottom: Spacing.two,
   },
   primaryLabel: {
     color: Colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: Typography.caption.fontSize,
+    fontWeight: Typography.label.fontWeight,
     textTransform: 'uppercase',
   },
   primaryRecommendation: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.surfaceAccent,
+    borderColor: Colors.dark.borderSubtle,
     borderCurve: 'continuous',
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: Radii.large,
+    borderWidth: StyleSheet.hairlineWidth,
     gap: 4,
     marginBottom: Spacing.two,
-    padding: Spacing.three,
+    padding: Spacing.four,
   },
   primaryValue: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
-    lineHeight: 21,
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.bodyEmphasized.fontSize,
+    fontWeight: Typography.bodyEmphasized.fontWeight,
+    lineHeight: Typography.bodyEmphasized.lineHeight,
   },
   subtitle: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: Typography.callout.fontSize,
+    lineHeight: Typography.callout.lineHeight,
   },
   tile: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
     borderCurve: 'continuous',
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: Radii.medium,
+    borderWidth: StyleSheet.hairlineWidth,
     flexGrow: 1,
     gap: 2,
     minWidth: 150,
-    padding: Spacing.two,
+    padding: Spacing.three,
   },
   tileDetail: {
     color: Colors.dark.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
   },
   tileLabel: {
     color: Colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: Typography.caption.fontSize,
+    fontWeight: Typography.label.fontWeight,
     textTransform: 'uppercase',
   },
   tilePositive: {
-    borderColor: '#295E3E',
+    backgroundColor: Colors.dark.successSoft,
+    borderColor: Colors.dark.success,
   },
   tileValue: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
-    lineHeight: 21,
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.bodyEmphasized.fontSize,
+    fontWeight: Typography.bodyEmphasized.fontWeight,
+    lineHeight: Typography.bodyEmphasized.lineHeight,
   },
   tileWarning: {
-    borderColor: '#63322A',
+    backgroundColor: Colors.dark.warningSoft,
+    borderColor: Colors.dark.warning,
   },
   title: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.cardTitle.fontSize,
+    fontWeight: Typography.cardTitle.fontWeight,
+    lineHeight: Typography.cardTitle.lineHeight,
   },
 });

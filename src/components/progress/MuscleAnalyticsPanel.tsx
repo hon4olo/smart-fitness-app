@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.dark.accent,
   },
   balanceOvertrained: {
-    borderColor: '#7C3AED',
+    borderColor: Colors.dark.warning,
   },
   balanceUndertrained: {
     borderColor: Colors.dark.border,

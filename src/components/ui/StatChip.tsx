@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 
 type StatChipProps = {
   detail?: string;
@@ -29,38 +29,40 @@ export function StatChip({ detail, label, tone = 'neutral', value }: StatChipPro
 
 const styles = StyleSheet.create({
   chip: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
     borderCurve: 'continuous',
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
     flex: 1,
-    gap: 2,
+    gap: 4,
     minWidth: 148,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.three,
   },
   chipPositive: {
-    borderColor: '#295E3E',
+    backgroundColor: Colors.dark.successSoft,
+    borderColor: Colors.dark.success,
   },
   chipWarning: {
-    borderColor: '#63322A',
+    backgroundColor: Colors.dark.warningSoft,
+    borderColor: Colors.dark.warning,
   },
   detail: {
     color: Colors.dark.textSecondary,
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
   },
   label: {
     color: Colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: Typography.caption.fontSize,
+    fontWeight: Typography.label.fontWeight,
     textTransform: 'uppercase',
   },
   value: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
-    lineHeight: 21,
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.bodyEmphasized.fontSize,
+    fontWeight: Typography.bodyEmphasized.fontWeight,
+    lineHeight: Typography.bodyEmphasized.lineHeight,
   },
 });

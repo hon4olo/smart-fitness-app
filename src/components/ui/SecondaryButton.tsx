@@ -26,7 +26,7 @@ export function SecondaryButton({ accessibilityHint, accessibilityLabel, disable
       onPress={state.disabled ? undefined : onPress}
       style={({ pressed }) => [styles.button, pressed && !state.disabled && styles.pressed, state.disabled && styles.disabled, style]}>
       <View style={styles.content}>
-        {state.loading ? <ActivityIndicator color={Colors.dark.text} /> : null}
+        {state.loading ? <ActivityIndicator color={Colors.dark.textPrimary} /> : null}
         <Text style={styles.label}>{state.loading ? `${label}…` : label}</Text>
       </View>
     </Pressable>
@@ -37,15 +37,15 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    backgroundColor: Colors.dark.backgroundSelected,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
     borderCurve: 'continuous',
     borderRadius: Radii.large,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
     minHeight: 44,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
   },
   content: {
     alignItems: 'center',
@@ -57,12 +57,12 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   label: {
-    color: Colors.dark.text,
+    color: Colors.dark.textPrimary,
     fontSize: Typography.button.fontSize,
     fontWeight: Typography.button.fontWeight,
     lineHeight: Typography.button.lineHeight,
   },
   pressed: {
-    opacity: 0.84,
+    backgroundColor: Colors.dark.backgroundSelected,
   },
 });

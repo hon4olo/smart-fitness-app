@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: Colors.dark.textSecondary,
-    fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
+    fontSize: Typography.callout.fontSize,
+    lineHeight: Typography.callout.lineHeight,
   },
 });

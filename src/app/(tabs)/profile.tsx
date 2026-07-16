@@ -17,6 +17,7 @@ import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import type { ProfileGoalType } from '@/types';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type OtaValueSource = Record<string, unknown>;
 
@@ -49,6 +50,7 @@ const formatOtaValue = (value: unknown) => {
 
 export default function ProfileScreen() {
   const { profile, resetOnboarding, updateProfileGoals, weightHistory } = useAppContext();
+  const { mode, setMode } = useAppTheme();
   const safeAreaInsets = useSafeAreaInsets();
   const latestWeight = weightHistory[0];
   const [targetWeight, setTargetWeight] = useState(`${profile.targetWeight}`);
@@ -172,7 +174,9 @@ export default function ProfileScreen() {
         content: (
           <ProfilePreferencesCard
             activityLevel={profile.activityLevel}
+            appearanceMode={mode}
             goalType={goalTypeLabel(profile.goalType)}
+            onAppearanceModeChange={setMode}
             trainingDaysPerWeek={trainingDaysPerWeek}
           />
         ),
@@ -261,11 +265,11 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     color: Colors.dark.textSecondary,
-    fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
+    fontSize: Typography.callout.fontSize,
+    lineHeight: Typography.callout.lineHeight,
   },
   sectionTitle: {
-    color: Colors.dark.text,
+    color: Colors.dark.textPrimary,
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
     letterSpacing: Typography.sectionTitle.letterSpacing,

@@ -37,29 +37,29 @@ export function EmptyState(props: EmptyStateProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.surfaceAccent,
+    borderColor: Colors.dark.borderSubtle,
     borderCurve: 'continuous',
     borderRadius: Radii.large,
-    borderWidth: 1,
-    padding: Spacing.three,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.four,
   },
   container: {
     gap: Spacing.two,
   },
   description: {
     color: Colors.dark.textSecondary,
-    fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
+    fontSize: Typography.callout.fontSize,
+    lineHeight: Typography.callout.lineHeight,
   },
   message: {
-    color: Colors.dark.text,
-    fontSize: Typography.body.fontSize,
-    fontWeight: Typography.bodyStrong.fontWeight,
-    lineHeight: Typography.body.lineHeight,
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.bodyEmphasized.fontSize,
+    fontWeight: Typography.bodyEmphasized.fontWeight,
+    lineHeight: Typography.bodyEmphasized.lineHeight,
   },
   title: {
-    color: Colors.dark.text,
+    color: Colors.dark.textPrimary,
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
     letterSpacing: Typography.sectionTitle.letterSpacing,

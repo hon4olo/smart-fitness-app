@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 
 export type ProgressTrendPoint = {
   key: string;
@@ -19,7 +19,7 @@ type ProgressTrendChartProps = {
 };
 
 export const ProgressTrendChart = memo(function ProgressTrendChart({
-  barColor = Colors.dark.accent,
+  barColor = Colors.dark.chartPrimary,
   emptyLabel,
   maxLabel,
   minLabel,
@@ -87,7 +87,7 @@ export const ProgressTrendChart = memo(function ProgressTrendChart({
 
 const styles = StyleSheet.create({
   chartBar: {
-    borderRadius: 6,
+    borderRadius: 999,
     minHeight: 24,
     width: '100%',
   },
@@ -99,12 +99,12 @@ const styles = StyleSheet.create({
   },
   chartBarLabel: {
     color: Colors.dark.textSecondary,
-    fontSize: 11,
+    fontSize: Typography.caption.fontSize,
     textAlign: 'center',
   },
   chartBarTrack: {
-    backgroundColor: Colors.dark.border,
-    borderRadius: 8,
+    backgroundColor: Colors.dark.backgroundSecondary,
+    borderRadius: Radii.medium,
     height: 96,
     justifyContent: 'flex-end',
     overflow: 'hidden',
@@ -113,10 +113,10 @@ const styles = StyleSheet.create({
   },
   chartBars: {
     flexDirection: 'row',
-    gap: 8,
+    gap: Spacing.two,
   },
   chartBaseline: {
-    backgroundColor: Colors.dark.border,
+    backgroundColor: Colors.dark.divider,
     bottom: 34,
     height: 1,
     left: 0,
@@ -130,9 +130,9 @@ const styles = StyleSheet.create({
   },
   chartRangeLabel: {
     color: Colors.dark.textSecondary,
-    fontSize: 12,
+    fontSize: Typography.caption.fontSize,
     fontVariant: ['tabular-nums'],
-    fontWeight: '700',
+    fontWeight: Typography.label.fontWeight,
   },
   chartRangeRow: {
     flexDirection: 'row',
@@ -143,14 +143,14 @@ const styles = StyleSheet.create({
     marginTop: Spacing.one,
   },
   chartValueLabel: {
-    color: Colors.dark.text,
-    fontSize: 11,
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.caption.fontSize,
     fontVariant: ['tabular-nums'],
-    fontWeight: '800',
+    fontWeight: Typography.button.fontWeight,
   },
   emptyText: {
     color: Colors.dark.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: Typography.callout.fontSize,
+    lineHeight: Typography.callout.lineHeight,
   },
 });

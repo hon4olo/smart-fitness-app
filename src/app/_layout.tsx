@@ -1,18 +1,41 @@
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useMemo } from 'react';
 
 import { AppProvider } from '@/context/AppContext';
+import { AppThemeProvider, useAppTheme } from '@/theme/AppThemeProvider';
 
-export default function TabLayout() {
+function RootNavigator() {
+  const { colors, resolvedAppearance } = useAppTheme();
+
+  const navigationTheme = useMemo(
+    () => ({
+      ...(resolvedAppearance === 'dark' ? DarkTheme : DefaultTheme),
+      colors: {
+        ...(resolvedAppearance === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+        background: colors.background,
+        card: colors.surfacePrimary,
+        border: colors.borderSubtle,
+        primary: colors.accent,
+        text: colors.textPrimary,
+        notification: colors.error,
+      },
+    }),
+    [colors, resolvedAppearance]
+  );
+
   return (
-    <ThemeProvider value={DarkTheme}>
+    <ThemeProvider value={navigationTheme}>
       <AppProvider>
-        <StatusBar style="light" />
+        <StatusBar style={resolvedAppearance === 'dark' ? 'light' : 'dark'} />
         <Stack
           screenOptions={{
-            contentStyle: { backgroundColor: '#090B0F' },
-            headerStyle: { backgroundColor: '#090B0F' },
-            headerTintColor: '#F5F7FA',
+            contentStyle: { backgroundColor: colors.background },
+            headerBackTitle: 'Back',
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: colors.surfacePrimary },
+            headerTintColor: colors.textPrimary,
+            headerTitleStyle: { color: colors.textPrimary },
           }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="auth" options={{ headerShown: false }} />
@@ -26,5 +49,13 @@ export default function TabLayout() {
         </Stack>
       </AppProvider>
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppThemeProvider>
+      <RootNavigator />
+    </AppThemeProvider>
   );
 }

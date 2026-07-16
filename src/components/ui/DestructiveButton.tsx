@@ -1,5 +1,4 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
 
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { resolveButtonState } from './button-state';
@@ -35,15 +34,15 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    backgroundColor: '#2A1720',
-    borderColor: '#4A2331',
+    backgroundColor: Colors.dark.errorSoft,
+    borderColor: Colors.dark.error,
     borderCurve: 'continuous',
-    borderRadius: Radii.medium,
-    borderWidth: 1,
+    borderRadius: Radii.large,
+    borderWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
-    minHeight: 48,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
+    minHeight: 44,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
   },
   disabled: {
     opacity: 0.5,
@@ -55,6 +54,7 @@ const styles = StyleSheet.create({
     lineHeight: Typography.button.lineHeight,
   },
   pressed: {
-    opacity: 0.84,
+    backgroundColor: Colors.dark.errorSoft,
+    opacity: 0.86,
   },
 });

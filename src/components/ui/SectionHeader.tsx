@@ -1,32 +1,45 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '@/constants/theme';
 
 type SectionHeaderProps = {
-  title: string;
+  action?: React.ReactNode;
   subtitle?: string;
+  title: string;
 };
 
-export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
+export function SectionHeader({ action, subtitle, title }: SectionHeaderProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      <View style={styles.copy}>
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </View>
+      {action ? <View>{action}</View> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.one,
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: Spacing.three,
+    justifyContent: 'space-between',
+  },
+  copy: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0,
   },
   subtitle: {
     color: Colors.dark.textSecondary,
-    fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
+    fontSize: Typography.callout.fontSize,
+    lineHeight: Typography.callout.lineHeight,
   },
   title: {
-    color: Colors.dark.text,
+    color: Colors.dark.textPrimary,
     fontSize: Typography.sectionTitle.fontSize,
     fontWeight: Typography.sectionTitle.fontWeight,
     letterSpacing: Typography.sectionTitle.letterSpacing,

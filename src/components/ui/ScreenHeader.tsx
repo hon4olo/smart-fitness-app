@@ -32,18 +32,19 @@ const styles = StyleSheet.create({
   },
   copy: {
     flex: 1,
-    gap: Spacing.one,
+    gap: 4,
+    minWidth: 0,
   },
   subtitle: {
     color: Colors.dark.textSecondary,
-    fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
+    fontSize: Typography.callout.fontSize,
+    lineHeight: Typography.callout.lineHeight,
   },
   title: {
-    color: Colors.dark.text,
-    fontSize: Typography.screenTitle.fontSize,
-    fontWeight: Typography.screenTitle.fontWeight,
-    letterSpacing: Typography.screenTitle.letterSpacing,
-    lineHeight: Typography.screenTitle.lineHeight,
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.largeTitle.fontSize,
+    fontWeight: Typography.largeTitle.fontWeight,
+    letterSpacing: Typography.largeTitle.letterSpacing,
+    lineHeight: Typography.largeTitle.lineHeight,
   },
 });

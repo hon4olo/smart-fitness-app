@@ -10,7 +10,7 @@ type SegmentedOption<Value extends string> = {
 type SegmentedControlProps<Value extends string> = {
   accessibilityLabel: string;
   onChange: (value: Value) => void;
-  options: SegmentedOption<Value>[];
+  options: readonly SegmentedOption<Value>[];
   value: Value;
 };
 
@@ -37,26 +37,26 @@ export function SegmentedControl<Value extends string>({ accessibilityLabel, onC
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
     borderCurve: 'continuous',
     borderRadius: Radii.large,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     gap: Spacing.one,
     padding: Spacing.one,
   },
   label: {
     color: Colors.dark.textSecondary,
-    fontSize: Typography.caption.fontSize,
-    fontWeight: '700',
-    lineHeight: Typography.caption.lineHeight,
+    fontSize: Typography.label.fontSize,
+    fontWeight: Typography.label.fontWeight,
+    lineHeight: Typography.label.lineHeight,
   },
   labelSelected: {
-    color: Colors.dark.text,
+    color: Colors.dark.textPrimary,
   },
   pressed: {
-    opacity: 0.84,
+    backgroundColor: Colors.dark.backgroundSelected,
   },
   segment: {
     alignItems: 'center',
@@ -69,6 +69,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
   },
   segmentSelected: {
-    backgroundColor: Colors.dark.backgroundSelected,
+    backgroundColor: Colors.dark.surfacePrimary,
   },
 });

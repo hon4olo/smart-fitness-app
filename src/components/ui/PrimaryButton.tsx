@@ -26,7 +26,7 @@ export function PrimaryButton({ accessibilityHint, accessibilityLabel, disabled,
       onPress={state.disabled ? undefined : onPress}
       style={({ pressed }) => [styles.button, pressed && !state.disabled && styles.pressed, state.disabled && styles.disabled, style]}>
       <View style={styles.content}>
-        {state.loading ? <ActivityIndicator color="#07110B" /> : null}
+        {state.loading ? <ActivityIndicator color={Colors.dark.textOnAccent} /> : null}
         <Text style={styles.label}>{state.loading ? `${label}…` : label}</Text>
       </View>
     </Pressable>
@@ -42,8 +42,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.large,
     justifyContent: 'center',
     minHeight: 48,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
   },
   content: {
     alignItems: 'center',
@@ -55,12 +55,12 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   label: {
-    color: '#07110B',
+    color: Colors.dark.textOnAccent,
     fontSize: Typography.button.fontSize,
     fontWeight: Typography.button.fontWeight,
     lineHeight: Typography.button.lineHeight,
   },
   pressed: {
-    opacity: 0.84,
+    backgroundColor: Colors.dark.accentPressed,
   },
 });

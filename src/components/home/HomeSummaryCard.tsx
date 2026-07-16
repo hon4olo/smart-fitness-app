@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 
 type HomeSummaryCardProps = {
   caloriesRemainingLabel: string;
@@ -38,8 +38,8 @@ export function HomeSummaryCard({
   workoutCompletionLabel,
 }: HomeSummaryCardProps) {
   return (
-    <AppCard>
-      <View style={styles.header}>
+    <AppCard style={styles.card}>
+      <View style={styles.hero}>
         <View style={styles.headerCopy}>
           <Text selectable style={styles.kicker}>
             Today’s summary
@@ -47,20 +47,20 @@ export function HomeSummaryCard({
           <Text selectable style={styles.title}>
             Fitness status at a glance
           </Text>
+          <Text selectable style={styles.subheadline}>
+            {motivation}
+          </Text>
         </View>
+
         <View style={[styles.caloriesBadge, isCaloriesOverTarget && styles.caloriesBadgeWarning]}>
           <Text selectable style={styles.caloriesBadgeLabel}>
-            Calories remaining
+            Calories
           </Text>
           <Text selectable style={[styles.caloriesBadgeValue, isCaloriesOverTarget && styles.caloriesBadgeValueWarning]}>
             {caloriesRemainingLabel}
           </Text>
         </View>
       </View>
-
-      <Text selectable style={styles.subheadline}>
-        {motivation}
-      </Text>
 
       <View style={styles.statsGrid}>
         <MiniStat label="Current weight" value={currentWeightLabel} />
@@ -91,76 +91,78 @@ export function HomeSummaryCard({
 }
 
 const styles = StyleSheet.create({
+  card: {
+    backgroundColor: Colors.dark.surfaceAccent,
+  },
   caloriesBadge: {
     alignItems: 'flex-end',
-    backgroundColor: Colors.dark.backgroundSelected,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.surfacePrimary,
+    borderColor: Colors.dark.borderSubtle,
     borderCurve: 'continuous',
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: Radii.large,
+    borderWidth: StyleSheet.hairlineWidth,
     gap: 2,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   caloriesBadgeLabel: {
     color: Colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: Typography.caption.fontSize,
+    fontWeight: Typography.label.fontWeight,
     textTransform: 'uppercase',
   },
   caloriesBadgeValue: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '900',
-    fontVariant: ['tabular-nums'],
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.cardTitle.fontSize,
+    fontWeight: Typography.heroMetric.fontWeight,
+    lineHeight: Typography.cardTitle.lineHeight,
   },
   caloriesBadgeValueWarning: {
-    color: '#FF9F7A',
+    color: Colors.dark.warning,
   },
   caloriesBadgeWarning: {
-    borderColor: '#63322A',
-    backgroundColor: '#2A1814',
-  },
-  header: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'space-between',
+    backgroundColor: Colors.dark.warningSoft,
+    borderColor: Colors.dark.warning,
   },
   headerCopy: {
     flex: 1,
-    gap: 2,
+    gap: 4,
     minWidth: 0,
+  },
+  hero: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: Spacing.three,
+    justifyContent: 'space-between',
   },
   kicker: {
     color: Colors.dark.accent,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.4,
+    fontSize: Typography.label.fontSize,
+    fontWeight: Typography.label.fontWeight,
+    letterSpacing: Typography.sectionTitle.letterSpacing,
     textTransform: 'uppercase',
   },
   miniStat: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.surfacePrimary,
+    borderColor: Colors.dark.borderSubtle,
     borderCurve: 'continuous',
-    borderRadius: 12,
-    borderWidth: 1,
-    flex: 1,
+    borderRadius: Radii.medium,
+    borderWidth: StyleSheet.hairlineWidth,
     gap: 2,
     minWidth: 92,
-    padding: Spacing.two,
+    padding: Spacing.three,
   },
   miniStatLabel: {
     color: Colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: Typography.caption.fontSize,
+    fontWeight: Typography.label.fontWeight,
     textTransform: 'uppercase',
   },
   miniStatValue: {
-    color: Colors.dark.text,
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 20,
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.bodyEmphasized.fontSize,
+    fontWeight: Typography.bodyEmphasized.fontWeight,
+    lineHeight: Typography.bodyEmphasized.lineHeight,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -169,31 +171,33 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: Typography.caption.fontSize,
+    fontWeight: Typography.label.fontWeight,
   },
   statusList: {
     gap: Spacing.two,
   },
   statusRow: {
-    borderColor: Colors.dark.border,
-    borderTopWidth: 1,
+    borderColor: Colors.dark.divider,
+    borderTopWidth: StyleSheet.hairlineWidth,
     gap: 2,
     paddingTop: Spacing.two,
   },
   statusValue: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.callout.fontSize,
+    fontWeight: Typography.bodyEmphasized.fontWeight,
   },
   subheadline: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: Typography.callout.fontSize,
+    lineHeight: Typography.callout.lineHeight,
+    marginTop: Spacing.one,
   },
   title: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.cardTitle.fontSize,
+    fontWeight: Typography.cardTitle.fontWeight,
+    lineHeight: Typography.cardTitle.lineHeight,
   },
 });

@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TextInputProps } from 'react-native';
 
@@ -13,9 +13,11 @@ type FormFieldProps = TextInputProps & {
 };
 
 export const FormField = forwardRef<TextInput, FormFieldProps>(function FormField(
-  { errorMessage, helperText, label, style, value, ...inputProps },
+  { errorMessage, helperText, label, onBlur, onFocus, style, value, ...inputProps },
   ref
 ) {
+  const [focused, setFocused] = useState(false);
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
@@ -23,7 +25,15 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
         ref={ref}
         accessibilityLabel={inputProps.accessibilityLabel ?? label}
         placeholderTextColor={Colors.dark.textMuted}
-        style={[styles.input, style]}
+        onBlur={(event) => {
+          setFocused(false);
+          onBlur?.(event);
+        }}
+        onFocus={(event) => {
+          setFocused(true);
+          onFocus?.(event);
+        }}
+        style={[styles.input, focused && styles.inputFocused, errorMessage && styles.inputError, style]}
         value={value}
         {...inputProps}
       />
@@ -43,22 +53,29 @@ const styles = StyleSheet.create({
     lineHeight: Typography.caption.lineHeight,
   },
   input: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
     borderCurve: 'continuous',
     borderRadius: Radii.medium,
-    borderWidth: 1,
-    color: Colors.dark.text,
+    borderWidth: StyleSheet.hairlineWidth,
+    color: Colors.dark.textPrimary,
     fontSize: Typography.body.fontSize,
     lineHeight: Typography.body.lineHeight,
     minHeight: 48,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+  },
+  inputError: {
+    borderColor: Colors.dark.error,
+  },
+  inputFocused: {
+    backgroundColor: Colors.dark.surfacePrimary,
+    borderColor: Colors.dark.accent,
   },
   label: {
     color: Colors.dark.textSecondary,
-    fontSize: Typography.caption.fontSize,
-    fontWeight: '700',
-    lineHeight: Typography.caption.lineHeight,
+    fontSize: Typography.label.fontSize,
+    fontWeight: Typography.label.fontWeight,
+    lineHeight: Typography.label.lineHeight,
   },
 });

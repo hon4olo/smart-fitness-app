@@ -2,7 +2,7 @@ import { PropsWithChildren, ReactNode } from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 
 type AppSectionProps = PropsWithChildren<{
   accessory?: ReactNode;
@@ -20,11 +20,7 @@ export function AppSection({ accessory, bodyStyle, children, style, subtitle, ti
           <Text selectable style={styles.title}>
             {title}
           </Text>
-          {subtitle ? (
-            <Text selectable style={styles.subtitle}>
-              {subtitle}
-            </Text>
-          ) : null}
+          {subtitle ? <Text selectable style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
         {accessory ? <View>{accessory}</View> : null}
       </View>
@@ -47,12 +43,13 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: Typography.callout.fontSize,
+    lineHeight: Typography.callout.lineHeight,
   },
   title: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.cardTitle.fontSize,
+    fontWeight: Typography.cardTitle.fontWeight,
+    lineHeight: Typography.cardTitle.lineHeight,
   },
 });
