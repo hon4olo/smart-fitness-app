@@ -44,7 +44,7 @@ describe('workout session redesign 8.1', () => {
     expect(editor).toContain('Save set');
     expect(editor).toContain('Cancel edit');
     expect(editor).toContain('Previous:');
-    expect(history).toContain('Added sets');
+    expect(history).toContain('Sets');
     expect(history).toContain('No sets logged yet.');
     expect(history).toContain('Delete');
     expect(screen).toContain('does not support adding exercises in-session');

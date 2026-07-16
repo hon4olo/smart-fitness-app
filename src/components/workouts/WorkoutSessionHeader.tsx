@@ -2,34 +2,40 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type WorkoutSessionHeaderProps = {
+  completedLabel: string;
+  elapsedLabel: string;
   nextExerciseName?: string;
   progressPercent: number;
-  summaryLabel: string;
   workoutTitle: string;
 };
 
-export function WorkoutSessionHeader({ nextExerciseName, progressPercent, summaryLabel, workoutTitle }: WorkoutSessionHeaderProps) {
+export function WorkoutSessionHeader({ completedLabel, elapsedLabel, nextExerciseName, progressPercent, workoutTitle }: WorkoutSessionHeaderProps) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const nextLabel = nextExerciseName ? `Next: ${nextExerciseName}` : undefined;
   const clampedProgress = Math.max(0, Math.min(100, progressPercent));
 
   return (
     <AppCard style={styles.card}>
-      <View style={styles.copyBlock}>
+      <View style={styles.topRow}>
         <Text numberOfLines={2} selectable style={styles.title}>
           {workoutTitle}
         </Text>
-        <Text selectable style={styles.summaryLabel}>
-          {summaryLabel}
+        <Text selectable style={styles.elapsedLabel}>
+          {elapsedLabel}
         </Text>
-        {nextLabel ? (
+      </View>
+
+      <View style={styles.metaRow}>
+        <Text selectable style={styles.completedLabel}>
+          {completedLabel}
+        </Text>
+        {nextExerciseName ? (
           <Text numberOfLines={1} selectable style={styles.nextLabel}>
-            {nextLabel}
+            Next: {nextExerciseName}
           </Text>
         ) : null}
       </View>
@@ -41,19 +47,36 @@ export function WorkoutSessionHeader({ nextExerciseName, progressPercent, summar
   );
 }
 
-const createStyles = (colors: typeof Colors.dark) =>
+const createStyles = (colors: typeof import('@/constants/theme').Colors.dark) =>
   StyleSheet.create({
     card: {
-      gap: Spacing.three,
+      gap: Spacing.two,
       padding: Spacing.four,
     },
-    copyBlock: {
-      gap: 4,
+    completedLabel: {
+      color: colors.textPrimary,
+      flex: 1,
+      fontSize: Typography.callout.fontSize,
+      fontWeight: '800',
+      lineHeight: Typography.callout.lineHeight,
+    },
+    elapsedLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      fontVariant: ['tabular-nums'],
+      lineHeight: Typography.callout.lineHeight,
+    },
+    metaRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.two,
     },
     nextLabel: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: Typography.callout.fontSize,
       lineHeight: Typography.callout.lineHeight,
+      textAlign: 'right',
     },
     progressFill: {
       backgroundColor: colors.accent,
@@ -68,13 +91,15 @@ const createStyles = (colors: typeof Colors.dark) =>
       height: 8,
       overflow: 'hidden',
     },
-    summaryLabel: {
-      color: colors.textSecondary,
-      fontSize: Typography.callout.fontSize,
-      lineHeight: Typography.callout.lineHeight,
+    topRow: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      justifyContent: 'space-between',
     },
     title: {
       color: colors.textPrimary,
+      flex: 1,
       fontSize: Typography.cardTitle.fontSize,
       fontWeight: '900',
       lineHeight: Typography.cardTitle.lineHeight,

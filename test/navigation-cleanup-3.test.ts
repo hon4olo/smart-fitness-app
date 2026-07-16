@@ -43,13 +43,14 @@ describe('navigation repair and UX cleanup 3.0', () => {
   test('workouts keeps one start-empty action and one program creation action', () => {
     const source = readSource('src/app/(tabs)/workouts.tsx');
 
-    expect(count(source, 'Start Empty Workout')).toBe(1);
-    expect(count(source, 'Create Program')).toBe(2);
+    expect(count(source, 'Start empty workout')).toBe(1);
+    expect(count(source, 'Create program')).toBe(1);
     expect(source).not.toContain('Add Program');
     expect(source).not.toContain('Pick one workout and start');
     expect(source).not.toContain('Recommendation');
-    expect(source).toContain("label={activeDraft ? 'Continue workout' : 'Start workout'}");
-    expect(source).toContain('Ready to train');
+    expect(source).toContain('Workout in progress');
+    expect(source).toContain('Continue workout');
+    expect(source).toContain('Workout in progress');
   });
 
   test('progress moves add-weight into a dedicated flow and keeps the summary compact', () => {

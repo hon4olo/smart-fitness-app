@@ -5,12 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrainingProgramBuilderCard } from '@/components/workouts/TrainingProgramBuilderCard';
 import { AppButton } from '@/components/ui/AppButton';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BottomTabInset, Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { createDefaultTrainingProgram, saveWorkoutProgram } from '@/lib/workouts';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 export default function ProgramBuilderRoute() {
   const { exercises, workouts } = useAppContext();
+  const { colors } = useAppTheme();
   const [isExpanded, setIsExpanded] = useState(true);
   const [program, setProgram] = useState(() => createDefaultTrainingProgram(workouts));
   const insets = useSafeAreaInsets();
@@ -27,17 +29,17 @@ export default function ProgramBuilderRoute() {
   );
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 120 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 160 }]}
         keyboardShouldPersistTaps="handled"
-        style={styles.scrollView}>
+        style={[styles.scrollView, { backgroundColor: colors.background }]}>
         <View style={styles.container}>
           <SectionHeader subtitle="Edit a draft and save only when it is ready." title="Program Builder" />
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryText}>{draftStats.assignedWorkouts} assigned workouts</Text>
-            <Text style={styles.summaryText}>{draftStats.restDays} rest days</Text>
+            <Text style={[styles.summaryText, { color: colors.textSecondary }]}>{draftStats.assignedWorkouts} assigned workouts</Text>
+            <Text style={[styles.summaryText, { color: colors.textSecondary }]}>{draftStats.restDays} rest days</Text>
           </View>
 
           <TrainingProgramBuilderCard
@@ -48,7 +50,11 @@ export default function ProgramBuilderRoute() {
             program={program}
             workouts={workouts}
           />
+        </View>
+      </ScrollView>
 
+      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>
+        <View style={styles.container}>
           <AppButton
             disabled={saveDisabled}
             label="Save Program"
@@ -62,7 +68,7 @@ export default function ProgramBuilderRoute() {
             }}
           />
         </View>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -77,21 +83,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.three,
   },
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    left: 0,
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.two,
+    position: 'absolute',
+    right: 0,
+    top: 'auto',
+    bottom: 0,
+  },
   screen: {
-    backgroundColor: Colors.dark.background,
     flex: 1,
   },
   scrollView: {
-    backgroundColor: Colors.dark.background,
     flex: 1,
   },
   summaryRow: {
     flexDirection: 'row',
-    gap: Spacing.two,
     flexWrap: 'wrap',
+    gap: Spacing.two,
   },
   summaryText: {
-    color: Colors.dark.textSecondary,
     fontSize: 13,
     fontWeight: '700',
   },

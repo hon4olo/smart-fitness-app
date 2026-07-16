@@ -2,13 +2,12 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import type { PlannedExercise, WorkoutSessionPreviousSet, WorkoutSessionPr } from '@/lib/workouts/workout-session';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import type { PlannedExercise, WorkoutSessionPreviousSet } from '@/lib/workouts/workout-session';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type WorkoutSessionSetEditorProps = {
   editingSetId?: string;
-  exercisePrs: WorkoutSessionPr[];
   onCancelEdit: () => void;
   onRepsChange: (value: string) => void;
   onSaveSet: () => void;
@@ -23,17 +22,8 @@ type WorkoutSessionSetEditorProps = {
 
 const formatCompactSet = (set: WorkoutSessionPreviousSet) => `${set.weight} kg × ${set.reps}`;
 
-const formatPrSummary = (exercisePrs: WorkoutSessionPr[]) =>
-  `PR: ${exercisePrs
-    .map((pr) => `${pr.label} ${pr.value}`)
-    .join(' · ')}`;
-
-const formatPreviousSummary = (previousSets: WorkoutSessionPreviousSet[]) =>
-  `Previous: ${previousSets.slice(0, 3).map(formatCompactSet).join(', ')}${previousSets.length > 3 ? `, +${previousSets.length - 3} more` : ''}`;
-
 export function WorkoutSessionSetEditor({
   editingSetId,
-  exercisePrs,
   onCancelEdit,
   onRepsChange,
   onSaveSet,
@@ -61,8 +51,8 @@ export function WorkoutSessionSetEditor({
     );
   }
 
-  const previousSummary = previousSets.length > 0 ? formatPreviousSummary(previousSets) : null;
-  const prSummary = exercisePrs.length > 0 ? formatPrSummary(exercisePrs) : null;
+  const latestPreviousSet = previousSets[0];
+  const previousVolume = latestPreviousSet ? latestPreviousSet.weight * latestPreviousSet.reps : 0;
   const prescriptionLabel = `${selectedExercise.targetSets ?? 3} × ${selectedExercise.targetReps ?? 8} · ${selectedExercise.restSeconds ?? 90}s rest`;
 
   return (
@@ -82,15 +72,15 @@ export function WorkoutSessionSetEditor({
         {prescriptionLabel}
       </Text>
 
-      {previousSummary ? (
-        <Text numberOfLines={2} selectable style={styles.quietText}>
-          {previousSummary}
-        </Text>
-      ) : null}
-      {prSummary ? (
-        <Text numberOfLines={2} selectable style={styles.quietText}>
-          {prSummary}
-        </Text>
+      {latestPreviousSet ? (
+        <View style={styles.previousRow}>
+          <Text selectable style={styles.previousLabel}>
+            Previous:
+          </Text>
+          <Text selectable style={styles.previousValue}>
+            {formatCompactSet(latestPreviousSet)} · {previousVolume.toLocaleString()} kg volume
+          </Text>
+        </View>
       ) : null}
 
       <View style={styles.inputsRow}>
@@ -144,12 +134,8 @@ export function WorkoutSessionSetEditor({
   );
 }
 
-const createStyles = (colors: typeof Colors.dark) =>
+const createStyles = (colors: typeof import('@/constants/theme').Colors.dark) =>
   StyleSheet.create({
-    card: {
-      gap: Spacing.three,
-      padding: Spacing.four,
-    },
     cancelEditButton: {
       alignSelf: 'flex-start',
       minHeight: 44,
@@ -164,6 +150,10 @@ const createStyles = (colors: typeof Colors.dark) =>
     },
     cancelEditPressed: {
       opacity: 0.72,
+    },
+    card: {
+      gap: Spacing.three,
+      padding: Spacing.four,
     },
     exerciseName: {
       color: colors.textPrimary,
@@ -210,6 +200,27 @@ const createStyles = (colors: typeof Colors.dark) =>
     positionText: {
       color: colors.textSecondary,
       fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    previousLabel: {
+      color: colors.accent,
+      fontSize: Typography.callout.fontSize,
+      fontWeight: '900',
+      lineHeight: Typography.callout.lineHeight,
+    },
+    previousRow: {
+      alignItems: 'flex-start',
+      backgroundColor: colors.accentSoft,
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      gap: 4,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+    },
+    previousValue: {
+      color: colors.textPrimary,
+      fontSize: Typography.callout.fontSize,
+      fontVariant: ['tabular-nums'],
       lineHeight: Typography.callout.lineHeight,
     },
     prescriptionText: {

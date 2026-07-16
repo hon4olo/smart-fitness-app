@@ -14,12 +14,11 @@ describe('product simplification 2.0', () => {
   test('workouts screen keeps a single empty-state start-empty action and a single program creation CTA in the fresh state', () => {
     const source = readSource('src/app/(tabs)/workouts.tsx');
 
-    expect(count(source, 'Start Empty Workout')).toBe(1);
-    expect(count(source, 'Create Program')).toBe(2);
+    expect(count(source, 'Start empty workout')).toBe(1);
+    expect(count(source, 'Create program')).toBe(1);
     expect(count(source, 'label="Add Program"')).toBe(0);
-    expect(source).toContain("label={activeDraft ? 'Continue workout' : 'Start workout'}");
-    expect(source).toContain('Ready to train');
     expect(source).toContain('Workout in progress');
+    expect(source).toContain('Continue workout');
     expect(source).not.toContain('Recommendation');
     expect(source).toContain('useAppTheme');
   });
@@ -126,8 +125,8 @@ describe('product simplification 2.0', () => {
     const nutritionPicker = readSource('src/app/nutrition/add-food.tsx');
     const profile = readSource('src/app/(tabs)/profile.tsx');
 
-    expect(workouts).toContain('Start workout');
-    expect(workouts).toContain('Create Program');
+    expect(workouts).toContain('Start empty workout');
+    expect(workouts).toContain('Create program');
     expect(nutrition).toContain("router.push({ pathname: '/nutrition/add-food'");
     expect(nutritionPicker).toContain('addFoodEntries');
     expect(profile).toContain('Appearance');

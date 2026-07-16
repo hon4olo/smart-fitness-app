@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { WorkoutSet } from '@/context/AppContext';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
@@ -19,34 +19,43 @@ export function WorkoutSessionSetHistory({ onDeleteSet, onEditSet, sets }: Worko
 
   if (sets.length === 0) {
     return (
-      <Text selectable style={styles.emptyText}>
-        No sets logged yet.
-      </Text>
+      <View style={styles.container}>
+        <Text selectable style={styles.sectionLabel}>
+          Sets
+        </Text>
+        <Text selectable style={styles.emptyText}>
+          No sets logged yet.
+        </Text>
+      </View>
     );
   }
 
   return (
     <View style={styles.container}>
       <Text selectable style={styles.sectionLabel}>
-        Added sets
+        Sets
       </Text>
       <View style={styles.surface}>
         {sets.map((set, index) => (
           <View key={set.id} style={[styles.row, index > 0 && styles.rowDivider]}>
-            <View style={styles.copy}>
-              <Text numberOfLines={1} selectable style={styles.setName}>
-                {index + 1} {set.exerciseName}
-              </Text>
+            <Text selectable style={styles.setNumber}>
+              {String(index + 1).padStart(2, '0')}
+            </Text>
+
+            <View style={styles.valueBlock}>
               <Text selectable style={styles.setValue}>
                 {formatSetValue(set)}
+              </Text>
+              <Text selectable style={styles.setName} numberOfLines={1}>
+                {set.exerciseName}
               </Text>
             </View>
 
             <View style={styles.actions}>
-              <Pressable accessibilityLabel={`Edit set ${index + 1}`} accessibilityRole="button" onPress={() => onEditSet(set)} style={({ pressed }) => [styles.actionButton, pressed && styles.actionButtonPressed]}>
+              <Pressable accessibilityLabel={`Edit set ${index + 1}`} accessibilityRole="button" onPress={() => onEditSet(set)} style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}>
                 <Text style={styles.actionLabel}>Edit</Text>
               </Pressable>
-              <Pressable accessibilityLabel={`Delete set ${index + 1}`} accessibilityRole="button" onPress={() => onDeleteSet(set)} style={({ pressed }) => [styles.actionButton, styles.deleteButton, pressed && styles.actionButtonPressed]}>
+              <Pressable accessibilityLabel={`Delete set ${index + 1}`} accessibilityRole="button" onPress={() => onDeleteSet(set)} style={({ pressed }) => [styles.actionButton, styles.deleteButton, pressed && styles.actionPressed]}>
                 <Text style={styles.deleteLabel}>Delete</Text>
               </Pressable>
             </View>
@@ -57,7 +66,7 @@ export function WorkoutSessionSetHistory({ onDeleteSet, onEditSet, sets }: Worko
   );
 }
 
-const createStyles = (colors: typeof Colors.dark) =>
+const createStyles = (colors: typeof import('@/constants/theme').Colors.dark) =>
   StyleSheet.create({
     actionButton: {
       alignItems: 'center',
@@ -66,11 +75,9 @@ const createStyles = (colors: typeof Colors.dark) =>
       borderRadius: Radii.pill,
       justifyContent: 'center',
       minHeight: 44,
+      minWidth: 58,
       paddingHorizontal: Spacing.two,
       paddingVertical: Spacing.one,
-    },
-    actionButtonPressed: {
-      opacity: 0.85,
     },
     actionLabel: {
       color: colors.textPrimary,
@@ -78,18 +85,16 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontWeight: Typography.button.fontWeight,
       lineHeight: Typography.caption.lineHeight,
     },
+    actionPressed: {
+      opacity: 0.85,
+    },
     actions: {
       flexDirection: 'row',
-      gap: Spacing.one,
       flexShrink: 0,
+      gap: Spacing.one,
     },
     container: {
       gap: Spacing.two,
-    },
-    copy: {
-      flex: 1,
-      gap: 2,
-      minWidth: 0,
     },
     deleteButton: {
       backgroundColor: colors.errorSoft,
@@ -111,7 +116,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       gap: Spacing.two,
       justifyContent: 'space-between',
       minHeight: 52,
-      paddingHorizontal: Spacing.four,
+      paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
     },
     rowDivider: {
@@ -126,16 +131,25 @@ const createStyles = (colors: typeof Colors.dark) =>
       textTransform: Typography.sectionTitle.textTransform,
     },
     setName: {
-      color: colors.textPrimary,
-      fontSize: Typography.bodyEmphasized.fontSize,
-      fontWeight: Typography.bodyEmphasized.fontWeight,
-      lineHeight: Typography.bodyEmphasized.lineHeight,
-    },
-    setValue: {
       color: colors.textSecondary,
       fontSize: Typography.callout.fontSize,
-      fontVariant: ['tabular-nums'],
       lineHeight: Typography.callout.lineHeight,
+    },
+    setNumber: {
+      color: colors.accent,
+      fontSize: Typography.bodyEmphasized.fontSize,
+      fontWeight: '900',
+      fontVariant: ['tabular-nums'],
+      lineHeight: Typography.bodyEmphasized.lineHeight,
+      textAlign: 'center',
+      width: 28,
+    },
+    setValue: {
+      color: colors.textPrimary,
+      fontSize: Typography.bodyEmphasized.fontSize,
+      fontWeight: '800',
+      fontVariant: ['tabular-nums'],
+      lineHeight: Typography.bodyEmphasized.lineHeight,
     },
     surface: {
       backgroundColor: colors.surfacePrimary,
@@ -144,5 +158,10 @@ const createStyles = (colors: typeof Colors.dark) =>
       borderRadius: Radii.large,
       borderWidth: StyleSheet.hairlineWidth,
       overflow: 'hidden',
+    },
+    valueBlock: {
+      flex: 1,
+      gap: 2,
+      minWidth: 0,
     },
   });

@@ -59,14 +59,21 @@ export const getWorkoutSessionEstimatedDuration = (workout?: Workout) => {
   return parsedPlan.exercises.length > 0 ? estimateWorkoutDurationFromPlan(parsedPlan.exercises) : workout.duration ?? '—';
 };
 
-export const getWorkoutSessionProgress = (workoutExercises: PlannedExercise[], selectedExerciseId: string) => {
+export const getWorkoutSessionProgress = (
+  workoutExercises: PlannedExercise[],
+  selectedExerciseId: string,
+  loggedSets: WorkoutSet[],
+) => {
   const selectedExercise = workoutExercises.find((exercise) => exercise.id === selectedExerciseId) ?? workoutExercises[0];
   const selectedExerciseIndex = Math.max(0, workoutExercises.findIndex((exercise) => exercise.id === selectedExercise?.id));
-  const progressLabel = workoutExercises.length > 0 ? `${selectedExerciseIndex + 1} / ${workoutExercises.length}` : '0 / 0';
+  const completedExerciseIds = new Set(loggedSets.map((set) => set.exerciseId));
+  const completedExerciseCount = workoutExercises.filter((exercise) => completedExerciseIds.has(exercise.id)).length;
+  const progressLabel = workoutExercises.length > 0 ? `${completedExerciseCount} of ${workoutExercises.length} exercises completed` : '0 of 0 exercises completed';
   const nextExercise = workoutExercises[selectedExerciseIndex + 1];
-  const progressPercent = workoutExercises.length > 0 ? ((selectedExerciseIndex + 1) / workoutExercises.length) * 100 : 0;
+  const progressPercent = workoutExercises.length > 0 ? (completedExerciseCount / workoutExercises.length) * 100 : 0;
 
   return {
+    completedExerciseCount,
     nextExercise,
     progressLabel,
     progressPercent,

@@ -54,6 +54,13 @@ function RootNavigator() {
               title: 'Workout Session',
             }}
           />
+          <Stack.Screen
+            name="workouts/builder"
+            options={{
+              headerBackTitle: 'Back',
+              title: 'Program Builder',
+            }}
+          />
         </Stack>
       </AppProvider>
     </ThemeProvider>

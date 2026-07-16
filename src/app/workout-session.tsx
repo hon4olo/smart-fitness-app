@@ -16,12 +16,24 @@ import {
   setActiveWorkoutSessionDraft,
 } from '@/lib/workouts';
 import {
-  getWorkoutSessionExercisePrs,
   getWorkoutSessionPreviousSets,
   getWorkoutSessionProgress,
   resolveWorkoutSessionExercises,
 } from '@/lib/workouts/workout-session';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+
+const formatElapsedLabel = (startedAt: string, now = Date.now()) => {
+  const elapsedMs = Math.max(0, now - new Date(startedAt).getTime());
+  const totalMinutes = Math.floor(elapsedMs / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${minutes}m`;
+};
 
 export default function WorkoutSessionScreen() {
   const { workouts, workoutSessions, saveWorkoutSession } = useAppContext();
@@ -98,15 +110,12 @@ export default function WorkoutSessionScreen() {
     });
   }, [sets, startedAt, workout]);
 
-  const progress = useMemo(() => getWorkoutSessionProgress(workoutExercises, selectedExerciseId), [workoutExercises, selectedExerciseId]);
+  const progress = useMemo(() => getWorkoutSessionProgress(workoutExercises, selectedExerciseId, sets), [workoutExercises, selectedExerciseId, sets]);
   const previousSets = useMemo(() => getWorkoutSessionPreviousSets(progress.selectedExercise, workoutSessions), [progress.selectedExercise, workoutSessions]);
-  const exercisePrs = useMemo(() => getWorkoutSessionExercisePrs(progress.selectedExercise, workoutSessions), [progress.selectedExercise, workoutSessions]);
   const hasWorkout = Boolean(workout);
   const hasExercises = workoutExercises.length > 0;
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const progressSummary = hasExercises
-    ? `Exercise ${progress.selectedExerciseIndex + 1} of ${workoutExercises.length} · ${sets.length} ${sets.length === 1 ? 'set' : 'sets'}`
-    : 'No exercises';
+  const completedLabel = progress.progressLabel;
 
   if (!hasWorkout) {
     return (
@@ -225,29 +234,29 @@ export default function WorkoutSessionScreen() {
       <View style={styles.fill}>
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 192 }]}
+          contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 240 }]}
           keyboardShouldPersistTaps="handled"
           style={styles.scrollView}>
           <View style={styles.container}>
             {hasExercises ? (
               <>
                 <WorkoutSessionHeader
+                  completedLabel={completedLabel}
+                  elapsedLabel={formatElapsedLabel(startedAt)}
                   nextExerciseName={progress.nextExercise?.name}
                   progressPercent={progress.progressPercent}
-                  summaryLabel={progressSummary}
                   workoutTitle={workout.title}
                 />
 
                 <WorkoutSessionExerciseNavigator
+                  completedExerciseIds={new Set(sets.map((set) => set.exerciseId))}
                   onSelectExercise={setSelectedExerciseId}
                   selectedExerciseId={selectedExerciseId}
-                  selectedExerciseIndex={progress.selectedExerciseIndex}
                   workoutExercises={workoutExercises}
                 />
 
                 <WorkoutSessionSetEditor
                   editingSetId={editingSetId}
-                  exercisePrs={exercisePrs}
                   onCancelEdit={() => setEditingSetId(undefined)}
                   onRepsChange={setReps}
                   onSaveSet={handleSaveSet}

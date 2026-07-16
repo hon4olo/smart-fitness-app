@@ -1,16 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import type { Exercise, TrainingProgram, TrainingProgramDay, WeekdayKey, Workout } from '@/types';
-import {
-  getTrainingProgramOverview,
-  getTrainingProgramValidation,
-  parseWorkoutPlanDescription,
-} from '@/lib/workouts';
 import { WEEKDAY_KEYS, WEEKDAY_LABELS } from '@/domain/models';
+import { getTrainingProgramOverview, getTrainingProgramValidation, parseWorkoutPlanDescription } from '@/lib/workouts';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type TrainingProgramBuilderCardProps = {
   exercises: Exercise[];
@@ -44,108 +40,172 @@ const createProgramDay = (weekday: WeekdayKey, source?: Partial<TrainingProgramD
 const formatDuration = (minutes: number) => `${Math.max(0, Math.round(minutes))} min`;
 const formatSets = (value: number) => `${value} set${value === 1 ? '' : 's'}`;
 
-function StatCard({ label, value, detail }: { label: string; value: string; detail: string }) {
+function PillRow({
+  label,
+  items,
+  onSelect,
+  selectedValue,
+  styles,
+}: {
+  items: readonly string[];
+  label: string;
+  onSelect: (value: string) => void;
+  selectedValue?: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
-    <View style={styles.statCard}>
-      <Text selectable style={styles.statLabel}>
+    <View style={styles.inputGroup}>
+      <Text selectable style={styles.inputLabel}>
         {label}
       </Text>
-      <Text selectable style={styles.statValue}>
+      <View style={styles.pillRow}>
+        {items.map((item) => {
+          const selected = item === selectedValue;
+          return (
+            <Pressable key={item} onPress={() => onSelect(item)} style={({ pressed }) => [styles.pill, selected && styles.pillSelected, pressed && styles.pillPressed]}>
+              <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]}>{item}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function MetricTile({ detail, label, styles, value }: { detail: string; label: string; styles: ReturnType<typeof createStyles>; value: string }) {
+  return (
+    <View style={styles.metricTile}>
+      <Text selectable style={styles.metricLabel}>
+        {label}
+      </Text>
+      <Text selectable style={styles.metricValue}>
         {value}
       </Text>
-      <Text selectable style={styles.statDetail}>
+      <Text selectable style={styles.metricDetail}>
         {detail}
       </Text>
     </View>
   );
 }
 
-function DayRow({
+function CompactAction({ label, onPress, styles, tone = 'secondary' }: { label: string; onPress: () => void; styles: ReturnType<typeof createStyles>; tone?: 'primary' | 'secondary' }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.compactAction, tone === 'primary' ? styles.compactActionPrimary : styles.compactActionSecondary, pressed && styles.compactActionPressed]}>
+      <Text style={tone === 'primary' ? styles.compactActionLabelPrimary : styles.compactActionLabelSecondary}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function SectionHeading({
+  collapsed,
+  onToggle,
+  styles,
+  subtitle,
+  title,
+}: {
+  collapsed?: boolean;
+  onToggle?: () => void;
+  styles: ReturnType<typeof createStyles>;
+  subtitle?: string;
+  title: string;
+}) {
+  return (
+    <Pressable disabled={!onToggle} onPress={onToggle} style={({ pressed }) => [styles.sectionHeading, pressed && onToggle && styles.sectionHeadingPressed]}>
+      <View style={styles.sectionHeadingCopy}>
+        <Text selectable style={styles.sectionTitle}>
+          {title}
+        </Text>
+        {subtitle ? <Text selectable style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+      </View>
+      {onToggle ? <Text style={styles.sectionToggle}>{collapsed ? '+' : '−'}</Text> : null}
+    </Pressable>
+  );
+}
+
+function ScheduleDayRow({
   day,
+  expanded,
   onAssignSelected,
   onDuplicate,
   onMove,
   onToggleRest,
+  onToggleExpanded,
   onUpdate,
   selectedWorkoutTitle,
+  styles,
   workoutTitle,
-  workoutsCount,
 }: {
   day: TrainingProgramDay;
+  expanded: boolean;
   onAssignSelected: () => void;
   onDuplicate: (dayId: string) => void;
   onMove: (dayId: string, direction: -1 | 1) => void;
+  onToggleExpanded: (dayId: string) => void;
   onToggleRest: (dayId: string) => void;
   onUpdate: (dayId: string, patch: Partial<TrainingProgramDay>) => void;
   selectedWorkoutTitle?: string;
+  styles: ReturnType<typeof createStyles>;
   workoutTitle?: string | null;
-  workoutsCount: number;
 }) {
+  const isRest = day.restDay;
+
   return (
-    <View style={styles.dayCard}>
-      <View style={styles.dayHeader}>
-        <View style={styles.dayCopy}>
-          <Text selectable style={styles.dayTitle}>
-            {WEEKDAY_LABELS[day.weekday]}
-          </Text>
-          <Text selectable style={styles.dayMeta}>
-            {workoutTitle ?? (day.restDay ? 'Rest day' : 'Empty slot')}
+    <View style={styles.dayBlock}>
+      <Pressable accessibilityRole="button" onPress={() => onToggleExpanded(day.id)} style={({ pressed }) => [styles.dayHeader, pressed && styles.compactActionPressed]}>
+        <View style={styles.dayHeaderCopy}>
+          <View style={styles.dayTopLine}>
+            <Text selectable style={styles.dayTitle}>
+              {WEEKDAY_LABELS[day.weekday]}
+            </Text>
+            <View style={[styles.statePill, isRest ? styles.statePillRest : styles.statePillWorkout]}>
+              <Text style={[styles.statePillText, isRest ? styles.statePillTextRest : styles.statePillTextWorkout]}>{isRest ? 'Rest' : 'Workout'}</Text>
+            </View>
+          </View>
+          <Text selectable style={styles.dayWorkoutName}>
+            {workoutTitle ?? (isRest ? 'Rest day' : 'Unassigned')}
           </Text>
         </View>
-        <View style={styles.dayActions}>
-          <AppButton disabled={!selectedWorkoutTitle || workoutsCount === 0} label="Assign" onPress={onAssignSelected} variant="secondary" />
-          <AppButton label="Dup" onPress={() => onDuplicate(day.id)} variant="secondary" />
-          <AppButton label="↑" onPress={() => onMove(day.id, -1)} variant="secondary" />
-          <AppButton label="↓" onPress={() => onMove(day.id, 1)} variant="secondary" />
+        <Text style={styles.sectionToggle}>{expanded ? '−' : '+'}</Text>
+      </Pressable>
+
+      {expanded ? (
+        <View style={styles.dayExpanded}>
+          <View style={styles.dayActionGrid}>
+            <CompactAction label={`Assign ${selectedWorkoutTitle ?? 'selected'}`} onPress={onAssignSelected} styles={styles} tone="primary" />
+            <CompactAction label={isRest ? 'Mark workout' : 'Mark rest'} onPress={() => onToggleRest(day.id)} styles={styles} />
+            <CompactAction label="Duplicate" onPress={() => onDuplicate(day.id)} styles={styles} />
+            <CompactAction label="Move up" onPress={() => onMove(day.id, -1)} styles={styles} />
+            <CompactAction label="Move down" onPress={() => onMove(day.id, 1)} styles={styles} />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text selectable style={styles.inputLabel}>
+              Notes
+            </Text>
+            <TextInput
+              onChangeText={(value) => onUpdate(day.id, { notes: value })}
+              placeholder="Optional notes for this day"
+              placeholderTextColor={Colors.dark.textSecondary}
+              style={styles.notesInput}
+              value={day.notes ?? ''}
+            />
+          </View>
         </View>
-      </View>
-
-      <View style={styles.weekdayStrip}>
-        {WEEKDAY_KEYS.map((weekday) => {
-          const selected = weekday === day.weekday;
-
-          return (
-            <Pressable
-              key={`${day.id}-${weekday}`}
-              onPress={() => onUpdate(day.id, { weekday })}
-              style={({ pressed }) => [styles.weekdayChip, selected && styles.weekdayChipSelected, pressed && styles.weekdayChipPressed]}>
-              <Text style={[styles.weekdayChipLabel, selected && styles.weekdayChipLabelSelected]}>{weekday.slice(0, 3).toUpperCase()}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <Text selectable style={styles.dayNotesLabel}>
-        Notes
-      </Text>
-      <TextInput
-        onChangeText={(value) => onUpdate(day.id, { notes: value })}
-        placeholder="Optional notes for the day"
-        placeholderTextColor={Colors.dark.textSecondary}
-        style={styles.notesInput}
-        value={day.notes ?? ''}
-      />
-
-      <View style={styles.selectionRow}>
-        <AppButton
-          label={day.restDay ? 'Mark active' : 'Rest day'}
-          onPress={() => onToggleRest(day.id)}
-          variant="secondary"
-        />
-      </View>
+      ) : null}
     </View>
   );
 }
 
 export function TrainingProgramBuilderCard({ exercises, isExpanded, onProgramChange, onToggleExpanded, program, workouts }: TrainingProgramBuilderCardProps) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | undefined>(workouts[0]?.id);
-  const selectedWorkout = useMemo(
-    () => workouts.find((workout) => workout.id === selectedWorkoutId) ?? workouts[0] ?? null,
-    [selectedWorkoutId, workouts],
-  );
+  const [expandedDayId, setExpandedDayId] = useState<string | undefined>();
+  const [reviewExpanded, setReviewExpanded] = useState(false);
 
-  const overview = getTrainingProgramOverview(program, workouts, exercises);
-  const warnings = getTrainingProgramValidation(program, workouts, exercises);
+  const selectedWorkout = useMemo(() => workouts.find((workout) => workout.id === selectedWorkoutId) ?? workouts[0] ?? null, [selectedWorkoutId, workouts]);
+  const overview = useMemo(() => getTrainingProgramOverview(program, workouts, exercises), [program, workouts, exercises]);
+  const warnings = useMemo(() => getTrainingProgramValidation(program, workouts, exercises), [program, workouts, exercises]);
 
   const updateProgram = (updater: (current: TrainingProgram) => TrainingProgram) => {
     onProgramChange((current) => updater(cloneProgram(current)));
@@ -231,113 +291,100 @@ export function TrainingProgramBuilderCard({ exercises, isExpanded, onProgramCha
     });
   };
 
+  const assignSelectedToFirstOpenDay = () => {
+    if (!selectedWorkout) {
+      return;
+    }
+
+    const openDay = program.days.find((day) => day.restDay || !day.workoutTemplateId) ?? program.days[program.days.length - 1];
+    if (!openDay) {
+      return;
+    }
+
+    updateDay(openDay.id, {
+      restDay: false,
+      workoutTemplateId: selectedWorkout.id,
+      workoutTemplateName: selectedWorkout.title,
+    });
+  };
+
+  const removeTemplateFromProgram = (workoutId: string) => {
+    updateProgram((current) => ({
+      ...current,
+      days: current.days.map((day) =>
+        day.workoutTemplateId === workoutId
+          ? {
+              ...day,
+              restDay: true,
+              workoutTemplateId: undefined,
+              workoutTemplateName: undefined,
+            }
+          : day,
+      ),
+    }));
+  };
+
+  const selectedTemplateSummaries = useMemo(() => {
+    const selectedIds = new Set(program.days.filter((day) => !day.restDay && day.workoutTemplateId).map((day) => day.workoutTemplateId as string));
+    return workouts.filter((workout) => selectedIds.has(workout.id));
+  }, [program.days, workouts]);
+
   if (!isExpanded) {
     return (
       <AppCard>
         <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
-          <View style={styles.headerRow}>
-            <View style={styles.headerCopy}>
+          <View style={styles.collapsibleHeaderRow}>
+            <View style={styles.collapsibleCopy}>
               <Text style={styles.sectionTitle}>Training program builder</Text>
-              <Text style={styles.subtitle}>Structure weekly templates, progression, and muscle coverage.</Text>
+              <Text style={styles.sectionSubtitle}>Structure weekly templates, progression, and review without a dense form wall.</Text>
             </View>
-            <Text style={styles.toggle}>+</Text>
+            <Text style={styles.sectionToggle}>+</Text>
           </View>
         </Pressable>
-        <AppButton label="Open program builder" onPress={onToggleExpanded} variant="secondary" />
       </AppCard>
     );
   }
 
   return (
-    <AppCard>
-      <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerCopy}>
-            <Text style={styles.sectionTitle}>Training program builder</Text>
-            <Text style={styles.subtitle}>Turn existing workout templates into a structured weekly plan without changing session logging.</Text>
-          </View>
-          <Text style={styles.toggle}>−</Text>
-        </View>
-      </Pressable>
+    <View style={styles.stack}>
+      <AppCard style={styles.sectionCard}>
+        <SectionHeading styles={styles} subtitle="Name, goal, and experience level." title="Basics" />
 
-      <View style={styles.stack}>
         <View style={styles.inputGroup}>
-          <Text selectable style={styles.inputLabel}>Program name</Text>
+          <Text selectable style={styles.inputLabel}>
+            Program name
+          </Text>
           <TextInput
             onChangeText={(value) => updateField({ name: value })}
             placeholder="8-week strength block"
-            placeholderTextColor={Colors.dark.textSecondary}
+            placeholderTextColor={colors.textSecondary}
             style={styles.input}
             value={program.name}
           />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text selectable style={styles.inputLabel}>Description</Text>
+          <Text selectable style={styles.inputLabel}>
+            Description
+          </Text>
           <TextInput
             multiline
             onChangeText={(value) => updateField({ description: value })}
             placeholder="Training intent, split, or coaching notes"
-            placeholderTextColor={Colors.dark.textSecondary}
+            placeholderTextColor={colors.textSecondary}
             style={styles.notesInput}
             value={program.description ?? ''}
           />
         </View>
 
-        <View style={styles.pillRow}>
-          {PROGRAM_GOALS.map((goal) => (
-            <Pressable key={goal} onPress={() => updateField({ goal })} style={({ pressed }) => [styles.pill, program.goal === goal && styles.pillSelected, pressed && styles.pillPressed]}>
-              <Text style={[styles.pillLabel, program.goal === goal && styles.pillLabelSelected]}>{goal}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <PillRow label="Goal" items={PROGRAM_GOALS} onSelect={(goal) => updateField({ goal })} selectedValue={program.goal} styles={styles} />
+        <PillRow label="Experience level" items={PROGRAM_DIFFICULTIES} onSelect={(difficulty) => updateField({ difficulty: difficulty as TrainingProgram['difficulty'] })} selectedValue={program.difficulty} styles={styles} />
+      </AppCard>
 
-        <View style={styles.pillRow}>
-          {PROGRAM_DIFFICULTIES.map((difficulty) => (
-            <Pressable key={difficulty} onPress={() => updateField({ difficulty })} style={({ pressed }) => [styles.pill, program.difficulty === difficulty && styles.pillSelected, pressed && styles.pillPressed]}>
-              <Text style={[styles.pillLabel, program.difficulty === difficulty && styles.pillLabelSelected]}>{difficulty}</Text>
-            </Pressable>
-          ))}
-        </View>
+      <AppCard style={styles.sectionCard}>
+        <SectionHeading styles={styles} subtitle="Progression strategy and target loading." title="Progression" />
 
-        <View style={styles.summaryGrid}>
-          <StatCard label="Workouts" value={`${overview.assignedWorkouts}`} detail="Assigned templates in the week" />
-          <StatCard label="Weekly sets" value={formatSets(overview.weeklySets)} detail="Planned working sets" />
-          <StatCard label="Duration" value={formatDuration(overview.estimatedWorkoutDurationMinutes)} detail="Estimated weekly training time" />
-          <StatCard label="Muscles trained" value={`${overview.musclesTrained.length}`} detail={overview.musclesTrained.length > 0 ? overview.musclesTrained.join(' · ') : 'No muscles mapped yet'} />
-        </View>
-
-        <View style={styles.coverageBlock}>
-          <Text selectable style={styles.blockTitle}>Muscle coverage</Text>
-          <Text selectable style={styles.blockMeta}>
-            Trained this week: {overview.musclesTrained.join(', ') || 'none'}
-          </Text>
-          <Text selectable style={styles.blockMeta}>
-            Missing groups: {overview.missingMuscleGroups.join(', ') || 'none'}
-          </Text>
-          <View style={styles.frequencyList}>
-            {overview.muscleFrequency.map((item) => (
-              <View key={item.key} style={styles.frequencyRow}>
-                <Text selectable style={styles.frequencyLabel}>{item.label}</Text>
-                <Text selectable style={styles.frequencyValue}>{item.trainingFrequency} day{item.trainingFrequency === 1 ? '' : 's'} · {formatSets(item.workingSets)}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text selectable style={styles.inputLabel}>Progression strategy</Text>
-          <View style={styles.pillRow}>
-            {PROGRAM_STRATEGIES.map((strategy) => (
-              <Pressable
-                key={strategy}
-                onPress={() => updateProgression({ strategy })}
-                style={({ pressed }) => [styles.pill, program.progression?.strategy === strategy && styles.pillSelected, pressed && styles.pillPressed]}>
-                <Text style={[styles.pillLabel, program.progression?.strategy === strategy && styles.pillLabelSelected]}>{strategy}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+        <PillRow label="Progression strategy" items={PROGRAM_STRATEGIES} onSelect={(strategy) => updateProgression({ strategy })} selectedValue={program.progression?.strategy} styles={styles} />
 
         <View style={styles.progressionGrid}>
           {[
@@ -346,440 +393,588 @@ export function TrainingProgramBuilderCard({ exercises, isExpanded, onProgramCha
             ['RIR', 'rir', program.progression?.rir] as const,
           ].map(([label, key, value]) => (
             <View key={label} style={styles.progressionItem}>
-              <Text selectable style={styles.inputLabel}>{label}</Text>
+              <Text selectable style={styles.inputLabel}>
+                {label}
+              </Text>
               <TextInput
                 keyboardType="numeric"
                 onChangeText={(nextValue) => updateProgression({ [key]: nextValue ? Number(nextValue) : undefined })}
                 placeholder="—"
-                placeholderTextColor={Colors.dark.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 style={styles.input}
                 value={value === undefined ? '' : String(value)}
               />
             </View>
           ))}
           <View style={styles.progressionItem}>
-            <Text selectable style={styles.inputLabel}>Duration (weeks)</Text>
+            <Text selectable style={styles.inputLabel}>
+              Duration (weeks)
+            </Text>
             <TextInput
               keyboardType="numeric"
               onChangeText={(value) => updateField({ durationWeeks: value ? Number(value) : 0 })}
               placeholder="8"
-              placeholderTextColor={Colors.dark.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               style={styles.input}
               value={String(program.durationWeeks)}
             />
           </View>
         </View>
+      </AppCard>
 
-        {warnings.length > 0 ? (
-          <View style={styles.warningCard}>
-            <Text style={styles.warningLabel}>Warnings</Text>
-            {warnings.slice(0, 3).map((warning) => (
-              <Text key={warning.id} selectable style={styles.warningText}>
-                • {warning.message}
-              </Text>
-            ))}
-          </View>
-        ) : null}
+      <AppCard style={styles.sectionCard}>
+        <SectionHeading styles={styles} subtitle="Pick templates, add them to the program, or remove them from selected days." title="Workout templates" />
 
-        <View style={styles.templatesBlock}>
-          <View style={styles.blockHeaderRow}>
-            <Text selectable style={styles.blockTitle}>Template bank</Text>
-            <Text selectable style={styles.blockMeta}>
-              Selected: {selectedWorkout?.title ?? 'none'}
-            </Text>
-          </View>
-          <View style={styles.templateGrid}>
-            {workouts.map((workout) => {
-              const plannedExercises = parseWorkoutPlanDescription(workout.description).exercises;
-              const selected = workout.id === selectedWorkout?.id;
-
-              return (
-                <Pressable key={workout.id} onPress={() => setSelectedWorkoutId(workout.id)} style={({ pressed }) => [styles.templateChip, selected && styles.templateChipSelected, pressed && styles.pillPressed]}>
-                  <Text style={styles.templateTitle}>{workout.title}</Text>
-                  <Text style={styles.templateMeta}>{plannedExercises.length > 0 ? `${plannedExercises.length} planned exercises` : `${workout.exercises.length} exercises`}</Text>
-                  <Text style={styles.templateMeta}>{workout.description ? 'Has plan notes' : 'Template ready'}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+        <View style={styles.templatePickerHeader}>
+          <Text selectable style={styles.blockMeta}>
+            Selected template: {selectedWorkout?.title ?? 'none'}
+          </Text>
+          <CompactAction label="Add selected" onPress={assignSelectedToFirstOpenDay} styles={styles} tone="primary" />
         </View>
 
-        <View style={styles.daysBlock}>
-          <Text selectable style={styles.blockTitle}>Weekly planner</Text>
-          {program.days.map((day) => {
-            const assignedWorkout = day.workoutTemplateId ? workouts.find((workout) => workout.id === day.workoutTemplateId) ?? null : null;
-            return (
-              <DayRow
-                key={day.id}
-                day={day}
-                onAssignSelected={() => assignSelectedWorkout(day.id)}
-                onDuplicate={duplicateDay}
-                onMove={moveDay}
-                onToggleRest={(dayId) => {
-                  const currentDay = program.days.find((item) => item.id === dayId);
-                  if (!currentDay) {
-                    return;
-                  }
+        <View style={styles.templateBank}>
+          {workouts.map((workout) => {
+            const parsedPlan = parseWorkoutPlanDescription(workout.description);
+            const exerciseCount = parsedPlan.exercises.length > 0 ? parsedPlan.exercises.length : workout.exercises.length;
+            const selected = workout.id === selectedWorkout?.id;
 
-                  updateDay(dayId, {
-                    restDay: !currentDay.restDay,
-                    workoutTemplateId: !currentDay.restDay ? currentDay.workoutTemplateId : selectedWorkout?.id ?? currentDay.workoutTemplateId,
-                    workoutTemplateName: !currentDay.restDay ? currentDay.workoutTemplateName : selectedWorkout?.title ?? currentDay.workoutTemplateName,
-                  });
-                }}
-                onUpdate={updateDay}
-                selectedWorkoutTitle={selectedWorkout?.title}
-                workoutTitle={assignedWorkout?.title ?? day.workoutTemplateName ?? null}
-                workoutsCount={workouts.length}
-              />
+            return (
+              <Pressable key={workout.id} onPress={() => setSelectedWorkoutId(workout.id)} style={({ pressed }) => [styles.templateBankRow, selected && styles.templateBankRowSelected, pressed && styles.compactActionPressed]}>
+                <View style={styles.templateBankCopy}>
+                  <Text selectable style={styles.templateBankTitle}>
+                    {workout.title}
+                  </Text>
+                  <Text selectable style={styles.templateBankMeta}>
+                    {exerciseCount} exercises · {workout.duration}
+                  </Text>
+                </View>
+                <View style={[styles.statePill, selected ? styles.statePillWorkout : styles.statePillRest]}>
+                  <Text style={[styles.statePillText, selected ? styles.statePillTextWorkout : styles.statePillTextRest]}>{selected ? 'Selected' : 'Select'}</Text>
+                </View>
+              </Pressable>
             );
           })}
         </View>
 
-        <View style={styles.coverageBlock}>
-          <Text selectable style={styles.blockTitle}>Overview</Text>
-          <Text selectable style={styles.blockMeta}>Equipment required: {overview.equipmentRequired.join(', ') || 'none'}</Text>
-          <Text selectable style={styles.blockMeta}>Warnings: {warnings.length}</Text>
+        <View style={styles.selectedTemplatesBlock}>
+          <Text selectable style={styles.blockTitle}>
+            Selected templates
+          </Text>
+          {selectedTemplateSummaries.length > 0 ? (
+            <View style={styles.selectedTemplateList}>
+              {selectedTemplateSummaries.map((workout, index) => (
+                <View key={workout.id} style={[styles.selectedTemplateRow, index > 0 && styles.rowDivider]}>
+                  <View style={styles.selectedTemplateCopy}>
+                    <Text selectable style={styles.selectedTemplateTitle}>
+                      {workout.title}
+                    </Text>
+                    <Text selectable style={styles.selectedTemplateMeta}>
+                      {workout.exercises.length} exercises
+                    </Text>
+                  </View>
+                  <CompactAction label="Remove" onPress={() => removeTemplateFromProgram(workout.id)} styles={styles} />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text selectable style={styles.blockMeta}>
+              No templates selected yet.
+            </Text>
+          )}
         </View>
-      </View>
-    </AppCard>
+      </AppCard>
+
+      <AppCard style={styles.sectionCard}>
+        <SectionHeading styles={styles} subtitle="One compact row per day, with expanded edit mode for secondary actions." title="Weekly schedule" />
+
+        <View style={styles.dayList}>
+          {program.days.map((day) => {
+            const assignedWorkout = day.workoutTemplateId ? workouts.find((workout) => workout.id === day.workoutTemplateId) ?? null : null;
+            const expanded = expandedDayId === day.id;
+
+            return (
+              <ScheduleDayRow
+                key={day.id}
+                day={day}
+                expanded={expanded}
+                onAssignSelected={() => assignSelectedWorkout(day.id)}
+                onDuplicate={duplicateDay}
+                onMove={moveDay}
+                onToggleExpanded={(dayId) => setExpandedDayId((current) => (current === dayId ? undefined : dayId))}
+                onToggleRest={toggleRestDay}
+                onUpdate={updateDay}
+                selectedWorkoutTitle={selectedWorkout?.title}
+                styles={styles}
+                workoutTitle={assignedWorkout?.title ?? day.workoutTemplateName ?? null}
+              />
+            );
+          })}
+        </View>
+      </AppCard>
+
+      <AppCard style={styles.sectionCard}>
+        <SectionHeading
+          collapsed={!reviewExpanded}
+          onToggle={() => setReviewExpanded((current) => !current)}
+          styles={styles}
+          subtitle="Review stays secondary and collapsible until the program is mostly configured."
+          title="Review"
+        />
+
+        {reviewExpanded ? (
+          <>
+            <View style={styles.metricGrid}>
+              <MetricTile detail="Assigned workouts in the current week" label="Weekly workouts" styles={styles} value={`${overview.assignedWorkouts}`} />
+              <MetricTile detail="Planned working sets" label="Weekly sets" styles={styles} value={formatSets(overview.weeklySets)} />
+              <MetricTile detail="Estimated weekly training time" label="Duration" styles={styles} value={formatDuration(overview.estimatedWorkoutDurationMinutes)} />
+              <MetricTile detail={overview.musclesTrained.length > 0 ? overview.musclesTrained.join(' · ') : 'No muscles mapped yet'} label="Muscles trained" styles={styles} value={`${overview.musclesTrained.length}`} />
+            </View>
+
+            {warnings.length > 0 ? (
+              <View style={styles.reviewBlock}>
+                <Text selectable style={styles.blockTitle}>
+                  Warnings
+                </Text>
+                {warnings.slice(0, 4).map((warning) => (
+                  <Text key={warning.id} selectable style={styles.reviewText}>
+                    • {warning.message}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
+
+            <View style={styles.reviewBlock}>
+              <Text selectable style={styles.blockTitle}>
+                Muscle coverage
+              </Text>
+              <Text selectable style={styles.reviewText}>
+                Trained this week: {overview.musclesTrained.join(', ') || 'none'}
+              </Text>
+              <Text selectable style={styles.reviewText}>
+                Missing groups: {overview.missingMuscleGroups.join(', ') || 'none'}
+              </Text>
+              <View style={styles.frequencyList}>
+                {overview.muscleFrequency.map((item) => (
+                  <View key={item.key} style={styles.frequencyRow}>
+                    <Text selectable style={styles.frequencyLabel}>
+                      {item.label}
+                    </Text>
+                    <Text selectable style={styles.frequencyValue}>
+                      {item.trainingFrequency} day{item.trainingFrequency === 1 ? '' : 's'} · {formatSets(item.workingSets)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </>
+        ) : null}
+      </AppCard>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  assignedMeta: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-  },
-  assignedSummary: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 4,
-    padding: Spacing.two,
-  },
-  assignedTitle: {
-    color: Colors.dark.text,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  blockHeaderRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-  },
-  blockMeta: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  blockTitle: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  collapsibleHeader: {
-    paddingBottom: Spacing.two,
-  },
-  coverageBlock: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: Spacing.one,
-    padding: Spacing.three,
-  },
-  dayActions: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.one,
-    justifyContent: 'flex-end',
-  },
-  dayCard: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: Spacing.two,
-    padding: Spacing.three,
-  },
-  dayCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  dayHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-  },
-  dayMeta: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  dayNotesLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  dayTitle: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  daysBlock: {
-    gap: Spacing.two,
-  },
-  frequencyLabel: {
-    color: Colors.dark.text,
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  frequencyList: {
-    gap: 4,
-    marginTop: Spacing.one,
-  },
-  frequencyRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'space-between',
-  },
-  frequencyValue: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-    textAlign: 'right',
-  },
-  headerCopy: {
-    flex: 1,
-    gap: Spacing.one,
-  },
-  headerRow: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'space-between',
-  },
-  input: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 8,
-    borderWidth: 1,
-    color: Colors.dark.text,
-    fontSize: 16,
-    minHeight: 48,
-    paddingHorizontal: Spacing.two,
-  },
-  inputGroup: {
-    gap: Spacing.one,
-  },
-  inputLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  notesInput: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 8,
-    borderWidth: 1,
-    color: Colors.dark.text,
-    fontSize: 15,
-    minHeight: 88,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.two,
-    textAlignVertical: 'top',
-  },
-  pill: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-  },
-  pillLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  pillLabelSelected: {
-    color: Colors.dark.text,
-  },
-  pillPressed: {
-    opacity: 0.84,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.one,
-  },
-  pillSelected: {
-    borderColor: Colors.dark.accent,
-    backgroundColor: Colors.dark.accentMuted,
-  },
-  progressionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  progressionItem: {
-    flex: 1,
-    gap: Spacing.one,
-    minWidth: 130,
-  },
-  sectionTitle: {
-    color: Colors.dark.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  selectionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  stack: {
-    gap: Spacing.three,
-  },
-  statCard: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 4,
-    flex: 1,
-    minWidth: 150,
-    padding: Spacing.two,
-  },
-  statDetail: {
-    color: Colors.dark.textSecondary,
-    fontSize: 11,
-    lineHeight: 15,
-  },
-  statLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  statValue: {
-    color: Colors.dark.text,
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  subtitle: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  templatesBlock: {
-    gap: Spacing.two,
-  },
-  templateChip: {
-    backgroundColor: Colors.dark.backgroundElement,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 2,
-    padding: Spacing.two,
-  },
-  templateChipSelected: {
-    borderColor: Colors.dark.accent,
-    backgroundColor: Colors.dark.accentMuted,
-  },
-  templateGrid: {
-    gap: Spacing.two,
-  },
-  templateMeta: {
-    color: Colors.dark.textSecondary,
-    fontSize: 12,
-  },
-  templateTitle: {
-    color: Colors.dark.text,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  toggle: {
-    color: Colors.dark.accent,
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  warningBullet: {
-    color: Colors.dark.accent,
-    fontSize: 15,
-    fontWeight: '900',
-    width: 14,
-  },
-  warningCard: {
-    backgroundColor: Colors.dark.accentMuted,
-    borderColor: Colors.dark.accent,
-    borderCurve: 'continuous',
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 4,
-    padding: Spacing.three,
-  },
-  warningLabel: {
-    color: Colors.dark.accent,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  warningList: {
-    gap: Spacing.one,
-  },
-  warningText: {
-    color: Colors.dark.text,
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  weekdayChip: {
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.border,
-    borderCurve: 'continuous',
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  weekdayChipLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  weekdayChipLabelSelected: {
-    color: Colors.dark.text,
-  },
-  weekdayChipPressed: {
-    opacity: 0.84,
-  },
-  weekdayChipSelected: {
-    backgroundColor: Colors.dark.accentMuted,
-    borderColor: Colors.dark.accent,
-  },
-  weekdayStrip: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-  },
-});
+const createStyles = (colors: typeof Colors.dark) =>
+  StyleSheet.create({
+    blockMeta: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    blockTitle: {
+      color: colors.textPrimary,
+      fontSize: Typography.bodyEmphasized.fontSize,
+      fontWeight: '900',
+      lineHeight: Typography.bodyEmphasized.lineHeight,
+    },
+    collapsibleCopy: {
+      flex: 1,
+      gap: 4,
+      minWidth: 0,
+    },
+    collapsibleHeader: {
+      paddingBottom: Spacing.two,
+    },
+    collapsibleHeaderRow: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      justifyContent: 'space-between',
+    },
+    compactAction: {
+      alignItems: 'center',
+      borderCurve: 'continuous',
+      borderRadius: Radii.pill,
+      justifyContent: 'center',
+      minHeight: 44,
+      minWidth: 88,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+    },
+    compactActionLabelPrimary: {
+      color: colors.textOnAccent,
+      fontSize: Typography.caption.fontSize,
+      fontWeight: '900',
+      lineHeight: Typography.caption.lineHeight,
+    },
+    compactActionLabelSecondary: {
+      color: colors.textPrimary,
+      fontSize: Typography.caption.fontSize,
+      fontWeight: '800',
+      lineHeight: Typography.caption.lineHeight,
+    },
+    compactActionPressed: {
+      opacity: 0.85,
+    },
+    compactActionPrimary: {
+      backgroundColor: colors.accent,
+    },
+    compactActionSecondary: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderWidth: StyleSheet.hairlineWidth,
+    },
+    dayActionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.two,
+    },
+    dayBlock: {
+      gap: Spacing.two,
+      paddingVertical: Spacing.one,
+    },
+    dayExpanded: {
+      gap: Spacing.three,
+      paddingLeft: Spacing.two,
+    },
+    dayHeader: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      justifyContent: 'space-between',
+      minHeight: 56,
+      paddingVertical: Spacing.two,
+    },
+    dayHeaderCopy: {
+      flex: 1,
+      gap: 4,
+      minWidth: 0,
+    },
+    dayList: {
+      gap: Spacing.two,
+    },
+    dayTitle: {
+      color: colors.textPrimary,
+      fontSize: Typography.bodyEmphasized.fontSize,
+      fontWeight: '900',
+      lineHeight: Typography.bodyEmphasized.lineHeight,
+    },
+    dayTopLine: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.two,
+    },
+    dayWorkoutName: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    frequencyLabel: {
+      color: colors.textPrimary,
+      fontSize: Typography.callout.fontSize,
+      fontWeight: '800',
+      lineHeight: Typography.callout.lineHeight,
+    },
+    frequencyList: {
+      gap: 6,
+    },
+    frequencyRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: Spacing.two,
+    },
+    frequencyValue: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    input: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.medium,
+      borderWidth: StyleSheet.hairlineWidth,
+      color: colors.textPrimary,
+      fontSize: 16,
+      minHeight: 48,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: 12,
+    },
+    inputGroup: {
+      gap: 4,
+    },
+    inputLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.label.fontSize,
+      fontWeight: Typography.label.fontWeight,
+      lineHeight: Typography.label.lineHeight,
+    },
+    metricDetail: {
+      color: colors.textSecondary,
+      fontSize: Typography.caption.fontSize,
+      lineHeight: Typography.caption.lineHeight,
+    },
+    metricGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.two,
+    },
+    metricLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.caption.fontSize,
+      fontWeight: '800',
+      letterSpacing: 0.3,
+      textTransform: 'uppercase',
+    },
+    metricTile: {
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      flexBasis: '48%',
+      flexGrow: 1,
+      gap: 4,
+      minWidth: 140,
+      padding: Spacing.three,
+    },
+    metricValue: {
+      color: colors.textPrimary,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: '900',
+      lineHeight: Typography.cardTitle.lineHeight,
+    },
+    notesInput: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.medium,
+      borderWidth: StyleSheet.hairlineWidth,
+      color: colors.textPrimary,
+      fontSize: 16,
+      minHeight: 88,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.three,
+      textAlignVertical: 'top',
+    },
+    pill: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.pill,
+      borderWidth: StyleSheet.hairlineWidth,
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+    },
+    pillLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.caption.fontSize,
+      fontWeight: '800',
+      lineHeight: Typography.caption.lineHeight,
+      textTransform: 'capitalize',
+    },
+    pillLabelSelected: {
+      color: colors.textPrimary,
+    },
+    pillPressed: {
+      opacity: 0.88,
+    },
+    pillRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.two,
+    },
+    pillSelected: {
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.accentSoft,
+    },
+    progressionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.two,
+    },
+    progressionItem: {
+      flexBasis: '48%',
+      flexGrow: 1,
+      gap: 4,
+      minWidth: 140,
+    },
+    reviewBlock: {
+      gap: Spacing.two,
+      paddingTop: Spacing.one,
+    },
+    reviewText: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    rowDivider: {
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    scheduleCopy: {
+      flex: 1,
+      gap: 2,
+      minWidth: 0,
+    },
+    sectionCard: {
+      gap: Spacing.three,
+      padding: Spacing.four,
+    },
+    sectionHeading: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      justifyContent: 'space-between',
+    },
+    sectionHeadingCopy: {
+      flex: 1,
+      gap: 4,
+      minWidth: 0,
+    },
+    sectionHeadingPressed: {
+      opacity: 0.9,
+    },
+    sectionSubtitle: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    sectionTitle: {
+      color: colors.textPrimary,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: '900',
+      lineHeight: Typography.cardTitle.lineHeight,
+    },
+    sectionToggle: {
+      color: colors.accent,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: '900',
+      lineHeight: Typography.cardTitle.lineHeight,
+    },
+    selectedTemplateCopy: {
+      flex: 1,
+      gap: 2,
+      minWidth: 0,
+    },
+    selectedTemplateList: {
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      overflow: 'hidden',
+    },
+    selectedTemplateMeta: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    selectedTemplateRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      justifyContent: 'space-between',
+      minHeight: 54,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+    },
+    selectedTemplateTitle: {
+      color: colors.textPrimary,
+      fontSize: Typography.bodyEmphasized.fontSize,
+      fontWeight: '800',
+      lineHeight: Typography.bodyEmphasized.lineHeight,
+    },
+    selectedTemplatesBlock: {
+      gap: Spacing.two,
+    },
+    stack: {
+      gap: Spacing.three,
+    },
+    statePill: {
+      alignItems: 'center',
+      borderCurve: 'continuous',
+      borderRadius: Radii.pill,
+      justifyContent: 'center',
+      minHeight: 28,
+      paddingHorizontal: Spacing.two,
+    },
+    statePillRest: {
+      backgroundColor: colors.backgroundSelected,
+    },
+    statePillText: {
+      fontSize: Typography.caption.fontSize,
+      fontWeight: '800',
+      lineHeight: Typography.caption.lineHeight,
+    },
+    statePillTextRest: {
+      color: colors.textSecondary,
+    },
+    statePillTextWorkout: {
+      color: colors.accent,
+    },
+    statePillWorkout: {
+      backgroundColor: colors.accentSoft,
+    },
+    templateBank: {
+      gap: Spacing.two,
+    },
+    templateBankCopy: {
+      flex: 1,
+      gap: 2,
+      minWidth: 0,
+    },
+    templateBankHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: Spacing.two,
+    },
+    templateBankMeta: {
+      color: colors.textSecondary,
+      fontSize: Typography.callout.fontSize,
+      lineHeight: Typography.callout.lineHeight,
+    },
+    templateBankRow: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      flexDirection: 'row',
+      gap: Spacing.two,
+      minHeight: 56,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+    },
+    templateBankRowSelected: {
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.accentSoft,
+    },
+    templateBankTitle: {
+      color: colors.textPrimary,
+      fontSize: Typography.bodyEmphasized.fontSize,
+      fontWeight: '800',
+      lineHeight: Typography.bodyEmphasized.lineHeight,
+    },
+    templatePickerHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: Spacing.two,
+    },
+    weekSectionSpacer: {},
+  });
