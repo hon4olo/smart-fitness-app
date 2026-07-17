@@ -6,20 +6,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui/AppButton';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, buildCompletedWorkoutSessionSnapshot } from '@/lib/workouts';
+import { clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, buildCompletedWorkoutSessionSnapshot, markActiveWorkoutSessionCompleted, markActiveWorkoutSessionFinishing } from '@/lib/workouts';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 const formatDurationLabel = (startedAt: string, finishedAt = new Date().toISOString()) => {
   const elapsedMs = Math.max(0, new Date(finishedAt).getTime() - new Date(startedAt).getTime());
-  const totalMinutes = Math.floor(elapsedMs / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+  const totalSeconds = Math.floor(elapsedMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
   if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 
-  return `${minutes}m`;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
 const formatDateTimeLabel = (value: string) =>
@@ -96,15 +97,17 @@ export default function WorkoutSessionFinishRoute() {
       sets: completedSets,
     };
 
+    markActiveWorkoutSessionFinishing();
     saveWorkoutSession(completedSnapshot);
     setCompletedSession(completedSnapshot);
     setSaved(true);
     clearActiveWorkoutSessionDraft();
+    markActiveWorkoutSessionCompleted();
   };
 
   if (saved) {
     return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <View style={[styles.screen, { backgroundColor: colors.background, paddingTop: insets.top + Spacing.three }]}>
         <View style={styles.savedState}>
           <Text selectable style={styles.savedTitle}>
             Workout saved

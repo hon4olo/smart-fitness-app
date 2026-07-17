@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,8 +14,8 @@ import { useAppContext } from '@/context/AppContext';
 import { formatLocalDate } from '@/lib';
 import { getClampedProgress, sumNutritionTotals } from '@/lib/nutrition';
 import { getProgressAnalytics } from '@/lib/progress';
-import { createDefaultTrainingProgram, getLatestWorkoutSession } from '@/lib/workouts';
-import { getCurrentWorkoutStreak, getWeeklyWorkoutCount, getWeeklyWorkoutVolumeTrend, type HomeSnapshotItem } from '@/lib/home';
+import { createDefaultTrainingProgram, getActiveWorkoutSessionDraft, hydrateActiveWorkoutSessionDraft } from '@/lib/workouts';
+import { getCurrentWorkoutStreak, getHomePrimaryWorkoutActionLabel, getWeeklyWorkoutCount, getWeeklyWorkoutVolumeTrend, type HomeSnapshotItem } from '@/lib/home';
 import { getMotivationInsight, getNutritionAdvisor, getProgramAdvisor, getRecoveryAdvisor, getTrainingAdvisor } from '@/lib/intelligence';
 
 export default function HomeScreen() {
@@ -35,7 +35,6 @@ export default function HomeScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const todayKey = formatLocalDate(new Date());
 
-  const currentWorkout = useMemo(() => getLatestWorkoutSession(workoutSessions), [workoutSessions]);
   const currentProgram = useMemo(() => createDefaultTrainingProgram(workouts), [workouts]);
   const currentWorkoutStreak = useMemo(() => getCurrentWorkoutStreak(workoutSessions), [workoutSessions]);
   const progressAnalytics = useMemo(() => getProgressAnalytics({ bodyMeasurements, exercises, weightHistory, workoutSessions }), [bodyMeasurements, exercises, weightHistory, workoutSessions]);
@@ -60,18 +59,35 @@ export default function HomeScreen() {
   const caloriesRemaining = nutritionTargets.calories - todaysNutrition.calories;
   const caloriesRemainingLabel = caloriesRemaining < 0 ? `Over by ${Math.abs(caloriesRemaining).toFixed(0)} kcal` : `${caloriesRemaining.toFixed(0)} kcal left`;
 
-  const primaryWorkoutRoute = currentWorkout
-    ? { pathname: '/workout-session' as const, params: { workoutId: currentWorkout.workoutId } }
+  const [currentWeightInput, setCurrentWeightInput] = useState('');
+  const [targetWeightInput, setTargetWeightInput] = useState(`${profile.targetWeight}`);
+  const [goalType, setGoalType] = useState(profile.goalType);
+  const [trainingDaysPerWeekInput, setTrainingDaysPerWeekInput] = useState(`${profile.trainingDaysPerWeek}`);
+  const [activeDraftReady, setActiveDraftReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void hydrateActiveWorkoutSessionDraft().then(() => {
+      if (!cancelled) {
+        setActiveDraftReady(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const activeWorkoutDraft = activeDraftReady ? getActiveWorkoutSessionDraft() : null;
+  const activeWorkout = useMemo(() => activeWorkoutDraft, [activeWorkoutDraft]);
+  const primaryWorkoutRoute = activeWorkout
+    ? { pathname: '/workout-session' as const, params: { workoutId: activeWorkout.workoutId } }
     : '/track';
 
   const handleOpenPrimaryWorkout = () => {
     router.push(primaryWorkoutRoute);
   };
-
-  const [currentWeightInput, setCurrentWeightInput] = useState('');
-  const [targetWeightInput, setTargetWeightInput] = useState(`${profile.targetWeight}`);
-  const [goalType, setGoalType] = useState(profile.goalType);
-  const [trainingDaysPerWeekInput, setTrainingDaysPerWeekInput] = useState(`${profile.trainingDaysPerWeek}`);
 
   const parsedCurrentWeight = Number(currentWeightInput);
   const parsedTargetWeight = Number(targetWeightInput);
@@ -195,7 +211,7 @@ export default function HomeScreen() {
 
             <QuickActionsCard
               primaryAction={{
-                label: currentWorkout ? 'Continue workout' : 'Start workout',
+                label: getHomePrimaryWorkoutActionLabel(activeWorkout),
                 onPress: handleOpenPrimaryWorkout,
               }}
               secondaryActions={[

@@ -637,6 +637,8 @@ export const createDefaultTrainingProgram = (workouts: Workout[]): TrainingProgr
   };
 };
 
+export type WorkoutSessionLifecycle = 'idle' | 'starting' | 'active' | 'finishing' | 'completed';
+
 export type WorkoutSessionDraft = {
   id: string;
   workoutId: string;
@@ -720,8 +722,15 @@ const workoutProgramsStore = {
 
 const ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY = 'active-workout-session-draft';
 
-let activeWorkoutSessionDraft: WorkoutSessionDraft | null = null;
+let activeWorkoutSessionDraft = null as WorkoutSessionDraft | null;
 let activeWorkoutSessionDraftWriteQueue = Promise.resolve();
+let activeWorkoutSessionDraftRevision = 0;
+let activeWorkoutSessionDraftHydrated = false;
+let resolveActiveWorkoutSessionDraftHydration: (() => void) | null = null;
+const activeWorkoutSessionDraftHydrationPromise = new Promise<void>((resolve) => {
+  resolveActiveWorkoutSessionDraftHydration = resolve;
+});
+let activeWorkoutSessionLifecycle: WorkoutSessionLifecycle = 'idle';
 const workoutTemplateFavorites = new Set<string>();
 
 const cloneSet = (set: WorkoutSession['sets'][number]) => ({ ...set });
@@ -771,15 +780,22 @@ const parseWorkoutSessionDraft = (value: string | null): WorkoutSessionDraft | n
   }
 };
 
-const persistActiveWorkoutSessionDraft = (draft: WorkoutSessionDraft | null) => {
+const persistActiveWorkoutSessionDraft = (draft: WorkoutSessionDraft | null, revision = activeWorkoutSessionDraftRevision) => {
   activeWorkoutSessionDraftWriteQueue = activeWorkoutSessionDraftWriteQueue
     .catch(() => undefined)
-    .then(() => {
-      if (draft) {
-        return AsyncStorage.setItem(ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY, JSON.stringify(cloneWorkoutSessionDraft(draft)));
+    .then(async () => {
+      await activeWorkoutSessionDraftHydrationPromise;
+
+      if (revision !== activeWorkoutSessionDraftRevision) {
+        return;
       }
 
-      return AsyncStorage.removeItem(ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY);
+      if (draft) {
+        await AsyncStorage.setItem(ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY, JSON.stringify(cloneWorkoutSessionDraft(draft)));
+        return;
+      }
+
+      await AsyncStorage.removeItem(ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY);
     })
     .catch(() => undefined);
 
@@ -923,16 +939,39 @@ export const resetWorkoutHubState = () => {
 export const getActiveWorkoutSessionDraft = () => (activeWorkoutSessionDraft ? { ...activeWorkoutSessionDraft, sets: activeWorkoutSessionDraft.sets.map(cloneSet) } : null);
 
 export const hydrateActiveWorkoutSessionDraft = async () => {
-  activeWorkoutSessionDraft = parseWorkoutSessionDraft(await AsyncStorage.getItem(ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY));
+  const storedDraft = parseWorkoutSessionDraft(await AsyncStorage.getItem(ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY));
+  activeWorkoutSessionDraftHydrated = true;
+  resolveActiveWorkoutSessionDraftHydration?.();
+  resolveActiveWorkoutSessionDraftHydration = null;
+
+  if (!activeWorkoutSessionDraft || activeWorkoutSessionDraftRevision === 0) {
+    activeWorkoutSessionDraft = storedDraft;
+  }
+
   return getActiveWorkoutSessionDraft();
 };
 
+export const getActiveWorkoutSessionLifecycle = () => activeWorkoutSessionLifecycle;
+
+export const markActiveWorkoutSessionFinishing = () => {
+  if (activeWorkoutSessionDraft) {
+    activeWorkoutSessionLifecycle = 'finishing';
+  }
+};
+
+export const markActiveWorkoutSessionCompleted = () => {
+  activeWorkoutSessionLifecycle = 'completed';
+};
+
 export const setActiveWorkoutSessionDraft = (draft: WorkoutSessionDraft | null) => {
+  activeWorkoutSessionDraftRevision += 1;
+  activeWorkoutSessionLifecycle = draft ? 'active' : 'idle';
   activeWorkoutSessionDraft = draft ? cloneWorkoutSessionDraft(draft) : null;
-  void persistActiveWorkoutSessionDraft(activeWorkoutSessionDraft);
+  void persistActiveWorkoutSessionDraft(activeWorkoutSessionDraft, activeWorkoutSessionDraftRevision);
 };
 
 export const startWorkoutSessionDraft = (workout: Workout, startedAt = new Date().toISOString()) => {
+  activeWorkoutSessionLifecycle = 'starting';
   const draft: WorkoutSessionDraft = {
     id: `${Date.now()}`,
     workoutId: workout.id,
@@ -942,10 +981,12 @@ export const startWorkoutSessionDraft = (workout: Workout, startedAt = new Date(
   };
 
   setActiveWorkoutSessionDraft(draft);
+  activeWorkoutSessionLifecycle = 'active';
   return draft;
 };
 
 export const startEmptyWorkoutSessionDraft = (startedAt = new Date().toISOString()) => {
+  activeWorkoutSessionLifecycle = 'starting';
   const draft: WorkoutSessionDraft = {
     id: `${Date.now()}`,
     workoutId: 'empty-workout',
@@ -955,6 +996,7 @@ export const startEmptyWorkoutSessionDraft = (startedAt = new Date().toISOString
   };
 
   setActiveWorkoutSessionDraft(draft);
+  activeWorkoutSessionLifecycle = 'active';
   return draft;
 };
 
@@ -969,8 +1011,10 @@ export const updateActiveWorkoutSessionDraft = (updater: (current: WorkoutSessio
 };
 
 export const clearActiveWorkoutSessionDraft = () => {
+  activeWorkoutSessionDraftRevision += 1;
   activeWorkoutSessionDraft = null;
-  void persistActiveWorkoutSessionDraft(null);
+  activeWorkoutSessionLifecycle = 'idle';
+  void persistActiveWorkoutSessionDraft(null, activeWorkoutSessionDraftRevision);
 };
 
 export const getWorkoutTemplateSummary = (workout: Workout, sessions: WorkoutSession[]): WorkoutTemplateSummary => {

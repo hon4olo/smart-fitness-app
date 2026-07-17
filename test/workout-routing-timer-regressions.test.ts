@@ -4,7 +4,6 @@ import { defaultState } from '@/data/defaults';
 import { normalizeWorkouts } from '@/lib/appState';
 import {
   buildCompletedWorkoutSessionSnapshot,
-  buildWorkoutTemplateSavePayload,
   formatWorkoutSessionElapsedLabel,
   getWorkoutPrograms,
   resolveWorkoutProgramRouteState,
@@ -99,25 +98,28 @@ describe('workout routing, duplicates, and timer regressions', () => {
     ).toEqual({ status: 'ready', workoutId: 'default-program' });
   });
 
-  it('serializes edited exercises as strings and reloads without duplicating workouts', () => {
-    const payload = buildWorkoutTemplateSavePayload(conditioning, 'Conditioning Plus', [
-      { name: 'Calf raise', targetSets: 4, targetReps: 12, restSeconds: 60 },
-      { name: 'Bike intervals', targetSets: 3, targetReps: 8, restSeconds: 90 },
-    ]);
-
-    expect(payload.exercises).toEqual(['Calf raise', 'Bike intervals']);
+  it('repairs repeated exercise sequences with distinct ids without changing the legitimate order', () => {
+    const lowerBody = defaultState.workouts.find((workout) => workout.id === 'legs-a') ?? defaultState.workouts[0]!;
+    const repeatedSequence = [...lowerBody.exercises, ...lowerBody.exercises].map((exercise, index) => ({
+      ...exercise,
+      id: `${exercise.id}-copy-${index}`,
+    }));
 
     const normalized = normalizeWorkouts(
       [
-        ({ ...conditioning, id: conditioning.id, title: payload.title, description: payload.description, exercises: payload.exercises as unknown as never[] } as any),
-        ({ ...conditioning, id: conditioning.id, title: 'Conditioning duplicate', description: 'duplicate', exercises: payload.exercises as unknown as never[] } as any),
+        ({ ...lowerBody, exercises: repeatedSequence } as any),
       ],
       new Set(defaultState.workouts.map((workout) => workout.id)),
     );
 
     expect(normalized).toHaveLength(1);
-    expect(normalized[0].title).toBe('Conditioning duplicate');
-    expect(normalized[0].exercises.map((exercise) => exercise.name)).toEqual(['Calf raise', 'Bike intervals']);
+    expect(normalized[0].exercises).toHaveLength(4);
+    expect(normalized[0].exercises.map((exercise) => exercise.name)).toEqual([
+      'Back squat',
+      'Romanian deadlift',
+      'Walking lunge',
+      'Calf raise',
+    ]);
   });
 
   it('keeps the program list stable after repeated saves of the same program id', () => {

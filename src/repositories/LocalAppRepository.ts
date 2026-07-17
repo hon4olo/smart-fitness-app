@@ -9,6 +9,7 @@ import {
   normalizeMealTemplates,
   normalizeWeightHistory,
   normalizeWorkouts,
+  normalizeWorkoutSessions,
 } from '@/lib/appState';
 
 import type { AppRepository } from './AppRepository';
@@ -29,7 +30,7 @@ const normalizeStoredState = (storedState: Partial<AppState>): AppState => ({
   exercises: storedState.exercises
     ? mergeExerciseCatalog(exerciseDatabase, normalizeExercises(storedState.exercises))
     : defaultState.exercises,
-  workoutSessions: storedState.workoutSessions ?? defaultState.workoutSessions,
+  workoutSessions: normalizeWorkoutSessions(storedState.workoutSessions ?? defaultState.workoutSessions),
   foodEntries: normalizeFoodEntries(storedState.foodEntries ?? defaultState.foodEntries),
   mealTemplates: normalizeMealTemplates(storedState.mealTemplates ?? defaultState.mealTemplates),
   nutritionTargets: storedState.nutritionTargets ?? defaultState.nutritionTargets,

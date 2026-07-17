@@ -21,16 +21,6 @@ type DraftInputs = Record<string, { reps: string; weight: string }>;
 
 type DraftSet = WorkoutSet;
 
-const createEmptyWorkout = () => ({
-  createdAt: new Date().toISOString(),
-  description: 'Start from scratch and add exercises later.',
-  duration: 'Open-ended',
-  exercises: [],
-  id: 'empty-workout',
-  isCustom: true,
-  title: 'Empty Workout',
-});
-
 const syncDraftInputs = (current: DraftInputs, sets: DraftSet[]) => {
   const next: DraftInputs = { ...current };
   const ids = new Set(sets.map((set) => set.id));
@@ -96,7 +86,7 @@ export default function WorkoutSessionScreen() {
     const workoutIdToUse = bootstrappedDraft?.workoutId ?? resolvedWorkoutId;
 
     if (workoutIdToUse === 'empty-workout') {
-      return createEmptyWorkout();
+      return null;
     }
 
     if (!workoutIdToUse) {
@@ -229,10 +219,12 @@ export default function WorkoutSessionScreen() {
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <View style={styles.emptyState}>
           <Text selectable style={styles.emptyTitle}>
-            No workout selected
+            {resolvedWorkoutId === 'empty-workout' ? 'Empty workout unavailable' : 'No workout selected'}
           </Text>
           <Text selectable style={styles.emptyMessage}>
-            Open a workout from the Workouts tab to continue.
+            {resolvedWorkoutId === 'empty-workout'
+              ? 'Start a template workout for now. Empty workout is temporarily disabled.'
+              : 'Open a workout from the Workouts tab to continue.'}
           </Text>
           <Pressable accessibilityRole="button" onPress={() => router.replace('/workouts')} style={({ pressed }) => [styles.textAction, pressed && styles.textActionPressed]}>
             <Text style={styles.textActionLabel}>Back to Workouts</Text>

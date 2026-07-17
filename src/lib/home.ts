@@ -43,8 +43,28 @@ export const getLatestFoodEntry = (foodEntries: FoodEntry[]) => {
   return sortByCreatedAtDesc(foodEntries).at(0) ?? null;
 };
 
+export const getHomePrimaryWorkoutActionLabel = (activeWorkoutDraft: Pick<WorkoutSession, 'id' | 'workoutId' | 'workoutTitle' | 'startedAt' | 'sets'> | null) => {
+  return activeWorkoutDraft ? 'Continue workout' : 'Start workout';
+};
+
+const dedupeWorkoutSessions = (workoutSessions: WorkoutSession[]) => {
+  const seen = new Set<string>();
+
+  return [...workoutSessions]
+    .reverse()
+    .filter((session) => {
+      if (seen.has(session.id)) {
+        return false;
+      }
+
+      seen.add(session.id);
+      return true;
+    })
+    .reverse();
+};
+
 export const getCurrentWorkoutStreak = (workoutSessions: WorkoutSession[]) => {
-  const uniqueDays = [...new Set(workoutSessions.map((session) => toDateKey(session.finishedAt)))].sort();
+  const uniqueDays = [...new Set(dedupeWorkoutSessions(workoutSessions).map((session) => toDateKey(session.finishedAt)))].sort();
 
   if (uniqueDays.length === 0) {
     return null;
@@ -83,7 +103,7 @@ export const getWeeklyCaloriesAverage = (foodEntries: FoodEntry[], todayKey = fo
 export const getWeeklyWorkoutCount = (workoutSessions: WorkoutSession[], todayKey = formatLocalDate(new Date())) => {
   const weekStart = addDays(todayKey, -6);
 
-  return workoutSessions.filter((session) => {
+  return dedupeWorkoutSessions(workoutSessions).filter((session) => {
     const sessionDate = toDateKey(session.finishedAt);
     return sessionDate >= weekStart && sessionDate <= todayKey;
   }).length;
@@ -94,7 +114,7 @@ export const getWeeklyWorkoutVolumeTrend = (workoutSessions: WorkoutSession[], t
   const previousWeekStart = addDays(todayKey, -13);
   const previousWeekEnd = addDays(todayKey, -7);
 
-  const currentWeekVolume = workoutSessions.reduce((total, session) => {
+  const currentWeekVolume = dedupeWorkoutSessions(workoutSessions).reduce((total, session) => {
     const sessionDate = toDateKey(session.finishedAt);
 
     if (sessionDate >= currentWeekStart && sessionDate <= todayKey) {
@@ -104,7 +124,7 @@ export const getWeeklyWorkoutVolumeTrend = (workoutSessions: WorkoutSession[], t
     return total;
   }, 0);
 
-  const previousWeekVolume = workoutSessions.reduce((total, session) => {
+  const previousWeekVolume = dedupeWorkoutSessions(workoutSessions).reduce((total, session) => {
     const sessionDate = toDateKey(session.finishedAt);
 
     if (sessionDate >= previousWeekStart && sessionDate <= previousWeekEnd) {
@@ -144,7 +164,7 @@ export const getRecentActivityItems = (args: {
   workoutSessions: WorkoutSession[];
 }): HomeActivityItem[] => {
   const items: HomeActivityItem[] = [];
-  const latestWorkoutSession = getLatestWorkoutSession(args.workoutSessions);
+  const latestWorkoutSession = getLatestWorkoutSession(dedupeWorkoutSessions(args.workoutSessions));
   const latestWeightEntry = sortByCreatedAtDesc(args.weightHistory).at(0) ?? null;
   const latestMeal = getLatestFoodEntry(args.foodEntries);
   const latestPr = args.latestPrs.at(0) ?? null;
