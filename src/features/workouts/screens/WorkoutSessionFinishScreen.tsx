@@ -142,7 +142,11 @@ export default function WorkoutSessionFinishRoute() {
 
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>
         <View style={styles.container}>
-          <FinishWorkoutActions onDiscard={() => Alert.alert('Discard workout?', 'Your logged sets will not be saved.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Discard Workout', style: 'destructive', onPress: () => { clearActiveWorkoutSessionDraft(); router.replace('/workouts'); } }])} onSave={handleSave} />
+          <FinishWorkoutActions
+            disabled={completedSets.length === 0}
+            onDiscard={() => Alert.alert('Discard workout?', 'Your logged sets will not be saved.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Discard Workout', style: 'destructive', onPress: () => { clearActiveWorkoutSessionDraft(); router.replace('/workouts'); } }])}
+            onSave={handleSave}
+          />
         </View>
       </View>
     </View>

@@ -51,12 +51,14 @@ function RootNavigator() {
             name="workout-session"
             options={{
               headerShown: false,
+              presentation: 'fullScreenModal',
             }}
           />
           <Stack.Screen
             name="workout-session-finish"
             options={{
               headerShown: false,
+              presentation: 'fullScreenModal',
             }}
           />
           <Stack.Screen

@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui/AppButton';
 import { BottomTabInset, Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { DEFAULT_WORKOUT_PROGRAM_ID, getActiveWorkoutSessionDraft, getWorkoutPrograms, getWorkoutTemplateSummary, hydrateActiveWorkoutSessionDraft, saveWorkoutProgram, startWorkoutSessionDraft, toggleWorkoutProgramFavorite } from '@/lib/workouts';
+import { DEFAULT_WORKOUT_PROGRAM_ID, getActiveWorkoutSessionDraft, getWorkoutPrograms, getWorkoutTemplateSummary, hydrateActiveWorkoutSessionDraft, saveWorkoutProgram, startEmptyWorkoutSessionDraft, startWorkoutSession, toggleWorkoutProgramFavorite } from '@/lib/workouts';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 const segmentedTabs = [
@@ -130,7 +130,7 @@ export default function WorkoutsScreen() {
       return;
     }
 
-    startWorkoutSessionDraft(workout);
+    startWorkoutSession(workout);
     router.push({ pathname: '/workout-session', params: { workoutId } });
   };
 
@@ -143,7 +143,8 @@ export default function WorkoutsScreen() {
   };
 
   const handleStartEmpty = () => {
-    Alert.alert('Empty workout unavailable', 'Use a workout template for now.');
+    startEmptyWorkoutSessionDraft();
+    router.push({ pathname: '/workout-session', params: { workoutId: 'empty-workout' } });
   };
 
   return (
@@ -270,7 +271,7 @@ export default function WorkoutsScreen() {
 
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: safeAreaInsets.bottom + Spacing.two }]}>
         <View style={styles.container}>
-          <AppButton disabled label="Start empty workout" onPress={handleStartEmpty} />
+          <AppButton label="Start empty workout" onPress={handleStartEmpty} />
         </View>
       </View>
     </View>

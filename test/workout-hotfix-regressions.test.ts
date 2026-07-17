@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { defaultState } from '@/data/defaults';
-import { buildCompletedWorkoutSessionSnapshot, buildWorkoutTemplateSavePayload, clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft, startWorkoutSessionDraft, upsertWorkoutSessionById } from '@/lib/workouts';
+import { buildCompletedWorkoutSessionSnapshot, buildWorkoutTemplateSavePayload, clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft, startEmptyWorkoutSessionDraft, startWorkoutSessionDraft, upsertWorkoutSessionById } from '@/lib/workouts';
 import { createLocalAppRepository } from '@/repositories';
 
 const createMemoryStorage = () => {
@@ -69,6 +69,69 @@ describe('workout hotfix regressions', () => {
     expect(reloaded).not.toBeNull();
     expect(reloaded?.workouts.find((item) => item.id === workout.id)?.title).toBe('Lower Body');
     expect(reloaded?.workouts.find((item) => item.id === workout.id)?.exercises.map((exercise) => exercise.name)).toEqual(['Calf raise']);
+  });
+
+  it('starts an empty workout draft with the empty-workout marker and no sets', () => {
+    const draft = startEmptyWorkoutSessionDraft('2026-01-17T10:30:00.000Z');
+
+    expect(draft).toMatchObject({
+      id: draft.id,
+      workoutId: 'empty-workout',
+      workoutTitle: 'Empty workout',
+      startedAt: '2026-01-17T10:30:00.000Z',
+      sets: [],
+    });
+    expect(getActiveWorkoutSessionDraft()).toMatchObject({ workoutId: 'empty-workout', workoutTitle: 'Empty workout', sets: [] });
+  });
+
+  it('repairs repeated Lower Body exercises on hydration without destroying unique exercises', async () => {
+    const repository = createLocalAppRepository(createMemoryStorage());
+    const lowerBody = defaultState.workouts.find((item) => item.id === 'legs-a');
+
+    expect(lowerBody).toBeDefined();
+    if (!lowerBody) {
+      throw new Error('Expected Lower Body workout fixture');
+    }
+
+    const corruptedLowerBody = {
+      ...lowerBody,
+      exercises: Array.from({ length: 8 }, (_, index) =>
+        lowerBody.exercises.map((exercise) => ({
+          ...exercise,
+          id: `${exercise.id}-copy-${index}`,
+        })),
+      ).flat(),
+    };
+
+    await repository.saveState({
+      ...defaultState,
+      workouts: defaultState.workouts.map((item) => (item.id === lowerBody.id ? corruptedLowerBody : item)),
+    });
+
+    const reloaded = await repository.loadState();
+    const reloadedLowerBody = reloaded?.workouts.find((item) => item.id === lowerBody.id);
+
+    expect(reloadedLowerBody?.exercises).toHaveLength(4);
+    expect(reloadedLowerBody?.exercises.map((exercise) => exercise.name)).toEqual(['Back squat', 'Romanian deadlift', 'Walking lunge', 'Calf raise']);
+
+    const uniqueWorkout = {
+      ...lowerBody,
+      id: 'custom-unique-workout',
+      isCustom: true,
+      exercises: [
+        { id: 'custom-a', name: 'Custom split squat', muscleGroup: 'quads', createdAt: '2026-01-01T00:00:00.000Z', isCustom: true },
+        { id: 'custom-b', name: 'Custom split squat', muscleGroup: 'glutes', createdAt: '2026-01-01T00:00:00.000Z', isCustom: true },
+      ],
+    };
+
+    await repository.saveState({
+      ...reloaded!,
+      workouts: [...(reloaded?.workouts ?? defaultState.workouts), uniqueWorkout],
+    });
+
+    const reloadedAgain = await repository.loadState();
+    expect(reloadedAgain?.workouts.find((item) => item.id === 'custom-unique-workout')?.exercises).toHaveLength(2);
+    expect(reloadedAgain?.workouts.find((item) => item.id === 'custom-unique-workout')?.exercises.map((exercise) => exercise.muscleGroup)).toEqual(['quads', 'glutes']);
   });
 
   it('keeps the completed workout snapshot after clearing the active draft and avoids duplicate history entries', () => {

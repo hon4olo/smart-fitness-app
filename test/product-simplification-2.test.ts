@@ -126,7 +126,7 @@ describe('product simplification 2.0', () => {
     const profile = readSource('src/app/(tabs)/profile.tsx');
 
     expect(workouts).toContain('Start empty workout');
-    expect(workouts).toContain('Create program');
+    expect(workouts).toContain('startEmptyWorkoutSessionDraft');
     expect(nutrition).toContain("router.push({ pathname: '/nutrition/add-food'");
     expect(nutritionPicker).toContain('addFoodEntries');
     expect(profile).toContain('Appearance');

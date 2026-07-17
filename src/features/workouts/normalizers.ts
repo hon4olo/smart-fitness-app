@@ -4,6 +4,17 @@ export const createWorkoutExerciseId = (name: string) => {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 };
 
+const normalizeText = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const normalizeStringList = (values: Array<string | null | undefined>) =>
+  Array.from(new Set(values.filter((value): value is string => Boolean(value)).map((value) => normalizeText(value)).filter(Boolean))).sort();
+
 const dedupeById = <T extends { id: string }>(items: T[]) => {
   const seen = new Set<string>();
 
@@ -22,18 +33,17 @@ const dedupeById = <T extends { id: string }>(items: T[]) => {
 
 const workoutExerciseSignature = (exercise: Workout['exercises'][number]) =>
   JSON.stringify({
-    aliases: exercise.aliases ?? [],
-    category: exercise.category ?? null,
-    difficulty: exercise.difficulty ?? null,
-    equipment: exercise.equipment ?? [],
-    exerciseType: exercise.exerciseType ?? null,
-    isCustom: exercise.isCustom ?? true,
-    movementPattern: exercise.movementPattern ?? [],
-    muscleGroup: exercise.muscleGroup ?? null,
-    name: exercise.name,
-    notes: exercise.notes ?? null,
-    primaryMuscles: exercise.primaryMuscles ?? [],
-    secondaryMuscles: exercise.secondaryMuscles ?? [],
+    aliases: normalizeStringList(exercise.aliases ?? []),
+    category: normalizeText(exercise.category ?? ''),
+    difficulty: normalizeText(exercise.difficulty ?? ''),
+    equipment: normalizeStringList(exercise.equipment ?? []),
+    exerciseType: normalizeText(exercise.exerciseType ?? ''),
+    movementPattern: normalizeStringList(exercise.movementPattern ?? []),
+    muscleGroup: normalizeText(exercise.muscleGroup ?? ''),
+    name: normalizeText(exercise.name),
+    notes: normalizeText(exercise.notes ?? ''),
+    primaryMuscles: normalizeStringList(exercise.primaryMuscles ?? []),
+    secondaryMuscles: normalizeStringList(exercise.secondaryMuscles ?? []),
   });
 
 const normalizeWorkoutExercises = (exercises: Workout['exercises']) => {
@@ -54,19 +64,20 @@ const normalizeWorkoutExercises = (exercises: Workout['exercises']) => {
     };
   });
 
-  const dedupedById = dedupeById(normalized);
-  const halfLength = dedupedById.length / 2;
+  const dedupedBySignature = [] as typeof normalized;
+  const seenSignatures = new Set<string>();
 
-  if (dedupedById.length > 0 && Number.isInteger(halfLength)) {
-    const firstHalf = dedupedById.slice(0, halfLength);
-    const secondHalf = dedupedById.slice(halfLength);
-
-    if (firstHalf.every((exercise, index) => workoutExerciseSignature(exercise) === workoutExerciseSignature(secondHalf[index]!))) {
-      return firstHalf;
+  for (const exercise of dedupeById(normalized)) {
+    const signature = workoutExerciseSignature(exercise);
+    if (seenSignatures.has(signature)) {
+      continue;
     }
+
+    seenSignatures.add(signature);
+    dedupedBySignature.push(exercise);
   }
 
-  return dedupedById;
+  return dedupedBySignature;
 };
 
 export const normalizeWorkouts = (workouts: Workout[], defaultWorkoutTemplateIds: Set<string>) => {

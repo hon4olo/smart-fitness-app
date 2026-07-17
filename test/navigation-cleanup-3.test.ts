@@ -49,8 +49,8 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(source).not.toContain('Pick one workout and start');
     expect(source).not.toContain('Recommendation');
     expect(source).toContain('Workout in progress');
-    expect(source).toContain('Continue workout');
-    expect(source).toContain('Workout in progress');
+    expect(source).toContain('Start empty workout');
+    expect(source).toContain('startEmptyWorkoutSessionDraft');
   });
 
   test('progress moves add-weight into a dedicated flow and keeps the summary compact', () => {

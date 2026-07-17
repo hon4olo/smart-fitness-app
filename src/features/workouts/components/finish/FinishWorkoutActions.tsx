@@ -6,17 +6,18 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type FinishWorkoutActionsProps = {
+  disabled?: boolean;
   onDiscard: () => void;
   onSave: () => void;
 };
 
-export const FinishWorkoutActions = memo(function FinishWorkoutActions({ onDiscard, onSave }: FinishWorkoutActionsProps) {
+export const FinishWorkoutActions = memo(function FinishWorkoutActions({ disabled = false, onDiscard, onSave }: FinishWorkoutActionsProps) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <View style={styles.actions}>
-      <AppButton label="Save" onPress={onSave} />
+      <AppButton disabled={disabled} label="Save" onPress={onSave} />
       <Pressable accessibilityRole="button" onPress={onDiscard} style={({ pressed }) => [styles.discardButton, pressed && styles.pressed]}>
         <Text style={styles.discardLabel}>Discard workout</Text>
       </Pressable>

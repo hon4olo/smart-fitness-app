@@ -1,22 +1,25 @@
 import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type SessionHeaderProps = {
   elapsedLabel: string;
+  finishDisabled?: boolean;
   onBack: () => void;
   onFinish: () => void;
   onOverflow: () => void;
 };
 
-export const SessionHeader = memo(function SessionHeader({ elapsedLabel, onBack, onFinish, onOverflow }: SessionHeaderProps) {
+export const SessionHeader = memo(function SessionHeader({ elapsedLabel, finishDisabled = false, onBack, onFinish, onOverflow }: SessionHeaderProps) {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <View style={[styles.container, { borderBottomColor: colors.borderSubtle, backgroundColor: colors.background }]}>
+    <View style={[styles.container, { borderBottomColor: colors.borderSubtle, backgroundColor: colors.background, paddingTop: insets.top + Spacing.two }]}>
       <Pressable accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
         <Text style={styles.iconLabel}>‹</Text>
       </Pressable>
@@ -27,8 +30,8 @@ export const SessionHeader = memo(function SessionHeader({ elapsedLabel, onBack,
         <Pressable accessibilityRole="button" hitSlop={12} onPress={onOverflow} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
           <Text style={styles.iconLabel}>⋯</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={onFinish} style={({ pressed }) => [styles.finishButton, pressed && styles.finishButtonPressed]}>
-          <Text style={styles.finishLabel}>Finish</Text>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: finishDisabled }} disabled={finishDisabled} onPress={onFinish} style={({ pressed }) => [styles.finishButton, finishDisabled && styles.finishButtonDisabled, pressed && !finishDisabled && styles.finishButtonPressed]}>
+          <Text style={[styles.finishLabel, finishDisabled && styles.finishLabelDisabled]}>Finish</Text>
         </Pressable>
       </View>
     </View>
@@ -59,6 +62,9 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingHorizontal: Spacing.two,
       paddingVertical: 8,
     },
+    finishButtonDisabled: {
+      opacity: 0.4,
+    },
     finishButtonPressed: {
       opacity: 0.85,
     },
@@ -66,6 +72,9 @@ const createStyles = (colors: typeof Colors.light) =>
       color: colors.background,
       fontSize: 13,
       fontWeight: '900',
+    },
+    finishLabelDisabled: {
+      color: colors.textSecondary,
     },
     iconButton: {
       alignItems: 'center',

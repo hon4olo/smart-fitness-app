@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { WorkoutSessionEmptyState } from '@/components/workouts/WorkoutSessionEmptyState';
 import { useAppContext, type WorkoutSet } from '@/context/AppContext';
-import { formatWorkoutSessionElapsedLabel } from '@/lib/workouts';
+import { formatWorkoutSessionElapsedLabel, startEmptyWorkoutSessionDraft } from '@/lib/workouts';
 import { resolveWorkoutSessionExercises } from '@/lib/workouts/workout-session';
 import { SessionExerciseSection } from '@/features/workouts/components/session/SessionExerciseSection';
 import { SessionHeader } from '@/features/workouts/components/session/SessionHeader';
@@ -67,6 +68,9 @@ export default function WorkoutSessionScreen() {
 
   const workoutExercises = useMemo(() => resolveWorkoutSessionExercises(workout ?? undefined), [workout]);
   const sectionRows = useMemo(() => buildSessionRows(workoutExercises, sets, workoutSessions), [sets, workoutExercises, workoutSessions]);
+  const completedSetCount = useMemo(() => sets.filter(isSetCompleted).length, [sets]);
+  const canFinish = completedSetCount > 0;
+  const isEmptyWorkoutSession = routeState.status === 'ready' && routeState.workoutId === 'empty-workout';
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -74,7 +78,20 @@ export default function WorkoutSessionScreen() {
   }, []);
 
   useEffect(() => {
-    if (bootstrappedDraft === undefined || !workout) {
+    if (bootstrappedDraft === undefined) {
+      return;
+    }
+
+    if (isEmptyWorkoutSession) {
+      const draft = bootstrappedDraft ?? startEmptyWorkoutSessionDraft();
+      setBootstrappedDraft(draft);
+      setStartedAt(draft.startedAt);
+      setSets(draft.sets.map((set) => ({ ...set })));
+      setDraftInputs((current) => syncDraftInputs(current, draft.sets));
+      return;
+    }
+
+    if (!workout) {
       return;
     }
 
@@ -90,25 +107,29 @@ export default function WorkoutSessionScreen() {
     setStartedAt(createdDraft.startedAt);
     setSets(createdDraft.sets.map((set) => ({ ...set })));
     setDraftInputs({});
-  }, [bootstrappedDraft, workout]);
+  }, [bootstrappedDraft, isEmptyWorkoutSession, workout]);
 
   useEffect(() => {
     setDraftInputs((current) => syncDraftInputs(current, sets));
   }, [sets]);
 
   useEffect(() => {
-    if (bootstrappedDraft === undefined || !workout) {
+    if (bootstrappedDraft === undefined) {
+      return;
+    }
+
+    if (!workout && !isEmptyWorkoutSession) {
       return;
     }
 
     setActiveWorkoutSessionDraft({
       id: bootstrappedDraft?.id ?? `${Date.now()}`,
-      workoutId: workout.id,
-      workoutTitle: workout.title,
+      workoutId: isEmptyWorkoutSession ? 'empty-workout' : workout!.id,
+      workoutTitle: isEmptyWorkoutSession ? 'Empty Workout' : workout!.title,
       startedAt,
       sets,
     });
-  }, [bootstrappedDraft, sets, startedAt, workout]);
+  }, [bootstrappedDraft, isEmptyWorkoutSession, sets, startedAt, workout]);
 
   useEffect(() => {
     if (bootstrappedDraft === undefined) {
@@ -166,6 +187,10 @@ export default function WorkoutSessionScreen() {
   };
 
   const requestFinish = () => {
+    if (!canFinish) {
+      return;
+    }
+
     router.push('/workout-session-finish');
   };
 
@@ -261,16 +286,12 @@ export default function WorkoutSessionScreen() {
     );
   }
 
-  if (!workout) {
+  if (!workout && !isEmptyWorkoutSession) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <View style={styles.emptyState}>
-          <Text selectable style={styles.emptyTitle}>{resolvedWorkoutId === 'empty-workout' ? 'Empty workout unavailable' : 'No workout selected'}</Text>
-          <Text selectable style={styles.emptyMessage}>
-            {resolvedWorkoutId === 'empty-workout'
-              ? 'Start a template workout for now. Empty workout is temporarily disabled.'
-              : 'Open a workout from the Workouts tab to continue.'}
-          </Text>
+          <Text selectable style={styles.emptyTitle}>No workout selected</Text>
+          <Text selectable style={styles.emptyMessage}>Open a workout from the Workouts tab to continue.</Text>
           <Pressable accessibilityRole="button" onPress={() => router.replace('/workouts')} style={({ pressed }) => [styles.textAction, pressed && styles.textActionPressed]}>
             <Text style={styles.textActionLabel}>Back to Workouts</Text>
           </Pressable>
@@ -282,7 +303,7 @@ export default function WorkoutSessionScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.fill}>
-        <SessionHeader elapsedLabel={formatWorkoutSessionElapsedLabel(startedAt, now)} onBack={() => router.back()} onOverflow={discardWorkout} onFinish={requestFinish} />
+        <SessionHeader elapsedLabel={formatWorkoutSessionElapsedLabel(startedAt, now)} finishDisabled={!canFinish} onBack={() => router.back()} onOverflow={discardWorkout} onFinish={requestFinish} />
 
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
@@ -323,6 +344,13 @@ export default function WorkoutSessionScreen() {
                   />
                 ))}
               </View>
+            ) : isEmptyWorkoutSession ? (
+              <WorkoutSessionEmptyState
+                actionLabel="Add exercises"
+                description="This empty session is active. Create or edit a workout template to add exercises."
+                onAction={() => router.push('/workouts/builder')}
+                title="Empty workout"
+              />
             ) : (
               <View style={styles.emptyWorkoutState}>
                 <Text selectable style={styles.emptyWorkoutTitle}>This workout has no exercises yet.</Text>

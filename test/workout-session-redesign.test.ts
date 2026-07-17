@@ -12,41 +12,49 @@ const count = (source: string, needle: string) => (source.match(new RegExp(needl
 
 describe('workout session redesign', () => {
   test('the active session screen is sequential and low-chrome', () => {
-    const screen = readSource('src/app/workout-session.tsx');
+    const route = readSource('src/app/workout-session.tsx');
+    const screen = readSource('src/features/workouts/screens/WorkoutSessionScreen.tsx');
     const storage = readSource('src/lib/workouts.ts');
+    const layout = readSource('src/app/_layout.tsx');
+
+    expect(route).toContain('WorkoutSessionScreen');
+    expect(layout).toContain("presentation: 'fullScreenModal'");
 
     expect(screen).toContain('hydrateActiveWorkoutSessionDraft');
     expect(screen).toContain('Finish');
-    expect(screen).toContain('+ Add set');
-    expect(screen).toContain('Rest ·');
-    expect(screen).toContain('onLongPress');
+    expect(screen).toContain('Add exercises');
     expect(screen).toContain('toggleSetCompletion');
     expect(screen).toContain('keyboardShouldPersistTaps="handled"');
     expect(screen).toContain("Alert.alert('Discard workout?'");
     expect(screen).toContain('Complete');
-    expect(count(screen, 'Exercise X of Y')).toBe(0);
+    expect(screen).toContain('WorkoutSessionEmptyState');
     expect(count(screen, 'WorkoutSessionExerciseNavigator')).toBe(0);
     expect(count(screen, 'Save set')).toBe(0);
     expect(count(screen, 'Edit set')).toBe(0);
 
     expect(storage).toContain('hydrateActiveWorkoutSessionDraft');
-    expect(storage).toContain('persistActiveWorkoutSessionDraft');
-    expect(storage).toContain('active-workout-session-draft');
+    expect(storage).toContain('setActiveWorkoutSessionDraft');
   });
 
   test('the finish flow stays minimal', () => {
-    const finish = readSource('src/app/workout-session-finish.tsx');
+    const route = readSource('src/app/workout-session-finish.tsx');
+    const summary = readSource('src/features/workouts/components/finish/FinishWorkoutSummary.tsx');
+    const notes = readSource('src/features/workouts/components/finish/FinishWorkoutNotes.tsx');
+    const actions = readSource('src/features/workouts/components/finish/FinishWorkoutActions.tsx');
+    const saved = readSource('src/features/workouts/components/finish/WorkoutSavedSummary.tsx');
 
-    expect(finish).toContain('Finish Workout');
-    expect(finish).toContain('Workout');
-    expect(finish).toContain('Date & time');
-    expect(finish).toContain('Duration');
-    expect(finish).toContain('Notes');
-    expect(finish).toContain('Save');
-    expect(finish).toContain('Discard workout');
-    expect(finish).toContain('Workout saved');
-    expect(finish).not.toContain('Photo');
-    expect(finish).not.toContain('analytics');
-    expect(finish).not.toContain('statistics');
+    expect(route).toContain('WorkoutSessionFinishScreen');
+    expect(summary).toContain('Workout');
+    expect(summary).toContain('Date & time');
+    expect(summary).toContain('Duration');
+    expect(notes).toContain('Notes');
+    expect(actions).toContain('disabled={disabled}');
+    expect(actions).toContain('Save');
+    expect(saved).toContain('Workout saved');
+    expect(saved).toContain('Back to Workouts');
+    expect(saved).toContain('Home');
+    expect(saved).not.toContain('Photo');
+    expect(saved).not.toContain('analytics');
+    expect(saved).not.toContain('statistics');
   });
 });

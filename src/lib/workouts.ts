@@ -43,8 +43,6 @@ export {
   buildCompletedWorkoutSessionSnapshot,
   calculateEstimated1RM,
   clearActiveWorkoutSessionDraft,
-  // active-workout-session-draft
-  // persistActiveWorkoutSessionDraft
   completeActiveWorkoutSession,
   createDefaultTrainingProgram,
   deleteWorkoutProgram,
