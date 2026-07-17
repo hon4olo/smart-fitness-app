@@ -1,0 +1,11 @@
+import type { WorkoutSet } from '@/context/AppContext';
+
+export type SessionDraftInputs = Record<string, { reps: string; weight: string }>;
+export type SessionDraftSet = WorkoutSet;
+export type SessionExercise = {
+  id: string;
+  name: string;
+  notes?: string | null;
+  restSeconds?: number | null;
+  targetReps?: number | null;
+};

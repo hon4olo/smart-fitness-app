@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { defaultState } from '@/data/defaults';
+import { createDefaultTrainingProgram } from '@/features/workouts/defaults';
 import { normalizeWorkouts } from '@/lib/appState';
 import {
   buildCompletedWorkoutSessionSnapshot,
@@ -119,6 +120,19 @@ describe('workout routing, duplicates, and timer regressions', () => {
       'Romanian deadlift',
       'Walking lunge',
       'Calf raise',
+    ]);
+  });
+
+  it('keeps the default lower body template at four exercises and seeds a three-workout program without duplication', () => {
+    const lowerBody = defaultState.workouts.find((workout) => workout.id === 'legs-a') ?? defaultState.workouts[0]!;
+
+    expect(lowerBody.exercises).toHaveLength(4);
+
+    const seededProgram = createDefaultTrainingProgram(defaultState.workouts);
+    expect(seededProgram.days.filter((day) => !day.restDay).map((day) => day.workoutTemplateId)).toEqual([
+      'push-a',
+      'legs-a',
+      'conditioning-a',
     ]);
   });
 

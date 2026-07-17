@@ -6,13 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui/AppButton';
 import { BottomTabInset, Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { createDefaultTrainingProgram, getWorkoutTemplateSummary, saveWorkoutProgram } from '@/lib/workouts';
+import { getWorkoutPrograms, getWorkoutTemplateSummary, saveWorkoutProgram } from '@/lib/workouts';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { SimpleProgramEditor } from '@/components/workouts/SimpleProgramEditor';
 import type { TrainingProgram } from '@/types/programs';
 
-const createBlankProgramDraft = (workouts: Parameters<typeof createDefaultTrainingProgram>[0]): TrainingProgram => {
-  const template = createDefaultTrainingProgram(workouts);
+const createBlankProgramDraft = (workouts: Parameters<typeof getWorkoutPrograms>[0]): TrainingProgram => {
+  const template = getWorkoutPrograms(workouts)[0];
   return {
     ...template,
     id: `program-${Date.now()}`,

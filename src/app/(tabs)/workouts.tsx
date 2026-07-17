@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui/AppButton';
 import { BottomTabInset, Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { createDefaultTrainingProgram, getActiveWorkoutSessionDraft, getWorkoutPrograms, getWorkoutTemplateSummary, hydrateActiveWorkoutSessionDraft, saveWorkoutProgram, startWorkoutSessionDraft, toggleWorkoutProgramFavorite } from '@/lib/workouts';
+import { DEFAULT_WORKOUT_PROGRAM_ID, getActiveWorkoutSessionDraft, getWorkoutPrograms, getWorkoutTemplateSummary, hydrateActiveWorkoutSessionDraft, saveWorkoutProgram, startWorkoutSessionDraft, toggleWorkoutProgramFavorite } from '@/lib/workouts';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 const segmentedTabs = [
@@ -114,7 +114,7 @@ export default function WorkoutsScreen() {
 
   const styles = useMemo(() => createStyles(colors), [colors]);
   const activeDraft = draftReady ? getActiveWorkoutSessionDraft() : null;
-  const defaultProgram = useMemo(() => createDefaultTrainingProgram(workouts), [workouts]);
+  const defaultProgramId = DEFAULT_WORKOUT_PROGRAM_ID;
   const programs = useMemo(() => getWorkoutPrograms(workouts), [workouts]);
   const templateSummaries = useMemo(() => workouts.map((workout) => getWorkoutTemplateSummary(workout, workoutSessions)), [workouts, workoutSessions]);
   const sortedRecentSessions = useMemo(() => [...workoutSessions].sort((left, right) => right.finishedAt.localeCompare(left.finishedAt)).slice(0, 4), [workoutSessions]);
@@ -231,7 +231,7 @@ export default function WorkoutsScreen() {
               <View style={styles.listGroup}>
                 {programs.map((program, index) => {
                   const workoutCount = program.days.filter((day) => !day.restDay && Boolean(day.workoutTemplateId)).length;
-                  const isDefaultProgram = program.id === defaultProgram.id;
+                  const isDefaultProgram = program.id === defaultProgramId;
 
                   return (
                     <View key={program.id} style={[styles.rowGroup, index > 0 && styles.dividerTop]}>

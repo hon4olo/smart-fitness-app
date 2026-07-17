@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -7,6 +6,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
 import type { Exercise, WorkoutSession } from '@/types';
 import { getRecentExercisesFromWorkoutSessions, getSimilarExercises, searchExercises, type SimilarExerciseMatch } from '@/lib/workouts';
+import { loadWorkoutExerciseFavoriteIds, saveWorkoutExerciseFavoriteIds } from '@/features/workouts/exerciseFavoritesStorage';
 import { matchesExerciseQuery } from '@/data/exercises';
 
 import { EmptyWorkoutState } from './EmptyWorkoutState';
@@ -385,23 +385,13 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
   useEffect(() => {
     let active = true;
 
-    AsyncStorage.getItem(FAVORITES_STORAGE_KEY)
+    loadWorkoutExerciseFavoriteIds()
       .then((value) => {
         if (!active) {
           return;
         }
 
-        if (value) {
-          try {
-            const parsed = JSON.parse(value) as unknown;
-            if (Array.isArray(parsed)) {
-              setFavoriteExerciseIds(parsed.filter((entry): entry is string => typeof entry === 'string' && exerciseIdSet.has(entry)));
-            }
-          } catch {
-            setFavoriteExerciseIds([]);
-          }
-        }
-
+        setFavoriteExerciseIds(Array.from(value).filter((entry) => exerciseIdSet.has(entry)));
         setIsFavoritesReady(true);
       })
       .catch(() => {
@@ -429,7 +419,7 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
       return;
     }
 
-    void AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(filteredFavoriteIds)).catch(() => undefined);
+    void saveWorkoutExerciseFavoriteIds(filteredFavoriteIds).catch(() => undefined);
   }, [exerciseIdSet, favoriteExerciseIds, isFavoritesReady]);
 
   useEffect(() => {

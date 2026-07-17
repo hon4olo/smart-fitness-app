@@ -7,6 +7,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { BottomTabInset, Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { deleteWorkoutProgram, duplicateWorkoutProgram, getWorkoutProgramById, saveWorkoutProgram, toggleWorkoutProgramFavorite } from '@/lib/workouts';
+import { resolveWorkoutProgramRouteState } from '@/features/workouts/routeResolution';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { SimpleProgramEditor } from '@/components/workouts/SimpleProgramEditor';
 import type { TrainingProgram } from '@/types/programs';
@@ -24,7 +25,11 @@ export default function ProgramDetailRoute() {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const program = useMemo(() => (programId ? getWorkoutProgramById(programId, workouts) : null), [programId, workouts]);
+  const routeState = useMemo(
+    () => resolveWorkoutProgramRouteState({ programId, workouts, isRestoringState }),
+    [isRestoringState, programId, workouts],
+  );
+  const program = useMemo(() => (routeState.status === 'ready' ? getWorkoutProgramById(routeState.workoutId, workouts) : null), [routeState, workouts]);
   const [draftName, setDraftName] = useState(program?.name ?? '');
   const [draftProgram, setDraftProgram] = useState<TrainingProgram | null>(() => (program ? createDraftProgram(program) : null));
 

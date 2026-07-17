@@ -14,7 +14,7 @@ import { useAppContext } from '@/context/AppContext';
 import { formatLocalDate } from '@/lib';
 import { getClampedProgress, sumNutritionTotals } from '@/lib/nutrition';
 import { getProgressAnalytics } from '@/lib/progress';
-import { createDefaultTrainingProgram, getActiveWorkoutSessionDraft, hydrateActiveWorkoutSessionDraft } from '@/lib/workouts';
+import { getActiveWorkoutSessionDraft, getWorkoutPrograms, hydrateActiveWorkoutSessionDraft } from '@/lib/workouts';
 import { getCurrentWorkoutStreak, getHomePrimaryWorkoutActionLabel, getWeeklyWorkoutCount, getWeeklyWorkoutVolumeTrend, type HomeSnapshotItem } from '@/lib/home';
 import { getMotivationInsight, getNutritionAdvisor, getProgramAdvisor, getRecoveryAdvisor, getTrainingAdvisor } from '@/lib/intelligence';
 
@@ -35,7 +35,7 @@ export default function HomeScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const todayKey = formatLocalDate(new Date());
 
-  const currentProgram = useMemo(() => createDefaultTrainingProgram(workouts), [workouts]);
+  const currentProgram = useMemo(() => getWorkoutPrograms(workouts)[0], [workouts]);
   const currentWorkoutStreak = useMemo(() => getCurrentWorkoutStreak(workoutSessions), [workoutSessions]);
   const progressAnalytics = useMemo(() => getProgressAnalytics({ bodyMeasurements, exercises, weightHistory, workoutSessions }), [bodyMeasurements, exercises, weightHistory, workoutSessions]);
   const todaysFoodEntries = useMemo(() => foodEntries.filter((entry) => entry.date === todayKey), [foodEntries, todayKey]);

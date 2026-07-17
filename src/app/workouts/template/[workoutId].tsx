@@ -6,7 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui/AppButton';
 import { BottomTabInset, Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { getWorkoutTemplateById, parseWorkoutPlanDescription, startWorkoutSessionDraft, toggleWorkoutTemplateFavorite, buildWorkoutTemplateSavePayload } from '@/lib/workouts';
+import { buildWorkoutTemplateSavePayload, getWorkoutTemplateById, parseWorkoutPlanDescription, toggleWorkoutTemplateFavorite } from '@/lib/workouts';
+import { resolveWorkoutTemplateRouteState } from '@/features/workouts/routeResolution';
+import { startWorkoutSession } from '@/features/workouts/sessionService';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { Exercise, Workout } from '@/types';
 
@@ -44,7 +46,11 @@ export default function WorkoutDetailRoute() {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const workout = useMemo(() => (workoutId ? getWorkoutTemplateById(workoutId, workouts) : null), [workoutId, workouts]);
+  const routeState = useMemo(
+    () => resolveWorkoutTemplateRouteState({ workoutId, workouts, isRestoringState }),
+    [isRestoringState, workoutId, workouts],
+  );
+  const workout = useMemo(() => (routeState.status === 'ready' ? getWorkoutTemplateById(routeState.workoutId, workouts) : null), [routeState, workouts]);
   const [draftTitle, setDraftTitle] = useState(workout?.title ?? '');
   const [draftExercises, setDraftExercises] = useState<DraftExercise[]>(() => (workout ? createDraftExercises(workout) : []));
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -186,7 +192,7 @@ export default function WorkoutDetailRoute() {
 
   const handleStartWorkout = () => {
     const nextWorkout = saveWorkout();
-    startWorkoutSessionDraft(nextWorkout);
+    startWorkoutSession(nextWorkout);
     router.push({ pathname: '/workout-session', params: { workoutId: nextWorkout.id } });
   };
 
