@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -32,7 +32,7 @@ const formatDateTimeLabel = (value: string) =>
   }).format(new Date(value));
 
 export default function WorkoutSessionFinishRoute() {
-  const { saveWorkoutSession } = useAppContext();
+  const { saveWorkoutSession, isRestoringState } = useAppContext();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -42,6 +42,19 @@ export default function WorkoutSessionFinishRoute() {
   const [completedSession, setCompletedSession] = useState<ReturnType<typeof buildCompletedWorkoutSessionSnapshot> | null>(null);
 
   const sessionToRender = completedSession ?? draft;
+  if (isRestoringState) {
+    return (
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingState}>
+          <ActivityIndicator color={colors.accent} />
+          <Text selectable style={styles.loadingLabel}>
+            Loading workout…
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   if (!sessionToRender) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -199,6 +212,18 @@ const createStyles = (colors: typeof Colors.light) =>
       height: 34,
       justifyContent: 'center',
       width: 34,
+    },
+    loadingState: {
+      alignItems: 'center',
+      flex: 1,
+      justifyContent: 'center',
+      gap: Spacing.two,
+      padding: Spacing.three,
+    },
+    loadingLabel: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '700',
     },
     backButtonLabel: {
       color: colors.textPrimary,

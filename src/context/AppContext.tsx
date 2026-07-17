@@ -64,6 +64,7 @@ const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(defaultState);
+  const [isRestoringState, setIsRestoringState] = useState(true);
   const repositoryProvider = useMemo(() => createRepositoryFactory(createAsyncStorageAdapter()), []);
   const repository = useMemo(() => repositoryProvider.getRepository(), [repositoryProvider]);
   const authService = useMemo(() => repositoryProvider.getAuthService(), [repositoryProvider]);
@@ -88,6 +89,10 @@ export function AppProvider({ children }: PropsWithChildren) {
 
       if (storedState && !cancelled) {
         setState(storedState);
+      }
+
+      if (!cancelled) {
+        setIsRestoringState(false);
       }
     };
 
@@ -207,25 +212,30 @@ export function AppProvider({ children }: PropsWithChildren) {
       createdAt: string;
     }) => {
       setState((currentState) => {
+        const nextWorkout = {
+          id: template.id,
+          title: template.title,
+          description: template.description,
+          createdAt: template.createdAt,
+          isCustom: true,
+          duration: `${Math.max(15, template.exercises.length * 10)} min`,
+          exercises: template.exercises.map((exercise, index) => ({
+            id: `${createExerciseId(exercise)}-${index}`,
+            name: exercise,
+            isCustom: true,
+            createdAt: template.createdAt,
+          })),
+        } satisfies Workout;
+
+        const existingIndex = currentState.workouts.findIndex((item) => item.id === nextWorkout.id);
+        const nextWorkouts =
+          existingIndex === -1
+            ? [...currentState.workouts, nextWorkout]
+            : currentState.workouts.map((item) => (item.id === nextWorkout.id ? nextWorkout : item));
+
         const nextState = {
           ...currentState,
-          workouts: [
-            ...currentState.workouts,
-            {
-              id: template.id,
-              title: template.title,
-              description: template.description,
-              createdAt: template.createdAt,
-              isCustom: true,
-              duration: `${Math.max(15, template.exercises.length * 10)} min`,
-              exercises: template.exercises.map((exercise, index) => ({
-                id: `${createExerciseId(exercise)}-${index}`,
-                name: exercise,
-                isCustom: true,
-                createdAt: template.createdAt,
-              })),
-            },
-          ],
+          workouts: nextWorkouts,
         };
         void repository.saveState(nextState);
         return nextState;
@@ -628,6 +638,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       deleteWeightEntry,
       deleteWorkoutSession,
       getLastWorkoutSession,
+      isRestoringState,
       completeOnboarding,
       resetOnboarding,
       saveWorkoutSession,
@@ -657,6 +668,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       completeOnboarding,
       resetOnboarding,
       getLastWorkoutSession,
+      isRestoringState,
       saveWorkoutSession,
       updateWorkoutSession,
       updateWorkoutTemplate,

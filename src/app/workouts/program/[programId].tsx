@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -19,7 +19,7 @@ const createDraftProgram = (program: TrainingProgram): TrainingProgram => ({
 export default function ProgramDetailRoute() {
   const params = useLocalSearchParams<{ programId?: string }>();
   const programId = Array.isArray(params.programId) ? params.programId[0] : params.programId;
-  const { workouts } = useAppContext();
+  const { workouts, isRestoringState } = useAppContext();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -41,10 +41,23 @@ export default function ProgramDetailRoute() {
     [draftProgram, workouts],
   );
 
+  if (isRestoringState) {
+    return (
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color={colors.accent} />
+          <Text selectable style={styles.loadingLabel}>
+            Loading workout…
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   if (!program || !draftProgram) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View style={styles.emptyWrap}>
+        <View style={styles.loadingWrap}>
           <Text selectable style={styles.emptyTitle}>
             Program not found
           </Text>
@@ -111,7 +124,7 @@ export default function ProgramDetailRoute() {
   const saveProgram = () => {
     const nextProgram: TrainingProgram = {
       ...draftProgram,
-      id: program.isCustom ? program.id : `program-${Date.now()}`,
+      id: program.id,
       isCustom: true,
       name: draftName.trim() || program.name,
     };
@@ -211,12 +224,17 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: 18,
       fontWeight: '900',
     },
-    emptyWrap: {
+    loadingWrap: {
       alignItems: 'center',
       flex: 1,
-      gap: Spacing.three,
       justifyContent: 'center',
+      gap: Spacing.two,
       padding: Spacing.three,
+    },
+    loadingLabel: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '700',
     },
     footer: {
       borderTopWidth: StyleSheet.hairlineWidth,

@@ -794,17 +794,93 @@ const normalizeWorkoutText = (value: string) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
-const formatElapsedLabel = (startedAt: string, now = Date.now()) => {
+export const formatWorkoutSessionElapsedLabel = (startedAt: string, now = Date.now()) => {
   const elapsedMs = Math.max(0, now - new Date(startedAt).getTime());
   const totalSeconds = Math.floor(elapsedMs / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
   if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 
-  return `${minutes}m`;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+
+export const resolveWorkoutTemplateRouteState = ({
+  workoutId,
+  workouts,
+  isRestoringState,
+}: {
+  workoutId?: string | null;
+  workouts: Workout[];
+  isRestoringState: boolean;
+}): { status: 'loading' } | { status: 'not-found' } | { status: 'ready'; workoutId: string } => {
+  if (isRestoringState) {
+    return { status: 'loading' };
+  }
+
+  if (!workoutId) {
+    return { status: 'not-found' };
+  }
+
+  return workouts.some((workout) => workout.id === workoutId)
+    ? { status: 'ready', workoutId }
+    : { status: 'not-found' };
+};
+
+export const resolveWorkoutProgramRouteState = ({
+  programId,
+  workouts,
+  isRestoringState,
+}: {
+  programId?: string | null;
+  workouts: Workout[];
+  isRestoringState: boolean;
+}): { status: 'loading' } | { status: 'not-found' } | { status: 'ready'; workoutId: string } => {
+  if (isRestoringState) {
+    return { status: 'loading' };
+  }
+
+  if (!programId) {
+    return { status: 'not-found' };
+  }
+
+  return getWorkoutPrograms(workouts).some((program) => program.id === programId)
+    ? { status: 'ready', workoutId: programId }
+    : { status: 'not-found' };
+};
+
+export const resolveWorkoutSessionRouteState = ({
+  workoutId,
+  activeDraft,
+  workouts,
+  isRestoringState,
+}: {
+  workoutId?: string | null;
+  activeDraft: WorkoutSessionDraft | null | undefined;
+  workouts: Workout[];
+  isRestoringState: boolean;
+}): { status: 'loading' } | { status: 'not-found' } | { status: 'ready'; workoutId: string } => {
+  if (isRestoringState || activeDraft === undefined) {
+    return { status: 'loading' };
+  }
+
+  const resolvedWorkoutId = activeDraft?.workoutId ?? workoutId;
+
+  if (!resolvedWorkoutId) {
+    return { status: 'not-found' };
+  }
+
+  if (resolvedWorkoutId === 'empty-workout') {
+    return { status: 'ready', workoutId: resolvedWorkoutId };
+  }
+
+  return workouts.some((workout) => workout.id === resolvedWorkoutId)
+    ? { status: 'ready', workoutId: resolvedWorkoutId }
+    : { status: 'not-found' };
 };
 
 const getWorkoutSubtitle = (workout: Workout) => {
@@ -970,7 +1046,7 @@ export const getWorkoutHubViewModel = (input: { activeProgram?: TrainingProgram 
       ? {
           ...activeSummary,
           completedExercises: new Set(activeWorkoutDraft.sets.filter((set) => set.completed !== false).map((set) => set.exerciseId)).size,
-          elapsedLabel: formatElapsedLabel(activeWorkoutDraft.startedAt),
+          elapsedLabel: formatWorkoutSessionElapsedLabel(activeWorkoutDraft.startedAt),
           progressLabel: `${new Set(activeWorkoutDraft.sets.filter((set) => set.completed !== false).map((set) => set.exerciseId)).size}/${activeWorkoutExerciseCount} exercises`,
         }
       : undefined,
@@ -1007,7 +1083,20 @@ export const getWorkoutProgramSummary = (program: TrainingProgram, workouts: Wor
 
 export const getWorkoutPrograms = (workouts: Workout[]) => {
   const defaultProgram = createDefaultTrainingProgram(workouts);
-  return [defaultProgram, ...workoutProgramsStore.programs.map(cloneProgram)];
+  const mergedPrograms = [defaultProgram, ...workoutProgramsStore.programs.map(cloneProgram)];
+  const seen = new Set<string>();
+
+  return mergedPrograms
+    .reverse()
+    .filter((program) => {
+      if (seen.has(program.id)) {
+        return false;
+      }
+
+      seen.add(program.id);
+      return true;
+    })
+    .reverse();
 };
 
 export const saveWorkoutProgram = (program: TrainingProgram) => {

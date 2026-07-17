@@ -74,6 +74,7 @@ export type AppContextType = AppState & {
   deleteWorkoutSession: (sessionId: string) => void;
   updateWorkoutSession: (sessionId: string, updatedSession: WorkoutSession) => void;
   saveWorkoutSession: (session: WorkoutSession) => void;
+  isRestoringState: boolean;
   getLastWorkoutSession: () => WorkoutSession | null;
   completeOnboarding: (setup: {
     currentWeight: number;

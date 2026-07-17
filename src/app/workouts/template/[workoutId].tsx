@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -39,7 +39,7 @@ const createDraftExercises = (workout: Workout): DraftExercise[] => {
 export default function WorkoutDetailRoute() {
   const params = useLocalSearchParams<{ workoutId?: string }>();
   const workoutId = Array.isArray(params.workoutId) ? params.workoutId[0] : params.workoutId;
-  const { addWorkoutTemplate, deleteWorkoutTemplate, updateWorkoutTemplate, workouts, exercises } = useAppContext();
+  const { addWorkoutTemplate, deleteWorkoutTemplate, updateWorkoutTemplate, workouts, exercises, isRestoringState } = useAppContext();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -73,10 +73,23 @@ export default function WorkoutDetailRoute() {
     return exercises.filter((exercise) => exercise.name.toLowerCase().includes(query));
   }, [exerciseSearch, exercises]);
 
+  if (isRestoringState) {
+    return (
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingState}>
+          <ActivityIndicator color={colors.accent} />
+          <Text selectable style={styles.loadingLabel}>
+            Loading workout…
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   if (!workout) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View style={styles.emptyState}>
+        <View style={styles.loadingState}>
           <Text selectable style={styles.emptyTitle}>
             Workout not found
           </Text>
@@ -174,7 +187,7 @@ export default function WorkoutDetailRoute() {
   const handleStartWorkout = () => {
     const nextWorkout = saveWorkout();
     startWorkoutSessionDraft(nextWorkout);
-    router.push('/workout-session');
+    router.push({ pathname: '/workout-session', params: { workoutId: nextWorkout.id } });
   };
 
   const showOverflow = () => {
@@ -385,11 +398,17 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingHorizontal: Spacing.three,
       paddingTop: Spacing.three,
     },
-    emptyState: {
+    loadingState: {
       alignItems: 'center',
       flex: 1,
       justifyContent: 'center',
+      gap: Spacing.two,
       padding: Spacing.three,
+    },
+    loadingLabel: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '700',
     },
     emptyTitle: {
       color: colors.textPrimary,

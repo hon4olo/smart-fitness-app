@@ -126,12 +126,12 @@ export default function WorkoutsScreen() {
     }
 
     if (activeDraft?.workoutId === workoutId) {
-      router.push('/workout-session');
+      router.push({ pathname: '/workout-session', params: { workoutId } });
       return;
     }
 
     startWorkoutSessionDraft(workout);
-    router.push('/workout-session');
+    router.push({ pathname: '/workout-session', params: { workoutId } });
   };
 
   const openProgram = (programId: string) => {
@@ -144,7 +144,7 @@ export default function WorkoutsScreen() {
 
   const handleStartEmpty = () => {
     startEmptyWorkoutSessionDraft();
-    router.push('/workout-session');
+    router.push({ pathname: '/workout-session', params: { workoutId: 'empty-workout' } });
   };
 
   return (
@@ -180,7 +180,7 @@ export default function WorkoutsScreen() {
             <View style={styles.list}>
               {activeDraft ? (
                 <View style={styles.rowGroup}>
-                  <Row onPress={() => router.push('/workout-session')} styles={styles}>
+                  <Row onPress={() => router.push({ pathname: '/workout-session', params: { workoutId: activeDraft.workoutId } })} styles={styles}>
                     <TitleLine
                       label="Workout in progress"
                       meta={`${activeDraft.workoutTitle} · ${sessionDateFormatter.format(new Date(activeDraft.startedAt))}`}

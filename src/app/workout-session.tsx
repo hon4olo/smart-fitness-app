@@ -1,22 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext, type WorkoutSet } from '@/context/AppContext';
 import {
   clearActiveWorkoutSessionDraft,
+  formatWorkoutSessionElapsedLabel,
   getActiveWorkoutSessionDraft,
   hydrateActiveWorkoutSessionDraft,
   setActiveWorkoutSessionDraft,
@@ -25,19 +16,6 @@ import {
 } from '@/lib/workouts';
 import { getWorkoutSessionPreviousSets, resolveWorkoutSessionExercises } from '@/lib/workouts/workout-session';
 import { useAppTheme } from '@/theme/AppThemeProvider';
-
-const formatElapsedLabel = (startedAt: string, now = Date.now()) => {
-  const elapsedMs = Math.max(0, now - new Date(startedAt).getTime());
-  const totalMinutes = Math.floor(elapsedMs / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-
-  return `${minutes}m`;
-};
 
 type DraftInputs = Record<string, { reps: string; weight: string }>;
 
@@ -86,7 +64,7 @@ const parseDraftValue = (value: { reps: string; weight: string }) => {
 const isSetCompleted = (set: DraftSet) => set.completed !== false;
 
 export default function WorkoutSessionScreen() {
-  const { workouts, workoutSessions, saveWorkoutSession } = useAppContext();
+  const { workouts, workoutSessions, saveWorkoutSession, isRestoringState } = useAppContext();
   const { workoutId } = useLocalSearchParams<{ workoutId?: string }>();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -233,8 +211,17 @@ export default function WorkoutSessionScreen() {
     );
   };
 
-  if (bootstrappedDraft === undefined) {
-    return <View style={[styles.screen, { backgroundColor: colors.background }]} />;
+  if (bootstrappedDraft === undefined || isRestoringState) {
+    return (
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingState}>
+          <ActivityIndicator color={colors.accent} />
+          <Text selectable style={styles.loadingLabel}>
+            Loading workout…
+          </Text>
+        </View>
+      </View>
+    );
   }
 
   if (!workout) {
@@ -364,7 +351,7 @@ export default function WorkoutSessionScreen() {
             <Text style={styles.topBarButtonLabel}>‹</Text>
           </Pressable>
           <Text selectable style={styles.timer}>
-            {formatElapsedLabel(startedAt, now)}
+            {formatWorkoutSessionElapsedLabel(startedAt, now)}
           </Text>
           <View style={styles.topBarActions}>
             <Pressable
@@ -532,52 +519,52 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     addSetLabel: {
       color: colors.textPrimary,
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '800',
     },
     addSetRow: {
       alignItems: 'flex-start',
-      minHeight: 44,
+      minHeight: 48,
       paddingVertical: Spacing.one,
     },
     cell: {
       color: colors.textPrimary,
-      fontSize: 15,
-      lineHeight: 22,
+      fontSize: 16,
+      lineHeight: 23,
     },
     checkButton: {
       alignItems: 'center',
-      height: 32,
+      height: 36,
       justifyContent: 'center',
-      width: 32,
+      width: 36,
     },
     checkButtonPressed: {
       opacity: 0.72,
     },
     checkLabel: {
       color: colors.textSecondary,
-      fontSize: 18,
+      fontSize: 20,
       fontWeight: '900',
-      lineHeight: 18,
+      lineHeight: 20,
     },
     checkLabelCompleted: {
       color: '#27C46A',
     },
     colCheck: {
-      width: 40,
+      width: 44,
     },
     colPrevious: {
-      width: 104,
+      width: 112,
     },
     colReps: {
-      width: 60,
+      width: 64,
     },
     colSet: {
-      width: 36,
+      width: 40,
     },
     colWeight: {
       flex: 1,
-      minWidth: 76,
+      minWidth: 82,
     },
     container: {
       maxWidth: MaxContentWidth,
@@ -592,6 +579,18 @@ const createStyles = (colors: typeof Colors.light) =>
       color: colors.textSecondary,
       fontSize: 13,
       lineHeight: 19,
+    },
+    loadingState: {
+      alignItems: 'center',
+      flex: 1,
+      justifyContent: 'center',
+      gap: Spacing.two,
+      padding: Spacing.three,
+    },
+    loadingLabel: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '700',
     },
     emptySets: {
       color: colors.textSecondary,
@@ -700,11 +699,11 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     inputCell: {
       color: colors.textPrimary,
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '700',
-      minHeight: 32,
+      minHeight: 34,
       paddingHorizontal: 0,
-      paddingVertical: 3,
+      paddingVertical: 4,
       textAlign: 'center',
       fontVariant: ['tabular-nums'],
     },
@@ -770,10 +769,10 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     tableHeaderText: {
       color: colors.textSecondary,
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '800',
       letterSpacing: 0.3,
-      lineHeight: 14,
+      lineHeight: 15,
       textTransform: 'uppercase',
     },
     tableRow: {
@@ -784,9 +783,9 @@ const createStyles = (colors: typeof Colors.light) =>
       borderWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
       gap: Spacing.one,
-      minHeight: 48,
+      minHeight: 52,
       paddingHorizontal: Spacing.two,
-      paddingVertical: 8,
+      paddingVertical: 10,
     },
     tableRowCompleted: {
       backgroundColor: 'rgba(39, 196, 106, 0.10)',

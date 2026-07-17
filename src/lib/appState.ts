@@ -4,8 +4,24 @@ export const createExerciseId = (name: string) => {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 };
 
+const dedupeById = <T extends { id: string }>(items: T[]) => {
+  const seen = new Set<string>();
+
+  return [...items]
+    .reverse()
+    .filter((item) => {
+      if (seen.has(item.id)) {
+        return false;
+      }
+
+      seen.add(item.id);
+      return true;
+    })
+    .reverse();
+};
+
 export const normalizeWorkouts = (workouts: Workout[], defaultWorkoutTemplateIds: Set<string>) => {
-  return workouts.map((workout) => ({
+  const normalized = workouts.map((workout) => ({
     ...workout,
     createdAt: workout.createdAt ?? new Date().toISOString(),
     isCustom: workout.isCustom ?? !defaultWorkoutTemplateIds.has(workout.id),
@@ -26,6 +42,8 @@ export const normalizeWorkouts = (workouts: Workout[], defaultWorkoutTemplateIds
       };
     }),
   }));
+
+  return dedupeById(normalized);
 };
 
 export const normalizeExercises = (exercises: Exercise[]) => {
