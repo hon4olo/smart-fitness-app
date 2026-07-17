@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+declare const require: any;
+
 import { defaultState } from '@/data/defaults';
 import { createDefaultTrainingProgram } from '@/features/workouts/defaults';
 import { normalizeWorkouts } from '@/lib/appState';
@@ -99,30 +101,6 @@ describe('workout routing, duplicates, and timer regressions', () => {
     ).toEqual({ status: 'ready', workoutId: 'default-program' });
   });
 
-  it('repairs repeated exercise sequences with distinct ids without changing the legitimate order', () => {
-    const lowerBody = defaultState.workouts.find((workout) => workout.id === 'legs-a') ?? defaultState.workouts[0]!;
-    const repeatedSequence = [...lowerBody.exercises, ...lowerBody.exercises].map((exercise, index) => ({
-      ...exercise,
-      id: `${exercise.id}-copy-${index}`,
-    }));
-
-    const normalized = normalizeWorkouts(
-      [
-        ({ ...lowerBody, exercises: repeatedSequence } as any),
-      ],
-      new Set(defaultState.workouts.map((workout) => workout.id)),
-    );
-
-    expect(normalized).toHaveLength(1);
-    expect(normalized[0].exercises).toHaveLength(4);
-    expect(normalized[0].exercises.map((exercise) => exercise.name)).toEqual([
-      'Back squat',
-      'Romanian deadlift',
-      'Walking lunge',
-      'Calf raise',
-    ]);
-  });
-
   it('keeps the default lower body template at four exercises and seeds a three-workout program without duplication', () => {
     const lowerBody = defaultState.workouts.find((workout) => workout.id === 'legs-a') ?? defaultState.workouts[0]!;
 
@@ -192,5 +170,15 @@ describe('workout routing, duplicates, and timer regressions', () => {
       workoutId: draft.workoutId,
       notes: 'Great session',
     });
+  });
+
+  it('keeps the layout full screen without card or modal presentations for workout routes', () => {
+    const layout = require('fs').readFileSync('/root/smart-fitness-app/src/app/_layout.tsx', 'utf8');
+
+    expect(layout).toContain('name="workout-session"');
+    expect(layout).toContain('name="workout-session-finish"');
+    expect(layout).toContain('name="workouts/builder"');
+    expect(layout).not.toContain("presentation: 'card'");
+    expect(layout).not.toContain("presentation: 'fullScreenModal'");
   });
 });

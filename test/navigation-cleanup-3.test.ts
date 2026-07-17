@@ -40,17 +40,15 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(source).toContain('HomeSnapshotCard');
   });
 
-  test('workouts keeps one start-empty action and one program creation action', () => {
-    const source = readSource('src/app/(tabs)/workouts.tsx');
+  test('workouts keeps one start-now action and one program creation action', () => {
+    const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
 
-    expect(count(source, 'Start empty workout')).toBe(1);
-    expect(count(source, 'Create program')).toBe(1);
+    expect(source).toContain('Start now');
+    expect(source).toContain('Programs');
+    expect(source).toContain('Create program');
+    expect(source).not.toContain('Start empty workout');
     expect(source).not.toContain('Add Program');
-    expect(source).not.toContain('Pick one workout and start');
     expect(source).not.toContain('Recommendation');
-    expect(source).toContain('Workout in progress');
-    expect(source).toContain('Start empty workout');
-    expect(source).toContain('startEmptyWorkoutSessionDraft');
   });
 
   test('progress moves add-weight into a dedicated flow and keeps the summary compact', () => {
@@ -84,13 +82,17 @@ describe('navigation repair and UX cleanup 3.0', () => {
   });
 
   test('business actions remain reachable through public and secondary routes', () => {
-    const workouts = readSource('src/app/(tabs)/workouts.tsx');
+    const workouts = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
+    const template = readSource('src/features/workouts/screens/WorkoutTemplateDetailScreen.tsx');
+    const program = readSource('src/features/workouts/screens/ProgramDetailScreen.tsx');
     const progress = readSource('src/app/(tabs)/progress.tsx');
     const profile = readSource('src/app/(tabs)/profile.tsx');
     const syncBackup = readSource('src/app/sync-backup.tsx');
     const weightEntry = readSource('src/app/weight-entry.tsx');
 
-    expect(workouts).toContain("router.push('/workouts/builder')");
+    expect(workouts).toContain('Create program');
+    expect(template).toContain('Start workout');
+    expect(program).toContain('Edit program');
     expect(progress).toContain("router.push('/weight-entry')");
     expect(profile).toContain('ProfileSyncStatusCard');
     expect(syncBackup).toContain("syncNow()");

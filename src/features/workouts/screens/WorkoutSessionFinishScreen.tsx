@@ -1,16 +1,13 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { AppButton } from '@/components/ui/AppButton';
+import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { buildCompletedWorkoutSessionSnapshot } from '@/lib/workouts';
-import { clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, markActiveWorkoutSessionCompleted, markActiveWorkoutSessionFinishing } from '@/features/workouts/sessionService';
-import { FinishWorkoutActions } from '@/features/workouts/components/finish/FinishWorkoutActions';
-import { FinishWorkoutNotes } from '@/features/workouts/components/finish/FinishWorkoutNotes';
-import { FinishWorkoutSummary } from '@/features/workouts/components/finish/FinishWorkoutSummary';
-import { WorkoutSavedSummary } from '@/features/workouts/components/finish/WorkoutSavedSummary';
+import { clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, markActiveWorkoutSessionCompleted, markActiveWorkoutSessionFinishing } from '@/lib/workouts';
+import { buildCompletedWorkoutSessionSnapshotFromDraft, getWorkoutSessionCompletedSetCount } from '@/features/workouts/sessionScreenModel';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 const formatDurationLabel = (startedAt: string, finishedAt = new Date().toISOString()) => {
@@ -36,7 +33,7 @@ const formatDateTimeLabel = (value: string) =>
     year: 'numeric',
   }).format(new Date(value));
 
-export default function WorkoutSessionFinishRoute() {
+export default function WorkoutSessionFinishScreen() {
   const { saveWorkoutSession, isRestoringState } = useAppContext();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -44,110 +41,174 @@ export default function WorkoutSessionFinishRoute() {
   const draft = getActiveWorkoutSessionDraft();
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
-  const [completedSession, setCompletedSession] = useState<ReturnType<typeof buildCompletedWorkoutSessionSnapshot> | null>(null);
-
-  const sessionToRender = completedSession ?? draft;
+  const [savedFinishedAt, setSavedFinishedAt] = useState<string | null>(null);
+  const [savedStartedAt, setSavedStartedAt] = useState<string | null>(null);
+  const [savedWorkoutTitle, setSavedWorkoutTitle] = useState('');
+  const [savedCompletedSetCount, setSavedCompletedSetCount] = useState(0);
 
   useEffect(() => {
     if (isRestoringState) {
       return;
     }
 
-    if (!sessionToRender) {
+    if (!draft && !saved) {
       clearActiveWorkoutSessionDraft();
       router.replace('/workouts');
     }
-  }, [clearActiveWorkoutSessionDraft, isRestoringState, sessionToRender]);
+  }, [draft, isRestoringState]);
 
   if (isRestoringState) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <View style={styles.loadingState}>
           <ActivityIndicator color={colors.accent} />
-          <Text selectable style={styles.loadingLabel}>Loading workout…</Text>
+          <Text selectable style={styles.loadingLabel}>
+            Loading workout…
+          </Text>
         </View>
       </View>
     );
   }
 
-  if (!sessionToRender) {
+  if (!draft && !saved) {
     return null;
   }
 
-  const workoutName = sessionToRender.workoutTitle;
-  const dateTimeLabel = formatDateTimeLabel(sessionToRender.startedAt);
-  const durationLabel = formatDurationLabel(sessionToRender.startedAt, completedSession?.finishedAt ?? new Date().toISOString());
-  const completedSets = sessionToRender.sets.filter((set) => set.completed !== false);
+  const completedSetCount = draft ? getWorkoutSessionCompletedSetCount(draft) : 0;
+  const workoutStartedAt = saved ? savedStartedAt ?? new Date().toISOString() : draft!.startedAt;
+  const workoutTitle = saved ? savedWorkoutTitle : draft!.workoutTitle;
+  const dateTimeLabel = formatDateTimeLabel(workoutStartedAt);
 
   const handleSave = () => {
-    if (saved) {
+    if (!draft || saved || completedSetCount === 0) {
       return;
     }
 
-    if (completedSets.length === 0) {
-      Alert.alert('Add at least one set', 'You need at least one completed set before saving.');
-      return;
-    }
+    const finishedAt = new Date().toISOString();
+    const completedSnapshot = buildCompletedWorkoutSessionSnapshotFromDraft(draft, {
+      finishedAt,
+      notes,
+    });
 
-    const completedSnapshot = {
-      ...buildCompletedWorkoutSessionSnapshot(sessionToRender, {
-        notes,
-        finishedAt: new Date().toISOString(),
-      }),
-      sets: completedSets,
-    };
-
+    setSavedStartedAt(draft.startedAt);
+    setSavedWorkoutTitle(draft.workoutTitle);
+    setSavedCompletedSetCount(completedSetCount);
+    setSavedFinishedAt(finishedAt);
+    setSaved(true);
     markActiveWorkoutSessionFinishing();
     saveWorkoutSession(completedSnapshot);
-    setCompletedSession(completedSnapshot);
-    setSaved(true);
     clearActiveWorkoutSessionDraft();
     markActiveWorkoutSessionCompleted();
   };
 
   if (saved) {
     return (
-      <WorkoutSavedSummary
-        dateTimeLabel={dateTimeLabel}
-        durationLabel={durationLabel}
-        notes={notes}
-        onBackToWorkouts={() => router.replace('/workouts')}
-        onHome={() => router.replace('/')}
-        setCount={completedSets.length}
-        workoutName={workoutName}
-      />
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <View style={[styles.savedShell, { paddingTop: insets.top + Spacing.three, paddingBottom: insets.bottom + Spacing.three }]}>
+          <View style={styles.savedCard}>
+            <Text selectable style={styles.savedTitle}>
+              Workout saved
+            </Text>
+            <Text selectable style={styles.savedName}>
+              {savedWorkoutTitle}
+            </Text>
+            <Text selectable style={styles.savedMeta}>
+              {formatDurationLabel(workoutStartedAt, savedFinishedAt ?? undefined)} · {savedCompletedSetCount} set{savedCompletedSetCount === 1 ? '' : 's'}
+            </Text>
+          </View>
+
+          <View style={styles.savedActions}>
+            <AppButton label="Back to Workouts" onPress={() => router.replace('/workouts')} />
+            <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={({ pressed }) => [styles.textAction, pressed && styles.textActionPressed]}>
+              <Text style={styles.textActionLabel}>Home</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
     );
   }
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.fill}>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.three, paddingBottom: insets.bottom + Spacing.five + 112 }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
-          <View style={styles.container}>
-            <View style={styles.headerRow}>
-              <Pressable accessibilityRole="button" onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.textActionPressed]}>
-                <Text style={styles.backButtonLabel}>‹</Text>
-              </Pressable>
-              <Text selectable style={styles.title}>Finish Workout</Text>
-            </View>
-
-            <FinishWorkoutSummary dateTimeLabel={dateTimeLabel} durationLabel={durationLabel} workoutName={workoutName} />
-            <FinishWorkoutNotes notes={notes} onChangeNotes={setNotes} />
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 128 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        style={styles.scrollView}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Pressable accessibilityRole="button" onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+              <Text style={styles.backLabel}>‹</Text>
+            </Pressable>
+            <Text selectable style={styles.title}>
+              Finish Workout
+            </Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+          <View style={styles.card}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Workout</Text>
+              <Text selectable style={styles.summaryValue}>
+                {workoutTitle}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Date &amp; time</Text>
+              <Text selectable style={styles.summaryValue}>
+                {dateTimeLabel}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Duration</Text>
+              <Text selectable style={styles.summaryValue}>
+                {formatDurationLabel(workoutStartedAt, savedFinishedAt ?? undefined)}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Completed sets</Text>
+              <Text selectable style={styles.summaryValue}>
+                {savedCompletedSetCount || completedSetCount}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.notesCard}>
+            <Text style={styles.notesLabel}>Notes</Text>
+            <TextInput
+              multiline
+              placeholder="Optional notes"
+              placeholderTextColor={colors.textSecondary}
+              selectionColor={colors.accent}
+              style={styles.notesInput}
+              value={notes}
+              onChangeText={setNotes}
+            />
+          </View>
+        </View>
+      </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>
         <View style={styles.container}>
-          <FinishWorkoutActions
-            disabled={completedSets.length === 0}
-            onDiscard={() => Alert.alert('Discard workout?', 'Your logged sets will not be saved.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Discard Workout', style: 'destructive', onPress: () => { clearActiveWorkoutSessionDraft(); router.replace('/workouts'); } }])}
-            onSave={handleSave}
-          />
+          <AppButton disabled={completedSetCount === 0} label="Save" onPress={handleSave} />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() =>
+              Alert.alert('Discard workout?', 'Your logged sets will not be saved.', [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Discard workout',
+                  style: 'destructive',
+                  onPress: () => {
+                    clearActiveWorkoutSessionDraft();
+                    router.replace('/workouts');
+                  },
+                },
+              ])
+            }
+            style={({ pressed }) => [styles.discardAction, pressed && styles.textActionPressed]}>
+            <Text style={styles.discardLabel}>Discard workout</Text>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -159,35 +220,45 @@ const createStyles = (colors: typeof Colors.light) =>
     backButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
       borderRadius: 999,
       height: 34,
       justifyContent: 'center',
       width: 34,
     },
-    backButtonLabel: {
+    backLabel: {
       color: colors.textPrimary,
       fontSize: 22,
       fontWeight: '700',
       lineHeight: 22,
       marginTop: -1,
     },
+    card: {
+      backgroundColor: colors.surfacePrimary,
+      borderColor: colors.borderSubtle,
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      padding: Spacing.three,
+      gap: Spacing.two,
+    },
     container: {
       maxWidth: MaxContentWidth,
       width: '100%',
+      gap: Spacing.three,
     },
     content: {
       alignItems: 'center',
       paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.three,
     },
-    emptyState: {
-      alignItems: 'center',
-      flex: 1,
-      justifyContent: 'center',
-      padding: Spacing.three,
+    discardAction: {
+      alignSelf: 'center',
+      marginTop: Spacing.two,
+      paddingVertical: Spacing.one,
     },
-    fill: {
-      flex: 1,
+    discardLabel: {
+      color: colors.error,
+      fontSize: 13,
+      fontWeight: '800',
     },
     footer: {
       borderTopWidth: StyleSheet.hairlineWidth,
@@ -198,16 +269,14 @@ const createStyles = (colors: typeof Colors.light) =>
       right: 0,
       bottom: 0,
     },
-    headerRow: {
+    header: {
       alignItems: 'center',
-      alignSelf: 'stretch',
       flexDirection: 'row',
       gap: Spacing.two,
-      marginBottom: Spacing.three,
     },
     loadingLabel: {
       color: colors.textSecondary,
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
     },
     loadingState: {
@@ -217,21 +286,99 @@ const createStyles = (colors: typeof Colors.light) =>
       gap: Spacing.two,
       padding: Spacing.three,
     },
-    message: {
+    notesCard: {
+      backgroundColor: colors.surfacePrimary,
+      borderColor: colors.borderSubtle,
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      padding: Spacing.three,
+      gap: Spacing.two,
+    },
+    notesInput: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      minHeight: 96,
+      textAlignVertical: 'top',
+    },
+    notesLabel: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    pressed: {
+      opacity: 0.72,
+    },
+    row: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    savedActions: {
+      gap: Spacing.two,
+      width: '100%',
+    },
+    savedCard: {
+      backgroundColor: colors.surfacePrimary,
+      borderColor: colors.borderSubtle,
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      padding: Spacing.three,
+      gap: Spacing.one,
+      width: '100%',
+    },
+    savedMeta: {
       color: colors.textSecondary,
       fontSize: 13,
-      lineHeight: 19,
-      marginBottom: Spacing.three,
+      fontWeight: '700',
+    },
+    savedName: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontWeight: '800',
+    },
+    savedShell: {
+      alignItems: 'center',
+      flex: 1,
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.three,
+    },
+    savedTitle: {
+      color: colors.textPrimary,
+      fontSize: 28,
+      fontWeight: '900',
+      letterSpacing: -0.5,
     },
     screen: {
       flex: 1,
     },
+    scrollView: {
+      flex: 1,
+    },
+    summaryLabel: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '800',
+      width: 96,
+    },
+    summaryRow: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      justifyContent: 'space-between',
+    },
+    summaryValue: {
+      color: colors.textPrimary,
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '700',
+      textAlign: 'right',
+    },
     textAction: {
-      alignSelf: 'flex-start',
+      alignSelf: 'center',
       paddingVertical: Spacing.one,
     },
     textActionLabel: {
-      color: colors.textPrimary,
+      color: colors.textSecondary,
       fontSize: 13,
       fontWeight: '800',
     },

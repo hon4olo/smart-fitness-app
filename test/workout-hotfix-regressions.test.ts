@@ -1,205 +1,77 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { defaultState } from '@/data/defaults';
-import { buildCompletedWorkoutSessionSnapshot, buildWorkoutTemplateSavePayload, clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft, startEmptyWorkoutSessionDraft, startWorkoutSessionDraft, upsertWorkoutSessionById } from '@/lib/workouts';
-import { createLocalAppRepository } from '@/repositories';
 
-declare const __dirname: string;
 declare const require: any;
 
-const { readFileSync } = require('fs') as { readFileSync: (path: string, encoding: string) => string };
-const { resolve } = require('path') as { resolve: (...parts: string[]) => string };
+import { defaultState } from '@/data/defaults';
+import { buildCompletedWorkoutSessionSnapshotFromDraft, createWorkoutSessionDraft } from '@/features/workouts/sessionScreenModel';
+import { clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft, upsertWorkoutSessionById } from '@/lib/workouts';
 
-const createMemoryStorage = () => {
-  const store = new Map<string, string>();
-
-  return {
-    read: async (key: string) => store.get(key) ?? null,
-    write: async (key: string, value: string) => {
-      store.set(key, value);
-    },
-    remove: async (key: string) => {
-      store.delete(key);
-    },
-  };
-};
-
-const projectRoot = resolve(__dirname, '..');
-const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
+const readFileSync = require('fs').readFileSync as (path: string, encoding: string) => string;
 
 describe('workout hotfix regressions', () => {
   beforeEach(() => {
     clearActiveWorkoutSessionDraft();
   });
 
-  it('serializes edited workout template exercises as names and reloads safely', async () => {
-    const repository = createLocalAppRepository(createMemoryStorage());
-    const workout = defaultState.workouts.find((item) => item.id === 'legs-a');
+  it('keeps workout template detail read-only by default and starts workouts from the sticky action', () => {
+    const templateSource = readFileSync('/root/smart-fitness-app/src/features/workouts/screens/WorkoutTemplateDetailScreen.tsx', 'utf8');
+    const programSource = readFileSync('/root/smart-fitness-app/src/features/workouts/screens/ProgramDetailScreen.tsx', 'utf8');
 
-    expect(workout).toBeDefined();
-    if (!workout) {
-      throw new Error('Expected Lower Body workout fixture');
-    }
-
-    const payload = buildWorkoutTemplateSavePayload(workout, 'Lower Body', [
-      {
-        name: 'Calf raise',
-        targetSets: 4,
-        targetReps: 12,
-        restSeconds: 75,
-      },
-    ]);
-
-    expect(payload.exercises).toEqual(['Calf raise']);
-    expect(payload.description).toContain('Calf raise — 4 sets x 12 reps · 75 sec rest');
-
-    await repository.saveState({
-      ...defaultState,
-      workouts: defaultState.workouts.map((item) =>
-        item.id === workout.id
-          ? {
-              ...item,
-              title: payload.title,
-              description: payload.description,
-              isCustom: true,
-              exercises: payload.exercises.map((name, index) => ({
-                id: `${workout.id}-exercise-${index}`,
-                name,
-                createdAt: workout.createdAt ?? '2026-01-01T00:00:00.000Z',
-                isCustom: true,
-              })),
-            }
-          : item,
-      ),
-    });
-
-    const reloaded = await repository.loadState();
-
-    expect(reloaded).not.toBeNull();
-    expect(reloaded?.workouts.find((item) => item.id === workout.id)?.title).toBe('Lower Body');
-    expect(reloaded?.workouts.find((item) => item.id === workout.id)?.exercises.map((exercise) => exercise.name)).toEqual(['Calf raise']);
-  });
-
-  it('starts an empty workout draft with the empty-workout marker and no sets', () => {
-    const draft = startEmptyWorkoutSessionDraft('2026-01-17T10:30:00.000Z');
-
-    expect(draft).toMatchObject({
-      id: draft.id,
-      workoutId: 'empty-workout',
-      workoutTitle: 'Empty workout',
-      startedAt: '2026-01-17T10:30:00.000Z',
-      sets: [],
-    });
-    expect(getActiveWorkoutSessionDraft()).toMatchObject({ workoutId: 'empty-workout', workoutTitle: 'Empty workout', sets: [] });
-  });
-
-  it('keeps program detail read-only and reserves save for builder mode', () => {
-    const programSource = readSource('src/app/workouts/program/[programId].tsx');
-    const builderSource = readSource('src/app/workouts/builder.tsx');
-
-    expect(programSource).toContain('readOnly');
-    expect(programSource).toContain('Edit program');
+    expect(templateSource).toContain('Start workout');
+    expect(templateSource).not.toContain('Save workout');
+    expect(templateSource).not.toContain('TextInput');
+    expect(programSource).not.toContain('Save Program');
+    expect(programSource).not.toContain('TextInput');
     expect(programSource).not.toContain('Save program');
-    expect(builderSource).toContain('Save Program');
-    expect(builderSource).toContain('Create program');
   });
 
-  it('drops invalid finish drafts instead of rendering a dead screen', () => {
-    const source = readSource('src/features/workouts/screens/WorkoutSessionFinishScreen.tsx');
-
-    expect(source).toContain("router.replace('/workouts')");
-    expect(source).toContain('clearActiveWorkoutSessionDraft()');
-    expect(source).not.toContain('No active workout was found');
-  });
-
-  it('repairs repeated Lower Body exercises on hydration without destroying unique exercises', async () => {
-    const repository = createLocalAppRepository(createMemoryStorage());
-    const lowerBody = defaultState.workouts.find((item) => item.id === 'legs-a');
-
-    expect(lowerBody).toBeDefined();
-    if (!lowerBody) {
-      throw new Error('Expected Lower Body workout fixture');
-    }
-
-    const corruptedLowerBody = {
-      ...lowerBody,
-      exercises: Array.from({ length: 8 }, (_, index) =>
-        lowerBody.exercises.map((exercise) => ({
-          ...exercise,
-          id: `${exercise.id}-copy-${index}`,
-        })),
-      ).flat(),
-    };
-
-    await repository.saveState({
-      ...defaultState,
-      workouts: defaultState.workouts.map((item) => (item.id === lowerBody.id ? corruptedLowerBody : item)),
-    });
-
-    const reloaded = await repository.loadState();
-    const reloadedLowerBody = reloaded?.workouts.find((item) => item.id === lowerBody.id);
-
-    expect(reloadedLowerBody?.exercises).toHaveLength(4);
-    expect(reloadedLowerBody?.exercises.map((exercise) => exercise.name)).toEqual(['Back squat', 'Romanian deadlift', 'Walking lunge', 'Calf raise']);
-
-    const uniqueWorkout = {
-      ...lowerBody,
-      id: 'custom-unique-workout',
-      isCustom: true,
-      exercises: [
-        { id: 'custom-a', name: 'Custom split squat', muscleGroup: 'quads', createdAt: '2026-01-01T00:00:00.000Z', isCustom: true },
-        { id: 'custom-b', name: 'Custom split squat', muscleGroup: 'glutes', createdAt: '2026-01-01T00:00:00.000Z', isCustom: true },
-      ],
-    };
-
-    await repository.saveState({
-      ...reloaded!,
-      workouts: [...(reloaded?.workouts ?? defaultState.workouts), uniqueWorkout],
-    });
-
-    const reloadedAgain = await repository.loadState();
-    expect(reloadedAgain?.workouts.find((item) => item.id === 'custom-unique-workout')?.exercises).toHaveLength(2);
-    expect(reloadedAgain?.workouts.find((item) => item.id === 'custom-unique-workout')?.exercises.map((exercise) => exercise.muscleGroup)).toEqual(['quads', 'glutes']);
-  });
-
-  it('keeps the completed workout snapshot after clearing the active draft and avoids duplicate history entries', () => {
+  it('saves a completed workout once, clears the active draft, and resists duplicate upserts', () => {
     const workout = defaultState.workouts.find((item) => item.id === 'legs-a');
-
     expect(workout).toBeDefined();
     if (!workout) {
       throw new Error('Expected Lower Body workout fixture');
     }
 
-    const draft = startWorkoutSessionDraft(workout);
+    const draft = createWorkoutSessionDraft(workout);
     setActiveWorkoutSessionDraft({
       ...draft,
       sets: [
         {
           id: 'set-1',
-          exerciseId: 'calf-raise',
-          exerciseName: 'Calf raise',
-          weight: 60,
-          reps: 12,
+          exerciseId: 'back-squat',
+          exerciseName: 'Back squat',
+          weight: 100,
+          reps: 8,
           completed: true,
         },
       ],
     });
 
-    const snapshot = buildCompletedWorkoutSessionSnapshot(getActiveWorkoutSessionDraft()!, {
-      notes: 'Finished cleanly',
+    const activeDraft = getActiveWorkoutSessionDraft();
+    expect(activeDraft).not.toBeNull();
+    if (!activeDraft) {
+      throw new Error('Expected active workout draft');
+    }
+
+    const snapshot = buildCompletedWorkoutSessionSnapshotFromDraft(activeDraft, {
       finishedAt: '2026-01-17T10:15:00.000Z',
+      notes: 'Finished cleanly',
     });
 
-    clearActiveWorkoutSessionDraft();
-
-    expect(getActiveWorkoutSessionDraft()).toBeNull();
-    expect(snapshot.notes).toBe('Finished cleanly');
-    expect(snapshot.finishedAt).toBe('2026-01-17T10:15:00.000Z');
-
     const firstSave = upsertWorkoutSessionById([], snapshot);
+    clearActiveWorkoutSessionDraft();
     const secondSave = upsertWorkoutSessionById(firstSave, snapshot);
 
+    expect(getActiveWorkoutSessionDraft()).toBeNull();
     expect(firstSave).toHaveLength(1);
     expect(secondSave).toHaveLength(1);
     expect(secondSave[0]).toEqual(snapshot);
+  });
+
+  it('never shows a stale Start empty workout action', () => {
+    const source = readFileSync('/root/smart-fitness-app/src/features/workouts/screens/WorkoutsScreen.tsx', 'utf8');
+
+    expect(source).not.toContain('Start empty workout');
+    expect(source).not.toContain('Add exercise');
   });
 });

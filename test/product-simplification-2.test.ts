@@ -11,15 +11,16 @@ const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, r
 const count = (source: string, needle: string) => (source.match(new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) ?? []).length;
 
 describe('product simplification 2.0', () => {
-  test('workouts screen keeps a single empty-state start-empty action and a single program creation CTA in the fresh state', () => {
-    const source = readSource('src/app/(tabs)/workouts.tsx');
+  test('workouts screen keeps a simple start-now tab and a single program creation CTA in the fresh state', () => {
+    const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
 
-    expect(count(source, 'Start empty workout')).toBe(1);
+    expect(count(source, 'Start empty workout')).toBe(0);
     expect(count(source, 'Create program')).toBe(1);
-    expect(count(source, 'label="Add Program"')).toBe(0);
-    expect(source).toContain('Workout in progress');
-    expect(source).toContain('Continue workout');
+    expect(source).not.toContain('Add Program');
     expect(source).not.toContain('Recommendation');
+    expect(source).toContain('Start now');
+    expect(source).toContain('Programs');
+    expect(source).toContain('Create program');
     expect(source).toContain('useAppTheme');
   });
 
@@ -120,13 +121,19 @@ describe('product simplification 2.0', () => {
   });
 
   test('business actions remain reachable in source', () => {
-    const workouts = readSource('src/app/(tabs)/workouts.tsx');
+    const workouts = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
+    const template = readSource('src/features/workouts/screens/WorkoutTemplateDetailScreen.tsx');
+    const program = readSource('src/features/workouts/screens/ProgramDetailScreen.tsx');
     const nutrition = readSource('src/app/(tabs)/nutrition.tsx');
     const nutritionPicker = readSource('src/app/nutrition/add-food.tsx');
     const profile = readSource('src/app/(tabs)/profile.tsx');
 
-    expect(workouts).toContain('Start empty workout');
-    expect(workouts).toContain('startEmptyWorkoutSessionDraft');
+    expect(workouts).toContain('Start now');
+    expect(workouts).toContain('Programs');
+    expect(workouts).not.toContain('Start empty workout');
+    expect(template).toContain('Start workout');
+    expect(template).toContain('Favorite / unfavorite');
+    expect(program).toContain('Edit program');
     expect(nutrition).toContain("router.push({ pathname: '/nutrition/add-food'");
     expect(nutritionPicker).toContain('addFoodEntries');
     expect(profile).toContain('Appearance');
