@@ -1,9 +1,10 @@
 import { memo, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, TextInput } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import type { WorkoutSet } from '@/context/AppContext';
-import { Colors, Radii, Spacing } from '@/constants/theme';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { Colors, Radii } from '@/constants/theme';
+import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
+
+import { SESSION_TABLE_COLUMNS } from './sessionTableLayout';
 
 type SessionSetRowProps = {
   completed: boolean;
@@ -15,7 +16,6 @@ type SessionSetRowProps = {
   onToggle: () => void;
   onWeightChange: (value: string) => void;
   previousLabel: string;
-  set: WorkoutSet;
 };
 
 export const SessionSetRow = memo(function SessionSetRow({
@@ -28,47 +28,55 @@ export const SessionSetRow = memo(function SessionSetRow({
   onToggle,
   onWeightChange,
   previousLabel,
-  set,
 }: SessionSetRowProps) {
-  const { colors } = useAppTheme();
+  const { colors } = useWorkoutTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <Pressable accessibilityRole="button" delayLongPress={300} onLongPress={onLongPress} style={({ pressed }) => [styles.row, completed && styles.rowCompleted, pressed && styles.rowPressed]}>
-      <Text selectable style={[styles.cell, styles.colSet]}>{index + 1}</Text>
-      <Text selectable numberOfLines={1} style={[styles.cell, styles.previousCell, styles.colPrevious]}>{previousLabel}</Text>
-      <TextInput
-        autoCapitalize="none"
-        autoCorrect={false}
-        blurOnSubmit
-        defaultValue={draftValue.weight}
-        keyboardType="decimal-pad"
-        placeholder="—"
-        placeholderTextColor={colors.textSecondary}
-        selectionColor={colors.accent}
-        style={[styles.inputCell, styles.colWeight]}
-        onChangeText={onWeightChange}
-        onEndEditing={onCommit}
-        onSubmitEditing={onCommit}
-      />
-      <TextInput
-        autoCapitalize="none"
-        autoCorrect={false}
-        blurOnSubmit
-        defaultValue={draftValue.reps}
-        keyboardType="number-pad"
-        placeholder="—"
-        placeholderTextColor={colors.textSecondary}
-        selectionColor={colors.accent}
-        style={[styles.inputCell, styles.colReps]}
-        onChangeText={onRepsChange}
-        onEndEditing={onCommit}
-        onSubmitEditing={onCommit}
-      />
-      <Pressable accessibilityRole="button" onPress={onToggle} style={({ pressed }) => [styles.checkButton, pressed && styles.pressed]}>
-        <Text style={[styles.checkLabel, completed && styles.checkLabelCompleted]}>{completed ? '✓' : '○'}</Text>
-      </Pressable>
-    </Pressable>
+    <View style={styles.rowWrap}>
+      <View style={[styles.row, completed && styles.rowCompleted]}>
+        <Text selectable style={[styles.cell, styles.colSet]}>
+          {index + 1}
+        </Text>
+        <Text selectable numberOfLines={1} style={[styles.cell, styles.previousCell, styles.colPrevious]}>
+          {previousLabel}
+        </Text>
+        <TextInput
+          autoCapitalize="none"
+          autoCorrect={false}
+          blurOnSubmit
+          value={draftValue.weight}
+          keyboardType="decimal-pad"
+          placeholder="—"
+          placeholderTextColor={colors.textSecondary}
+          selectionColor={colors.accent}
+          style={[styles.inputCell, styles.colWeight]}
+          onChangeText={onWeightChange}
+          onEndEditing={onCommit}
+          onSubmitEditing={onCommit}
+        />
+        <TextInput
+          autoCapitalize="none"
+          autoCorrect={false}
+          blurOnSubmit
+          value={draftValue.reps}
+          keyboardType="number-pad"
+          placeholder="—"
+          placeholderTextColor={colors.textSecondary}
+          selectionColor={colors.accent}
+          style={[styles.inputCell, styles.colReps]}
+          onChangeText={onRepsChange}
+          onEndEditing={onCommit}
+          onSubmitEditing={onCommit}
+        />
+        <Pressable accessibilityRole="button" onPress={onToggle} style={({ pressed }) => [styles.iconCell, styles.colCompletion, pressed && styles.pressed]}>
+          <Text style={[styles.checkLabel, completed && styles.checkLabelCompleted]}>{completed ? '✓' : '○'}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onLongPress} style={({ pressed }) => [styles.iconCell, styles.colOverflow, pressed && styles.pressed]}>
+          <Text style={styles.overflowLabel}>⋯</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 });
 
@@ -79,41 +87,53 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: 16,
       lineHeight: 23,
     },
-    checkButton: {
+    checkLabel: {
+      color: colors.textSecondary,
+      fontSize: 18,
+      fontWeight: '900',
+      lineHeight: 18,
+    },
+    checkLabelCompleted: {
+      color: colors.accent,
+    },
+    colCompletion: {
+      width: SESSION_TABLE_COLUMNS.completion,
+    },
+    colOverflow: {
+      width: SESSION_TABLE_COLUMNS.overflow,
+    },
+    colPrevious: {
+      width: SESSION_TABLE_COLUMNS.previous,
+    },
+    colReps: {
+      width: SESSION_TABLE_COLUMNS.reps,
+    },
+    colSet: {
+      width: SESSION_TABLE_COLUMNS.set,
+    },
+    colWeight: {
+      width: SESSION_TABLE_COLUMNS.weight,
+    },
+    iconCell: {
       alignItems: 'center',
       height: 36,
       justifyContent: 'center',
-      width: 36,
-    },
-    checkLabel: {
-      color: colors.textSecondary,
-      fontSize: 20,
-      fontWeight: '900',
-      lineHeight: 20,
-    },
-    checkLabelCompleted: {
-      color: '#27C46A',
-    },
-    colPrevious: {
-      width: 112,
-    },
-    colReps: {
-      width: 64,
-    },
-    colSet: {
-      width: 40,
-    },
-    colWeight: {
-      flex: 1,
-      minWidth: 82,
     },
     inputCell: {
       color: colors.textPrimary,
       fontSize: 16,
-      height: 38,
+      height: 36,
       lineHeight: 23,
       paddingHorizontal: 0,
       textAlign: 'center',
+      fontVariant: ['tabular-nums'],
+    },
+    overflowLabel: {
+      color: colors.textSecondary,
+      fontSize: 20,
+      fontWeight: '700',
+      lineHeight: 20,
+      marginTop: -2,
     },
     previousCell: {
       color: colors.textSecondary,
@@ -124,7 +144,7 @@ const createStyles = (colors: typeof Colors.light) =>
     row: {
       alignItems: 'center',
       flexDirection: 'row',
-      minHeight: 46,
+      minHeight: 40,
     },
     rowCompleted: {
       opacity: 0.82,
@@ -133,5 +153,8 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.surfaceSecondary,
       borderCurve: 'continuous',
       borderRadius: Radii.medium,
+    },
+    rowWrap: {
+      marginBottom: 2,
     },
   });

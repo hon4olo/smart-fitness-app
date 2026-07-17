@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { Colors, Spacing } from '@/constants/theme';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 
 type FinishWorkoutActionsProps = {
   disabled?: boolean;
@@ -12,7 +12,7 @@ type FinishWorkoutActionsProps = {
 };
 
 export const FinishWorkoutActions = memo(function FinishWorkoutActions({ disabled = false, onDiscard, onSave }: FinishWorkoutActionsProps) {
-  const { colors } = useAppTheme();
+  const { colors } = useWorkoutTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (

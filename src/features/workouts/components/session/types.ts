@@ -5,7 +5,7 @@ export type SessionDraftSet = WorkoutSet;
 export type SessionExercise = {
   id: string;
   name: string;
-  notes?: string | null;
-  restSeconds?: number | null;
-  targetReps?: number | null;
+  notes?: string;
+  restSeconds?: number;
+  targetReps?: number;
 };

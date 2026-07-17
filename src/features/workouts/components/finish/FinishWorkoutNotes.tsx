@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Colors, Radii, Spacing } from '@/constants/theme';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 
 type FinishWorkoutNotesProps = {
   notes: string;
@@ -10,7 +10,7 @@ type FinishWorkoutNotesProps = {
 };
 
 export const FinishWorkoutNotes = memo(function FinishWorkoutNotes({ notes, onChangeNotes }: FinishWorkoutNotesProps) {
-  const { colors } = useAppTheme();
+  const { colors } = useWorkoutTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (

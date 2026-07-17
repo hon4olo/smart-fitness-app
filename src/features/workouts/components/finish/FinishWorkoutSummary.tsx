@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 
 type FinishWorkoutSummaryProps = {
   dateTimeLabel: string;
@@ -11,7 +11,7 @@ type FinishWorkoutSummaryProps = {
 };
 
 export const FinishWorkoutSummary = memo(function FinishWorkoutSummary({ dateTimeLabel, durationLabel, workoutName }: FinishWorkoutSummaryProps) {
-  const { colors } = useAppTheme();
+  const { colors } = useWorkoutTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (

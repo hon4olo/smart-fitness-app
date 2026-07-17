@@ -1,4 +1,4 @@
-import { DEFAULT_WORKOUT_PROGRAM_ID } from './defaults';
+import { getWorkoutPrograms } from './programModel';
 import type { Workout } from '@/types';
 
 import type { WorkoutSessionDraft } from './types';
@@ -42,12 +42,10 @@ export const resolveWorkoutProgramRouteState = ({
     return { status: 'not-found' };
   }
 
-  const workoutIds = new Set(workouts.map((workout) => workout.id));
-  if (programId === DEFAULT_WORKOUT_PROGRAM_ID) {
-    return { status: 'ready', workoutId: programId };
-  }
-
-  return workoutIds.has(programId) ? { status: 'ready', workoutId: programId } : { status: 'not-found' };
+  const programs = getWorkoutPrograms(workouts);
+  return programs.some((program) => program.id === programId)
+    ? { status: 'ready', workoutId: programId }
+    : { status: 'not-found' };
 };
 
 export const resolveWorkoutSessionRouteState = ({

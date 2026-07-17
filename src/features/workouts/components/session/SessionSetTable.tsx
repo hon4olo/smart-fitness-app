@@ -2,11 +2,12 @@ import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { WorkoutSet } from '@/context/AppContext';
-import { Colors, Spacing } from '@/constants/theme';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { Colors } from '@/constants/theme';
+import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 
 import { SessionEmptySets } from './SessionEmptySets';
 import { SessionSetRow } from './SessionSetRow';
+import { SESSION_TABLE_COLUMNS } from './sessionTableLayout';
 import type { SessionDraftInputs } from './types';
 
 type SessionSetTableProps = {
@@ -30,22 +31,23 @@ export const SessionSetTable = memo(function SessionSetTable({
   previousSet,
   sets,
 }: SessionSetTableProps) {
-  const { colors } = useAppTheme();
+  const { colors } = useWorkoutTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const previousLabel = previousSet ? `${previousSet.weight} × ${previousSet.reps}` : '—';
+  const previousLabel = previousSet ? `${previousSet.weight} kg · ${previousSet.reps} reps` : '—';
 
   if (sets.length === 0) {
     return <SessionEmptySets />;
   }
 
   return (
-    <View>
+    <View style={styles.table}>
       <View style={styles.tableHeader}>
         <Text style={[styles.headerText, styles.colSet]}>Set</Text>
         <Text style={[styles.headerText, styles.colPrevious]}>Previous</Text>
         <Text style={[styles.headerText, styles.colWeight]}>kg</Text>
         <Text style={[styles.headerText, styles.colReps]}>Reps</Text>
-        <Text style={[styles.headerText, styles.colCheck]}>✓</Text>
+        <Text style={[styles.headerText, styles.colCompletion]}>✓</Text>
+        <Text style={[styles.headerText, styles.colOverflow]}>⋯</Text>
       </View>
 
       <View style={styles.tableBody}>
@@ -60,8 +62,7 @@ export const SessionSetTable = memo(function SessionSetTable({
             onRepsChange={(value) => onRepsChange(set.id, value)}
             onToggle={() => onToggleSetCompletion(set.id)}
             onWeightChange={(value) => onWeightChange(set.id, value)}
-            previousLabel={previousLabel}
-            set={set}
+            previousLabel={index === 0 ? previousLabel : `${sets[index - 1].weight} kg · ${sets[index - 1].reps} reps`}
           />
         ))}
       </View>
@@ -71,28 +72,40 @@ export const SessionSetTable = memo(function SessionSetTable({
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
-    colCheck: {
-      width: 44,
+    colCompletion: {
+      width: SESSION_TABLE_COLUMNS.completion,
+      textAlign: 'center',
+    },
+    colOverflow: {
+      width: SESSION_TABLE_COLUMNS.overflow,
+      textAlign: 'center',
     },
     colPrevious: {
-      width: 112,
+      width: SESSION_TABLE_COLUMNS.previous,
     },
     colReps: {
-      width: 64,
+      width: SESSION_TABLE_COLUMNS.reps,
+      textAlign: 'center',
     },
     colSet: {
-      width: 40,
+      width: SESSION_TABLE_COLUMNS.set,
+      textAlign: 'left',
     },
     colWeight: {
-      flex: 1,
-      minWidth: 82,
+      width: SESSION_TABLE_COLUMNS.weight,
+      textAlign: 'center',
     },
     headerText: {
       color: colors.textSecondary,
       fontSize: 11,
       fontWeight: '800',
       letterSpacing: 0.2,
+      textAlign: 'left',
       textTransform: 'uppercase',
+    },
+    table: {
+      gap: 2,
+      width: '100%',
     },
     tableBody: {
       gap: 2,
@@ -100,7 +113,7 @@ const createStyles = (colors: typeof Colors.light) =>
     tableHeader: {
       alignItems: 'center',
       flexDirection: 'row',
-      marginBottom: Spacing.one,
-      paddingBottom: 6,
+      marginBottom: 6,
+      paddingBottom: 4,
     },
   });

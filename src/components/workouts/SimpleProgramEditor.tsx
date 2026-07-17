@@ -65,30 +65,32 @@ export function SimpleProgramEditor({
         <View style={styles.list}>
           {workoutRows.map((row, index) => (
             <View key={row.id} style={[styles.rowWrap, index > 0 && styles.rowDivider]}>
-              <Pressable accessibilityRole="button" onPress={() => onOpenWorkout(row.id)} style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-                <View style={styles.rowCopy}>
-                  <View style={styles.rowTitleLine}>
-                    <Text numberOfLines={1} selectable style={styles.rowTitle}>
-                      {row.title}
+              <View style={styles.row}>
+                <Pressable accessibilityRole="button" onPress={() => onOpenWorkout(row.id)} style={({ pressed }) => [styles.rowCopyPressable, pressed && styles.rowPressed]}>
+                  <View style={styles.rowCopy}>
+                    <View style={styles.rowTitleLine}>
+                      <Text numberOfLines={1} selectable style={styles.rowTitle}>
+                        {row.title}
+                      </Text>
+                      <Text style={styles.chevron}>›</Text>
+                    </View>
+                    <Text selectable style={styles.rowMeta}>
+                      {row.exerciseCount} exercise{row.exerciseCount === 1 ? '' : 's'}
                     </Text>
-                    <Text style={styles.chevron}>›</Text>
+                    {row.secondary ? (
+                      <Text numberOfLines={1} selectable style={styles.rowSecondary}>
+                        {row.secondary}
+                      </Text>
+                    ) : null}
                   </View>
-                  <Text selectable style={styles.rowMeta}>
-                    {row.exerciseCount} exercise{row.exerciseCount === 1 ? '' : 's'}
-                  </Text>
-                  {row.secondary ? (
-                    <Text numberOfLines={1} selectable style={styles.rowSecondary}>
-                      {row.secondary}
-                    </Text>
-                  ) : null}
-                </View>
+                </Pressable>
 
                 {!readOnly && onRemoveWorkout ? (
                   <Pressable accessibilityRole="button" hitSlop={10} onPress={() => onRemoveWorkout(row.id)} style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
                     <Text style={styles.menuLabel}>⋯</Text>
                   </Pressable>
                 ) : null}
-              </Pressable>
+              </View>
             </View>
           ))}
         </View>
@@ -201,6 +203,10 @@ const createStyles = (colors: typeof Colors.light) =>
       minHeight: 54,
       paddingVertical: Spacing.two,
     },
+    rowCopyPressable: {
+      flex: 1,
+    },
+
     rowCopy: {
       flex: 1,
       gap: 4,

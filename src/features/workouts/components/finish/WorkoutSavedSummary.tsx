@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { Colors, Spacing } from '@/constants/theme';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 
 type WorkoutSavedSummaryProps = {
   dateTimeLabel: string;
@@ -25,7 +25,7 @@ export const WorkoutSavedSummary = memo(function WorkoutSavedSummary({
   setCount,
   workoutName,
 }: WorkoutSavedSummaryProps) {
-  const { colors } = useAppTheme();
+  const { colors } = useWorkoutTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 

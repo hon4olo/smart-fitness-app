@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import { Text, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,9 +13,9 @@ const TAB_ICONS: Record<'Home' | 'Workouts' | 'Nutrition' | 'Progress' | 'Profil
   Profile: '👤',
 };
 
-function TabIcon({ focused, label }: { focused: boolean; label: keyof typeof TAB_ICONS }) {
+function TabIcon({ focused, label, tabColors }: { focused: boolean; label: keyof typeof TAB_ICONS; tabColors: typeof Colors.light }) {
   return (
-    <View style={[styles.iconWrap, focused ? styles.iconWrapFocused : styles.iconWrapIdle]}>
+    <View style={[styles.iconWrap, { backgroundColor: focused ? tabColors.accentSoft : tabColors.backgroundSelected }]}>
       <Text style={styles.icon}>{TAB_ICONS[label]}</Text>
     </View>
   );
@@ -23,15 +23,18 @@ function TabIcon({ focused, label }: { focused: boolean; label: keyof typeof TAB
 
 export default function TabsLayout() {
   const { colors } = useAppTheme();
+  const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const tabBarHeight = 56 + insets.bottom;
+  const isWorkoutsFlow = pathname.startsWith('/workouts') || pathname.startsWith('/workout-session');
+  const tabColors = isWorkoutsFlow ? Colors.dark : colors;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarActiveTintColor: tabColors.accent,
+        tabBarInactiveTintColor: tabColors.textMuted,
         tabBarHideOnKeyboard: true,
         tabBarItemStyle: {
           alignItems: 'center',
@@ -47,8 +50,8 @@ export default function TabsLayout() {
           marginTop: 2,
         },
         tabBarStyle: {
-          backgroundColor: colors.surfacePrimary,
-          borderTopColor: colors.divider,
+          backgroundColor: tabColors.surfacePrimary,
+          borderTopColor: tabColors.divider,
           borderTopWidth: 0.5,
           elevation: 0,
           height: tabBarHeight,
@@ -60,35 +63,35 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Home" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Home" tabColors={tabColors} />,
         }}
       />
       <Tabs.Screen
         name="workouts"
         options={{
           title: 'Workouts',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Workouts" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Workouts" tabColors={tabColors} />,
         }}
       />
       <Tabs.Screen
         name="nutrition"
         options={{
           title: 'Nutrition',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Nutrition" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Nutrition" tabColors={tabColors} />,
         }}
       />
       <Tabs.Screen
         name="progress"
         options={{
           title: 'Progress',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Progress" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Progress" tabColors={tabColors} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Profile" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Profile" tabColors={tabColors} />,
         }}
       />
       <Tabs.Screen name="coach" options={{ href: null }} />
@@ -112,10 +115,4 @@ const styles = {
     justifyContent: 'center' as const,
     width: 24,
   },
-  iconWrapFocused: {
-    backgroundColor: Colors.dark.accentSoft,
-  },
-  iconWrapIdle: {
-    backgroundColor: Colors.dark.backgroundSelected,
-  } satisfies ViewStyle,
 };

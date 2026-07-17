@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -8,7 +8,7 @@ import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/th
 import { useAppContext } from '@/context/AppContext';
 import { getWorkoutProgramById, getWorkoutPrograms, saveWorkoutProgram } from '@/lib/workouts';
 import { SimpleProgramEditor } from '@/components/workouts/SimpleProgramEditor';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 import type { TrainingProgram } from '@/types/programs';
 
 const createBlankProgramDraft = (workouts: Parameters<typeof getWorkoutPrograms>[0]): TrainingProgram => {
@@ -38,12 +38,13 @@ export default function ProgramBuilderRoute() {
   const params = useLocalSearchParams<{ programId?: string }>();
   const programId = Array.isArray(params.programId) ? params.programId[0] : params.programId;
   const { workouts } = useAppContext();
-  const { colors } = useAppTheme();
+  const { colors } = useWorkoutTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const existingProgram = useMemo(() => (programId ? getWorkoutProgramById(programId, workouts) : null), [programId, workouts]);
   const [program, setProgram] = useState<TrainingProgram>(() => (existingProgram ? createDraftProgram(existingProgram) : createBlankProgramDraft(workouts)));
+  const [isPickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     if (existingProgram) {
@@ -64,52 +65,51 @@ export default function ProgramBuilderRoute() {
           id: day.id ?? `${day.weekday}-${index}`,
           title: day.workoutTemplateName ?? day.workoutTemplateId ?? 'Workout',
           exerciseCount: workouts.find((workout) => workout.id === day.workoutTemplateId)?.exercises.length ?? 0,
-          secondary: workouts.find((workout) => workout.id === day.workoutTemplateId)
-            ? undefined
-            : undefined,
         })),
     [program.days, workouts],
   );
 
-  const addWorkout = () => {
-    const available = workouts.filter((workout) => !program.days.some((day) => day.workoutTemplateId === workout.id));
+  const availableWorkouts = useMemo(
+    () => workouts.filter((workout) => !program.days.some((day) => day.workoutTemplateId === workout.id)),
+    [program.days, workouts],
+  );
 
-    if (available.length === 0) {
+  const addWorkout = () => {
+    if (availableWorkouts.length === 0) {
       Alert.alert('No workouts available', 'Add more workout templates first.');
       return;
     }
 
-    Alert.alert(
-      'Add workout',
-      'Pick a template to add to this program.',
-      [
-        ...available.map((workout) => ({
-          text: workout.title,
-          onPress: () => {
-            const dayIndex = program.days.findIndex((day) => day.restDay);
-            if (dayIndex === -1) {
-              Alert.alert('Program full', 'Remove a workout first.');
-              return;
-            }
+    setPickerOpen(true);
+  };
 
-            const nextDays = program.days.map((day, index) =>
-              index === dayIndex
-                ? {
-                    ...day,
-                    restDay: false,
-                    workoutTemplateId: workout.id,
-                    workoutTemplateName: workout.title,
-                  }
-                : day,
-            );
+  const handlePickWorkout = (workoutId: string) => {
+    const workout = availableWorkouts.find((entry) => entry.id === workoutId);
+    if (!workout) {
+      setPickerOpen(false);
+      return;
+    }
 
-            setProgram((current) => ({ ...current, days: nextDays }));
-          },
-        })),
-        { text: 'Cancel', style: 'cancel' },
-      ],
-      { cancelable: true },
+    const dayIndex = program.days.findIndex((day) => day.restDay);
+    if (dayIndex === -1) {
+      Alert.alert('Program full', 'Remove a workout first.');
+      setPickerOpen(false);
+      return;
+    }
+
+    const nextDays = program.days.map((day, index) =>
+      index === dayIndex
+        ? {
+            ...day,
+            restDay: false,
+            workoutTemplateId: workout.id,
+            workoutTemplateName: workout.title,
+          }
+        : day,
     );
+
+    setProgram((current) => ({ ...current, days: nextDays }));
+    setPickerOpen(false);
   };
 
   const removeWorkout = (dayId: string) => {
@@ -173,6 +173,26 @@ export default function ProgramBuilderRoute() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {isPickerOpen ? (
+        <View style={styles.pickerOverlay}>
+          <View style={styles.pickerPanel}>
+            <Text style={styles.pickerTitle}>Add workout</Text>
+            {availableWorkouts.map((workout) => (
+              <Pressable
+                key={workout.id}
+                onPress={() => handlePickWorkout(workout.id)}
+                style={({ pressed }) => [styles.pickerItem, pressed && styles.pickerItemPressed]}>
+                <Text style={styles.pickerItemLabel}>{workout.title}</Text>
+                <Text style={styles.pickerItemMeta}>{workout.exercises.length} exercises</Text>
+              </Pressable>
+            ))}
+            <Pressable onPress={() => setPickerOpen(false)} style={({ pressed }) => [styles.pickerCancel, pressed && styles.pressed]}>
+              <Text style={styles.pickerCancelLabel}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>
         <View style={styles.container}>
           <AppButton disabled={saveDisabled} label="Save Program" onPress={handleSave} />
@@ -218,5 +238,70 @@ const createStyles = (colors: typeof Colors.light) =>
       letterSpacing: -0.6,
       lineHeight: 34,
       marginBottom: Spacing.three,
+    },
+    pickerCancel: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderCurve: 'continuous',
+      borderRadius: 16,
+      marginTop: Spacing.two,
+      paddingVertical: 14,
+    },
+    pickerCancelLabel: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    pickerItem: {
+      backgroundColor: colors.surfaceSecondary,
+      borderCurve: 'continuous',
+      borderRadius: 18,
+      marginTop: Spacing.two,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: 14,
+    },
+    pickerItemLabel: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    pickerItemMeta: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+      marginTop: 4,
+    },
+    pickerItemPressed: {
+      opacity: 0.74,
+    },
+    pickerOverlay: {
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,0,0,0.72)',
+      bottom: 0,
+      left: 0,
+      justifyContent: 'center',
+      padding: Spacing.three,
+      position: 'absolute',
+      right: 0,
+      top: 0,
+    },
+    pickerPanel: {
+      backgroundColor: colors.background,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: 24,
+      borderWidth: StyleSheet.hairlineWidth,
+      maxWidth: 420,
+      padding: Spacing.three,
+      width: '100%',
+    },
+    pickerTitle: {
+      color: colors.textPrimary,
+      fontSize: 22,
+      fontWeight: '900',
+      marginBottom: Spacing.one,
+    },
+    pressed: {
+      opacity: 0.72,
     },
   });

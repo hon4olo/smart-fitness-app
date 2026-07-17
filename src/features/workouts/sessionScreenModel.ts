@@ -51,6 +51,35 @@ export const addWorkoutSessionSet = (
   } satisfies WorkoutSessionDraft;
 };
 
+export const addWorkoutSessionExercises = (
+  draft: WorkoutSessionDraft,
+  exercises: Array<{ id: string; name: string; targetReps?: number }>,
+) => {
+  const existingExerciseIds = new Set(draft.sets.map((set) => set.exerciseId));
+  const nextSets = draft.sets.map(cloneSet);
+
+  exercises.forEach((exercise) => {
+    if (existingExerciseIds.has(exercise.id)) {
+      return;
+    }
+
+    nextSets.push({
+      id: createWorkoutSessionSetId({ ...draft, sets: nextSets }),
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      weight: 60,
+      reps: exercise.targetReps ?? 8,
+      completed: false,
+    });
+    existingExerciseIds.add(exercise.id);
+  });
+
+  return {
+    ...draft,
+    sets: nextSets,
+  } satisfies WorkoutSessionDraft;
+};
+
 export const updateWorkoutSessionSetField = (draft: WorkoutSessionDraft, setId: string, field: WorkoutSessionSetField, value: string) => {
   return {
     ...draft,

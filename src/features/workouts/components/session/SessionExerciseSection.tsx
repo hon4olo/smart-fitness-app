@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { WorkoutSet } from '@/context/AppContext';
 import { Colors, Radii, Spacing } from '@/constants/theme';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 
 import { SessionSetTable } from './SessionSetTable';
 import type { SessionDraftInputs, SessionExercise } from './types';
@@ -39,13 +39,13 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
   onWeightChange,
   previousSet,
 }: SessionExerciseSectionProps) {
-  const { colors } = useAppTheme();
+  const { colors } = useWorkoutTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <View style={[styles.section, exerciseSets.length > 0 && styles.sectionDivider]}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.exerciseHeaderCopy}>
+    <View style={[styles.card, exerciseSets.length > 0 && styles.cardBordered]}>
+      <View style={styles.header}>
+        <View style={styles.headerCopy}>
           <View style={styles.exerciseTitleLine}>
             <View style={styles.exerciseIcon}>
               <Text style={styles.exerciseIconLabel}>{exercise.name.slice(0, 1).toUpperCase()}</Text>
@@ -54,22 +54,17 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
               {exercise.name}
             </Text>
           </View>
-          {exercise.notes && onNotesPress ? (
-            <Pressable accessibilityRole="button" onPress={onNotesPress} style={({ pressed }) => [styles.notesAction, pressed && styles.pressed]}>
-              <Text style={styles.notesActionLabel}>Notes</Text>
-            </Pressable>
-          ) : null}
           <Text selectable style={styles.exerciseMeta}>
             Rest · {exercise.restSeconds ?? 90}s
           </Text>
-          {exerciseSets.length > 0 ? (
-            <Text selectable style={styles.exerciseState}>
-              {exerciseCompleted ? 'Complete' : `${exerciseSets.length} set${exerciseSets.length === 1 ? '' : 's'}`}
-            </Text>
+          {exercise.notes && onNotesPress ? (
+            <Pressable accessibilityRole="button" onPress={onNotesPress} style={({ pressed }) => [styles.notesButton, pressed && styles.pressed]}>
+              <Text style={styles.notesLabel}>Notes</Text>
+            </Pressable>
           ) : null}
         </View>
-        <Pressable accessibilityRole="button" hitSlop={12} onPress={() => onLongPressExercise(exercise.id, exercise.name)} style={({ pressed }) => [styles.rowMenuButton, pressed && styles.pressed]}>
-          <Text style={styles.rowMenuLabel}>⋯</Text>
+        <Pressable accessibilityRole="button" hitSlop={12} onPress={() => onLongPressExercise(exercise.id, exercise.name)} style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}>
+          <Text style={styles.menuLabel}>⋯</Text>
         </Pressable>
       </View>
 
@@ -94,7 +89,7 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     addSetLabel: {
-      color: colors.textPrimary,
+      color: colors.accent,
       fontSize: 15,
       fontWeight: '800',
     },
@@ -103,9 +98,13 @@ const createStyles = (colors: typeof Colors.light) =>
       minHeight: 44,
       paddingTop: Spacing.one,
     },
-    exerciseHeaderCopy: {
-      flex: 1,
-      gap: 4,
+    card: {
+      gap: Spacing.two,
+      paddingVertical: Spacing.three,
+    },
+    cardBordered: {
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
     },
     exerciseIcon: {
       alignItems: 'center',
@@ -125,12 +124,7 @@ const createStyles = (colors: typeof Colors.light) =>
       color: colors.textSecondary,
       fontSize: 12,
       fontVariant: ['tabular-nums'],
-    },
-    exerciseState: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '700',
-      lineHeight: 18,
+      marginTop: 2,
     },
     exerciseTitle: {
       color: colors.textPrimary,
@@ -143,18 +137,22 @@ const createStyles = (colors: typeof Colors.light) =>
     exerciseTitleCompleted: {
       color: colors.textSecondary,
     },
-    notesAction: {
-      alignSelf: 'flex-start',
+    exerciseTitleLine: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.two,
     },
-    notesActionLabel: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '800',
+    header: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: Spacing.two,
     },
-    pressed: {
-      opacity: 0.72,
+    headerCopy: {
+      flex: 1,
+      gap: 4,
+      minWidth: 0,
     },
-    rowMenuButton: {
+    menuButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceSecondary,
       borderCurve: 'continuous',
@@ -163,29 +161,22 @@ const createStyles = (colors: typeof Colors.light) =>
       justifyContent: 'center',
       width: 34,
     },
-    rowMenuLabel: {
+    menuLabel: {
       color: colors.textPrimary,
       fontSize: 20,
       fontWeight: '700',
       lineHeight: 20,
       marginTop: -2,
     },
-    section: {
-      gap: Spacing.two,
-      paddingVertical: Spacing.three,
+    notesButton: {
+      alignSelf: 'flex-start',
     },
-    sectionDivider: {
-      borderTopColor: colors.borderSubtle,
-      borderTopWidth: StyleSheet.hairlineWidth,
+    notesLabel: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '800',
     },
-    sectionHeader: {
-      alignItems: 'flex-start',
-      flexDirection: 'row',
-      gap: Spacing.two,
-    },
-    exerciseTitleLine: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: Spacing.two,
+    pressed: {
+      opacity: 0.72,
     },
   });
