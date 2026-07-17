@@ -269,11 +269,13 @@ export default function WorkoutsScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: safeAreaInsets.bottom + Spacing.two }]}>
-        <View style={styles.container}>
-          <AppButton label="Start empty workout" onPress={handleStartEmpty} />
+      {viewMode === 'start-now' ? (
+        <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: safeAreaInsets.bottom + Spacing.two }]}>
+          <View style={styles.container}>
+            <AppButton label="Start empty workout" onPress={handleStartEmpty} />
+          </View>
         </View>
-      </View>
+      ) : null}
     </View>
   );
 }

@@ -62,9 +62,11 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
           <Text selectable style={styles.exerciseMeta}>
             Rest · {exercise.restSeconds ?? 90}s
           </Text>
-          <Text selectable style={styles.exerciseState}>
-            {exerciseCompleted ? 'Complete' : `${exerciseSets.length} set${exerciseSets.length === 1 ? '' : 's'}`}
-          </Text>
+          {exerciseSets.length > 0 ? (
+            <Text selectable style={styles.exerciseState}>
+              {exerciseCompleted ? 'Complete' : `${exerciseSets.length} set${exerciseSets.length === 1 ? '' : 's'}`}
+            </Text>
+          ) : null}
         </View>
         <Pressable accessibilityRole="button" hitSlop={12} onPress={() => onLongPressExercise(exercise.id, exercise.name)} style={({ pressed }) => [styles.rowMenuButton, pressed && styles.pressed]}>
           <Text style={styles.rowMenuLabel}>⋯</Text>

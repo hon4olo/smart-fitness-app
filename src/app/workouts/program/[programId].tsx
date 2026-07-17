@@ -1,21 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Alert, ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
-import { BottomTabInset, Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
+import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { deleteWorkoutProgram, duplicateWorkoutProgram, getWorkoutProgramById, saveWorkoutProgram, toggleWorkoutProgramFavorite } from '@/lib/workouts';
+import { deleteWorkoutProgram, duplicateWorkoutProgram, getWorkoutProgramById, toggleWorkoutProgramFavorite } from '@/lib/workouts';
 import { resolveWorkoutProgramRouteState } from '@/features/workouts/routeResolution';
-import { useAppTheme } from '@/theme/AppThemeProvider';
 import { SimpleProgramEditor } from '@/components/workouts/SimpleProgramEditor';
-import type { TrainingProgram } from '@/types/programs';
-
-const createDraftProgram = (program: TrainingProgram): TrainingProgram => ({
-  ...program,
-  days: program.days.map((day) => ({ ...day })),
-});
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 export default function ProgramDetailRoute() {
   const params = useLocalSearchParams<{ programId?: string }>();
@@ -25,17 +19,12 @@ export default function ProgramDetailRoute() {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const routeState = useMemo(
-    () => resolveWorkoutProgramRouteState({ programId, workouts, isRestoringState }),
-    [isRestoringState, programId, workouts],
-  );
+  const routeState = useMemo(() => resolveWorkoutProgramRouteState({ programId, workouts, isRestoringState }), [isRestoringState, programId, workouts]);
   const program = useMemo(() => (routeState.status === 'ready' ? getWorkoutProgramById(routeState.workoutId, workouts) : null), [routeState, workouts]);
-  const [draftName, setDraftName] = useState(program?.name ?? '');
-  const [draftProgram, setDraftProgram] = useState<TrainingProgram | null>(() => (program ? createDraftProgram(program) : null));
 
   const workoutRows = useMemo(
     () =>
-      (draftProgram?.days ?? [])
+      (program?.days ?? [])
         .filter((day) => !day.restDay && Boolean(day.workoutTemplateId))
         .map((day, index) => ({
           id: day.id ?? `${day.weekday}-${index}`,
@@ -43,7 +32,7 @@ export default function ProgramDetailRoute() {
           exerciseCount: workouts.find((workout) => workout.id === day.workoutTemplateId)?.exercises.length ?? 0,
           secondary: day.notes?.trim() ? day.notes.trim() : undefined,
         })),
-    [draftProgram, workouts],
+    [program, workouts],
   );
 
   if (isRestoringState) {
@@ -59,7 +48,7 @@ export default function ProgramDetailRoute() {
     );
   }
 
-  if (!program || !draftProgram) {
+  if (!program) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <View style={styles.loadingWrap}>
@@ -72,72 +61,6 @@ export default function ProgramDetailRoute() {
     );
   }
 
-  const addWorkout = () => {
-    const available = workouts.slice(0, 10);
-    const buttons = available.map((workout) => ({
-      text: workout.title,
-      onPress: () => {
-        const nextIndex = draftProgram.days.findIndex((day) => day.restDay || !day.workoutTemplateId);
-        if (nextIndex === -1) {
-          Alert.alert('Program full', 'Remove a workout before adding another one.');
-          return;
-        }
-
-        const nextDays = draftProgram.days.map((day, index) =>
-          index === nextIndex
-            ? {
-                ...day,
-                notes: undefined,
-                restDay: false,
-                workoutTemplateId: workout.id,
-                workoutTemplateName: workout.title,
-              }
-            : day,
-        );
-
-        setDraftProgram({ ...draftProgram, days: nextDays });
-      },
-    }));
-
-    Alert.alert('Add workout', 'Pick a template', [{ text: 'Cancel', style: 'cancel' }, ...buttons]);
-  };
-
-  const removeWorkout = (rowId: string) => {
-    const nextDays = draftProgram.days.map((day, index) =>
-      (day.id ?? `${day.weekday}-${index}`) === rowId
-        ? {
-            ...day,
-            notes: undefined,
-            restDay: true,
-            workoutTemplateId: undefined,
-            workoutTemplateName: undefined,
-          }
-        : day,
-    );
-
-    setDraftProgram({ ...draftProgram, days: nextDays });
-  };
-
-  const openWorkout = (rowId: string) => {
-    const row = draftProgram.days.find((day, index) => (day.id ?? `${day.weekday}-${index}`) === rowId);
-    const workoutId = row?.workoutTemplateId;
-    if (workoutId) {
-      router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId } });
-    }
-  };
-
-  const saveProgram = () => {
-    const nextProgram: TrainingProgram = {
-      ...draftProgram,
-      id: program.id,
-      isCustom: true,
-      name: draftName.trim() || program.name,
-    };
-
-    saveWorkoutProgram(nextProgram);
-    router.back();
-  };
-
   const showOverflow = () => {
     const duplicate = () => {
       const duplicated = duplicateWorkoutProgram(program.id, workouts);
@@ -146,7 +69,7 @@ export default function ProgramDetailRoute() {
       }
     };
 
-    const buttons: any[] = [{ text: 'Duplicate program', onPress: duplicate }];
+    const buttons: any[] = [{ text: 'Edit program', onPress: () => router.push({ pathname: '/workouts/builder', params: { programId: program.id } }) }, { text: 'Duplicate program', onPress: duplicate }];
 
     if (program.isCustom) {
       buttons.push({
@@ -160,7 +83,7 @@ export default function ProgramDetailRoute() {
               style: 'destructive',
               onPress: () => {
                 deleteWorkoutProgram(program.id);
-                router.back();
+                router.replace('/workouts');
               },
             },
           ]);
@@ -194,11 +117,9 @@ export default function ProgramDetailRoute() {
 
           <SimpleProgramEditor
             colors={colors}
-            name={draftName}
-            onAddWorkout={addWorkout}
-            onNameChange={setDraftName}
-            onOpenWorkout={openWorkout}
-            onRemoveWorkout={removeWorkout}
+            name={program.name}
+            onOpenWorkout={(id) => router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId: id } })}
+            readOnly
             workoutRows={workoutRows}
           />
         </View>
@@ -206,7 +127,7 @@ export default function ProgramDetailRoute() {
 
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>
         <View style={styles.container}>
-          <AppButton label="Save program" onPress={saveProgram} />
+          <AppButton label="Edit program" onPress={() => router.push({ pathname: '/workouts/builder', params: { programId: program.id } })} />
         </View>
       </View>
     </View>
@@ -226,20 +147,9 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     emptyTitle: {
       color: colors.textPrimary,
-      fontSize: 18,
+      fontSize: 20,
       fontWeight: '900',
-    },
-    loadingWrap: {
-      alignItems: 'center',
-      flex: 1,
-      justifyContent: 'center',
-      gap: Spacing.two,
-      padding: Spacing.three,
-    },
-    loadingLabel: {
-      color: colors.textSecondary,
-      fontSize: 13,
-      fontWeight: '700',
+      letterSpacing: -0.3,
     },
     footer: {
       borderTopWidth: StyleSheet.hairlineWidth,
@@ -252,9 +162,22 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     headerRow: {
       alignItems: 'center',
+      alignSelf: 'stretch',
       flexDirection: 'row',
       justifyContent: 'space-between',
       marginBottom: Spacing.three,
+    },
+    loadingLabel: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    loadingWrap: {
+      alignItems: 'center',
+      flex: 1,
+      justifyContent: 'center',
+      gap: Spacing.two,
+      padding: Spacing.three,
     },
     menuButton: {
       alignItems: 'center',
@@ -279,8 +202,9 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 26,
+      fontSize: 30,
       fontWeight: '900',
-      letterSpacing: -0.5,
+      letterSpacing: -0.6,
+      lineHeight: 34,
     },
   });

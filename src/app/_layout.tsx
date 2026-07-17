@@ -65,18 +65,21 @@ function RootNavigator() {
             name="workouts/builder"
             options={{
               headerShown: false,
+              presentation: 'card',
             }}
           />
           <Stack.Screen
             name="workouts/program/[programId]"
             options={{
               headerShown: false,
+              presentation: 'card',
             }}
           />
           <Stack.Screen
             name="workouts/template/[workoutId]"
             options={{
               headerShown: false,
+              presentation: 'card',
             }}
           />
         </Stack>

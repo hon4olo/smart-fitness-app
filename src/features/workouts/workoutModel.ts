@@ -6,6 +6,8 @@ import type { WorkoutTemplateSummary } from './types';
 
 const workoutTemplateFavorites = new Set<string>();
 
+const WORKOUT_PLAN_HEADER = 'Workout plan:';
+
 const normalizeExerciseText = (value: string) =>
   value
     .toLowerCase()
@@ -173,14 +175,17 @@ export const getSimilarExercises = (exercise: Exercise, exercises: Exercise[], l
 };
 
 const getWorkoutSubtitle = (workout: Workout) => {
+  const parsedPlan = parseWorkoutPlanDescription(workout.description);
   const labels = uniqueStrings([
-    workout.description,
+    parsedPlan.baseDescription,
+    ...(parsedPlan.exercises.flatMap((exercise) => [exercise.name, exercise.notes, exercise.targetReps ? `${exercise.targetReps} reps` : undefined]) as Array<string | undefined>),
     ...(workout.exercises.flatMap((exercise) => [exercise.muscleGroup, exercise.category, ...(exercise.primaryMuscles ?? [])]) as string[]),
   ])
     .map((value) => value.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((value) => value.toLowerCase() !== WORKOUT_PLAN_HEADER.toLowerCase());
 
-  return labels.slice(0, 2).join(' · ') || 'Starter workout';
+  return labels.slice(0, 2).join(' · ');
 };
 
 const getWorkoutUsage = (workoutId: string, sessions: WorkoutSession[]) => {

@@ -16,9 +16,22 @@ describe('workout session redesign', () => {
     const screen = readSource('src/features/workouts/screens/WorkoutSessionScreen.tsx');
     const storage = readSource('src/lib/workouts.ts');
     const layout = readSource('src/app/_layout.tsx');
+    const programRoute = readSource('src/app/workouts/program/[programId].tsx');
+    const builderRoute = readSource('src/app/workouts/builder.tsx');
+    const templateRoute = readSource('src/app/workouts/template/[workoutId].tsx');
 
     expect(route).toContain('WorkoutSessionScreen');
     expect(layout).toContain("presentation: 'fullScreenModal'");
+    expect(layout).toContain('name="workouts/builder"');
+    expect(layout).toContain('name="workouts/program/[programId]"');
+    expect(layout).toContain('name="workouts/template/[workoutId]"');
+    expect(layout).toContain("presentation: 'card'");
+
+    expect(programRoute).toContain('readOnly');
+    expect(programRoute).toContain('Edit program');
+    expect(programRoute).not.toContain('Save program');
+    expect(builderRoute).toContain('Save Program');
+    expect(templateRoute).toContain('Workout not found');
 
     expect(screen).toContain('hydrateActiveWorkoutSessionDraft');
     expect(screen).toContain('Finish');

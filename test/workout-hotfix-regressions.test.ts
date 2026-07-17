@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-
 import { defaultState } from '@/data/defaults';
 import { buildCompletedWorkoutSessionSnapshot, buildWorkoutTemplateSavePayload, clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft, startEmptyWorkoutSessionDraft, startWorkoutSessionDraft, upsertWorkoutSessionById } from '@/lib/workouts';
 import { createLocalAppRepository } from '@/repositories';
+
+declare const __dirname: string;
+declare const require: any;
+
+const { readFileSync } = require('fs') as { readFileSync: (path: string, encoding: string) => string };
+const { resolve } = require('path') as { resolve: (...parts: string[]) => string };
 
 const createMemoryStorage = () => {
   const store = new Map<string, string>();
@@ -17,6 +22,9 @@ const createMemoryStorage = () => {
     },
   };
 };
+
+const projectRoot = resolve(__dirname, '..');
+const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 
 describe('workout hotfix regressions', () => {
   beforeEach(() => {
@@ -82,6 +90,25 @@ describe('workout hotfix regressions', () => {
       sets: [],
     });
     expect(getActiveWorkoutSessionDraft()).toMatchObject({ workoutId: 'empty-workout', workoutTitle: 'Empty workout', sets: [] });
+  });
+
+  it('keeps program detail read-only and reserves save for builder mode', () => {
+    const programSource = readSource('src/app/workouts/program/[programId].tsx');
+    const builderSource = readSource('src/app/workouts/builder.tsx');
+
+    expect(programSource).toContain('readOnly');
+    expect(programSource).toContain('Edit program');
+    expect(programSource).not.toContain('Save program');
+    expect(builderSource).toContain('Save Program');
+    expect(builderSource).toContain('Create program');
+  });
+
+  it('drops invalid finish drafts instead of rendering a dead screen', () => {
+    const source = readSource('src/features/workouts/screens/WorkoutSessionFinishScreen.tsx');
+
+    expect(source).toContain("router.replace('/workouts')");
+    expect(source).toContain('clearActiveWorkoutSessionDraft()');
+    expect(source).not.toContain('No active workout was found');
   });
 
   it('repairs repeated Lower Body exercises on hydration without destroying unique exercises', async () => {

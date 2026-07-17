@@ -12,14 +12,24 @@ export type SimpleProgramWorkoutRow = {
 type Props = {
   colors: typeof Colors.light;
   name: string;
-  onNameChange: (value: string) => void;
-  onAddWorkout: () => void;
+  onNameChange?: (value: string) => void;
+  onAddWorkout?: () => void;
   onOpenWorkout: (id: string) => void;
-  onRemoveWorkout: (id: string) => void;
+  onRemoveWorkout?: (id: string) => void;
+  readOnly?: boolean;
   workoutRows: SimpleProgramWorkoutRow[];
 };
 
-export function SimpleProgramEditor({ colors, name, onAddWorkout, onNameChange, onOpenWorkout, onRemoveWorkout, workoutRows }: Props) {
+export function SimpleProgramEditor({
+  colors,
+  name,
+  onAddWorkout,
+  onNameChange,
+  onOpenWorkout,
+  onRemoveWorkout,
+  readOnly = false,
+  workoutRows,
+}: Props) {
   const styles = createStyles(colors);
 
   return (
@@ -33,15 +43,23 @@ export function SimpleProgramEditor({ colors, name, onAddWorkout, onNameChange, 
         </Text>
       </View>
 
-      <TextInput
-        autoCapitalize="words"
-        placeholder="Program name"
-        placeholderTextColor={colors.textSecondary}
-        selectionColor={colors.accent}
-        style={styles.input}
-        value={name}
-        onChangeText={onNameChange}
-      />
+      {readOnly ? (
+        <View style={styles.readOnlyName}>
+          <Text selectable style={styles.readOnlyNameLabel}>
+            {name || 'Untitled program'}
+          </Text>
+        </View>
+      ) : (
+        <TextInput
+          autoCapitalize="words"
+          placeholder="Program name"
+          placeholderTextColor={colors.textSecondary}
+          selectionColor={colors.accent}
+          style={styles.input}
+          value={name}
+          onChangeText={onNameChange}
+        />
+      )}
 
       {workoutRows.length > 0 ? (
         <View style={styles.list}>
@@ -65,9 +83,11 @@ export function SimpleProgramEditor({ colors, name, onAddWorkout, onNameChange, 
                   ) : null}
                 </View>
 
-                <Pressable accessibilityRole="button" hitSlop={10} onPress={() => onRemoveWorkout(row.id)} style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
-                  <Text style={styles.menuLabel}>⋯</Text>
-                </Pressable>
+                {!readOnly && onRemoveWorkout ? (
+                  <Pressable accessibilityRole="button" hitSlop={10} onPress={() => onRemoveWorkout(row.id)} style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
+                    <Text style={styles.menuLabel}>⋯</Text>
+                  </Pressable>
+                ) : null}
               </Pressable>
             </View>
           ))}
@@ -78,12 +98,14 @@ export function SimpleProgramEditor({ colors, name, onAddWorkout, onNameChange, 
         </Text>
       )}
 
-      <Pressable accessibilityRole="button" onPress={onAddWorkout} style={({ pressed }) => [styles.addRow, pressed && styles.rowPressed]}>
-        <Text style={styles.addPlus}>+</Text>
-        <Text selectable style={styles.addLabel}>
-          Add workout
-        </Text>
-      </Pressable>
+      {!readOnly && onAddWorkout ? (
+        <Pressable accessibilityRole="button" onPress={onAddWorkout} style={({ pressed }) => [styles.addRow, pressed && styles.rowPressed]}>
+          <Text style={styles.addPlus}>+</Text>
+          <Text selectable style={styles.addLabel}>
+            Add workout
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -153,6 +175,23 @@ const createStyles = (colors: typeof Colors.light) =>
       color: colors.textSecondary,
       fontSize: 22,
       fontWeight: '700',
+      lineHeight: 22,
+    },
+    readOnlyName: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      minHeight: 48,
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+    },
+    readOnlyNameLabel: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '800',
       lineHeight: 22,
     },
     row: {

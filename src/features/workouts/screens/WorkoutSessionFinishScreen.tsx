@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -48,6 +48,17 @@ export default function WorkoutSessionFinishRoute() {
 
   const sessionToRender = completedSession ?? draft;
 
+  useEffect(() => {
+    if (isRestoringState) {
+      return;
+    }
+
+    if (!sessionToRender) {
+      clearActiveWorkoutSessionDraft();
+      router.replace('/workouts');
+    }
+  }, [clearActiveWorkoutSessionDraft, isRestoringState, sessionToRender]);
+
   if (isRestoringState) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -60,17 +71,7 @@ export default function WorkoutSessionFinishRoute() {
   }
 
   if (!sessionToRender) {
-    return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View style={styles.emptyState}>
-          <Text selectable style={styles.title}>Finish Workout</Text>
-          <Text selectable style={styles.message}>No active workout was found.</Text>
-          <Pressable accessibilityRole="button" onPress={() => router.replace('/workouts')} style={({ pressed }) => [styles.textAction, pressed && styles.textActionPressed]}>
-            <Text style={styles.textActionLabel}>Back to Workouts</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
+    return null;
   }
 
   const workoutName = sessionToRender.workoutTitle;

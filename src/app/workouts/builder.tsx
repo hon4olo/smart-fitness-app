@@ -1,14 +1,14 @@
-import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
-import { BottomTabInset, Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
+import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { getWorkoutPrograms, getWorkoutTemplateSummary, saveWorkoutProgram } from '@/lib/workouts';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { getWorkoutProgramById, getWorkoutPrograms, saveWorkoutProgram } from '@/lib/workouts';
 import { SimpleProgramEditor } from '@/components/workouts/SimpleProgramEditor';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { TrainingProgram } from '@/types/programs';
 
 const createBlankProgramDraft = (workouts: Parameters<typeof getWorkoutPrograms>[0]): TrainingProgram => {
@@ -29,26 +29,46 @@ const createBlankProgramDraft = (workouts: Parameters<typeof getWorkoutPrograms>
   };
 };
 
+const createDraftProgram = (program: TrainingProgram): TrainingProgram => ({
+  ...program,
+  days: program.days.map((day) => ({ ...day })),
+});
+
 export default function ProgramBuilderRoute() {
-  const { workouts, workoutSessions } = useAppContext();
+  const params = useLocalSearchParams<{ programId?: string }>();
+  const programId = Array.isArray(params.programId) ? params.programId[0] : params.programId;
+  const { workouts } = useAppContext();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [program, setProgram] = useState<TrainingProgram>(() => createBlankProgramDraft(workouts));
+
+  const existingProgram = useMemo(() => (programId ? getWorkoutProgramById(programId, workouts) : null), [programId, workouts]);
+  const [program, setProgram] = useState<TrainingProgram>(() => (existingProgram ? createDraftProgram(existingProgram) : createBlankProgramDraft(workouts)));
+
+  useEffect(() => {
+    if (existingProgram) {
+      setProgram(createDraftProgram(existingProgram));
+      return;
+    }
+
+    if (!programId) {
+      setProgram(createBlankProgramDraft(workouts));
+    }
+  }, [existingProgram, programId, workouts]);
 
   const workoutRows = useMemo(
     () =>
       program.days
         .filter((day) => !day.restDay && Boolean(day.workoutTemplateId))
-        .map((day) => ({
-          id: day.id,
-          title: day.workoutTemplateName ?? 'Workout',
+        .map((day, index) => ({
+          id: day.id ?? `${day.weekday}-${index}`,
+          title: day.workoutTemplateName ?? day.workoutTemplateId ?? 'Workout',
           exerciseCount: workouts.find((workout) => workout.id === day.workoutTemplateId)?.exercises.length ?? 0,
           secondary: workouts.find((workout) => workout.id === day.workoutTemplateId)
-            ? getWorkoutTemplateSummary(workouts.find((workout) => workout.id === day.workoutTemplateId)!, workoutSessions).subtitle
+            ? undefined
             : undefined,
         })),
-    [program.days, workoutSessions, workouts],
+    [program.days, workouts],
   );
 
   const addWorkout = () => {
@@ -63,7 +83,7 @@ export default function ProgramBuilderRoute() {
       'Add workout',
       'Pick a template to add to this program.',
       [
-        ...available.map((workout, index) => ({
+        ...available.map((workout) => ({
           text: workout.title,
           onPress: () => {
             const dayIndex = program.days.findIndex((day) => day.restDay);
@@ -83,7 +103,7 @@ export default function ProgramBuilderRoute() {
                 : day,
             );
 
-    setProgram((current: TrainingProgram) => ({ ...current, days: nextDays as TrainingProgram['days'] }));
+            setProgram((current) => ({ ...current, days: nextDays }));
           },
         })),
         { text: 'Cancel', style: 'cancel' },
@@ -129,27 +149,29 @@ export default function ProgramBuilderRoute() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 104 }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        style={styles.scrollView}>
-        <View style={styles.container}>
-          <Text selectable style={styles.title}>
-            Program
-          </Text>
-          <SimpleProgramEditor
-            colors={colors}
-            name={program.name}
-            onAddWorkout={addWorkout}
-            onNameChange={(value) => setProgram((current) => ({ ...current, name: value }))}
-            onOpenWorkout={(workoutId) => router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId } })}
-            onRemoveWorkout={removeWorkout}
-            workoutRows={workoutRows}
-          />
-        </View>
-      </ScrollView>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.fill}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 104 }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.scrollView}>
+          <View style={styles.container}>
+            <Text selectable style={styles.title}>
+              {existingProgram ? 'Edit program' : 'Create program'}
+            </Text>
+            <SimpleProgramEditor
+              colors={colors}
+              name={program.name}
+              onAddWorkout={addWorkout}
+              onNameChange={(value) => setProgram((current) => ({ ...current, name: value }))}
+              onOpenWorkout={(workoutId) => router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId } })}
+              onRemoveWorkout={removeWorkout}
+              workoutRows={workoutRows}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>
         <View style={styles.container}>
@@ -179,6 +201,9 @@ const createStyles = (colors: typeof Colors.light) =>
       position: 'absolute',
       right: 0,
       bottom: 0,
+    },
+    fill: {
+      flex: 1,
     },
     screen: {
       flex: 1,
