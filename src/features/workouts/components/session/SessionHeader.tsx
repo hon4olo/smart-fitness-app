@@ -47,9 +47,9 @@ const createStyles = (colors: typeof Colors.light) =>
     container: {
       alignSelf: 'stretch',
       borderBottomWidth: StyleSheet.hairlineWidth,
-      gap: 6,
+      gap: 4,
       paddingHorizontal: Spacing.three,
-      paddingBottom: Spacing.two,
+      paddingBottom: 8,
     },
     finishButton: {
       backgroundColor: '#36D6D2',

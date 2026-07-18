@@ -267,7 +267,7 @@ export default function WorkoutSessionScreen() {
 
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 96 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}>
@@ -366,7 +366,7 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.accent,
       borderCurve: 'continuous',
       borderRadius: 999,
-      minHeight: 52,
+      minHeight: 48,
       justifyContent: 'center',
       marginTop: Spacing.two,
       paddingHorizontal: Spacing.three,
@@ -383,7 +383,7 @@ const createStyles = (colors: typeof Colors.light) =>
     content: {
       alignItems: 'center',
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.three,
+      paddingTop: Spacing.two,
     },
     emptyState: {
       color: colors.textSecondary,
@@ -401,9 +401,9 @@ const createStyles = (colors: typeof Colors.light) =>
       borderCurve: 'continuous',
       borderRadius: 24,
       borderWidth: StyleSheet.hairlineWidth,
-      gap: 8,
-      marginBottom: Spacing.three,
-      padding: Spacing.three,
+      gap: 6,
+      marginBottom: 8,
+      padding: 12,
     },
     emptyWorkoutSubtitle: {
       color: colors.textSecondary,
@@ -448,7 +448,7 @@ const createStyles = (colors: typeof Colors.light) =>
       flex: 1,
       justifyContent: 'flex-end',
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.three,
+      paddingTop: 8,
     },
     overflowCancel: {
       alignItems: 'center',
@@ -480,8 +480,8 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.background,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
-      gap: Spacing.two,
-      padding: Spacing.three,
+      gap: 8,
+      padding: 12,
     },
     overflowTitle: {
       color: colors.textPrimary,

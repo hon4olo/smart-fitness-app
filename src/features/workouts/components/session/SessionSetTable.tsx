@@ -100,17 +100,17 @@ const createStyles = (colors: typeof Colors.light) =>
       textTransform: 'uppercase',
     },
     table: {
-      gap: 2,
+      gap: 1,
       alignSelf: 'flex-start',
       width: SESSION_TABLE_TOTAL_WIDTH,
     },
     tableBody: {
-      gap: 1,
+      gap: 0,
     },
     tableHeader: {
       alignItems: 'center',
       flexDirection: 'row',
-      marginBottom: 4,
-      paddingBottom: 2,
+      marginBottom: 2,
+      paddingBottom: 0,
     },
   });

@@ -24,6 +24,21 @@ describe('product simplification 2.0', () => {
     expect(source).toContain('useAppTheme');
   });
 
+  test('workouts layout keeps the start-now and programs sections in compact source order', () => {
+    const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
+
+    expect(source).toContain('renderStartNow');
+    expect(source).toContain('renderPrograms');
+    expect(source).toContain('renderStickyAction');
+    expect(source).toContain('Suggested Workouts');
+    expect(source).toContain('Recently Added');
+    expect(source).toContain('Workout in progress');
+    expect(source).toContain('Resume');
+    expect(source).toContain('Discard');
+    expect(source).toContain('Create program');
+    expect(source).toContain('Programs');
+  });
+
   test('progress screen keeps one weight summary and hides duplicate analytics blocks', () => {
     const source = readSource('src/app/(tabs)/progress.tsx');
 
@@ -127,6 +142,8 @@ describe('product simplification 2.0', () => {
     const nutrition = readSource('src/app/(tabs)/nutrition.tsx');
     const nutritionPicker = readSource('src/app/nutrition/add-food.tsx');
     const profile = readSource('src/app/(tabs)/profile.tsx');
+    const sessionTable = readSource('src/features/workouts/components/session/SessionSetTable.tsx');
+    const exerciseSection = readSource('src/features/workouts/components/session/SessionExerciseSection.tsx');
 
     expect(workouts).toContain('Start now');
     expect(workouts).toContain('Programs');
@@ -137,5 +154,12 @@ describe('product simplification 2.0', () => {
     expect(nutrition).toContain("router.push({ pathname: '/nutrition/add-food'");
     expect(nutritionPicker).toContain('addFoodEntries');
     expect(profile).toContain('Appearance');
+    expect(sessionTable).toContain('Set');
+    expect(sessionTable).toContain('Previous');
+    expect(sessionTable).toContain('kg');
+    expect(sessionTable).toContain('Reps');
+    expect(sessionTable).toContain('✓');
+    expect(sessionTable).not.toContain('colOverflow');
+    expect(exerciseSection).toContain('Add set');
   });
 });

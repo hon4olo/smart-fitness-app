@@ -90,7 +90,7 @@ const createCardStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     card: {
       flex: 1,
-      gap: 6,
+      gap: 4,
       minWidth: 0,
     },
     cardPressed: {
@@ -98,7 +98,7 @@ const createCardStyles = (colors: typeof Colors.light) =>
     },
     cover: {
       alignItems: 'center',
-      aspectRatio: 1,
+      aspectRatio: 0.88,
       borderCurve: 'continuous',
       borderRadius: 24,
       justifyContent: 'center',
@@ -161,7 +161,7 @@ const createListStyles = (colors: typeof Colors.light) =>
     },
     copy: {
       flex: 1,
-      gap: 2,
+      gap: 1,
       minWidth: 0,
     },
     icon: {
@@ -183,7 +183,7 @@ const createListStyles = (colors: typeof Colors.light) =>
       flexDirection: 'row',
       gap: Spacing.three,
       paddingHorizontal: Spacing.three,
-      paddingVertical: 12,
+      paddingVertical: 8,
     },
     rowPressed: {
       backgroundColor: '#222A32',
@@ -388,7 +388,7 @@ export default function WorkoutsScreen() {
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 84 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 64 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}>
@@ -432,7 +432,7 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     activeActions: {
       flexDirection: 'row',
-      gap: Spacing.one,
+      gap: 6,
     },
     activeBlock: {
       alignItems: 'flex-start',
@@ -441,8 +441,8 @@ const createStyles = (colors: typeof Colors.light) =>
       borderCurve: 'continuous',
       borderRadius: Radii.large,
       borderWidth: StyleSheet.hairlineWidth,
-      gap: 6,
-      padding: Spacing.two,
+      gap: 4,
+      padding: 8,
     },
     activeLabel: {
       color: '#A8B1BB',
@@ -479,7 +479,7 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flexDirection: 'row',
       gap: Spacing.three,
-      paddingVertical: 4,
+      paddingVertical: 2,
     },
     addProgramSubtitle: {
       color: colors.textSecondary,
@@ -497,7 +497,7 @@ const createStyles = (colors: typeof Colors.light) =>
     content: {
       alignItems: 'center',
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.three,
+      paddingTop: Spacing.two,
     },
     discardLabel: {
       color: '#E37E8B',
@@ -510,7 +510,7 @@ const createStyles = (colors: typeof Colors.light) =>
       borderTopWidth: StyleSheet.hairlineWidth,
       left: 0,
       paddingHorizontal: Spacing.three,
-      paddingTop: 2,
+      paddingTop: 0,
       position: 'absolute',
       right: 0,
       bottom: 0,
@@ -518,7 +518,7 @@ const createStyles = (colors: typeof Colors.light) =>
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 6,
+      gap: 4,
     },
     header: {
       gap: Spacing.two,
@@ -589,11 +589,11 @@ const createStyles = (colors: typeof Colors.light) =>
       fontWeight: '900',
     },
     sectionBlock: {
-      gap: Spacing.two,
-      marginTop: Spacing.two,
+      gap: 8,
+      marginTop: 8,
     },
     sectionStack: {
-      gap: Spacing.two,
+      gap: 8,
     },
     stickyIcon: {
       color: '#0F1317',
@@ -608,10 +608,10 @@ const createStyles = (colors: typeof Colors.light) =>
       borderRadius: 999,
       borderWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
-      gap: Spacing.two,
+      gap: 6,
       justifyContent: 'center',
       minHeight: 44,
-      paddingHorizontal: Spacing.two,
+      paddingHorizontal: 10,
     },
     stickyText: {
       color: '#0F1317',
@@ -626,7 +626,7 @@ const createStyles = (colors: typeof Colors.light) =>
       justifyContent: 'center',
       minHeight: 40,
       paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingVertical: 8,
     },
     tabLabel: {
       color: colors.textSecondary,
@@ -654,9 +654,9 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 32,
+      fontSize: 30,
       fontWeight: '900',
       letterSpacing: -0.6,
-      lineHeight: 36,
+      lineHeight: 34,
     },
   });

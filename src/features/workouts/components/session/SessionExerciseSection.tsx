@@ -95,12 +95,12 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     addSetRow: {
       alignItems: 'flex-start',
-      minHeight: 44,
-      paddingTop: 2,
+      minHeight: 36,
+      paddingTop: 0,
     },
     card: {
-      gap: Spacing.two,
-      paddingVertical: Spacing.three,
+      gap: 4,
+      paddingVertical: 6,
     },
     cardBordered: {
       borderTopColor: colors.borderSubtle,
@@ -111,9 +111,9 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.surfaceSecondary,
       borderCurve: 'continuous',
       borderRadius: 12,
-      height: 34,
+      height: 32,
       justifyContent: 'center',
-      width: 34,
+      width: 32,
     },
     exerciseIconLabel: {
       color: colors.accent,
@@ -124,7 +124,7 @@ const createStyles = (colors: typeof Colors.light) =>
       color: colors.textSecondary,
       fontSize: 12,
       fontVariant: ['tabular-nums'],
-      marginTop: 2,
+      marginTop: 0,
     },
     exerciseTitle: {
       color: colors.textPrimary,
@@ -140,16 +140,16 @@ const createStyles = (colors: typeof Colors.light) =>
     exerciseTitleLine: {
       alignItems: 'center',
       flexDirection: 'row',
-      gap: Spacing.two,
+      gap: 6,
     },
     header: {
       alignItems: 'flex-start',
       flexDirection: 'row',
-      gap: Spacing.two,
+      gap: 4,
     },
     headerCopy: {
       flex: 1,
-      gap: 4,
+      gap: 2,
       minWidth: 0,
     },
     menuButton: {
@@ -157,9 +157,9 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.surfaceSecondary,
       borderCurve: 'continuous',
       borderRadius: 999,
-      height: 34,
+      height: 32,
       justifyContent: 'center',
-      width: 34,
+      width: 32,
     },
     menuLabel: {
       color: colors.textPrimary,
