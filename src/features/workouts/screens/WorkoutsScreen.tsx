@@ -410,8 +410,6 @@ export default function WorkoutsScreen() {
 
   const renderPrograms = () => (
     <View style={styles.sectionStack}>
-      <SectionHeader title="Programs" />
-
       <View style={styles.programList}>
         <ProgramRow
           description="Create a new training split"

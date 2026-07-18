@@ -17,7 +17,7 @@ describe('product simplification 2.0', () => {
     const programsBlock = source.slice(source.indexOf('const renderPrograms'), source.lastIndexOf('return ('));
 
     expect(startNowBlock.indexOf('Suggested Workouts')).toBeLessThan(startNowBlock.indexOf('Recently Added'));
-    expect(programsBlock).toContain('title="Programs"');
+    expect(programsBlock).not.toContain('title="Programs"');
     expect(programsBlock).toContain('Add new program');
     expect(programsBlock.indexOf('Add new program')).toBeLessThan(programsBlock.indexOf('programSummaries.map'));
     expect(programsBlock).toContain('variant="add"');
@@ -147,6 +147,10 @@ describe('product simplification 2.0', () => {
     const profile = readSource('src/app/(tabs)/profile.tsx');
     const sessionTable = readSource('src/features/workouts/components/session/SessionSetTable.tsx');
     const exerciseSection = readSource('src/features/workouts/components/session/SessionExerciseSection.tsx');
+    const builder = readSource('src/app/workouts/builder.tsx');
+    const picker = readSource('src/components/workouts/ProgramWorkoutPickerModal.tsx');
+    const editor = readSource('src/components/workouts/ProgramWorkoutEditorModal.tsx');
+    const workoutBuilderCard = readSource('src/components/workouts/WorkoutBuilderCard.tsx');
 
     expect(workouts).toContain('Start now');
     expect(workouts).toContain('Programs');
@@ -154,6 +158,8 @@ describe('product simplification 2.0', () => {
     expect(template).toContain('Start workout');
     expect(template).toContain('Favorite / unfavorite');
     expect(program).toContain('Edit program');
+    expect(program).toContain('Start next workout');
+    expect(program).not.toContain('styles.startChip');
     expect(nutrition).toContain("router.push({ pathname: '/nutrition/add-food'");
     expect(nutritionPicker).toContain('addFoodEntries');
     expect(profile).toContain('Appearance');
@@ -164,5 +170,14 @@ describe('product simplification 2.0', () => {
     expect(sessionTable).toContain('✓');
     expect(sessionTable).not.toContain('colOverflow');
     expect(exerciseSection).toContain('Add set');
+    expect(builder).toContain('Save');
+    expect(builder).toContain('Discard changes?');
+    expect(builder).toContain('ProgramWorkoutPickerModal');
+    expect(builder).toContain('ProgramWorkoutEditorModal');
+    expect(picker).toContain('Choose existing workout');
+    expect(picker).toContain('Create new workout');
+    expect(picker).toContain('Add workout');
+    expect(editor).toContain('Create workout');
+    expect(workoutBuilderCard).toContain('Save workout');
   });
 });

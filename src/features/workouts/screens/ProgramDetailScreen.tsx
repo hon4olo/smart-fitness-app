@@ -9,7 +9,9 @@ import {
   deleteWorkoutProgram,
   duplicateWorkoutProgram,
   getWorkoutProgramById,
+  getWorkoutProgramSchedule,
   hydrateActiveWorkoutSessionDraft,
+  saveWorkoutProgram,
   toggleWorkoutProgramFavorite,
 } from '@/lib/workouts';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
@@ -52,13 +54,16 @@ export default function ProgramDetailScreen() {
     );
   }
 
+  const programSchedule = useMemo(() => getWorkoutProgramSchedule(program), [program]);
   const workoutRows = program.days
     .filter((day) => !day.restDay && day.workoutTemplateId)
     .map((day, index) => {
       const workout = workouts.find((candidate) => candidate.id === day.workoutTemplateId) ?? null;
       return {
         id: day.id ?? `${day.weekday}-${index}`,
+        dayId: day.id ?? `${day.weekday}-${index}`,
         title: day.workoutTemplateName ?? workout?.title ?? 'Workout',
+        workout,
         workoutId: workout?.id ?? day.workoutTemplateId!,
         exerciseCount: workout?.exercises.length ?? 0,
       };
@@ -140,24 +145,73 @@ export default function ProgramDetailScreen() {
           <View style={styles.sectionCard}>
             <View style={styles.sectionTitleRow}>
               <Text style={styles.sectionTitle}>Routines</Text>
-              <Pressable onPress={() => router.push({ pathname: '/workouts/builder', params: { programId: program.id } })} style={({ pressed }) => [styles.inlineAction, pressed && styles.pressed]}>
-                <Text style={styles.inlineActionLabel}>Add routine to program</Text>
-              </Pressable>
+              {programSchedule.nextWorkout ? (
+                <Pressable
+                  onPress={() => {
+                    const nextWorkout = workouts.find((candidate) => candidate.id === programSchedule.nextWorkout?.workoutTemplateId);
+                    if (!nextWorkout) {
+                      Alert.alert('Workout unavailable', 'The next workout in this program no longer exists. Replace it or remove it from the program.');
+                      return;
+                    }
+
+                    router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId: nextWorkout.id } });
+                  }}
+                  style={({ pressed }) => [styles.inlineAction, pressed && styles.pressed]}>
+                  <Text style={styles.inlineActionLabel}>Start next workout</Text>
+                </Pressable>
+              ) : null}
             </View>
 
             {workoutRows.length > 0 ? (
               workoutRows.map((row, index) => (
                 <View key={row.id} style={index > 0 ? styles.dividerTop : undefined}>
                   <View style={styles.workoutRow}>
-                    <View style={styles.workoutIcon}><Text style={styles.workoutIconLabel}>{row.title.slice(0, 1).toUpperCase()}</Text></View>
-                    <View style={styles.workoutCopy}>
-                      <Text selectable style={styles.workoutTitle}>{row.title}</Text>
-                      <Text selectable style={styles.workoutMeta}>{row.exerciseCount} exercise{row.exerciseCount === 1 ? '' : 's'}</Text>
-                    </View>
-                    <Pressable onPress={() => router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId: row.workoutId } })} style={({ pressed }) => [styles.startChip, pressed && styles.pressed]}>
-                      <Text style={styles.startChipLabel}>Start</Text>
+                    <Pressable
+                      onPress={() => {
+                        if (!row.workout) {
+                          Alert.alert('Workout unavailable', 'This program references a workout template that no longer exists. Remove it or replace it with another workout.');
+                          return;
+                        }
+
+                        router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId: row.workout.id } });
+                      }}
+                      style={({ pressed }) => [styles.workoutRowBody, pressed && styles.pressed]}>
+                      <View style={styles.workoutIcon}><Text style={styles.workoutIconLabel}>{row.title.slice(0, 1).toUpperCase()}</Text></View>
+                      <View style={styles.workoutCopy}>
+                        <Text selectable style={styles.workoutTitle}>{row.title}</Text>
+                        <Text selectable style={styles.workoutMeta}>{row.exerciseCount} exercise{row.exerciseCount === 1 ? '' : 's'}</Text>
+                      </View>
                     </Pressable>
-                    <Pressable onPress={openMenu} style={({ pressed }) => [styles.smallButton, pressed && styles.pressed]}>
+                    <Pressable
+                      onPress={() => {
+                        const actions = [
+                          {
+                            text: 'Remove from program',
+                            style: 'destructive' as const,
+                            onPress: () => {
+                              const nextProgram = {
+                                ...program,
+                                days: program.days.map((day) =>
+                                  day.id === row.dayId
+                                    ? {
+                                        ...day,
+                                        notes: undefined,
+                                        restDay: true,
+                                        workoutTemplateId: undefined,
+                                        workoutTemplateName: undefined,
+                                      }
+                                    : { ...day },
+                                ),
+                              };
+                              saveWorkoutProgram(nextProgram);
+                            },
+                          },
+                          { text: 'Cancel', style: 'cancel' as const },
+                        ];
+
+                        Alert.alert(row.title, undefined, actions);
+                      }}
+                      style={({ pressed }) => [styles.smallButton, pressed && styles.pressed]}>
                       <Text style={styles.smallButtonLabel}>⋯</Text>
                     </Pressable>
                   </View>
@@ -418,6 +472,13 @@ const createStyles = (colors: typeof Colors.light) =>
       flexDirection: 'row',
       gap: Spacing.two,
       paddingVertical: 12,
+    },
+    workoutRowBody: {
+      alignItems: 'center',
+      flex: 1,
+      flexDirection: 'row',
+      gap: Spacing.two,
+      minWidth: 0,
     },
     workoutTitle: {
       color: colors.textPrimary,

@@ -20,6 +20,8 @@ describe('workout hotfix regressions', () => {
     expect(templateSource).toContain('Start workout');
     expect(templateSource).not.toContain('Save workout');
     expect(templateSource).not.toContain('TextInput');
+    expect(programSource).toContain('Start next workout');
+    expect(programSource).not.toContain('styles.startChip');
     expect(programSource).not.toContain('Save Program');
     expect(programSource).not.toContain('TextInput');
     expect(programSource).not.toContain('Save program');
