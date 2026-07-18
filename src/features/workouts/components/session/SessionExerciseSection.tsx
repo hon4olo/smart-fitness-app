@@ -96,7 +96,7 @@ const createStyles = (colors: typeof Colors.light) =>
     addSetRow: {
       alignItems: 'flex-start',
       minHeight: 44,
-      paddingTop: Spacing.one,
+      paddingTop: 2,
     },
     card: {
       gap: Spacing.two,

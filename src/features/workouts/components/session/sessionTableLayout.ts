@@ -4,7 +4,11 @@ export const SESSION_TABLE_COLUMNS = {
   weight: 50,
   reps: 50,
   completion: 36,
-  overflow: 28,
 } as const;
 
-export const SESSION_TABLE_COLUMN_ORDER = ['set', 'previous', 'weight', 'reps', 'completion', 'overflow'] as const;
+export const SESSION_TABLE_TOTAL_WIDTH =
+  SESSION_TABLE_COLUMNS.set +
+  SESSION_TABLE_COLUMNS.previous +
+  SESSION_TABLE_COLUMNS.weight +
+  SESSION_TABLE_COLUMNS.reps +
+  SESSION_TABLE_COLUMNS.completion;

@@ -7,7 +7,7 @@ import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 
 import { SessionEmptySets } from './SessionEmptySets';
 import { SessionSetRow } from './SessionSetRow';
-import { SESSION_TABLE_COLUMNS } from './sessionTableLayout';
+import { SESSION_TABLE_COLUMNS, SESSION_TABLE_TOTAL_WIDTH } from './sessionTableLayout';
 import type { SessionDraftInputs } from './types';
 
 type SessionSetTableProps = {
@@ -47,7 +47,6 @@ export const SessionSetTable = memo(function SessionSetTable({
         <Text style={[styles.headerText, styles.colWeight]}>kg</Text>
         <Text style={[styles.headerText, styles.colReps]}>Reps</Text>
         <Text style={[styles.headerText, styles.colCompletion]}>✓</Text>
-        <Text style={[styles.headerText, styles.colOverflow]}>⋯</Text>
       </View>
 
       <View style={styles.tableBody}>
@@ -76,12 +75,9 @@ const createStyles = (colors: typeof Colors.light) =>
       width: SESSION_TABLE_COLUMNS.completion,
       textAlign: 'center',
     },
-    colOverflow: {
-      width: SESSION_TABLE_COLUMNS.overflow,
-      textAlign: 'center',
-    },
     colPrevious: {
       width: SESSION_TABLE_COLUMNS.previous,
+      minWidth: 0,
     },
     colReps: {
       width: SESSION_TABLE_COLUMNS.reps,
@@ -105,15 +101,16 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     table: {
       gap: 2,
-      width: '100%',
+      alignSelf: 'flex-start',
+      width: SESSION_TABLE_TOTAL_WIDTH,
     },
     tableBody: {
-      gap: 2,
+      gap: 1,
     },
     tableHeader: {
       alignItems: 'center',
       flexDirection: 'row',
-      marginBottom: 6,
-      paddingBottom: 4,
+      marginBottom: 4,
+      paddingBottom: 2,
     },
   });

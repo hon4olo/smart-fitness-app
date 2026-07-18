@@ -90,7 +90,7 @@ const createCardStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     card: {
       flex: 1,
-      gap: 8,
+      gap: 6,
       minWidth: 0,
     },
     cardPressed: {
@@ -112,15 +112,15 @@ const createCardStyles = (colors: typeof Colors.light) =>
       opacity: 0.9,
     },
     subtitle: {
-      color: '#A8B1BB',
-      fontSize: 12,
-      lineHeight: 16,
+      color: colors.textSecondary,
+      fontSize: 11,
+      lineHeight: 14,
     },
     title: {
-      color: '#0F1317',
-      fontSize: 15,
+      color: colors.textPrimary,
+      fontSize: 14,
       fontWeight: '900',
-      lineHeight: 19,
+      lineHeight: 18,
     },
   });
 
@@ -388,7 +388,7 @@ export default function WorkoutsScreen() {
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 112 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 84 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}>
@@ -421,7 +421,7 @@ export default function WorkoutsScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>
+      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + 2 }]}>
         <View style={styles.container}>{renderStickyAction()}</View>
       </View>
     </View>
@@ -432,7 +432,7 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     activeActions: {
       flexDirection: 'row',
-      gap: Spacing.two,
+      gap: Spacing.one,
     },
     activeBlock: {
       alignItems: 'flex-start',
@@ -441,8 +441,8 @@ const createStyles = (colors: typeof Colors.light) =>
       borderCurve: 'continuous',
       borderRadius: Radii.large,
       borderWidth: StyleSheet.hairlineWidth,
-      gap: 8,
-      padding: Spacing.three,
+      gap: 6,
+      padding: Spacing.two,
     },
     activeLabel: {
       color: '#A8B1BB',
@@ -479,7 +479,7 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flexDirection: 'row',
       gap: Spacing.three,
-      paddingVertical: Spacing.one,
+      paddingVertical: 4,
     },
     addProgramSubtitle: {
       color: colors.textSecondary,
@@ -510,7 +510,7 @@ const createStyles = (colors: typeof Colors.light) =>
       borderTopWidth: StyleSheet.hairlineWidth,
       left: 0,
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.two,
+      paddingTop: 2,
       position: 'absolute',
       right: 0,
       bottom: 0,
@@ -518,10 +518,10 @@ const createStyles = (colors: typeof Colors.light) =>
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: Spacing.two,
+      gap: 6,
     },
     header: {
-      gap: Spacing.three,
+      gap: Spacing.two,
     },
     headerTop: {
       alignItems: 'center',
@@ -590,10 +590,10 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     sectionBlock: {
       gap: Spacing.two,
-      marginTop: Spacing.three,
+      marginTop: Spacing.two,
     },
     sectionStack: {
-      gap: Spacing.three,
+      gap: Spacing.two,
     },
     stickyIcon: {
       color: '#0F1317',
@@ -610,8 +610,8 @@ const createStyles = (colors: typeof Colors.light) =>
       flexDirection: 'row',
       gap: Spacing.two,
       justifyContent: 'center',
-      minHeight: 52,
-      paddingHorizontal: Spacing.three,
+      minHeight: 44,
+      paddingHorizontal: Spacing.two,
     },
     stickyText: {
       color: '#0F1317',

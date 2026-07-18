@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Colors, Radii } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 
 import { SESSION_TABLE_COLUMNS } from './sessionTableLayout';
@@ -23,7 +23,6 @@ export const SessionSetRow = memo(function SessionSetRow({
   draftValue,
   index,
   onCommit,
-  onLongPress,
   onRepsChange,
   onToggle,
   onWeightChange,
@@ -72,9 +71,6 @@ export const SessionSetRow = memo(function SessionSetRow({
         <Pressable accessibilityRole="button" onPress={onToggle} style={({ pressed }) => [styles.iconCell, styles.colCompletion, pressed && styles.pressed]}>
           <Text style={[styles.checkLabel, completed && styles.checkLabelCompleted]}>{completed ? '✓' : '○'}</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={onLongPress} style={({ pressed }) => [styles.iconCell, styles.colOverflow, pressed && styles.pressed]}>
-          <Text style={styles.overflowLabel}>⋯</Text>
-        </Pressable>
       </View>
     </View>
   );
@@ -99,10 +95,8 @@ const createStyles = (colors: typeof Colors.light) =>
     colCompletion: {
       width: SESSION_TABLE_COLUMNS.completion,
     },
-    colOverflow: {
-      width: SESSION_TABLE_COLUMNS.overflow,
-    },
     colPrevious: {
+      minWidth: 0,
       width: SESSION_TABLE_COLUMNS.previous,
     },
     colReps: {
@@ -128,13 +122,6 @@ const createStyles = (colors: typeof Colors.light) =>
       textAlign: 'center',
       fontVariant: ['tabular-nums'],
     },
-    overflowLabel: {
-      color: colors.textSecondary,
-      fontSize: 20,
-      fontWeight: '700',
-      lineHeight: 20,
-      marginTop: -2,
-    },
     previousCell: {
       color: colors.textSecondary,
     },
@@ -148,11 +135,6 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     rowCompleted: {
       opacity: 0.82,
-    },
-    rowPressed: {
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: Radii.medium,
     },
     rowWrap: {
       marginBottom: 2,
