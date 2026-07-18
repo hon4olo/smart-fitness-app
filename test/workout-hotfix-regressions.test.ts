@@ -16,6 +16,8 @@ describe('workout hotfix regressions', () => {
   it('keeps workout template detail read-only by default and starts workouts from the sticky action', () => {
     const templateSource = readFileSync('/root/smart-fitness-app/src/features/workouts/screens/WorkoutTemplateDetailScreen.tsx', 'utf8');
     const programSource = readFileSync('/root/smart-fitness-app/src/features/workouts/screens/ProgramDetailScreen.tsx', 'utf8');
+    const builderSource = readFileSync('/root/smart-fitness-app/src/app/workouts/builder.tsx', 'utf8');
+    const workoutEditorSource = readFileSync('/root/smart-fitness-app/src/components/workouts/ProgramWorkoutEditorModal.tsx', 'utf8');
 
     expect(templateSource).toContain('Start workout');
     expect(templateSource).not.toContain('Save workout');
@@ -25,6 +27,9 @@ describe('workout hotfix regressions', () => {
     expect(programSource).not.toContain('Save Program');
     expect(programSource).not.toContain('TextInput');
     expect(programSource).not.toContain('Save program');
+    expect(builderSource).not.toContain('[existingProgram, workouts]');
+    expect(workoutEditorSource).toContain('Save');
+    expect(workoutEditorSource).toContain('headerActions');
   });
 
   it('saves a completed workout once, clears the active draft, and resists duplicate upserts', () => {

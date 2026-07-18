@@ -41,7 +41,7 @@ export default function ProgramBuilderRoute() {
     const nextDraft = existingProgram ? createProgramDraftFromProgram(existingProgram) : createDefaultProgramDraft();
     setProgramDraft(nextDraft);
     initialSnapshotRef.current = nextDraft ? serializeProgramDraft(nextDraft) : '';
-  }, [existingProgram, workouts]);
+  }, [existingProgram, programId]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (event: any) => {
@@ -162,12 +162,13 @@ export default function ProgramBuilderRoute() {
   };
 
   const handleAddExistingWorkouts = (workoutIds: string[]) => {
-    if (!program) {
-      return;
-    }
+    setProgramDraft((current) => {
+      if (!current) {
+        return current;
+      }
 
-    const nextDraft = attachWorkoutsToProgramDraft(program, workouts, workoutIds);
-    setProgramDraft(nextDraft);
+      return attachWorkoutsToProgramDraft(current, workouts, workoutIds);
+    });
   };
 
   const handleSaveWorkout = (payload: { title: string; description?: string; exercises: string[] }) => {
@@ -189,18 +190,22 @@ export default function ProgramBuilderRoute() {
         createdAt,
       });
 
-      if (program) {
-        const syntheticWorkout: Workout = {
-          id,
-          title: payload.title,
-          description: payload.description,
-          duration: `${Math.max(15, payload.exercises.length * 10)} min`,
-          exercises: [],
-          createdAt,
-          isCustom: true,
-        };
-        setProgramDraft(attachWorkoutsToProgramDraft(program, [...workouts, syntheticWorkout], [id]));
-      }
+      const syntheticWorkout: Workout = {
+        id,
+        title: payload.title,
+        description: payload.description,
+        duration: `${Math.max(15, payload.exercises.length * 10)} min`,
+        exercises: [],
+        createdAt,
+        isCustom: true,
+      };
+      setProgramDraft((current) => {
+        if (!current) {
+          return current;
+        }
+
+        return attachWorkoutsToProgramDraft(current, [...workouts, syntheticWorkout], [id]);
+      });
     }
 
     setWorkoutEditorTarget(undefined);

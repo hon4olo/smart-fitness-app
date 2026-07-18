@@ -178,6 +178,7 @@ describe('product simplification 2.0', () => {
     expect(picker).toContain('Create new workout');
     expect(picker).toContain('Add workout');
     expect(editor).toContain('Create workout');
-    expect(workoutBuilderCard).toContain('Save workout');
+    expect(editor).toContain('Save');
+    expect(workoutBuilderCard).not.toContain('Save workout');
   });
 });

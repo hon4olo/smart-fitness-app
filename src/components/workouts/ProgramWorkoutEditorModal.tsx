@@ -117,9 +117,18 @@ export function ProgramWorkoutEditorModal({ visible, workout, onClose, onSaveWor
               <Text style={styles.title}>{workout ? 'Edit workout' : 'Create workout'}</Text>
               <Text style={styles.subtitle}>Build the template here, then return to the program draft.</Text>
             </View>
-            <Pressable onPress={onClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
-              <Text style={styles.closeLabel}>{workout ? 'Back' : 'Cancel'}</Text>
-            </Pressable>
+            <View style={styles.headerActions}>
+              <Pressable onPress={onClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
+                <Text style={styles.closeLabel}>{workout ? 'Back' : 'Cancel'}</Text>
+              </Pressable>
+              <Pressable disabled={saveDisabled} onPress={saveDisabled ? undefined : () => onSaveWorkout({
+                title: workoutTitle.trim(),
+                description: workoutDescription.trim() || undefined,
+                exercises: draftExercises.map((exercise) => exercise.name.trim()).filter(Boolean),
+              })} style={({ pressed }) => [styles.saveButton, saveDisabled && styles.saveButtonDisabled, pressed && !saveDisabled && styles.pressed]}>
+                <Text style={styles.saveLabel}>Save</Text>
+              </Pressable>
+            </View>
           </View>
 
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -181,6 +190,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.two,
   },
+  headerActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: Spacing.one,
+  },
   headerCopy: {
     flex: 1,
     gap: 4,
@@ -203,6 +217,22 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  saveButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.accent,
+    borderCurve: 'continuous',
+    borderRadius: 16,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 10,
+  },
+  saveButtonDisabled: {
+    opacity: 0.38,
+  },
+  saveLabel: {
+    color: Colors.dark.background,
+    fontSize: 14,
+    fontWeight: '900',
   },
   scrollContent: {
     paddingBottom: Spacing.two,

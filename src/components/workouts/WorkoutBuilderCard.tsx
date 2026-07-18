@@ -137,7 +137,6 @@ export function WorkoutBuilderCard({
             {editingWorkoutId ? (
               <AppButton label="Cancel edit" onPress={onCancelEdit} variant="secondary" />
             ) : null}
-            <AppButton disabled={isSaveWorkoutDisabled} label="Save workout" onPress={onSaveWorkout} />
           </View>
         </>
       ) : null}
