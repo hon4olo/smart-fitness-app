@@ -45,8 +45,10 @@ describe('navigation repair and UX cleanup 3.0', () => {
 
     expect(source).toContain('Start now');
     expect(source).toContain('Programs');
-    expect(count(source, 'Pressable onPress={createProgram}')).toBe(1);
-    expect(source).toContain('addProgramActionLabel');
+    expect(source).toContain('Add new program');
+    expect(source).toContain('variant="add"');
+    expect(source).toContain('Create a new training split');
+    expect(source).not.toContain('addProgramActionLabel');
     expect(source).not.toContain('Start empty workout');
     expect(source).not.toContain('Add Program');
     expect(source).not.toContain('Recommendation');
@@ -91,7 +93,7 @@ describe('navigation repair and UX cleanup 3.0', () => {
     const syncBackup = readSource('src/app/sync-backup.tsx');
     const weightEntry = readSource('src/app/weight-entry.tsx');
 
-    expect(workouts).toContain('addProgramActionLabel');
+    expect(workouts).toContain('Add new program');
     expect(template).toContain('Start workout');
     expect(program).toContain('Edit program');
     expect(progress).toContain("router.push('/weight-entry')");

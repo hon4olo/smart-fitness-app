@@ -146,81 +146,109 @@ const createCardStyles = (colors: typeof Colors.light) =>
     },
   });
 
-function WorkoutListRow({
-  countLabel,
-  detailLabel,
+function ProgramRow({
+  description,
   iconLabel,
   onPress,
   title,
+  workoutCount,
+  variant = 'regular',
 }: {
-  countLabel: string;
-  detailLabel?: string;
+  description?: string;
   iconLabel: string;
   onPress: () => void;
   title: string;
+  workoutCount: number;
+  variant?: 'add' | 'regular';
 }) {
   const { colors } = useWorkoutTheme();
   const styles = useMemo(() => createListStyles(colors), [colors]);
+  const isAdd = variant === 'add';
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-      <View style={styles.icon}>
-        <Text style={styles.iconLabel}>{iconLabel}</Text>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, isAdd && styles.rowAdd, pressed && styles.rowPressed]}>
+      <View style={[styles.icon, isAdd && styles.iconAdd]}>
+        <Text style={[styles.iconLabel, isAdd && styles.iconLabelAdd]}>{iconLabel}</Text>
       </View>
       <View style={styles.copy}>
-        <Text numberOfLines={1} style={styles.title}>
+        <Text numberOfLines={1} style={[styles.title, isAdd && styles.titleAdd]}>
           {title}
         </Text>
-        <Text numberOfLines={1} style={styles.count}>
-          {countLabel}
-        </Text>
-        {detailLabel ? (
-          <Text numberOfLines={1} style={styles.subtitle}>
-            {detailLabel}
+        {isAdd ? (
+          <Text numberOfLines={2} style={styles.subtitle}>
+            {description ?? 'Create a new training split'}
           </Text>
-        ) : null}
+        ) : (
+          <Text numberOfLines={1} style={styles.count}>
+            {workoutCount} workout{workoutCount === 1 ? '' : 's'}
+          </Text>
+        )}
       </View>
+      {!isAdd ? <Text style={styles.chevron}>›</Text> : null}
     </Pressable>
   );
 }
 
 const createListStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
-    count: {
-      color: colors.textPrimary,
-      fontSize: 12,
-      fontWeight: '800',
-      lineHeight: 16,
+    chevron: {
+      color: colors.textSecondary,
+      fontSize: 24,
+      fontWeight: '400',
+      lineHeight: 24,
+      marginLeft: 2,
+      marginTop: -1,
     },
     copy: {
       flex: 1,
-      gap: 1,
+      gap: 2,
       minWidth: 0,
+    },
+    count: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 16,
     },
     icon: {
       alignItems: 'center',
       backgroundColor: '#222A32',
       borderCurve: 'continuous',
-      borderRadius: 14,
+      borderRadius: 12,
       height: 40,
       justifyContent: 'center',
       width: 40,
+      flexShrink: 0,
+    },
+    iconAdd: {
+      backgroundColor: '#2A3340',
+      height: 44,
+      width: 44,
     },
     iconLabel: {
-      color: '#0F1317',
+      color: '#F4F7FA',
       fontSize: 14,
       fontWeight: '900',
+    },
+    iconLabelAdd: {
+      fontSize: 18,
+      lineHeight: 18,
     },
     row: {
       alignItems: 'center',
       flexDirection: 'row',
       gap: Spacing.three,
+      minHeight: 60,
       paddingHorizontal: Spacing.three,
-      paddingVertical: 10,
+      paddingVertical: 12,
       width: '100%',
     },
+    rowAdd: {
+      minHeight: 72,
+      paddingVertical: 14,
+    },
     rowPressed: {
-      backgroundColor: '#222A32',
+      backgroundColor: 'rgba(255,255,255,0.03)',
     },
     subtitle: {
       color: colors.textSecondary,
@@ -229,8 +257,13 @@ const createListStyles = (colors: typeof Colors.light) =>
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: '800',
+      letterSpacing: -0.1,
+    },
+    titleAdd: {
+      fontSize: 16,
+      fontWeight: '900',
     },
   });
 
@@ -377,24 +410,25 @@ export default function WorkoutsScreen() {
 
   const renderPrograms = () => (
     <View style={styles.sectionStack}>
-      <SectionHeader
-        action={
-          <Pressable onPress={createProgram} style={({ pressed }) => [styles.addProgramAction, pressed && styles.pressed]}>
-            <Text style={styles.addProgramActionLabel}>+</Text>
-          </Pressable>
-        }
-        title="Programs"
-      />
+      <SectionHeader title="Programs" />
 
-      <View style={styles.listCard}>
+      <View style={styles.programList}>
+        <ProgramRow
+          description="Create a new training split"
+          iconLabel="+"
+          onPress={createProgram}
+          title="Add new program"
+          workoutCount={0}
+          variant="add"
+        />
+
         {programSummaries.map((summary, index) => (
           <View key={summary.program.id} style={index > 0 ? styles.dividerTop : undefined}>
-            <WorkoutListRow
-              countLabel={`${summary.workoutCount} workout${summary.workoutCount === 1 ? '' : 's'}`}
-              detailLabel={summary.subtitle}
+            <ProgramRow
               iconLabel={summary.program.name.slice(0, 1).toUpperCase()}
-              title={summary.program.name}
               onPress={() => openProgram(summary.program.id)}
+              title={summary.program.name}
+              workoutCount={summary.workoutCount}
             />
           </View>
         ))}
@@ -475,21 +509,6 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: 18,
       fontWeight: '900',
     },
-    addProgramAction: {
-      alignItems: 'center',
-      backgroundColor: '#222A32',
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      height: 44,
-      justifyContent: 'center',
-      width: 44,
-    },
-    addProgramActionLabel: {
-      color: colors.textPrimary,
-      fontSize: 24,
-      fontWeight: '900',
-      lineHeight: 24,
-    },
     container: {
       maxWidth: MaxContentWidth,
       width: '100%',
@@ -537,13 +556,11 @@ const createStyles = (colors: typeof Colors.light) =>
       justifyContent: 'center',
       padding: Spacing.three,
     },
-    listCard: {
-      backgroundColor: '#171C22',
-      borderColor: '#242C34',
+    programList: {
       borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      overflow: 'hidden',
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      width: '100%',
     },
     pressed: {
       opacity: 0.72,

@@ -17,12 +17,13 @@ describe('product simplification 2.0', () => {
     const programsBlock = source.slice(source.indexOf('const renderPrograms'), source.lastIndexOf('return ('));
 
     expect(startNowBlock.indexOf('Suggested Workouts')).toBeLessThan(startNowBlock.indexOf('Recently Added'));
-    expect(count(source, 'Pressable onPress={createProgram}')).toBe(1);
     expect(programsBlock).toContain('title="Programs"');
-    expect(programsBlock).toContain('addProgramActionLabel');
-    expect(source).toContain('Workout in progress');
-    expect(source).toContain("marginBottom: 8");
-    expect(source).not.toContain("position: 'absolute'");
+    expect(programsBlock).toContain('Add new program');
+    expect(programsBlock.indexOf('Add new program')).toBeLessThan(programsBlock.indexOf('programSummaries.map'));
+    expect(programsBlock).toContain('variant="add"');
+    expect(source).toContain('Create a new training split');
+    expect(source).toContain('ProgramRow');
+    expect(source).not.toContain('addProgramActionLabel');
   });
 
   test('workouts screen uses a consistent card and program metadata model', () => {
@@ -32,9 +33,12 @@ describe('product simplification 2.0', () => {
     expect(source).toContain("line3={summary.estimatedDuration ? summary.estimatedDuration : 'Duration unavailable'}");
     expect(source).toContain('metaLinePrimary');
     expect(source).toContain('metaLineSecondary');
-    expect(source).toContain('detailLabel={summary.subtitle}');
-    expect(source).toContain('countLabel={`${summary.workoutCount} workout');
-    expect(source).not.toContain('subtitle={summary.subtitle}');
+    expect(source).toContain('ProgramRow');
+    expect(source).toContain('variant="add"');
+    expect(source).toContain('workoutCount={summary.workoutCount}');
+    expect(source).toContain('Create a new training split');
+    expect(source).not.toContain('detailLabel={summary.subtitle}');
+    expect(source).not.toContain('countLabel={`${summary.workoutCount} workout');
     expect(source).not.toContain('Create program');
   });
 
