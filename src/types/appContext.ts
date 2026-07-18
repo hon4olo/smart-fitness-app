@@ -7,6 +7,7 @@ import type {
   NutritionTargets,
   ProfileGoalType,
   ProfileState,
+  TrainingProgram,
   WeightEntry,
   Workout,
   WorkoutSession,
@@ -15,6 +16,7 @@ import type {
 
 export type AppState = {
   workouts: Workout[];
+  trainingPrograms: TrainingProgram[];
   exercises: Exercise[];
   workoutSessions: WorkoutSession[];
   foodEntries: FoodEntry[];
@@ -57,6 +59,9 @@ export type AppContextType = AppState & {
       exercises: string[];
     }
   ) => void;
+  saveTrainingProgram: (program: TrainingProgram) => void;
+  deleteTrainingProgram: (programId: string) => void;
+  toggleTrainingProgramFavorite: (programId: string) => void;
   updateNutritionTargets: (targets: NutritionTargets) => void;
   updateProfileGoals: (goals: {
     targetWeight: number;

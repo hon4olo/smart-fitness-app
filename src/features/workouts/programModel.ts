@@ -216,7 +216,7 @@ export const getWorkoutProgramSummary = (program: TrainingProgram, workouts: Wor
   const subtitle = program.description?.trim() || workout?.description?.trim() || `${workoutCount} workout${workoutCount === 1 ? '' : 's'} per week`;
 
   return {
-    isFavorite: programStore.favorites.has(program.id),
+    isFavorite: Boolean(program.metadata?.favorite) || programStore.favorites.has(program.id),
     program,
     workoutCount,
     daysPerWeek,
@@ -226,9 +226,9 @@ export const getWorkoutProgramSummary = (program: TrainingProgram, workouts: Wor
   };
 };
 
-export const getWorkoutPrograms = (workouts: Workout[]) => {
+export const getWorkoutPrograms = (workouts: Workout[], storedPrograms: TrainingProgram[] = programStore.programs) => {
   const defaultProgram = createDefaultTrainingProgram(workouts);
-  const mergedPrograms = [defaultProgram, ...programStore.programs.map((program) => ({
+  const mergedPrograms = [defaultProgram, ...storedPrograms.map((program) => ({
     ...program,
     days: program.days.map((day) => ({ ...day })),
     progression: program.progression ? { ...program.progression } : undefined,
@@ -301,7 +301,8 @@ export const duplicateWorkoutProgram = (programId: string, workouts: Workout[]) 
   return saveWorkoutProgram(nextProgram);
 };
 
-export const getWorkoutProgramById = (programId: string, workouts: Workout[]) => getWorkoutPrograms(workouts).find((program) => program.id === programId) ?? null;
+export const getWorkoutProgramById = (programId: string, workouts: Workout[], storedPrograms?: TrainingProgram[]) =>
+  getWorkoutPrograms(workouts, storedPrograms).find((program) => program.id === programId) ?? null;
 
 export const getWorkoutProgramSchedule = (program: TrainingProgram) => {
   const todayIndex = new Date().getDay();

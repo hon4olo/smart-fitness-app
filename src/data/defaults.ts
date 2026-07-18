@@ -1,4 +1,4 @@
-import type { BodyMeasurement, Exercise, FoodEntry, MealTemplate, NutritionState, NutritionTargets, ProfileState, WeightEntry, Workout, WorkoutSession } from '@/types';
+import type { BodyMeasurement, Exercise, FoodEntry, MealTemplate, NutritionState, NutritionTargets, ProfileState, TrainingProgram, WeightEntry, Workout, WorkoutSession } from '@/types';
 
 import { exerciseDatabase } from './exercises';
 
@@ -7,6 +7,7 @@ export const DEFAULT_APP_DATA_CREATED_AT = '2000-01-01T00:00:00.000Z';
 
 export type AppDefaultState = {
   workouts: Workout[];
+  trainingPrograms: TrainingProgram[];
   exercises: Exercise[];
   workoutSessions: WorkoutSession[];
   foodEntries: FoodEntry[];
@@ -61,6 +62,7 @@ export const defaultState: AppDefaultState = {
       ],
     },
   ],
+  trainingPrograms: [],
   mealTemplates: [],
   exercises: exerciseDatabase,
   workoutSessions: [],

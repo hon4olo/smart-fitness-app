@@ -7,6 +7,7 @@ import type { AppState } from '@/types';
 
 const baseState = (): AppState => ({
   workouts: [],
+  trainingPrograms: [],
   exercises: [],
   workoutSessions: [],
   foodEntries: [],

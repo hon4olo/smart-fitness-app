@@ -27,6 +27,12 @@ const normalizeStoredState = (storedState: Partial<AppState>): AppState => ({
   ...defaultState,
   ...storedState,
   workouts: normalizeWorkouts(storedState.workouts ?? defaultState.workouts, DEFAULT_WORKOUT_TEMPLATE_IDS),
+  trainingPrograms: (storedState.trainingPrograms ?? defaultState.trainingPrograms).map((program) => ({
+    ...program,
+    days: program.days.map((day) => ({ ...day })),
+    progression: program.progression ? { ...program.progression } : undefined,
+    metadata: program.metadata ? { ...program.metadata } : undefined,
+  })),
   exercises: storedState.exercises
     ? mergeExerciseCatalog(exerciseDatabase, normalizeExercises(storedState.exercises))
     : defaultState.exercises,

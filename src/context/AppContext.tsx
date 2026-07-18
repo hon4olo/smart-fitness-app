@@ -28,6 +28,7 @@ import type {
   NutritionTargets,
   ProfileGoalType,
   ProfileState,
+  TrainingProgram,
   WeightEntry,
   Workout,
   WorkoutSession,
@@ -52,6 +53,7 @@ export type {
   NutritionTargets,
   ProfileGoalType,
   ProfileState,
+  TrainingProgram,
   WeightEntry,
   Workout,
   WorkoutSession,
@@ -285,6 +287,64 @@ export function AppProvider({ children }: PropsWithChildren) {
     },
     []
   );
+
+  const saveTrainingProgram = useCallback((program: TrainingProgram) => {
+    setState((currentState) => {
+      const nextProgram: TrainingProgram = {
+        ...program,
+        name: program.name.trim(),
+        days: program.days.map((day) => ({ ...day })),
+        progression: program.progression ? { ...program.progression } : undefined,
+        metadata: program.metadata ? { ...program.metadata } : undefined,
+        updatedAt: new Date().toISOString(),
+        isCustom: program.isCustom ?? true,
+      };
+      const existingIndex = currentState.trainingPrograms.findIndex((item) => item.id === nextProgram.id);
+      const trainingPrograms =
+        existingIndex === -1
+          ? [nextProgram, ...currentState.trainingPrograms]
+          : currentState.trainingPrograms.map((item) => (item.id === nextProgram.id ? nextProgram : item));
+      const nextState = {
+        ...currentState,
+        trainingPrograms,
+      };
+      void repository.saveState(nextState);
+      return nextState;
+    });
+  }, []);
+
+  const deleteTrainingProgram = useCallback((programId: string) => {
+    setState((currentState) => {
+      const nextState = {
+        ...currentState,
+        trainingPrograms: currentState.trainingPrograms.filter((program) => program.id !== programId),
+      };
+      void repository.saveState(nextState);
+      return nextState;
+    });
+  }, []);
+
+  const toggleTrainingProgramFavorite = useCallback((programId: string) => {
+    setState((currentState) => {
+      const nextState = {
+        ...currentState,
+        trainingPrograms: currentState.trainingPrograms.map((program) =>
+          program.id === programId
+            ? {
+                ...program,
+                metadata: {
+                  ...(program.metadata ?? {}),
+                  favorite: !Boolean(program.metadata?.favorite),
+                },
+                updatedAt: new Date().toISOString(),
+              }
+            : program
+        ),
+      };
+      void repository.saveState(nextState);
+      return nextState;
+    });
+  }, []);
 
   const updateFoodEntry = useCallback((entryId: string, updatedEntry: FoodEntry) => {
     setState((currentState) => {
@@ -629,14 +689,17 @@ export function AppProvider({ children }: PropsWithChildren) {
       addExercise,
       addWorkoutTemplate,
       addWeightEntry,
+      saveTrainingProgram,
       updateWeightEntry,
       deleteBodyMeasurement,
       deleteFoodEntry,
       deleteMealTemplate,
       deleteExercise,
+      deleteTrainingProgram,
       deleteWorkoutTemplate,
       deleteWeightEntry,
       deleteWorkoutSession,
+      toggleTrainingProgramFavorite,
       getLastWorkoutSession,
       isRestoringState,
       completeOnboarding,
@@ -657,14 +720,17 @@ export function AppProvider({ children }: PropsWithChildren) {
       addExercise,
       addWorkoutTemplate,
       addWeightEntry,
+      saveTrainingProgram,
       updateWeightEntry,
       deleteBodyMeasurement,
       deleteFoodEntry,
       deleteMealTemplate,
       deleteExercise,
+      deleteTrainingProgram,
       deleteWorkoutTemplate,
       deleteWeightEntry,
       deleteWorkoutSession,
+      toggleTrainingProgramFavorite,
       completeOnboarding,
       resetOnboarding,
       getLastWorkoutSession,

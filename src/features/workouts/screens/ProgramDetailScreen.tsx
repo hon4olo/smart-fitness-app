@@ -1,122 +1,127 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
+import { BottomTabInset, Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import {
-  deleteWorkoutProgram,
-  duplicateWorkoutProgram,
-  getWorkoutProgramById,
-  getWorkoutProgramSchedule,
-  hydrateActiveWorkoutSessionDraft,
-  saveWorkoutProgram,
-  toggleWorkoutProgramFavorite,
-} from '@/lib/workouts';
-import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
+import { getWorkoutProgramById } from '@/lib/workouts';
+import { useAppTheme } from '@/theme/AppThemeProvider';
+import type { TrainingProgram } from '@/types';
+
+const getInitial = (value: string) => value.trim().slice(0, 1).toUpperCase() || 'P';
 
 export default function ProgramDetailScreen() {
   const params = useLocalSearchParams<{ programId?: string }>();
   const programId = Array.isArray(params.programId) ? params.programId[0] : params.programId;
-  const { workouts, isRestoringState } = useAppContext();
-  const { colors } = useWorkoutTheme();
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { height: viewportHeight } = useWindowDimensions();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const {
+    deleteTrainingProgram,
+    isRestoringState,
+    saveTrainingProgram,
+    toggleTrainingProgramFavorite,
+    trainingPrograms,
+    workouts,
+  } = useAppContext();
 
-  useEffect(() => {
-    void hydrateActiveWorkoutSessionDraft();
-  }, []);
-
-  const program = useMemo(() => (programId ? getWorkoutProgramById(programId, workouts) : null), [programId, workouts]);
+  const program = useMemo(
+    () => (programId ? getWorkoutProgramById(programId, workouts, trainingPrograms) : null),
+    [programId, trainingPrograms, workouts],
+  );
 
   if (isRestoringState) {
     return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View style={styles.loadingState}>
-          <Text style={styles.loadingLabel}>Loading program…</Text>
-        </View>
+      <View style={[styles.screen, styles.loadingState]}>
+        <Text style={styles.loadingLabel}>Loading program...</Text>
       </View>
     );
   }
 
   if (!program) {
     return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View style={styles.loadingState}>
-          <Text style={styles.emptyTitle}>Program not found</Text>
-          <Pressable onPress={() => router.replace('/workouts')} style={({ pressed }) => [styles.backToWorkouts, pressed && styles.pressed]}>
-            <Text style={styles.backToWorkoutsLabel}>Back to Workouts</Text>
-          </Pressable>
-        </View>
+      <View style={[styles.screen, styles.loadingState]}>
+        <Text style={styles.title}>Program not found</Text>
+        <Pressable onPress={() => router.replace('/workouts')} style={({ pressed }) => [styles.simpleButton, pressed && styles.pressed]}>
+          <Text style={styles.simpleButtonLabel}>Back to Workouts</Text>
+        </Pressable>
       </View>
     );
   }
 
-  const programSchedule = useMemo(() => getWorkoutProgramSchedule(program), [program]);
   const workoutRows = program.days
     .filter((day) => !day.restDay && day.workoutTemplateId)
     .map((day, index) => {
-      const workout = workouts.find((candidate) => candidate.id === day.workoutTemplateId) ?? null;
+      const workout = workouts.find((item) => item.id === day.workoutTemplateId) ?? null;
       return {
-        id: day.id ?? `${day.weekday}-${index}`,
         dayId: day.id ?? `${day.weekday}-${index}`,
-        title: day.workoutTemplateName ?? workout?.title ?? 'Workout',
-        workout,
-        workoutId: workout?.id ?? day.workoutTemplateId!,
         exerciseCount: workout?.exercises.length ?? 0,
+        id: `${day.id ?? day.weekday}-${day.workoutTemplateId}`,
+        title: day.workoutTemplateName ?? workout?.title ?? 'Workout unavailable',
+        workout,
       };
     });
+
+  const saveProgram = (nextProgram: TrainingProgram) => {
+    saveTrainingProgram({
+      ...nextProgram,
+      isCustom: true,
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
+  const removeWorkout = (dayId: string) => {
+    saveProgram({
+      ...program,
+      days: program.days.map((day) =>
+        day.id === dayId
+          ? {
+              ...day,
+              notes: undefined,
+              restDay: true,
+              workoutTemplateId: undefined,
+              workoutTemplateName: undefined,
+            }
+          : { ...day },
+      ),
+    });
+  };
 
   const openMenu = () => {
     Alert.alert(program.name, undefined, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Edit program', onPress: () => router.push({ pathname: '/workouts/builder', params: { programId: program.id } }) },
+      { text: 'Favorite / unfavorite', onPress: () => toggleTrainingProgramFavorite(program.id) },
       {
-        text: 'Duplicate program',
+        text: 'Delete program',
+        style: 'destructive',
         onPress: () => {
-          const duplicated = duplicateWorkoutProgram(program.id, workouts);
-          if (duplicated) {
-            router.replace({ pathname: '/workouts/program/[programId]', params: { programId: duplicated.id } });
-          }
-        },
-      },
-      { text: 'Favorite / unfavorite', onPress: () => toggleWorkoutProgramFavorite(program.id) },
-      ...(program.isCustom
-        ? [
+          Alert.alert('Delete program?', 'This removes the program only. Workout history stays saved.', [
+            { text: 'Cancel', style: 'cancel' },
             {
-              text: 'Delete program',
-              style: 'destructive' as const,
+              text: 'Delete',
+              style: 'destructive',
               onPress: () => {
-                Alert.alert('Delete program?', 'This removes the program only. Workout history stays intact.', [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: () => {
-                      deleteWorkoutProgram(program.id);
-                      router.replace('/workouts');
-                    },
-                  },
-                ]);
+                deleteTrainingProgram(program.id);
+                router.replace('/workouts');
               },
             },
-          ]
-        : []),
+          ]);
+        },
+      },
     ]);
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <View style={styles.screen}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120, minHeight: viewportHeight }]}
+        contentContainerStyle={[styles.content, { minHeight: viewportHeight, paddingBottom: insets.bottom + BottomTabInset + Spacing.six }]}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        style={styles.scrollView}>
+        showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
-          <View style={styles.header}>
+          <View style={styles.navRow}>
             <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.circleButton, pressed && styles.pressed]}>
               <Text style={styles.circleLabel}>‹</Text>
             </Pressable>
@@ -125,364 +130,278 @@ export default function ProgramDetailScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.cover}>
-            <Text style={styles.coverLabel}>{program.name.slice(0, 1).toUpperCase()}</Text>
+          <View style={styles.coverStage}>
+            <View style={styles.cover}>
+              <Text style={styles.coverLabel}>{getInitial(program.name)}</Text>
+            </View>
+            <Pressable style={({ pressed }) => [styles.viewMore, pressed && styles.pressed]}>
+              <Text style={styles.viewMoreLabel}>VIEW MORE</Text>
+              <Text style={styles.viewMoreArrow}>⌄</Text>
+            </Pressable>
           </View>
 
           <Text selectable style={styles.title}>
             {program.name}
           </Text>
 
-          <View style={styles.metaGrid}>
-            <MetaItem label="Level" value={program.difficulty ?? '—'} />
-            <MetaItem label="Main goal" value={program.goal ?? '—'} />
-            <MetaItem label="Days / week" value={`${program.days.filter((day) => !day.restDay).length}`} />
-            <MetaItem label="Duration" value={`${program.durationWeeks} weeks`} />
-          </View>
-
-          {program.description ? <Text selectable style={styles.description}>{program.description}</Text> : null}
-
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionTitleRow}>
+          {workoutRows.length > 0 ? (
+            <View style={styles.routinesCard}>
               <Text style={styles.sectionTitle}>Routines</Text>
-              {programSchedule.nextWorkout ? (
-                <Pressable
-                  onPress={() => {
-                    const nextWorkout = workouts.find((candidate) => candidate.id === programSchedule.nextWorkout?.workoutTemplateId);
-                    if (!nextWorkout) {
-                      Alert.alert('Workout unavailable', 'The next workout in this program no longer exists. Replace it or remove it from the program.');
-                      return;
-                    }
-
-                    router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId: nextWorkout.id } });
-                  }}
-                  style={({ pressed }) => [styles.inlineAction, pressed && styles.pressed]}>
-                  <Text style={styles.inlineActionLabel}>Start next workout</Text>
-                </Pressable>
-              ) : null}
-            </View>
-
-            {workoutRows.length > 0 ? (
-              workoutRows.map((row, index) => (
-                <View key={row.id} style={index > 0 ? styles.dividerTop : undefined}>
-                  <View style={styles.workoutRow}>
-                    <Pressable
-                      onPress={() => {
-                        if (!row.workout) {
-                          Alert.alert('Workout unavailable', 'This program references a workout template that no longer exists. Remove it or replace it with another workout.');
-                          return;
-                        }
-
-                        router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId: row.workout.id } });
-                      }}
-                      style={({ pressed }) => [styles.workoutRowBody, pressed && styles.pressed]}>
-                      <View style={styles.workoutIcon}><Text style={styles.workoutIconLabel}>{row.title.slice(0, 1).toUpperCase()}</Text></View>
-                      <View style={styles.workoutCopy}>
-                        <Text selectable style={styles.workoutTitle}>{row.title}</Text>
-                        <Text selectable style={styles.workoutMeta}>{row.exerciseCount} exercise{row.exerciseCount === 1 ? '' : 's'}</Text>
-                      </View>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => {
-                        const actions = [
-                          {
-                            text: 'Remove from program',
-                            style: 'destructive' as const,
-                            onPress: () => {
-                              const nextProgram = {
-                                ...program,
-                                days: program.days.map((day) =>
-                                  day.id === row.dayId
-                                    ? {
-                                        ...day,
-                                        notes: undefined,
-                                        restDay: true,
-                                        workoutTemplateId: undefined,
-                                        workoutTemplateName: undefined,
-                                      }
-                                    : { ...day },
-                                ),
-                              };
-                              saveWorkoutProgram(nextProgram);
-                            },
-                          },
-                          { text: 'Cancel', style: 'cancel' as const },
-                        ];
-
-                        Alert.alert(row.title, undefined, actions);
-                      }}
-                      style={({ pressed }) => [styles.smallButton, pressed && styles.pressed]}>
-                      <Text style={styles.smallButtonLabel}>⋯</Text>
-                    </Pressable>
-                  </View>
+              {workoutRows.map((row) => (
+                <View key={row.id} style={styles.routineRow}>
+                  <Pressable
+                    onPress={() => {
+                      if (!row.workout) {
+                        Alert.alert('Workout unavailable', 'This routine points to a workout that no longer exists.');
+                        return;
+                      }
+                      router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId: row.workout.id } });
+                    }}
+                    style={({ pressed }) => [styles.routineBody, pressed && styles.pressed]}>
+                    <View style={styles.routineIcon}>
+                      <Text style={styles.routineIconLabel}>{getInitial(row.title)}</Text>
+                    </View>
+                    <View style={styles.routineCopy}>
+                      <Text numberOfLines={1} style={styles.routineTitle}>
+                        {row.title}
+                      </Text>
+                      <Text numberOfLines={1} style={styles.routineMeta}>
+                        {row.exerciseCount} exercise{row.exerciseCount === 1 ? '' : 's'}
+                      </Text>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      Alert.alert(row.title, undefined, [
+                        { text: 'Remove from program', style: 'destructive', onPress: () => removeWorkout(row.dayId) },
+                        { text: 'Cancel', style: 'cancel' },
+                      ]);
+                    }}
+                    style={({ pressed }) => [styles.moreButton, pressed && styles.pressed]}>
+                    <Text style={styles.moreLabel}>⋯</Text>
+                  </Pressable>
                 </View>
-              ))
-            ) : (
-              <Text style={styles.emptyRows}>No workouts assigned yet.</Text>
-            )}
-          </View>
+              ))}
+              <Pressable
+                onPress={() => router.push({ pathname: '/workouts/routine/new', params: { programId: program.id } })}
+                style={({ pressed }) => [styles.addRoutineCompact, pressed && styles.pressed]}>
+                <Text style={styles.addRoutineCompactLabel}>+ Add routine</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              onPress={() => router.push({ pathname: '/workouts/routine/new', params: { programId: program.id } })}
+              style={({ pressed }) => [styles.addRoutineRow, pressed && styles.pressed]}>
+              <View style={styles.addRoutineIcon}>
+                <Text style={styles.addRoutineIconLabel}>+</Text>
+              </View>
+              <Text style={styles.addRoutineLabel}>Add routine to program</Text>
+            </Pressable>
+          )}
         </View>
       </ScrollView>
     </View>
   );
 }
 
-function MetaItem({ label, value }: { label: string; value: string }) {
-  const { colors } = useWorkoutTheme();
-  const styles = useMemo(() => createMetaStyles(colors), [colors]);
-  return (
-    <View style={styles.item}>
-      <Text style={styles.label}>{label}</Text>
-      <Text selectable style={styles.value}>{value}</Text>
-    </View>
-  );
-}
-
-const createMetaStyles = (colors: typeof Colors.light) =>
-  StyleSheet.create({
-    item: {
-      gap: 4,
-      minWidth: '47%',
-    },
-    label: {
-      color: colors.textSecondary,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-    },
-    value: {
-      color: colors.textPrimary,
-      fontSize: 15,
-      fontWeight: '800',
-    },
-  });
-
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
-    backToWorkouts: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      marginTop: Spacing.two,
+    addRoutineCompact: {
+      alignSelf: 'flex-start',
       paddingHorizontal: Spacing.three,
-      paddingVertical: 10,
+      paddingVertical: Spacing.two,
     },
-    backToWorkoutsLabel: {
-      color: colors.textPrimary,
-      fontSize: 14,
+    addRoutineCompactLabel: {
+      color: colors.accent,
+      fontSize: 15,
       fontWeight: '900',
+    },
+    addRoutineIcon: {
+      alignItems: 'center',
+      backgroundColor: colors.backgroundSecondary,
+      height: 78,
+      justifyContent: 'center',
+      width: 78,
+    },
+    addRoutineIconLabel: {
+      color: colors.textPrimary,
+      fontSize: 38,
+      fontWeight: '300',
+    },
+    addRoutineLabel: {
+      color: colors.textPrimary,
+      flex: 1,
+      fontSize: 20,
+      fontWeight: '800',
+    },
+    addRoutineRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.four,
+      marginTop: Spacing.six,
     },
     circleButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceSecondary,
       borderCurve: 'continuous',
       borderRadius: 999,
-      height: 34,
+      height: 52,
       justifyContent: 'center',
-      width: 34,
+      width: 52,
     },
     circleLabel: {
       color: colors.textPrimary,
-      fontSize: 22,
-      fontWeight: '700',
-      lineHeight: 22,
-      marginTop: -1,
+      fontSize: 30,
+      fontWeight: '800',
+      lineHeight: 30,
+      marginTop: -2,
     },
-    content: {
-      alignItems: 'center',
-      backgroundColor: colors.background,
-      flexGrow: 1,
-      paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.three,
-    },
-
-
     container: {
       maxWidth: MaxContentWidth,
       width: '100%',
     },
+    content: {
+      alignItems: 'center',
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.three,
+    },
     cover: {
       alignItems: 'center',
-      aspectRatio: 1.7,
       backgroundColor: colors.surfaceSecondary,
       borderCurve: 'continuous',
-      borderRadius: Radii.large,
+      borderRadius: 20,
+      height: 300,
       justifyContent: 'center',
-      marginBottom: Spacing.three,
-      overflow: 'hidden',
+      width: '100%',
     },
     coverLabel: {
       color: colors.textPrimary,
-      fontSize: 34,
-      fontWeight: '900',
-      opacity: 0.9,
-    },
-    description: {
-      color: colors.textSecondary,
-      fontSize: 13,
-      lineHeight: 19,
-      marginTop: Spacing.three,
-    },
-    dividerTop: {
-      borderTopColor: colors.borderSubtle,
-      borderTopWidth: StyleSheet.hairlineWidth,
-    },
-    emptyRows: {
-      color: colors.textSecondary,
-      fontSize: 13,
-      marginTop: Spacing.two,
-    },
-    emptyTitle: {
-      color: colors.textPrimary,
-      fontSize: 20,
+      fontSize: 48,
       fontWeight: '900',
     },
-    header: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: Spacing.three,
-    },
-    inlineAction: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      paddingHorizontal: Spacing.two,
-      paddingVertical: 8,
-    },
-    inlineActionLabel: {
-      color: colors.textPrimary,
-      fontSize: 12,
-      fontWeight: '900',
+    coverStage: {
+      gap: Spacing.six,
+      paddingBottom: Spacing.three,
     },
     loadingLabel: {
       color: colors.textSecondary,
       fontSize: 14,
-      fontWeight: '700',
+      fontWeight: '800',
     },
     loadingState: {
       alignItems: 'center',
-      flex: 1,
       justifyContent: 'center',
-      padding: Spacing.three,
     },
-    metaGrid: {
+    moreButton: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      height: 48,
+      justifyContent: 'center',
+      width: 48,
+    },
+    moreLabel: {
+      color: colors.textPrimary,
+      fontSize: 24,
+      fontWeight: '900',
+      lineHeight: 24,
+    },
+    navRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: Spacing.three,
+      justifyContent: 'space-between',
+      marginBottom: Spacing.three,
     },
     pressed: {
       opacity: 0.72,
     },
-    screen: {
+    routineBody: {
+      alignItems: 'center',
       flex: 1,
-      backgroundColor: colors.background,
+      flexDirection: 'row',
+      gap: Spacing.three,
+      minWidth: 0,
     },
-    scrollView: {
-      backgroundColor: colors.background,
+    routineCopy: {
       flex: 1,
+      minWidth: 0,
     },
-    sectionCard: {
+    routineIcon: {
+      alignItems: 'center',
+      backgroundColor: colors.backgroundSecondary,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      height: 48,
+      justifyContent: 'center',
+      width: 48,
+    },
+    routineIconLabel: {
+      color: colors.textPrimary,
+      fontSize: 20,
+      fontWeight: '900',
+    },
+    routineMeta: {
+      color: colors.textSecondary,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    routineRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.three,
+      minHeight: 72,
+    },
+    routinesCard: {
       backgroundColor: colors.surfacePrimary,
-      borderColor: colors.borderSubtle,
       borderCurve: 'continuous',
       borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
+      gap: Spacing.three,
       marginTop: Spacing.three,
-      overflow: 'hidden',
       padding: Spacing.three,
+    },
+    routineTitle: {
+      color: colors.textPrimary,
+      fontSize: 20,
+      fontWeight: '900',
+      lineHeight: 25,
+    },
+    screen: {
+      backgroundColor: colors.background,
+      flex: 1,
     },
     sectionTitle: {
       color: colors.textPrimary,
-      fontSize: 18,
+      fontSize: 24,
       fontWeight: '900',
+      lineHeight: 30,
     },
-    sectionTitleRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: Spacing.two,
-      marginBottom: Spacing.two,
+    simpleButton: {
+      padding: Spacing.three,
     },
-    smallButton: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      height: 34,
-      justifyContent: 'center',
-      width: 34,
-    },
-    smallButtonLabel: {
-      color: colors.textPrimary,
-      fontSize: 20,
-      fontWeight: '700',
-      lineHeight: 20,
-      marginTop: -2,
-    },
-    startChip: {
-      alignItems: 'center',
-      backgroundColor: colors.accent,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      height: 32,
-      justifyContent: 'center',
-      paddingHorizontal: Spacing.two,
-    },
-    startChipLabel: {
-      color: colors.background,
-      fontSize: 12,
-      fontWeight: '900',
+    simpleButtonLabel: {
+      color: colors.accent,
+      fontSize: 16,
+      fontWeight: '800',
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 30,
+      fontSize: 36,
       fontWeight: '900',
-      letterSpacing: -0.6,
-      lineHeight: 34,
+      lineHeight: 42,
     },
-    workoutCopy: {
-      flex: 1,
-      minWidth: 0,
-    },
-    workoutIcon: {
+    viewMore: {
       alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 14,
-      height: 32,
-      justifyContent: 'center',
-      width: 32,
+      gap: 4,
     },
-    workoutIconLabel: {
-      color: colors.textPrimary,
-      fontSize: 14,
-      fontWeight: '900',
-    },
-    workoutMeta: {
+    viewMoreArrow: {
       color: colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '700',
-      marginTop: 2,
+      fontSize: 24,
+      lineHeight: 24,
     },
-    workoutRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: Spacing.two,
-      paddingVertical: 12,
-    },
-    workoutRowBody: {
-      alignItems: 'center',
-      flex: 1,
-      flexDirection: 'row',
-      gap: Spacing.two,
-      minWidth: 0,
-    },
-    workoutTitle: {
-      color: colors.textPrimary,
+    viewMoreLabel: {
+      color: colors.textSecondary,
       fontSize: 16,
-      fontWeight: '800',
+      fontWeight: '900',
+      letterSpacing: 0.5,
     },
   });
