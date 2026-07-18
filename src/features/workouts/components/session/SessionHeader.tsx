@@ -37,7 +37,7 @@ export const SessionHeader = memo(function SessionHeader({
     <View style={[styles.container, { backgroundColor: colors.background, borderBottomColor: colors.borderSubtle, paddingTop: insets.top + Spacing.two }]}>
       <View style={styles.topRow}>
         <Pressable accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
-          <Text style={styles.flatIconLabel}>⌄</Text>
+          <Text style={styles.flatIconLabel}>‹</Text>
         </Pressable>
         <Pressable accessibilityRole="button" style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
           <Text style={styles.timerIcon}>⏱</Text>
@@ -132,9 +132,9 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     flatIconLabel: {
       color: colors.textPrimary,
-      fontSize: 32,
-      fontWeight: '600',
-      lineHeight: 32,
+      fontSize: 38,
+      fontWeight: '400',
+      lineHeight: 38,
     },
     overflowButton: {
       alignItems: 'center',

@@ -208,6 +208,17 @@ export default function WorkoutSessionScreen() {
 
   const workoutTitle = draft.workoutTitle;
   const onBack = () => router.replace('/workouts');
+  const discardActiveWorkoutAndReturn = () => {
+    clearActiveWorkoutSessionDraft();
+    setDraft(null);
+    setBootstrappedDraft(null);
+    setDraftInputs({});
+    setExerciseOverflow(null);
+    setReplacementTarget(null);
+    setExpandedExerciseId(null);
+    setHiddenExerciseIds(new Set());
+    router.replace('/workouts');
+  };
   const onFinish = () => {
     if (!canFinish || !draft) {
       return;
@@ -221,11 +232,7 @@ export default function WorkoutSessionScreen() {
       {
         text: ['Add ', 'exercises'].join(''),
         onPress: () => {
-          if (isEmptyWorkout) {
-            router.push('/workout-session/exercises');
-            return;
-          }
-          Alert.alert(['Add ', 'exercises'].join(''), 'Coming soon for template workouts.');
+          router.push('/workout-session/exercises');
         },
       },
       {
@@ -237,10 +244,7 @@ export default function WorkoutSessionScreen() {
             {
               text: 'Discard workout',
               style: 'destructive',
-              onPress: () => {
-                clearActiveWorkoutSessionDraft();
-                router.replace('/workouts');
-              },
+              onPress: discardActiveWorkoutAndReturn,
             },
           ]);
         },
@@ -370,6 +374,11 @@ export default function WorkoutSessionScreen() {
               />
             );
           })}
+          {workoutExercises.length > 0 ? (
+            <Pressable onPress={() => router.push('/workout-session/exercises')} style={({ pressed }) => [styles.addExerciseFooterButton, pressed && styles.pressed]}>
+              <Text style={styles.addExerciseFooterLabel}>+ Add exercise</Text>
+            </Pressable>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -458,6 +467,20 @@ const createStyles = (colors: typeof Colors.light) =>
     addExercisesLabel: {
       color: colors.background,
       fontSize: 15,
+      fontWeight: '900',
+    },
+    addExerciseFooterButton: {
+      alignItems: 'center',
+      backgroundColor: colors.backgroundSecondary,
+      borderCurve: 'continuous',
+      borderRadius: 16,
+      justifyContent: 'center',
+      minHeight: 50,
+      marginTop: Spacing.two,
+    },
+    addExerciseFooterLabel: {
+      color: colors.textPrimary,
+      fontSize: 16,
       fontWeight: '900',
     },
     container: {

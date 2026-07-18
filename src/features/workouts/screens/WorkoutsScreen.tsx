@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -192,6 +192,23 @@ export default function WorkoutsScreen() {
       cancelled = true;
     };
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+
+      void hydrateActiveWorkoutSessionDraft().then(() => {
+        if (!cancelled) {
+          setActiveDraft(getActiveWorkoutSessionDraft());
+          setDraftReady(true);
+        }
+      });
+
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   const suggested = useMemo(() => getSuggestedWorkoutTemplates(workouts, workoutSessions).slice(0, 2), [workoutSessions, workouts]);
   const recent = useMemo(() => getRecentlyUsedWorkoutTemplates(workouts, workoutSessions, 6), [workoutSessions, workouts]);

@@ -87,7 +87,7 @@ export const hydrateActiveWorkoutSessionDraft = async () => {
   resolveActiveWorkoutSessionDraftHydration?.();
   resolveActiveWorkoutSessionDraftHydration = null;
 
-  if (!activeWorkoutSessionDraft || activeWorkoutSessionDraftRevision === 0) {
+  if (activeWorkoutSessionDraftRevision === 0) {
     activeWorkoutSessionDraft = storedDraft;
   }
 
