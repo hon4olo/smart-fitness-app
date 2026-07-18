@@ -23,6 +23,9 @@ export const SessionHeader = memo(function SessionHeader({
   onBack,
   onFinish,
   onOverflow,
+  reps,
+  sets,
+  volume,
 }: SessionHeaderProps) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -32,7 +35,7 @@ export const SessionHeader = memo(function SessionHeader({
     <View style={[styles.container, { paddingTop: insets.top + 4 }]}>
       <View style={[styles.topRow, { borderBottomColor: colors.borderSubtle }]}>
         <Pressable accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
-          <Text style={styles.flatIconLabel}>⌄</Text>
+          <Text style={styles.flatIconLabel}>‹</Text>
         </Pressable>
         <Pressable accessibilityRole="button" style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
           <Text style={styles.timerIcon}>⏱</Text>
@@ -51,12 +54,34 @@ export const SessionHeader = memo(function SessionHeader({
         </Pressable>
       </View>
 
+      {sets > 0 ? (
+        <View style={styles.statsRow}>
+          <Stat label="Sets" value={`${sets}`} />
+          <Stat label="Reps" value={`${reps}`} />
+          <Stat label="Volume" value={`${Math.round(volume).toLocaleString()} kg`} />
+        </View>
+      ) : null}
+
       <Text selectable style={styles.timer}>
         {elapsedLabel}
       </Text>
     </View>
   );
 });
+
+function Stat({ label, value }: { label: string; value: string }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <View style={styles.stat}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text selectable style={styles.statValue}>
+        {value}
+      </Text>
+    </View>
+  );
+}
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
@@ -98,9 +123,9 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     flatIconLabel: {
       color: colors.textPrimary,
-      fontSize: 34,
-      fontWeight: '600',
-      lineHeight: 34,
+      fontSize: 38,
+      fontWeight: '400',
+      lineHeight: 38,
     },
     overflowButton: {
       alignItems: 'center',
@@ -117,13 +142,34 @@ const createStyles = (colors: typeof Colors.light) =>
     pressed: {
       opacity: 0.72,
     },
+    stat: {
+      alignItems: 'center',
+      flex: 1,
+      gap: 2,
+    },
+    statLabel: {
+      color: colors.textMuted,
+      fontSize: 14,
+      lineHeight: 18,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.two,
+    },
+    statValue: {
+      color: colors.textPrimary,
+      fontSize: 17,
+      fontVariant: ['tabular-nums'],
+      lineHeight: 22,
+    },
     timer: {
       color: colors.textPrimary,
       fontSize: 38,
       fontVariant: ['tabular-nums'],
       fontWeight: '700',
       lineHeight: 46,
-      marginTop: 58,
+      marginTop: 50,
       textAlign: 'center',
     },
     timerIcon: {
