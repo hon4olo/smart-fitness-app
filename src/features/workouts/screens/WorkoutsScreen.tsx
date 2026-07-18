@@ -1,9 +1,8 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomTabInset, Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import {
   clearActiveWorkoutSessionDraft,
@@ -35,42 +34,46 @@ function createEmptyWorkoutDraft() {
   };
 }
 
-function SectionTitle({ title, rightLabel }: { title: string; rightLabel?: string }) {
+function SectionHeader({ action, title }: { action?: ReactNode; title: string }) {
   const { colors } = useWorkoutTheme();
   return (
-    <View style={sectionTitleStyles.container}>
-      <Text style={[sectionTitleStyles.title, { color: colors.textPrimary }]}>{title}</Text>
-      {rightLabel ? <Text style={[sectionTitleStyles.rightLabel, { color: colors.textSecondary }]}>{rightLabel}</Text> : null}
+    <View style={sectionHeaderStyles.container}>
+      <Text style={[sectionHeaderStyles.title, { color: colors.textPrimary }]}>{title}</Text>
+      {action ? <View style={sectionHeaderStyles.action}>{action}</View> : null}
     </View>
   );
 }
 
-const sectionTitleStyles = StyleSheet.create({
+const sectionHeaderStyles = StyleSheet.create({
+  action: {
+    flexShrink: 0,
+  },
   container: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  rightLabel: {
-    fontSize: 12,
-    fontWeight: '800',
+    width: '100%',
   },
   title: {
+    flex: 1,
     fontSize: 18,
     fontWeight: '900',
+    minWidth: 0,
   },
 });
 
 function WorkoutGridCard({
-  subtitle,
-  title,
+  line2,
+  line3,
   onPress,
   tileColor,
+  title,
 }: {
-  subtitle?: string;
-  title: string;
+  line2: string;
+  line3: string;
   onPress: () => void;
   tileColor: string;
+  title: string;
 }) {
   const { colors } = useWorkoutTheme();
   const styles = useMemo(() => createCardStyles(colors), [colors]);
@@ -80,8 +83,17 @@ function WorkoutGridCard({
       <View style={[styles.cover, { backgroundColor: tileColor }]}>
         <Text style={styles.coverLabel}>{title.slice(0, 1).toUpperCase()}</Text>
       </View>
-      <Text numberOfLines={2} style={styles.title}>{title}</Text>
-      {subtitle ? <Text numberOfLines={1} style={styles.subtitle}>{subtitle}</Text> : null}
+      <View style={styles.copy}>
+        <Text numberOfLines={2} style={styles.title}>
+          {title}
+        </Text>
+        <Text numberOfLines={1} style={styles.metaLinePrimary}>
+          {line2}
+        </Text>
+        <Text numberOfLines={1} style={styles.metaLineSecondary}>
+          {line3}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -90,15 +102,19 @@ const createCardStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     card: {
       flex: 1,
-      gap: 4,
+      gap: 8,
       minWidth: 0,
     },
     cardPressed: {
       opacity: 0.78,
     },
+    copy: {
+      gap: 2,
+      minHeight: 44,
+    },
     cover: {
       alignItems: 'center',
-      aspectRatio: 0.88,
+      aspectRatio: 0.96,
       borderCurve: 'continuous',
       borderRadius: 24,
       justifyContent: 'center',
@@ -111,7 +127,13 @@ const createCardStyles = (colors: typeof Colors.light) =>
       fontWeight: '900',
       opacity: 0.9,
     },
-    subtitle: {
+    metaLinePrimary: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '800',
+      lineHeight: 16,
+    },
+    metaLineSecondary: {
       color: colors.textSecondary,
       fontSize: 11,
       lineHeight: 14,
@@ -126,28 +148,38 @@ const createCardStyles = (colors: typeof Colors.light) =>
 
 function WorkoutListRow({
   countLabel,
+  detailLabel,
   iconLabel,
   onPress,
   title,
-  subtitle,
 }: {
   countLabel: string;
+  detailLabel?: string;
   iconLabel: string;
   onPress: () => void;
   title: string;
-  subtitle?: string;
 }) {
   const { colors } = useWorkoutTheme();
   const styles = useMemo(() => createListStyles(colors), [colors]);
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-      <View style={styles.icon}><Text style={styles.iconLabel}>{iconLabel}</Text></View>
-      <View style={styles.copy}>
-        <Text numberOfLines={1} style={styles.title}>{title}</Text>
-        {subtitle ? <Text numberOfLines={1} style={styles.subtitle}>{subtitle}</Text> : null}
+      <View style={styles.icon}>
+        <Text style={styles.iconLabel}>{iconLabel}</Text>
       </View>
-      <Text style={styles.count}>{countLabel}</Text>
+      <View style={styles.copy}>
+        <Text numberOfLines={1} style={styles.title}>
+          {title}
+        </Text>
+        <Text numberOfLines={1} style={styles.count}>
+          {countLabel}
+        </Text>
+        {detailLabel ? (
+          <Text numberOfLines={1} style={styles.subtitle}>
+            {detailLabel}
+          </Text>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
@@ -155,9 +187,10 @@ function WorkoutListRow({
 const createListStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     count: {
-      color: colors.textSecondary,
+      color: colors.textPrimary,
       fontSize: 12,
       fontWeight: '800',
+      lineHeight: 16,
     },
     copy: {
       flex: 1,
@@ -169,9 +202,9 @@ const createListStyles = (colors: typeof Colors.light) =>
       backgroundColor: '#222A32',
       borderCurve: 'continuous',
       borderRadius: 14,
-      height: 32,
+      height: 40,
       justifyContent: 'center',
-      width: 32,
+      width: 40,
     },
     iconLabel: {
       color: '#0F1317',
@@ -183,7 +216,8 @@ const createListStyles = (colors: typeof Colors.light) =>
       flexDirection: 'row',
       gap: Spacing.three,
       paddingHorizontal: Spacing.three,
-      paddingVertical: 8,
+      paddingVertical: 10,
+      width: '100%',
     },
     rowPressed: {
       backgroundColor: '#222A32',
@@ -191,6 +225,7 @@ const createListStyles = (colors: typeof Colors.light) =>
     subtitle: {
       color: colors.textSecondary,
       fontSize: 12,
+      lineHeight: 16,
     },
     title: {
       color: colors.textPrimary,
@@ -202,7 +237,6 @@ const createListStyles = (colors: typeof Colors.light) =>
 export default function WorkoutsScreen() {
   const { workoutSessions, workouts, isRestoringState } = useAppContext();
   const { colors } = useWorkoutTheme();
-  const insets = useSafeAreaInsets();
   const [viewMode, setViewMode] = useState<TabKey>('start-now');
   const [draftReady, setDraftReady] = useState(false);
 
@@ -225,7 +259,6 @@ export default function WorkoutsScreen() {
     () => programs.map((program) => getWorkoutProgramSummary(program, workouts, workoutSessions)),
     [programs, workouts, workoutSessions],
   );
-  const favoritePrograms = useMemo(() => programSummaries.filter((summary) => summary.isFavorite), [programSummaries]);
   const suggestedWorkouts = useMemo(() => getSuggestedWorkoutTemplates(workouts, workoutSessions), [workouts, workoutSessions]);
   const recentWorkouts = useMemo(() => getRecentlyUsedWorkoutTemplates(workouts, workoutSessions), [workouts, workoutSessions]);
 
@@ -308,78 +341,63 @@ export default function WorkoutsScreen() {
 
   const renderStartNow = () => (
     <View style={styles.sectionStack}>
-      <SectionTitle title="Suggested Workouts" />
-      <View style={styles.grid}>
-        {suggestedWorkouts.map((summary, index) => (
-          <WorkoutGridCard
-            key={summary.workout.id}
-            subtitle={summary.subtitle || summary.estimatedDuration}
-            title={summary.workout.title}
-            tileColor={index % 3 === 0 ? '#3D5AFE' : index % 3 === 1 ? '#7C4DFF' : '#FF6D5A'}
-            onPress={() => openWorkout(summary.workout.id)}
-          />
-        ))}
+      <View style={styles.sectionBlock}>
+        <SectionHeader title="Suggested Workouts" />
+        <View style={styles.grid}>
+          {suggestedWorkouts.map((summary, index) => (
+            <WorkoutGridCard
+              key={summary.workout.id}
+              line2={`${summary.exerciseCount} exercises`}
+              line3={summary.estimatedDuration ? summary.estimatedDuration : 'Duration unavailable'}
+              title={summary.workout.title}
+              tileColor={index % 3 === 0 ? '#3D5AFE' : index % 3 === 1 ? '#7C4DFF' : '#FF6D5A'}
+              onPress={() => openWorkout(summary.workout.id)}
+            />
+          ))}
+        </View>
       </View>
 
-      <SectionTitle title="Recently Added" />
-      <View style={styles.grid}>
-        {recentWorkouts.map((summary, index) => (
-          <WorkoutGridCard
-            key={summary.workout.id}
-            subtitle={summary.subtitle || summary.estimatedDuration}
-            title={summary.workout.title}
-            tileColor={index % 2 === 0 ? '#00C2FF' : '#15C39A'}
-            onPress={() => openWorkout(summary.workout.id)}
-          />
-        ))}
+      <View style={styles.sectionBlock}>
+        <SectionHeader title="Recently Added" />
+        <View style={styles.grid}>
+          {recentWorkouts.map((summary, index) => (
+            <WorkoutGridCard
+              key={summary.workout.id}
+              line2={`${summary.exerciseCount} exercises`}
+              line3={summary.estimatedDuration ? summary.estimatedDuration : 'Duration unavailable'}
+              title={summary.workout.title}
+              tileColor={index % 2 === 0 ? '#00C2FF' : '#15C39A'}
+              onPress={() => openWorkout(summary.workout.id)}
+            />
+          ))}
+        </View>
       </View>
     </View>
   );
 
   const renderPrograms = () => (
     <View style={styles.sectionStack}>
-      <Pressable onPress={createProgram} style={({ pressed }) => [styles.addProgramRow, pressed && styles.rowPressed]}>
-        <View style={styles.addProgramIcon}><Text style={styles.addProgramIconLabel}>+</Text></View>
-        <View style={styles.addProgramCopy}>
-          <Text style={styles.addProgramTitle}>Create program</Text>
-          <Text style={styles.addProgramSubtitle}>Create a new training split</Text>
-        </View>
-      </Pressable>
+      <SectionHeader
+        action={
+          <Pressable onPress={createProgram} style={({ pressed }) => [styles.addProgramAction, pressed && styles.pressed]}>
+            <Text style={styles.addProgramActionLabel}>+</Text>
+          </Pressable>
+        }
+        title="Programs"
+      />
 
-      {favoritePrograms.length > 0 ? (
-        <View style={styles.sectionBlock}>
-          <SectionTitle title="Favorites" />
-          <View style={styles.listCard}>
-            {favoritePrograms.map((summary, index) => (
-              <View key={summary.program.id} style={index > 0 ? styles.dividerTop : undefined}>
-                <WorkoutListRow
-                  countLabel={`${summary.workoutCount} workout${summary.workoutCount === 1 ? '' : 's'}`}
-                  iconLabel={summary.program.name.slice(0, 1).toUpperCase()}
-                  subtitle={summary.subtitle}
-                  title={summary.program.name}
-                  onPress={() => openProgram(summary.program.id)}
-                />
-              </View>
-            ))}
+      <View style={styles.listCard}>
+        {programSummaries.map((summary, index) => (
+          <View key={summary.program.id} style={index > 0 ? styles.dividerTop : undefined}>
+            <WorkoutListRow
+              countLabel={`${summary.workoutCount} workout${summary.workoutCount === 1 ? '' : 's'}`}
+              detailLabel={summary.subtitle}
+              iconLabel={summary.program.name.slice(0, 1).toUpperCase()}
+              title={summary.program.name}
+              onPress={() => openProgram(summary.program.id)}
+            />
           </View>
-        </View>
-      ) : null}
-
-      <View style={styles.sectionBlock}>
-        <SectionTitle title="Programs" />
-        <View style={styles.listCard}>
-          {programSummaries.map((summary, index) => (
-            <View key={summary.program.id} style={index > 0 ? styles.dividerTop : undefined}>
-              <WorkoutListRow
-                countLabel={`${summary.workoutCount} workout${summary.workoutCount === 1 ? '' : 's'}`}
-                iconLabel={summary.program.name.slice(0, 1).toUpperCase()}
-                subtitle={summary.subtitle}
-                title={summary.program.name}
-                onPress={() => openProgram(summary.program.id)}
-              />
-            </View>
-          ))}
-        </View>
+        ))}
       </View>
     </View>
   );
@@ -388,7 +406,7 @@ export default function WorkoutsScreen() {
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 64 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: Spacing.two }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}>
@@ -421,7 +439,7 @@ export default function WorkoutsScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + 2 }]}>
+      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle }]}>
         <View style={styles.container}>{renderStickyAction()}</View>
       </View>
     </View>
@@ -432,17 +450,19 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     activeActions: {
       flexDirection: 'row',
-      gap: 6,
+      gap: 8,
     },
     activeBlock: {
+      alignSelf: 'stretch',
       alignItems: 'flex-start',
       backgroundColor: '#171C22',
       borderColor: '#242C34',
       borderCurve: 'continuous',
       borderRadius: Radii.large,
       borderWidth: StyleSheet.hairlineWidth,
-      gap: 4,
-      padding: 8,
+      gap: 8,
+      padding: 12,
+      width: '100%',
     },
     activeLabel: {
       color: '#A8B1BB',
@@ -455,40 +475,20 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: 18,
       fontWeight: '900',
     },
-    addProgramCopy: {
-      flex: 1,
-      gap: 2,
-      minWidth: 0,
-    },
-    addProgramIcon: {
+    addProgramAction: {
       alignItems: 'center',
       backgroundColor: '#222A32',
       borderCurve: 'continuous',
       borderRadius: 999,
-      height: 40,
+      height: 44,
       justifyContent: 'center',
-      width: 40,
+      width: 44,
     },
-    addProgramIconLabel: {
+    addProgramActionLabel: {
       color: colors.textPrimary,
       fontSize: 24,
       fontWeight: '900',
       lineHeight: 24,
-    },
-    addProgramRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: Spacing.three,
-      paddingVertical: 2,
-    },
-    addProgramSubtitle: {
-      color: colors.textSecondary,
-      fontSize: 12,
-    },
-    addProgramTitle: {
-      color: colors.textPrimary,
-      fontSize: 16,
-      fontWeight: '900',
     },
     container: {
       maxWidth: MaxContentWidth,
@@ -508,20 +508,17 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     footer: {
       borderTopWidth: StyleSheet.hairlineWidth,
-      left: 0,
+      marginBottom: 8,
       paddingHorizontal: Spacing.three,
-      paddingTop: 0,
-      position: 'absolute',
-      right: 0,
-      bottom: 0,
+      paddingTop: 8,
     },
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 4,
+      gap: 12,
     },
     header: {
-      gap: Spacing.two,
+      gap: 16,
     },
     headerTop: {
       alignItems: 'center',
@@ -559,9 +556,9 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: '#222A32',
       borderCurve: 'continuous',
       borderRadius: 999,
-      height: 34,
+      height: 44,
       justifyContent: 'center',
-      width: 34,
+      width: 44,
     },
     searchLabel: {
       color: colors.textPrimary,
@@ -577,9 +574,12 @@ const createStyles = (colors: typeof Colors.light) =>
       flex: 1,
     },
     secondaryPill: {
+      alignItems: 'center',
       backgroundColor: '#222A32',
       borderCurve: 'continuous',
       borderRadius: 999,
+      justifyContent: 'center',
+      minHeight: 44,
       paddingHorizontal: Spacing.three,
       paddingVertical: 10,
     },
@@ -589,11 +589,11 @@ const createStyles = (colors: typeof Colors.light) =>
       fontWeight: '900',
     },
     sectionBlock: {
-      gap: 8,
-      marginTop: 8,
+      gap: 12,
+      marginTop: 0,
     },
     sectionStack: {
-      gap: 8,
+      gap: 20,
     },
     stickyIcon: {
       color: '#0F1317',

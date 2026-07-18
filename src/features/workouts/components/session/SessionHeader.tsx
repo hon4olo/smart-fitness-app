@@ -47,16 +47,17 @@ const createStyles = (colors: typeof Colors.light) =>
     container: {
       alignSelf: 'stretch',
       borderBottomWidth: StyleSheet.hairlineWidth,
-      gap: 4,
+      gap: 8,
       paddingHorizontal: Spacing.three,
-      paddingBottom: 8,
+      paddingBottom: 12,
     },
     finishButton: {
       backgroundColor: '#36D6D2',
       borderCurve: 'continuous',
       borderRadius: 999,
+      minHeight: 44,
       paddingHorizontal: Spacing.two,
-      paddingVertical: 8,
+      paddingVertical: 10,
     },
     finishButtonDisabled: {
       opacity: 0.42,
@@ -77,9 +78,9 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.surfaceSecondary,
       borderCurve: 'continuous',
       borderRadius: 999,
-      height: 34,
+      height: 44,
       justifyContent: 'center',
-      width: 34,
+      width: 44,
     },
     iconLabel: {
       color: colors.textPrimary,

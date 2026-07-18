@@ -31,6 +31,25 @@ describe('workout session redesign', () => {
     expect(finishSource).toContain('Save');
   });
 
+  it('uses a full-width five column set table grid', () => {
+    const sessionTable = require('fs').readFileSync('/root/smart-fitness-app/src/features/workouts/components/session/SessionSetTable.tsx', 'utf8');
+    const sessionLayout = require('fs').readFileSync('/root/smart-fitness-app/src/features/workouts/components/session/sessionTableLayout.ts', 'utf8');
+    const sessionRow = require('fs').readFileSync('/root/smart-fitness-app/src/features/workouts/components/session/SessionSetRow.tsx', 'utf8');
+
+    expect(sessionLayout).toContain("set: '10%'");
+    expect(sessionLayout).toContain("previous: '28%'");
+    expect(sessionLayout).toContain("weight: '20%'");
+    expect(sessionLayout).toContain("reps: '20%'");
+    expect(sessionLayout).toContain("completion: '22%'");
+    expect(sessionLayout).toContain("SESSION_TABLE_TOTAL_WIDTH = '100%'");
+    expect(sessionTable).toContain("alignSelf: 'stretch'");
+    expect(sessionTable).toContain("width: '100%'");
+    expect(sessionTable).toContain('SESSION_TABLE_COLUMNS.completion');
+    expect(sessionRow).toContain("width: '100%'");
+    expect(sessionRow).toContain('minHeight: 44');
+    expect(sessionRow).not.toContain('colOverflow');
+  });
+
   it('supports add set, complete set, and finish gating', () => {
     const initial = createWorkoutSessionDraft(workout);
     expect(getWorkoutSessionCompletedSetCount(initial)).toBe(0);

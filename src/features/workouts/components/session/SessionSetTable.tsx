@@ -85,7 +85,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     colSet: {
       width: SESSION_TABLE_COLUMNS.set,
-      textAlign: 'left',
+      textAlign: 'center',
     },
     colWeight: {
       width: SESSION_TABLE_COLUMNS.weight,
@@ -100,8 +100,8 @@ const createStyles = (colors: typeof Colors.light) =>
       textTransform: 'uppercase',
     },
     table: {
-      gap: 1,
-      alignSelf: 'flex-start',
+      gap: 4,
+      alignSelf: 'stretch',
       width: SESSION_TABLE_TOTAL_WIDTH,
     },
     tableBody: {
@@ -110,7 +110,8 @@ const createStyles = (colors: typeof Colors.light) =>
     tableHeader: {
       alignItems: 'center',
       flexDirection: 'row',
-      marginBottom: 2,
+      marginBottom: 4,
       paddingBottom: 0,
+      width: '100%',
     },
   });

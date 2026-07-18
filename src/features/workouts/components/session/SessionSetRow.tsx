@@ -110,13 +110,13 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     iconCell: {
       alignItems: 'center',
-      height: 40,
+      height: 44,
       justifyContent: 'center',
     },
     inputCell: {
       color: colors.textPrimary,
       fontSize: 16,
-      height: 34,
+      height: 44,
       lineHeight: 23,
       paddingHorizontal: 0,
       textAlign: 'center',
@@ -131,7 +131,8 @@ const createStyles = (colors: typeof Colors.light) =>
     row: {
       alignItems: 'center',
       flexDirection: 'row',
-      minHeight: 34,
+      minHeight: 44,
+      width: '100%',
     },
     rowCompleted: {
       opacity: 0.82,

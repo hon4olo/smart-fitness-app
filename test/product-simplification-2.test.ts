@@ -11,32 +11,31 @@ const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, r
 const count = (source: string, needle: string) => (source.match(new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) ?? []).length;
 
 describe('product simplification 2.0', () => {
-  test('workouts screen keeps a simple start-now tab and a single program creation CTA in the fresh state', () => {
+  test('workouts screen keeps the start-now section order and one visible create action', () => {
     const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
+    const startNowBlock = source.slice(source.indexOf('const renderStartNow'), source.indexOf('const renderPrograms'));
+    const programsBlock = source.slice(source.indexOf('const renderPrograms'), source.lastIndexOf('return ('));
 
-    expect(count(source, 'Start empty workout')).toBe(0);
-    expect(count(source, 'Create program')).toBe(1);
-    expect(source).not.toContain('Add Program');
-    expect(source).not.toContain('Recommendation');
-    expect(source).toContain('Start now');
-    expect(source).toContain('Programs');
-    expect(source).toContain('Create program');
-    expect(source).toContain('useAppTheme');
+    expect(startNowBlock.indexOf('Suggested Workouts')).toBeLessThan(startNowBlock.indexOf('Recently Added'));
+    expect(count(source, 'Pressable onPress={createProgram}')).toBe(1);
+    expect(programsBlock).toContain('title="Programs"');
+    expect(programsBlock).toContain('addProgramActionLabel');
+    expect(source).toContain('Workout in progress');
+    expect(source).toContain("marginBottom: 8");
+    expect(source).not.toContain("position: 'absolute'");
   });
 
-  test('workouts layout keeps the start-now and programs sections in compact source order', () => {
+  test('workouts screen uses a consistent card and program metadata model', () => {
     const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
 
-    expect(source).toContain('renderStartNow');
-    expect(source).toContain('renderPrograms');
-    expect(source).toContain('renderStickyAction');
-    expect(source).toContain('Suggested Workouts');
-    expect(source).toContain('Recently Added');
-    expect(source).toContain('Workout in progress');
-    expect(source).toContain('Resume');
-    expect(source).toContain('Discard');
-    expect(source).toContain('Create program');
-    expect(source).toContain('Programs');
+    expect(source).toContain("line2={`${summary.exerciseCount} exercises`}");
+    expect(source).toContain("line3={summary.estimatedDuration ? summary.estimatedDuration : 'Duration unavailable'}");
+    expect(source).toContain('metaLinePrimary');
+    expect(source).toContain('metaLineSecondary');
+    expect(source).toContain('detailLabel={summary.subtitle}');
+    expect(source).toContain('countLabel={`${summary.workoutCount} workout');
+    expect(source).not.toContain('subtitle={summary.subtitle}');
+    expect(source).not.toContain('Create program');
   });
 
   test('progress screen keeps one weight summary and hides duplicate analytics blocks', () => {
