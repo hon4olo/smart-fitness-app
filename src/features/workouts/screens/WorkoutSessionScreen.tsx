@@ -312,7 +312,7 @@ export default function WorkoutSessionScreen() {
   const completedReps = completedSets.reduce((total, set) => total + set.reps, 0);
   const completedVolume = completedSets.reduce((total, set) => total + set.reps * set.weight, 0);
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <View style={styles.screen}>
       <SessionHeader
         elapsedLabel={formatWorkoutSessionElapsedLabel(draft.startedAt, now)}
         finishDisabled={!canFinish}
@@ -327,7 +327,7 @@ export default function WorkoutSessionScreen() {
 
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.four }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.five }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}>
@@ -376,7 +376,7 @@ export default function WorkoutSessionScreen() {
           })}
           {workoutExercises.length > 0 ? (
             <Pressable onPress={() => router.push('/workout-session/exercises')} style={({ pressed }) => [styles.addExerciseFooterButton, pressed && styles.pressed]}>
-              <Text style={styles.addExerciseFooterLabel}>+ Add exercise</Text>
+              <Text style={styles.addExerciseFooterLabel}>Add exercises</Text>
             </Pressable>
           ) : null}
         </View>
@@ -456,32 +456,32 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     addExercisesButton: {
       alignItems: 'center',
-      backgroundColor: colors.accent,
+      backgroundColor: '#FFFFFF',
       borderCurve: 'continuous',
       borderRadius: 999,
-      minHeight: 48,
+      minHeight: 58,
       justifyContent: 'center',
       marginTop: Spacing.two,
       paddingHorizontal: Spacing.three,
     },
     addExercisesLabel: {
-      color: colors.background,
-      fontSize: 15,
-      fontWeight: '900',
+      color: '#000000',
+      fontSize: 16,
+      fontWeight: '700',
     },
     addExerciseFooterButton: {
       alignItems: 'center',
-      backgroundColor: colors.backgroundSecondary,
+      backgroundColor: '#FFFFFF',
       borderCurve: 'continuous',
-      borderRadius: 16,
+      borderRadius: 999,
       justifyContent: 'center',
-      minHeight: 50,
-      marginTop: Spacing.two,
+      minHeight: 58,
+      marginTop: Spacing.five,
     },
     addExerciseFooterLabel: {
-      color: colors.textPrimary,
+      color: '#000000',
       fontSize: 16,
-      fontWeight: '900',
+      fontWeight: '700',
     },
     container: {
       maxWidth: MaxContentWidth,
@@ -490,7 +490,7 @@ const createStyles = (colors: typeof Colors.light) =>
     content: {
       alignItems: 'center',
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.two,
+      paddingTop: 0,
     },
     emptyState: {
       color: colors.textSecondary,
@@ -657,6 +657,7 @@ const createStyles = (colors: typeof Colors.light) =>
       fontWeight: '900',
     },
     screen: {
+      backgroundColor: '#000000',
       flex: 1,
     },
     scrollView: {

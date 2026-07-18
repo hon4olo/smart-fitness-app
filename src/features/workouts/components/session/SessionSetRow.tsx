@@ -80,7 +80,7 @@ const createStyles = (colors: typeof Colors.light) =>
     cell: {
       color: colors.textPrimary,
       fontSize: 16,
-      lineHeight: 42,
+      lineHeight: 36,
       textAlign: 'center',
     },
     checkLabel: {
@@ -93,7 +93,7 @@ const createStyles = (colors: typeof Colors.light) =>
       color: '#FFFFFF',
     },
     colCompletion: {
-      width: 44,
+      width: 42,
     },
     colPrevious: {
       flex: 1,
@@ -101,13 +101,13 @@ const createStyles = (colors: typeof Colors.light) =>
       textAlign: 'left',
     },
     colReps: {
-      width: 78,
+      width: 66,
     },
     colSet: {
       width: 42,
     },
     colWeight: {
-      width: 78,
+      width: 66,
     },
     iconCell: {
       alignItems: 'center',
@@ -131,10 +131,13 @@ const createStyles = (colors: typeof Colors.light) =>
       borderWidth: StyleSheet.hairlineWidth,
       color: colors.textPrimary,
       fontSize: 16,
-      height: 42,
-      lineHeight: 23,
+      height: 36,
+      includeFontPadding: false,
+      lineHeight: 18,
       paddingHorizontal: 4,
+      paddingVertical: 0,
       textAlign: 'center',
+      textAlignVertical: 'center',
       fontVariant: ['tabular-nums'],
     },
     inputCellCompleted: {
@@ -151,7 +154,7 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flexDirection: 'row',
       gap: Spacing.one,
-      minHeight: 52,
+      minHeight: 48,
       width: '100%',
     },
     rowCompletedDark: {

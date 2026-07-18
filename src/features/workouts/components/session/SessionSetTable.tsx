@@ -71,7 +71,7 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     colCompletion: {
       textAlign: 'center',
-      width: 44,
+      width: 42,
     },
     colPrevious: {
       flex: 1,
@@ -79,7 +79,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     colReps: {
       textAlign: 'center',
-      width: 78,
+      width: 66,
     },
     colSet: {
       textAlign: 'center',
@@ -87,7 +87,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     colWeight: {
       textAlign: 'center',
-      width: 78,
+      width: 66,
     },
     headerText: {
       color: colors.textMuted,
@@ -97,7 +97,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     table: {
       alignSelf: 'stretch',
-      gap: Spacing.two,
+      gap: Spacing.one,
       width: '100%',
     },
     tableBody: {

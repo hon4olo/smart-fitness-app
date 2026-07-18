@@ -297,7 +297,9 @@ function IntegrationRow({
         <Text style={styles.integrationIconLabel}>{icon}</Text>
       </View>
       <Text style={styles.integrationLabel}>{label}</Text>
-      <Switch style={styles.switchControl} value={value} onValueChange={onValueChange} trackColor={{ false: colors.surfaceSecondary, true: colors.accent }} thumbColor="#FFFFFF" />
+      <View style={styles.switchSlot}>
+        <Switch style={styles.switchControl} value={value} onValueChange={onValueChange} trackColor={{ false: colors.surfaceSecondary, true: colors.accent }} thumbColor="#FFFFFF" />
+      </View>
     </View>
   );
 }
@@ -422,6 +424,7 @@ const createStyles = (colors: typeof Colors.light) =>
       flexDirection: 'row',
       gap: Spacing.two,
       minHeight: 56,
+      paddingVertical: 8,
     },
     loadingLabel: {
       color: colors.textSecondary,
@@ -537,6 +540,13 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingVertical: Spacing.one,
     },
     switchControl: {
-      transform: [{ scaleX: 0.86 }, { scaleY: 0.86 }],
+      transform: [{ scaleX: 0.82 }, { scaleY: 0.82 }],
+    },
+    switchSlot: {
+      alignItems: 'center',
+      height: 34,
+      justifyContent: 'center',
+      marginRight: -5,
+      width: 56,
     },
   });
