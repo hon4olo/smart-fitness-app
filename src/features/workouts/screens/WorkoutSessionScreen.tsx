@@ -313,8 +313,6 @@ export default function WorkoutSessionScreen() {
   const completedSets = draft.sets.filter((set) => set.completed !== false);
   const completedReps = completedSets.reduce((total, set) => total + set.reps, 0);
   const completedVolume = completedSets.reduce((total, set) => total + set.reps * set.weight, 0);
-  // Add set | Previous | kg | Reps | ✓
-
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <SessionHeader
@@ -331,7 +329,7 @@ export default function WorkoutSessionScreen() {
 
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.two }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.four }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}>

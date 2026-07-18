@@ -7,7 +7,6 @@ import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { SessionEmptySets } from './SessionEmptySets';
 import { SessionSetRow } from './SessionSetRow';
-import { SESSION_TABLE_COLUMNS } from './sessionTableLayout';
 import type { SessionDraftInputs } from './types';
 
 type SessionSetTableProps = {
@@ -72,28 +71,28 @@ export const SessionSetTable = memo(function SessionSetTable({
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     colCompletion: {
-      width: SESSION_TABLE_COLUMNS.completion,
       textAlign: 'center',
+      width: 44,
     },
     colPrevious: {
-      width: SESSION_TABLE_COLUMNS.previous,
+      flex: 1,
       minWidth: 0,
     },
     colReps: {
-      width: SESSION_TABLE_COLUMNS.reps,
       textAlign: 'center',
+      width: 78,
     },
     colSet: {
-      width: SESSION_TABLE_COLUMNS.set,
       textAlign: 'center',
+      width: 42,
     },
     colWeight: {
-      width: SESSION_TABLE_COLUMNS.weight,
       textAlign: 'center',
+      width: 78,
     },
     headerText: {
       color: colors.textMuted,
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '700',
       textAlign: 'left',
     },
@@ -108,7 +107,7 @@ const createStyles = (colors: typeof Colors.light) =>
     tableHeader: {
       alignItems: 'center',
       flexDirection: 'row',
-      gap: Spacing.two,
+      gap: Spacing.one,
       width: '100%',
     },
   });

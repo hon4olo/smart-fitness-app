@@ -242,7 +242,7 @@ export default function WorkoutsScreen() {
     <View style={styles.screen}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 112 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 84 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
@@ -288,7 +288,7 @@ export default function WorkoutsScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.two }]}>
+      <View pointerEvents="box-none" style={[styles.footer, { paddingBottom: insets.bottom + 2 }]}>
         <View style={styles.container}>
           <Pressable onPress={activeDraft ? resumeWorkout : startEmptyWorkout} style={({ pressed }) => [styles.footerButton, pressed && styles.pressed]}>
             <Text style={styles.footerIcon}>▶</Text>
@@ -496,11 +496,9 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingTop: Spacing.three,
     },
     footer: {
-      backgroundColor: colors.background,
       bottom: 0,
       left: 0,
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.two,
       position: 'absolute',
       right: 0,
     },
@@ -509,23 +507,23 @@ const createStyles = (colors: typeof Colors.light) =>
       alignSelf: 'flex-end',
       backgroundColor: '#0A8DFF',
       borderCurve: 'continuous',
-      borderRadius: 17,
+      borderRadius: 16,
       flexDirection: 'row',
       gap: Spacing.two,
       justifyContent: 'center',
-      maxWidth: 390,
-      minHeight: 56,
-      minWidth: 292,
-      paddingHorizontal: Spacing.four,
+      maxWidth: 360,
+      minHeight: 52,
+      minWidth: 286,
+      paddingHorizontal: Spacing.three,
     },
     footerIcon: {
       color: '#FFFFFF',
-      fontSize: 17,
+      fontSize: 15,
       fontWeight: '900',
     },
     footerLabel: {
       color: '#FFFFFF',
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '900',
     },
     grid: {

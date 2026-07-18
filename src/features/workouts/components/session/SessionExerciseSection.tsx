@@ -106,18 +106,18 @@ const createStyles = (colors: typeof Colors.light) =>
       borderCurve: 'continuous',
       borderRadius: 999,
       justifyContent: 'center',
-      minHeight: 58,
+      minHeight: 52,
     },
     addSetLabel: {
       color: colors.textPrimary,
-      fontSize: 17,
+      fontSize: 16,
       fontWeight: '800',
     },
     collapsedLine: {
       color: colors.textSecondary,
-      fontSize: 16,
+      fontSize: 15,
       fontVariant: ['tabular-nums'],
-      lineHeight: 24,
+      lineHeight: 22,
     },
     exerciseHelp: {
       bottom: 2,
@@ -133,30 +133,30 @@ const createStyles = (colors: typeof Colors.light) =>
       borderCurve: 'continuous',
       borderRadius: 8,
       borderWidth: StyleSheet.hairlineWidth,
-      height: 72,
+      height: 64,
       justifyContent: 'center',
-      width: 66,
+      width: 58,
     },
     exerciseThumbLabel: {
       color: colors.textPrimary,
-      fontSize: 22,
+      fontSize: 21,
       fontWeight: '900',
     },
     exerciseTitle: {
       color: colors.textPrimary,
-      fontSize: 23,
+      fontSize: 21,
       fontWeight: '500',
-      lineHeight: 30,
+      lineHeight: 27,
     },
     expanded: {
-      gap: Spacing.three,
-      paddingBottom: Spacing.four,
+      gap: Spacing.two,
+      paddingBottom: Spacing.three,
     },
     header: {
       alignItems: 'flex-start',
       flexDirection: 'row',
-      gap: Spacing.three,
-      paddingVertical: Spacing.three,
+      gap: Spacing.two,
+      paddingVertical: Spacing.two,
     },
     headerCopy: {
       flex: 1,
@@ -164,9 +164,9 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     menuButton: {
       alignItems: 'center',
-      height: 44,
+      height: 40,
       justifyContent: 'center',
-      width: 44,
+      width: 40,
     },
     menuLabel: {
       color: '#0A8DFF',
@@ -177,8 +177,8 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     notesInput: {
       color: colors.textPrimary,
-      fontSize: 18,
-      minHeight: 42,
+      fontSize: 17,
+      minHeight: 38,
       paddingVertical: Spacing.one,
     },
     pressed: {
@@ -189,7 +189,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     restTimerLabel: {
       color: '#0A8DFF',
-      fontSize: 18,
+      fontSize: 17,
       fontWeight: '800',
     },
     section: {
