@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -43,6 +43,7 @@ export default function WorkoutSessionScreen() {
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
   const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(() => new Set());
   const [overflowMessage, setOverflowMessage] = useState<string | null>(null);
+  const didSetInitialExpandedExercise = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -181,6 +182,13 @@ export default function WorkoutSessionScreen() {
 
     return [...templateExercises, ...sessionOnlyExercises];
   }, [draft, exercises, hiddenExerciseIds, isEmptyWorkout, parsedPlan.exercises, workout]);
+
+  useEffect(() => {
+    if (!didSetInitialExpandedExercise.current && visibleExercises.length > 0) {
+      didSetInitialExpandedExercise.current = true;
+      setExpandedExerciseId(visibleExercises[0].id);
+    }
+  }, [visibleExercises]);
 
   if (bootstrappedDraft === undefined || isRestoringState || routeState.status === 'loading') {
     return (
@@ -475,8 +483,8 @@ const createStyles = (colors: typeof Colors.light) =>
       borderCurve: 'continuous',
       borderRadius: 999,
       justifyContent: 'center',
-      minHeight: 58,
-      marginTop: Spacing.five,
+      minHeight: 52,
+      marginTop: 38,
     },
     addExerciseFooterLabel: {
       color: '#000000',
@@ -489,7 +497,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     content: {
       alignItems: 'center',
-      paddingHorizontal: Spacing.three,
+      paddingHorizontal: Spacing.four,
       paddingTop: 0,
     },
     emptyState: {

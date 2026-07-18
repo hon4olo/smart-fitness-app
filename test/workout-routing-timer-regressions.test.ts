@@ -141,9 +141,9 @@ describe('workout routing, duplicates, and timer regressions', () => {
   });
 
   it('formats elapsed workout time from persisted start timestamp', () => {
-    expect(formatWorkoutSessionElapsedLabel('2024-01-01T12:00:00.000Z', new Date('2024-01-01T12:00:59.000Z').getTime())).toBe('00:59');
-    expect(formatWorkoutSessionElapsedLabel('2024-01-01T12:00:00.000Z', new Date('2024-01-01T12:01:05.000Z').getTime())).toBe('01:05');
-    expect(formatWorkoutSessionElapsedLabel('2024-01-01T12:00:00.000Z', new Date('2024-01-01T13:02:03.000Z').getTime())).toBe('1:02:03');
+    expect(formatWorkoutSessionElapsedLabel('2024-01-01T12:00:00.000Z', new Date('2024-01-01T12:00:59.000Z').getTime())).toBe('00:00:59');
+    expect(formatWorkoutSessionElapsedLabel('2024-01-01T12:00:00.000Z', new Date('2024-01-01T12:01:05.000Z').getTime())).toBe('00:01:05');
+    expect(formatWorkoutSessionElapsedLabel('2024-01-01T12:00:00.000Z', new Date('2024-01-01T13:02:03.000Z').getTime())).toBe('01:02:03');
   });
 
   it('preserves a completed workout snapshot exactly once after the active draft is cleared', () => {

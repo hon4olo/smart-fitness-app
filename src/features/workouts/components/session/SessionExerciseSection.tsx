@@ -106,11 +106,11 @@ const createStyles = (colors: typeof Colors.light) =>
       borderCurve: 'continuous',
       borderRadius: 999,
       justifyContent: 'center',
-      minHeight: 54,
+      minHeight: 42,
     },
     addSetLabel: {
       color: colors.textPrimary,
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '500',
     },
     collapsedLine: {
@@ -135,28 +135,28 @@ const createStyles = (colors: typeof Colors.light) =>
       borderWidth: StyleSheet.hairlineWidth,
       height: 66,
       justifyContent: 'center',
-      width: 66,
+      width: 44,
     },
     exerciseThumbLabel: {
       color: colors.textPrimary,
-      fontSize: 19,
+      fontSize: 16,
       fontWeight: '900',
     },
     exerciseTitle: {
       color: colors.textPrimary,
-      fontSize: 20,
+      fontSize: 17,
       fontWeight: '500',
-      lineHeight: 25,
+      lineHeight: 22,
     },
     expanded: {
-      gap: Spacing.two,
+      gap: Spacing.three,
       paddingBottom: Spacing.four,
     },
     header: {
       alignItems: 'flex-start',
       flexDirection: 'row',
-      gap: Spacing.two,
-      paddingVertical: Spacing.three,
+      gap: Spacing.three,
+      paddingBottom: Spacing.four,
     },
     headerCopy: {
       flex: 1,
@@ -169,17 +169,17 @@ const createStyles = (colors: typeof Colors.light) =>
       width: 40,
     },
     menuLabel: {
-      color: '#0A8DFF',
-      fontSize: 20,
+      color: '#0A84FF',
+      fontSize: 17,
       fontWeight: '900',
       letterSpacing: 1,
       lineHeight: 22,
     },
     notesInput: {
       color: colors.textPrimary,
-      fontSize: 15,
-      minHeight: 34,
-      paddingVertical: Spacing.one,
+      fontSize: 14,
+      minHeight: 24,
+      paddingVertical: 0,
     },
     pressed: {
       opacity: 0.72,
@@ -188,8 +188,8 @@ const createStyles = (colors: typeof Colors.light) =>
       alignSelf: 'flex-start',
     },
     restTimerLabel: {
-      color: '#0A8DFF',
-      fontSize: 16,
+      color: '#0A84FF',
+      fontSize: 15,
       fontWeight: '500',
     },
     section: {

@@ -35,7 +35,7 @@ export const SessionHeader = memo(function SessionHeader({
     <View style={[styles.container, { paddingTop: insets.top + 4 }]}>
       <View style={[styles.topRow, { borderBottomColor: colors.borderSubtle }]}>
         <Pressable accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
-          <Text style={styles.flatIconLabel}>‹</Text>
+          <Text style={styles.flatIconLabel}>⌄</Text>
         </Pressable>
         <Pressable accessibilityRole="button" style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
           <Text style={styles.timerIcon}>⏱</Text>
@@ -88,17 +88,17 @@ const createStyles = (colors: typeof Colors.light) =>
     container: {
       alignSelf: 'stretch',
       backgroundColor: '#000000',
-      paddingBottom: 42,
+      paddingBottom: 40,
     },
     finishButton: {
       alignItems: 'center',
-      backgroundColor: '#0A8DFF',
+      backgroundColor: '#0A84FF',
       borderCurve: 'continuous',
-      borderRadius: 18,
-      height: 48,
+      borderRadius: 17,
+      height: 34,
       justifyContent: 'center',
-      minWidth: 88,
-      paddingHorizontal: Spacing.three,
+      minWidth: 80,
+      paddingHorizontal: Spacing.four,
     },
     finishButtonDisabled: {
       opacity: 0.42,
@@ -109,7 +109,7 @@ const createStyles = (colors: typeof Colors.light) =>
     finishLabel: {
       color: '#FFFFFF',
       fontSize: 15,
-      fontWeight: '800',
+      fontWeight: '500',
       textAlign: 'center',
     },
     finishLabelDisabled: {
@@ -123,9 +123,9 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     flatIconLabel: {
       color: colors.textPrimary,
-      fontSize: 38,
+      fontSize: 30,
       fontWeight: '400',
-      lineHeight: 38,
+      lineHeight: 30,
     },
     overflowButton: {
       alignItems: 'center',
@@ -134,8 +134,8 @@ const createStyles = (colors: typeof Colors.light) =>
       width: 44,
     },
     overflowLabel: {
-      color: '#0A8DFF',
-      fontSize: 18,
+      color: '#0A84FF',
+      fontSize: 16,
       fontWeight: '900',
       letterSpacing: 1,
     },
@@ -148,28 +148,28 @@ const createStyles = (colors: typeof Colors.light) =>
       gap: 2,
     },
     statLabel: {
-      color: colors.textMuted,
-      fontSize: 14,
-      lineHeight: 18,
+      color: '#5F5F66',
+      fontSize: 12,
+      lineHeight: 16,
     },
     statsRow: {
       flexDirection: 'row',
-      paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.two,
+      paddingHorizontal: Spacing.four,
+      paddingTop: Spacing.four,
     },
     statValue: {
       color: colors.textPrimary,
-      fontSize: 17,
+      fontSize: 16,
       fontVariant: ['tabular-nums'],
       lineHeight: 22,
     },
     timer: {
       color: colors.textPrimary,
-      fontSize: 38,
+      fontSize: 32,
       fontVariant: ['tabular-nums'],
       fontWeight: '700',
-      lineHeight: 46,
-      marginTop: 50,
+      lineHeight: 40,
+      marginTop: 60,
       textAlign: 'center',
     },
     timerIcon: {
@@ -181,9 +181,9 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       borderBottomWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
-      gap: Spacing.two,
-      minHeight: 58,
-      paddingHorizontal: Spacing.three,
+      gap: Spacing.one,
+      minHeight: 48,
+      paddingHorizontal: Spacing.four,
     },
     topSpacer: {
       flex: 1,

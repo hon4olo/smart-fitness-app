@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type SessionSetRowProps = {
@@ -93,7 +93,7 @@ const createStyles = (colors: typeof Colors.light) =>
       color: '#FFFFFF',
     },
     colCompletion: {
-      width: 42,
+      width: 34,
     },
     colPrevious: {
       flex: 1,
@@ -101,21 +101,22 @@ const createStyles = (colors: typeof Colors.light) =>
       textAlign: 'left',
     },
     colReps: {
-      width: 66,
+      width: 76,
     },
     colSet: {
-      width: 42,
+      width: 48,
     },
     colWeight: {
-      width: 66,
+      width: 76,
     },
     iconCell: {
       alignItems: 'center',
-      backgroundColor: colors.backgroundSecondary,
+      backgroundColor: '#292929',
       borderCurve: 'continuous',
       borderRadius: 999,
       height: 34,
       justifyContent: 'center',
+      marginHorizontal: 7,
     },
     iconCellCompletedDark: {
       backgroundColor: '#2ED66F',
@@ -124,14 +125,14 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: '#2DBA20',
     },
     inputCell: {
-      backgroundColor: colors.surfacePrimary,
-      borderColor: colors.borderSubtle,
+      backgroundColor: '#000000',
+      borderColor: '#1C1C1E',
       borderCurve: 'continuous',
       borderRadius: 8,
       borderWidth: StyleSheet.hairlineWidth,
       color: colors.textPrimary,
       fontSize: 16,
-      height: 36,
+      height: 38,
       includeFontPadding: false,
       lineHeight: 18,
       paddingHorizontal: 4,
@@ -145,7 +146,7 @@ const createStyles = (colors: typeof Colors.light) =>
       borderColor: 'transparent',
     },
     previousCell: {
-      color: colors.textSecondary,
+      color: '#8E8E93',
     },
     pressed: {
       opacity: 0.72,
@@ -153,12 +154,12 @@ const createStyles = (colors: typeof Colors.light) =>
     row: {
       alignItems: 'center',
       flexDirection: 'row',
-      gap: Spacing.one,
+      gap: 0,
       minHeight: 48,
       width: '100%',
     },
     rowCompletedDark: {
-      backgroundColor: '#043718',
+      backgroundColor: '#003D1C',
     },
     rowCompletedLight: {
       backgroundColor: '#D7F3CE',

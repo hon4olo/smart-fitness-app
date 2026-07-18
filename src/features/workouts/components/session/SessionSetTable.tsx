@@ -59,7 +59,7 @@ export const SessionSetTable = memo(function SessionSetTable({
             onRepsChange={(value) => onRepsChange(set.id, value)}
             onToggle={() => onToggleSetCompletion(set.id)}
             onWeightChange={(value) => onWeightChange(set.id, value)}
-            previousLabel={previousSets[index] ? `${previousSets[index].weight} kg · ${previousSets[index].reps} reps` : '—'}
+            previousLabel={previousSets[index] ? `${previousSets[index].weight}kg x ${previousSets[index].reps}` : '—'}
           />
         ))}
       </View>
@@ -71,7 +71,7 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     colCompletion: {
       textAlign: 'center',
-      width: 42,
+      width: 48,
     },
     colPrevious: {
       flex: 1,
@@ -79,26 +79,26 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     colReps: {
       textAlign: 'center',
-      width: 66,
+      width: 76,
     },
     colSet: {
       textAlign: 'center',
-      width: 42,
+      width: 48,
     },
     colWeight: {
       textAlign: 'center',
-      width: 66,
+      width: 76,
     },
     headerText: {
       color: colors.textMuted,
-      fontSize: 14,
-      fontWeight: '700',
+      fontSize: 13,
+      fontWeight: '500',
       textAlign: 'left',
     },
     table: {
       alignSelf: 'stretch',
-      gap: Spacing.one,
-      width: '100%',
+      gap: Spacing.two,
+      marginHorizontal: -Spacing.four,
     },
     tableBody: {
       gap: 0,
@@ -106,7 +106,7 @@ const createStyles = (colors: typeof Colors.light) =>
     tableHeader: {
       alignItems: 'center',
       flexDirection: 'row',
-      gap: Spacing.one,
+      gap: 0,
       width: '100%',
     },
   });
