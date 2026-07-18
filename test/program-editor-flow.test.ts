@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { defaultState } from '@/data/defaults';
 import {
   attachWorkoutsToProgramDraft,
+  createBlankProgramDraft,
   createProgramDraftFromProgram,
   createWorkoutDraftFromWorkout,
   removeWorkoutFromProgramDraft,
@@ -36,6 +37,15 @@ describe('program editor flow helpers', () => {
     const removed = removeWorkoutFromProgramDraft(withWorkout, dayId!);
     expect(removed.days.find((day) => day.id === dayId)?.restDay).toBe(true);
     expect(removed.days.filter((day) => day.workoutTemplateId === conditioningWorkout.id)).toHaveLength(0);
+  });
+
+  it('creates a blank new program draft instead of reusing the default program template', () => {
+    const draft = createBlankProgramDraft();
+
+    expect(draft.id).not.toBe('default-program');
+    expect(draft.name).toBe('');
+    expect(draft.days.every((day) => day.restDay)).toBe(true);
+    expect(draft.days.every((day) => !day.workoutTemplateId)).toBe(true);
   });
 
   it('builds a workout draft from a template with editable metadata and ordered exercises', () => {

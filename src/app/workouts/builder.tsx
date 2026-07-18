@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { getWorkoutProgramById, getWorkoutProgramSchedule, getWorkoutPrograms, saveWorkoutProgram } from '@/lib/workouts';
+import { getWorkoutProgramById, getWorkoutProgramSchedule, saveWorkoutProgram } from '@/lib/workouts';
 import { ProgramWorkoutEditorModal } from '@/components/workouts/ProgramWorkoutEditorModal';
 import { ProgramWorkoutPickerModal } from '@/components/workouts/ProgramWorkoutPickerModal';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
@@ -19,14 +19,7 @@ import {
 import type { TrainingProgram } from '@/types/programs';
 import type { Workout } from '@/types';
 
-const createDefaultProgramDraft = (workouts: Workout[]) => {
-  const template = getWorkoutPrograms(workouts)[0];
-  if (!template) {
-    return null;
-  }
-
-  return createBlankProgramDraft(template);
-};
+const createDefaultProgramDraft = () => createBlankProgramDraft();
 
 export default function ProgramBuilderRoute() {
   const params = useLocalSearchParams<{ programId?: string }>();
@@ -38,14 +31,14 @@ export default function ProgramBuilderRoute() {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const existingProgram = useMemo(() => (programId ? getWorkoutProgramById(programId, workouts) : null), [programId, workouts]);
-  const [programDraft, setProgramDraft] = useState<TrainingProgram | null>(() => existingProgram ?? createDefaultProgramDraft(workouts));
+  const [programDraft, setProgramDraft] = useState<TrainingProgram | null>(() => existingProgram ?? createDefaultProgramDraft());
   const [pickerOpen, setPickerOpen] = useState(false);
   const [workoutEditorTarget, setWorkoutEditorTarget] = useState<Workout | null | undefined>(undefined);
   const [isSavingProgram, setIsSavingProgram] = useState(false);
   const initialSnapshotRef = useRef('');
 
   useEffect(() => {
-    const nextDraft = existingProgram ? createProgramDraftFromProgram(existingProgram) : createDefaultProgramDraft(workouts);
+    const nextDraft = existingProgram ? createProgramDraftFromProgram(existingProgram) : createDefaultProgramDraft();
     setProgramDraft(nextDraft);
     initialSnapshotRef.current = nextDraft ? serializeProgramDraft(nextDraft) : '';
   }, [existingProgram, workouts]);
@@ -77,7 +70,7 @@ export default function ProgramBuilderRoute() {
     return unsubscribe;
   }, [isSavingProgram, navigation, programDraft]);
 
-  const program = programDraft ?? createDefaultProgramDraft(workouts);
+  const program = programDraft ?? createDefaultProgramDraft();
   const isDirty = program ? serializeProgramDraft(program) !== initialSnapshotRef.current : false;
   const workoutById = useMemo(() => new Map(workouts.map((workout) => [workout.id, workout])), [workouts]);
   const attachedWorkoutRows = useMemo(() => {

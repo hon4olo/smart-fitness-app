@@ -1,5 +1,6 @@
 import type { TrainingProgram, TrainingProgramDay, Workout } from '@/types';
 import type { DraftWorkoutExercise } from '@/components/workouts/workout-builder-types';
+import { WEEKDAY_KEYS } from '@/domain/models/program';
 
 const cloneProgramDays = (days: TrainingProgramDay[]) => days.map((day) => ({ ...day }));
 
@@ -11,6 +12,16 @@ const getRestDayTemplate = (day: TrainingProgramDay): TrainingProgramDay => ({
   notes: undefined,
 });
 
+const buildBlankProgramDays = (): TrainingProgramDay[] =>
+  WEEKDAY_KEYS.map((weekday, index) => ({
+    id: `${weekday}-${index}`,
+    weekday,
+    restDay: true,
+    workoutTemplateId: undefined,
+    workoutTemplateName: undefined,
+    notes: undefined,
+  }));
+
 export const createProgramDraftFromProgram = (program: TrainingProgram): TrainingProgram => ({
   ...program,
   days: cloneProgramDays(program.days),
@@ -18,7 +29,23 @@ export const createProgramDraftFromProgram = (program: TrainingProgram): Trainin
   metadata: program.metadata ? { ...program.metadata } : undefined,
 });
 
-export const createBlankProgramDraft = (programTemplate: TrainingProgram): TrainingProgram => createProgramDraftFromProgram(programTemplate);
+export const createBlankProgramDraft = (): TrainingProgram => ({
+  id: `program-${Date.now()}`,
+  name: '',
+  description: '',
+  goal: 'Strength',
+  difficulty: 'intermediate',
+  durationWeeks: 8,
+  days: buildBlankProgramDays(),
+  progression: {
+    targetReps: 8,
+    targetWeight: undefined,
+    rir: 2,
+    strategy: 'linear progression',
+  },
+  createdAt: new Date().toISOString(),
+  isCustom: true,
+});
 
 export const serializeProgramDraft = (program: TrainingProgram) =>
   JSON.stringify({
