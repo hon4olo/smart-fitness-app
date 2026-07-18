@@ -5,15 +5,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { getWorkoutTemplateById, getActiveWorkoutSessionDraft, hydrateActiveWorkoutSessionDraft, resolveExerciseByName } from '@/lib/workouts';
+import { getWorkoutTemplateById, getActiveWorkoutSessionDraft, hydrateActiveWorkoutSessionDraft, markActiveWorkoutSessionCompleted, markActiveWorkoutSessionFinishing, parseWorkoutPlanDescription, resolveExerciseByName } from '@/lib/workouts';
 import { clearActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft } from '@/features/workouts/storage';
 import { resolveWorkoutSessionRouteState } from '@/features/workouts/routeResolution';
-import { addWorkoutSessionSet, clearWorkoutSessionSetsForExercise, createWorkoutSessionDraft, getWorkoutSessionCompletedSetCount, removeWorkoutSessionSet, toggleWorkoutSessionSetCompletion, updateWorkoutSessionSetField } from '@/features/workouts/sessionScreenModel';
+import { addWorkoutSessionSet, buildCompletedWorkoutSessionSnapshotFromDraft, clearWorkoutSessionSetsForExercise, createWorkoutSessionDraft, getWorkoutSessionCompletedSetCount, removeWorkoutSessionSet, toggleWorkoutSessionSetCompletion, updateWorkoutSessionSetField } from '@/features/workouts/sessionScreenModel';
 import { formatWorkoutSessionElapsedLabel } from '@/features/workouts/sessionModel';
 import { SessionExerciseSection } from '@/features/workouts/components/session/SessionExerciseSection';
 import { SessionHeader } from '@/features/workouts/components/session/SessionHeader';
 import type { SessionDraftInputs, SessionExercise } from '@/features/workouts/components/session/types';
-import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 function uniqueExercisesFromSets(setNames: Array<{ exerciseId: string; exerciseName: string }>, catalog: ReturnType<typeof useAppContext>['exercises']) {
   const seen = new Set<string>();
@@ -30,8 +30,8 @@ function uniqueExercisesFromSets(setNames: Array<{ exerciseId: string; exerciseN
 export default function WorkoutSessionScreen() {
   const params = useLocalSearchParams<{ workoutId?: string }>();
   const workoutId = Array.isArray(params.workoutId) ? params.workoutId[0] : params.workoutId;
-  const { workouts, exercises, isRestoringState } = useAppContext();
-  const { colors } = useWorkoutTheme();
+  const { workouts, exercises, isRestoringState, saveWorkoutSession } = useAppContext();
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [bootstrappedDraft, setBootstrappedDraft] = useState<ReturnType<typeof getActiveWorkoutSessionDraft> | undefined>(undefined);
@@ -39,6 +39,9 @@ export default function WorkoutSessionScreen() {
   const [draftInputs, setDraftInputs] = useState<SessionDraftInputs>({});
   const [now, setNow] = useState(Date.now());
   const [exerciseOverflow, setExerciseOverflow] = useState<{ exerciseId: string; exerciseName: string } | null>(null);
+  const [replacementTarget, setReplacementTarget] = useState<{ exerciseId: string; exerciseName: string } | null>(null);
+  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
+  const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(() => new Set());
   const [overflowMessage, setOverflowMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -71,6 +74,7 @@ export default function WorkoutSessionScreen() {
 
     return getWorkoutTemplateById(routeState.workoutId, workouts);
   }, [routeState, workouts]);
+  const parsedPlan = useMemo(() => parseWorkoutPlanDescription(workout?.description), [workout?.description]);
 
   useEffect(() => {
     if (routeState.status !== 'ready') {
@@ -155,14 +159,28 @@ export default function WorkoutSessionScreen() {
       }));
     }
 
-    return (workout?.exercises ?? []).map((exercise) => ({
-      id: exercise.id,
-      name: exercise.name,
-      notes: undefined,
-      restSeconds: undefined,
-      targetReps: undefined,
-    }));
-  }, [draft, exercises, isEmptyWorkout, workout]);
+    const templateExercises = (workout?.exercises ?? [])
+      .filter((exercise) => !hiddenExerciseIds.has(exercise.id))
+      .map((exercise, index) => ({
+        id: exercise.id,
+        name: exercise.name,
+        notes: parsedPlan.exercises[index]?.notes,
+        restSeconds: parsedPlan.exercises[index]?.restSeconds,
+        targetReps: parsedPlan.exercises[index]?.targetReps,
+      }));
+    const templateIds = new Set(templateExercises.map((exercise) => exercise.id));
+    const sessionOnlyExercises = uniqueExercisesFromSets(draft.sets, exercises)
+      .filter((exercise) => !templateIds.has(exercise.id) && !hiddenExerciseIds.has(exercise.id))
+      .map((exercise) => ({
+        id: exercise.id,
+        name: exercise.name,
+        notes: undefined,
+        restSeconds: undefined,
+        targetReps: undefined,
+      }));
+
+    return [...templateExercises, ...sessionOnlyExercises];
+  }, [draft, exercises, hiddenExerciseIds, isEmptyWorkout, parsedPlan.exercises, workout]);
 
   if (bootstrappedDraft === undefined || isRestoringState || routeState.status === 'loading') {
     return (
@@ -191,10 +209,17 @@ export default function WorkoutSessionScreen() {
   const workoutTitle = draft.workoutTitle;
   const onBack = () => router.replace('/workouts');
   const onFinish = () => {
-    if (!canFinish) {
+    if (!canFinish || !draft) {
       return;
     }
-    router.push('/workout-session-finish');
+
+    const finishedAt = new Date().toISOString();
+    const completedSnapshot = buildCompletedWorkoutSessionSnapshotFromDraft(draft, { finishedAt });
+    markActiveWorkoutSessionFinishing();
+    saveWorkoutSession(completedSnapshot);
+    clearActiveWorkoutSessionDraft();
+    markActiveWorkoutSessionCompleted();
+    router.replace('/workouts');
   };
   const onOverflow = () => {
     Alert.alert(workoutTitle, undefined, [
@@ -255,15 +280,54 @@ export default function WorkoutSessionScreen() {
 
   const clearExerciseSets = (exerciseId: string) => {
     if (!draft) return;
+    setHiddenExerciseIds((current) => new Set([...current, exerciseId]));
     setDraft(clearWorkoutSessionSetsForExercise(draft, exerciseId));
   };
 
+  const replaceExercise = (replacement: { id: string; name: string }) => {
+    if (!draft || !replacementTarget) return;
+    setDraft({
+      ...draft,
+      sets: draft.sets.map((set) =>
+        set.exerciseId === replacementTarget.exerciseId
+          ? {
+              ...set,
+              exerciseId: replacement.id,
+              exerciseName: replacement.name,
+            }
+          : { ...set },
+      ),
+    });
+    setHiddenExerciseIds((current) => {
+      const next = new Set(current);
+      next.add(replacementTarget.exerciseId);
+      next.delete(replacement.id);
+      return next;
+    });
+    setExpandedExerciseId(replacement.id);
+    setReplacementTarget(null);
+    setExerciseOverflow(null);
+  };
+
   const workoutExercises = visibleExercises;
+  const completedSets = draft.sets.filter((set) => set.completed !== false);
+  const completedReps = completedSets.reduce((total, set) => total + set.reps, 0);
+  const completedVolume = completedSets.reduce((total, set) => total + set.reps * set.weight, 0);
   // Add set | Previous | kg | Reps | ✓
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <SessionHeader elapsedLabel={formatWorkoutSessionElapsedLabel(draft.startedAt, now)} finishDisabled={!canFinish} onBack={onBack} onFinish={onFinish} onOverflow={onOverflow} title={workoutTitle} />
+      <SessionHeader
+        elapsedLabel={formatWorkoutSessionElapsedLabel(draft.startedAt, now)}
+        finishDisabled={!canFinish}
+        onBack={onBack}
+        onFinish={onFinish}
+        onOverflow={onOverflow}
+        reps={completedReps}
+        sets={completedSets.length}
+        title={workoutTitle}
+        volume={completedVolume}
+      />
 
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
@@ -284,7 +348,6 @@ export default function WorkoutSessionScreen() {
 
           {workoutExercises.map((exercise) => {
             const exerciseSets = draft.sets.filter((set) => set.exerciseId === exercise.id);
-            const hasSets = exerciseSets.length > 0;
             const previousSet = exerciseSets.length > 1 ? { reps: exerciseSets.at(-2)!.reps, weight: exerciseSets.at(-2)!.weight } : null;
 
             return (
@@ -294,6 +357,7 @@ export default function WorkoutSessionScreen() {
                 exercise={exercise}
                 exerciseCompleted={exerciseSets.length > 0 && exerciseSets.every((set) => set.completed !== false)}
                 exerciseSets={exerciseSets}
+                expanded={expandedExerciseId === exercise.id}
                 onAddSet={addSet}
                 onCommitRowInputs={() => undefined}
                 onLongPressExercise={(exerciseId, exerciseName) =>
@@ -307,6 +371,7 @@ export default function WorkoutSessionScreen() {
                 }
                 onNotesPress={exercise.notes ? () => Alert.alert('Notes', exercise.notes ?? '') : undefined}
                 onRepsChange={(setId, value) => updateSet(setId, 'reps', value)}
+                onToggleExpanded={(exerciseId) => setExpandedExerciseId((current) => (current === exerciseId ? null : exerciseId))}
                 onToggleSetCompletion={toggleSetCompletion}
                 onWeightChange={(setId, value) => updateSet(setId, 'weight', value)}
                 previousSet={previousSet}
@@ -322,26 +387,23 @@ export default function WorkoutSessionScreen() {
             <Text style={styles.overflowTitle}>{exerciseOverflow?.exerciseName ?? ''}</Text>
             <View style={styles.overflowActions}>
               {overflowMessage ? <Text style={styles.overflowMessage}>{overflowMessage}</Text> : null}
-              <Pressable onPress={() => setOverflowMessage('Coming soon.')} style={({ pressed }) => [styles.overflowAction, pressed && styles.pressed]}>
-                <Text style={styles.overflowActionLabel}>Video & History</Text>
-              </Pressable>
-              <Pressable onPress={() => setOverflowMessage('Coming soon.')} style={({ pressed }) => [styles.overflowAction, pressed && styles.pressed]}>
-                <Text style={styles.overflowActionLabel}>Add To Superset</Text>
-              </Pressable>
-              <Pressable onPress={() => setOverflowMessage('Coming soon.')} style={({ pressed }) => [styles.overflowAction, pressed && styles.pressed]}>
-                <Text style={styles.overflowActionLabel}>Replace Exercise</Text>
-              </Pressable>
-              <Pressable onPress={() => setOverflowMessage('Coming soon.')} style={({ pressed }) => [styles.overflowAction, pressed && styles.pressed]}>
-                <Text style={styles.overflowActionLabel}>Change Weight Unit</Text>
+              <Pressable
+                onPress={() => {
+                  if (!exerciseOverflow) return;
+                  setReplacementTarget(exerciseOverflow);
+                  setExerciseOverflow(null);
+                }}
+                style={({ pressed }) => [styles.overflowAction, pressed && styles.pressed]}>
+                <Text style={styles.overflowActionLabel}>Replace exercise</Text>
               </Pressable>
               <Pressable
                 onPress={() => {
                   if (!exerciseOverflow) return;
                   clearExerciseSets(exerciseOverflow.exerciseId);
-                  setOverflowMessage('Exercise removed from the active session.');
+                  setExerciseOverflow(null);
                 }}
                 style={({ pressed }) => [styles.overflowAction, styles.overflowDangerAction, pressed && styles.pressed]}>
-                <Text style={[styles.overflowActionLabel, styles.overflowDangerLabel]}>Delete from workout</Text>
+                <Text style={[styles.overflowActionLabel, styles.overflowDangerLabel]}>Delete exercise</Text>
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -354,6 +416,36 @@ export default function WorkoutSessionScreen() {
             </View>
           </Pressable>
         </Pressable>
+      </Modal>
+
+      <Modal animationType="slide" transparent visible={Boolean(replacementTarget)} onRequestClose={() => setReplacementTarget(null)}>
+        <View style={styles.replacementBackdrop}>
+          <View style={styles.replacementSheet}>
+            <View style={styles.replacementHeader}>
+              <Text style={styles.replacementTitle}>Replace exercise</Text>
+              <Pressable onPress={() => setReplacementTarget(null)} style={({ pressed }) => [styles.overflowCancel, pressed && styles.pressed]}>
+                <Text style={styles.overflowCancelLabel}>Cancel</Text>
+              </Pressable>
+            </View>
+            <ScrollView contentInsetAdjustmentBehavior="automatic" showsVerticalScrollIndicator={false}>
+              {exercises.slice(0, 100).map((exercise) => (
+                <Pressable key={exercise.id} onPress={() => replaceExercise(exercise)} style={({ pressed }) => [styles.replacementRow, pressed && styles.pressed]}>
+                  <View style={styles.replacementIcon}>
+                    <Text style={styles.replacementIconLabel}>{exercise.name.slice(0, 1).toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.replacementCopy}>
+                    <Text numberOfLines={1} style={styles.replacementRowTitle}>
+                      {exercise.name}
+                    </Text>
+                    <Text numberOfLines={1} style={styles.replacementRowMeta}>
+                      {exercise.muscleGroup ?? exercise.category ?? 'Exercise'}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -490,6 +582,64 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     pressed: {
       opacity: 0.72,
+    },
+    replacementBackdrop: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: colors.overlay,
+      justifyContent: 'flex-end',
+    },
+    replacementCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    replacementHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingBottom: Spacing.three,
+    },
+    replacementIcon: {
+      alignItems: 'center',
+      backgroundColor: colors.backgroundSecondary,
+      borderCurve: 'continuous',
+      borderRadius: 12,
+      height: 44,
+      justifyContent: 'center',
+      width: 44,
+    },
+    replacementIconLabel: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontWeight: '900',
+    },
+    replacementRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.three,
+      minHeight: 64,
+    },
+    replacementRowMeta: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '700',
+      marginTop: 3,
+    },
+    replacementRowTitle: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '900',
+    },
+    replacementSheet: {
+      backgroundColor: colors.surfacePrimary,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      maxHeight: '78%',
+      padding: Spacing.three,
+    },
+    replacementTitle: {
+      color: colors.textPrimary,
+      fontSize: 22,
+      fontWeight: '900',
     },
     screen: {
       flex: 1,

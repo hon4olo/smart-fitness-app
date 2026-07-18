@@ -2,12 +2,12 @@ import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { WorkoutSet } from '@/context/AppContext';
-import { Colors } from '@/constants/theme';
-import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
+import { Colors, Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { SessionEmptySets } from './SessionEmptySets';
 import { SessionSetRow } from './SessionSetRow';
-import { SESSION_TABLE_COLUMNS, SESSION_TABLE_TOTAL_WIDTH } from './sessionTableLayout';
+import { SESSION_TABLE_COLUMNS } from './sessionTableLayout';
 import type { SessionDraftInputs } from './types';
 
 type SessionSetTableProps = {
@@ -31,7 +31,7 @@ export const SessionSetTable = memo(function SessionSetTable({
   previousSet,
   sets,
 }: SessionSetTableProps) {
-  const { colors } = useWorkoutTheme();
+  const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const previousLabel = previousSet ? `${previousSet.weight} kg · ${previousSet.reps} reps` : '—';
 
@@ -92,17 +92,15 @@ const createStyles = (colors: typeof Colors.light) =>
       textAlign: 'center',
     },
     headerText: {
-      color: colors.textSecondary,
-      fontSize: 11,
-      fontWeight: '800',
-      letterSpacing: 0.2,
+      color: colors.textMuted,
+      fontSize: 15,
+      fontWeight: '700',
       textAlign: 'left',
-      textTransform: 'uppercase',
     },
     table: {
-      gap: 4,
       alignSelf: 'stretch',
-      width: SESSION_TABLE_TOTAL_WIDTH,
+      gap: Spacing.two,
+      width: '100%',
     },
     tableBody: {
       gap: 0,
@@ -110,8 +108,7 @@ const createStyles = (colors: typeof Colors.light) =>
     tableHeader: {
       alignItems: 'center',
       flexDirection: 'row',
-      marginBottom: 4,
-      paddingBottom: 0,
+      gap: Spacing.two,
       width: '100%',
     },
   });

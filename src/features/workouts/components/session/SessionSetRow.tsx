@@ -1,8 +1,8 @@
 import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Colors } from '@/constants/theme';
-import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
+import { Colors, Spacing } from '@/constants/theme';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { SESSION_TABLE_COLUMNS } from './sessionTableLayout';
 
@@ -28,7 +28,7 @@ export const SessionSetRow = memo(function SessionSetRow({
   onWeightChange,
   previousLabel,
 }: SessionSetRowProps) {
-  const { colors } = useWorkoutTheme();
+  const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
@@ -68,8 +68,8 @@ export const SessionSetRow = memo(function SessionSetRow({
           onEndEditing={onCommit}
           onSubmitEditing={onCommit}
         />
-        <Pressable accessibilityRole="button" onPress={onToggle} style={({ pressed }) => [styles.iconCell, styles.colCompletion, pressed && styles.pressed]}>
-          <Text style={[styles.checkLabel, completed && styles.checkLabelCompleted]}>{completed ? '✓' : '○'}</Text>
+        <Pressable accessibilityRole="button" onPress={onToggle} style={({ pressed }) => [styles.iconCell, styles.colCompletion, completed && styles.iconCellCompleted, pressed && styles.pressed]}>
+          <Text style={[styles.checkLabel, completed && styles.checkLabelCompleted]}>✓</Text>
         </Pressable>
       </View>
     </View>
@@ -80,17 +80,17 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     cell: {
       color: colors.textPrimary,
-      fontSize: 16,
-      lineHeight: 23,
+      fontSize: 18,
+      lineHeight: 46,
     },
     checkLabel: {
-      color: colors.textSecondary,
+      color: '#FFFFFF',
       fontSize: 18,
       fontWeight: '900',
       lineHeight: 18,
     },
     checkLabelCompleted: {
-      color: colors.accent,
+      color: '#FFFFFF',
     },
     colCompletion: {
       width: SESSION_TABLE_COLUMNS.completion,
@@ -110,15 +110,27 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     iconCell: {
       alignItems: 'center',
-      height: 44,
+      backgroundColor: colors.backgroundSecondary,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      height: 38,
       justifyContent: 'center',
+      marginLeft: Spacing.one,
+    },
+    iconCellCompleted: {
+      backgroundColor: '#2DBA20',
     },
     inputCell: {
+      backgroundColor: colors.surfacePrimary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: 8,
+      borderWidth: StyleSheet.hairlineWidth,
       color: colors.textPrimary,
-      fontSize: 16,
-      height: 44,
+      fontSize: 17,
+      height: 46,
       lineHeight: 23,
-      paddingHorizontal: 0,
+      paddingHorizontal: 4,
       textAlign: 'center',
       fontVariant: ['tabular-nums'],
     },
@@ -131,11 +143,12 @@ const createStyles = (colors: typeof Colors.light) =>
     row: {
       alignItems: 'center',
       flexDirection: 'row',
-      minHeight: 44,
+      gap: Spacing.two,
+      minHeight: 58,
       width: '100%',
     },
     rowCompleted: {
-      opacity: 0.82,
+      backgroundColor: '#D7F3CE',
     },
     rowWrap: {
       marginBottom: 0,

@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,12 +12,14 @@ import type { TrainingProgram } from '@/types';
 const getInitial = (value: string) => value.trim().slice(0, 1).toUpperCase() || 'P';
 
 export default function ProgramDetailScreen() {
-  const params = useLocalSearchParams<{ programId?: string }>();
+  const params = useLocalSearchParams<{ programId?: string; savedWorkout?: string }>();
   const programId = Array.isArray(params.programId) ? params.programId[0] : params.programId;
+  const savedWorkout = Array.isArray(params.savedWorkout) ? params.savedWorkout[0] : params.savedWorkout;
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { height: viewportHeight } = useWindowDimensions();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const [showSavedToast, setShowSavedToast] = useState(savedWorkout === '1');
   const {
     deleteTrainingProgram,
     isRestoringState,
@@ -31,6 +33,16 @@ export default function ProgramDetailScreen() {
     () => (programId ? getWorkoutProgramById(programId, workouts, trainingPrograms) : null),
     [programId, trainingPrograms, workouts],
   );
+
+  useEffect(() => {
+    if (savedWorkout !== '1') {
+      return;
+    }
+
+    setShowSavedToast(true);
+    const timer = setTimeout(() => setShowSavedToast(false), 2600);
+    return () => clearTimeout(timer);
+  }, [savedWorkout]);
 
   if (isRestoringState) {
     return (
@@ -200,6 +212,13 @@ export default function ProgramDetailScreen() {
           )}
         </View>
       </ScrollView>
+      {showSavedToast ? (
+        <View style={[styles.toastWrap, { paddingBottom: insets.bottom + Spacing.three }]}>
+          <View style={styles.toast}>
+            <Text style={styles.toastText}>Workout saved</Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -388,6 +407,26 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: 36,
       fontWeight: '900',
       lineHeight: 42,
+    },
+    toast: {
+      backgroundColor: colors.textPrimary,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      paddingHorizontal: Spacing.four,
+      paddingVertical: Spacing.three,
+    },
+    toastText: {
+      color: colors.background,
+      fontSize: 15,
+      fontWeight: '900',
+    },
+    toastWrap: {
+      alignItems: 'center',
+      bottom: 0,
+      left: 0,
+      paddingHorizontal: Spacing.three,
+      position: 'absolute',
+      right: 0,
     },
     viewMore: {
       alignItems: 'center',
