@@ -268,8 +268,6 @@ export default function NewRoutineRoute() {
 
           <Pressable onPress={() => setPickerMode({ type: 'add' })} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
             <Text style={styles.addButtonLabel}>Add exercises</Text>
-            <View style={styles.addButtonDivider} />
-            <Text style={styles.addButtonIcon}>✦</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -359,29 +357,16 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       backgroundColor: '#0A8DFF',
       borderCurve: 'continuous',
-      borderRadius: 999,
-      flexDirection: 'row',
+      borderRadius: 18,
+      alignSelf: 'stretch',
       justifyContent: 'center',
-      minHeight: 64,
+      minHeight: 52,
       overflow: 'hidden',
-    },
-    addButtonDivider: {
-      backgroundColor: 'rgba(255,255,255,0.65)',
-      height: 64,
-      marginLeft: 'auto',
-      width: StyleSheet.hairlineWidth,
-    },
-    addButtonIcon: {
-      color: '#FFFFFF',
-      fontSize: 22,
-      fontWeight: '900',
-      textAlign: 'center',
-      width: 70,
+      paddingHorizontal: Spacing.three,
     },
     addButtonLabel: {
       color: '#FFFFFF',
-      flex: 1,
-      fontSize: 20,
+      fontSize: 17,
       fontWeight: '900',
       textAlign: 'center',
     },

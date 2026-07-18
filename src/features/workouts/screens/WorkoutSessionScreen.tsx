@@ -5,10 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { getWorkoutTemplateById, getActiveWorkoutSessionDraft, hydrateActiveWorkoutSessionDraft, markActiveWorkoutSessionCompleted, markActiveWorkoutSessionFinishing, parseWorkoutPlanDescription, resolveExerciseByName } from '@/lib/workouts';
+import { getWorkoutTemplateById, getActiveWorkoutSessionDraft, hydrateActiveWorkoutSessionDraft, parseWorkoutPlanDescription, resolveExerciseByName } from '@/lib/workouts';
 import { clearActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft } from '@/features/workouts/storage';
 import { resolveWorkoutSessionRouteState } from '@/features/workouts/routeResolution';
-import { addWorkoutSessionSet, buildCompletedWorkoutSessionSnapshotFromDraft, clearWorkoutSessionSetsForExercise, createWorkoutSessionDraft, getWorkoutSessionCompletedSetCount, removeWorkoutSessionSet, toggleWorkoutSessionSetCompletion, updateWorkoutSessionSetField } from '@/features/workouts/sessionScreenModel';
+import { addWorkoutSessionSet, clearWorkoutSessionSetsForExercise, createWorkoutSessionDraft, getPreviousCompletedSetsForExercise, getWorkoutSessionCompletedSetCount, removeWorkoutSessionSet, toggleWorkoutSessionSetCompletion, updateWorkoutSessionSetField } from '@/features/workouts/sessionScreenModel';
 import { formatWorkoutSessionElapsedLabel } from '@/features/workouts/sessionModel';
 import { SessionExerciseSection } from '@/features/workouts/components/session/SessionExerciseSection';
 import { SessionHeader } from '@/features/workouts/components/session/SessionHeader';
@@ -30,7 +30,7 @@ function uniqueExercisesFromSets(setNames: Array<{ exerciseId: string; exerciseN
 export default function WorkoutSessionScreen() {
   const params = useLocalSearchParams<{ workoutId?: string }>();
   const workoutId = Array.isArray(params.workoutId) ? params.workoutId[0] : params.workoutId;
-  const { workouts, exercises, isRestoringState, saveWorkoutSession } = useAppContext();
+  const { workouts, exercises, isRestoringState, workoutSessions } = useAppContext();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -213,13 +213,7 @@ export default function WorkoutSessionScreen() {
       return;
     }
 
-    const finishedAt = new Date().toISOString();
-    const completedSnapshot = buildCompletedWorkoutSessionSnapshotFromDraft(draft, { finishedAt });
-    markActiveWorkoutSessionFinishing();
-    saveWorkoutSession(completedSnapshot);
-    clearActiveWorkoutSessionDraft();
-    markActiveWorkoutSessionCompleted();
-    router.replace('/workouts');
+    router.push('/workout-session-finish');
   };
   const onOverflow = () => {
     Alert.alert(workoutTitle, undefined, [
@@ -346,7 +340,7 @@ export default function WorkoutSessionScreen() {
 
           {workoutExercises.map((exercise) => {
             const exerciseSets = draft.sets.filter((set) => set.exerciseId === exercise.id);
-            const previousSet = exerciseSets.length > 1 ? { reps: exerciseSets.at(-2)!.reps, weight: exerciseSets.at(-2)!.weight } : null;
+            const previousSets = getPreviousCompletedSetsForExercise(exercise.id, workoutSessions);
 
             return (
               <SessionExerciseSection
@@ -372,7 +366,7 @@ export default function WorkoutSessionScreen() {
                 onToggleExpanded={(exerciseId) => setExpandedExerciseId((current) => (current === exerciseId ? null : exerciseId))}
                 onToggleSetCompletion={toggleSetCompletion}
                 onWeightChange={(setId, value) => updateSet(setId, 'weight', value)}
-                previousSet={previousSet}
+                previousSets={previousSets}
               />
             );
           })}

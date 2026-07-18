@@ -23,7 +23,7 @@ type SessionExerciseSectionProps = {
   onToggleExpanded: (exerciseId: string) => void;
   onToggleSetCompletion: (setId: string) => void;
   onWeightChange: (setId: string, value: string) => void;
-  previousSet?: { reps: number; weight: number } | null;
+  previousSets?: Array<{ reps: number; weight: number }>;
 };
 
 export const SessionExerciseSection = memo(function SessionExerciseSection({
@@ -40,7 +40,7 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
   onToggleExpanded,
   onToggleSetCompletion,
   onWeightChange,
-  previousSet,
+  previousSets,
 }: SessionExerciseSectionProps) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -86,7 +86,7 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
             onRepsChange={onRepsChange}
             onToggleSetCompletion={onToggleSetCompletion}
             onWeightChange={onWeightChange}
-            previousSet={previousSet}
+            previousSets={previousSets}
             sets={exerciseSets}
           />
           <Pressable accessibilityRole="button" onPress={() => onAddSet(exercise.id)} style={({ pressed }) => [styles.addSetButton, pressed && styles.pressed]}>

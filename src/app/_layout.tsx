@@ -66,6 +66,7 @@ function RootNavigator() {
           <Stack.Screen name="workout-session-finish" options={{ headerShown: false }} />
           <Stack.Screen name="workouts/builder" options={{ headerShown: false }} />
           <Stack.Screen name="workouts/program/[programId]" options={{ headerShown: false }} />
+          <Stack.Screen name="workouts/routine/new" options={{ headerShown: false }} />
           <Stack.Screen name="workouts/template/[workoutId]" options={{ headerShown: false }} />
         </Stack>
       </AppProvider>

@@ -3,95 +3,121 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, hydrateActiveWorkoutSessionDraft, markActiveWorkoutSessionCompleted, markActiveWorkoutSessionFinishing } from '@/lib/workouts';
 import { buildCompletedWorkoutSessionSnapshotFromDraft, getWorkoutSessionCompletedSetCount } from '@/features/workouts/sessionScreenModel';
 import { openAppleHealthIntegration } from '@/features/workouts/integrations/appleHealth';
 import { openStravaIntegration } from '@/features/workouts/integrations/strava';
 import { openWorkoutMediaIntegration } from '@/features/workouts/integrations/workoutMedia';
-import { shareWorkoutSummary } from '@/features/workouts/integrations/shareWorkout';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
+
+const getSessionTitle = () => {
+  const hour = new Date().getHours();
+
+  if (hour < 12) {
+    return 'Morning session';
+  }
+
+  if (hour < 18) {
+    return 'Afternoon session';
+  }
+
+  return 'Evening session';
+};
 
 const formatDurationLabel = (startedAt: string, finishedAt = new Date().toISOString()) => {
   const elapsedMs = Math.max(0, new Date(finishedAt).getTime() - new Date(startedAt).getTime());
-  const totalSeconds = Math.floor(elapsedMs / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
+  const totalMinutes = Math.floor(elapsedMs / 60000);
 
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  if (totalMinutes < 60) {
+    return `${totalMinutes}min`;
   }
 
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h ${minutes}min`;
 };
 
-const formatDateTimeLabel = (value: string) =>
-  new Intl.DateTimeFormat(undefined, {
+const isSameCalendarDay = (left: Date, right: Date) =>
+  left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
+
+const formatDateTimeLabel = (value: string) => {
+  const date = new Date(value);
+  const time = new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+
+  if (isSameCalendarDay(date, new Date())) {
+    return `Today at ${time}`;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     month: 'short',
-    year: 'numeric',
-  }).format(new Date(value));
+  }).format(date);
+};
 
 export default function WorkoutSessionFinishScreen() {
-  const { workoutSessions, isRestoringState, saveWorkoutSession } = useAppContext();
+  const { isRestoringState, saveWorkoutSession } = useAppContext();
   const { colors } = useWorkoutTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const draft = getActiveWorkoutSessionDraft();
+  const [draft, setDraft] = useState<ReturnType<typeof getActiveWorkoutSessionDraft> | undefined>(undefined);
   const [notes, setNotes] = useState('');
   const [title, setTitle] = useState('');
-  const [updateTemplate, setUpdateTemplate] = useState(false);
   const [stravaEnabled, setStravaEnabled] = useState(false);
   const [appleHealthEnabled, setAppleHealthEnabled] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [savedFinishedAt, setSavedFinishedAt] = useState<string | null>(null);
-  const [savedSnapshot, setSavedSnapshot] = useState<ReturnType<typeof buildCompletedWorkoutSessionSnapshotFromDraft> | null>(null);
   const saveGuard = useRef(false);
 
   useEffect(() => {
-    if (draft) {
-      setTitle(draft.workoutTitle);
-    }
-  }, [draft]);
+    let cancelled = false;
+
+    void hydrateActiveWorkoutSessionDraft().then((activeDraft) => {
+      if (!cancelled) {
+        setDraft(activeDraft ?? getActiveWorkoutSessionDraft());
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
-    if (isRestoringState) {
-      return;
+    if (draft && title.length === 0) {
+      setTitle(getSessionTitle());
     }
+  }, [draft, title.length]);
 
-    if (!draft && !saved) {
-      clearActiveWorkoutSessionDraft();
+  useEffect(() => {
+    if (!isRestoringState && draft === null) {
       router.replace('/workouts');
     }
-  }, [draft, isRestoringState, saved]);
+  }, [draft, isRestoringState]);
 
-  if (isRestoringState) {
+  if (isRestoringState || draft === undefined) {
     return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View style={styles.loadingState}>
-          <Text style={styles.loadingLabel}>Loading workout…</Text>
-        </View>
+      <View style={[styles.screen, styles.loadingState]}>
+        <Text style={styles.loadingLabel}>Loading workout…</Text>
       </View>
     );
   }
 
-  if (!draft && !saved) {
+  if (draft === null) {
     return null;
   }
 
-  const workoutStartedAt = saved ? savedSnapshot?.startedAt ?? new Date().toISOString() : draft!.startedAt;
-  const workoutTitle = saved ? savedSnapshot?.workoutTitle ?? '' : title;
-  const completedSetCount = saved ? savedSnapshot?.sets.length ?? 0 : getWorkoutSessionCompletedSetCount(draft);
-  const dateTimeLabel = formatDateTimeLabel(workoutStartedAt);
-  const durationLabel = formatDurationLabel(workoutStartedAt, savedFinishedAt ?? undefined);
-  const workoutNumber = workoutSessions.length + (saved ? 0 : 1);
+  const completedSetCount = getWorkoutSessionCompletedSetCount(draft);
+  const canSave = completedSetCount > 0;
+  const dateTimeLabel = formatDateTimeLabel(new Date().toISOString());
+  const durationLabel = formatDurationLabel(draft.startedAt);
 
   const handleSave = () => {
-    if (!draft || completedSetCount === 0 || saveGuard.current) {
+    if (!canSave || saveGuard.current) {
       return;
     }
 
@@ -108,13 +134,11 @@ export default function WorkoutSessionFinishScreen() {
       },
     );
 
-    setSavedSnapshot(completedSnapshot);
-    setSavedFinishedAt(finishedAt);
     markActiveWorkoutSessionFinishing();
     saveWorkoutSession(completedSnapshot);
     clearActiveWorkoutSessionDraft();
     markActiveWorkoutSessionCompleted();
-    setSaved(true);
+    router.replace('/workouts');
   };
 
   const discardWorkout = () => {
@@ -131,117 +155,86 @@ export default function WorkoutSessionFinishScreen() {
     ]);
   };
 
-  if (saved && savedSnapshot) {
-    return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View style={[styles.savedShell, { paddingTop: insets.top + Spacing.three, paddingBottom: insets.bottom + Spacing.three }]}>
-          <View style={styles.savedTopRow}>
-            <View>
-              <Text style={styles.savedTitle}>Great work!</Text>
-              <Text style={styles.savedSubtitle}>Workout saved</Text>
-            </View>
-            <Pressable onPress={() => router.replace('/workouts')} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
-              <Text style={styles.closeButtonLabel}>✕</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.resultCard}>
-            <Text style={styles.resultLabel}>Workout #{workoutNumber}</Text>
-            <Text selectable style={styles.resultWorkout}>{savedSnapshot.workoutTitle}</Text>
-            <View style={styles.metricRow}>
-              <Metric label="Duration" value={durationLabel} />
-              <Metric label="Sets" value={String(savedSnapshot.sets.length)} />
-            </View>
-            <View style={styles.metricRow}>
-              <Metric label="Date & time" value={dateTimeLabel} />
-              <Metric label="Template" value={updateTemplate ? 'Updated' : 'Saved'} />
-            </View>
-          </View>
-
-          <View style={styles.savedActions}>
-            <Pressable onPress={() => shareWorkoutSummary(savedSnapshot.workoutTitle, savedSnapshot.sets.length, durationLabel)} style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}>
-              <Text style={styles.shareButtonLabel}>Share</Text>
-            </Pressable>
-            <Pressable onPress={() => router.replace('/workouts')} style={({ pressed }) => [styles.primaryCloseButton, pressed && styles.pressed]}>
-              <Text style={styles.primaryCloseButtonLabel}>Close</Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <View style={styles.screen}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.three, paddingBottom: insets.bottom + 132 }]}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        style={styles.scrollView}>
+        showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Pressable accessibilityRole="button" onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-              <Text style={styles.backLabel}>Resume</Text>
+            <Pressable accessibilityRole="button" onPress={() => router.back()} style={({ pressed }) => [styles.resumeButton, pressed && styles.pressed]}>
+              <Text style={styles.resumeChevron}>‹</Text>
+              <Text style={styles.resumeLabel}>Resume</Text>
             </Pressable>
             <Text style={styles.title}>Finish Workout</Text>
+            <View style={styles.headerSpacer} />
           </View>
 
-          <View style={styles.card}>
-            <Field label="Workout name">
+          <View style={styles.formStack}>
+            <View style={styles.singleLineField}>
               <TextInput
-                placeholder="Workout title"
-                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="words"
+                placeholder="Workout name"
+                placeholderTextColor={colors.textMuted}
                 selectionColor={colors.accent}
-                style={styles.textInput}
+                style={styles.titleInput}
                 value={title}
                 onChangeText={setTitle}
               />
-            </Field>
-            <Field label="Date & time">
-              <Text selectable style={styles.fieldValue}>{dateTimeLabel}</Text>
-            </Field>
-            <Field label="Duration">
-              <Text selectable style={styles.fieldValue}>{durationLabel}</Text>
-            </Field>
-            <Field label="Photo / video">
-              <Pressable onPress={openWorkoutMediaIntegration} style={({ pressed }) => [styles.inlineButton, pressed && styles.pressed]}>
-                <Text style={styles.inlineButtonLabel}>Add photo or video</Text>
-              </Pressable>
-            </Field>
-            <Field label="Workout title field">
-              <Text style={styles.helperText}>Rename before saving if needed.</Text>
-            </Field>
-            <Field label="Update Workout Template">
-              <Switch value={updateTemplate} onValueChange={setUpdateTemplate} trackColor={{ false: colors.surfaceSecondary, true: colors.accent }} thumbColor={colors.background} />
-            </Field>
-            <Field label="Integrations">
-              <View style={styles.integrationRow}>
-                <Pressable onPress={() => {
-                  setStravaEnabled((value) => !value);
+              {title.length > 0 ? (
+                <Pressable accessibilityRole="button" onPress={() => setTitle('')} style={({ pressed }) => [styles.clearButton, pressed && styles.pressed]}>
+                  <Text style={styles.clearLabel}>×</Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            <TextInput
+              multiline
+              onChangeText={setNotes}
+              placeholder="How did it go? Share more about your workout"
+              placeholderTextColor={colors.textMuted}
+              selectionColor={colors.accent}
+              style={styles.notesInput}
+              textAlignVertical="top"
+              value={notes}
+            />
+
+            <InfoRow icon="▣" label={dateTimeLabel} />
+            <InfoRow icon="◷" label={durationLabel} />
+
+            <Pressable onPress={openWorkoutMediaIntegration} style={({ pressed }) => [styles.mediaButton, pressed && styles.pressed]}>
+              <Text style={styles.mediaIcon}>▧</Text>
+              <Text style={styles.mediaLabel}>Add Photo/Video</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.integrationList}>
+            <IntegrationRow
+              icon="▴"
+              iconStyle={styles.stravaIcon}
+              label="Post to Strava"
+              value={stravaEnabled}
+              onValueChange={(value) => {
+                setStravaEnabled(value);
+                if (value) {
                   openStravaIntegration();
-                }} style={({ pressed }) => [styles.toggleChip, stravaEnabled && styles.toggleChipActive, pressed && styles.pressed]}>
-                  <Text style={styles.toggleChipLabel}>Strava</Text>
-                </Pressable>
-                <Pressable onPress={() => {
-                  setAppleHealthEnabled((value) => !value);
+                }
+              }}
+            />
+            <IntegrationRow
+              icon="♥"
+              iconStyle={styles.healthIcon}
+              label="Apple Health"
+              value={appleHealthEnabled}
+              onValueChange={(value) => {
+                setAppleHealthEnabled(value);
+                if (value) {
                   openAppleHealthIntegration();
-                }} style={({ pressed }) => [styles.toggleChip, appleHealthEnabled && styles.toggleChipActive, pressed && styles.pressed]}>
-                  <Text style={styles.toggleChipLabel}>Apple Health</Text>
-                </Pressable>
-              </View>
-            </Field>
-            <Field label="Notes">
-              <TextInput
-                multiline
-                placeholder="Optional notes"
-                placeholderTextColor={colors.textSecondary}
-                selectionColor={colors.accent}
-                style={styles.notesInput}
-                value={notes}
-                onChangeText={setNotes}
-              />
-            </Field>
+                }
+              }}
+            />
           </View>
 
           <Pressable onPress={discardWorkout} style={({ pressed }) => [styles.discardButton, pressed && styles.pressed]}>
@@ -250,10 +243,10 @@ export default function WorkoutSessionFinishScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>
+      <View pointerEvents="box-none" style={[styles.footer, { paddingBottom: insets.bottom + Spacing.two }]}>
         <View style={styles.container}>
-          <Pressable disabled={completedSetCount === 0} onPress={handleSave} style={({ pressed }) => [styles.saveButton, completedSetCount === 0 && styles.saveButtonDisabled, pressed && completedSetCount > 0 && styles.pressed]}>
-            <Text style={[styles.saveButtonLabel, completedSetCount === 0 && styles.saveButtonLabelDisabled]}>Save</Text>
+          <Pressable disabled={!canSave} onPress={handleSave} style={({ pressed }) => [styles.saveButton, !canSave && styles.saveButtonDisabled, pressed && canSave && styles.pressed]}>
+            <Text style={[styles.saveButtonLabel, !canSave && styles.saveButtonLabelDisabled]}>Save</Text>
           </Pressable>
         </View>
       </View>
@@ -261,97 +254,61 @@ export default function WorkoutSessionFinishScreen() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function InfoRow({ icon, label }: { icon: string; label: string }) {
   const { colors } = useWorkoutTheme();
-  const styles = useMemo(() => createFieldStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      {children}
+    <View style={styles.infoRow}>
+      <Text style={styles.infoIcon}>{icon}</Text>
+      <Text selectable style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoChevron}>⌄</Text>
     </View>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function IntegrationRow({
+  icon,
+  iconStyle,
+  label,
+  onValueChange,
+  value,
+}: {
+  icon: string;
+  iconStyle: object;
+  label: string;
+  onValueChange: (value: boolean) => void;
+  value: boolean;
+}) {
   const { colors } = useWorkoutTheme();
-  const styles = useMemo(() => createMetricStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
-    <View style={styles.metric}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text selectable style={styles.metricValue}>{value}</Text>
+    <View style={styles.integrationRow}>
+      <View style={[styles.integrationIcon, iconStyle]}>
+        <Text style={styles.integrationIconLabel}>{icon}</Text>
+      </View>
+      <Text style={styles.integrationLabel}>{label}</Text>
+      <Switch value={value} onValueChange={onValueChange} trackColor={{ false: colors.surfaceSecondary, true: colors.accent }} thumbColor="#FFFFFF" />
     </View>
   );
 }
-
-const createFieldStyles = (colors: typeof Colors.light) =>
-  StyleSheet.create({
-    field: {
-      gap: 8,
-    },
-    label: {
-      color: colors.textSecondary,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-    },
-  });
-
-const createMetricStyles = (colors: typeof Colors.light) =>
-  StyleSheet.create({
-    metric: {
-      flex: 1,
-      gap: 4,
-    },
-    metricLabel: {
-      color: colors.textSecondary,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-    },
-    metricValue: {
-      color: colors.textPrimary,
-      fontSize: 15,
-      fontWeight: '800',
-    },
-  });
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
-    backButton: {
+    clearButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
       borderRadius: 999,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: 10,
-    },
-    backLabel: {
-      color: colors.textPrimary,
-      fontSize: 13,
-      fontWeight: '900',
-    },
-    card: {
-      backgroundColor: colors.surfacePrimary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      gap: Spacing.three,
-      padding: Spacing.three,
-    },
-    closeButton: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      height: 34,
+      height: 22,
       justifyContent: 'center',
-      width: 34,
+      width: 22,
     },
-    closeButtonLabel: {
-      color: colors.textPrimary,
-      fontSize: 16,
+    clearLabel: {
+      color: colors.textMuted,
+      fontSize: 18,
       fontWeight: '900',
+      lineHeight: 20,
     },
     container: {
       maxWidth: MaxContentWidth,
@@ -360,60 +317,100 @@ const createStyles = (colors: typeof Colors.light) =>
     content: {
       alignItems: 'center',
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.three,
     },
     discardButton: {
-      alignSelf: 'center',
-      marginTop: Spacing.two,
-      paddingVertical: Spacing.one,
+      alignItems: 'center',
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      minHeight: 62,
+      justifyContent: 'center',
     },
     discardLabel: {
       color: colors.error,
-      fontSize: 13,
-      fontWeight: '800',
-    },
-    fieldValue: {
-      color: colors.textPrimary,
-      fontSize: 15,
+      fontSize: 17,
       fontWeight: '700',
     },
     footer: {
-      borderTopWidth: StyleSheet.hairlineWidth,
+      bottom: 0,
       left: 0,
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.two,
       position: 'absolute',
       right: 0,
-      bottom: 0,
     },
-    helperText: {
-      color: colors.textSecondary,
-      fontSize: 13,
-      lineHeight: 19,
+    formStack: {
+      gap: Spacing.three,
+      paddingTop: Spacing.five,
     },
-    inlineButton: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: 10,
+    header: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      minHeight: 44,
     },
-    inlineButtonLabel: {
+    headerSpacer: {
+      flex: 1,
+    },
+    healthIcon: {
+      backgroundColor: '#FFFFFF',
+    },
+    infoChevron: {
       color: colors.textPrimary,
-      fontSize: 13,
+      fontSize: 24,
+      lineHeight: 24,
+    },
+    infoIcon: {
+      color: colors.textPrimary,
+      fontSize: 25,
+      lineHeight: 26,
+      width: 34,
+    },
+    infoLabel: {
+      color: colors.textPrimary,
+      flex: 1,
+      fontSize: 18,
+      lineHeight: 23,
+    },
+    infoRow: {
+      alignItems: 'center',
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: 8,
+      borderWidth: StyleSheet.hairlineWidth,
+      flexDirection: 'row',
+      gap: Spacing.two,
+      minHeight: 72,
+      paddingHorizontal: Spacing.three,
+    },
+    integrationIcon: {
+      alignItems: 'center',
+      borderCurve: 'continuous',
+      borderRadius: 6,
+      height: 36,
+      justifyContent: 'center',
+      width: 36,
+    },
+    integrationIconLabel: {
+      color: '#FFFFFF',
+      fontSize: 19,
       fontWeight: '900',
     },
-    integrationRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: Spacing.two,
+    integrationLabel: {
+      color: colors.textPrimary,
+      flex: 1,
+      fontSize: 18,
+      lineHeight: 23,
     },
-    label: {
-      color: colors.textSecondary,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
+    integrationList: {
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      marginTop: Spacing.three,
+    },
+    integrationRow: {
+      alignItems: 'center',
+      borderBottomColor: colors.borderSubtle,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      flexDirection: 'row',
+      gap: Spacing.three,
+      minHeight: 74,
     },
     loadingLabel: {
       color: colors.textSecondary,
@@ -422,171 +419,110 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     loadingState: {
       alignItems: 'center',
-      flex: 1,
       justifyContent: 'center',
       padding: Spacing.three,
     },
-    header: {
+    mediaButton: {
       alignItems: 'center',
-      flexDirection: 'row',
+      borderColor: colors.accent,
+      borderCurve: 'continuous',
+      borderRadius: 8,
+      borderStyle: 'dashed',
+      borderWidth: 1.5,
       gap: Spacing.two,
-      justifyContent: 'space-between',
-      width: '100%',
+      height: 224,
+      justifyContent: 'center',
+      width: 224,
     },
-    metricRow: {
-      flexDirection: 'row',
-      gap: Spacing.two,
+    mediaIcon: {
+      color: colors.textPrimary,
+      fontSize: 34,
+      lineHeight: 36,
+    },
+    mediaLabel: {
+      color: colors.textPrimary,
+      fontSize: 17,
+      lineHeight: 22,
     },
     notesInput: {
-      color: colors.textPrimary,
-      minHeight: 96,
-      textAlignVertical: 'top',
-    },
-    primaryCloseButton: {
-      alignItems: 'center',
-      backgroundColor: colors.accent,
+      borderColor: colors.borderSubtle,
       borderCurve: 'continuous',
-      borderRadius: 18,
-      minHeight: 52,
-      justifyContent: 'center',
-    },
-    primaryCloseButtonLabel: {
-      color: colors.background,
-      fontSize: 15,
-      fontWeight: '900',
+      borderRadius: 8,
+      borderWidth: StyleSheet.hairlineWidth,
+      color: colors.textPrimary,
+      fontSize: 18,
+      minHeight: 108,
+      padding: Spacing.three,
     },
     pressed: {
       opacity: 0.72,
     },
-    resultCard: {
-      backgroundColor: colors.surfacePrimary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      gap: Spacing.two,
-      padding: Spacing.three,
-      width: '100%',
+    resumeButton: {
+      alignItems: 'center',
+      flex: 1,
+      flexDirection: 'row',
+      minHeight: 44,
     },
-    resultLabel: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-    },
-    resultWorkout: {
+    resumeChevron: {
       color: colors.textPrimary,
-      fontSize: 20,
-      fontWeight: '900',
+      fontSize: 38,
+      fontWeight: '300',
+      lineHeight: 38,
+      marginLeft: -8,
+    },
+    resumeLabel: {
+      color: colors.textPrimary,
+      fontSize: 18,
       lineHeight: 24,
     },
     saveButton: {
       alignItems: 'center',
-      backgroundColor: colors.accent,
+      backgroundColor: '#FFFFFF',
       borderCurve: 'continuous',
-      borderRadius: 18,
-      minHeight: 52,
+      borderRadius: 999,
+      minHeight: 76,
       justifyContent: 'center',
     },
     saveButtonDisabled: {
-      backgroundColor: colors.surfaceSecondary,
+      opacity: 0.45,
     },
     saveButtonLabel: {
-      color: colors.background,
-      fontSize: 15,
+      color: '#000000',
+      fontSize: 22,
       fontWeight: '900',
     },
     saveButtonLabelDisabled: {
       color: colors.textMuted,
     },
-    savedActions: {
-      gap: Spacing.two,
-      width: '100%',
-    },
-    savedShell: {
-      alignItems: 'center',
-      flex: 1,
-      gap: Spacing.three,
-      paddingHorizontal: Spacing.three,
-    },
-    savedTitle: {
-      color: colors.textPrimary,
-      fontSize: 30,
-      fontWeight: '900',
-      letterSpacing: -0.6,
-      lineHeight: 34,
-    },
-    savedSubtitle: {
-      color: colors.textSecondary,
-      fontSize: 13,
-      fontWeight: '700',
-      marginTop: 4,
-    },
-    savedTopRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      width: '100%',
-    },
     screen: {
+      backgroundColor: colors.background,
       flex: 1,
     },
-    scrollView: {
-      flex: 1,
-    },
-    shareButton: {
+    singleLineField: {
       alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
       borderCurve: 'continuous',
-      borderRadius: 18,
-      minHeight: 52,
-      justifyContent: 'center',
-    },
-    shareButtonLabel: {
-      color: colors.textPrimary,
-      fontSize: 15,
-      fontWeight: '900',
-    },
-    textAction: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 999,
+      borderRadius: 8,
+      borderWidth: StyleSheet.hairlineWidth,
+      flexDirection: 'row',
+      minHeight: 72,
       paddingHorizontal: Spacing.three,
-      paddingVertical: 10,
     },
-    textActionLabel: {
-      color: colors.textPrimary,
-      fontSize: 14,
-      fontWeight: '900',
-    },
-    textInput: {
-      color: colors.textPrimary,
-      fontSize: 15,
-      fontWeight: '700',
-      minHeight: 44,
+    stravaIcon: {
+      backgroundColor: '#FC4C02',
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 22,
-      fontWeight: '900',
-      letterSpacing: -0.3,
+      flex: 2,
+      fontSize: 20,
+      fontWeight: '700',
+      textAlign: 'center',
     },
-    toggleChip: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: 10,
-    },
-    toggleChipActive: {
-      borderColor: colors.accent,
-      borderWidth: StyleSheet.hairlineWidth,
-    },
-    toggleChipLabel: {
+    titleInput: {
       color: colors.textPrimary,
-      fontSize: 13,
-      fontWeight: '900',
+      flex: 1,
+      fontSize: 18,
+      lineHeight: 23,
+      paddingVertical: Spacing.two,
     },
   });

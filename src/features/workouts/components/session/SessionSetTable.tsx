@@ -16,7 +16,7 @@ type SessionSetTableProps = {
   onRepsChange: (setId: string, value: string) => void;
   onToggleSetCompletion: (setId: string) => void;
   onWeightChange: (setId: string, value: string) => void;
-  previousSet?: { reps: number; weight: number } | null;
+  previousSets?: Array<{ reps: number; weight: number }>;
   sets: WorkoutSet[];
 };
 
@@ -27,12 +27,11 @@ export const SessionSetTable = memo(function SessionSetTable({
   onRepsChange,
   onToggleSetCompletion,
   onWeightChange,
-  previousSet,
+  previousSets = [],
   sets,
 }: SessionSetTableProps) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const previousLabel = previousSet ? `${previousSet.weight} kg · ${previousSet.reps} reps` : '—';
 
   if (sets.length === 0) {
     return <SessionEmptySets />;
@@ -60,7 +59,7 @@ export const SessionSetTable = memo(function SessionSetTable({
             onRepsChange={(value) => onRepsChange(set.id, value)}
             onToggle={() => onToggleSetCompletion(set.id)}
             onWeightChange={(value) => onWeightChange(set.id, value)}
-            previousLabel={index === 0 ? previousLabel : `${sets[index - 1].weight} kg · ${sets[index - 1].reps} reps`}
+            previousLabel={previousSets[index] ? `${previousSets[index].weight} kg · ${previousSets[index].reps} reps` : '—'}
           />
         ))}
       </View>

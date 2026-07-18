@@ -112,6 +112,21 @@ export const getWorkoutSessionCompletedSetCount = (draft: WorkoutSessionDraft | 
   return draft?.sets.filter((set) => set.completed !== false).length ?? 0;
 };
 
+export const getPreviousCompletedSetsForExercise = (
+  exerciseId: string,
+  workoutSessions: WorkoutSession[],
+) => {
+  const previousSession = [...workoutSessions]
+    .sort((left, right) => new Date(right.finishedAt).getTime() - new Date(left.finishedAt).getTime())
+    .find((session) => session.sets.some((set) => set.exerciseId === exerciseId && set.completed !== false));
+
+  return (
+    previousSession?.sets
+      .filter((set) => set.exerciseId === exerciseId && set.completed !== false)
+      .map((set) => ({ reps: set.reps, weight: set.weight })) ?? []
+  );
+};
+
 export const buildCompletedWorkoutSessionSnapshotFromDraft = (
   draft: WorkoutSessionDraft,
   options: { finishedAt?: string; notes?: string } = {},
