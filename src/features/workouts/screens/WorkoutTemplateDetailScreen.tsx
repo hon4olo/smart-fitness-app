@@ -3,8 +3,9 @@ import { useEffect, useMemo } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 import {
   getWorkoutTemplateById,
   hydrateActiveWorkoutSessionDraft,
@@ -12,7 +13,6 @@ import {
   startWorkoutSession,
   toggleWorkoutTemplateFavorite,
 } from '@/lib/workouts';
-import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 
 export default function WorkoutTemplateDetailScreen() {
   const params = useLocalSearchParams<{ workoutId?: string }>();
@@ -32,9 +32,9 @@ export default function WorkoutTemplateDetailScreen() {
 
   if (isRestoringState) {
     return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <View style={styles.screen}>
         <View style={styles.loadingState}>
-          <Text style={styles.loadingLabel}>Loading workout…</Text>
+          <Text style={styles.loadingLabel}>Loading workout...</Text>
         </View>
       </View>
     );
@@ -42,7 +42,7 @@ export default function WorkoutTemplateDetailScreen() {
 
   if (!workout) {
     return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <View style={styles.screen}>
         <View style={styles.loadingState}>
           <Text style={styles.emptyTitle}>Workout not found</Text>
           <Pressable onPress={() => router.replace('/workouts')} style={({ pressed }) => [styles.backToWorkouts, pressed && styles.pressed]}>
@@ -87,65 +87,47 @@ export default function WorkoutTemplateDetailScreen() {
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <View style={styles.screen}>
+      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
+        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+          <Text style={styles.backButtonLabel}>‹ Back</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>Workout</Text>
+        <View style={styles.headerActions}>
+          <Pressable style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+            <Text style={styles.headerIcon}>↗</Text>
+          </Pressable>
+          <Pressable onPress={openMenu} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+            <Text style={styles.headerIcon}>…</Text>
+          </Pressable>
+        </View>
+      </View>
+
       <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 116, minHeight: viewportHeight }]}
+        contentInsetAdjustmentBehavior="never"
+        contentContainerStyle={[styles.content, { minHeight: viewportHeight - insets.top, paddingBottom: insets.bottom + 174 }]}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        style={styles.scrollView}>
+        showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
-          <View style={styles.header}>
-            <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.circleButton, pressed && styles.pressed]}>
-              <Text style={styles.circleLabel}>‹</Text>
-            </Pressable>
-            <Pressable onPress={openMenu} style={({ pressed }) => [styles.circleButton, pressed && styles.pressed]}>
-              <Text style={styles.circleLabel}>⋯</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.cover}>
-            <Text style={styles.coverLabel}>{workout.title.slice(0, 1).toUpperCase()}</Text>
-          </View>
-
           <Text selectable style={styles.title}>
             {workout.title}
           </Text>
 
-          {workout.description?.trim() ? <Text selectable style={styles.description}>{workout.description.trim()}</Text> : null}
-
-          <View style={styles.metaGrid}>
-            <MetaItem label="Exercises" value={`${workout.exercises.length}`} />
-            <MetaItem label="Duration" value={workout.duration} />
-            <MetaItem label="Sets" value={`${parsedPlan.exercises.reduce((total, exercise) => total + (exercise.targetSets ?? 3), 0) || workout.exercises.length * 3}`} />
-            <MetaItem label="Rest" value={`${parsedPlan.exercises[0]?.restSeconds ?? 90}s`} />
-          </View>
-
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionTitleRow}>
-              <Text style={styles.sectionTitle}>Workout plan</Text>
-              <Pressable onPress={startWorkout} style={({ pressed }) => [styles.inlineAction, pressed && styles.pressed]}>
-                <Text style={styles.inlineActionLabel}>Start workout</Text>
-              </Pressable>
-            </View>
-
+          <View style={styles.exerciseList}>
             {workout.exercises.map((exercise, index) => {
               const plan = parsedPlan.exercises[index];
               return (
-                <View key={exercise.id} style={index > 0 ? styles.dividerTop : undefined}>
-                  <View style={styles.exerciseRow}>
-                    <View style={styles.exerciseThumb}>
-                      <Text style={styles.exerciseThumbLabel}>{exercise.name.slice(0, 1).toUpperCase()}</Text>
-                    </View>
-                    <View style={styles.exerciseCopy}>
-                      <Text selectable style={styles.exerciseTitle}>{exercise.name}</Text>
-                      <Text selectable style={styles.exerciseMeta}>
-                        {plan?.targetSets ?? 3} sets · {plan?.targetReps ?? 8} reps · {plan?.restSeconds ?? 90}s rest
-                      </Text>
-                    </View>
-                    <Pressable onPress={() => router.push({ pathname: '/workout-session', params: { workoutId: workout.id } })} style={({ pressed }) => [styles.startChip, pressed && styles.pressed]}>
-                      <Text style={styles.startChipLabel}>Start</Text>
-                    </Pressable>
+                <View key={exercise.id} style={styles.exerciseRow}>
+                  <View style={styles.exerciseThumb}>
+                    <Text style={styles.exerciseThumbLabel}>{exercise.name.slice(0, 1).toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.exerciseCopy}>
+                    <Text selectable style={styles.exerciseTitle}>
+                      {exercise.name}
+                    </Text>
+                    <Text selectable style={styles.exerciseMeta}>
+                      {plan?.targetSets ?? 3} Sets
+                    </Text>
                   </View>
                 </View>
               );
@@ -154,49 +136,119 @@ export default function WorkoutTemplateDetailScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>
+      <View style={[styles.footer, { paddingBottom: 84 + Math.max(insets.bottom, 6) }]}>
         <View style={styles.container}>
           <Pressable onPress={startWorkout} style={({ pressed }) => [styles.footerButton, pressed && styles.pressed]}>
-            <Text style={styles.footerButtonLabel}>Start workout</Text>
+            <Text style={styles.footerButtonLabel}>Start Workout</Text>
           </Pressable>
         </View>
       </View>
+
+      <WorkoutFlowTabBar bottomInset={insets.bottom} colors={colors} />
     </View>
   );
 }
 
-function MetaItem({ label, value }: { label: string; value: string }) {
-  const { colors } = useWorkoutTheme();
-  const styles = useMemo(() => createMetaStyles(colors), [colors]);
+function WorkoutFlowTabBar({ bottomInset, colors }: { bottomInset: number; colors: typeof Colors.light }) {
+  const styles = useMemo(() => createTabStyles(colors), [colors]);
+  const items = [
+    { icon: '⌂', label: 'Home', route: '/' },
+    { icon: '◉', label: 'Explore', route: '/workouts' },
+    { icon: '+', label: 'Workout', route: '/workouts' },
+    { icon: '⌁', label: 'Progress', route: '/progress' },
+    { icon: '◎', label: 'Profile', route: '/profile' },
+  ] as const;
+
   return (
-    <View style={styles.item}>
-      <Text style={styles.label}>{label}</Text>
-      <Text selectable style={styles.value}>{value}</Text>
+    <View style={[styles.tabBar, { paddingBottom: Math.max(bottomInset, 6) }]}>
+      {items.map((item) => {
+        const active = item.label === 'Workout';
+        return (
+          <Pressable key={item.label} onPress={() => router.push(item.route)} style={({ pressed }) => [styles.tabItem, pressed && styles.pressed]}>
+            <View style={[styles.tabIconWrap, active && styles.tabIconWrapActive]}>
+              <Text style={[styles.tabIcon, active && styles.tabIconActive]}>{item.icon}</Text>
+            </View>
+            <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
 
-const createMetaStyles = (colors: typeof Colors.light) =>
+const createTabStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
-    item: {
-      gap: 4,
-      minWidth: '47%',
+    pressed: {
+      opacity: 0.72,
     },
-    label: {
-      color: colors.textSecondary,
+    tabBar: {
+      alignItems: 'flex-start',
+      backgroundColor: '#000000',
+      borderTopColor: '#1F1F1F',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      bottom: 0,
+      flexDirection: 'row',
+      height: 84,
+      justifyContent: 'space-around',
+      left: 0,
+      paddingTop: 10,
+      position: 'absolute',
+      right: 0,
+    },
+    tabIcon: {
+      color: colors.textMuted,
+      fontSize: 24,
+      lineHeight: 26,
+    },
+    tabIconActive: {
+      color: '#000000',
+      fontSize: 18,
+      fontWeight: '900',
+      lineHeight: 22,
+    },
+    tabIconWrap: {
+      alignItems: 'center',
+      height: 28,
+      justifyContent: 'center',
+      width: 34,
+    },
+    tabIconWrapActive: {
+      backgroundColor: '#FFFFFF',
+      borderRadius: 999,
+      height: 28,
+      width: 28,
+    },
+    tabItem: {
+      alignItems: 'center',
+      flex: 1,
+      gap: 2,
+    },
+    tabLabel: {
+      color: colors.textMuted,
       fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
+      fontWeight: '600',
     },
-    value: {
-      color: colors.textPrimary,
-      fontSize: 15,
+    tabLabelActive: {
+      color: '#FFFFFF',
       fontWeight: '800',
     },
   });
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
+    backButton: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      height: 34,
+      justifyContent: 'center',
+      minWidth: 74,
+    },
+    backButtonLabel: {
+      color: '#0A84FF',
+      fontSize: 17,
+      fontWeight: '400',
+      lineHeight: 22,
+    },
     backToWorkouts: {
       alignItems: 'center',
       backgroundColor: colors.surfaceSecondary,
@@ -211,58 +263,15 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: 14,
       fontWeight: '900',
     },
-    circleButton: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      height: 34,
-      justifyContent: 'center',
-      width: 34,
-    },
-    circleLabel: {
-      color: colors.textPrimary,
-      fontSize: 22,
-      fontWeight: '700',
-      lineHeight: 22,
-      marginTop: -1,
-    },
-    content: {
-      alignItems: 'center',
-      backgroundColor: colors.background,
-      flexGrow: 1,
-      paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.three,
-    },
     container: {
       maxWidth: MaxContentWidth,
       width: '100%',
     },
-    cover: {
+    content: {
       alignItems: 'center',
-      aspectRatio: 1.7,
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      justifyContent: 'center',
-      marginBottom: Spacing.three,
-      overflow: 'hidden',
-    },
-    coverLabel: {
-      color: colors.textPrimary,
-      fontSize: 34,
-      fontWeight: '900',
-      opacity: 0.9,
-    },
-    description: {
-      color: colors.textSecondary,
-      fontSize: 13,
-      lineHeight: 19,
-      marginTop: Spacing.three,
-    },
-    dividerTop: {
-      borderTopColor: colors.borderSubtle,
-      borderTopWidth: StyleSheet.hairlineWidth,
+      backgroundColor: '#000000',
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.five,
     },
     emptyTitle: {
       color: colors.textPrimary,
@@ -273,77 +282,103 @@ const createStyles = (colors: typeof Colors.light) =>
       flex: 1,
       minWidth: 0,
     },
+    exerciseList: {
+      gap: Spacing.four,
+      marginTop: Spacing.five,
+    },
     exerciseMeta: {
       color: colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '700',
-      marginTop: 2,
+      fontSize: 17,
+      fontWeight: '400',
+      lineHeight: 23,
     },
     exerciseRow: {
       alignItems: 'center',
       flexDirection: 'row',
-      gap: Spacing.two,
-      paddingVertical: 12,
+      gap: Spacing.four,
+      minHeight: 82,
     },
     exerciseThumb: {
       alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 14,
-      height: 32,
+      backgroundColor: '#0A0A0A',
+      height: 76,
       justifyContent: 'center',
-      width: 32,
+      width: 76,
     },
     exerciseThumbLabel: {
       color: colors.textPrimary,
-      fontSize: 14,
-      fontWeight: '900',
+      fontSize: 26,
+      fontWeight: '300',
     },
     exerciseTitle: {
       color: colors.textPrimary,
-      fontSize: 16,
-      fontWeight: '800',
+      fontSize: 22,
+      fontWeight: '400',
+      lineHeight: 28,
     },
     footer: {
+      backgroundColor: '#000000',
+      borderTopColor: '#2B2B2B',
       borderTopWidth: StyleSheet.hairlineWidth,
+      bottom: 0,
       left: 0,
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.two,
+      paddingTop: 18,
       position: 'absolute',
       right: 0,
-      bottom: 0,
     },
     footerButton: {
       alignItems: 'center',
-      backgroundColor: colors.accent,
+      backgroundColor: '#FFFFFF',
       borderCurve: 'continuous',
-      borderRadius: 18,
-      minHeight: 52,
+      borderRadius: 999,
+      minHeight: 78,
       justifyContent: 'center',
     },
     footerButtonLabel: {
-      color: colors.background,
-      fontSize: 15,
-      fontWeight: '900',
+      color: '#000000',
+      fontSize: 23,
+      fontWeight: '700',
+      lineHeight: 28,
     },
     header: {
       alignItems: 'center',
+      backgroundColor: '#000000',
+      borderBottomColor: '#2B2B2B',
+      borderBottomWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: Spacing.three,
+      paddingBottom: 8,
+      paddingHorizontal: 10,
     },
-    inlineAction: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      paddingHorizontal: Spacing.two,
-      paddingVertical: 8,
+    headerActions: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      minWidth: 96,
     },
-    inlineActionLabel: {
+    headerIcon: {
+      color: '#0A84FF',
+      fontSize: 28,
+      fontWeight: '400',
+      lineHeight: 30,
+    },
+    headerTitle: {
       color: colors.textPrimary,
-      fontSize: 12,
-      fontWeight: '900',
+      fontSize: 19,
+      fontWeight: '500',
+      lineHeight: 24,
+      position: 'absolute',
+      bottom: 12,
+      left: 0,
+      right: 0,
+      textAlign: 'center',
+    },
+    iconButton: {
+      alignItems: 'center',
+      height: 34,
+      justifyContent: 'center',
+      width: 44,
     },
     loadingLabel: {
       color: colors.textSecondary,
@@ -356,63 +391,17 @@ const createStyles = (colors: typeof Colors.light) =>
       justifyContent: 'center',
       padding: Spacing.three,
     },
-    metaGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: Spacing.three,
-    },
     pressed: {
       opacity: 0.72,
     },
     screen: {
+      backgroundColor: '#000000',
       flex: 1,
-      backgroundColor: colors.background,
-    },
-    scrollView: {
-      backgroundColor: colors.background,
-      flex: 1,
-    },
-    sectionCard: {
-      backgroundColor: colors.surfacePrimary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      marginTop: Spacing.three,
-      overflow: 'hidden',
-      padding: Spacing.three,
-    },
-    sectionTitle: {
-      color: colors.textPrimary,
-      fontSize: 18,
-      fontWeight: '900',
-    },
-    sectionTitleRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: Spacing.two,
-      marginBottom: Spacing.two,
-    },
-    startChip: {
-      alignItems: 'center',
-      backgroundColor: colors.accent,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      height: 32,
-      justifyContent: 'center',
-      paddingHorizontal: Spacing.two,
-    },
-    startChipLabel: {
-      color: colors.background,
-      fontSize: 12,
-      fontWeight: '900',
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 30,
-      fontWeight: '900',
-      letterSpacing: -0.6,
-      lineHeight: 34,
+      fontSize: 32,
+      fontWeight: '400',
+      lineHeight: 38,
     },
   });
