@@ -750,6 +750,7 @@ const createStyles = (colors: typeof Colors.light) =>
       color: colors.textPrimary,
       fontSize: 15,
       fontWeight: '800',
+      lineHeight: 20,
     },
     preferenceRow: {
       alignItems: 'center',
@@ -757,13 +758,13 @@ const createStyles = (colors: typeof Colors.light) =>
       borderCurve: 'continuous',
       borderRadius: 16,
       flexDirection: 'row',
+      height: 58,
       justifyContent: 'space-between',
-      minHeight: 48,
       paddingLeft: Spacing.three,
-      paddingRight: 8,
+      paddingRight: 14,
     },
     preferenceSwitch: {
-      transform: [{ scaleX: 0.86 }, { scaleY: 0.86 }],
+      marginVertical: 0,
     },
     replacementBackdrop: {
       ...StyleSheet.absoluteFill,

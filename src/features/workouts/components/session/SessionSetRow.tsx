@@ -61,20 +61,27 @@ export const SessionSetRow = memo(function SessionSetRow({
           onEndEditing={onCommit}
           onSubmitEditing={onCommit}
         />
-        <TextInput
-          autoCapitalize="none"
-          autoCorrect={false}
-          blurOnSubmit
-          value={draftValue.reps}
-          keyboardType="number-pad"
-          placeholder="—"
-          placeholderTextColor={colors.textSecondary}
-          selectionColor={colors.accent}
-          style={[styles.inputCell, completed && styles.inputCellCompleted, styles.colReps]}
-          onChangeText={onRepsChange}
-          onEndEditing={onCommit}
-          onSubmitEditing={onCommit}
-        />
+        <View style={[styles.repsCell, styles.colReps]}>
+          <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
+            blurOnSubmit
+            value={draftValue.reps}
+            keyboardType="number-pad"
+            placeholder="—"
+            placeholderTextColor={colors.textSecondary}
+            selectionColor={colors.accent}
+            style={[styles.inputCell, styles.repsInput, completed && styles.inputCellCompleted]}
+            onChangeText={onRepsChange}
+            onEndEditing={onCommit}
+            onSubmitEditing={onCommit}
+          />
+          {completed && actualRpe !== undefined ? (
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={onEditRpe} style={({ pressed }) => [styles.rpeBadge, pressed && styles.pressed]}>
+              <Text style={styles.rpeBadgeLabel}>{actualRpe}</Text>
+            </Pressable>
+          ) : null}
+        </View>
         <View style={[styles.completionCell, styles.colCompletion]}>
           <Pressable
             accessibilityRole="button"
@@ -83,13 +90,6 @@ export const SessionSetRow = memo(function SessionSetRow({
             style={({ pressed }) => [styles.iconCell, completed && (isDark ? styles.iconCellCompletedDark : styles.iconCellCompletedLight), pressed && styles.pressed]}>
             <Text style={[styles.checkLabel, completed && styles.checkLabelCompleted]}>✓</Text>
           </Pressable>
-          {completed && actualRpe !== undefined ? (
-            <Pressable accessibilityRole="button" hitSlop={8} onPress={onEditRpe} style={({ pressed }) => [pressed && styles.pressed]}>
-              <Text style={styles.rpeLabel}>@{actualRpe}</Text>
-            </Pressable>
-          ) : (
-            <Text style={styles.rpePlaceholder}>@0</Text>
-          )}
         </View>
       </View>
     </View>
@@ -120,7 +120,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     completionCell: {
       alignItems: 'center',
-      height: 44,
+      height: 48,
       justifyContent: 'center',
     },
     colPrevious: {
@@ -200,19 +200,29 @@ const createStyles = (colors: typeof Colors.light) =>
     rowWrap: {
       marginBottom: 0,
     },
-    rpeLabel: {
-      color: colors.accent,
-      fontSize: 10,
-      fontVariant: ['tabular-nums'],
-      fontWeight: '800',
-      lineHeight: 12,
-      marginTop: 1,
-      textAlign: 'center',
+    repsCell: {
+      height: 30,
+      justifyContent: 'center',
+      position: 'relative',
     },
-    rpePlaceholder: {
-      color: 'transparent',
-      fontSize: 10,
-      lineHeight: 12,
-      marginTop: 1,
+    repsInput: {
+      marginLeft: 0,
+      width: '100%',
+    },
+    rpeBadge: {
+      alignItems: 'center',
+      minHeight: 18,
+      minWidth: 18,
+      position: 'absolute',
+      right: 20,
+      top: -9,
+    },
+    rpeBadgeLabel: {
+      color: colors.accent,
+      fontSize: 9,
+      fontVariant: ['tabular-nums'],
+      fontWeight: '900',
+      lineHeight: 11,
+      textAlign: 'center',
     },
   });
