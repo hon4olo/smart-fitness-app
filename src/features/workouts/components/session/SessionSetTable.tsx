@@ -13,6 +13,7 @@ import type { SessionDraftInputs } from './types';
 type SessionSetTableProps = {
   draftInputs: SessionDraftInputs;
   onCommitRowInputs: (setId: string) => void;
+  onEditSetRpe: (setId: string) => void;
   onLongPressRow: (setId: string) => void;
   onPlannedRepsChange: (index: number, value: string) => void;
   onPlannedToggleSetCompletion: (index: number) => void;
@@ -28,6 +29,7 @@ type SessionSetTableProps = {
 export const SessionSetTable = memo(function SessionSetTable({
   draftInputs,
   onCommitRowInputs,
+  onEditSetRpe,
   onLongPressRow,
   onPlannedRepsChange,
   onPlannedToggleSetCompletion,
@@ -94,7 +96,9 @@ export const SessionSetTable = memo(function SessionSetTable({
               completed={set.completed !== false}
               draftValue={draftInputs[set.id] ?? { reps: `${set.reps}`, weight: `${set.weight}` }}
               index={index}
+              actualRpe={set.actualRpe}
               onCommit={() => onCommitRowInputs(set.id)}
+              onEditRpe={() => onEditSetRpe(set.id)}
               onLongPress={() => onLongPressRow(set.id)}
               onRepsChange={(value) => onRepsChange(set.id, value)}
               onToggle={() => onToggleSetCompletion(set.id)}

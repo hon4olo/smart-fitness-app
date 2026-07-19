@@ -1,19 +1,21 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ActivityIndicator, Keyboard, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { getWorkoutTemplateById, getActiveWorkoutSessionDraft, hydrateActiveWorkoutSessionDraft, parseWorkoutPlanDescription, resolveExerciseByName } from '@/lib/workouts';
-import { clearActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft } from '@/features/workouts/storage';
+import { clearActiveWorkoutSessionDraft, loadWorkoutRpeTrackingEnabled, saveWorkoutRpeTrackingEnabled, setActiveWorkoutSessionDraft } from '@/features/workouts/storage';
 import { resolveWorkoutSessionRouteState } from '@/features/workouts/routeResolution';
-import { addWorkoutSessionSet, clearWorkoutSessionSetsForExercise, createWorkoutSessionDraft, getPreviousCompletedSetsForExercise, getWorkoutSessionCompletedSetCount, removeWorkoutSessionSet, toggleWorkoutSessionSetCompletion, updateWorkoutSessionSetField } from '@/features/workouts/sessionScreenModel';
+import { addWorkoutSessionSet, clearWorkoutSessionSetsForExercise, createWorkoutSessionDraft, getPreviousCompletedSetsForExercise, getWorkoutSessionCompletedSetCount, removeWorkoutSessionSet, toggleWorkoutSessionSetCompletion, updateWorkoutSessionSetActualRpe, updateWorkoutSessionSetField } from '@/features/workouts/sessionScreenModel';
 import { formatWorkoutSessionElapsedLabel } from '@/features/workouts/sessionModel';
+import { RpeBottomSheet } from '@/features/workouts/components/session/RpeBottomSheet';
 import { SessionExerciseSection } from '@/features/workouts/components/session/SessionExerciseSection';
 import { SessionHeader } from '@/features/workouts/components/session/SessionHeader';
 import type { SessionDraftInputs, SessionExercise } from '@/features/workouts/components/session/types';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import type { WorkoutRpe } from '@/types';
 
 function uniqueExercisesFromSets(setNames: Array<{ exerciseId: string; exerciseName: string }>, catalog: ReturnType<typeof useAppContext>['exercises']) {
   const seen = new Set<string>();
@@ -39,10 +41,13 @@ export default function WorkoutSessionScreen() {
   const [draftInputs, setDraftInputs] = useState<SessionDraftInputs>({});
   const [now, setNow] = useState(Date.now());
   const [exerciseOverflow, setExerciseOverflow] = useState<{ exerciseId: string; exerciseName: string } | null>(null);
+  const [workoutOverflowOpen, setWorkoutOverflowOpen] = useState(false);
   const [replacementTarget, setReplacementTarget] = useState<{ exerciseId: string; exerciseName: string } | null>(null);
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
   const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(() => new Set());
   const [overflowMessage, setOverflowMessage] = useState<string | null>(null);
+  const [trackRpeEnabled, setTrackRpeEnabled] = useState(false);
+  const [rpeSetId, setRpeSetId] = useState<string | null>(null);
   const didSetInitialExpandedExercise = useRef(false);
 
   useEffect(() => {
@@ -136,6 +141,19 @@ export default function WorkoutSessionScreen() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    void loadWorkoutRpeTrackingEnabled().then((enabled) => {
+      if (!cancelled) {
+        setTrackRpeEnabled(enabled);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (draft) {
       setActiveWorkoutSessionDraft(draft);
     }
@@ -225,6 +243,7 @@ export default function WorkoutSessionScreen() {
     setBootstrappedDraft(null);
     setDraftInputs({});
     setExerciseOverflow(null);
+    setWorkoutOverflowOpen(false);
     setReplacementTarget(null);
     setExpandedExerciseId(null);
     setHiddenExerciseIds(new Set());
@@ -237,31 +256,7 @@ export default function WorkoutSessionScreen() {
 
     router.push('/workout-session-finish');
   };
-  const onOverflow = () => {
-    Alert.alert(workoutTitle, undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: ['Add ', 'exercises'].join(''),
-        onPress: () => {
-          router.push('/workout-session/exercises');
-        },
-      },
-      {
-        text: 'Discard workout',
-        style: 'destructive',
-        onPress: () => {
-          Alert.alert('Discard workout?', 'Your logged sets will not be saved.', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Discard workout',
-              style: 'destructive',
-              onPress: discardActiveWorkoutAndReturn,
-            },
-          ]);
-        },
-      },
-    ]);
-  };
+  const onOverflow = () => setWorkoutOverflowOpen(true);
 
   const updateSet = (setId: string, field: 'weight' | 'reps', value: string) => {
     if (!draft) return;
@@ -317,7 +312,13 @@ export default function WorkoutSessionScreen() {
 
   const toggleSetCompletion = (setId: string) => {
     if (!draft) return;
+    const set = draft.sets.find((item) => item.id === setId);
+    const shouldAskForRpe = Boolean(trackRpeEnabled && set && set.completed === false);
     setDraft(toggleWorkoutSessionSetCompletion(draft, setId));
+    if (shouldAskForRpe) {
+      Keyboard.dismiss();
+      setRpeSetId(setId);
+    }
   };
 
   const updatePlannedSet = (exerciseId: string, index: number, field: 'weight' | 'reps', value: string) => {
@@ -330,7 +331,23 @@ export default function WorkoutSessionScreen() {
   const togglePlannedSetCompletion = (exerciseId: string, index: number) => {
     const set = ensurePlannedSet(exerciseId, index);
     if (!set) return;
+    const shouldAskForRpe = Boolean(trackRpeEnabled && set.completed === false);
     setDraft((currentDraft) => (currentDraft ? toggleWorkoutSessionSetCompletion(currentDraft, set.id) : currentDraft));
+    if (shouldAskForRpe) {
+      Keyboard.dismiss();
+      setRpeSetId(set.id);
+    }
+  };
+
+  const editSetRpe = (setId: string) => {
+    const set = draft?.sets.find((item) => item.id === setId);
+    if (!set || set.completed === false) return;
+    Keyboard.dismiss();
+    setRpeSetId(setId);
+  };
+
+  const setActualRpe = (setId: string, actualRpe?: WorkoutRpe) => {
+    setDraft((currentDraft) => (currentDraft ? updateWorkoutSessionSetActualRpe(currentDraft, setId, actualRpe) : currentDraft));
   };
 
   const clearExerciseSets = (exerciseId: string) => {
@@ -368,6 +385,10 @@ export default function WorkoutSessionScreen() {
   const completedSets = draft.sets.filter((set) => set.completed !== false);
   const completedReps = completedSets.reduce((total, set) => total + set.reps, 0);
   const completedVolume = completedSets.reduce((total, set) => total + set.reps * set.weight, 0);
+  const rpeSet = rpeSetId ? draft.sets.find((set) => set.id === rpeSetId) : undefined;
+  const rpeSetLabel = rpeSet
+    ? `Set ${draft.sets.filter((set) => set.exerciseId === rpeSet.exerciseId).findIndex((set) => set.id === rpeSet.id) + 1}`
+    : 'Set';
   return (
     <View style={styles.screen}>
       <SessionHeader
@@ -423,6 +444,7 @@ export default function WorkoutSessionScreen() {
                   ])
                 }
                 onNotesPress={exercise.notes ? () => Alert.alert('Notes', exercise.notes ?? '') : undefined}
+                onEditSetRpe={editSetRpe}
                 onRepsChange={(setId, value) => updateSet(setId, 'reps', value)}
                 onPlannedRepsChange={updatePlannedSet}
                 onPlannedToggleSetCompletion={togglePlannedSetCompletion}
@@ -479,6 +501,55 @@ export default function WorkoutSessionScreen() {
         </Pressable>
       </Modal>
 
+      <Modal animationType="fade" transparent visible={workoutOverflowOpen} onRequestClose={() => setWorkoutOverflowOpen(false)}>
+        <Pressable onPress={() => setWorkoutOverflowOpen(false)} style={[styles.overflowBackdrop, { paddingBottom: insets.bottom + Spacing.three }]}>
+          <Pressable onPress={() => undefined} style={styles.overflowSheet}>
+            <Text style={styles.overflowTitle}>{workoutTitle}</Text>
+            <View style={styles.overflowActions}>
+              <View style={styles.preferenceRow}>
+                <Text style={styles.preferenceLabel}>Track RPE</Text>
+                <Switch
+                  style={styles.preferenceSwitch}
+                  value={trackRpeEnabled}
+                  onValueChange={(enabled) => {
+                    setTrackRpeEnabled(enabled);
+                    void saveWorkoutRpeTrackingEnabled(enabled);
+                  }}
+                  trackColor={{ false: colors.surfaceSecondary, true: colors.accent }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+              <Pressable
+                onPress={() => {
+                  setWorkoutOverflowOpen(false);
+                  router.push('/workout-session/exercises');
+                }}
+                style={({ pressed }) => [styles.overflowAction, pressed && styles.pressed]}>
+                <Text style={styles.overflowActionLabel}>{['Add ', 'exercises'].join('')}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setWorkoutOverflowOpen(false);
+                  Alert.alert('Discard workout?', 'Your logged sets will not be saved.', [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Discard workout',
+                      style: 'destructive',
+                      onPress: discardActiveWorkoutAndReturn,
+                    },
+                  ]);
+                }}
+                style={({ pressed }) => [styles.overflowAction, styles.overflowDangerAction, pressed && styles.pressed]}>
+                <Text style={[styles.overflowActionLabel, styles.overflowDangerLabel]}>Discard workout</Text>
+              </Pressable>
+              <Pressable onPress={() => setWorkoutOverflowOpen(false)} style={({ pressed }) => [styles.overflowCancel, pressed && styles.pressed]}>
+                <Text style={styles.overflowCancelLabel}>Cancel</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <Modal animationType="slide" transparent visible={Boolean(replacementTarget)} onRequestClose={() => setReplacementTarget(null)}>
         <View style={styles.replacementBackdrop}>
           <View style={styles.replacementSheet}>
@@ -508,6 +579,23 @@ export default function WorkoutSessionScreen() {
           </View>
         </View>
       </Modal>
+
+      <RpeBottomSheet
+        selectedRpe={rpeSet?.actualRpe}
+        setLabel={rpeSetLabel}
+        visible={Boolean(rpeSet)}
+        onDismiss={() => setRpeSetId(null)}
+        onSelect={(value) => {
+          if (rpeSetId) {
+            setActualRpe(rpeSetId, value);
+          }
+        }}
+        onSkip={() => {
+          if (rpeSetId) {
+            setActualRpe(rpeSetId, undefined);
+          }
+        }}
+      />
     </View>
   );
 }
@@ -657,6 +745,25 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     pressed: {
       opacity: 0.72,
+    },
+    preferenceLabel: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    preferenceRow: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderCurve: 'continuous',
+      borderRadius: 16,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      minHeight: 48,
+      paddingLeft: Spacing.three,
+      paddingRight: 8,
+    },
+    preferenceSwitch: {
+      transform: [{ scaleX: 0.86 }, { scaleY: 0.86 }],
     },
     replacementBackdrop: {
       ...StyleSheet.absoluteFill,

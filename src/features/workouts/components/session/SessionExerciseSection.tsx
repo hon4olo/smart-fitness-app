@@ -16,6 +16,7 @@ type SessionExerciseSectionProps = {
   expanded: boolean;
   onAddSet: (exerciseId: string) => void;
   onCommitRowInputs: (setId: string) => void;
+  onEditSetRpe: (setId: string) => void;
   onLongPressExercise: (exerciseId: string, exerciseName: string) => void;
   onLongPressRow: (setId: string) => void;
   onNotesPress?: () => void;
@@ -36,6 +37,7 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
   expanded,
   onAddSet,
   onCommitRowInputs,
+  onEditSetRpe,
   onLongPressExercise,
   onLongPressRow,
   onNotesPress,
@@ -112,6 +114,7 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
           <SessionSetTable
             draftInputs={draftInputs}
             onCommitRowInputs={onCommitRowInputs}
+            onEditSetRpe={onEditSetRpe}
             onLongPressRow={onLongPressRow}
             onPlannedRepsChange={(index, value) => onPlannedRepsChange(exercise.id, index, 'reps', value)}
             onPlannedToggleSetCompletion={(index) => onPlannedToggleSetCompletion(exercise.id, index)}

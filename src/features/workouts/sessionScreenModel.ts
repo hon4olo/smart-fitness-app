@@ -1,4 +1,4 @@
-import type { Workout, WorkoutSession, WorkoutSet } from '@/types';
+import type { Workout, WorkoutRpe, WorkoutSession, WorkoutSet } from '@/types';
 
 import { buildCompletedWorkoutSessionSnapshot } from './sessionModel';
 import type { WorkoutSessionDraft } from './types';
@@ -91,6 +91,13 @@ export const toggleWorkoutSessionSetCompletion = (draft: WorkoutSessionDraft, se
   return {
     ...draft,
     sets: draft.sets.map((set) => (set.id === setId ? { ...set, completed: !set.completed } : cloneSet(set))),
+  } satisfies WorkoutSessionDraft;
+};
+
+export const updateWorkoutSessionSetActualRpe = (draft: WorkoutSessionDraft, setId: string, actualRpe?: WorkoutRpe) => {
+  return {
+    ...draft,
+    sets: draft.sets.map((set) => (set.id === setId ? { ...set, actualRpe } : cloneSet(set))),
   } satisfies WorkoutSessionDraft;
 };
 

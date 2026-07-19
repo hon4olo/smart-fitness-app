@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
+import type { WorkoutRpe } from '@/types';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { SESSION_TABLE_COLUMNS, SESSION_TABLE_GAPS, SESSION_TABLE_TOTAL_WIDTH } from './sessionTableLayout';
@@ -10,7 +11,9 @@ type SessionSetRowProps = {
   completed: boolean;
   draftValue: { reps: string; weight: string };
   index: number;
+  actualRpe?: WorkoutRpe;
   onCommit: () => void;
+  onEditRpe?: () => void;
   onLongPress: () => void;
   onRepsChange: (value: string) => void;
   onToggle: () => void;
@@ -22,7 +25,10 @@ export const SessionSetRow = memo(function SessionSetRow({
   completed,
   draftValue,
   index,
+  actualRpe,
   onCommit,
+  onEditRpe,
+  onLongPress,
   onRepsChange,
   onToggle,
   onWeightChange,
@@ -69,9 +75,22 @@ export const SessionSetRow = memo(function SessionSetRow({
           onEndEditing={onCommit}
           onSubmitEditing={onCommit}
         />
-        <Pressable accessibilityRole="button" onPress={onToggle} style={({ pressed }) => [styles.iconCell, styles.colCompletion, completed && (isDark ? styles.iconCellCompletedDark : styles.iconCellCompletedLight), pressed && styles.pressed]}>
-          <Text style={[styles.checkLabel, completed && styles.checkLabelCompleted]}>✓</Text>
-        </Pressable>
+        <View style={[styles.completionCell, styles.colCompletion]}>
+          <Pressable
+            accessibilityRole="button"
+            onLongPress={actualRpe !== undefined ? onEditRpe : onLongPress}
+            onPress={onToggle}
+            style={({ pressed }) => [styles.iconCell, completed && (isDark ? styles.iconCellCompletedDark : styles.iconCellCompletedLight), pressed && styles.pressed]}>
+            <Text style={[styles.checkLabel, completed && styles.checkLabelCompleted]}>✓</Text>
+          </Pressable>
+          {completed && actualRpe !== undefined ? (
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={onEditRpe} style={({ pressed }) => [pressed && styles.pressed]}>
+              <Text style={styles.rpeLabel}>@{actualRpe}</Text>
+            </Pressable>
+          ) : (
+            <Text style={styles.rpePlaceholder}>@0</Text>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -98,6 +117,11 @@ const createStyles = (colors: typeof Colors.light) =>
     colCompletion: {
       marginLeft: SESSION_TABLE_GAPS.repsToCompletion,
       width: SESSION_TABLE_COLUMNS.completion,
+    },
+    completionCell: {
+      alignItems: 'center',
+      height: 44,
+      justifyContent: 'center',
     },
     colPrevious: {
       marginLeft: SESSION_TABLE_GAPS.setToPrevious,
@@ -175,5 +199,20 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     rowWrap: {
       marginBottom: 0,
+    },
+    rpeLabel: {
+      color: colors.accent,
+      fontSize: 10,
+      fontVariant: ['tabular-nums'],
+      fontWeight: '800',
+      lineHeight: 12,
+      marginTop: 1,
+      textAlign: 'center',
+    },
+    rpePlaceholder: {
+      color: 'transparent',
+      fontSize: 10,
+      lineHeight: 12,
+      marginTop: 1,
     },
   });

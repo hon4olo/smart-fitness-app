@@ -5,6 +5,7 @@ import type { WorkoutSession } from '@/types';
 import type { WorkoutSessionDraft, WorkoutSessionStatus } from './types';
 
 const ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY = 'active-workout-session-draft';
+const WORKOUT_RPE_TRACKING_STORAGE_KEY = 'workout-rpe-tracking-enabled';
 
 let activeWorkoutSessionDraft = null as WorkoutSessionDraft | null;
 let activeWorkoutSessionDraftWriteQueue = Promise.resolve();
@@ -126,4 +127,20 @@ export const resetWorkoutSessionStorage = () => {
   activeWorkoutSessionDraftHydrated = false;
   activeWorkoutSessionStatus = 'idle';
   activeWorkoutSessionDraftWriteQueue = Promise.resolve();
+};
+
+export const loadWorkoutRpeTrackingEnabled = async () => {
+  try {
+    return (await AsyncStorage.getItem(WORKOUT_RPE_TRACKING_STORAGE_KEY)) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+export const saveWorkoutRpeTrackingEnabled = async (enabled: boolean) => {
+  try {
+    await AsyncStorage.setItem(WORKOUT_RPE_TRACKING_STORAGE_KEY, enabled ? 'true' : 'false');
+  } catch {
+    // Preference persistence is non-critical for the active workout flow.
+  }
 };
