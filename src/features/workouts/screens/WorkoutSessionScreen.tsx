@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ActivityIndicator, Keyboard, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +28,40 @@ function uniqueExercisesFromSets(setNames: Array<{ exerciseId: string; exerciseN
       seen.add(exercise.id);
       return true;
     });
+}
+
+type WorkoutSheetRowProps = {
+  destructive?: boolean;
+  label: string;
+  onPress?: () => void;
+  styles: ReturnType<typeof createStyles>;
+  trailingAccessory?: ReactNode;
+};
+
+function WorkoutSheetRow({ destructive = false, label, onPress, styles, trailingAccessory }: WorkoutSheetRowProps) {
+  const content = (
+    <>
+      <View style={styles.workoutSheetRowLabelContainer}>
+        <Text style={[styles.workoutSheetRowLabel, destructive && styles.workoutSheetRowLabelDestructive]} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
+      {trailingAccessory ? <View style={styles.workoutSheetRowAccessory}>{trailingAccessory}</View> : null}
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => [styles.workoutSheetRow, destructive && styles.workoutSheetRowDestructive, pressed && styles.pressed]}>
+        {content}
+      </Pressable>
+    );
+  }
+
+  return <View style={[styles.workoutSheetRow, destructive && styles.workoutSheetRowDestructive]}>{content}</View>;
 }
 
 export default function WorkoutSessionScreen() {
@@ -506,11 +541,11 @@ export default function WorkoutSessionScreen() {
           <Pressable onPress={() => undefined} style={styles.overflowSheet}>
             <Text style={styles.overflowTitle}>{workoutTitle}</Text>
             <View style={styles.overflowActions}>
-              <View style={styles.preferenceRow}>
-                <Text style={styles.preferenceLabel}>Track RPE</Text>
-                <View style={styles.preferenceSwitchSlot}>
+              <WorkoutSheetRow
+                label="Track RPE"
+                styles={styles}
+                trailingAccessory={
                   <Switch
-                    style={styles.preferenceSwitch}
                     value={trackRpeEnabled}
                     onValueChange={(enabled) => {
                       setTrackRpeEnabled(enabled);
@@ -519,17 +554,19 @@ export default function WorkoutSessionScreen() {
                     trackColor={{ false: colors.surfaceSecondary, true: colors.accent }}
                     thumbColor="#FFFFFF"
                   />
-                </View>
-              </View>
-              <Pressable
+                }
+              />
+              <WorkoutSheetRow
+                label="Add exercises"
                 onPress={() => {
                   setWorkoutOverflowOpen(false);
                   router.push('/workout-session/exercises');
                 }}
-                style={({ pressed }) => [styles.overflowAction, pressed && styles.pressed]}>
-                <Text style={styles.overflowActionLabel}>{['Add ', 'exercises'].join('')}</Text>
-              </Pressable>
-              <Pressable
+                styles={styles}
+              />
+              <WorkoutSheetRow
+                destructive
+                label="Discard workout"
                 onPress={() => {
                   setWorkoutOverflowOpen(false);
                   Alert.alert('Discard workout?', 'Your logged sets will not be saved.', [
@@ -541,9 +578,8 @@ export default function WorkoutSessionScreen() {
                     },
                   ]);
                 }}
-                style={({ pressed }) => [styles.overflowAction, styles.overflowDangerAction, pressed && styles.pressed]}>
-                <Text style={[styles.overflowActionLabel, styles.overflowDangerLabel]}>Discard workout</Text>
-              </Pressable>
+                styles={styles}
+              />
               <Pressable onPress={() => setWorkoutOverflowOpen(false)} style={({ pressed }) => [styles.overflowCancel, pressed && styles.pressed]}>
                 <Text style={styles.overflowCancelLabel}>Cancel</Text>
               </Pressable>
@@ -748,32 +784,6 @@ const createStyles = (colors: typeof Colors.light) =>
     pressed: {
       opacity: 0.72,
     },
-    preferenceLabel: {
-      color: colors.textPrimary,
-      fontSize: 15,
-      fontWeight: '800',
-      lineHeight: 20,
-    },
-    preferenceRow: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 16,
-      flexDirection: 'row',
-      height: 58,
-      justifyContent: 'space-between',
-      paddingLeft: Spacing.three,
-      paddingRight: 14,
-    },
-    preferenceSwitch: {
-      transform: [{ translateY: 5 }],
-    },
-    preferenceSwitchSlot: {
-      alignItems: 'center',
-      height: 58,
-      justifyContent: 'center',
-      width: 74,
-    },
     replacementBackdrop: {
       ...StyleSheet.absoluteFill,
       backgroundColor: colors.overlay,
@@ -851,5 +861,38 @@ const createStyles = (colors: typeof Colors.light) =>
       color: colors.textPrimary,
       fontSize: 14,
       fontWeight: '900',
+    },
+    workoutSheetRow: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderCurve: 'continuous',
+      borderRadius: 16,
+      flexDirection: 'row',
+      gap: Spacing.two,
+      minHeight: 58,
+      paddingHorizontal: Spacing.three,
+    },
+    workoutSheetRowAccessory: {
+      alignItems: 'center',
+      flexShrink: 0,
+      justifyContent: 'center',
+    },
+    workoutSheetRowDestructive: {
+      backgroundColor: colors.surfacePrimary,
+      borderColor: colors.error,
+      borderWidth: StyleSheet.hairlineWidth,
+    },
+    workoutSheetRowLabel: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontWeight: '800',
+      lineHeight: 20,
+    },
+    workoutSheetRowLabelContainer: {
+      flex: 1,
+      minWidth: 0,
+    },
+    workoutSheetRowLabelDestructive: {
+      color: colors.error,
     },
   });
