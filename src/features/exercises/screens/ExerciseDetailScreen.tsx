@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -15,9 +15,9 @@ import { useAppContext } from '@/context/AppContext';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { MuscleMap } from '../components/MuscleMap';
+import { ExerciseMediaPreview } from '../components/ExerciseMediaPreview';
 import { loadFavoriteExerciseIds, saveFavoriteExerciseIds } from '../favoritesRepository';
 import { selectCompletedSetsByExerciseId } from '../history';
-import { getExerciseMediaUri, getExercisePlaceholderUri } from '../media';
 import { buildMuscleHighlights } from '../muscleTaxonomy';
 import { calculateExerciseProgressMetrics } from '../progress';
 import { exerciseRepository } from '../repository';
@@ -61,7 +61,6 @@ export default function ExerciseDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<DetailTab>('about');
   const [playing, setPlaying] = useState(true);
-  const [mediaFailed, setMediaFailed] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -105,10 +104,6 @@ export default function ExerciseDetailScreen() {
     };
   }, [exerciseId]);
 
-  useEffect(() => {
-    setMediaFailed(false);
-  }, [exerciseId, playing]);
-
   const historyGroups = useMemo(
     () => (exercise ? selectCompletedSetsByExerciseId(workoutSessions, exercise.id) : []),
     [exercise, workoutSessions]
@@ -119,7 +114,6 @@ export default function ExerciseDetailScreen() {
     [exercise]
   );
   const isFavorite = Boolean(exercise && favoriteIds.has(exercise.id));
-  const mediaUri = exercise ? (!mediaFailed ? getExerciseMediaUri(exercise, { playing }) : undefined) ?? getExercisePlaceholderUri(exercise.name, colors) : undefined;
 
   const toggleFavorite = () => {
     if (!exercise) {
@@ -179,7 +173,7 @@ export default function ExerciseDetailScreen() {
         <SegmentedControl accessibilityLabel="Exercise detail sections" options={DETAIL_TABS} value={tab} onChange={setTab} />
 
         <AppCard style={styles.mediaCard}>
-          <Image accessibilityLabel={`${exercise.name} exercise media`} onError={() => setMediaFailed(true)} resizeMode="contain" source={{ uri: mediaUri }} style={styles.media} />
+          <ExerciseMediaPreview colors={colors} exercise={exercise} playing={playing} resizeMode="contain" showLabel style={styles.media} />
           <Pressable accessibilityRole="button" onPress={() => setPlaying((current) => !current)} style={styles.playButton}>
             <Text style={styles.playButtonText}>{playing ? 'Pause' : 'Play'}</Text>
           </Pressable>

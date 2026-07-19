@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { exerciseRepository, getExerciseMediaUri, getExercisePlaceholderUri, type Exercise } from '@/features/exercises';
+import { ExerciseMediaPreview } from '@/features/exercises/components/ExerciseMediaPreview';
+import { exerciseRepository, type Exercise } from '@/features/exercises';
 import { addWorkoutSessionExercises } from '@/features/workouts/sessionScreenModel';
 import { getActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft } from '@/features/workouts/storage';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
@@ -20,12 +21,10 @@ type ExerciseRowProps = {
 function ExerciseRow({ exercise, onInfoPress, onPress, selected }: ExerciseRowProps) {
   const { colors } = useWorkoutTheme();
   const styles = useMemo(() => createRowStyles(colors), [colors]);
-  const [mediaFailed, setMediaFailed] = useState(false);
-  const mediaUri = (!mediaFailed ? getExerciseMediaUri(exercise) : undefined) ?? getExercisePlaceholderUri(exercise.name, colors);
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, selected && styles.rowSelected, pressed && styles.pressed]}>
-      <Image accessibilityLabel={`${exercise.name} preview`} onError={() => setMediaFailed(true)} resizeMode="cover" source={{ uri: mediaUri }} style={styles.thumbnail} />
+      <ExerciseMediaPreview colors={colors} exercise={exercise} style={styles.thumbnail} />
       <View style={styles.copy}>
         <Text numberOfLines={1} style={styles.name}>
           {exercise.name}
@@ -73,7 +72,7 @@ function FilterChips({
   return (
     <View style={styles.section}>
       <Text style={styles.label}>{label}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={styles.chipScroll}>
         <Pressable onPress={() => onChange(undefined)} style={({ pressed }) => [styles.chip, !activeValue && styles.chipActive, pressed && styles.pressed]}>
           <Text style={[styles.chipLabel, !activeValue && styles.chipLabelActive]}>All</Text>
         </Pressable>
@@ -218,12 +217,14 @@ export default function WorkoutExerciseLibraryScreen() {
   };
 
   const renderExercise = ({ item }: { item: Exercise }) => (
-    <ExerciseRow
-      exercise={item}
-      selected={selectedIds.includes(item.id)}
-      onInfoPress={() => openDetails(item.id)}
-      onPress={() => toggleExercise(item.id)}
-    />
+    <View style={styles.itemContainer}>
+      <ExerciseRow
+        exercise={item}
+        selected={selectedIds.includes(item.id)}
+        onInfoPress={() => openDetails(item.id)}
+        onPress={() => toggleExercise(item.id)}
+      />
+    </View>
   );
 
   const listHeader = (
@@ -233,7 +234,7 @@ export default function WorkoutExerciseLibraryScreen() {
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>Exercise Library</Text>
+          <Text numberOfLines={1} style={styles.title}>Exercise Library</Text>
           <Text style={styles.subtitle}>Pick one or more movements to add to the active workout.</Text>
         </View>
       </View>
@@ -301,7 +302,7 @@ export default function WorkoutExerciseLibraryScreen() {
       <FlatList
         ListFooterComponent={listFooter}
         ListHeaderComponent={listHeader}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 128 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 128, paddingTop: insets.top + Spacing.three }]}
         data={loading || error ? [] : results}
         initialNumToRender={8}
         keyboardShouldPersistTaps="handled"
@@ -375,10 +376,9 @@ const createStyles = (colors: typeof Colors.light) =>
       width: '100%',
     },
     content: {
-      alignItems: 'center',
+      alignItems: 'stretch',
       gap: Spacing.two,
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.three,
     },
     footer: {
       borderTopWidth: StyleSheet.hairlineWidth,
@@ -397,6 +397,12 @@ const createStyles = (colors: typeof Colors.light) =>
     headerCopy: {
       flex: 1,
       gap: 4,
+      minWidth: 0,
+    },
+    itemContainer: {
+      alignSelf: 'center',
+      maxWidth: MaxContentWidth,
+      width: '100%',
     },
     list: {
       gap: Spacing.two,
@@ -488,10 +494,9 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 28,
+      fontSize: 24,
       fontWeight: '900',
-      letterSpacing: -0.4,
-      lineHeight: 32,
+      lineHeight: 30,
     },
   });
 
@@ -579,13 +584,16 @@ const createRowStyles = (colors: typeof Colors.light) =>
 const createFilterStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     chip: {
+      alignItems: 'center',
       backgroundColor: colors.surfacePrimary,
       borderColor: colors.borderSubtle,
       borderCurve: 'continuous',
       borderRadius: 999,
       borderWidth: StyleSheet.hairlineWidth,
+      justifyContent: 'center',
+      minHeight: 34,
       paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
+      paddingVertical: 8,
     },
     chipActive: {
       backgroundColor: colors.accent,
@@ -601,8 +609,12 @@ const createFilterStyles = (colors: typeof Colors.light) =>
       color: colors.background,
     },
     chips: {
+      alignItems: 'center',
       gap: Spacing.two,
       paddingRight: Spacing.three,
+    },
+    chipScroll: {
+      maxHeight: 38,
     },
     label: {
       color: colors.textPrimary,
