@@ -142,8 +142,10 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: '#282828',
       borderCurve: 'continuous',
       borderRadius: 999,
+      alignSelf: 'center',
       justifyContent: 'center',
-      minHeight: 62,
+      minHeight: 46,
+      width: '92%',
     },
     addSetLabel: {
       color: colors.textPrimary,

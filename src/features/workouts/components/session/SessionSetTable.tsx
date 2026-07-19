@@ -51,8 +51,8 @@ export const SessionSetTable = memo(function SessionSetTable({
       <View style={styles.tableHeader}>
         <Text style={[styles.headerText, styles.colSet]}>Set</Text>
         <Text style={[styles.headerText, styles.colPrevious]}>Previous</Text>
-        <Text style={[styles.headerText, styles.colWeight]}>kg</Text>
-        <Text style={[styles.headerText, styles.colReps]}>Reps</Text>
+        <Text style={[styles.headerText, styles.colWeight, styles.colWeightHeader]}>kg</Text>
+        <Text style={[styles.headerText, styles.colReps, styles.colRepsHeader]}>Reps</Text>
         <Text style={[styles.headerText, styles.colCompletion]}>✓</Text>
       </View>
 
@@ -106,6 +106,7 @@ const createStyles = (colors: typeof Colors.light) =>
     colPrevious: {
       flex: 1,
       minWidth: 0,
+      paddingLeft: 10,
       textAlign: 'left',
     },
     colReps: {
@@ -119,6 +120,12 @@ const createStyles = (colors: typeof Colors.light) =>
     colWeight: {
       textAlign: 'center',
       width: 94,
+    },
+    colRepsHeader: {
+      paddingLeft: 8,
+    },
+    colWeightHeader: {
+      paddingLeft: 8,
     },
     headerText: {
       color: colors.textMuted,
