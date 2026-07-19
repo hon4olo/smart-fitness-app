@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, View, type ImageResizeMode, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Colors, Radii, Spacing } from '@/constants/theme';
@@ -10,6 +10,7 @@ type ExerciseMediaPreviewProps = {
   colors: typeof Colors.light;
   exercise: Exercise;
   imageStyle?: StyleProp<ImageStyle>;
+  onMediaError?: () => void;
   playing?: boolean;
   resizeMode?: ImageResizeMode;
   showLabel?: boolean;
@@ -20,6 +21,7 @@ export function ExerciseMediaPreview({
   colors,
   exercise,
   imageStyle,
+  onMediaError,
   playing = true,
   resizeMode = 'cover',
   showLabel = false,
@@ -30,6 +32,12 @@ export function ExerciseMediaPreview({
   const mediaUri = !mediaFailed ? getExerciseMediaUri(exercise, { playing }) : undefined;
   const styles = useMemo(() => createStyles(colors), [colors]);
 
+  useEffect(() => {
+    const nextMediaUri = getExerciseMediaUri(exercise, { playing });
+    setLoading(Boolean(nextMediaUri));
+    setMediaFailed(false);
+  }, [exercise, playing]);
+
   return (
     <View style={[styles.frame, style]}>
       {mediaUri ? (
@@ -38,6 +46,7 @@ export function ExerciseMediaPreview({
           onError={() => {
             setLoading(false);
             setMediaFailed(true);
+            onMediaError?.();
           }}
           onLoadEnd={() => setLoading(false)}
           resizeMode={resizeMode}

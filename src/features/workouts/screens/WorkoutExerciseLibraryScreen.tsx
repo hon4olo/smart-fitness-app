@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { ExerciseMediaPreview } from '@/features/exercises/components/ExerciseMediaPreview';
-import { exerciseRepository, type Exercise } from '@/features/exercises';
+import { exerciseRepository, isOssExerciseDbEnabled, type Exercise, type ExerciseRepositoryDiagnostics } from '@/features/exercises';
 import { addWorkoutSessionExercises } from '@/features/workouts/sessionScreenModel';
 import { getActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft } from '@/features/workouts/storage';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
@@ -105,7 +105,7 @@ export default function WorkoutExerciseLibraryScreen() {
   const [equipmentFilter, setEquipmentFilter] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loadSource, setLoadSource] = useState<'cache' | 'local' | 'oss-exercisedb' | null>(null);
+  const [diagnostics, setDiagnostics] = useState<ExerciseRepositoryDiagnostics>(exerciseRepository.getDiagnostics());
 
   const loadInitialData = useCallback(() => {
     let cancelled = false;
@@ -129,7 +129,7 @@ export default function WorkoutExerciseLibraryScreen() {
         setResults(exercises);
         setMuscleOptions(muscles);
         setEquipmentOptions(equipment);
-        setLoadSource(exerciseRepository.getLastLoadSource());
+        setDiagnostics(exerciseRepository.getDiagnostics());
       } catch {
         if (!cancelled) {
           setError('Could not load exercises.');
@@ -236,6 +236,12 @@ export default function WorkoutExerciseLibraryScreen() {
         <View style={styles.headerCopy}>
           <Text numberOfLines={1} style={styles.title}>Exercise Library</Text>
           <Text style={styles.subtitle}>Pick one or more movements to add to the active workout.</Text>
+          {isOssExerciseDbEnabled() ? (
+            <Text style={styles.diagnostic}>
+              Provider: {diagnostics.selectedProvider} · {diagnostics.exerciseCount} exercises · {diagnostics.loadSource ?? 'loading'}
+              {diagnostics.lastError ? ` · ${diagnostics.lastError}` : ''}
+            </Text>
+          ) : null}
         </View>
       </View>
 
@@ -291,7 +297,7 @@ export default function WorkoutExerciseLibraryScreen() {
           <Text style={styles.stateText}>Try a different search, muscle, or equipment filter.</Text>
         </View>
       ) : null}
-      {__DEV__ && loadSource !== 'local' ? (
+      {isOssExerciseDbEnabled() && diagnostics.selectedProvider === 'oss-exercisedb' && diagnostics.loadSource !== 'local-fallback' ? (
         <Text style={styles.attribution}>Exercise data and GIFs provided by AscendAPI / ExerciseDB.</Text>
       ) : null}
     </View>
@@ -353,6 +359,14 @@ const createStyles = (colors: typeof Colors.light) =>
       fontWeight: '700',
       lineHeight: 16,
       marginTop: Spacing.three,
+      textAlign: 'center',
+    },
+    diagnostic: {
+      color: colors.textMuted,
+      fontSize: 10,
+      fontWeight: '700',
+      lineHeight: 14,
+      marginTop: Spacing.one,
       textAlign: 'center',
     },
     backButton: {

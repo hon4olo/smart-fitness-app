@@ -1,8 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('expo-constants', () => ({
+  default: {
+    expoConfig: {
+      extra: {
+        enableOssExerciseDb: false,
+      },
+    },
+    manifest: null,
+  },
+}));
 
 import {
+  EXERCISE_CACHE_KEYS,
   buildMuscleHighlights,
   calculateExerciseProgressMetrics,
+  isOssExerciseDbEnabled,
   mapMuscleNameToCanonicalId,
   normalizeExerciseDbExercise,
   exerciseRepository,
@@ -12,6 +25,10 @@ import {
 import { normalizeWorkoutSessions } from '@/features/workouts';
 import { addWorkoutSessionExercises } from '@/features/workouts/sessionScreenModel';
 import type { WorkoutSession } from '@/types';
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe('exercise catalog normalization', () => {
   it('normalizes ExerciseDB-compatible data into the internal exercise shape', () => {
@@ -72,6 +89,27 @@ describe('exercise repository', () => {
   });
 });
 
+describe('exercise provider selection', () => {
+  it('keeps OSS ExerciseDB disabled by default outside dev builds', () => {
+    vi.stubEnv('EXPO_PUBLIC_ENABLE_OSS_EXERCISEDB', undefined);
+
+    expect(isOssExerciseDbEnabled()).toBe(false);
+  });
+
+  it('allows OSS ExerciseDB in explicitly flagged internal builds', () => {
+    vi.stubEnv('EXPO_PUBLIC_ENABLE_OSS_EXERCISEDB', 'true');
+
+    expect(isOssExerciseDbEnabled()).toBe(true);
+  });
+
+  it('uses provider-specific cache keys', () => {
+    expect(EXERCISE_CACHE_KEYS).toEqual({
+      local: 'exercise-cache:local:v1',
+      ossExerciseDb: 'exercise-cache:oss-exercisedb:v2',
+    });
+  });
+});
+
 describe('oss exercisedb provider normalization', () => {
   it('normalizes the discovered OSS ExerciseDB V1 response shape', () => {
     const exercise = normalizeOssExercise(
@@ -128,6 +166,40 @@ describe('oss exercisedb provider normalization', () => {
 
     expect(exercise.id).toBe('bench-press');
     expect(exercise.source.sourceId).toBe('remote-bench');
+  });
+
+  it('enriches local records with remote GIF media without letting empty local media win', () => {
+    const local = normalizeExerciseDbExercise({
+      aliases: ['barbell bench press', 'flat bench press'],
+      internalId: 'bench-press',
+      id: 'local-bench-press',
+      name: 'Bench Press',
+      equipment: 'barbell',
+      primaryMuscles: ['chest'],
+    }, 'local-fixture');
+
+    const exercise = normalizeOssExercise(
+      {
+        exerciseId: 'remote-bench',
+        name: 'barbell bench press',
+        gifUrl: 'https://static.exercisedb.dev/media/remote-bench.gif',
+        bodyParts: ['chest'],
+        equipments: ['barbell'],
+        targetMuscles: ['pectorals'],
+        secondaryMuscles: ['triceps'],
+      },
+      new Map([['bench press::barbell', local]]),
+    );
+
+    expect(exercise).toMatchObject({
+      id: 'bench-press',
+      name: 'Bench Press',
+      media: {
+        animationUrl: 'https://static.exercisedb.dev/media/remote-bench.gif',
+        thumbnailUrl: 'https://static.exercisedb.dev/media/remote-bench.gif',
+      },
+      primaryMuscles: ['pectorals'],
+    });
   });
 });
 

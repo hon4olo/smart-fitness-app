@@ -47,3 +47,4 @@ Reusable project-specific lessons and known pitfalls.
 - Release iPhone builds should not depend on Metro.
 - OTA-safe changes are JS / TS / TSX / assets-only.
 - Use [ota] in commit messages only for OTA-safe changes.
+- Installed release/OTA builds run with `__DEV__` false; internal-only runtime behavior needs an explicit non-secret public flag, not a dev-mode check.

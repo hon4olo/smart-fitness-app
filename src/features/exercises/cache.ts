@@ -2,7 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { Exercise } from './types';
 
-const CACHE_KEY = 'exercise-catalog-cache-v1';
+export const EXERCISE_CACHE_KEYS = {
+  local: 'exercise-cache:local:v1',
+  ossExerciseDb: 'exercise-cache:oss-exercisedb:v2',
+} as const;
 
 export type ExerciseCatalogCache = {
   exercises: Exercise[];
@@ -10,8 +13,8 @@ export type ExerciseCatalogCache = {
   refreshedAt: string;
 };
 
-export const loadExerciseCatalogCache = async (): Promise<ExerciseCatalogCache | null> => {
-  const raw = await AsyncStorage.getItem(CACHE_KEY);
+export const loadExerciseCatalogCache = async (cacheKey: string): Promise<ExerciseCatalogCache | null> => {
+  const raw = await AsyncStorage.getItem(cacheKey);
 
   if (!raw) {
     return null;
@@ -34,6 +37,6 @@ export const loadExerciseCatalogCache = async (): Promise<ExerciseCatalogCache |
   }
 };
 
-export const saveExerciseCatalogCache = async (cache: ExerciseCatalogCache): Promise<void> => {
-  await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+export const saveExerciseCatalogCache = async (cacheKey: string, cache: ExerciseCatalogCache): Promise<void> => {
+  await AsyncStorage.setItem(cacheKey, JSON.stringify(cache));
 };

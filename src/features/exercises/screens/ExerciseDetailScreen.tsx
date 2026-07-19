@@ -20,7 +20,7 @@ import { loadFavoriteExerciseIds, saveFavoriteExerciseIds } from '../favoritesRe
 import { selectCompletedSetsByExerciseId } from '../history';
 import { buildMuscleHighlights } from '../muscleTaxonomy';
 import { calculateExerciseProgressMetrics } from '../progress';
-import { exerciseRepository } from '../repository';
+import { exerciseRepository, isOssExerciseDbEnabled } from '../repository';
 import type { Exercise } from '../types';
 
 type DetailTab = 'about' | 'history' | 'progress';
@@ -61,6 +61,7 @@ export default function ExerciseDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<DetailTab>('about');
   const [playing, setPlaying] = useState(true);
+  const [mediaFailed, setMediaFailed] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -104,6 +105,10 @@ export default function ExerciseDetailScreen() {
     };
   }, [exerciseId]);
 
+  useEffect(() => {
+    setMediaFailed(false);
+  }, [exerciseId, playing]);
+
   const historyGroups = useMemo(
     () => (exercise ? selectCompletedSetsByExerciseId(workoutSessions, exercise.id) : []),
     [exercise, workoutSessions]
@@ -114,6 +119,7 @@ export default function ExerciseDetailScreen() {
     [exercise]
   );
   const isFavorite = Boolean(exercise && favoriteIds.has(exercise.id));
+  const hasAnimation = Boolean(exercise?.media.animationUrl ?? exercise?.media.gifUri);
 
   const toggleFavorite = () => {
     if (!exercise) {
@@ -173,12 +179,14 @@ export default function ExerciseDetailScreen() {
         <SegmentedControl accessibilityLabel="Exercise detail sections" options={DETAIL_TABS} value={tab} onChange={setTab} />
 
         <AppCard style={styles.mediaCard}>
-          <ExerciseMediaPreview colors={colors} exercise={exercise} playing={playing} resizeMode="contain" showLabel style={styles.media} />
-          <Pressable accessibilityRole="button" onPress={() => setPlaying((current) => !current)} style={styles.playButton}>
-            <Text style={styles.playButtonText}>{playing ? 'Pause' : 'Play'}</Text>
-          </Pressable>
+          <ExerciseMediaPreview colors={colors} exercise={exercise} onMediaError={() => setMediaFailed(true)} playing={playing} resizeMode="contain" showLabel style={styles.media} />
+          {hasAnimation && !mediaFailed ? (
+            <Pressable accessibilityRole="button" onPress={() => setPlaying((current) => !current)} style={styles.playButton}>
+              <Text style={styles.playButtonText}>{playing ? 'Pause' : 'Play'}</Text>
+            </Pressable>
+          ) : null}
         </AppCard>
-        {__DEV__ && exercise.source.provider === 'oss-exercisedb' ? (
+        {isOssExerciseDbEnabled() && exercise.source.provider === 'oss-exercisedb' ? (
           <Text style={styles.attribution}>Exercise data and GIFs provided by AscendAPI / ExerciseDB.</Text>
         ) : null}
 
