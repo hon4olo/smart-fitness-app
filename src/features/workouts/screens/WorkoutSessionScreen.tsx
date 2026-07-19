@@ -516,7 +516,7 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     addExercisesButton: {
       alignItems: 'center',
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.textPrimary,
       borderCurve: 'continuous',
       borderRadius: 999,
       minHeight: 58,
@@ -525,13 +525,13 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingHorizontal: Spacing.three,
     },
     addExercisesLabel: {
-      color: '#000000',
+      color: colors.background,
       fontSize: 16,
       fontWeight: '700',
     },
     addExerciseFooterButton: {
       alignItems: 'center',
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.textPrimary,
       borderCurve: 'continuous',
       borderRadius: 999,
       justifyContent: 'center',
@@ -539,7 +539,7 @@ const createStyles = (colors: typeof Colors.light) =>
       marginTop: 38,
     },
     addExerciseFooterLabel: {
-      color: '#000000',
+      color: colors.background,
       fontSize: 16,
       fontWeight: '700',
     },
@@ -717,7 +717,7 @@ const createStyles = (colors: typeof Colors.light) =>
       fontWeight: '900',
     },
     screen: {
-      backgroundColor: '#000000',
+      backgroundColor: colors.background,
       flex: 1,
     },
     scrollView: {

@@ -267,8 +267,8 @@ const createTabStyles = (colors: typeof Colors.light) =>
     },
     tabBar: {
       alignItems: 'flex-start',
-      backgroundColor: '#000000',
-      borderTopColor: '#1F1F1F',
+      backgroundColor: colors.background,
+      borderTopColor: colors.divider,
       borderTopWidth: StyleSheet.hairlineWidth,
       bottom: 0,
       flexDirection: 'row',
@@ -285,7 +285,7 @@ const createTabStyles = (colors: typeof Colors.light) =>
       lineHeight: 26,
     },
     tabIconActive: {
-      color: '#000000',
+      color: colors.background,
       fontSize: 18,
       fontWeight: '900',
       lineHeight: 22,
@@ -297,7 +297,7 @@ const createTabStyles = (colors: typeof Colors.light) =>
       width: 34,
     },
     tabIconWrapActive: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.textPrimary,
       borderRadius: 999,
       height: 28,
       width: 28,
@@ -313,7 +313,7 @@ const createTabStyles = (colors: typeof Colors.light) =>
       fontWeight: '600',
     },
     tabLabelActive: {
-      color: '#FFFFFF',
+      color: colors.textPrimary,
       fontWeight: '800',
     },
   });
@@ -322,7 +322,7 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     addRoutineIcon: {
       alignItems: 'center',
-      backgroundColor: '#19171D',
+      backgroundColor: colors.surfaceSecondary,
       height: 80,
       justifyContent: 'center',
       width: 80,
@@ -356,7 +356,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     circleButton: {
       alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.42)',
+      backgroundColor: colors.overlay,
       borderCurve: 'continuous',
       borderRadius: 999,
       height: 52,
@@ -369,13 +369,13 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     content: {
       alignItems: 'center',
-      backgroundColor: '#000000',
+      backgroundColor: colors.background,
       paddingHorizontal: Spacing.three,
       paddingTop: 0,
     },
     cover: {
       alignItems: 'center',
-      backgroundColor: '#19171D',
+      backgroundColor: colors.surfaceSecondary,
       borderCurve: 'continuous',
       borderRadius: 14,
       height: 300,
@@ -395,7 +395,7 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingTop: 12,
     },
     hero: {
-      backgroundColor: '#202020',
+      backgroundColor: colors.surfaceSecondary,
       marginHorizontal: -Spacing.three,
       paddingBottom: Spacing.five,
       paddingHorizontal: Spacing.three,
@@ -467,7 +467,7 @@ const createStyles = (colors: typeof Colors.light) =>
       width: 80,
     },
     routineIconLabel: {
-      color: '#FFFFFF',
+      color: colors.textOnAccent,
       fontSize: 24,
       fontWeight: '500',
     },
@@ -491,7 +491,7 @@ const createStyles = (colors: typeof Colors.light) =>
       lineHeight: 24,
     },
     screen: {
-      backgroundColor: '#000000',
+      backgroundColor: colors.background,
       flex: 1,
     },
     simpleButton: {

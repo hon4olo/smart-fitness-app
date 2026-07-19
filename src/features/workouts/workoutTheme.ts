@@ -1,8 +1,10 @@
-import { Colors } from '@/constants/theme';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 
 export function useWorkoutTheme() {
+  const { colors, resolvedAppearance } = useAppTheme();
+
   return {
-    colors: Colors.dark,
-    isWorkoutDarkMode: true,
+    colors,
+    isWorkoutDarkMode: resolvedAppearance === 'dark',
   } as const;
 }

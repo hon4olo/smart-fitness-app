@@ -491,7 +491,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     saveButton: {
       alignItems: 'center',
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.textPrimary,
       borderCurve: 'continuous',
       borderRadius: 999,
       minHeight: 58,
@@ -501,7 +501,7 @@ const createStyles = (colors: typeof Colors.light) =>
       opacity: 0.45,
     },
     saveButtonLabel: {
-      color: '#000000',
+      color: colors.background,
       fontSize: 18,
       fontWeight: '900',
     },

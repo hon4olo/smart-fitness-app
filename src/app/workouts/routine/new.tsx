@@ -355,7 +355,7 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     addButton: {
       alignItems: 'center',
-      backgroundColor: '#0A8DFF',
+      backgroundColor: colors.accent,
       borderCurve: 'continuous',
       borderRadius: 18,
       alignSelf: 'stretch',
@@ -365,7 +365,7 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingHorizontal: Spacing.three,
     },
     addButtonLabel: {
-      color: '#FFFFFF',
+      color: colors.textOnAccent,
       fontSize: 17,
       fontWeight: '900',
       textAlign: 'center',
@@ -478,7 +478,7 @@ const createStyles = (colors: typeof Colors.light) =>
       width: 42,
     },
     exerciseMenuLabel: {
-      color: '#0A8DFF',
+      color: colors.accent,
       fontSize: 20,
       fontWeight: '900',
       letterSpacing: 1,
@@ -563,7 +563,7 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingVertical: Spacing.two,
     },
     navButtonLabel: {
-      color: '#0A8DFF',
+      color: colors.accent,
       fontSize: 17,
       fontWeight: '600',
     },
@@ -653,7 +653,7 @@ const createStyles = (colors: typeof Colors.light) =>
       opacity: 0.72,
     },
     restTimer: {
-      color: '#0A8DFF',
+      color: colors.accent,
       fontSize: 18,
       fontWeight: '800',
     },
@@ -670,7 +670,7 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingVertical: Spacing.two,
     },
     textButtonLabel: {
-      color: '#0A8DFF',
+      color: colors.accent,
       fontSize: 16,
       fontWeight: '800',
     },

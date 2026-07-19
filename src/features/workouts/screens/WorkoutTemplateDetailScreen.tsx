@@ -157,7 +157,7 @@ const createStyles = (colors: typeof Colors.light) =>
       minWidth: 74,
     },
     backButtonLabel: {
-      color: '#0A84FF',
+      color: colors.accent,
       fontSize: 17,
       fontWeight: '400',
       lineHeight: 22,
@@ -182,7 +182,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     content: {
       alignItems: 'center',
-      backgroundColor: '#000000',
+      backgroundColor: colors.background,
       paddingHorizontal: Spacing.three,
       paddingTop: Spacing.five,
     },
@@ -213,7 +213,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     exerciseThumb: {
       alignItems: 'center',
-      backgroundColor: '#0A0A0A',
+      backgroundColor: colors.backgroundSecondary,
       height: 76,
       justifyContent: 'center',
       width: 76,
@@ -230,8 +230,8 @@ const createStyles = (colors: typeof Colors.light) =>
       lineHeight: 28,
     },
     footer: {
-      backgroundColor: '#000000',
-      borderTopColor: '#2B2B2B',
+      backgroundColor: colors.background,
+      borderTopColor: colors.divider,
       borderTopWidth: StyleSheet.hairlineWidth,
       bottom: 0,
       left: 0,
@@ -242,22 +242,22 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     footerButton: {
       alignItems: 'center',
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.textPrimary,
       borderCurve: 'continuous',
       borderRadius: 999,
       minHeight: 58,
       justifyContent: 'center',
     },
     footerButtonLabel: {
-      color: '#000000',
+      color: colors.background,
       fontSize: 19,
       fontWeight: '700',
       lineHeight: 24,
     },
     header: {
       alignItems: 'center',
-      backgroundColor: '#000000',
-      borderBottomColor: '#2B2B2B',
+      backgroundColor: colors.background,
+      borderBottomColor: colors.divider,
       borderBottomWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -271,7 +271,7 @@ const createStyles = (colors: typeof Colors.light) =>
       minWidth: 96,
     },
     headerIcon: {
-      color: '#0A84FF',
+      color: colors.accent,
       fontSize: 28,
       fontWeight: '400',
       lineHeight: 30,
@@ -308,7 +308,7 @@ const createStyles = (colors: typeof Colors.light) =>
       opacity: 0.72,
     },
     screen: {
-      backgroundColor: '#000000',
+      backgroundColor: colors.background,
       flex: 1,
     },
     title: {

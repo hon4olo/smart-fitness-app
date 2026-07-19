@@ -522,7 +522,7 @@ const createStyles = (colors: typeof Colors.light) =>
     footerButton: {
       alignItems: 'center',
       alignSelf: 'flex-end',
-      backgroundColor: '#0A8DFF',
+      backgroundColor: colors.accent,
       borderCurve: 'continuous',
       borderRadius: 16,
       flexDirection: 'row',
@@ -534,12 +534,12 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingHorizontal: Spacing.three,
     },
     footerIcon: {
-      color: '#FFFFFF',
+      color: colors.textOnAccent,
       fontSize: 15,
       fontWeight: '900',
     },
     footerLabel: {
-      color: '#FFFFFF',
+      color: colors.textOnAccent,
       fontSize: 16,
       fontWeight: '900',
     },

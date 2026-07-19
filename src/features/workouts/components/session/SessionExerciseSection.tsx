@@ -136,7 +136,7 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     addSetButton: {
       alignItems: 'center',
-      backgroundColor: '#282828',
+      backgroundColor: colors.surfaceElevated,
       borderCurve: 'continuous',
       borderRadius: 999,
       alignSelf: 'center',
@@ -157,7 +157,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     collapsedCompletedMarker: {
       alignItems: 'center',
-      backgroundColor: '#2ED66F',
+      backgroundColor: colors.success,
       borderCurve: 'continuous',
       borderRadius: 4,
       height: 17,
@@ -165,7 +165,7 @@ const createStyles = (colors: typeof Colors.light) =>
       width: 17,
     },
     collapsedCompletedMarkerLabel: {
-      color: '#FFFFFF',
+      color: colors.textOnAccent,
       fontSize: 12,
       fontWeight: '900',
       lineHeight: 13,
@@ -237,7 +237,7 @@ const createStyles = (colors: typeof Colors.light) =>
       width: 34,
     },
     menuLabel: {
-      color: '#0A84FF',
+      color: colors.accent,
       fontSize: 14,
       fontWeight: '900',
       letterSpacing: 1.4,
@@ -259,7 +259,7 @@ const createStyles = (colors: typeof Colors.light) =>
       flexDirection: 'row',
     },
     restTimerLabel: {
-      color: '#0A84FF',
+      color: colors.accent,
       fontSize: 14,
       fontWeight: '400',
       lineHeight: 18,

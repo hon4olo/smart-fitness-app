@@ -1,5 +1,5 @@
-import { Tabs, usePathname } from 'expo-router';
-import { Text, View, type ViewStyle } from 'react-native';
+import { Tabs } from 'expo-router';
+import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/theme';
@@ -23,11 +23,9 @@ function TabIcon({ focused, label, tabColors }: { focused: boolean; label: keyof
 
 export default function TabsLayout() {
   const { colors } = useAppTheme();
-  const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const tabBarHeight = 56 + insets.bottom;
-  const isWorkoutsFlow = pathname.startsWith('/workouts') || pathname.startsWith('/workout-session');
-  const tabColors = isWorkoutsFlow ? Colors.dark : colors;
+  const tabColors = colors;
 
   return (
     <Tabs

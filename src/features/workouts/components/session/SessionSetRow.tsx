@@ -87,13 +87,13 @@ const createStyles = (colors: typeof Colors.light) =>
       textAlign: 'center',
     },
     checkLabel: {
-      color: '#FFFFFF',
+      color: colors.textOnAccent,
       fontSize: 20,
       fontWeight: '400',
       lineHeight: 22,
     },
     checkLabelCompleted: {
-      color: '#FFFFFF',
+      color: colors.textOnAccent,
     },
     colCompletion: {
       marginLeft: SESSION_TABLE_GAPS.repsToCompletion,
@@ -117,7 +117,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     iconCell: {
       alignItems: 'center',
-      backgroundColor: '#292929',
+      backgroundColor: colors.surfaceElevated,
       borderCurve: 'continuous',
       borderRadius: 999,
       height: 30,
@@ -125,14 +125,14 @@ const createStyles = (colors: typeof Colors.light) =>
       width: 30,
     },
     iconCellCompletedDark: {
-      backgroundColor: '#2ED66F',
+      backgroundColor: colors.success,
     },
     iconCellCompletedLight: {
       backgroundColor: '#2DBA20',
     },
     inputCell: {
-      backgroundColor: '#000000',
-      borderColor: '#1C1C1E',
+      backgroundColor: colors.background,
+      borderColor: colors.borderSubtle,
       borderCurve: 'continuous',
       borderRadius: 3,
       borderWidth: StyleSheet.hairlineWidth,
@@ -153,7 +153,7 @@ const createStyles = (colors: typeof Colors.light) =>
       borderColor: 'transparent',
     },
     previousCell: {
-      color: '#8E8E93',
+      color: colors.textMuted,
       fontSize: 15,
       lineHeight: 48,
     },

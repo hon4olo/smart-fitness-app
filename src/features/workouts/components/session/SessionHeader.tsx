@@ -90,12 +90,12 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     container: {
       alignSelf: 'stretch',
-      backgroundColor: '#000000',
+      backgroundColor: colors.background,
       paddingBottom: 52,
     },
     finishButton: {
       alignItems: 'center',
-      backgroundColor: '#0A84FF',
+      backgroundColor: colors.accent,
       borderCurve: 'continuous',
       borderRadius: 16,
       height: 32,
@@ -109,7 +109,7 @@ const createStyles = (colors: typeof Colors.light) =>
       opacity: 0.9,
     },
     finishLabel: {
-      color: '#FFFFFF',
+      color: colors.textOnAccent,
       fontSize: 14,
       fontWeight: '500',
       lineHeight: 18,
@@ -141,7 +141,7 @@ const createStyles = (colors: typeof Colors.light) =>
       width: 44,
     },
     overflowLabel: {
-      color: '#0A84FF',
+      color: colors.accent,
       fontSize: 14,
       fontWeight: '900',
       letterSpacing: 1.2,
@@ -156,7 +156,7 @@ const createStyles = (colors: typeof Colors.light) =>
       gap: 2,
     },
     statLabel: {
-      color: '#5F5F66',
+      color: colors.textMuted,
       fontSize: 12,
       lineHeight: 16,
     },

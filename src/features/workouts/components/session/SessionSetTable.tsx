@@ -130,7 +130,7 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
     },
     headerText: {
-      color: '#8E8E93',
+      color: colors.textMuted,
       fontSize: 13,
       fontWeight: '500',
       lineHeight: 18,
