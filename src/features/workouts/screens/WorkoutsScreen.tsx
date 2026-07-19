@@ -267,7 +267,7 @@ export default function WorkoutsScreen() {
         <View style={styles.container}>
           <View style={styles.header}>
             <TopTabs activeTab={activeTab} onChange={setActiveTab} />
-            <Pressable style={({ pressed }) => [styles.searchButton, pressed && styles.pressed]}>
+            <Pressable onPress={() => router.push('/workouts/exercise-library')} style={({ pressed }) => [styles.searchButton, pressed && styles.pressed]}>
               <Text style={styles.searchLabel}>⌕</Text>
             </Pressable>
           </View>
@@ -346,7 +346,7 @@ const createRoutineCardStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     card: {
       flex: 1,
-      gap: 6,
+      gap: 5,
       minWidth: 0,
     },
     cover: {
@@ -359,7 +359,7 @@ const createRoutineCardStyles = (colors: typeof Colors.light) =>
     },
     coverLabel: {
       color: '#FFFFFF',
-      fontSize: 32,
+      fontSize: 28,
       fontWeight: '500',
     },
     pressed: {
@@ -367,14 +367,14 @@ const createRoutineCardStyles = (colors: typeof Colors.light) =>
     },
     subtitle: {
       color: colors.textSecondary,
-      fontSize: 18,
-      lineHeight: 23,
+      fontSize: 16,
+      lineHeight: 20,
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 20,
+      fontSize: 18,
       fontWeight: '900',
-      lineHeight: 25,
+      lineHeight: 22,
     },
   });
 
@@ -555,7 +555,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     grid: {
       flexDirection: 'row',
-      gap: Spacing.six,
+      gap: Spacing.four,
     },
     header: {
       alignItems: 'center',
@@ -564,10 +564,10 @@ const createStyles = (colors: typeof Colors.light) =>
       marginBottom: Spacing.three,
     },
     horizontalCard: {
-      width: 220,
+      width: 190,
     },
     horizontalList: {
-      gap: Spacing.five,
+      gap: Spacing.three,
       paddingRight: Spacing.three,
     },
     loadingLabel: {
@@ -602,12 +602,12 @@ const createStyles = (colors: typeof Colors.light) =>
       lineHeight: 30,
     },
     sectionStack: {
-      gap: Spacing.six,
+      gap: Spacing.four,
     },
     sectionTitle: {
       color: colors.textPrimary,
-      fontSize: 23,
+      fontSize: 20,
       fontWeight: '900',
-      lineHeight: 29,
+      lineHeight: 25,
     },
   });
