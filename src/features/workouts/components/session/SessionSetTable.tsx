@@ -49,11 +49,21 @@ export const SessionSetTable = memo(function SessionSetTable({
   return (
     <View style={styles.table}>
       <View style={styles.tableHeader}>
-        <Text style={[styles.headerText, styles.colSet]}>Set</Text>
-        <Text style={[styles.headerText, styles.colPrevious]}>Previous</Text>
-        <Text style={[styles.headerText, styles.colWeight, styles.colWeightHeader]}>kg</Text>
-        <Text style={[styles.headerText, styles.colReps, styles.colRepsHeader]}>Reps</Text>
-        <Text style={[styles.headerText, styles.colCompletion]}>✓</Text>
+        <View style={[styles.headerCell, styles.colSet]}>
+          <Text style={styles.headerText}>Set</Text>
+        </View>
+        <View style={[styles.headerCell, styles.colPrevious, styles.headerCellPrevious]}>
+          <Text style={styles.headerText}>Previous</Text>
+        </View>
+        <View style={[styles.headerCell, styles.colWeight]}>
+          <Text style={styles.headerText}>kg</Text>
+        </View>
+        <View style={[styles.headerCell, styles.colReps]}>
+          <Text style={styles.headerText}>Reps</Text>
+        </View>
+        <View style={[styles.headerCell, styles.colCompletion]}>
+          <Text style={styles.headerText}>✓</Text>
+        </View>
       </View>
 
       <View style={styles.tableBody}>
@@ -121,17 +131,17 @@ const createStyles = (colors: typeof Colors.light) =>
       textAlign: 'center',
       width: 94,
     },
-    colRepsHeader: {
-      transform: [{ translateX: -12 }],
+    headerCell: {
+      alignItems: 'center',
     },
-    colWeightHeader: {
-      transform: [{ translateX: -12 }],
+    headerCellPrevious: {
+      alignItems: 'flex-start',
     },
     headerText: {
       color: colors.textMuted,
       fontSize: 13,
       fontWeight: '500',
-      textAlign: 'left',
+      textAlign: 'center',
     },
     table: {
       alignSelf: 'stretch',
