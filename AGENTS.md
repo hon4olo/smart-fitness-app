@@ -141,6 +141,12 @@ Mobile layout rules:
 - avoid overcrowded horizontal rows;
 - avoid narrow text columns that wrap words letter-by-letter.
 
+Semantic layout rule:
+Never align logically related UI elements independently. Text and its accessory
+(toggle, icon, chevron, checkmark) must be siblings inside one parent Flexbox row.
+The parent owns alignment and spacing. Do not use screen-relative coordinates,
+absolute positioning or per-element pixel nudges.
+
 ## Navigation Rules
 
 Expo Router is used.
