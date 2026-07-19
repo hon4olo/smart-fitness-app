@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
+import { SESSION_TABLE_COLUMNS, SESSION_TABLE_GAPS, SESSION_TABLE_TOTAL_WIDTH } from './sessionTableLayout';
+
 type SessionSetRowProps = {
   completed: boolean;
   draftValue: { reps: string; weight: string };
@@ -80,45 +82,47 @@ const createStyles = (colors: typeof Colors.light) =>
     cell: {
       color: colors.textPrimary,
       fontSize: 15,
-      lineHeight: 44,
+      fontWeight: '400',
+      lineHeight: 48,
       textAlign: 'center',
     },
     checkLabel: {
       color: '#FFFFFF',
-      fontSize: 22,
+      fontSize: 20,
       fontWeight: '900',
-      lineHeight: 24,
+      lineHeight: 22,
     },
     checkLabelCompleted: {
       color: '#FFFFFF',
     },
     colCompletion: {
-      width: 48,
+      marginLeft: SESSION_TABLE_GAPS.repsToCompletion,
+      width: SESSION_TABLE_COLUMNS.completion,
     },
     colPrevious: {
-      flex: 1,
-      minWidth: 0,
-      paddingLeft: 10,
+      marginLeft: SESSION_TABLE_GAPS.setToPrevious,
       textAlign: 'left',
+      width: SESSION_TABLE_COLUMNS.previous,
     },
     colReps: {
-      width: 94,
+      marginLeft: SESSION_TABLE_GAPS.weightToReps,
+      width: SESSION_TABLE_COLUMNS.reps,
     },
     colSet: {
-      width: 48,
+      width: SESSION_TABLE_COLUMNS.set,
     },
     colWeight: {
-      width: 94,
+      marginLeft: SESSION_TABLE_GAPS.previousToWeight,
+      width: SESSION_TABLE_COLUMNS.weight,
     },
     iconCell: {
       alignItems: 'center',
       backgroundColor: '#292929',
       borderCurve: 'continuous',
       borderRadius: 999,
-      height: 34,
+      height: 30,
       justifyContent: 'center',
-      marginHorizontal: 7,
-      width: 34,
+      width: 30,
     },
     iconCellCompletedDark: {
       backgroundColor: '#2ED66F',
@@ -133,7 +137,8 @@ const createStyles = (colors: typeof Colors.light) =>
       borderRadius: 8,
       borderWidth: StyleSheet.hairlineWidth,
       color: colors.textPrimary,
-      fontSize: 16,
+      fontSize: 15,
+      fontWeight: '500',
       height: 30,
       includeFontPadding: false,
       lineHeight: 18,
@@ -149,6 +154,8 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     previousCell: {
       color: '#8E8E93',
+      fontSize: 15,
+      lineHeight: 48,
     },
     pressed: {
       opacity: 0.72,
@@ -157,8 +164,8 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flexDirection: 'row',
       gap: 0,
-      minHeight: 44,
-      width: '100%',
+      minHeight: 48,
+      width: SESSION_TABLE_TOTAL_WIDTH,
     },
     rowCompletedDark: {
       backgroundColor: '#003D1C',

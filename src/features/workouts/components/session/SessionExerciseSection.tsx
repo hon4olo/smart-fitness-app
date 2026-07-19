@@ -67,7 +67,7 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
 
   return (
     <View style={styles.section}>
-      <Pressable onPress={() => onToggleExpanded(exercise.id)} style={({ pressed }) => [styles.header, pressed && styles.pressed]}>
+      <Pressable onPress={() => onToggleExpanded(exercise.id)} style={({ pressed }) => [styles.header, expanded && styles.headerExpanded, pressed && styles.pressed]}>
         <View style={styles.exerciseThumb}>
           <Text style={styles.exerciseThumbLabel}>{exercise.name.slice(0, 1).toUpperCase()}</Text>
           <Text style={styles.exerciseHelp}>?</Text>
@@ -211,19 +211,23 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     exerciseTitle: {
       color: colors.textPrimary,
-      fontSize: 18,
+      fontSize: 17,
       fontWeight: '500',
-      lineHeight: 24,
+      lineHeight: 22,
     },
     expanded: {
-      gap: 16,
+      gap: 15,
       paddingBottom: 34,
     },
     header: {
       alignItems: 'flex-start',
       flexDirection: 'row',
-      gap: 20,
+      gap: 13,
       paddingBottom: 24,
+    },
+    headerExpanded: {
+      alignItems: 'center',
+      paddingBottom: 22,
     },
     headerCopy: {
       flex: 1,
@@ -231,21 +235,22 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     menuButton: {
       alignItems: 'center',
-      height: 40,
+      height: 34,
       justifyContent: 'center',
-      width: 40,
+      width: 34,
     },
     menuLabel: {
       color: '#0A84FF',
-      fontSize: 17,
+      fontSize: 14,
       fontWeight: '900',
-      letterSpacing: 1,
-      lineHeight: 22,
+      letterSpacing: 1.4,
+      lineHeight: 18,
     },
     notesInput: {
-      color: colors.textPrimary,
+      color: colors.textMuted,
       fontSize: 15,
-      minHeight: 24,
+      lineHeight: 22,
+      minHeight: 22,
       paddingVertical: 0,
     },
     pressed: {
@@ -278,6 +283,7 @@ const createStyles = (colors: typeof Colors.light) =>
       color: '#0A84FF',
       fontSize: 16,
       fontWeight: '500',
+      lineHeight: 20,
     },
     section: {
       borderTopColor: 'transparent',

@@ -2,11 +2,12 @@ import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { WorkoutSet } from '@/context/AppContext';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { SessionEmptySets } from './SessionEmptySets';
 import { SessionSetRow } from './SessionSetRow';
+import { SESSION_TABLE_COLUMNS, SESSION_TABLE_GAPS, SESSION_TABLE_TOTAL_WIDTH } from './sessionTableLayout';
 import type { SessionDraftInputs } from './types';
 
 type SessionSetTableProps = {
@@ -55,10 +56,10 @@ export const SessionSetTable = memo(function SessionSetTable({
         <View style={[styles.headerCell, styles.colPrevious, styles.headerCellPrevious]}>
           <Text style={styles.headerText}>Previous</Text>
         </View>
-        <View style={[styles.headerCell, styles.colWeight]}>
+        <View style={[styles.headerCell, styles.colWeight, styles.headerCellWeight]}>
           <Text style={styles.headerText}>kg</Text>
         </View>
-        <View style={[styles.headerCell, styles.colReps]}>
+        <View style={[styles.headerCell, styles.colReps, styles.headerCellReps]}>
           <Text style={styles.headerText}>Reps</Text>
         </View>
         <View style={[styles.headerCell, styles.colCompletion, styles.headerCellCompletion]}>
@@ -110,46 +111,35 @@ export const SessionSetTable = memo(function SessionSetTable({
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     colCompletion: {
-      textAlign: 'center',
-      width: 48,
+      width: SESSION_TABLE_COLUMNS.completion,
     },
     colPrevious: {
-      flex: 1,
-      minWidth: 0,
-      paddingLeft: 10,
-      textAlign: 'left',
+      alignItems: 'flex-start',
+      width: SESSION_TABLE_COLUMNS.previous,
     },
     colReps: {
-      textAlign: 'center',
-      width: 94,
+      width: SESSION_TABLE_COLUMNS.reps,
     },
     colSet: {
-      textAlign: 'center',
-      width: 48,
+      width: SESSION_TABLE_COLUMNS.set,
     },
     colWeight: {
-      textAlign: 'center',
-      width: 94,
+      width: SESSION_TABLE_COLUMNS.weight,
     },
     headerCell: {
       alignItems: 'center',
     },
-    headerCellPrevious: {
-      alignItems: 'flex-start',
-    },
-    headerCellCompletion: {
-      marginHorizontal: 7,
-    },
     headerText: {
-      color: colors.textMuted,
+      color: '#8E8E93',
       fontSize: 13,
       fontWeight: '500',
+      lineHeight: 18,
       textAlign: 'center',
     },
     table: {
-      alignSelf: 'stretch',
-      gap: 6,
-      marginHorizontal: -Spacing.four,
+      alignSelf: 'center',
+      gap: 13,
+      width: SESSION_TABLE_TOTAL_WIDTH,
     },
     tableBody: {
       gap: 0,
@@ -157,8 +147,20 @@ const createStyles = (colors: typeof Colors.light) =>
     tableHeader: {
       alignItems: 'center',
       flexDirection: 'row',
-      gap: 0,
-      minHeight: 24,
+      columnGap: 0,
+      minHeight: 22,
       width: '100%',
+    },
+    headerCellPrevious: {
+      marginLeft: SESSION_TABLE_GAPS.setToPrevious,
+    },
+    headerCellWeight: {
+      marginLeft: SESSION_TABLE_GAPS.previousToWeight,
+    },
+    headerCellReps: {
+      marginLeft: SESSION_TABLE_GAPS.weightToReps,
+    },
+    headerCellCompletion: {
+      marginLeft: SESSION_TABLE_GAPS.repsToCompletion,
     },
   });
