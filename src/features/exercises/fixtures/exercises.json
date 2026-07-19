@@ -1,0 +1,47 @@
+[
+  {
+    "id": "exdb-local-0001",
+    "name": "Bench Press",
+    "aliases": ["barbell bench press", "flat bench press"],
+    "bodyPart": "chest",
+    "equipment": "barbell",
+    "target": "chest",
+    "secondaryMuscles": ["triceps", "front delts"],
+    "instructions": [
+      "Set your shoulder blades and keep your feet planted.",
+      "Lower with control to the mid-chest.",
+      "Drive the bar up on a slightly arcing path."
+    ],
+    "tips": ["Keep wrists stacked over elbows.", "Brace before every rep."]
+  },
+  {
+    "id": "exdb-local-0002",
+    "name": "Lat Pulldown",
+    "aliases": ["wide grip pulldown", "cable pulldown"],
+    "bodyPart": "back",
+    "equipment": "cable",
+    "target": "lats",
+    "secondaryMuscles": ["biceps", "traps"],
+    "instructions": [
+      "Sit tall with thighs secured under the pads.",
+      "Pull elbows down toward the ribs.",
+      "Return the handle under control without shrugging."
+    ],
+    "tips": ["Lead with the elbows.", "Keep the torso quiet."]
+  },
+  {
+    "id": "exdb-local-0003",
+    "name": "Squat",
+    "aliases": ["barbell squat", "back squat"],
+    "bodyPart": "upper legs",
+    "equipment": "barbell",
+    "target": "quads",
+    "secondaryMuscles": ["glutes", "hamstrings", "abs"],
+    "instructions": [
+      "Brace and set the bar securely on the upper back.",
+      "Sit between the hips while keeping the knees tracking over the toes.",
+      "Drive up through the mid-foot."
+    ],
+    "tips": ["Keep the bar over the mid-foot.", "Use a depth you can control."]
+  }
+]

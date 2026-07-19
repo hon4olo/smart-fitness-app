@@ -92,7 +92,19 @@ export const normalizeWorkouts = (workouts: Workout[], defaultWorkoutTemplateIds
 };
 
 export const normalizeWorkoutSessions = (sessions: WorkoutSession[]) => {
-  const deduped = dedupeById(sessions.map((session) => ({ ...session, sets: session.sets.map((set) => ({ ...set })) })));
+  const deduped = dedupeById(
+    sessions.map((session) => ({
+      ...session,
+      sets: session.sets.map((set) => {
+        const legacySet = set as WorkoutSession['sets'][number] & { exerciseId?: string };
+
+        return {
+          ...legacySet,
+          exerciseId: legacySet.exerciseId || createWorkoutExerciseId(legacySet.exerciseName),
+        };
+      }),
+    }))
+  );
 
   return [...deduped].sort((left, right) => {
     const leftTime = new Date(left.finishedAt ?? left.startedAt).getTime();
