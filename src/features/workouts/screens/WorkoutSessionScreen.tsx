@@ -508,16 +508,18 @@ export default function WorkoutSessionScreen() {
             <View style={styles.overflowActions}>
               <View style={styles.preferenceRow}>
                 <Text style={styles.preferenceLabel}>Track RPE</Text>
-                <Switch
-                  style={styles.preferenceSwitch}
-                  value={trackRpeEnabled}
-                  onValueChange={(enabled) => {
-                    setTrackRpeEnabled(enabled);
-                    void saveWorkoutRpeTrackingEnabled(enabled);
-                  }}
-                  trackColor={{ false: colors.surfaceSecondary, true: colors.accent }}
-                  thumbColor="#FFFFFF"
-                />
+                <View style={styles.preferenceSwitchSlot}>
+                  <Switch
+                    style={styles.preferenceSwitch}
+                    value={trackRpeEnabled}
+                    onValueChange={(enabled) => {
+                      setTrackRpeEnabled(enabled);
+                      void saveWorkoutRpeTrackingEnabled(enabled);
+                    }}
+                    trackColor={{ false: colors.surfaceSecondary, true: colors.accent }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
               </View>
               <Pressable
                 onPress={() => {
@@ -764,7 +766,13 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingRight: 14,
     },
     preferenceSwitch: {
-      marginVertical: 0,
+      transform: [{ translateY: 5 }],
+    },
+    preferenceSwitchSlot: {
+      alignItems: 'center',
+      height: 58,
+      justifyContent: 'center',
+      width: 74,
     },
     replacementBackdrop: {
       ...StyleSheet.absoluteFill,

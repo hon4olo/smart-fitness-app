@@ -215,14 +215,14 @@ const createStyles = (colors: typeof Colors.light) =>
       minWidth: 18,
       position: 'absolute',
       right: 20,
-      top: -9,
+      top: -10,
     },
     rpeBadgeLabel: {
-      color: colors.accent,
-      fontSize: 9,
+      color: colors.textPrimary,
+      fontSize: 13,
       fontVariant: ['tabular-nums'],
       fontWeight: '900',
-      lineHeight: 11,
+      lineHeight: 15,
       textAlign: 'center',
     },
   });
