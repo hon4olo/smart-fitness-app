@@ -138,7 +138,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     table: {
       alignSelf: 'center',
-      gap: 13,
+      gap: 8,
       width: SESSION_TABLE_TOTAL_WIDTH,
     },
     tableBody: {
