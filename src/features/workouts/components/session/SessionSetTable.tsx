@@ -101,7 +101,7 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     colCompletion: {
       textAlign: 'center',
-      width: 64,
+      width: 48,
     },
     colPrevious: {
       flex: 1,
@@ -121,13 +121,13 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     headerText: {
       color: colors.textMuted,
-      fontSize: 17,
+      fontSize: 14,
       fontWeight: '500',
       textAlign: 'left',
     },
     table: {
       alignSelf: 'stretch',
-      gap: 18,
+      gap: 8,
       marginHorizontal: -Spacing.four,
     },
     tableBody: {
@@ -137,7 +137,7 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flexDirection: 'row',
       gap: 0,
-      minHeight: 30,
+      minHeight: 26,
       width: '100%',
     },
   });
