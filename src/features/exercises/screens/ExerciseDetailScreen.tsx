@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -18,6 +18,7 @@ import { MuscleMap } from '../components/MuscleMap';
 import { ExerciseMediaPreview } from '../components/ExerciseMediaPreview';
 import { loadFavoriteExerciseIds, saveFavoriteExerciseIds } from '../favoritesRepository';
 import { selectCompletedSetsByExerciseId } from '../history';
+import { getExerciseMediaUri } from '../media';
 import { buildMuscleHighlights } from '../muscleTaxonomy';
 import { calculateExerciseProgressMetrics } from '../progress';
 import { exerciseRepository, isOssExerciseDbEnabled } from '../repository';
@@ -30,6 +31,8 @@ const DETAIL_TABS = [
   { label: 'History', value: 'history' },
   { label: 'Progress', value: 'progress' },
 ] as const;
+
+const DIRECT_PHYSICAL_DEVICE_GIF_TEST_URL = 'https://static.exercisedb.dev/media/EIeI8Vf.gif';
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
@@ -62,6 +65,10 @@ export default function ExerciseDetailScreen() {
   const [tab, setTab] = useState<DetailTab>('about');
   const [playing, setPlaying] = useState(true);
   const [mediaFailed, setMediaFailed] = useState(false);
+  const [mediaStatus, setMediaStatus] = useState<'missing' | 'loading' | 'loaded' | 'failed'>('missing');
+  const [nativeImageError, setNativeImageError] = useState<string | null>(null);
+  const [directGifStatus, setDirectGifStatus] = useState<'missing' | 'loading' | 'loaded' | 'failed'>('loading');
+  const [directGifError, setDirectGifError] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -107,6 +114,7 @@ export default function ExerciseDetailScreen() {
 
   useEffect(() => {
     setMediaFailed(false);
+    setNativeImageError(null);
   }, [exerciseId, playing]);
 
   const historyGroups = useMemo(
@@ -120,6 +128,11 @@ export default function ExerciseDetailScreen() {
   );
   const isFavorite = Boolean(exercise && favoriteIds.has(exercise.id));
   const hasAnimation = Boolean(exercise?.media.animationUrl ?? exercise?.media.gifUri);
+  const resolvedMediaUri = exercise ? getExerciseMediaUri(exercise, { playing }) : undefined;
+
+  useEffect(() => {
+    setMediaStatus(resolvedMediaUri ? 'loading' : 'missing');
+  }, [resolvedMediaUri]);
 
   const toggleFavorite = () => {
     if (!exercise) {
@@ -179,12 +192,78 @@ export default function ExerciseDetailScreen() {
         <SegmentedControl accessibilityLabel="Exercise detail sections" options={DETAIL_TABS} value={tab} onChange={setTab} />
 
         <AppCard style={styles.mediaCard}>
-          <ExerciseMediaPreview colors={colors} exercise={exercise} onMediaError={() => setMediaFailed(true)} playing={playing} resizeMode="contain" showLabel style={styles.media} />
+          <ExerciseMediaPreview
+            colors={colors}
+            exercise={exercise}
+            onMediaError={(nextError) => {
+              setMediaFailed(true);
+              setMediaStatus('failed');
+              setNativeImageError(nextError ?? 'unknown native Image error');
+            }}
+            onMediaLoad={() => {
+              setMediaStatus('loaded');
+              setNativeImageError(null);
+            }}
+            onMediaLoadStart={() => {
+              setMediaStatus('loading');
+              setNativeImageError(null);
+            }}
+            playing={playing}
+            resizeMode="contain"
+            showLabel
+            style={styles.media}
+          />
           {hasAnimation && !mediaFailed ? (
             <Pressable accessibilityRole="button" onPress={() => setPlaying((current) => !current)} style={styles.playButton}>
               <Text style={styles.playButtonText}>{playing ? 'Pause' : 'Play'}</Text>
             </Pressable>
           ) : null}
+        </AppCard>
+        <AppCard>
+          <Text style={styles.cardTitle}>Exercise media diagnostics</Text>
+          <Text selectable style={styles.diagnosticText}>exercise.id: {exercise.id}</Text>
+          <Text selectable style={styles.diagnosticText}>exercise.name: {exercise.name}</Text>
+          <Text selectable style={styles.diagnosticText}>exercise.source.provider: {exercise.source.provider}</Text>
+          <Text selectable style={styles.diagnosticText}>exercise.source.sourceId: {exercise.source.sourceId ?? 'none'}</Text>
+          <Text selectable style={styles.diagnosticText}>exercise.media.animationUrl: {exercise.media.animationUrl ?? 'none'}</Text>
+          <Text selectable style={styles.diagnosticText}>exercise.media.gifUri: {exercise.media.gifUri ?? 'none'}</Text>
+          <Text selectable style={styles.diagnosticText}>resolvedMediaUri from getExerciseMediaUri(): {resolvedMediaUri ?? 'none'}</Text>
+          <Text selectable style={styles.diagnosticText}>mediaStatus: {mediaStatus}</Text>
+          <Text selectable style={styles.diagnosticText}>nativeImageError: {nativeImageError ?? 'none'}</Text>
+        </AppCard>
+        <AppCard style={styles.directGifCard}>
+          <Text style={styles.cardTitle}>Direct physical-device GIF test</Text>
+          <View style={styles.directGifFrame}>
+            <Image
+              accessibilityLabel="Direct physical-device GIF test"
+              onError={(event) => {
+                setDirectGifStatus('failed');
+                setDirectGifError(event.nativeEvent.error);
+              }}
+              onLoad={() => {
+                setDirectGifStatus('loaded');
+                setDirectGifError(null);
+              }}
+              onLoadEnd={() => {
+                setDirectGifStatus((current) => (current === 'loading' ? 'loaded' : current));
+              }}
+              onLoadStart={() => {
+                setDirectGifStatus('loading');
+                setDirectGifError(null);
+              }}
+              resizeMode="contain"
+              source={{ uri: DIRECT_PHYSICAL_DEVICE_GIF_TEST_URL }}
+              style={styles.directGifImage}
+            />
+            {directGifStatus === 'loading' ? (
+              <View style={styles.overlay}>
+                <ActivityIndicator color={Colors.dark.accent} />
+              </View>
+            ) : null}
+          </View>
+          <Text selectable style={styles.diagnosticText}>url: {DIRECT_PHYSICAL_DEVICE_GIF_TEST_URL}</Text>
+          <Text selectable style={styles.diagnosticText}>directGifStatus: {directGifStatus}</Text>
+          <Text selectable style={styles.diagnosticText}>directGifError: {directGifError ?? 'none'}</Text>
         </AppCard>
         {isOssExerciseDbEnabled() && exercise.source.provider === 'oss-exercisedb' ? (
           <Text style={styles.attribution}>Exercise data and GIFs provided by AscendAPI / ExerciseDB.</Text>
@@ -315,6 +394,28 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.four,
   },
+  diagnosticText: {
+    color: Colors.dark.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+  directGifCard: {
+    gap: Spacing.two,
+  },
+  directGifFrame: {
+    aspectRatio: 1.35,
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
+    borderRadius: Radii.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  directGifImage: {
+    height: '100%',
+    width: '100%',
+  },
   header: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -356,6 +457,12 @@ const styles = StyleSheet.create({
   muscleMaps: {
     flexDirection: 'row',
     gap: Spacing.three,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    backgroundColor: Colors.dark.surfaceSecondary,
+    justifyContent: 'center',
   },
   playButton: {
     alignSelf: 'center',

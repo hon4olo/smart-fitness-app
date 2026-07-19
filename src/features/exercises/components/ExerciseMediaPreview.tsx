@@ -10,7 +10,9 @@ type ExerciseMediaPreviewProps = {
   colors: typeof Colors.light;
   exercise: Exercise;
   imageStyle?: StyleProp<ImageStyle>;
-  onMediaError?: () => void;
+  onMediaError?: (error?: string) => void;
+  onMediaLoad?: () => void;
+  onMediaLoadStart?: () => void;
   playing?: boolean;
   resizeMode?: ImageResizeMode;
   showLabel?: boolean;
@@ -22,6 +24,8 @@ export function ExerciseMediaPreview({
   exercise,
   imageStyle,
   onMediaError,
+  onMediaLoad,
+  onMediaLoadStart,
   playing = true,
   resizeMode = 'cover',
   showLabel = false,
@@ -43,12 +47,18 @@ export function ExerciseMediaPreview({
       {mediaUri ? (
         <Image
           accessibilityLabel={`${exercise.name} exercise media`}
-          onError={() => {
+          onError={(event) => {
             setLoading(false);
             setMediaFailed(true);
-            onMediaError?.();
+            onMediaError?.(event.nativeEvent.error);
+          }}
+          onLoad={() => {
+            onMediaLoad?.();
           }}
           onLoadEnd={() => setLoading(false)}
+          onLoadStart={() => {
+            onMediaLoadStart?.();
+          }}
           resizeMode={resizeMode}
           source={{ uri: mediaUri }}
           style={[styles.image, imageStyle]}
