@@ -89,7 +89,7 @@ const createStyles = (colors: typeof Colors.light) =>
     checkLabel: {
       color: '#FFFFFF',
       fontSize: 20,
-      fontWeight: '900',
+      fontWeight: '400',
       lineHeight: 22,
     },
     checkLabelCompleted: {

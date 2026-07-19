@@ -107,9 +107,6 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
         <View style={styles.expanded}>
           <TextInput placeholder="Notes..." placeholderTextColor={colors.textMuted} style={styles.notesInput} />
           <Pressable disabled={!onNotesPress} onPress={onNotesPress} style={({ pressed }) => [styles.restTimer, pressed && styles.pressed]}>
-            <View style={styles.restTimerIcon}>
-              <View style={styles.restTimerSlash} />
-            </View>
             <Text style={styles.restTimerLabel}>Rest Timer: Off</Text>
           </Pressable>
           <SessionSetTable
@@ -260,24 +257,6 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       alignSelf: 'flex-start',
       flexDirection: 'row',
-      gap: 6,
-    },
-    restTimerIcon: {
-      borderColor: '#0A84FF',
-      borderRadius: 999,
-      borderWidth: 1.25,
-      height: 17,
-      opacity: 0.9,
-      width: 17,
-    },
-    restTimerSlash: {
-      backgroundColor: '#0A84FF',
-      height: 21,
-      left: 8,
-      position: 'absolute',
-      top: -2,
-      transform: [{ rotate: '-42deg' }],
-      width: 1.25,
     },
     restTimerLabel: {
       color: '#0A84FF',
