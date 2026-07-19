@@ -33,11 +33,6 @@ export const SessionSetRow = memo(function SessionSetRow({
   return (
     <View style={styles.rowWrap}>
       <View style={[styles.row, completed && (isDark ? styles.rowCompletedDark : styles.rowCompletedLight)]}>
-        {completed ? (
-          <View style={styles.completedMarker}>
-            <Text style={styles.completedMarkerLabel}>✓</Text>
-          </View>
-        ) : null}
         <Text selectable style={[styles.cell, styles.colSet]}>
           {index + 1}
         </Text>
@@ -97,24 +92,6 @@ const createStyles = (colors: typeof Colors.light) =>
     checkLabelCompleted: {
       color: '#FFFFFF',
     },
-    completedMarker: {
-      alignItems: 'center',
-      backgroundColor: '#2ED66F',
-      borderCurve: 'continuous',
-      borderRadius: 4,
-      height: 18,
-      justifyContent: 'center',
-      left: 4,
-      position: 'absolute',
-      width: 18,
-      zIndex: 1,
-    },
-    completedMarkerLabel: {
-      color: '#FFFFFF',
-      fontSize: 12,
-      fontWeight: '900',
-      lineHeight: 13,
-    },
     colCompletion: {
       width: 48,
     },
@@ -124,13 +101,13 @@ const createStyles = (colors: typeof Colors.light) =>
       textAlign: 'center',
     },
     colReps: {
-      width: 72,
+      width: 86,
     },
     colSet: {
       width: 48,
     },
     colWeight: {
-      width: 72,
+      width: 86,
     },
     iconCell: {
       alignItems: 'center',
@@ -156,7 +133,7 @@ const createStyles = (colors: typeof Colors.light) =>
       borderWidth: StyleSheet.hairlineWidth,
       color: colors.textPrimary,
       fontSize: 16,
-      height: 34,
+      height: 30,
       includeFontPadding: false,
       lineHeight: 18,
       paddingHorizontal: 4,
@@ -180,7 +157,6 @@ const createStyles = (colors: typeof Colors.light) =>
       flexDirection: 'row',
       gap: 0,
       minHeight: 44,
-      position: 'relative',
       width: '100%',
     },
     rowCompletedDark: {

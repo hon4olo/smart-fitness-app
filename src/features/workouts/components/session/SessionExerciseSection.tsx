@@ -53,12 +53,16 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
   const plannedSetCount = Math.max(exercise.targetSets ?? 0, exerciseSets.length);
   const collapsedRows = exerciseSets.length > 0
     ? exerciseSets.map((set, index) => ({
+        completed: set.completed !== false,
         id: set.id,
-        label: `${index + 1}   ${set.weight > 0 ? `${set.weight} kg` : '- kg'}  ·  ${set.reps > 0 ? `${set.reps} Reps` : '- Reps'}`,
+        indexLabel: `${index + 1}`,
+        valueLabel: `${set.weight > 0 ? `${set.weight} kg` : '- kg'}  ·  ${set.reps > 0 ? `${set.reps} Reps` : '- Reps'}`,
       }))
     : Array.from({ length: plannedSetCount }, (_, index) => ({
+        completed: false,
         id: `${exercise.id}-planned-${index}`,
-        label: `${index + 1}   - kg  ·  - Reps`,
+        indexLabel: `${index + 1}`,
+        valueLabel: '- kg  ·  - Reps',
       }));
 
   return (
@@ -75,9 +79,19 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
           {!expanded ? (
             collapsedRows.length > 0 ? (
               collapsedRows.map((row) => (
-                <Text key={row.id} numberOfLines={1} style={styles.collapsedLine}>
-                  {row.label}
-                </Text>
+                <View key={row.id} style={styles.collapsedLineRow}>
+                  {row.completed ? (
+                    <View style={styles.collapsedCompletedMarker}>
+                      <Text style={styles.collapsedCompletedMarkerLabel}>✓</Text>
+                    </View>
+                  ) : null}
+                  <Text numberOfLines={1} style={styles.collapsedIndex}>
+                    {row.indexLabel}
+                  </Text>
+                  <Text numberOfLines={1} style={styles.collapsedLine}>
+                    {row.valueLabel}
+                  </Text>
+                </View>
               ))
             ) : (
               <Text style={styles.collapsedLine}>No sets added</Text>
@@ -141,6 +155,34 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: 15,
       fontVariant: ['tabular-nums'],
       lineHeight: 22,
+    },
+    collapsedCompletedMarker: {
+      alignItems: 'center',
+      backgroundColor: '#2ED66F',
+      borderCurve: 'continuous',
+      borderRadius: 4,
+      height: 17,
+      justifyContent: 'center',
+      width: 17,
+    },
+    collapsedCompletedMarkerLabel: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: '900',
+      lineHeight: 13,
+    },
+    collapsedIndex: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontVariant: ['tabular-nums'],
+      lineHeight: 22,
+      width: 20,
+    },
+    collapsedLineRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 9,
+      minHeight: 22,
     },
     exerciseHelp: {
       bottom: 2,
