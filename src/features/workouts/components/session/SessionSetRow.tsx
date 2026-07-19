@@ -98,6 +98,7 @@ const createStyles = (colors: typeof Colors.light) =>
     colPrevious: {
       flex: 1,
       minWidth: 0,
+      paddingLeft: 10,
       textAlign: 'left',
     },
     colReps: {
