@@ -157,6 +157,7 @@ export default function WorkoutSessionScreen() {
         notes: undefined,
         restSeconds: undefined,
         targetReps: undefined,
+        targetSets: undefined,
       }));
     }
 
@@ -168,6 +169,7 @@ export default function WorkoutSessionScreen() {
         notes: parsedPlan.exercises[index]?.notes,
         restSeconds: parsedPlan.exercises[index]?.restSeconds,
         targetReps: parsedPlan.exercises[index]?.targetReps,
+        targetSets: parsedPlan.exercises[index]?.targetSets,
       }));
     const templateIds = new Set(templateExercises.map((exercise) => exercise.id));
     const sessionOnlyExercises = uniqueExercisesFromSets(draft.sets, exercises)
@@ -178,17 +180,18 @@ export default function WorkoutSessionScreen() {
         notes: undefined,
         restSeconds: undefined,
         targetReps: undefined,
+        targetSets: undefined,
       }));
 
     return [...templateExercises, ...sessionOnlyExercises];
   }, [draft, exercises, hiddenExerciseIds, isEmptyWorkout, parsedPlan.exercises, workout]);
 
   useEffect(() => {
-    if (!didSetInitialExpandedExercise.current && visibleExercises.length > 0) {
+    if (!didSetInitialExpandedExercise.current && isEmptyWorkout && visibleExercises.length > 0) {
       didSetInitialExpandedExercise.current = true;
       setExpandedExerciseId(visibleExercises[0].id);
     }
-  }, [visibleExercises]);
+  }, [isEmptyWorkout, visibleExercises]);
 
   if (bootstrappedDraft === undefined || isRestoringState || routeState.status === 'loading') {
     return (
@@ -274,6 +277,39 @@ export default function WorkoutSessionScreen() {
     setDraft(addWorkoutSessionSet(draft, { id: exercise.id, name: exercise.name, targetReps: exercise.targetReps ?? undefined }, previousSet));
   };
 
+  const ensurePlannedSet = (exerciseId: string, index: number) => {
+    if (!draft) return null;
+    const exercise = visibleExercises.find((item) => item.id === exerciseId);
+    if (!exercise) return null;
+    const exerciseSets = draft.sets.filter((set) => set.exerciseId === exerciseId);
+    const existingSet = exerciseSets[index];
+
+    if (existingSet) {
+      return existingSet;
+    }
+
+    let nextDraft = draft;
+    for (let currentIndex = exerciseSets.length; currentIndex <= index; currentIndex += 1) {
+      nextDraft = {
+        ...nextDraft,
+        sets: [
+          ...nextDraft.sets.map((set) => ({ ...set })),
+          {
+            id: `${nextDraft.id}-${nextDraft.sets.length + 1}-${Date.now()}`,
+            exerciseId: exercise.id,
+            exerciseName: exercise.name,
+            weight: 0,
+            reps: 0,
+            completed: false,
+          },
+        ],
+      };
+    }
+
+    setDraft(nextDraft);
+    return nextDraft.sets.filter((set) => set.exerciseId === exerciseId)[index] ?? null;
+  };
+
   const removeSet = (setId: string) => {
     if (!draft) return;
     setDraft(removeWorkoutSessionSet(draft, setId));
@@ -282,6 +318,19 @@ export default function WorkoutSessionScreen() {
   const toggleSetCompletion = (setId: string) => {
     if (!draft) return;
     setDraft(toggleWorkoutSessionSetCompletion(draft, setId));
+  };
+
+  const updatePlannedSet = (exerciseId: string, index: number, field: 'weight' | 'reps', value: string) => {
+    const set = ensurePlannedSet(exerciseId, index);
+    if (!set) return;
+    setDraftInputs((current) => ({ ...current, [set.id]: { ...(current[set.id] ?? { reps: '', weight: '' }), [field]: value } }));
+    setDraft((currentDraft) => (currentDraft ? updateWorkoutSessionSetField(currentDraft, set.id, field, value) : currentDraft));
+  };
+
+  const togglePlannedSetCompletion = (exerciseId: string, index: number) => {
+    const set = ensurePlannedSet(exerciseId, index);
+    if (!set) return;
+    setDraft((currentDraft) => (currentDraft ? toggleWorkoutSessionSetCompletion(currentDraft, set.id) : currentDraft));
   };
 
   const clearExerciseSets = (exerciseId: string) => {
@@ -375,6 +424,9 @@ export default function WorkoutSessionScreen() {
                 }
                 onNotesPress={exercise.notes ? () => Alert.alert('Notes', exercise.notes ?? '') : undefined}
                 onRepsChange={(setId, value) => updateSet(setId, 'reps', value)}
+                onPlannedRepsChange={updatePlannedSet}
+                onPlannedToggleSetCompletion={togglePlannedSetCompletion}
+                onPlannedWeightChange={updatePlannedSet}
                 onToggleExpanded={(exerciseId) => setExpandedExerciseId((current) => (current === exerciseId ? null : exerciseId))}
                 onToggleSetCompletion={toggleSetCompletion}
                 onWeightChange={(setId, value) => updateSet(setId, 'weight', value)}

@@ -35,10 +35,13 @@ export const SessionHeader = memo(function SessionHeader({
     <View style={[styles.container, { paddingTop: insets.top + 4 }]}>
       <View style={[styles.topRow, { borderBottomColor: colors.borderSubtle }]}>
         <Pressable accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
-          <Text style={styles.flatIconLabel}>⌄</Text>
+          <View style={styles.chevronDown} />
         </Pressable>
         <Pressable accessibilityRole="button" style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
-          <Text style={styles.timerIcon}>⏱</Text>
+          <View style={styles.stopwatchIcon}>
+            <View style={styles.stopwatchStem} />
+            <View style={styles.stopwatchHand} />
+          </View>
         </Pressable>
         <View style={styles.topSpacer} />
         <Pressable accessibilityRole="button" hitSlop={12} onPress={onOverflow} style={({ pressed }) => [styles.overflowButton, pressed && styles.pressed]}>
@@ -121,11 +124,15 @@ const createStyles = (colors: typeof Colors.light) =>
       justifyContent: 'center',
       width: 44,
     },
-    flatIconLabel: {
-      color: colors.textPrimary,
-      fontSize: 30,
-      fontWeight: '400',
-      lineHeight: 30,
+    chevronDown: {
+      borderBottomColor: colors.textPrimary,
+      borderBottomWidth: 2,
+      borderRightColor: colors.textPrimary,
+      borderRightWidth: 2,
+      height: 18,
+      marginTop: -8,
+      transform: [{ rotate: '45deg' }],
+      width: 18,
     },
     overflowButton: {
       alignItems: 'center',
@@ -172,10 +179,30 @@ const createStyles = (colors: typeof Colors.light) =>
       marginTop: 60,
       textAlign: 'center',
     },
-    timerIcon: {
-      color: colors.textPrimary,
-      fontSize: 27,
-      lineHeight: 30,
+    stopwatchHand: {
+      backgroundColor: colors.textPrimary,
+      height: 8,
+      left: 11,
+      position: 'absolute',
+      top: 5,
+      transform: [{ rotate: '0deg' }],
+      width: 2,
+    },
+    stopwatchIcon: {
+      borderColor: colors.textPrimary,
+      borderRadius: 999,
+      borderWidth: 2,
+      height: 25,
+      position: 'relative',
+      width: 25,
+    },
+    stopwatchStem: {
+      backgroundColor: colors.textPrimary,
+      height: 5,
+      left: 10,
+      position: 'absolute',
+      top: -7,
+      width: 4,
     },
     topRow: {
       alignItems: 'center',

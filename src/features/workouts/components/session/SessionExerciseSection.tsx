@@ -19,6 +19,9 @@ type SessionExerciseSectionProps = {
   onLongPressExercise: (exerciseId: string, exerciseName: string) => void;
   onLongPressRow: (setId: string) => void;
   onNotesPress?: () => void;
+  onPlannedRepsChange: (exerciseId: string, index: number, field: 'reps', value: string) => void;
+  onPlannedToggleSetCompletion: (exerciseId: string, index: number) => void;
+  onPlannedWeightChange: (exerciseId: string, index: number, field: 'weight', value: string) => void;
   onRepsChange: (setId: string, value: string) => void;
   onToggleExpanded: (exerciseId: string) => void;
   onToggleSetCompletion: (setId: string) => void;
@@ -36,6 +39,9 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
   onLongPressExercise,
   onLongPressRow,
   onNotesPress,
+  onPlannedRepsChange,
+  onPlannedToggleSetCompletion,
+  onPlannedWeightChange,
   onRepsChange,
   onToggleExpanded,
   onToggleSetCompletion,
@@ -44,6 +50,16 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
 }: SessionExerciseSectionProps) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const plannedSetCount = Math.max(exercise.targetSets ?? 0, exerciseSets.length);
+  const collapsedRows = exerciseSets.length > 0
+    ? exerciseSets.map((set, index) => ({
+        id: set.id,
+        label: `${index + 1}   ${set.weight > 0 ? `${set.weight} kg` : '- kg'}  ·  ${set.reps > 0 ? `${set.reps} Reps` : '- Reps'}`,
+      }))
+    : Array.from({ length: plannedSetCount }, (_, index) => ({
+        id: `${exercise.id}-planned-${index}`,
+        label: `${index + 1}   - kg  ·  - Reps`,
+      }));
 
   return (
     <View style={styles.section}>
@@ -57,10 +73,10 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
             {exercise.name}
           </Text>
           {!expanded ? (
-            exerciseSets.length > 0 ? (
-              exerciseSets.map((set, index) => (
-                <Text key={set.id} numberOfLines={1} style={styles.collapsedLine}>
-                  {index + 1}   {set.weight > 0 ? `${set.weight} kg` : '- kg'}  ·  {set.reps > 0 ? `${set.reps} Reps` : '- Reps'}
+            collapsedRows.length > 0 ? (
+              collapsedRows.map((row) => (
+                <Text key={row.id} numberOfLines={1} style={styles.collapsedLine}>
+                  {row.label}
                 </Text>
               ))
             ) : (
@@ -83,10 +99,14 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
             draftInputs={draftInputs}
             onCommitRowInputs={onCommitRowInputs}
             onLongPressRow={onLongPressRow}
+            onPlannedRepsChange={(index, value) => onPlannedRepsChange(exercise.id, index, 'reps', value)}
+            onPlannedToggleSetCompletion={(index) => onPlannedToggleSetCompletion(exercise.id, index)}
+            onPlannedWeightChange={(index, value) => onPlannedWeightChange(exercise.id, index, 'weight', value)}
             onRepsChange={onRepsChange}
             onToggleSetCompletion={onToggleSetCompletion}
             onWeightChange={onWeightChange}
             previousSets={previousSets}
+            targetSetCount={plannedSetCount}
             sets={exerciseSets}
           />
           <Pressable accessibilityRole="button" onPress={() => onAddSet(exercise.id)} style={({ pressed }) => [styles.addSetButton, pressed && styles.pressed]}>
@@ -106,18 +126,18 @@ const createStyles = (colors: typeof Colors.light) =>
       borderCurve: 'continuous',
       borderRadius: 999,
       justifyContent: 'center',
-      minHeight: 42,
+      minHeight: 62,
     },
     addSetLabel: {
       color: colors.textPrimary,
-      fontSize: 14,
+      fontSize: 16,
       fontWeight: '500',
     },
     collapsedLine: {
       color: colors.textSecondary,
-      fontSize: 14,
+      fontSize: 15,
       fontVariant: ['tabular-nums'],
-      lineHeight: 21,
+      lineHeight: 22,
     },
     exerciseHelp: {
       bottom: 2,
@@ -128,35 +148,35 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     exerciseThumb: {
       alignItems: 'center',
-      backgroundColor: colors.surfacePrimary,
-      borderColor: colors.borderSubtle,
+      backgroundColor: '#FFFFFF',
+      borderColor: '#F3F3F3',
       borderCurve: 'continuous',
-      borderRadius: 8,
+      borderRadius: 7,
       borderWidth: StyleSheet.hairlineWidth,
       height: 66,
       justifyContent: 'center',
       width: 44,
     },
     exerciseThumbLabel: {
-      color: colors.textPrimary,
+      color: '#111111',
       fontSize: 16,
       fontWeight: '900',
     },
     exerciseTitle: {
       color: colors.textPrimary,
-      fontSize: 17,
+      fontSize: 18,
       fontWeight: '500',
-      lineHeight: 22,
+      lineHeight: 24,
     },
     expanded: {
-      gap: Spacing.three,
-      paddingBottom: Spacing.four,
+      gap: 18,
+      paddingBottom: 34,
     },
     header: {
       alignItems: 'flex-start',
       flexDirection: 'row',
-      gap: Spacing.three,
-      paddingBottom: Spacing.four,
+      gap: 20,
+      paddingBottom: 24,
     },
     headerCopy: {
       flex: 1,
@@ -177,7 +197,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     notesInput: {
       color: colors.textPrimary,
-      fontSize: 14,
+      fontSize: 15,
       minHeight: 24,
       paddingVertical: 0,
     },
@@ -189,7 +209,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     restTimerLabel: {
       color: '#0A84FF',
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '500',
     },
     section: {

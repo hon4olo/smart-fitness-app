@@ -8,4 +8,5 @@ export type SessionExercise = {
   notes?: string;
   restSeconds?: number;
   targetReps?: number;
+  targetSets?: number;
 };

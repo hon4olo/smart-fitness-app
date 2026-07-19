@@ -13,27 +13,36 @@ type SessionSetTableProps = {
   draftInputs: SessionDraftInputs;
   onCommitRowInputs: (setId: string) => void;
   onLongPressRow: (setId: string) => void;
+  onPlannedRepsChange: (index: number, value: string) => void;
+  onPlannedToggleSetCompletion: (index: number) => void;
+  onPlannedWeightChange: (index: number, value: string) => void;
   onRepsChange: (setId: string, value: string) => void;
   onToggleSetCompletion: (setId: string) => void;
   onWeightChange: (setId: string, value: string) => void;
   previousSets?: Array<{ reps: number; weight: number }>;
   sets: WorkoutSet[];
+  targetSetCount: number;
 };
 
 export const SessionSetTable = memo(function SessionSetTable({
   draftInputs,
   onCommitRowInputs,
   onLongPressRow,
+  onPlannedRepsChange,
+  onPlannedToggleSetCompletion,
+  onPlannedWeightChange,
   onRepsChange,
   onToggleSetCompletion,
   onWeightChange,
   previousSets = [],
   sets,
+  targetSetCount,
 }: SessionSetTableProps) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const rowCount = Math.max(sets.length, targetSetCount);
 
-  if (sets.length === 0) {
+  if (rowCount === 0) {
     return <SessionEmptySets />;
   }
 
@@ -48,20 +57,41 @@ export const SessionSetTable = memo(function SessionSetTable({
       </View>
 
       <View style={styles.tableBody}>
-        {sets.map((set, index) => (
-          <SessionSetRow
-            key={set.id}
-            completed={set.completed !== false}
-            draftValue={draftInputs[set.id] ?? { reps: `${set.reps}`, weight: `${set.weight}` }}
-            index={index}
-            onCommit={() => onCommitRowInputs(set.id)}
-            onLongPress={() => onLongPressRow(set.id)}
-            onRepsChange={(value) => onRepsChange(set.id, value)}
-            onToggle={() => onToggleSetCompletion(set.id)}
-            onWeightChange={(value) => onWeightChange(set.id, value)}
-            previousLabel={previousSets[index] ? `${previousSets[index].weight}kg x ${previousSets[index].reps}` : '—'}
-          />
-        ))}
+        {Array.from({ length: rowCount }, (_, index) => {
+          const set = sets[index];
+
+          if (!set) {
+            return (
+              <SessionSetRow
+                key={`planned-${index}`}
+                completed={false}
+                draftValue={{ reps: '', weight: '' }}
+                index={index}
+                onCommit={() => undefined}
+                onLongPress={() => undefined}
+                onRepsChange={(value) => onPlannedRepsChange(index, value)}
+                onToggle={() => onPlannedToggleSetCompletion(index)}
+                onWeightChange={(value) => onPlannedWeightChange(index, value)}
+                previousLabel={previousSets[index] ? `${previousSets[index].weight}kg x ${previousSets[index].reps}` : '-'}
+              />
+            );
+          }
+
+          return (
+            <SessionSetRow
+              key={set.id}
+              completed={set.completed !== false}
+              draftValue={draftInputs[set.id] ?? { reps: `${set.reps}`, weight: `${set.weight}` }}
+              index={index}
+              onCommit={() => onCommitRowInputs(set.id)}
+              onLongPress={() => onLongPressRow(set.id)}
+              onRepsChange={(value) => onRepsChange(set.id, value)}
+              onToggle={() => onToggleSetCompletion(set.id)}
+              onWeightChange={(value) => onWeightChange(set.id, value)}
+              previousLabel={previousSets[index] ? `${previousSets[index].weight}kg x ${previousSets[index].reps}` : '-'}
+            />
+          );
+        })}
       </View>
     </View>
   );
@@ -91,7 +121,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     headerText: {
       color: colors.textMuted,
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '500',
       textAlign: 'left',
     },
