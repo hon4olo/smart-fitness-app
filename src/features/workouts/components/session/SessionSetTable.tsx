@@ -122,10 +122,10 @@ const createStyles = (colors: typeof Colors.light) =>
       width: 94,
     },
     colRepsHeader: {
-      transform: [{ translateX: -18 }],
+      transform: [{ translateX: -12 }],
     },
     colWeightHeader: {
-      transform: [{ translateX: -18 }],
+      transform: [{ translateX: -12 }],
     },
     headerText: {
       color: colors.textMuted,
