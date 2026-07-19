@@ -326,19 +326,19 @@ const createTopTabsStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     label: {
       color: colors.textMuted,
-      fontSize: 26,
+      fontSize: 23,
       fontWeight: '900',
-      lineHeight: 32,
+      lineHeight: 29,
     },
     labelSelected: {
       color: colors.textPrimary,
-      fontSize: 32,
-      lineHeight: 38,
+      fontSize: 28,
+      lineHeight: 34,
     },
     row: {
       alignItems: 'baseline',
       flexDirection: 'row',
-      gap: Spacing.four,
+      gap: Spacing.three,
     },
   });
 
@@ -385,9 +385,9 @@ const createProgramRowStyles = (colors: typeof Colors.light) =>
     },
     addIconLabel: {
       color: colors.textPrimary,
-      fontSize: 40,
+      fontSize: 32,
       fontWeight: '300',
-      lineHeight: 42,
+      lineHeight: 34,
     },
     copy: {
       flex: 1,
@@ -398,15 +398,15 @@ const createProgramRowStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.backgroundSecondary,
       borderCurve: 'continuous',
       borderRadius: 4,
-      height: 74,
+      height: 58,
       justifyContent: 'center',
-      width: 74,
+      width: 58,
     },
     iconLabel: {
       color: colors.textMuted,
-      fontSize: 28,
+      fontSize: 23,
       fontWeight: '500',
-      lineHeight: 32,
+      lineHeight: 26,
     },
     pressed: {
       opacity: 0.72,
@@ -414,19 +414,19 @@ const createProgramRowStyles = (colors: typeof Colors.light) =>
     row: {
       alignItems: 'center',
       flexDirection: 'row',
-      gap: Spacing.three,
-      minHeight: 96,
+      gap: Spacing.two,
+      minHeight: 72,
     },
     subtitle: {
       color: colors.textMuted,
-      fontSize: 20,
-      lineHeight: 25,
+      fontSize: 17,
+      lineHeight: 21,
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 21,
+      fontSize: 19,
       fontWeight: '900',
-      lineHeight: 27,
+      lineHeight: 24,
     },
   });
 
@@ -513,7 +513,7 @@ const createStyles = (colors: typeof Colors.light) =>
     content: {
       alignItems: 'center',
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.three,
+      paddingTop: Spacing.two,
     },
     footer: {
       bottom: 0,
@@ -532,8 +532,8 @@ const createStyles = (colors: typeof Colors.light) =>
       gap: Spacing.two,
       justifyContent: 'center',
       maxWidth: 360,
-      minHeight: 52,
-      minWidth: 286,
+      minHeight: 48,
+      minWidth: 260,
       paddingHorizontal: Spacing.three,
     },
     footerIcon: {
@@ -543,15 +543,15 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     footerLabel: {
       color: colors.textOnAccent,
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: '900',
     },
     emptyProgramText: {
       color: colors.textMuted,
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: '700',
-      lineHeight: 22,
-      paddingVertical: Spacing.two,
+      lineHeight: 20,
+      paddingVertical: Spacing.one,
     },
     grid: {
       flexDirection: 'row',
@@ -561,7 +561,7 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: Spacing.five,
+      marginBottom: Spacing.three,
     },
     horizontalCard: {
       width: 220,
@@ -583,7 +583,7 @@ const createStyles = (colors: typeof Colors.light) =>
       opacity: 0.72,
     },
     programList: {
-      gap: Spacing.three,
+      gap: Spacing.two,
     },
     screen: {
       backgroundColor: colors.background,
@@ -591,15 +591,15 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     searchButton: {
       alignItems: 'center',
-      height: 44,
+      height: 38,
       justifyContent: 'center',
-      width: 44,
+      width: 38,
     },
     searchLabel: {
       color: colors.textPrimary,
-      fontSize: 32,
+      fontSize: 27,
       fontWeight: '500',
-      lineHeight: 34,
+      lineHeight: 30,
     },
     sectionStack: {
       gap: Spacing.six,
