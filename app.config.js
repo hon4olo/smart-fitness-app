@@ -1,6 +1,8 @@
 const { expo } = require('./app.json');
 
-const enableOssExerciseDb = process.env.EXPO_PUBLIC_ENABLE_OSS_EXERCISEDB === 'true';
+// INTERNAL TESTING ONLY.
+// Set this to false before any public App Store build or commercial release.
+const enableOssExerciseDb = true;
 
 module.exports = () => ({
   ...expo,

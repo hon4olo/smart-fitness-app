@@ -236,12 +236,13 @@ export default function WorkoutExerciseLibraryScreen() {
         <View style={styles.headerCopy}>
           <Text numberOfLines={1} style={styles.title}>Exercise Library</Text>
           <Text style={styles.subtitle}>Pick one or more movements to add to the active workout.</Text>
-          {isOssExerciseDbEnabled() ? (
-            <Text style={styles.diagnostic}>
-              Provider: {diagnostics.selectedProvider} · {diagnostics.exerciseCount} exercises · {diagnostics.loadSource ?? 'loading'}
-              {diagnostics.lastError ? ` · ${diagnostics.lastError}` : ''}
-            </Text>
-          ) : null}
+          <View style={styles.diagnosticBlock}>
+            <Text style={styles.diagnostic}>Provider: {diagnostics.selectedProvider}</Text>
+            <Text style={styles.diagnostic}>Source: {diagnostics.loadSource ?? 'loading'}</Text>
+            <Text style={styles.diagnostic}>Exercises: {diagnostics.exerciseCount}</Text>
+            <Text style={styles.diagnostic}>Error: {diagnostics.lastError ?? 'none'}</Text>
+            <Text style={styles.diagnostic}>OSS enabled: {isOssExerciseDbEnabled() ? 'true' : 'false'}</Text>
+          </View>
         </View>
       </View>
 
@@ -366,8 +367,11 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: 10,
       fontWeight: '700',
       lineHeight: 14,
-      marginTop: Spacing.one,
       textAlign: 'center',
+    },
+    diagnosticBlock: {
+      gap: 1,
+      marginTop: Spacing.one,
     },
     backButton: {
       alignItems: 'center',
