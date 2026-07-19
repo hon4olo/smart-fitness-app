@@ -127,7 +127,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     table: {
       alignSelf: 'stretch',
-      gap: Spacing.two,
+      gap: 8,
       marginHorizontal: -Spacing.four,
     },
     tableBody: {
@@ -137,6 +137,7 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flexDirection: 'row',
       gap: 0,
+      minHeight: 26,
       width: '100%',
     },
   });

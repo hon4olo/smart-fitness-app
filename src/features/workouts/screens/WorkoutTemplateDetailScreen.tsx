@@ -105,7 +105,7 @@ export default function WorkoutTemplateDetailScreen() {
 
       <ScrollView
         contentInsetAdjustmentBehavior="never"
-        contentContainerStyle={[styles.content, { minHeight: viewportHeight - insets.top, paddingBottom: insets.bottom + 174 }]}
+        contentContainerStyle={[styles.content, { minHeight: viewportHeight - insets.top, paddingBottom: insets.bottom + 116 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
@@ -136,103 +136,16 @@ export default function WorkoutTemplateDetailScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: 84 + Math.max(insets.bottom, 6) }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
         <View style={styles.container}>
           <Pressable onPress={startWorkout} style={({ pressed }) => [styles.footerButton, pressed && styles.pressed]}>
             <Text style={styles.footerButtonLabel}>Start Workout</Text>
           </Pressable>
         </View>
       </View>
-
-      <WorkoutFlowTabBar bottomInset={insets.bottom} colors={colors} />
     </View>
   );
 }
-
-function WorkoutFlowTabBar({ bottomInset, colors }: { bottomInset: number; colors: typeof Colors.light }) {
-  const styles = useMemo(() => createTabStyles(colors), [colors]);
-  const items = [
-    { icon: '⌂', label: 'Home', route: '/' },
-    { icon: '◉', label: 'Explore', route: '/workouts' },
-    { icon: '+', label: 'Workout', route: '/workouts' },
-    { icon: '⌁', label: 'Progress', route: '/progress' },
-    { icon: '◎', label: 'Profile', route: '/profile' },
-  ] as const;
-
-  return (
-    <View style={[styles.tabBar, { paddingBottom: Math.max(bottomInset, 6) }]}>
-      {items.map((item) => {
-        const active = item.label === 'Workout';
-        return (
-          <Pressable key={item.label} onPress={() => router.push(item.route)} style={({ pressed }) => [styles.tabItem, pressed && styles.pressed]}>
-            <View style={[styles.tabIconWrap, active && styles.tabIconWrapActive]}>
-              <Text style={[styles.tabIcon, active && styles.tabIconActive]}>{item.icon}</Text>
-            </View>
-            <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-const createTabStyles = (colors: typeof Colors.light) =>
-  StyleSheet.create({
-    pressed: {
-      opacity: 0.72,
-    },
-    tabBar: {
-      alignItems: 'flex-start',
-      backgroundColor: '#000000',
-      borderTopColor: '#1F1F1F',
-      borderTopWidth: StyleSheet.hairlineWidth,
-      bottom: 0,
-      flexDirection: 'row',
-      height: 84,
-      justifyContent: 'space-around',
-      left: 0,
-      paddingTop: 10,
-      position: 'absolute',
-      right: 0,
-    },
-    tabIcon: {
-      color: colors.textMuted,
-      fontSize: 24,
-      lineHeight: 26,
-    },
-    tabIconActive: {
-      color: '#000000',
-      fontSize: 18,
-      fontWeight: '900',
-      lineHeight: 22,
-    },
-    tabIconWrap: {
-      alignItems: 'center',
-      height: 28,
-      justifyContent: 'center',
-      width: 34,
-    },
-    tabIconWrapActive: {
-      backgroundColor: '#FFFFFF',
-      borderRadius: 999,
-      height: 28,
-      width: 28,
-    },
-    tabItem: {
-      alignItems: 'center',
-      flex: 1,
-      gap: 2,
-    },
-    tabLabel: {
-      color: colors.textMuted,
-      fontSize: 11,
-      fontWeight: '600',
-    },
-    tabLabelActive: {
-      color: '#FFFFFF',
-      fontWeight: '800',
-    },
-  });
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
@@ -323,7 +236,7 @@ const createStyles = (colors: typeof Colors.light) =>
       bottom: 0,
       left: 0,
       paddingHorizontal: Spacing.three,
-      paddingTop: 18,
+      paddingTop: 14,
       position: 'absolute',
       right: 0,
     },
@@ -332,14 +245,14 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: '#FFFFFF',
       borderCurve: 'continuous',
       borderRadius: 999,
-      minHeight: 78,
+      minHeight: 58,
       justifyContent: 'center',
     },
     footerButtonLabel: {
       color: '#000000',
-      fontSize: 23,
+      fontSize: 19,
       fontWeight: '700',
-      lineHeight: 28,
+      lineHeight: 24,
     },
     header: {
       alignItems: 'center',

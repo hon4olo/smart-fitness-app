@@ -93,7 +93,10 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
         <View style={styles.expanded}>
           <TextInput placeholder="Notes..." placeholderTextColor={colors.textMuted} style={styles.notesInput} />
           <Pressable disabled={!onNotesPress} onPress={onNotesPress} style={({ pressed }) => [styles.restTimer, pressed && styles.pressed]}>
-            <Text style={styles.restTimerLabel}>⏱ Rest Timer: Off</Text>
+            <View style={styles.restTimerIcon}>
+              <View style={styles.restTimerSlash} />
+            </View>
+            <Text style={styles.restTimerLabel}>Rest Timer: Off</Text>
           </Pressable>
           <SessionSetTable
             draftInputs={draftInputs}
@@ -169,7 +172,7 @@ const createStyles = (colors: typeof Colors.light) =>
       lineHeight: 24,
     },
     expanded: {
-      gap: 18,
+      gap: 16,
       paddingBottom: 34,
     },
     header: {
@@ -205,7 +208,27 @@ const createStyles = (colors: typeof Colors.light) =>
       opacity: 0.72,
     },
     restTimer: {
+      alignItems: 'center',
       alignSelf: 'flex-start',
+      flexDirection: 'row',
+      gap: 7,
+    },
+    restTimerIcon: {
+      borderColor: '#0A84FF',
+      borderRadius: 999,
+      borderWidth: 1.5,
+      height: 20,
+      opacity: 0.9,
+      width: 20,
+    },
+    restTimerSlash: {
+      backgroundColor: '#0A84FF',
+      height: 25,
+      left: 9,
+      position: 'absolute',
+      top: -3,
+      transform: [{ rotate: '-42deg' }],
+      width: 1.5,
     },
     restTimerLabel: {
       color: '#0A84FF',

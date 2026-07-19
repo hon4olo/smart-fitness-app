@@ -79,8 +79,8 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     cell: {
       color: colors.textPrimary,
-      fontSize: 16,
-      lineHeight: 36,
+      fontSize: 17,
+      lineHeight: 48,
       textAlign: 'center',
     },
     checkLabel: {
@@ -93,7 +93,7 @@ const createStyles = (colors: typeof Colors.light) =>
       color: '#FFFFFF',
     },
     colCompletion: {
-      width: 34,
+      width: 48,
     },
     colPrevious: {
       flex: 1,
@@ -114,9 +114,10 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: '#292929',
       borderCurve: 'continuous',
       borderRadius: 999,
-      height: 34,
+      height: 37,
       justifyContent: 'center',
-      marginHorizontal: 7,
+      marginHorizontal: 5.5,
+      width: 37,
     },
     iconCellCompletedDark: {
       backgroundColor: '#2ED66F',
@@ -131,10 +132,10 @@ const createStyles = (colors: typeof Colors.light) =>
       borderRadius: 8,
       borderWidth: StyleSheet.hairlineWidth,
       color: colors.textPrimary,
-      fontSize: 16,
-      height: 38,
+      fontSize: 17,
+      height: 45,
       includeFontPadding: false,
-      lineHeight: 18,
+      lineHeight: 20,
       paddingHorizontal: 4,
       paddingVertical: 0,
       textAlign: 'center',
@@ -155,7 +156,7 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flexDirection: 'row',
       gap: 0,
-      minHeight: 48,
+      minHeight: 62,
       width: '100%',
     },
     rowCompletedDark: {
