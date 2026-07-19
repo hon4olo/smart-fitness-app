@@ -1,13 +1,13 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { exerciseRepository, getExerciseMediaUri, getExercisePlaceholderUri, type Exercise } from '@/features/exercises';
-import { getActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft } from '@/features/workouts/storage';
 import { addWorkoutSessionExercises } from '@/features/workouts/sessionScreenModel';
+import { getActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft } from '@/features/workouts/storage';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 
 type ExerciseRowProps = {
@@ -25,13 +25,7 @@ function ExerciseRow({ exercise, onInfoPress, onPress, selected }: ExerciseRowPr
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, selected && styles.rowSelected, pressed && styles.pressed]}>
-      <Image
-        accessibilityLabel={`${exercise.name} preview`}
-        onError={() => setMediaFailed(true)}
-        resizeMode="cover"
-        source={{ uri: mediaUri }}
-        style={styles.thumbnail}
-      />
+      <Image accessibilityLabel={`${exercise.name} preview`} onError={() => setMediaFailed(true)} resizeMode="cover" source={{ uri: mediaUri }} style={styles.thumbnail} />
       <View style={styles.copy}>
         <Text numberOfLines={1} style={styles.name}>
           {exercise.name}
@@ -40,8 +34,13 @@ function ExerciseRow({ exercise, onInfoPress, onPress, selected }: ExerciseRowPr
           {exercise.primaryMuscles[0] ?? exercise.bodyPart}
         </Text>
         <Text numberOfLines={1} style={styles.meta}>
-          {exercise.equipment.join(', ') || 'No equipment'}
+          {exercise.equipment.join(', ') || 'No equipment'} · {exercise.bodyPart}
         </Text>
+        {exercise.secondaryMuscles.length > 0 ? (
+          <Text numberOfLines={1} style={styles.meta}>
+            Secondary: {exercise.secondaryMuscles.slice(0, 2).join(', ')}
+          </Text>
+        ) : null}
       </View>
       <Pressable accessibilityRole="button" onPress={onInfoPress} style={({ pressed }) => [styles.infoButton, pressed && styles.pressed]}>
         <Text style={styles.infoLabel}>Info</Text>
@@ -107,11 +106,12 @@ export default function WorkoutExerciseLibraryScreen() {
   const [equipmentFilter, setEquipmentFilter] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadSource, setLoadSource] = useState<'cache' | 'local' | 'oss-exercisedb' | null>(null);
 
-  useEffect(() => {
+  const loadInitialData = useCallback(() => {
     let cancelled = false;
 
-    const loadInitialData = async () => {
+    const run = async () => {
       setLoading(true);
       setError(null);
 
@@ -130,9 +130,10 @@ export default function WorkoutExerciseLibraryScreen() {
         setResults(exercises);
         setMuscleOptions(muscles);
         setEquipmentOptions(equipment);
+        setLoadSource(exerciseRepository.getLastLoadSource());
       } catch {
         if (!cancelled) {
-          setError('Could not load the local exercise database.');
+          setError('Could not load exercises.');
         }
       } finally {
         if (!cancelled) {
@@ -141,12 +142,14 @@ export default function WorkoutExerciseLibraryScreen() {
       }
     };
 
-    void loadInitialData();
+    void run();
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => loadInitialData(), [loadInitialData]);
 
   useEffect(() => {
     let cancelled = false;
@@ -204,111 +207,112 @@ export default function WorkoutExerciseLibraryScreen() {
     const selectedExercises = selectedIds
       .map((id) => allExercises.find((exercise) => exercise.id === id))
       .filter((exercise): exercise is Exercise => Boolean(exercise))
-      .map((exercise) => ({
-        id: exercise.id,
-        name: exercise.name,
-      }));
+      .map((exercise) => ({ id: exercise.id, name: exercise.name }));
 
     if (selectedExercises.length === 0) {
       return;
     }
 
-    const nextDraft = addWorkoutSessionExercises(activeDraft, selectedExercises);
-    setActiveWorkoutSessionDraft(nextDraft);
+    setActiveWorkoutSessionDraft(addWorkoutSessionExercises(activeDraft, selectedExercises));
     router.replace('/workout-session');
   };
 
+  const renderExercise = ({ item }: { item: Exercise }) => (
+    <ExerciseRow
+      exercise={item}
+      selected={selectedIds.includes(item.id)}
+      onInfoPress={() => openDetails(item.id)}
+      onPress={() => toggleExercise(item.id)}
+    />
+  );
+
+  const listHeader = (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Pressable accessibilityRole="button" onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+          <Text style={styles.backLabel}>‹</Text>
+        </Pressable>
+        <View style={styles.headerCopy}>
+          <Text style={styles.title}>Exercise Library</Text>
+          <Text style={styles.subtitle}>Pick one or more movements to add to the active workout.</Text>
+        </View>
+      </View>
+
+      <View style={styles.searchBar}>
+        <Text style={styles.searchIcon}>⌕</Text>
+        <TextInput autoCapitalize="none" placeholder="Search exercises" placeholderTextColor={colors.textSecondary} selectionColor={colors.accent} style={styles.searchInput} value={query} onChangeText={setQuery} />
+      </View>
+
+      <FilterChips activeValue={muscleFilter} label="Muscle" onChange={setMuscleFilter} options={muscleOptions} />
+      <FilterChips activeValue={equipmentFilter} label="Equipment" onChange={setEquipmentFilter} options={equipmentOptions} />
+
+      {loading ? (
+        <View style={styles.stateCard}>
+          <ActivityIndicator color={colors.accent} />
+          <Text style={styles.stateText}>Loading exercises...</Text>
+        </View>
+      ) : null}
+
+      {error ? (
+        <View style={styles.stateCard}>
+          <Text style={styles.stateTitle}>Exercise database unavailable</Text>
+          <Text style={styles.stateText}>{error}</Text>
+          <Pressable onPress={loadInitialData} style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}>
+            <Text style={styles.retryLabel}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {!loading && !error && recentExercises.length > 0 && !query.trim() && !muscleFilter && !equipmentFilter ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent</Text>
+          <View style={styles.list}>
+            {recentExercises.map((exercise) => (
+              <ExerciseRow key={exercise.id} exercise={exercise} selected={selectedIds.includes(exercise.id)} onInfoPress={() => openDetails(exercise.id)} onPress={() => toggleExercise(exercise.id)} />
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {!loading && !error ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{query.trim() ? 'Search results' : 'All exercises'} · {results.length}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+
+  const listFooter = (
+    <View style={styles.container}>
+      {!loading && !error && results.length === 0 ? (
+        <View style={styles.stateCard}>
+          <Text style={styles.stateTitle}>No exercises found</Text>
+          <Text style={styles.stateText}>Try a different search, muscle, or equipment filter.</Text>
+        </View>
+      ) : null}
+      {__DEV__ && loadSource !== 'local' ? (
+        <Text style={styles.attribution}>Exercise data and GIFs provided by AscendAPI / ExerciseDB.</Text>
+      ) : null}
+    </View>
+  );
+
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
+      <FlatList
+        ListFooterComponent={listFooter}
+        ListHeaderComponent={listHeader}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 128 }]}
+        data={loading || error ? [] : results}
+        initialNumToRender={8}
         keyboardShouldPersistTaps="handled"
+        keyExtractor={(item) => item.id}
+        maxToRenderPerBatch={8}
+        renderItem={renderExercise}
         showsVerticalScrollIndicator={false}
-        style={styles.scrollView}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Pressable accessibilityRole="button" onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-              <Text style={styles.backLabel}>‹</Text>
-            </Pressable>
-            <View style={styles.headerCopy}>
-              <Text style={styles.title}>Exercise Library</Text>
-              <Text style={styles.subtitle}>Pick one or more movements to add to the active workout.</Text>
-            </View>
-          </View>
-
-          <View style={styles.searchBar}>
-            <Text style={styles.searchIcon}>⌕</Text>
-            <TextInput
-              autoCapitalize="none"
-              placeholder="Search exercises"
-              placeholderTextColor={colors.textSecondary}
-              selectionColor={colors.accent}
-              style={styles.searchInput}
-              value={query}
-              onChangeText={setQuery}
-            />
-          </View>
-
-          <FilterChips activeValue={muscleFilter} label="Muscle" onChange={setMuscleFilter} options={muscleOptions} />
-          <FilterChips activeValue={equipmentFilter} label="Equipment" onChange={setEquipmentFilter} options={equipmentOptions} />
-
-          {loading ? (
-            <View style={styles.stateCard}>
-              <ActivityIndicator color={colors.accent} />
-              <Text style={styles.stateText}>Loading exercises...</Text>
-            </View>
-          ) : null}
-
-          {error ? (
-            <View style={styles.stateCard}>
-              <Text style={styles.stateTitle}>Exercise database unavailable</Text>
-              <Text style={styles.stateText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {!loading && !error && recentExercises.length > 0 && !query.trim() && !muscleFilter && !equipmentFilter ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Recent</Text>
-              <View style={styles.list}>
-                {recentExercises.map((exercise) => (
-                  <ExerciseRow
-                    key={exercise.id}
-                    exercise={exercise}
-                    selected={selectedIds.includes(exercise.id)}
-                    onInfoPress={() => openDetails(exercise.id)}
-                    onPress={() => toggleExercise(exercise.id)}
-                  />
-                ))}
-              </View>
-            </View>
-          ) : null}
-
-          {!loading && !error ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{query.trim() ? 'Search results' : 'All exercises'}</Text>
-              {results.length === 0 ? (
-                <View style={styles.stateCard}>
-                  <Text style={styles.stateTitle}>No exercises found</Text>
-                  <Text style={styles.stateText}>Try a different search, muscle, or equipment filter.</Text>
-                </View>
-              ) : (
-                <View style={styles.list}>
-                  {results.map((exercise) => (
-                    <ExerciseRow
-                      key={exercise.id}
-                      exercise={exercise}
-                      selected={selectedIds.includes(exercise.id)}
-                      onInfoPress={() => openDetails(exercise.id)}
-                      onPress={() => toggleExercise(exercise.id)}
-                    />
-                  ))}
-                </View>
-              )}
-            </View>
-          ) : null}
-        </View>
-      </ScrollView>
+        style={styles.scrollView}
+        updateCellsBatchingPeriod={80}
+        windowSize={7}
+      />
 
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>
         <View style={styles.container}>
@@ -342,6 +346,14 @@ const createStyles = (colors: typeof Colors.light) =>
     addButtonPressed: {
       opacity: 0.88,
     },
+    attribution: {
+      color: colors.textSecondary,
+      fontSize: 11,
+      fontWeight: '700',
+      lineHeight: 16,
+      marginTop: Spacing.three,
+      textAlign: 'center',
+    },
     backButton: {
       alignItems: 'center',
       backgroundColor: colors.surfaceSecondary,
@@ -364,6 +376,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     content: {
       alignItems: 'center',
+      gap: Spacing.two,
       paddingHorizontal: Spacing.three,
       paddingTop: Spacing.three,
     },
@@ -390,6 +403,18 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     pressed: {
       opacity: 0.72,
+    },
+    retryButton: {
+      backgroundColor: colors.accent,
+      borderCurve: 'continuous',
+      borderRadius: 14,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+    },
+    retryLabel: {
+      color: colors.background,
+      fontSize: 13,
+      fontWeight: '900',
     },
     scrollView: {
       flex: 1,
@@ -517,7 +542,7 @@ const createRowStyles = (colors: typeof Colors.light) =>
       borderWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
       gap: Spacing.two,
-      minHeight: 86,
+      minHeight: 98,
       padding: Spacing.two,
     },
     rowSelected: {
@@ -546,8 +571,8 @@ const createRowStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.surfaceSecondary,
       borderCurve: 'continuous',
       borderRadius: 14,
-      height: 62,
-      width: 62,
+      height: 72,
+      width: 72,
     },
   });
 

@@ -6,6 +6,7 @@ import {
   mapMuscleNameToCanonicalId,
   normalizeExerciseDbExercise,
   exerciseRepository,
+  normalizeOssExercise,
   selectCompletedSetsByExerciseId,
 } from '@/features/exercises';
 import { normalizeWorkoutSessions } from '@/features/workouts';
@@ -68,6 +69,65 @@ describe('exercise repository', () => {
     expect(inclineResults.map((exercise) => exercise.id)).toEqual(['incline-dumbbell-press']);
     expect(cableChestResults.map((exercise) => exercise.id)).toContain('cable-fly');
     expect(cableChestResults.every((exercise) => exercise.source.sourceId !== exercise.id)).toBe(true);
+  });
+});
+
+describe('oss exercisedb provider normalization', () => {
+  it('normalizes the discovered OSS ExerciseDB V1 response shape', () => {
+    const exercise = normalizeOssExercise(
+      {
+        exerciseId: '01qpYSe',
+        name: 'upward facing dog',
+        gifUrl: 'https://static.exercisedb.dev/media/01qpYSe.gif',
+        bodyParts: ['back'],
+        equipments: ['body weight'],
+        targetMuscles: ['spine'],
+        secondaryMuscles: ['shoulders', 'chest'],
+        instructions: ['Step:1 Lie face down.', 'Step:2 Press your hands firmly into the floor.'],
+      },
+      new Map(),
+    );
+
+    expect(exercise).toMatchObject({
+      id: 'exdb-01qpYSe',
+      source: {
+        provider: 'oss-exercisedb',
+        sourceId: '01qpYSe',
+      },
+      name: 'upward facing dog',
+      bodyPart: 'back',
+      equipment: ['body weight'],
+      primaryMuscles: ['spine'],
+      secondaryMuscles: ['shoulders', 'chest'],
+      instructions: ['Lie face down.', 'Press your hands firmly into the floor.'],
+      media: {
+        animationUrl: 'https://static.exercisedb.dev/media/01qpYSe.gif',
+      },
+    });
+  });
+
+  it('reuses a local id when remote name and equipment match', () => {
+    const local = normalizeExerciseDbExercise({
+      internalId: 'bench-press',
+      id: 'local-bench-press',
+      name: 'Bench Press',
+      equipment: 'barbell',
+      primaryMuscles: ['chest'],
+    }, 'local-fixture');
+
+    const exercise = normalizeOssExercise(
+      {
+        exerciseId: 'remote-bench',
+        name: 'Bench Press',
+        gifUrl: 'https://static.exercisedb.dev/media/remote-bench.gif',
+        equipments: ['barbell'],
+        targetMuscles: ['pectorals'],
+      },
+      new Map([['bench press::barbell', local]]),
+    );
+
+    expect(exercise.id).toBe('bench-press');
+    expect(exercise.source.sourceId).toBe('remote-bench');
   });
 });
 

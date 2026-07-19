@@ -1,8 +1,10 @@
-import fixtureRows from '@/data/exercises/exercises.json';
-import { createExerciseDbProvider, normalizeExerciseQuery } from './provider';
+import { loadExerciseCatalogCache, saveExerciseCatalogCache } from './cache';
+import { localExerciseProvider } from './localProvider';
+import { createOssExerciseDbProvider } from './ossExerciseDbProvider';
+import { normalizeExerciseQuery } from './provider';
 import type { Exercise, ExerciseFilters, ExerciseProvider } from './types';
 
-const localProvider = createExerciseDbProvider(fixtureRows);
+const isDevelopmentBuild = () => typeof __DEV__ !== 'undefined' && __DEV__;
 
 export type ExerciseRepository = {
   getAllExercises(filters?: ExerciseFilters): Promise<Exercise[]>;
@@ -11,6 +13,7 @@ export type ExerciseRepository = {
   searchExercises(query: string, filters?: ExerciseFilters): Promise<Exercise[]>;
   getEquipmentOptions(): Promise<string[]>;
   getMuscleOptions(): Promise<string[]>;
+  getLastLoadSource(): 'cache' | 'local' | 'oss-exercisedb' | null;
 };
 
 const matchesFilters = (exercise: Exercise, filters: ExerciseFilters = {}) => {
@@ -47,17 +50,58 @@ const matchesQuery = (exercise: Exercise, query: string) => {
 const sortExercises = (exercises: Exercise[]) =>
   [...exercises].sort((left, right) => left.name.localeCompare(right.name));
 
-export const createExerciseRepository = (provider: ExerciseProvider = localProvider): ExerciseRepository => {
+export const createExerciseRepository = (provider?: ExerciseProvider): ExerciseRepository => {
+  const selectedProvider = provider ?? (isDevelopmentBuild() ? createOssExerciseDbProvider() : localExerciseProvider);
+  let cachedExercises: Exercise[] | null = null;
+  let lastLoadSource: 'cache' | 'local' | 'oss-exercisedb' | null = null;
+
+  const loadProviderExercises = async () => {
+    if (cachedExercises) {
+      return cachedExercises;
+    }
+
+    try {
+      const result = await selectedProvider.listExercises();
+      cachedExercises = result.exercises;
+      lastLoadSource = result.exercises.some((exercise) => exercise.source.provider === 'oss-exercisedb') ? 'oss-exercisedb' : 'local';
+
+      if (lastLoadSource === 'oss-exercisedb') {
+        await saveExerciseCatalogCache({
+          exercises: result.exercises,
+          providerVersion: result.providerVersion ?? 'oss-exercisedb-v1',
+          refreshedAt: result.refreshedAt ?? new Date().toISOString(),
+        });
+      }
+
+      return cachedExercises;
+    } catch {
+      // The free OSS ExerciseDB endpoint is development/prototype/non-commercial only.
+      // Release builds never select it, and dev builds fall back to cached metadata or the local JSON fixture.
+      const cache = isDevelopmentBuild() ? await loadExerciseCatalogCache() : null;
+      if (cache) {
+        cachedExercises = cache.exercises;
+        lastLoadSource = 'cache';
+        return cachedExercises;
+      }
+
+      const localResult = await localExerciseProvider.listExercises();
+      cachedExercises = localResult.exercises;
+      lastLoadSource = 'local';
+      return cachedExercises;
+    }
+  };
+
   const loadExercises = async (filters?: ExerciseFilters) => {
-    const result = await provider.listExercises();
-    return sortExercises(result.exercises.filter((exercise) => matchesFilters(exercise, filters)));
+    const exercises = await loadProviderExercises();
+    return sortExercises(exercises.filter((exercise) => matchesFilters(exercise, filters)));
   };
 
   return {
     getAllExercises: loadExercises,
     listExercises: loadExercises,
     async getExerciseById(exerciseId) {
-      return provider.getExerciseById(exerciseId);
+      const exercises = await loadProviderExercises();
+      return exercises.find((exercise) => exercise.id === exerciseId) ?? null;
     },
     async searchExercises(query, filters) {
       const exercises = await loadExercises(filters);
@@ -70,6 +114,9 @@ export const createExerciseRepository = (provider: ExerciseProvider = localProvi
     async getMuscleOptions() {
       const exercises = await loadExercises();
       return Array.from(new Set(exercises.flatMap((exercise) => exercise.primaryMuscles))).sort((left, right) => left.localeCompare(right));
+    },
+    getLastLoadSource() {
+      return lastLoadSource;
     },
   };
 };

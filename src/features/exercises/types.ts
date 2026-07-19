@@ -9,7 +9,7 @@ export type ExerciseMedia = {
 };
 
 export type ExerciseSource = {
-  provider: 'local-fixture' | 'exercisedb';
+  provider: 'local-fixture' | 'oss-exercisedb' | 'exercisedb';
   sourceId?: string;
 };
 
@@ -29,6 +29,9 @@ export type Exercise = {
 
 export type ExerciseProviderResult = {
   exercises: Exercise[];
+  fromCache?: boolean;
+  providerVersion?: string;
+  refreshedAt?: string;
 };
 
 export interface ExerciseProvider {

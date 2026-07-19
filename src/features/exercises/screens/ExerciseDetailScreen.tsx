@@ -179,11 +179,14 @@ export default function ExerciseDetailScreen() {
         <SegmentedControl accessibilityLabel="Exercise detail sections" options={DETAIL_TABS} value={tab} onChange={setTab} />
 
         <AppCard style={styles.mediaCard}>
-          <Image accessibilityLabel={`${exercise.name} exercise media`} onError={() => setMediaFailed(true)} resizeMode="cover" source={{ uri: mediaUri }} style={styles.media} />
+          <Image accessibilityLabel={`${exercise.name} exercise media`} onError={() => setMediaFailed(true)} resizeMode="contain" source={{ uri: mediaUri }} style={styles.media} />
           <Pressable accessibilityRole="button" onPress={() => setPlaying((current) => !current)} style={styles.playButton}>
             <Text style={styles.playButtonText}>{playing ? 'Pause' : 'Play'}</Text>
           </Pressable>
         </AppCard>
+        {__DEV__ && exercise.source.provider === 'oss-exercisedb' ? (
+          <Text style={styles.attribution}>Exercise data and GIFs provided by AscendAPI / ExerciseDB.</Text>
+        ) : null}
 
         <View style={styles.actionRow}>
           <AppButton label="Share Exercise" onPress={shareExercise} variant="secondary" style={styles.actionButton} />
@@ -280,6 +283,13 @@ const styles = StyleSheet.create({
     color: Colors.dark.textPrimary,
     fontSize: Typography.body.fontSize,
     lineHeight: Typography.body.lineHeight,
+  },
+  attribution: {
+    color: Colors.dark.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 16,
+    textAlign: 'center',
   },
   cardTitle: {
     color: Colors.dark.textPrimary,
