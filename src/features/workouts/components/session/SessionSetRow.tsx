@@ -33,6 +33,11 @@ export const SessionSetRow = memo(function SessionSetRow({
   return (
     <View style={styles.rowWrap}>
       <View style={[styles.row, completed && (isDark ? styles.rowCompletedDark : styles.rowCompletedLight)]}>
+        {completed ? (
+          <View style={styles.completedMarker}>
+            <Text style={styles.completedMarkerLabel}>✓</Text>
+          </View>
+        ) : null}
         <Text selectable style={[styles.cell, styles.colSet]}>
           {index + 1}
         </Text>
@@ -92,6 +97,24 @@ const createStyles = (colors: typeof Colors.light) =>
     checkLabelCompleted: {
       color: '#FFFFFF',
     },
+    completedMarker: {
+      alignItems: 'center',
+      backgroundColor: '#2ED66F',
+      borderCurve: 'continuous',
+      borderRadius: 4,
+      height: 18,
+      justifyContent: 'center',
+      left: 4,
+      position: 'absolute',
+      width: 18,
+      zIndex: 1,
+    },
+    completedMarkerLabel: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: '900',
+      lineHeight: 13,
+    },
     colCompletion: {
       width: 48,
     },
@@ -101,13 +124,13 @@ const createStyles = (colors: typeof Colors.light) =>
       textAlign: 'center',
     },
     colReps: {
-      width: 86,
+      width: 72,
     },
     colSet: {
       width: 48,
     },
     colWeight: {
-      width: 86,
+      width: 72,
     },
     iconCell: {
       alignItems: 'center',
@@ -143,8 +166,8 @@ const createStyles = (colors: typeof Colors.light) =>
       fontVariant: ['tabular-nums'],
     },
     inputCellCompleted: {
-      backgroundColor: '#000000',
-      borderColor: '#1C1C1E',
+      backgroundColor: 'transparent',
+      borderColor: 'transparent',
     },
     previousCell: {
       color: '#8E8E93',
@@ -157,6 +180,7 @@ const createStyles = (colors: typeof Colors.light) =>
       flexDirection: 'row',
       gap: 0,
       minHeight: 44,
+      position: 'relative',
       width: '100%',
     },
     rowCompletedDark: {

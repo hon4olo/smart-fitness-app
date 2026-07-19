@@ -110,7 +110,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     colReps: {
       textAlign: 'center',
-      width: 86,
+      width: 72,
     },
     colSet: {
       textAlign: 'center',
@@ -118,7 +118,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     colWeight: {
       textAlign: 'center',
-      width: 86,
+      width: 72,
     },
     headerText: {
       color: colors.textMuted,

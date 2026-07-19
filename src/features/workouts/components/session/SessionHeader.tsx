@@ -176,7 +176,7 @@ const createStyles = (colors: typeof Colors.light) =>
       fontVariant: ['tabular-nums'],
       fontWeight: '700',
       lineHeight: 40,
-      marginTop: 60,
+      marginTop: 48,
       textAlign: 'center',
     },
     stopwatchHand: {
