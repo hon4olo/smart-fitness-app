@@ -1,16 +1,16 @@
 export const SESSION_TABLE_COLUMNS = {
   set: 24,
   previous: 68,
-  weight: 76,
-  reps: 76,
+  weight: 92,
+  reps: 92,
   completion: 30,
 } as const;
 
 export const SESSION_TABLE_GAPS = {
-  setToPrevious: 29,
-  previousToWeight: 15,
-  weightToReps: 16,
-  repsToCompletion: 24,
+  setToPrevious: 23,
+  previousToWeight: 8,
+  weightToReps: 8,
+  repsToCompletion: 13,
 } as const;
 
 export const SESSION_TABLE_TOTAL_WIDTH =
