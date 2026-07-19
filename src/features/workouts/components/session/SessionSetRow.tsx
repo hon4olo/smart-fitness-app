@@ -134,7 +134,7 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: '#000000',
       borderColor: '#1C1C1E',
       borderCurve: 'continuous',
-      borderRadius: 8,
+      borderRadius: 3,
       borderWidth: StyleSheet.hairlineWidth,
       color: colors.textPrimary,
       fontSize: 15,
