@@ -61,7 +61,7 @@ export const SessionSetTable = memo(function SessionSetTable({
         <View style={[styles.headerCell, styles.colReps]}>
           <Text style={styles.headerText}>Reps</Text>
         </View>
-        <View style={[styles.headerCell, styles.colCompletion]}>
+        <View style={[styles.headerCell, styles.colCompletion, styles.headerCellCompletion]}>
           <Text style={styles.headerText}>✓</Text>
         </View>
       </View>
@@ -136,6 +136,9 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     headerCellPrevious: {
       alignItems: 'flex-start',
+    },
+    headerCellCompletion: {
+      marginHorizontal: 7,
     },
     headerText: {
       color: colors.textMuted,
