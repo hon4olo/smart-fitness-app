@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -69,6 +70,7 @@ export default function ExerciseDetailScreen() {
   const [nativeImageError, setNativeImageError] = useState<string | null>(null);
   const [directGifStatus, setDirectGifStatus] = useState<'missing' | 'loading' | 'loaded' | 'failed'>('loading');
   const [directGifError, setDirectGifError] = useState<string | null>(null);
+  const [directGifDisplayed, setDirectGifDisplayed] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -204,10 +206,14 @@ export default function ExerciseDetailScreen() {
               setMediaStatus('loaded');
               setNativeImageError(null);
             }}
+            onMediaDisplay={() => {
+              setMediaStatus('loaded');
+            }}
             onMediaLoadStart={() => {
               setMediaStatus('loading');
               setNativeImageError(null);
             }}
+            contentFit="contain"
             playing={playing}
             resizeMode="contain"
             showLabel
@@ -236,9 +242,15 @@ export default function ExerciseDetailScreen() {
           <View style={styles.directGifFrame}>
             <Image
               accessibilityLabel="Direct physical-device GIF test"
+              autoplay
+              cachePolicy="memory-disk"
+              contentFit="contain"
               onError={(event) => {
                 setDirectGifStatus('failed');
-                setDirectGifError(event.nativeEvent.error);
+                setDirectGifError(event.error);
+              }}
+              onDisplay={() => {
+                setDirectGifDisplayed(true);
               }}
               onLoad={() => {
                 setDirectGifStatus('loaded');
@@ -250,8 +262,9 @@ export default function ExerciseDetailScreen() {
               onLoadStart={() => {
                 setDirectGifStatus('loading');
                 setDirectGifError(null);
+                setDirectGifDisplayed(false);
               }}
-              resizeMode="contain"
+              recyclingKey={`direct-physical-device-gif-test:${DIRECT_PHYSICAL_DEVICE_GIF_TEST_URL}`}
               source={{ uri: DIRECT_PHYSICAL_DEVICE_GIF_TEST_URL }}
               style={styles.directGifImage}
             />
@@ -263,6 +276,7 @@ export default function ExerciseDetailScreen() {
           </View>
           <Text selectable style={styles.diagnosticText}>url: {DIRECT_PHYSICAL_DEVICE_GIF_TEST_URL}</Text>
           <Text selectable style={styles.diagnosticText}>directGifStatus: {directGifStatus}</Text>
+          <Text selectable style={styles.diagnosticText}>directGifDisplayed: {directGifDisplayed ? 'true' : 'false'}</Text>
           <Text selectable style={styles.diagnosticText}>directGifError: {directGifError ?? 'none'}</Text>
         </AppCard>
         {isOssExerciseDbEnabled() && exercise.source.provider === 'oss-exercisedb' ? (

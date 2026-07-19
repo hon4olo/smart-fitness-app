@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, View, type ImageResizeMode, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, type ImageContentFit, type ImageStyle } from 'expo-image';
+import { ActivityIndicator, StyleSheet, Text, View, type ImageResizeMode, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Colors, Radii, Spacing } from '@/constants/theme';
 
@@ -10,8 +11,10 @@ type ExerciseMediaPreviewProps = {
   colors: typeof Colors.light;
   exercise: Exercise;
   imageStyle?: StyleProp<ImageStyle>;
+  contentFit?: ImageContentFit;
   onMediaError?: (error?: string) => void;
   onMediaLoad?: () => void;
+  onMediaDisplay?: () => void;
   onMediaLoadStart?: () => void;
   playing?: boolean;
   resizeMode?: ImageResizeMode;
@@ -21,8 +24,10 @@ type ExerciseMediaPreviewProps = {
 
 export function ExerciseMediaPreview({
   colors,
+  contentFit,
   exercise,
   imageStyle,
+  onMediaDisplay,
   onMediaError,
   onMediaLoad,
   onMediaLoadStart,
@@ -35,6 +40,7 @@ export function ExerciseMediaPreview({
   const [mediaFailed, setMediaFailed] = useState(false);
   const mediaUri = !mediaFailed ? getExerciseMediaUri(exercise, { playing }) : undefined;
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const resolvedContentFit = contentFit ?? (resizeMode === 'contain' || resizeMode === 'center' ? 'contain' : 'cover');
 
   useEffect(() => {
     const nextMediaUri = getExerciseMediaUri(exercise, { playing });
@@ -47,11 +53,15 @@ export function ExerciseMediaPreview({
       {mediaUri ? (
         <Image
           accessibilityLabel={`${exercise.name} exercise media`}
+          autoplay={playing}
+          cachePolicy="memory-disk"
+          contentFit={resolvedContentFit}
           onError={(event) => {
             setLoading(false);
             setMediaFailed(true);
-            onMediaError?.(event.nativeEvent.error);
+            onMediaError?.(event.error);
           }}
+          onDisplay={onMediaDisplay}
           onLoad={() => {
             onMediaLoad?.();
           }}
@@ -59,7 +69,7 @@ export function ExerciseMediaPreview({
           onLoadStart={() => {
             onMediaLoadStart?.();
           }}
-          resizeMode={resizeMode}
+          recyclingKey={`${exercise.id}:${mediaUri}:${playing ? 'playing' : 'paused'}`}
           source={{ uri: mediaUri }}
           style={[styles.image, imageStyle]}
         />
