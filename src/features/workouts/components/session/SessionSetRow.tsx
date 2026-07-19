@@ -79,8 +79,8 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     cell: {
       color: colors.textPrimary,
-      fontSize: 17,
-      lineHeight: 48,
+      fontSize: 15,
+      lineHeight: 44,
       textAlign: 'center',
     },
     checkLabel: {
@@ -98,26 +98,26 @@ const createStyles = (colors: typeof Colors.light) =>
     colPrevious: {
       flex: 1,
       minWidth: 0,
-      textAlign: 'left',
+      textAlign: 'center',
     },
     colReps: {
-      width: 76,
+      width: 86,
     },
     colSet: {
       width: 48,
     },
     colWeight: {
-      width: 76,
+      width: 86,
     },
     iconCell: {
       alignItems: 'center',
       backgroundColor: '#292929',
       borderCurve: 'continuous',
       borderRadius: 999,
-      height: 36,
+      height: 34,
       justifyContent: 'center',
-      marginHorizontal: 6,
-      width: 36,
+      marginHorizontal: 7,
+      width: 34,
     },
     iconCellCompletedDark: {
       backgroundColor: '#2ED66F',
@@ -132,10 +132,10 @@ const createStyles = (colors: typeof Colors.light) =>
       borderRadius: 8,
       borderWidth: StyleSheet.hairlineWidth,
       color: colors.textPrimary,
-      fontSize: 17,
-      height: 38,
+      fontSize: 16,
+      height: 34,
       includeFontPadding: false,
-      lineHeight: 20,
+      lineHeight: 18,
       paddingHorizontal: 4,
       paddingVertical: 0,
       textAlign: 'center',
@@ -156,7 +156,7 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flexDirection: 'row',
       gap: 0,
-      minHeight: 48,
+      minHeight: 44,
       width: '100%',
     },
     rowCompletedDark: {

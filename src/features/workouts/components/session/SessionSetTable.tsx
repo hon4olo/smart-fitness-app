@@ -106,10 +106,11 @@ const createStyles = (colors: typeof Colors.light) =>
     colPrevious: {
       flex: 1,
       minWidth: 0,
+      textAlign: 'center',
     },
     colReps: {
       textAlign: 'center',
-      width: 76,
+      width: 86,
     },
     colSet: {
       textAlign: 'center',
@@ -117,17 +118,17 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     colWeight: {
       textAlign: 'center',
-      width: 76,
+      width: 86,
     },
     headerText: {
       color: colors.textMuted,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '500',
       textAlign: 'left',
     },
     table: {
       alignSelf: 'stretch',
-      gap: 8,
+      gap: 6,
       marginHorizontal: -Spacing.four,
     },
     tableBody: {
@@ -137,7 +138,7 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flexDirection: 'row',
       gap: 0,
-      minHeight: 26,
+      minHeight: 24,
       width: '100%',
     },
   });
