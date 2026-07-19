@@ -17,6 +17,7 @@ import { useAppTheme } from '@/theme/AppThemeProvider';
 import { MuscleMap } from '../components/MuscleMap';
 import { loadFavoriteExerciseIds, saveFavoriteExerciseIds } from '../favoritesRepository';
 import { selectCompletedSetsByExerciseId } from '../history';
+import { getExerciseMediaUri, getExercisePlaceholderUri } from '../media';
 import { buildMuscleHighlights } from '../muscleTaxonomy';
 import { calculateExerciseProgressMetrics } from '../progress';
 import { exerciseRepository } from '../repository';
@@ -29,16 +30,6 @@ const DETAIL_TABS = [
   { label: 'History', value: 'history' },
   { label: 'Progress', value: 'progress' },
 ] as const;
-
-const placeholderSvg = (title: string, colors: typeof Colors.dark) =>
-  `data:image/svg+xml;utf8,${encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
-      <rect width="640" height="420" rx="28" fill="${colors.surfaceSecondary}"/>
-      <circle cx="320" cy="140" r="54" fill="${colors.surfaceElevated}" stroke="${colors.borderSubtle}" stroke-width="4"/>
-      <rect x="252" y="208" width="136" height="116" rx="42" fill="${colors.surfaceElevated}" stroke="${colors.borderSubtle}" stroke-width="4"/>
-      <text x="320" y="370" text-anchor="middle" font-family="Arial" font-size="26" font-weight="700" fill="${colors.textSecondary}">${title}</text>
-    </svg>
-  `)}`;
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
@@ -70,6 +61,7 @@ export default function ExerciseDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<DetailTab>('about');
   const [playing, setPlaying] = useState(true);
+  const [mediaFailed, setMediaFailed] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -113,6 +105,10 @@ export default function ExerciseDetailScreen() {
     };
   }, [exerciseId]);
 
+  useEffect(() => {
+    setMediaFailed(false);
+  }, [exerciseId, playing]);
+
   const historyGroups = useMemo(
     () => (exercise ? selectCompletedSetsByExerciseId(workoutSessions, exercise.id) : []),
     [exercise, workoutSessions]
@@ -123,7 +119,7 @@ export default function ExerciseDetailScreen() {
     [exercise]
   );
   const isFavorite = Boolean(exercise && favoriteIds.has(exercise.id));
-  const mediaUri = exercise ? (playing ? exercise.media.gifUri : exercise.media.thumbnailUri) ?? placeholderSvg(exercise.name, colors) : undefined;
+  const mediaUri = exercise ? (!mediaFailed ? getExerciseMediaUri(exercise, { playing }) : undefined) ?? getExercisePlaceholderUri(exercise.name, colors) : undefined;
 
   const toggleFavorite = () => {
     if (!exercise) {
@@ -183,7 +179,7 @@ export default function ExerciseDetailScreen() {
         <SegmentedControl accessibilityLabel="Exercise detail sections" options={DETAIL_TABS} value={tab} onChange={setTab} />
 
         <AppCard style={styles.mediaCard}>
-          <Image accessibilityLabel={`${exercise.name} exercise media`} resizeMode="cover" source={{ uri: mediaUri }} style={styles.media} />
+          <Image accessibilityLabel={`${exercise.name} exercise media`} onError={() => setMediaFailed(true)} resizeMode="cover" source={{ uri: mediaUri }} style={styles.media} />
           <Pressable accessibilityRole="button" onPress={() => setPlaying((current) => !current)} style={styles.playButton}>
             <Text style={styles.playButtonText}>{playing ? 'Pause' : 'Play'}</Text>
           </Pressable>
@@ -244,21 +240,27 @@ export default function ExerciseDetailScreen() {
 
         {tab === 'progress' ? (
           <View style={styles.stack}>
-            <View style={styles.metricsGrid}>
-              <MetricCard label="Best weight" value={`${progressMetrics.bestWeight} kg`} />
-              <MetricCard label="Best reps" value={`${progressMetrics.bestReps}`} />
-              <MetricCard label="Volume" value={`${Math.round(progressMetrics.totalVolume).toLocaleString()} kg`} />
-              <MetricCard label="Est. 1RM" value={`${Math.round(progressMetrics.estimatedOneRepMax)} kg`} />
-            </View>
-            <AppCard>
-              <Text style={styles.cardTitle}>Volume trend</Text>
-              <ProgressTrendChart
-                emptyLabel="Log this exercise in at least two workouts to show a trend."
-                maxLabel="High"
-                minLabel="Low"
-                points={progressMetrics.volumeTrend}
-              />
-            </AppCard>
+            {historyGroups.length === 0 ? (
+              <EmptyState title="No progress yet" description="Complete sets for this exercise to calculate best weight, reps, volume and estimated 1RM." />
+            ) : (
+              <>
+                <View style={styles.metricsGrid}>
+                  <MetricCard label="Best weight" value={`${progressMetrics.bestWeight} kg`} />
+                  <MetricCard label="Best reps" value={`${progressMetrics.bestReps}`} />
+                  <MetricCard label="Volume" value={`${Math.round(progressMetrics.totalVolume).toLocaleString()} kg`} />
+                  <MetricCard label="Est. 1RM" value={`${Math.round(progressMetrics.estimatedOneRepMax)} kg`} />
+                </View>
+                <AppCard>
+                  <Text style={styles.cardTitle}>Volume trend</Text>
+                  <ProgressTrendChart
+                    emptyLabel="Log this exercise in at least two workouts to show a trend."
+                    maxLabel="High"
+                    minLabel="Low"
+                    points={progressMetrics.volumeTrend}
+                  />
+                </AppCard>
+              </>
+            )}
           </View>
         ) : null}
       </View>

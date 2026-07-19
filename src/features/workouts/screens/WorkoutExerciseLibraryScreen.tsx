@@ -1,56 +1,198 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import { exerciseRepository, getExerciseMediaUri, getExercisePlaceholderUri, type Exercise } from '@/features/exercises';
 import { getActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft } from '@/features/workouts/storage';
 import { addWorkoutSessionExercises } from '@/features/workouts/sessionScreenModel';
-import { resolveExerciseByName, searchExercises } from '@/lib/workouts';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 
-type ExerciseCardProps = {
-  selected: boolean;
-  title: string;
-  subtitle?: string;
+type ExerciseRowProps = {
+  exercise: Exercise;
+  onInfoPress: () => void;
   onPress: () => void;
+  selected: boolean;
 };
 
-function ExerciseCard({ selected, subtitle, title, onPress }: ExerciseCardProps) {
+function ExerciseRow({ exercise, onInfoPress, onPress, selected }: ExerciseRowProps) {
   const { colors } = useWorkoutTheme();
-  const styles = useMemo(() => createCardStyles(colors), [colors]);
+  const styles = useMemo(() => createRowStyles(colors), [colors]);
+  const [mediaFailed, setMediaFailed] = useState(false);
+  const mediaUri = (!mediaFailed ? getExerciseMediaUri(exercise) : undefined) ?? getExercisePlaceholderUri(exercise.name, colors);
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, selected && styles.cardSelected, pressed && styles.cardPressed]}>
-      <View style={styles.icon}><Text style={styles.iconLabel}>{title.slice(0, 1).toUpperCase()}</Text></View>
-      <Text numberOfLines={2} style={styles.title}>{title}</Text>
-      {subtitle ? <Text numberOfLines={2} style={styles.subtitle}>{subtitle}</Text> : null}
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, selected && styles.rowSelected, pressed && styles.pressed]}>
+      <Image
+        accessibilityLabel={`${exercise.name} preview`}
+        onError={() => setMediaFailed(true)}
+        resizeMode="cover"
+        source={{ uri: mediaUri }}
+        style={styles.thumbnail}
+      />
+      <View style={styles.copy}>
+        <Text numberOfLines={1} style={styles.name}>
+          {exercise.name}
+        </Text>
+        <Text numberOfLines={1} style={styles.meta}>
+          {exercise.primaryMuscles[0] ?? exercise.bodyPart}
+        </Text>
+        <Text numberOfLines={1} style={styles.meta}>
+          {exercise.equipment.join(', ') || 'No equipment'}
+        </Text>
+      </View>
+      <Pressable accessibilityRole="button" onPress={onInfoPress} style={({ pressed }) => [styles.infoButton, pressed && styles.pressed]}>
+        <Text style={styles.infoLabel}>Info</Text>
+      </Pressable>
+      <View style={[styles.selection, selected && styles.selectionSelected]}>
+        <Text style={[styles.selectionLabel, selected && styles.selectionLabelSelected]}>{selected ? '✓' : '+'}</Text>
+      </View>
     </Pressable>
   );
 }
 
+function FilterChips({
+  activeValue,
+  label,
+  onChange,
+  options,
+}: {
+  activeValue?: string;
+  label: string;
+  onChange: (value?: string) => void;
+  options: string[];
+}) {
+  const { colors } = useWorkoutTheme();
+  const styles = useMemo(() => createFilterStyles(colors), [colors]);
+
+  if (options.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.label}>{label}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        <Pressable onPress={() => onChange(undefined)} style={({ pressed }) => [styles.chip, !activeValue && styles.chipActive, pressed && styles.pressed]}>
+          <Text style={[styles.chipLabel, !activeValue && styles.chipLabelActive]}>All</Text>
+        </Pressable>
+        {options.map((option) => {
+          const active = activeValue === option;
+
+          return (
+            <Pressable key={option} onPress={() => onChange(active ? undefined : option)} style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && styles.pressed]}>
+              <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{option}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function WorkoutExerciseLibraryScreen() {
-  const { exercises, workoutSessions } = useAppContext();
+  const { workoutSessions } = useAppContext();
   const { colors } = useWorkoutTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [query, setQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
+  const [results, setResults] = useState<Exercise[]>([]);
+  const [muscleOptions, setMuscleOptions] = useState<string[]>([]);
+  const [equipmentOptions, setEquipmentOptions] = useState<string[]>([]);
+  const [muscleFilter, setMuscleFilter] = useState<string | undefined>();
+  const [equipmentFilter, setEquipmentFilter] = useState<string | undefined>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const results = useMemo(() => searchExercises(exercises, query), [exercises, query]);
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadInitialData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const [exercises, muscles, equipment] = await Promise.all([
+          exerciseRepository.getAllExercises(),
+          exerciseRepository.getMuscleOptions(),
+          exerciseRepository.getEquipmentOptions(),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        setAllExercises(exercises);
+        setResults(exercises);
+        setMuscleOptions(muscles);
+        setEquipmentOptions(equipment);
+      } catch {
+        if (!cancelled) {
+          setError('Could not load the local exercise database.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadInitialData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const search = async () => {
+      try {
+        const nextResults = await exerciseRepository.searchExercises(query, {
+          equipment: equipmentFilter,
+          muscle: muscleFilter,
+        });
+
+        if (!cancelled) {
+          setResults(nextResults);
+        }
+      } catch {
+        if (!cancelled) {
+          setError('Could not search exercises.');
+        }
+      }
+    };
+
+    void search();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [equipmentFilter, muscleFilter, query]);
+
   const recentExercises = useMemo(() => {
-    const recent = workoutSessions
-      .flatMap((session) => session.sets.map((set) => resolveExerciseByName(set.exerciseName, exercises)).filter(Boolean))
-      .filter((exercise): exercise is NonNullable<ReturnType<typeof resolveExerciseByName>> => Boolean(exercise));
+    const recentIds = workoutSessions.flatMap((session) => session.sets.map((set) => set.exerciseId));
+    const byId = new Map(allExercises.map((exercise) => [exercise.id, exercise] as const));
 
-    return Array.from(new Map(recent.map((exercise) => [exercise.id, exercise] as const)).values()).slice(0, 6);
-  }, [exercises, workoutSessions]);
+    return Array.from(new Set(recentIds))
+      .map((id) => byId.get(id))
+      .filter((exercise): exercise is Exercise => Boolean(exercise))
+      .slice(0, 6);
+  }, [allExercises, workoutSessions]);
 
   const toggleExercise = (exerciseId: string) => {
     setSelectedIds((current) =>
       current.includes(exerciseId) ? current.filter((id) => id !== exerciseId) : [...current, exerciseId],
     );
+  };
+
+  const openDetails = (exerciseId: string) => {
+    router.push({ pathname: '/exercises/[exerciseId]', params: { exerciseId } });
   };
 
   const handleAdd = () => {
@@ -59,15 +201,19 @@ export default function WorkoutExerciseLibraryScreen() {
       return;
     }
 
-    const nextExercises = selectedIds
-      .map((id) => exercises.find((exercise) => exercise.id === id))
-      .filter((exercise): exercise is NonNullable<typeof exercise> => Boolean(exercise));
+    const selectedExercises = selectedIds
+      .map((id) => allExercises.find((exercise) => exercise.id === id))
+      .filter((exercise): exercise is Exercise => Boolean(exercise))
+      .map((exercise) => ({
+        id: exercise.id,
+        name: exercise.name,
+      }));
 
-    if (nextExercises.length === 0) {
+    if (selectedExercises.length === 0) {
       return;
     }
 
-    const nextDraft = addWorkoutSessionExercises(activeDraft, nextExercises);
+    const nextDraft = addWorkoutSessionExercises(activeDraft, selectedExercises);
     setActiveWorkoutSessionDraft(nextDraft);
     router.replace('/workout-session');
   };
@@ -86,7 +232,7 @@ export default function WorkoutExerciseLibraryScreen() {
               <Text style={styles.backLabel}>‹</Text>
             </Pressable>
             <View style={styles.headerCopy}>
-              <Text style={styles.title}>Add exercises</Text>
+              <Text style={styles.title}>Exercise Library</Text>
               <Text style={styles.subtitle}>Pick one or more movements to add to the active workout.</Text>
             </View>
           </View>
@@ -94,6 +240,7 @@ export default function WorkoutExerciseLibraryScreen() {
           <View style={styles.searchBar}>
             <Text style={styles.searchIcon}>⌕</Text>
             <TextInput
+              autoCapitalize="none"
               placeholder="Search exercises"
               placeholderTextColor={colors.textSecondary}
               selectionColor={colors.accent}
@@ -103,16 +250,33 @@ export default function WorkoutExerciseLibraryScreen() {
             />
           </View>
 
-          {recentExercises.length > 0 ? (
+          <FilterChips activeValue={muscleFilter} label="Muscle" onChange={setMuscleFilter} options={muscleOptions} />
+          <FilterChips activeValue={equipmentFilter} label="Equipment" onChange={setEquipmentFilter} options={equipmentOptions} />
+
+          {loading ? (
+            <View style={styles.stateCard}>
+              <ActivityIndicator color={colors.accent} />
+              <Text style={styles.stateText}>Loading exercises...</Text>
+            </View>
+          ) : null}
+
+          {error ? (
+            <View style={styles.stateCard}>
+              <Text style={styles.stateTitle}>Exercise database unavailable</Text>
+              <Text style={styles.stateText}>{error}</Text>
+            </View>
+          ) : null}
+
+          {!loading && !error && recentExercises.length > 0 && !query.trim() && !muscleFilter && !equipmentFilter ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Recent</Text>
-              <View style={styles.grid}>
+              <View style={styles.list}>
                 {recentExercises.map((exercise) => (
-                  <ExerciseCard
+                  <ExerciseRow
                     key={exercise.id}
+                    exercise={exercise}
                     selected={selectedIds.includes(exercise.id)}
-                    subtitle={exercise.muscleGroup ?? exercise.category}
-                    title={exercise.name}
+                    onInfoPress={() => openDetails(exercise.id)}
                     onPress={() => toggleExercise(exercise.id)}
                   />
                 ))}
@@ -120,20 +284,29 @@ export default function WorkoutExerciseLibraryScreen() {
             </View>
           ) : null}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{query.trim() ? 'Search results' : 'All exercises'}</Text>
-            <View style={styles.grid}>
-              {results.map((exercise) => (
-                <ExerciseCard
-                  key={exercise.id}
-                  selected={selectedIds.includes(exercise.id)}
-                  subtitle={exercise.muscleGroup ?? exercise.category}
-                  title={exercise.name}
-                  onPress={() => toggleExercise(exercise.id)}
-                />
-              ))}
+          {!loading && !error ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{query.trim() ? 'Search results' : 'All exercises'}</Text>
+              {results.length === 0 ? (
+                <View style={styles.stateCard}>
+                  <Text style={styles.stateTitle}>No exercises found</Text>
+                  <Text style={styles.stateText}>Try a different search, muscle, or equipment filter.</Text>
+                </View>
+              ) : (
+                <View style={styles.list}>
+                  {results.map((exercise) => (
+                    <ExerciseRow
+                      key={exercise.id}
+                      exercise={exercise}
+                      selected={selectedIds.includes(exercise.id)}
+                      onInfoPress={() => openDetails(exercise.id)}
+                      onPress={() => toggleExercise(exercise.id)}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
-          </View>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -155,8 +328,8 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.accent,
       borderCurve: 'continuous',
       borderRadius: 18,
-      minHeight: 52,
       justifyContent: 'center',
+      minHeight: 52,
     },
     addButtonDisabled: {
       opacity: 0.45,
@@ -196,17 +369,12 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     footer: {
       borderTopWidth: StyleSheet.hairlineWidth,
+      bottom: 0,
       left: 0,
       paddingHorizontal: Spacing.three,
       paddingTop: Spacing.two,
       position: 'absolute',
       right: 0,
-      bottom: 0,
-    },
-    grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: Spacing.two,
     },
     header: {
       alignItems: 'center',
@@ -217,8 +385,14 @@ const createStyles = (colors: typeof Colors.light) =>
       flex: 1,
       gap: 4,
     },
+    list: {
+      gap: Spacing.two,
+    },
     pressed: {
       opacity: 0.72,
+    },
+    scrollView: {
+      flex: 1,
     },
     searchBar: {
       alignItems: 'center',
@@ -248,9 +422,6 @@ const createStyles = (colors: typeof Colors.light) =>
     screen: {
       flex: 1,
     },
-    scrollView: {
-      flex: 1,
-    },
     section: {
       gap: Spacing.two,
       marginTop: Spacing.three,
@@ -259,6 +430,31 @@ const createStyles = (colors: typeof Colors.light) =>
       color: colors.textPrimary,
       fontSize: 18,
       fontWeight: '900',
+    },
+    stateCard: {
+      alignItems: 'center',
+      backgroundColor: colors.surfacePrimary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      gap: Spacing.two,
+      marginTop: Spacing.three,
+      padding: Spacing.four,
+    },
+    stateText: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: '700',
+      lineHeight: 20,
+      textAlign: 'center',
+    },
+    stateTitle: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '900',
+      lineHeight: 22,
+      textAlign: 'center',
     },
     subtitle: {
       color: colors.textSecondary,
@@ -274,48 +470,125 @@ const createStyles = (colors: typeof Colors.light) =>
     },
   });
 
-const createCardStyles = (colors: typeof Colors.light) =>
+const createRowStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
-    card: {
+    copy: {
+      flex: 1,
+      gap: 2,
+      minWidth: 0,
+    },
+    infoButton: {
+      alignItems: 'center',
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: 14,
+      borderWidth: StyleSheet.hairlineWidth,
+      justifyContent: 'center',
+      minHeight: 40,
+      paddingHorizontal: Spacing.two,
+    },
+    infoLabel: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '900',
+    },
+    meta: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 17,
+      textTransform: 'capitalize',
+    },
+    name: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '900',
+      lineHeight: 21,
+    },
+    pressed: {
+      opacity: 0.72,
+    },
+    row: {
+      alignItems: 'center',
       backgroundColor: colors.surfacePrimary,
       borderColor: colors.borderSubtle,
       borderCurve: 'continuous',
       borderRadius: Radii.large,
       borderWidth: StyleSheet.hairlineWidth,
-      gap: 8,
-      padding: Spacing.three,
-      width: '48%',
-      minHeight: 128,
+      flexDirection: 'row',
+      gap: Spacing.two,
+      minHeight: 86,
+      padding: Spacing.two,
     },
-    cardPressed: {
-      opacity: 0.75,
-    },
-    cardSelected: {
+    rowSelected: {
       borderColor: colors.accent,
     },
-    icon: {
+    selection: {
       alignItems: 'center',
       backgroundColor: colors.surfaceSecondary,
-      borderCurve: 'continuous',
-      borderRadius: 16,
-      height: 42,
+      borderRadius: 999,
+      height: 32,
       justifyContent: 'center',
-      width: 42,
+      width: 32,
     },
-    iconLabel: {
-      color: colors.textPrimary,
+    selectionLabel: {
+      color: colors.textSecondary,
       fontSize: 16,
       fontWeight: '900',
     },
-    subtitle: {
+    selectionLabelSelected: {
+      color: colors.background,
+    },
+    selectionSelected: {
+      backgroundColor: colors.accent,
+    },
+    thumbnail: {
+      backgroundColor: colors.surfaceSecondary,
+      borderCurve: 'continuous',
+      borderRadius: 14,
+      height: 62,
+      width: 62,
+    },
+  });
+
+const createFilterStyles = (colors: typeof Colors.light) =>
+  StyleSheet.create({
+    chip: {
+      backgroundColor: colors.surfacePrimary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+    },
+    chipActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    chipLabel: {
       color: colors.textSecondary,
       fontSize: 12,
-      lineHeight: 17,
-    },
-    title: {
-      color: colors.textPrimary,
-      fontSize: 15,
       fontWeight: '900',
-      lineHeight: 19,
+      textTransform: 'capitalize',
+    },
+    chipLabelActive: {
+      color: colors.background,
+    },
+    chips: {
+      gap: Spacing.two,
+      paddingRight: Spacing.three,
+    },
+    label: {
+      color: colors.textPrimary,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    pressed: {
+      opacity: 0.72,
+    },
+    section: {
+      gap: Spacing.two,
+      marginTop: Spacing.three,
     },
   });

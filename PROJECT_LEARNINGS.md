@@ -29,6 +29,7 @@ Reusable project-specific lessons and known pitfalls.
 - Workout history must refresh after finishing a workout session.
 - Preserve active workout flow when editing workout-related screens.
 - Do not break persistent bottom actions on the workout session screen.
+- Exercise catalog data is only user-visible when the active workout exercise picker loads through `src/features/exercises` repository and stores canonical `exerciseId` values in the active draft.
 
 ## Progress
 

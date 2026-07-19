@@ -21,7 +21,10 @@ import type { WorkoutRpe } from '@/types';
 function uniqueExercisesFromSets(setNames: Array<{ exerciseId: string; exerciseName: string }>, catalog: ReturnType<typeof useAppContext>['exercises']) {
   const seen = new Set<string>();
   return setNames
-    .map((entry) => resolveExerciseByName(entry.exerciseName, catalog) ?? catalog.find((exercise) => exercise.id === entry.exerciseId) ?? null)
+    .map((entry) => resolveExerciseByName(entry.exerciseName, catalog) ?? catalog.find((exercise) => exercise.id === entry.exerciseId) ?? {
+      id: entry.exerciseId,
+      name: entry.exerciseName,
+    })
     .filter((exercise): exercise is NonNullable<typeof exercise> => Boolean(exercise))
     .filter((exercise) => {
       if (seen.has(exercise.id)) return false;

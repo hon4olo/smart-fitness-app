@@ -1,4 +1,8 @@
 export type ExerciseMedia = {
+  animationUrl?: string;
+  imageUrl?: string;
+  thumbnailUrl?: string;
+  videoUrl?: string;
   thumbnailUri?: string;
   gifUri?: string;
   videoUri?: string;
@@ -31,3 +35,8 @@ export interface ExerciseProvider {
   listExercises(): Promise<ExerciseProviderResult>;
   getExerciseById(exerciseId: string): Promise<Exercise | null>;
 }
+
+export type ExerciseFilters = {
+  equipment?: string;
+  muscle?: string;
+};

@@ -5,9 +5,11 @@ import {
   calculateExerciseProgressMetrics,
   mapMuscleNameToCanonicalId,
   normalizeExerciseDbExercise,
+  exerciseRepository,
   selectCompletedSetsByExerciseId,
 } from '@/features/exercises';
 import { normalizeWorkoutSessions } from '@/features/workouts';
+import { addWorkoutSessionExercises } from '@/features/workouts/sessionScreenModel';
 import type { WorkoutSession } from '@/types';
 
 describe('exercise catalog normalization', () => {
@@ -48,6 +50,24 @@ describe('exercise catalog normalization', () => {
     expect(first.id).toBe(second.id);
     expect(first.source.sourceId).toBe('a');
     expect(second.source.sourceId).toBe('b');
+  });
+});
+
+describe('exercise repository', () => {
+  it('loads the local fixture through the repository', async () => {
+    const exercises = await exerciseRepository.getAllExercises();
+
+    expect(exercises).toHaveLength(15);
+    expect(exercises.map((exercise) => exercise.id)).toContain('incline-dumbbell-press');
+  });
+
+  it('searches and filters normalized exercises', async () => {
+    const inclineResults = await exerciseRepository.searchExercises('Incline');
+    const cableChestResults = await exerciseRepository.searchExercises('', { equipment: 'cable', muscle: 'chest' });
+
+    expect(inclineResults.map((exercise) => exercise.id)).toEqual(['incline-dumbbell-press']);
+    expect(cableChestResults.map((exercise) => exercise.id)).toContain('cable-fly');
+    expect(cableChestResults.every((exercise) => exercise.source.sourceId !== exercise.id)).toBe(true);
   });
 });
 
@@ -128,5 +148,25 @@ describe('exercise history and progress', () => {
       weight: 80,
       reps: 10,
     });
+  });
+
+  it('adds repository exercises to workout drafts by canonical exercise id', async () => {
+    const [inclinePress] = await exerciseRepository.searchExercises('Incline');
+    const draft = {
+      id: 'draft-1',
+      workoutId: 'empty-workout',
+      workoutTitle: 'Empty workout',
+      startedAt: '2026-01-01T10:00:00.000Z',
+      sets: [],
+    };
+
+    const nextDraft = addWorkoutSessionExercises(draft, [{ id: inclinePress.id, name: inclinePress.name }]);
+
+    expect(inclinePress.source.sourceId).toBe('local-incline-dumbbell-press');
+    expect(nextDraft.sets[0]).toMatchObject({
+      exerciseId: 'incline-dumbbell-press',
+      exerciseName: 'Incline Dumbbell Press',
+    });
+    expect(nextDraft.sets[0].exerciseId).not.toBe(inclinePress.source.sourceId);
   });
 });
