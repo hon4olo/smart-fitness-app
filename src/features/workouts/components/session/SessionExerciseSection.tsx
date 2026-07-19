@@ -282,7 +282,7 @@ const createStyles = (colors: typeof Colors.light) =>
     restTimerLabel: {
       color: '#0A84FF',
       fontSize: 16,
-      fontWeight: '500',
+      fontWeight: '400',
       lineHeight: 20,
     },
     section: {

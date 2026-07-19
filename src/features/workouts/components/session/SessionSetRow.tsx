@@ -138,7 +138,7 @@ const createStyles = (colors: typeof Colors.light) =>
       borderWidth: StyleSheet.hairlineWidth,
       color: colors.textPrimary,
       fontSize: 15,
-      fontWeight: '500',
+      fontWeight: '400',
       height: 30,
       includeFontPadding: false,
       lineHeight: 18,
