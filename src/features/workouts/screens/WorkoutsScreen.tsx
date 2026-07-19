@@ -178,6 +178,7 @@ export default function WorkoutsScreen() {
   const [activeDraft, setActiveDraft] = useState<WorkoutSessionDraft | null>(null);
   const [draftReady, setDraftReady] = useState(false);
   const [createProgramOpen, setCreateProgramOpen] = useState(false);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -217,6 +218,7 @@ export default function WorkoutsScreen() {
     return programs.map((program) => getWorkoutProgramSummary(program, workouts, workoutSessions));
   }, [trainingPrograms, workoutSessions, workouts]);
   const favoriteCount = programSummaries.filter((summary) => summary.isFavorite).length;
+  const visibleProgramSummaries = favoritesOnly ? programSummaries.filter((summary) => summary.isFavorite) : programSummaries;
 
   const startEmptyWorkout = () => {
     const draft = startEmptyWorkoutSessionDraft();
@@ -289,8 +291,9 @@ export default function WorkoutsScreen() {
           ) : (
             <View style={styles.programList}>
               <ProgramRow icon="add" title="Add new program" workoutCount={0} onPress={() => setCreateProgramOpen(true)} />
-              <ProgramRow icon="favorite" title="Favorites" workoutCount={favoriteCount} onPress={() => undefined} />
-              {programSummaries.map((summary) => (
+              <ProgramRow icon="favorite" title={favoritesOnly ? 'All programs' : 'Favorites'} workoutCount={favoritesOnly ? programSummaries.length : favoriteCount} onPress={() => setFavoritesOnly((current) => !current)} />
+              {favoritesOnly && visibleProgramSummaries.length === 0 ? <Text style={styles.emptyProgramText}>No favorite programs yet.</Text> : null}
+              {visibleProgramSummaries.map((summary) => (
                 <ProgramRow
                   key={summary.program.id}
                   icon="program"
@@ -542,6 +545,13 @@ const createStyles = (colors: typeof Colors.light) =>
       color: colors.textOnAccent,
       fontSize: 16,
       fontWeight: '900',
+    },
+    emptyProgramText: {
+      color: colors.textMuted,
+      fontSize: 16,
+      fontWeight: '700',
+      lineHeight: 22,
+      paddingVertical: Spacing.two,
     },
     grid: {
       flexDirection: 'row',

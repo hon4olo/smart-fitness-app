@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { getWorkoutProgramById } from '@/lib/workouts';
 import { useAppTheme } from '@/theme/AppThemeProvider';
@@ -24,7 +24,6 @@ export default function ProgramDetailScreen() {
     deleteTrainingProgram,
     isRestoringState,
     saveTrainingProgram,
-    toggleTrainingProgramFavorite,
     trainingPrograms,
     workouts,
   } = useAppContext();
@@ -104,7 +103,17 @@ export default function ProgramDetailScreen() {
   const openMenu = () => {
     Alert.alert(program.name, undefined, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Favorite / unfavorite', onPress: () => toggleTrainingProgramFavorite(program.id) },
+      {
+        text: program.metadata?.favorite ? 'Remove from favorites' : 'Add to favorites',
+        onPress: () =>
+          saveProgram({
+            ...program,
+            metadata: {
+              ...(program.metadata ?? {}),
+              favorite: !Boolean(program.metadata?.favorite),
+            },
+          }),
+      },
       {
         text: 'Delete program',
         style: 'destructive',
@@ -133,7 +142,7 @@ export default function ProgramDetailScreen() {
     <View style={styles.screen}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { minHeight: viewportHeight, paddingBottom: insets.bottom + BottomTabInset + 108 }]}
+        contentContainerStyle={[styles.content, { minHeight: viewportHeight, paddingBottom: insets.bottom + Spacing.six }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
@@ -220,8 +229,6 @@ export default function ProgramDetailScreen() {
         </View>
       </ScrollView>
 
-      <WorkoutFlowTabBar bottomInset={insets.bottom} colors={colors} />
-
       {showSavedToast ? (
         <View style={[styles.toastWrap, { paddingBottom: insets.bottom + Spacing.three }]}>
           <View style={styles.toast}>
@@ -232,91 +239,6 @@ export default function ProgramDetailScreen() {
     </View>
   );
 }
-
-function WorkoutFlowTabBar({ bottomInset, colors }: { bottomInset: number; colors: typeof Colors.light }) {
-  const styles = useMemo(() => createTabStyles(colors), [colors]);
-  const items = [
-    { icon: '⌂', label: 'Home', route: '/' },
-    { icon: '◉', label: 'Explore', route: '/workouts' },
-    { icon: '+', label: 'Workout', route: '/workouts' },
-    { icon: '⌁', label: 'Progress', route: '/progress' },
-    { icon: '◎', label: 'Profile', route: '/profile' },
-  ] as const;
-
-  return (
-    <View style={[styles.tabBar, { paddingBottom: Math.max(bottomInset, 6) }]}>
-      {items.map((item) => {
-        const active = item.label === 'Workout';
-        return (
-          <Pressable key={item.label} onPress={() => router.push(item.route)} style={({ pressed }) => [styles.tabItem, pressed && styles.pressed]}>
-            <View style={[styles.tabIconWrap, active && styles.tabIconWrapActive]}>
-              <Text style={[styles.tabIcon, active && styles.tabIconActive]}>{item.icon}</Text>
-            </View>
-            <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-const createTabStyles = (colors: typeof Colors.light) =>
-  StyleSheet.create({
-    pressed: {
-      opacity: 0.72,
-    },
-    tabBar: {
-      alignItems: 'flex-start',
-      backgroundColor: colors.background,
-      borderTopColor: colors.divider,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      bottom: 0,
-      flexDirection: 'row',
-      height: 84,
-      justifyContent: 'space-around',
-      left: 0,
-      paddingTop: 10,
-      position: 'absolute',
-      right: 0,
-    },
-    tabIcon: {
-      color: colors.textMuted,
-      fontSize: 24,
-      lineHeight: 26,
-    },
-    tabIconActive: {
-      color: colors.background,
-      fontSize: 18,
-      fontWeight: '900',
-      lineHeight: 22,
-    },
-    tabIconWrap: {
-      alignItems: 'center',
-      height: 28,
-      justifyContent: 'center',
-      width: 34,
-    },
-    tabIconWrapActive: {
-      backgroundColor: colors.textPrimary,
-      borderRadius: 999,
-      height: 28,
-      width: 28,
-    },
-    tabItem: {
-      alignItems: 'center',
-      flex: 1,
-      gap: 2,
-    },
-    tabLabel: {
-      color: colors.textMuted,
-      fontSize: 11,
-      fontWeight: '600',
-    },
-    tabLabelActive: {
-      color: colors.textPrimary,
-      fontWeight: '800',
-    },
-  });
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
@@ -523,7 +445,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     toastWrap: {
       alignItems: 'center',
-      bottom: 84,
+      bottom: 0,
       left: 0,
       paddingHorizontal: Spacing.three,
       position: 'absolute',
