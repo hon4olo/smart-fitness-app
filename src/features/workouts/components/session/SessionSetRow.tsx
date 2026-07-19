@@ -98,16 +98,16 @@ const createStyles = (colors: typeof Colors.light) =>
     colPrevious: {
       flex: 1,
       minWidth: 0,
-      textAlign: 'center',
+      textAlign: 'left',
     },
     colReps: {
-      width: 86,
+      width: 94,
     },
     colSet: {
       width: 48,
     },
     colWeight: {
-      width: 86,
+      width: 94,
     },
     iconCell: {
       alignItems: 'center',
