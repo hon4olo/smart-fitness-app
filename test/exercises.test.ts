@@ -194,8 +194,13 @@ describe('oss exercisedb provider normalization', () => {
     expect(exercise).toMatchObject({
       id: 'bench-press',
       name: 'Bench Press',
+      source: {
+        provider: 'oss-exercisedb',
+        sourceId: 'remote-bench',
+      },
       media: {
         animationUrl: 'https://static.exercisedb.dev/media/remote-bench.gif',
+        gifUri: 'https://static.exercisedb.dev/media/remote-bench.gif',
         thumbnailUrl: 'https://static.exercisedb.dev/media/remote-bench.gif',
       },
       primaryMuscles: ['pectorals'],
