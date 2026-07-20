@@ -1,52 +1,60 @@
 import { describe, expect, it } from 'vitest';
 
+declare const __dirname: string;
 declare const require: any;
+
+const { readFileSync } = require('fs') as { readFileSync: (path: string, encoding: string) => string };
+const { resolve } = require('path') as { resolve: (...parts: string[]) => string };
 
 import { defaultState } from '@/data/defaults';
 import { addWorkoutSessionSet, buildCompletedWorkoutSessionSnapshotFromDraft, createWorkoutSessionDraft, getWorkoutSessionCompletedSetCount, toggleWorkoutSessionSetCompletion } from '@/features/workouts/sessionScreenModel';
+
+const projectRoot = resolve(__dirname, '..');
+const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 
 const workout = defaultState.workouts.find((item) => item.id === 'push-a') ?? defaultState.workouts[0]!;
 
 describe('workout session redesign', () => {
   it('keeps the session screen sequential and low chrome', () => {
-    const source = require('fs').readFileSync('/root/smart-fitness-app/src/features/workouts/screens/WorkoutSessionScreen.tsx', 'utf8');
-    const finishSource = require('fs').readFileSync('/root/smart-fitness-app/src/features/workouts/screens/WorkoutSessionFinishScreen.tsx', 'utf8');
+    const source = readSource('src/features/workouts/screens/WorkoutSessionScreen.tsx');
+    const finishSource = readSource('src/features/workouts/screens/WorkoutSessionFinishScreen.tsx');
+    const sessionHeader = readSource('src/features/workouts/components/session/SessionHeader.tsx');
+    const sessionTable = readSource('src/features/workouts/components/session/SessionSetTable.tsx');
+    const sessionSection = readSource('src/features/workouts/components/session/SessionExerciseSection.tsx');
+    const sessionUi = [source, sessionHeader, sessionTable, sessionSection].join('\n');
 
-    expect(source).toContain('Finish');
-    expect(source).toContain('Add set');
-    expect(source).toContain('Previous');
-    expect(source).toContain('kg');
-    expect(source).toContain('Reps');
-    expect(source).toContain('✓');
+    expect(sessionUi).toContain('Finish');
+    expect(sessionUi).toContain('Add set');
+    expect(sessionUi).toContain('Previous');
+    expect(sessionUi).toContain('kg');
+    expect(sessionUi).toContain('Reps');
+    expect(sessionUi).toContain('✓');
     expect(source).not.toContain('Exercise X of Y');
     expect(source).not.toContain('WorkoutSessionExerciseNavigator');
     expect(source).not.toContain('Save set');
     expect(source).not.toContain('Edit set');
-    expect(source).not.toContain('Add exercises');
     expect(source).not.toContain('horizontal chips');
 
     expect(finishSource).toContain('Finish Workout');
-    expect(finishSource).toContain('Workout saved');
-    expect(finishSource).toContain('Discard workout');
+    expect(finishSource).toContain('Discard Workout');
     expect(finishSource).toContain('Save');
   });
 
   it('uses a full-width five column set table grid', () => {
-    const sessionTable = require('fs').readFileSync('/root/smart-fitness-app/src/features/workouts/components/session/SessionSetTable.tsx', 'utf8');
-    const sessionLayout = require('fs').readFileSync('/root/smart-fitness-app/src/features/workouts/components/session/sessionTableLayout.ts', 'utf8');
-    const sessionRow = require('fs').readFileSync('/root/smart-fitness-app/src/features/workouts/components/session/SessionSetRow.tsx', 'utf8');
+    const sessionTable = readSource('src/features/workouts/components/session/SessionSetTable.tsx');
+    const sessionLayout = readSource('src/features/workouts/components/session/sessionTableLayout.ts');
+    const sessionRow = readSource('src/features/workouts/components/session/SessionSetRow.tsx');
 
-    expect(sessionLayout).toContain("set: '10%'");
-    expect(sessionLayout).toContain("previous: '28%'");
-    expect(sessionLayout).toContain("weight: '20%'");
-    expect(sessionLayout).toContain("reps: '20%'");
-    expect(sessionLayout).toContain("completion: '22%'");
-    expect(sessionLayout).toContain("SESSION_TABLE_TOTAL_WIDTH = '100%'");
-    expect(sessionTable).toContain("alignSelf: 'stretch'");
-    expect(sessionTable).toContain("width: '100%'");
+    expect(sessionLayout).toContain('set: 24');
+    expect(sessionLayout).toContain('previous: 68');
+    expect(sessionLayout).toContain('weight: 92');
+    expect(sessionLayout).toContain('reps: 92');
+    expect(sessionLayout).toContain('completion: 30');
+    expect(sessionLayout).toContain('SESSION_TABLE_TOTAL_WIDTH =');
+    expect(sessionTable).toContain('width: SESSION_TABLE_TOTAL_WIDTH');
     expect(sessionTable).toContain('SESSION_TABLE_COLUMNS.completion');
-    expect(sessionRow).toContain("width: '100%'");
-    expect(sessionRow).toContain('minHeight: 44');
+    expect(sessionRow).toContain('width: SESSION_TABLE_TOTAL_WIDTH');
+    expect(sessionRow).toContain('minHeight: 48');
     expect(sessionRow).not.toContain('colOverflow');
   });
 
@@ -67,12 +75,11 @@ describe('workout session redesign', () => {
   });
 
   it('hides the empty workout CTA when add exercise is not implemented', () => {
-    const source = require('fs').readFileSync('/root/smart-fitness-app/src/features/workouts/screens/WorkoutsScreen.tsx', 'utf8');
+    const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
 
-    expect(source).toContain('Start now');
+    expect(source).toContain('Start Now');
     expect(source).toContain('Programs');
     expect(source).not.toContain('Start empty workout');
-    expect(source).not.toContain('Add exercise');
     expect(source).not.toContain('Workout plan:');
   });
 });

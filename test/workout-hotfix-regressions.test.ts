@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+declare const __dirname: string;
 declare const require: any;
 
 import { defaultState } from '@/data/defaults';
@@ -7,6 +8,9 @@ import { buildCompletedWorkoutSessionSnapshotFromDraft, createWorkoutSessionDraf
 import { clearActiveWorkoutSessionDraft, getActiveWorkoutSessionDraft, setActiveWorkoutSessionDraft, upsertWorkoutSessionById } from '@/lib/workouts';
 
 const readFileSync = require('fs').readFileSync as (path: string, encoding: string) => string;
+const { resolve } = require('path') as { resolve: (...parts: string[]) => string };
+const projectRoot = resolve(__dirname, '..');
+const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 
 describe('workout hotfix regressions', () => {
   beforeEach(() => {
@@ -14,15 +18,15 @@ describe('workout hotfix regressions', () => {
   });
 
   it('keeps workout template detail read-only by default and starts workouts from the sticky action', () => {
-    const templateSource = readFileSync('/root/smart-fitness-app/src/features/workouts/screens/WorkoutTemplateDetailScreen.tsx', 'utf8');
-    const programSource = readFileSync('/root/smart-fitness-app/src/features/workouts/screens/ProgramDetailScreen.tsx', 'utf8');
-    const builderSource = readFileSync('/root/smart-fitness-app/src/app/workouts/builder.tsx', 'utf8');
-    const workoutEditorSource = readFileSync('/root/smart-fitness-app/src/components/workouts/ProgramWorkoutEditorModal.tsx', 'utf8');
+    const templateSource = readSource('src/features/workouts/screens/WorkoutTemplateDetailScreen.tsx');
+    const programSource = readSource('src/features/workouts/screens/ProgramDetailScreen.tsx');
+    const builderSource = readSource('src/app/workouts/builder.tsx');
+    const workoutEditorSource = readSource('src/components/workouts/ProgramWorkoutEditorModal.tsx');
 
-    expect(templateSource).toContain('Start workout');
+    expect(templateSource).toContain('Start Workout');
     expect(templateSource).not.toContain('Save workout');
     expect(templateSource).not.toContain('TextInput');
-    expect(programSource).toContain('Start next workout');
+    expect(programSource).toContain('Add routine to program');
     expect(programSource).not.toContain('styles.startChip');
     expect(programSource).not.toContain('Save Program');
     expect(programSource).not.toContain('TextInput');
@@ -76,7 +80,7 @@ describe('workout hotfix regressions', () => {
   });
 
   it('never shows a stale Start empty workout action', () => {
-    const source = readFileSync('/root/smart-fitness-app/src/features/workouts/screens/WorkoutsScreen.tsx', 'utf8');
+    const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
 
     expect(source).not.toContain('Start empty workout');
     expect(source).not.toContain('Add exercise');

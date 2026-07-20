@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -8,9 +8,12 @@ import { AppCard } from '@/components/ui/AppCard';
 import { ListRow } from '@/components/ui/ListRow';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { isFoodApiConfigured, searchFoods, type FoodItem } from '@/api/foods';
-import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { foodCatalog } from '@/data/foods';
+import { CreateFoodInlineForm } from '@/features/nutrition/components/CreateFoodInlineForm';
+import { FoodPortionSheet } from '@/features/nutrition/components/FoodPortionSheet';
+import { createAddFoodStyles } from '@/features/nutrition/styles/addFoodStyles';
 import {
   buildFoodEntryFromCatalog,
   formatCompactMacroTotals,
@@ -95,7 +98,7 @@ const getFoodAttributionLabel = (food: Pick<FoodItem, 'attribution' | 'source'>)
 
 export default function NutritionAddFoodScreen() {
   const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createAddFoodStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const {
     addFoodEntries,
@@ -185,6 +188,21 @@ export default function NutritionAddFoodScreen() {
   const selectedMealLabel = mealTypeLabels[selectedMeal];
   const selectedMealCountLabel = `${selectedMealEntries.length} item${selectedMealEntries.length === 1 ? '' : 's'}`;
   const selectedDateLabel = formatScreenDate(selectedDate);
+  const deleteEntryLabel = 'Delete entry';
+  const selectedDraftSubmitLabel = selectedDraft?.originalEntryId ? `Save changes` : `Add to ${selectedMealLabel}`;
+  const selectedDraftServingLabel = selectedDraft ? formatFoodServing({ servingSize: selectedDraft.servingSize, servingUnit: selectedDraft.servingUnit }) : '';
+  const selectedDraftAttributionLabel =
+    selectedDraft && (selectedDraft.attribution || selectedDraft.source === 'fatsecret')
+      ? selectedDraft.attribution?.text ?? `Source: ${formatProviderLabel(selectedDraft.source)}`
+      : undefined;
+  const selectedDraftMacroTotalsLabel = selectedDraft
+    ? formatCompactMacroTotals({
+        calories: Math.round(selectedDraft.calories * (parseNumber(selectedDraft.quantity, selectedDraft.servingSize) / selectedDraft.servingSize) * 10) / 10,
+        carbs: Math.round(selectedDraft.carbs * (parseNumber(selectedDraft.quantity, selectedDraft.servingSize) / selectedDraft.servingSize) * 10) / 10,
+        fats: Math.round(selectedDraft.fats * (parseNumber(selectedDraft.quantity, selectedDraft.servingSize) / selectedDraft.servingSize) * 10) / 10,
+        protein: Math.round(selectedDraft.protein * (parseNumber(selectedDraft.quantity, selectedDraft.servingSize) / selectedDraft.servingSize) * 10) / 10,
+      })
+    : '';
 
   useEffect(() => {
     if (editingEntry) {
@@ -836,491 +854,52 @@ export default function NutritionAddFoodScreen() {
             </Pressable>
           </View>
           {createFoodOpen ? (
-            <View style={styles.inlineForm}>
-              <TextInput
-                accessibilityLabel="Food name"
-                autoCapitalize="words"
-                onChangeText={setFoodName}
-                placeholder="Food name"
-                placeholderTextColor={colors.textSecondary}
-                style={styles.input}
-                value={foodName}
-              />
-              <TextInput
-                accessibilityLabel="Brand"
-                autoCapitalize="words"
-                onChangeText={setFoodBrand}
-                placeholder="Brand (optional)"
-                placeholderTextColor={colors.textSecondary}
-                style={styles.input}
-                value={foodBrand}
-              />
-              <View style={styles.grid}>
-                <TextInput
-                  accessibilityLabel="Serving size"
-                  keyboardType="decimal-pad"
-                  onChangeText={setFoodServingSize}
-                  placeholder="Serving size"
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.input}
-                  value={foodServingSize}
-                />
-                <TextInput
-                  accessibilityLabel="Serving unit"
-                  onChangeText={setFoodServingUnit}
-                  placeholder="Serving unit"
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.input}
-                  value={foodServingUnit}
-                />
-              </View>
-              <TextInput
-                accessibilityLabel="Quantity"
-                keyboardType="decimal-pad"
-                onChangeText={setFoodQuantity}
-                placeholder="Quantity"
-                placeholderTextColor={colors.textSecondary}
-                style={styles.input}
-                value={foodQuantity}
-              />
-              <View style={styles.grid}>
-                <TextInput
-                  accessibilityLabel="Calories"
-                  keyboardType="decimal-pad"
-                  onChangeText={setFoodCalories}
-                  placeholder="Calories"
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.input}
-                  value={foodCalories}
-                />
-                <TextInput
-                  accessibilityLabel="Protein"
-                  keyboardType="decimal-pad"
-                  onChangeText={setFoodProtein}
-                  placeholder="Protein"
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.input}
-                  value={foodProtein}
-                />
-              </View>
-              <View style={styles.grid}>
-                <TextInput
-                  accessibilityLabel="Carbs"
-                  keyboardType="decimal-pad"
-                  onChangeText={setFoodCarbs}
-                  placeholder="Carbs"
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.input}
-                  value={foodCarbs}
-                />
-                <TextInput
-                  accessibilityLabel="Fats"
-                  keyboardType="decimal-pad"
-                  onChangeText={setFoodFats}
-                  placeholder="Fats"
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.input}
-                  value={foodFats}
-                />
-              </View>
-              <AppButton label="Add food" onPress={saveCustomFood} />
-            </View>
+            <CreateFoodInlineForm
+              colors={colors}
+              foodBrand={foodBrand}
+              foodCalories={foodCalories}
+              foodCarbs={foodCarbs}
+              foodFats={foodFats}
+              foodName={foodName}
+              foodProtein={foodProtein}
+              foodQuantity={foodQuantity}
+              foodServingSize={foodServingSize}
+              foodServingUnit={foodServingUnit}
+              onSave={saveCustomFood}
+              setFoodBrand={setFoodBrand}
+              setFoodCalories={setFoodCalories}
+              setFoodCarbs={setFoodCarbs}
+              setFoodFats={setFoodFats}
+              setFoodName={setFoodName}
+              setFoodProtein={setFoodProtein}
+              setFoodQuantity={setFoodQuantity}
+              setFoodServingSize={setFoodServingSize}
+              setFoodServingUnit={setFoodServingUnit}
+              styles={styles}
+            />
           ) : null}
         </View>
       </ScrollView>
 
       {selectedDraft ? (
-        <View style={[styles.sheetBackdrop, { paddingBottom: insets.bottom + Spacing.two }]} pointerEvents="box-none">
-          <Pressable accessibilityLabel="Close portion editor" onPress={() => setSelectedDraft(null)} style={styles.sheetScrim} />
-          <View style={styles.sheet}>
-            <View style={styles.sheetHeader}>
-              <View>
-                <Text selectable style={styles.sheetTitle}>
-                  {selectedDraft.name}
-                </Text>
-                <Text selectable style={styles.sheetSubtitle}>
-                  {selectedMealLabel} · {selectedDateLabel}
-                </Text>
-              </View>
-              <Pressable accessibilityLabel="Close portion editor" hitSlop={10} onPress={() => setSelectedDraft(null)} style={styles.sheetClose}>
-                <Text style={styles.sheetCloseText}>×</Text>
-              </Pressable>
-            </View>
-
-            {selectedDraft.brandName ? (
-              <Text selectable style={styles.sheetMeta}>
-                {selectedDraft.brandName}
-              </Text>
-            ) : null}
-            <Text selectable style={styles.sheetMeta}>
-              {formatFoodServing({ servingSize: selectedDraft.servingSize, servingUnit: selectedDraft.servingUnit })}
-            </Text>
-            {selectedDraft.attribution || selectedDraft.source === 'fatsecret' ? (
-              <Text selectable style={styles.sheetAttribution}>
-                {selectedDraft.attribution?.text ?? `Source: ${formatProviderLabel(selectedDraft.source)}`}
-              </Text>
-            ) : null}
-
-            <View style={styles.sheetField}>
-              <Text selectable style={styles.sheetLabel}>
-                Quantity
-              </Text>
-              <TextInput
-                accessibilityLabel="Quantity"
-                autoFocus
-                keyboardType="decimal-pad"
-                onChangeText={(value) => setSelectedDraft((current) => (current ? { ...current, quantity: value } : current))}
-                placeholder="Quantity"
-                placeholderTextColor={colors.textSecondary}
-                style={styles.sheetInput}
-                value={selectedDraft.quantity}
-              />
-            </View>
-
-            <View style={styles.sheetTotals}>
-              <Text selectable style={styles.sheetTotalLine}>
-                {formatCompactMacroTotals({
-                  calories: Math.round(selectedDraft.calories * (parseNumber(selectedDraft.quantity, selectedDraft.servingSize) / selectedDraft.servingSize) * 10) / 10,
-                  carbs: Math.round(selectedDraft.carbs * (parseNumber(selectedDraft.quantity, selectedDraft.servingSize) / selectedDraft.servingSize) * 10) / 10,
-                  fats: Math.round(selectedDraft.fats * (parseNumber(selectedDraft.quantity, selectedDraft.servingSize) / selectedDraft.servingSize) * 10) / 10,
-                  protein: Math.round(selectedDraft.protein * (parseNumber(selectedDraft.quantity, selectedDraft.servingSize) / selectedDraft.servingSize) * 10) / 10,
-                })}
-              </Text>
-            </View>
-
-            <Text selectable style={styles.sheetHint}>
-              {selectedDraft.originalEntryId ? 'Update the selected entry and keep the diary context unchanged.' : 'Add this food to the selected meal without leaving the picker.'}
-            </Text>
-
-            {selectedDraft.originalEntryId ? (
-              <AppButton label="Delete entry" onPress={deleteSelectedDraft} variant="secondary" />
-            ) : null}
-
-            <AppButton
-              label={selectedDraft.originalEntryId ? `Save changes` : `Add to ${selectedMealLabel}`}
-              onPress={saveDraft}
-            />
-          </View>
-        </View>
+        <FoodPortionSheet
+          attributionLabel={selectedDraftAttributionLabel}
+          colors={colors}
+          deleteLabel={deleteEntryLabel}
+          draft={selectedDraft}
+          insetsBottom={insets.bottom}
+          macroTotalsLabel={selectedDraftMacroTotalsLabel}
+          onChangeQuantity={(value) => setSelectedDraft((current) => (current ? { ...current, quantity: value } : current))}
+          onClose={() => setSelectedDraft(null)}
+          onDelete={deleteSelectedDraft}
+          onSave={saveDraft}
+          selectedDateLabel={selectedDateLabel}
+          selectedMealLabel={selectedMealLabel}
+          submitLabel={selectedDraftSubmitLabel}
+          servingLabel={selectedDraftServingLabel}
+          styles={styles}
+        />
       ) : null}
     </KeyboardAvoidingView>
   );
 }
-
-const createStyles = (colors: typeof Colors.dark) =>
-  StyleSheet.create({
-    backButton: {
-      alignItems: 'flex-start',
-      minHeight: 44,
-      justifyContent: 'center',
-      paddingHorizontal: Spacing.one,
-      width: 72,
-    },
-    backButtonText: {
-      color: colors.accent,
-      fontSize: 15,
-      fontWeight: '800',
-    },
-    clearButton: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: 44,
-      width: 44,
-    },
-    clearButtonText: {
-      color: colors.textSecondary,
-      fontSize: 24,
-      fontWeight: '900',
-      lineHeight: 24,
-    },
-    container: {
-      gap: Spacing.three,
-      maxWidth: MaxContentWidth,
-      width: '100%',
-    },
-    content: {
-      backgroundColor: colors.background,
-      alignItems: 'center',
-      flexGrow: 1,
-      padding: Spacing.three,
-    },
-    emptyBlock: {
-      alignItems: 'flex-start',
-      gap: Spacing.two,
-      paddingTop: Spacing.one,
-    },
-    emptyStateText: {
-      color: colors.textSecondary,
-      fontSize: Typography.body.fontSize,
-      lineHeight: Typography.body.lineHeight,
-    },
-    footer: {},
-    grid: {
-      flexDirection: 'row',
-      gap: Spacing.two,
-    },
-    headerCopy: {
-      alignItems: 'center',
-      flex: 1,
-      gap: 2,
-    },
-    headerRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: Spacing.one,
-    },
-    quietActionButton: {
-      alignItems: 'center',
-      minHeight: 44,
-      justifyContent: 'center',
-      paddingHorizontal: Spacing.one,
-    },
-    quietActionRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: Spacing.three,
-    },
-    quietActionText: {
-      color: colors.textSecondary,
-      fontSize: 13,
-      fontWeight: '800',
-    },
-    headerSpacer: {
-      width: 72,
-    },
-    iconButton: {
-      alignItems: 'center',
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      borderWidth: StyleSheet.hairlineWidth,
-      height: 44,
-      justifyContent: 'center',
-      width: 44,
-    },
-    iconButtonText: {
-      color: colors.textPrimary,
-      fontSize: 18,
-      fontWeight: '900',
-      lineHeight: 18,
-    },
-    input: {
-      backgroundColor: colors.surfaceSecondary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      color: colors.textPrimary,
-      fontSize: 15,
-      minHeight: 44,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
-    },
-    inlineForm: {
-      gap: Spacing.two,
-    },
-    listGap: {
-      gap: Spacing.two,
-    },
-    messageBanner: {
-      backgroundColor: colors.surfaceSecondary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      padding: Spacing.two,
-    },
-    messageText: {
-      color: colors.textPrimary,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    rowActions: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: Spacing.one,
-    },
-    searchInput: {
-      backgroundColor: colors.surfaceSecondary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      color: colors.textPrimary,
-      flex: 1,
-      fontSize: 15,
-      minHeight: 44,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
-    },
-    searchRow: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: Spacing.one,
-      marginBottom: Spacing.two,
-    },
-    secondaryActions: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: Spacing.two,
-    },
-    screen: {
-      backgroundColor: colors.background,
-      flex: 1,
-    },
-    sectionHeader: {
-      marginBottom: Spacing.two,
-    },
-    sectionTitle: {
-      color: colors.textPrimary,
-      fontSize: 18,
-      fontWeight: '800',
-    },
-    sheet: {
-      backgroundColor: colors.surfacePrimary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderTopLeftRadius: Radii.xlarge,
-      borderTopRightRadius: Radii.xlarge,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      gap: Spacing.two,
-      maxWidth: MaxContentWidth,
-      padding: Spacing.three,
-      width: '100%',
-    },
-    sheetAttribution: {
-      color: colors.textMuted,
-      fontSize: 11,
-      lineHeight: 15,
-    },
-    sheetBackdrop: {
-      alignItems: 'center',
-      bottom: 0,
-      left: 0,
-      position: 'absolute',
-      right: 0,
-      top: 0,
-      justifyContent: 'flex-end',
-    },
-    sheetClose: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: 999,
-      borderWidth: StyleSheet.hairlineWidth,
-      height: 44,
-      justifyContent: 'center',
-      width: 44,
-    },
-    sheetCloseText: {
-      color: colors.textPrimary,
-      fontSize: 24,
-      fontWeight: '900',
-      lineHeight: 24,
-    },
-    sheetField: {
-      gap: Spacing.one,
-    },
-    sheetHeader: {
-      alignItems: 'flex-start',
-      flexDirection: 'row',
-      gap: Spacing.two,
-      justifyContent: 'space-between',
-    },
-    sheetHint: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      lineHeight: 16,
-    },
-    sheetScrim: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    },
-    helperText: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      lineHeight: 16,
-    },
-    sheetInput: {
-      backgroundColor: colors.surfaceSecondary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      color: colors.textPrimary,
-      fontSize: 16,
-      minHeight: 48,
-      paddingHorizontal: Spacing.three,
-    },
-    sheetLabel: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-    },
-    sheetMeta: {
-      color: colors.textSecondary,
-      fontSize: 13,
-      lineHeight: 18,
-    },
-    sheetSubtitle: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      lineHeight: 16,
-    },
-    sheetTitle: {
-      color: colors.textPrimary,
-      fontSize: 18,
-      fontWeight: '900',
-    },
-    sheetTotalLine: {
-      color: colors.textPrimary,
-      fontSize: 14,
-      fontWeight: '800',
-    },
-    sheetTotals: {
-      backgroundColor: colors.surfaceSecondary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      padding: Spacing.two,
-    },
-    summaryCalories: {
-      color: colors.textPrimary,
-      fontSize: 15,
-      fontWeight: '900',
-      fontVariant: ['tabular-nums'],
-    },
-    summaryCopy: {
-      color: colors.textSecondary,
-      fontSize: 12,
-    },
-    summaryPill: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceSecondary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderRadius: Radii.large,
-      borderWidth: StyleSheet.hairlineWidth,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      padding: Spacing.three,
-    },
-    summaryTitle: {
-      color: colors.textPrimary,
-      fontSize: 14,
-      fontWeight: '800',
-    },
-    subtitle: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '700',
-    },
-    title: {
-      color: colors.textPrimary,
-      fontSize: 20,
-      fontWeight: '900',
-    },
-  });

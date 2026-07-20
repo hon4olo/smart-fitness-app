@@ -15,90 +15,103 @@ const count = (source: string, needle: string) => (source.match(new RegExp(needl
 describe('nutrition compact diary 5.0', () => {
   test('main nutrition screen keeps a stable compact header, seven-day selector, summary row, and collapsed meals', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
+    const summaryGrid = readSource('src/features/nutrition/components/NutritionSummaryGrid.tsx');
+    const mealGroup = readSource('src/features/nutrition/components/MealGroup.tsx');
+    const foodEntryRow = readSource('src/features/nutrition/components/FoodEntryRow.tsx');
+    const weekStrip = readSource('src/features/nutrition/components/NutritionWeekStrip.tsx');
+    const detailsSection = readSource('src/features/nutrition/components/NutritionDetailsSection.tsx');
+    const styles = readSource('src/features/nutrition/styles/nutritionScreenStyles.ts');
+    const nutritionUi = [source, summaryGrid, mealGroup, foodEntryRow, weekStrip, detailsSection, styles].join('\n');
 
     expect(source).toContain('Nutrition');
     expect(source).toContain('calendarButton');
     expect(source).toContain('streakChip');
     expect(source).toContain('metaRow');
     expect(source).toContain('todayButton');
-    expect(source).toContain('weekSection');
-    expect(source).toContain('weekDayButton');
-    expect(source).toContain('weekDayHitArea');
-    expect(source).toContain('weekDayCircleLogged');
-    expect(source).toContain('weekDayCheck');
-    expect(source).toContain('renderMacroGridRow');
-    expect(source).toContain('macroGridRow');
-    expect(source).toContain('macroGridCell');
-    expect(source).toContain('macroGridLabel');
-    expect(source).toContain('macroGridValue');
-    expect(count(source, 'weekDayButton')).toBe(2); // style + JSX usage
+    expect(nutritionUi).toContain('weekSection');
+    expect(nutritionUi).toContain('weekDayButton');
+    expect(nutritionUi).toContain('weekDayHitArea');
+    expect(nutritionUi).toContain('weekDayCircleLogged');
+    expect(nutritionUi).toContain('weekDayCheck');
+    expect(nutritionUi).toContain('NutritionSummaryGrid');
+    expect(nutritionUi).toContain('macroGridRow');
+    expect(nutritionUi).toContain('macroGridCell');
+    expect(nutritionUi).toContain('macroGridLabel');
+    expect(nutritionUi).toContain('macroGridValue');
+    expect(count(nutritionUi, 'weekDayButton')).toBe(2); // style + extracted JSX usage
     expect(source).toContain('summarySection');
     expect(source).toContain('mealSectionList');
-    expect(source).toContain('mealGroup');
-    expect(source).toContain('mealHeaderLeft');
-    expect(source).toContain('mealIcon');
-    expect(source).toContain('mealHeaderMeta');
-    expect(source).toContain('mealSummaryStrip');
-    expect(source).toContain('mealHeaderActions');
-    expect(source).toContain('surfaceSecondary');
-    expect(source).not.toContain('mealSummaryLabel');
-    expect(source).not.toContain('mealSummaryMetric');
-    expect(source).not.toContain('mealSubtotal');
-    expect(source).not.toContain('Consumed today');
-    expect(source).not.toContain('This week');
-    expect(source).not.toContain('Daily summary');
-    expect(source).not.toContain('progress');
-    expect(source).toContain('mealActionButton');
-    expect(source).toContain('mealActionIcon');
-    expect(source).toContain('foodRow');
-    expect(source).toContain('foodRowTop');
-    expect(source).toContain('foodRowDetail');
-    expect(source).toContain('ellipsizeMode="tail"');
-    expect(source).toContain('detailsSection');
-    expect(source).toContain('detailRow');
-    expect(source).not.toContain('foodRowCalories');
-    expect(source).not.toContain('foodRowMacroServing');
-    expect(source).not.toContain('foodRowMacroLine');
-    expect(source).not.toContain('remaining');
-    expect(source).not.toContain('No food logged');
+    expect(nutritionUi).toContain('mealGroup');
+    expect(nutritionUi).toContain('mealHeaderLeft');
+    expect(nutritionUi).toContain('mealIcon');
+    expect(nutritionUi).toContain('mealHeaderMeta');
+    expect(nutritionUi).toContain('mealSummaryStrip');
+    expect(nutritionUi).toContain('mealHeaderActions');
+    expect(nutritionUi).toContain('surfaceSecondary');
+    expect(nutritionUi).not.toContain('mealSummaryLabel');
+    expect(nutritionUi).not.toContain('mealSummaryMetric');
+    expect(nutritionUi).not.toContain('mealSubtotal');
+    expect(nutritionUi).not.toContain('Consumed today');
+    expect(nutritionUi).not.toContain('This week');
+    expect(nutritionUi).not.toContain('Daily summary');
+    expect(nutritionUi).not.toContain('progress');
+    expect(nutritionUi).toContain('mealActionButton');
+    expect(nutritionUi).toContain('mealActionIcon');
+    expect(nutritionUi).toContain('foodRow');
+    expect(nutritionUi).toContain('foodRowTop');
+    expect(nutritionUi).toContain('foodRowDetail');
+    expect(nutritionUi).toContain('ellipsizeMode="tail"');
+    expect(nutritionUi).toContain('detailsSection');
+    expect(nutritionUi).toContain('detailRow');
+    expect(nutritionUi).not.toContain('foodRowCalories');
+    expect(nutritionUi).not.toContain('foodRowMacroServing');
+    expect(nutritionUi).not.toContain('foodRowMacroLine');
+    expect(nutritionUi).not.toContain('remaining');
+    expect(nutritionUi).not.toContain('No food logged');
   });
 
   test('today and calendar actions remain layout-stable and date switching uses the compact route', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
+    const utils = readSource('src/features/nutrition/utils/nutritionScreenUtils.ts');
+    const nutritionDateSource = [source, utils].join('\n');
 
     expect(source).toContain('todayButtonDisabled');
     expect(source).toContain("router.replace({ pathname: '/nutrition', params: { date: nextDate } })");
     expect(source).toContain("pathname: '/nutrition/date-picker'");
     expect(source).toContain('selectedDateLabel');
-    expect(source).toContain('formatWeekdayLabel');
-    expect(source).toContain('formatDayNumber');
+    expect(nutritionDateSource).toContain('formatWeekdayLabel');
+    expect(nutritionDateSource).toContain('formatDayNumber');
   });
 
   test('meal rows stay compact and use additive expansion without delete controls in the diary', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
+    const summaryGrid = readSource('src/features/nutrition/components/NutritionSummaryGrid.tsx');
+    const mealGroup = readSource('src/features/nutrition/components/MealGroup.tsx');
+    const foodEntryRow = readSource('src/features/nutrition/components/FoodEntryRow.tsx');
+    const nutritionUi = [source, summaryGrid, mealGroup, foodEntryRow].join('\n');
 
-    expect(source).toContain('mealGroup');
-    expect(source).toContain('mealSummaryStrip');
-    expect(source).toContain('renderMacroGridRow');
-    expect(source).toContain('macroGridRow');
-    expect(source).toContain('macroGridValue');
-    expect(source).toContain('mealHeaderMeta');
-    expect(source).toContain('formatMealItemCount');
-    expect(source).toContain('mealHeaderActions');
-    expect(source).toContain('mealActionButton');
-    expect(source).toContain('chevronText');
-    expect(source).toContain('foodRowDivider');
-    expect(source).toContain('foodRowTop');
-    expect(source).toContain('foodMetadata');
-    expect(source).not.toContain('mealSummaryLabel');
-    expect(source).not.toContain('mealSummaryMetric');
-    expect(source).not.toContain('mealSubtotal');
-    expect(source).not.toContain('foodRowCalories');
-    expect(source).not.toContain('foodRowMacroLine');
-    expect(source).not.toContain('foodRowMacroServing');
-    expect(source).not.toContain('Delete ${entry.name}');
-    expect(source).not.toContain('deleteButton');
-    expect(source).not.toContain('×');
+    expect(nutritionUi).toContain('mealGroup');
+    expect(nutritionUi).toContain('mealSummaryStrip');
+    expect(nutritionUi).toContain('NutritionSummaryGrid');
+    expect(nutritionUi).toContain('macroGridRow');
+    expect(nutritionUi).toContain('macroGridValue');
+    expect(nutritionUi).toContain('mealHeaderMeta');
+    expect(nutritionUi).toContain('formatMealItemCount');
+    expect(nutritionUi).toContain('mealHeaderActions');
+    expect(nutritionUi).toContain('mealActionButton');
+    expect(nutritionUi).toContain('chevronText');
+    expect(nutritionUi).toContain('foodRowDivider');
+    expect(nutritionUi).toContain('foodRowTop');
+    expect(nutritionUi).toContain('foodMetadata');
+    expect(nutritionUi).not.toContain('mealSummaryLabel');
+    expect(nutritionUi).not.toContain('mealSummaryMetric');
+    expect(nutritionUi).not.toContain('mealSubtotal');
+    expect(nutritionUi).not.toContain('foodRowCalories');
+    expect(nutritionUi).not.toContain('foodRowMacroLine');
+    expect(nutritionUi).not.toContain('foodRowMacroServing');
+    expect(nutritionUi).not.toContain('Delete ${entry.name}');
+    expect(nutritionUi).not.toContain('deleteButton');
+    expect(nutritionUi).not.toContain('×');
   });
 
   test('picker returns to the selected meal and exposes a quiet delete action for edited entries', () => {
@@ -115,11 +128,12 @@ describe('nutrition compact diary 5.0', () => {
 
   test('nutrient breakdown is compact and only renders useful nutrient data', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
+    const detailsSection = readSource('src/features/nutrition/components/NutritionDetailsSection.tsx');
 
     expect(source).toContain('fiberBreakdown.hasFiberData');
-    expect(source).toContain('Nutrition details');
-    expect(source).not.toContain('Sodium, cholesterol, sugar');
-    expect(source).not.toContain('Not available yet');
+    expect(detailsSection).toContain('Nutrition details');
+    expect([source, detailsSection].join('\n')).not.toContain('Sodium, cholesterol, sugar');
+    expect([source, detailsSection].join('\n')).not.toContain('Not available yet');
   });
 
   test('calendar date picker marks logged dates without changing layout', () => {

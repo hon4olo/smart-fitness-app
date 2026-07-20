@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+declare const __dirname: string;
 declare const require: any;
+
+const { readFileSync } = require('fs') as { readFileSync: (path: string, encoding: string) => string };
+const { resolve } = require('path') as { resolve: (...parts: string[]) => string };
 
 import { defaultState } from '@/data/defaults';
 import { createDefaultTrainingProgram } from '@/features/workouts/defaults';
@@ -17,6 +21,9 @@ import {
   upsertWorkoutSessionById,
 } from '@/lib/workouts';
 import type { TrainingProgram } from '@/types/programs';
+
+const projectRoot = resolve(__dirname, '..');
+const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 
 const conditioning = defaultState.workouts.find((workout) => workout.id === 'conditioning-a') ?? defaultState.workouts[0]!;
 
@@ -173,7 +180,7 @@ describe('workout routing, duplicates, and timer regressions', () => {
   });
 
   it('keeps the layout full screen without card or modal presentations for workout routes', () => {
-    const layout = require('fs').readFileSync('/root/smart-fitness-app/src/app/_layout.tsx', 'utf8');
+    const layout = readSource('src/app/_layout.tsx');
 
     expect(layout).toContain('name="workout-session"');
     expect(layout).toContain('name="workout-session-finish"');

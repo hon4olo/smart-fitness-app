@@ -13,15 +13,16 @@ const count = (source: string, needle: string) => (source.match(new RegExp(needl
 describe('product simplification 2.0', () => {
   test('workouts screen keeps the start-now section order and one visible create action', () => {
     const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
-    const startNowBlock = source.slice(source.indexOf('const renderStartNow'), source.indexOf('const renderPrograms'));
-    const programsBlock = source.slice(source.indexOf('const renderPrograms'), source.lastIndexOf('return ('));
+    const startNowBlock = source.slice(source.indexOf("activeTab === 'start-now'"), source.indexOf('<View style={styles.programList}>'));
+    const programsBlock = source.slice(source.indexOf('<View style={styles.programList}>'), source.indexOf('</View>', source.indexOf('<View style={styles.programList}>')));
 
-    expect(startNowBlock.indexOf('Suggested Workouts')).toBeLessThan(startNowBlock.indexOf('Recently Added'));
+    expect(startNowBlock).toContain('suggested.map');
+    expect(startNowBlock).toContain('Recently Added');
     expect(programsBlock).not.toContain('title="Programs"');
     expect(programsBlock).toContain('Add new program');
-    expect(programsBlock.indexOf('Add new program')).toBeLessThan(programsBlock.indexOf('programSummaries.map'));
-    expect(programsBlock).toContain('variant="add"');
-    expect(source).toContain('Create a new training split');
+    expect(programsBlock.indexOf('Add new program')).toBeLessThan(programsBlock.indexOf('visibleProgramSummaries.map'));
+    expect(programsBlock).toContain('icon="add"');
+    expect(source).toContain('CreateProgramModal');
     expect(source).toContain('ProgramRow');
     expect(source).not.toContain('addProgramActionLabel');
   });
@@ -29,14 +30,14 @@ describe('product simplification 2.0', () => {
   test('workouts screen uses a consistent card and program metadata model', () => {
     const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
 
-    expect(source).toContain("line2={`${summary.exerciseCount} exercises`}");
-    expect(source).toContain("line3={summary.estimatedDuration ? summary.estimatedDuration : 'Duration unavailable'}");
-    expect(source).toContain('metaLinePrimary');
-    expect(source).toContain('metaLineSecondary');
+    expect(source).toContain('summary.subtitle || `${summary.exerciseCount} exercises`');
+    expect(source).toContain('summary.workout.title');
+    expect(source).toContain('RoutineCard');
+    expect(source).toContain('coverLabel');
     expect(source).toContain('ProgramRow');
-    expect(source).toContain('variant="add"');
+    expect(source).toContain('icon="add"');
     expect(source).toContain('workoutCount={summary.workoutCount}');
-    expect(source).toContain('Create a new training split');
+    expect(source).toContain('CreateProgramModal');
     expect(source).not.toContain('detailLabel={summary.subtitle}');
     expect(source).not.toContain('countLabel={`${summary.workoutCount} workout');
     expect(source).not.toContain('Create program');
@@ -64,33 +65,39 @@ describe('product simplification 2.0', () => {
 
   test('nutrition screen stays compact, diary-first, and uses dedicated date and add-food routes', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
+    const summaryGrid = readSource('src/features/nutrition/components/NutritionSummaryGrid.tsx');
+    const mealGroup = readSource('src/features/nutrition/components/MealGroup.tsx');
+    const foodEntryRow = readSource('src/features/nutrition/components/FoodEntryRow.tsx');
+    const weekStrip = readSource('src/features/nutrition/components/NutritionWeekStrip.tsx');
+    const detailsSection = readSource('src/features/nutrition/components/NutritionDetailsSection.tsx');
+    const nutritionUi = [source, summaryGrid, mealGroup, foodEntryRow, weekStrip, detailsSection].join('\n');
 
     expect(source).toContain('Nutrition');
     expect(source).toContain('calendarButton');
     expect(source).toContain('summarySection');
     expect(source).toContain('mealSectionList');
-    expect(source).toContain('mealGroup');
-    expect(source).toContain('mealSummaryStrip');
-    expect(source).toContain('renderMacroGridRow');
-    expect(source).toContain('macroGridRow');
-    expect(source).toContain('macroGridValue');
-    expect(source).toContain('foodRowTop');
-    expect(source).toContain('foodMetadata');
-    expect(source).toContain('detailsSection');
-    expect(source).toContain('detailRow');
-    expect(source).not.toContain('mealSummaryValue');
-    expect(source).not.toContain('foodRowCalories');
-    expect(source).not.toContain('foodRowMacroLine');
-    expect(source).not.toContain('foodRowMacroValue');
-    expect(source).not.toContain('foodRowMacroServing');
+    expect(nutritionUi).toContain('mealGroup');
+    expect(nutritionUi).toContain('mealSummaryStrip');
+    expect(nutritionUi).toContain('NutritionSummaryGrid');
+    expect(nutritionUi).toContain('macroGridRow');
+    expect(nutritionUi).toContain('macroGridValue');
+    expect(nutritionUi).toContain('foodRowTop');
+    expect(nutritionUi).toContain('foodMetadata');
+    expect(nutritionUi).toContain('detailsSection');
+    expect(nutritionUi).toContain('detailRow');
+    expect(nutritionUi).not.toContain('mealSummaryValue');
+    expect(nutritionUi).not.toContain('foodRowCalories');
+    expect(nutritionUi).not.toContain('foodRowMacroLine');
+    expect(nutritionUi).not.toContain('foodRowMacroValue');
+    expect(nutritionUi).not.toContain('foodRowMacroServing');
     expect(source).toContain("router.push({ pathname: '/nutrition/add-food'");
     expect(source).toContain("pathname: '/nutrition/date-picker'");
     expect(source).toContain('todayButton');
-    expect(source).toContain('weekDayButton');
-    expect(source).not.toContain('Consumed today');
-    expect(source).not.toContain('This week');
-    expect(source).not.toContain('Daily summary');
-    expect(source).not.toContain('Footer actions');
+    expect(nutritionUi).toContain('weekDayButton');
+    expect(nutritionUi).not.toContain('Consumed today');
+    expect(nutritionUi).not.toContain('This week');
+    expect(nutritionUi).not.toContain('Daily summary');
+    expect(nutritionUi).not.toContain('Footer actions');
   });
 
   test('nutrition picker route keeps the meal-aware modes and quiet edit/delete path', () => {
@@ -147,18 +154,18 @@ describe('product simplification 2.0', () => {
     const profile = readSource('src/app/(tabs)/profile.tsx');
     const sessionTable = readSource('src/features/workouts/components/session/SessionSetTable.tsx');
     const exerciseSection = readSource('src/features/workouts/components/session/SessionExerciseSection.tsx');
-    const builder = readSource('src/app/workouts/builder.tsx');
+    const builder = readSource('src/features/workouts/screens/WorkoutBuilderScreen.tsx');
     const picker = readSource('src/components/workouts/ProgramWorkoutPickerModal.tsx');
     const editor = readSource('src/components/workouts/ProgramWorkoutEditorModal.tsx');
     const workoutBuilderCard = readSource('src/components/workouts/WorkoutBuilderCard.tsx');
 
-    expect(workouts).toContain('Start now');
+    expect(workouts).toContain('Start Now');
     expect(workouts).toContain('Programs');
     expect(workouts).not.toContain('Start empty workout');
-    expect(template).toContain('Start workout');
+    expect(template).toContain('Start Workout');
     expect(template).toContain('Favorite / unfavorite');
-    expect(program).toContain('Edit program');
-    expect(program).toContain('Start next workout');
+    expect(program).toContain('Add routine to program');
+    expect(program).toContain('playButton');
     expect(program).not.toContain('styles.startChip');
     expect(nutrition).toContain("router.push({ pathname: '/nutrition/add-food'");
     expect(nutritionPicker).toContain('addFoodEntries');
