@@ -21,7 +21,7 @@ import {
   searchFoodCatalog,
   sumNutritionTotals,
 } from '@/lib/nutrition';
-import type { FoodCatalogItem, FoodEntry, MealTemplate, MealType } from '@/types';
+import type { FoodAttribution, FoodCatalogItem, FoodEntry, MealTemplate, MealType } from '@/types';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 const mealTypeLabels: Record<MealType, string> = {
@@ -35,6 +35,7 @@ type PickerMode = 'food' | 'recent' | 'favorites' | 'meals';
 
 type DraftItem = {
   brandName?: string;
+  attribution?: FoodAttribution;
   calories: number;
   carbs: number;
   externalId?: string;
@@ -77,6 +78,20 @@ const parseNumber = (value: string, fallback = 0) => {
 };
 
 const isMeaningful = (value: string) => value.trim().length > 0;
+
+const providerLabels: Record<FoodItem['source']['provider'] | 'manual' | 'usda', string> = {
+  custom: 'Custom',
+  fatsecret: 'FatSecret',
+  local: 'Local',
+  manual: 'Manual',
+  openfoodfacts: 'OpenFoodFacts',
+  usda: 'Local',
+};
+
+const formatProviderLabel = (provider: FoodItem['source']['provider'] | FoodEntry['source']) => providerLabels[provider] ?? provider;
+
+const getFoodAttributionLabel = (food: Pick<FoodItem, 'attribution' | 'source'>) =>
+  food.attribution?.text ?? `Source: ${formatProviderLabel(food.source.provider)}`;
 
 export default function NutritionAddFoodScreen() {
   const { colors } = useAppTheme();
@@ -178,6 +193,7 @@ export default function NutritionAddFoodScreen() {
       const servingUnit = editingEntry.servingUnit ?? catalogFood?.servingUnit ?? 'unit';
       setSelectedDraft({
         brandName: editingEntry.brandName,
+        attribution: editingEntry.attribution,
         calories: editingEntry.baseCalories ?? editingEntry.calories,
         carbs: editingEntry.baseCarbs ?? editingEntry.carbs,
         externalId: editingEntry.externalId,
@@ -202,6 +218,7 @@ export default function NutritionAddFoodScreen() {
   const openDraftFromCatalog = (food: FoodCatalogItem, quantity = food.servingSize) => {
     setSelectedDraft({
       brandName: undefined,
+      attribution: undefined,
       calories: food.calories,
       carbs: food.carbs,
       externalId: food.id,
@@ -225,6 +242,7 @@ export default function NutritionAddFoodScreen() {
 
     return {
       brandName: food.brand,
+      attribution: food.attribution,
       calories: Math.round(nutrients.calories * baseMultiplier * 10) / 10,
       carbs: Math.round(nutrients.carbs * baseMultiplier * 10) / 10,
       externalId: food.id,
@@ -248,6 +266,7 @@ export default function NutritionAddFoodScreen() {
       id: `${draft.externalId ?? draft.name}-${Date.now()}`,
       name: draft.name,
       brandName: draft.brandName,
+      attribution: draft.attribution,
       date: selectedDate,
       mealType: selectedMeal,
       calories: draft.calories,
@@ -326,6 +345,7 @@ export default function NutritionAddFoodScreen() {
       date: selectedDate,
       mealType: selectedMeal,
       brandName: selectedDraft.brandName,
+      attribution: selectedDraft.attribution,
       calories: Math.round(selectedDraft.calories * servings * 10) / 10,
       protein: Math.round(selectedDraft.protein * servings * 10) / 10,
       carbs: Math.round(selectedDraft.carbs * servings * 10) / 10,
@@ -567,7 +587,8 @@ export default function NutritionAddFoodScreen() {
                     <ListRow
                       key={food.id}
                       accessibilityHint="Tap to set a portion before adding"
-                      detail={`${food.brand ?? food.source.provider} · ${servingLabel} · ${formatNumber(nutrients.protein)}P · ${formatNumber(nutrients.carbs)}C · ${formatNumber(nutrients.fat)}F`}
+                      badge={formatProviderLabel(food.source.provider)}
+                      detail={`${food.brand ?? getFoodAttributionLabel(food)} · ${servingLabel} · ${formatNumber(nutrients.protein)}P · ${formatNumber(nutrients.carbs)}C · ${formatNumber(nutrients.fat)}F`}
                       onPress={() => openDraftFromFoodItem(food)}
                       title={food.name}
                       trailing={
@@ -615,7 +636,7 @@ export default function NutritionAddFoodScreen() {
                       />
                     );
                   })
-                ) : backendFoodResults.length === 0 ? (
+                ) : backendFoodResults.length === 0 && backendFoodSearchStatus !== 'loading' ? (
                   <Text selectable style={styles.emptyStateText}>
                     No food found
                   </Text>
@@ -646,6 +667,7 @@ export default function NutritionAddFoodScreen() {
 
                         setSelectedDraft({
                           brandName: item.entry.brandName,
+                          attribution: item.entry.attribution,
                           calories: item.entry.baseCalories ?? item.entry.calories,
                           carbs: item.entry.baseCarbs ?? item.entry.carbs,
                           externalId: item.entry.externalId,
@@ -933,6 +955,11 @@ export default function NutritionAddFoodScreen() {
             <Text selectable style={styles.sheetMeta}>
               {formatFoodServing({ servingSize: selectedDraft.servingSize, servingUnit: selectedDraft.servingUnit })}
             </Text>
+            {selectedDraft.attribution || selectedDraft.source === 'fatsecret' ? (
+              <Text selectable style={styles.sheetAttribution}>
+                {selectedDraft.attribution?.text ?? `Source: ${formatProviderLabel(selectedDraft.source)}`}
+              </Text>
+            ) : null}
 
             <View style={styles.sheetField}>
               <Text selectable style={styles.sheetLabel}>
@@ -1160,6 +1187,11 @@ const createStyles = (colors: typeof Colors.dark) =>
       maxWidth: MaxContentWidth,
       padding: Spacing.three,
       width: '100%',
+    },
+    sheetAttribution: {
+      color: colors.textMuted,
+      fontSize: 11,
+      lineHeight: 15,
     },
     sheetBackdrop: {
       alignItems: 'center',

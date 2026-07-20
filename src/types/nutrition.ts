@@ -29,6 +29,12 @@ export type FoodCatalogItem = {
   popularity: number;
 };
 
+export type FoodAttribution = {
+  provider: string;
+  text: string;
+  url?: string;
+};
+
 export type FoodEntry = {
   id: string;
   name: string;
@@ -45,6 +51,7 @@ export type FoodEntry = {
   baseFats?: number;
   source: 'manual' | 'local' | 'fatsecret' | 'openfoodfacts' | 'custom' | 'usda';
   externalId?: string;
+  attribution?: FoodAttribution;
   servingSize?: number;
   servingUnit?: string;
   quantity?: number;
