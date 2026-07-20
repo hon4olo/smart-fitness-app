@@ -24,7 +24,7 @@ function ExerciseRow({ exercise, onInfoPress, onPress, selected }: ExerciseRowPr
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, selected && styles.rowSelected, pressed && styles.pressed]}>
-      <ExerciseMediaPreview colors={colors} exercise={exercise} style={styles.thumbnail} />
+      <ExerciseMediaPreview colors={colors} contentFit="contain" exercise={exercise} playing={false} priority="low" style={styles.thumbnail} />
       <View style={styles.copy}>
         <Text numberOfLines={1} style={styles.name}>
           {exercise.name}
@@ -50,6 +50,9 @@ function ExerciseRow({ exercise, onInfoPress, onPress, selected }: ExerciseRowPr
     </Pressable>
   );
 }
+
+const getOptionsFromExercises = (exercises: Exercise[], field: 'equipment' | 'primaryMuscles') =>
+  Array.from(new Set(exercises.flatMap((exercise) => exercise[field]))).sort((left, right) => left.localeCompare(right));
 
 function FilterChips({
   activeValue,
@@ -115,11 +118,7 @@ export default function WorkoutExerciseLibraryScreen() {
       setError(null);
 
       try {
-        const [exercises, muscles, equipment] = await Promise.all([
-          exerciseRepository.getAllExercises(),
-          exerciseRepository.getMuscleOptions(),
-          exerciseRepository.getEquipmentOptions(),
-        ]);
+        const exercises = await exerciseRepository.getAllExercises();
 
         if (cancelled) {
           return;
@@ -127,8 +126,8 @@ export default function WorkoutExerciseLibraryScreen() {
 
         setAllExercises(exercises);
         setResults(exercises);
-        setMuscleOptions(muscles);
-        setEquipmentOptions(equipment);
+        setMuscleOptions(getOptionsFromExercises(exercises, 'primaryMuscles'));
+        setEquipmentOptions(getOptionsFromExercises(exercises, 'equipment'));
         setDiagnostics(exerciseRepository.getDiagnostics());
       } catch {
         if (!cancelled) {
@@ -186,6 +185,12 @@ export default function WorkoutExerciseLibraryScreen() {
       .filter((exercise): exercise is Exercise => Boolean(exercise))
       .slice(0, 6);
   }, [allExercises, workoutSessions]);
+  const recentExerciseIds = useMemo(() => new Set(recentExercises.map((exercise) => exercise.id)), [recentExercises]);
+  const showRecentExercises = !loading && !error && recentExercises.length > 0 && !query.trim() && !muscleFilter && !equipmentFilter;
+  const listResults = useMemo(
+    () => (showRecentExercises ? results.filter((exercise) => !recentExerciseIds.has(exercise.id)) : results),
+    [recentExerciseIds, results, showRecentExercises],
+  );
 
   const toggleExercise = (exerciseId: string) => {
     setSelectedIds((current) =>
@@ -271,7 +276,7 @@ export default function WorkoutExerciseLibraryScreen() {
         </View>
       ) : null}
 
-      {!loading && !error && recentExercises.length > 0 && !query.trim() && !muscleFilter && !equipmentFilter ? (
+      {showRecentExercises ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent</Text>
           <View style={styles.list}>
@@ -310,16 +315,16 @@ export default function WorkoutExerciseLibraryScreen() {
         ListFooterComponent={listFooter}
         ListHeaderComponent={listHeader}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 128, paddingTop: insets.top + Spacing.three }]}
-        data={loading || error ? [] : results}
-        initialNumToRender={8}
+        data={loading || error ? [] : listResults}
+        initialNumToRender={4}
         keyboardShouldPersistTaps="handled"
         keyExtractor={(item) => item.id}
-        maxToRenderPerBatch={8}
+        maxToRenderPerBatch={4}
         renderItem={renderExercise}
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}
         updateCellsBatchingPeriod={80}
-        windowSize={7}
+        windowSize={3}
       />
 
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.borderSubtle, paddingBottom: insets.bottom + Spacing.two }]}>

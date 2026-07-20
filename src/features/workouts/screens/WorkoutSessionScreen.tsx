@@ -455,6 +455,9 @@ export default function WorkoutSessionScreen() {
               <Pressable onPress={() => router.push('/workout-session/exercises')} style={({ pressed }) => [styles.addExercisesButton, pressed && styles.pressed]}>
                 <Text style={styles.addExercisesLabel}>{['Add ', 'exercises'].join('')}</Text>
               </Pressable>
+              <Pressable onPress={() => router.push('/exercises/direct-gif-test')} style={({ pressed }) => [styles.testGifButton, pressed && styles.pressed]}>
+                <Text style={styles.testGifLabel}>Test Exercise GIF</Text>
+              </Pressable>
             </View>
           ) : null}
 
@@ -497,6 +500,11 @@ export default function WorkoutSessionScreen() {
           {workoutExercises.length > 0 ? (
             <Pressable onPress={() => router.push('/workout-session/exercises')} style={({ pressed }) => [styles.addExerciseFooterButton, pressed && styles.pressed]}>
               <Text style={styles.addExerciseFooterLabel}>Add exercises</Text>
+            </Pressable>
+          ) : null}
+          {workoutExercises.length > 0 ? (
+            <Pressable onPress={() => router.push('/exercises/direct-gif-test')} style={({ pressed }) => [styles.testGifFooterButton, pressed && styles.pressed]}>
+              <Text style={styles.testGifLabel}>Test Exercise GIF</Text>
             </Pressable>
           ) : null}
         </View>
@@ -851,6 +859,34 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     scrollView: {
       flex: 1,
+    },
+    testGifButton: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
+      justifyContent: 'center',
+      minHeight: 44,
+      paddingHorizontal: Spacing.three,
+    },
+    testGifFooterButton: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
+      justifyContent: 'center',
+      minHeight: 44,
+      marginTop: Spacing.two,
+      paddingHorizontal: Spacing.three,
+    },
+    testGifLabel: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '800',
     },
     textAction: {
       alignItems: 'center',

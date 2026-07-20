@@ -78,6 +78,7 @@ export const createExerciseRepository = (provider?: ExerciseProvider): ExerciseR
   const selectedProvider = provider ?? (selectedProviderName === 'oss-exercisedb' ? createOssExerciseDbProvider() : localExerciseProvider);
   const cacheKey = selectedProviderName === 'oss-exercisedb' ? EXERCISE_CACHE_KEYS.ossExerciseDb : EXERCISE_CACHE_KEYS.local;
   let cachedExercises: Exercise[] | null = null;
+  let loadPromise: Promise<Exercise[]> | null = null;
   let lastError: string | null = null;
   let lastLoadSource: ExerciseRepositoryDiagnostics['loadSource'] = null;
 
@@ -86,36 +87,48 @@ export const createExerciseRepository = (provider?: ExerciseProvider): ExerciseR
       return cachedExercises;
     }
 
-    try {
-      const result = await selectedProvider.listExercises();
-      cachedExercises = result.exercises;
-      lastError = null;
-      lastLoadSource = selectedProviderName === 'oss-exercisedb' ? 'network' : 'local';
+    if (loadPromise) {
+      return loadPromise;
+    }
 
-      if (selectedProviderName === 'oss-exercisedb') {
-        await saveExerciseCatalogCache(cacheKey, {
-          exercises: result.exercises,
-          providerVersion: result.providerVersion ?? 'oss-exercisedb-v2',
-          refreshedAt: result.refreshedAt ?? new Date().toISOString(),
-        });
-      }
+    loadPromise = (async () => {
+      try {
+        const result = await selectedProvider.listExercises();
+        cachedExercises = result.exercises;
+        lastError = null;
+        lastLoadSource = selectedProviderName === 'oss-exercisedb' ? 'network' : 'local';
 
-      return cachedExercises;
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : 'Unknown exercise provider error';
-      // The free OSS ExerciseDB endpoint is for development/prototypes/internal testing only.
-      // App Store production builds must omit EXPO_PUBLIC_ENABLE_OSS_EXERCISEDB or set it to false.
-      const cache = selectedProviderName === 'oss-exercisedb' ? await loadExerciseCatalogCache(cacheKey) : null;
-      if (cache) {
-        cachedExercises = cache.exercises;
-        lastLoadSource = 'cache';
+        if (selectedProviderName === 'oss-exercisedb') {
+          await saveExerciseCatalogCache(cacheKey, {
+            exercises: result.exercises,
+            providerVersion: result.providerVersion ?? 'oss-exercisedb-v2',
+            refreshedAt: result.refreshedAt ?? new Date().toISOString(),
+          });
+        }
+
+        return cachedExercises;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : 'Unknown exercise provider error';
+        // The free OSS ExerciseDB endpoint is for development/prototypes/internal testing only.
+        // App Store production builds must omit EXPO_PUBLIC_ENABLE_OSS_EXERCISEDB or set it to false.
+        const cache = selectedProviderName === 'oss-exercisedb' ? await loadExerciseCatalogCache(cacheKey) : null;
+        if (cache) {
+          cachedExercises = cache.exercises;
+          lastLoadSource = 'cache';
+          return cachedExercises;
+        }
+
+        const localResult = await localExerciseProvider.listExercises();
+        cachedExercises = localResult.exercises;
+        lastLoadSource = selectedProviderName === 'oss-exercisedb' ? 'local-fallback' : 'local';
         return cachedExercises;
       }
+    })();
 
-      const localResult = await localExerciseProvider.listExercises();
-      cachedExercises = localResult.exercises;
-      lastLoadSource = selectedProviderName === 'oss-exercisedb' ? 'local-fallback' : 'local';
-      return cachedExercises;
+    try {
+      return await loadPromise;
+    } finally {
+      loadPromise = null;
     }
   };
 

@@ -17,6 +17,7 @@ type ExerciseMediaPreviewProps = {
   onMediaDisplay?: () => void;
   onMediaLoadStart?: () => void;
   playing?: boolean;
+  priority?: 'low' | 'normal' | 'high' | null;
   resizeMode?: ImageResizeMode;
   showLabel?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -32,6 +33,7 @@ export function ExerciseMediaPreview({
   onMediaLoad,
   onMediaLoadStart,
   playing = true,
+  priority,
   resizeMode = 'cover',
   showLabel = false,
   style,
@@ -69,6 +71,7 @@ export function ExerciseMediaPreview({
           onLoadStart={() => {
             onMediaLoadStart?.();
           }}
+          priority={priority}
           recyclingKey={`${exercise.id}:${mediaUri}:${playing ? 'playing' : 'paused'}`}
           source={{ uri: mediaUri }}
           style={[styles.image, imageStyle]}
