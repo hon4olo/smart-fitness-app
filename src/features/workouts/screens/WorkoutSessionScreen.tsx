@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, ActivityIndicator, Keyboard, Modal, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Alert, Keyboard, Modal, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
@@ -11,6 +11,10 @@ import { clearActiveWorkoutSessionDraft, loadWorkoutRpeTrackingEnabled, saveWork
 import { resolveWorkoutSessionRouteState } from '@/features/workouts/routeResolution';
 import { addWorkoutSessionSet, clearWorkoutSessionSetsForExercise, createWorkoutSessionDraft, getPreviousCompletedSetsForExercise, getWorkoutSessionCompletedSetCount, removeWorkoutSessionSet, toggleWorkoutSessionSetCompletion, updateWorkoutSessionSetActualRpe, updateWorkoutSessionSetField } from '@/features/workouts/sessionScreenModel';
 import { formatWorkoutSessionElapsedLabel } from '@/features/workouts/sessionModel';
+import { WorkoutSessionEmptyWorkoutCard } from '@/features/workouts/components/session/WorkoutSessionEmptyWorkoutCard';
+import { WorkoutSessionFooterActions } from '@/features/workouts/components/session/WorkoutSessionFooterActions';
+import { WorkoutSessionLoadingState } from '@/features/workouts/components/session/WorkoutSessionLoadingState';
+import { WorkoutSessionMissingState } from '@/features/workouts/components/session/WorkoutSessionMissingState';
 import { RpeBottomSheet } from '@/features/workouts/components/session/RpeBottomSheet';
 import { SessionExerciseSection } from '@/features/workouts/components/session/SessionExerciseSection';
 import { SessionHeader } from '@/features/workouts/components/session/SessionHeader';
@@ -251,27 +255,11 @@ export default function WorkoutSessionScreen() {
   }, [isEmptyWorkout, visibleExercises]);
 
   if (bootstrappedDraft === undefined || isRestoringState || routeState.status === 'loading') {
-    return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View style={styles.loadingState}>
-          <ActivityIndicator color={colors.accent} />
-          <Text style={styles.loadingLabel}>Loading workout…</Text>
-        </View>
-      </View>
-    );
+    return <WorkoutSessionLoadingState accentColor={colors.accent} backgroundColor={colors.background} styles={styles} />;
   }
 
   if (!draft) {
-    return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View style={styles.loadingState}>
-          <Text style={styles.emptyTitle}>No workout selected</Text>
-          <Pressable onPress={() => router.replace('/workouts')} style={({ pressed }) => [styles.textAction, pressed && styles.pressed]}>
-            <Text style={styles.textActionLabel}>Back to Workouts</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
+    return <WorkoutSessionMissingState backgroundColor={colors.background} onBackToWorkouts={() => router.replace('/workouts')} styles={styles} />;
   }
 
   const workoutTitle = draft.workoutTitle;
@@ -450,16 +438,11 @@ export default function WorkoutSessionScreen() {
         style={styles.scrollView}>
         <View style={styles.container}>
           {isEmptyWorkout && draft.sets.length === 0 ? (
-            <View style={styles.emptyWorkoutCard}>
-              <Text style={styles.emptyWorkoutTitle}>No Exercises Added</Text>
-              <Text style={styles.emptyWorkoutSubtitle}>Add one or more exercises to start logging the session.</Text>
-              <Pressable onPress={() => router.push('/workout-session/exercises')} style={({ pressed }) => [styles.addExercisesButton, pressed && styles.pressed]}>
-                <Text style={styles.addExercisesLabel}>{['Add ', 'exercises'].join('')}</Text>
-              </Pressable>
-              <Pressable onPress={() => router.push('/exercises/direct-gif-test')} style={({ pressed }) => [styles.testGifButton, pressed && styles.pressed]}>
-                <Text style={styles.testGifLabel}>Test Exercise GIF</Text>
-              </Pressable>
-            </View>
+            <WorkoutSessionEmptyWorkoutCard
+              onAddExercises={() => router.push('/workout-session/exercises')}
+              onTestGif={() => router.push('/exercises/direct-gif-test')}
+              styles={styles}
+            />
           ) : null}
 
           {workoutExercises.map((exercise) => {
@@ -498,16 +481,12 @@ export default function WorkoutSessionScreen() {
               />
             );
           })}
-          {workoutExercises.length > 0 ? (
-            <Pressable onPress={() => router.push('/workout-session/exercises')} style={({ pressed }) => [styles.addExerciseFooterButton, pressed && styles.pressed]}>
-              <Text style={styles.addExerciseFooterLabel}>Add exercises</Text>
-            </Pressable>
-          ) : null}
-          {workoutExercises.length > 0 ? (
-            <Pressable onPress={() => router.push('/exercises/direct-gif-test')} style={({ pressed }) => [styles.testGifFooterButton, pressed && styles.pressed]}>
-              <Text style={styles.testGifLabel}>Test Exercise GIF</Text>
-            </Pressable>
-          ) : null}
+          <WorkoutSessionFooterActions
+            onAddExercises={() => router.push('/workout-session/exercises')}
+            onTestGif={() => router.push('/exercises/direct-gif-test')}
+            styles={styles}
+            visible={workoutExercises.length > 0}
+          />
         </View>
       </ScrollView>
 
