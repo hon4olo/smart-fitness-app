@@ -49,3 +49,4 @@ Reusable project-specific lessons and known pitfalls.
 - OTA-safe changes are JS / TS / TSX / assets-only.
 - Use [ota] in commit messages only for OTA-safe changes.
 - Installed release/OTA builds run with `__DEV__` false; internal-only runtime behavior needs an explicit non-secret public flag, not a dev-mode check.
+- Before re-enabling JS that imports native modules such as `expo-image`, bump the app version or runtimeVersion, create a new native iOS build for that runtime, and publish those OTA bundles only to the matching runtime/channel. Never send native-module JS to runtime `1.0.0`.
