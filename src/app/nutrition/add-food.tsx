@@ -1,23 +1,23 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppButton } from '@/components/ui/AppButton';
-import { AppCard } from '@/components/ui/AppCard';
-import { ListRow } from '@/components/ui/ListRow';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { isFoodApiConfigured, searchFoods, type FoodItem } from '@/api/foods';
 import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { foodCatalog } from '@/data/foods';
 import { CreateFoodInlineForm } from '@/features/nutrition/components/CreateFoodInlineForm';
+import { FavoriteFoodsModeSection } from '@/features/nutrition/components/FavoriteFoodsModeSection';
+import { FoodSearchModeSection } from '@/features/nutrition/components/FoodSearchModeSection';
 import { FoodPortionSheet } from '@/features/nutrition/components/FoodPortionSheet';
+import { RecentFoodsModeSection } from '@/features/nutrition/components/RecentFoodsModeSection';
+import { SavedMealsModeSection } from '@/features/nutrition/components/SavedMealsModeSection';
 import { createAddFoodStyles } from '@/features/nutrition/styles/addFoodStyles';
 import {
   buildFoodEntryFromCatalog,
   formatCompactMacroTotals,
-  formatFoodMacros,
   formatFoodServing,
   formatNumber,
   resolveFoodCatalogItem,
@@ -81,6 +81,7 @@ const parseNumber = (value: string, fallback = 0) => {
 };
 
 const isMeaningful = (value: string) => value.trim().length > 0;
+const quickAddLabel = 'Quick add';
 
 const providerLabels: Record<FoodItem['source']['provider'] | 'manual' | 'usda', string> = {
   custom: 'Custom',
@@ -115,14 +116,8 @@ export default function NutritionAddFoodScreen() {
   const selectedMeal: MealType = params.meal === 'lunch' || params.meal === 'dinner' || params.meal === 'snack' ? params.meal : 'breakfast';
   const entryId = typeof params.entryId === 'string' && params.entryId.length > 0 ? params.entryId : undefined;
 
-  const selectedDateEntries = useMemo(
-    () => foodEntries.filter((entry) => entry.date === selectedDate),
-    [foodEntries, selectedDate]
-  );
-  const selectedMealEntries = useMemo(
-    () => selectedDateEntries.filter((entry) => entry.mealType === selectedMeal),
-    [selectedDateEntries, selectedMeal]
-  );
+  const selectedDateEntries = useMemo(() => foodEntries.filter((entry) => entry.date === selectedDate), [foodEntries, selectedDate]);
+  const selectedMealEntries = useMemo(() => selectedDateEntries.filter((entry) => entry.mealType === selectedMeal), [selectedDateEntries, selectedMeal]);
   const selectedMealTotals = useMemo(() => sumNutritionTotals(selectedMealEntries), [selectedMealEntries]);
 
   const recentItems = useMemo<RecentItem[]>(() => {
@@ -177,14 +172,7 @@ export default function NutritionAddFoodScreen() {
 
   const editingEntry = useMemo(() => foodEntries.find((entry) => entry.id === entryId), [entryId, foodEntries]);
   const defaultCatalogResults = useMemo(() => searchFoodCatalog(foodCatalog, query, { favoriteIds: favoriteIds.length > 0 ? favoriteIds : favoriteSeedIds, recentIds: recentCatalogIds }), [favoriteIds, favoriteSeedIds, query, recentCatalogIds]);
-  const favoriteFoods = useMemo(
-    () => foodCatalog.filter((food) => favoriteIds.includes(food.id) || favoriteSeedIds.includes(food.id)),
-    [favoriteIds, favoriteSeedIds]
-  );
-  const mealTotals = useMemo(
-    () => sumNutritionTotals(selectedMealEntries),
-    [selectedMealEntries]
-  );
+  const favoriteFoods = useMemo(() => foodCatalog.filter((food) => favoriteIds.includes(food.id) || favoriteSeedIds.includes(food.id)), [favoriteIds, favoriteSeedIds]);
   const selectedMealLabel = mealTypeLabels[selectedMeal];
   const selectedMealCountLabel = `${selectedMealEntries.length} item${selectedMealEntries.length === 1 ? '' : 's'}`;
   const selectedDateLabel = formatScreenDate(selectedDate);
@@ -325,6 +313,29 @@ export default function NutritionAddFoodScreen() {
       createdAt: new Date().toISOString(),
     });
     setMessage(`Added ${item.entry.name} to ${selectedMealLabel}`);
+  };
+
+  const openDraftFromRecent = (item: RecentItem) => {
+    if (item.catalogFood) {
+      openDraftFromCatalog(item.catalogFood, item.entry.quantity ?? item.catalogFood.servingSize);
+      return;
+    }
+
+    setSelectedDraft({
+      brandName: item.entry.brandName,
+      attribution: item.entry.attribution,
+      calories: item.entry.baseCalories ?? item.entry.calories,
+      carbs: item.entry.baseCarbs ?? item.entry.carbs,
+      externalId: item.entry.externalId,
+      fats: item.entry.baseFats ?? item.entry.fats,
+      name: item.entry.name,
+      originalEntryId: item.entry.id,
+      protein: item.entry.baseProtein ?? item.entry.protein,
+      servingSize: item.entry.servingSize ?? item.entry.quantity ?? 1,
+      servingUnit: item.entry.servingUnit ?? 'unit',
+      source: item.entry.source,
+      quantity: String(item.entry.quantity ?? item.entry.servingSize ?? 1),
+    });
   };
 
   const quickAddMealTemplate = (template: MealTemplate) => {
@@ -566,283 +577,38 @@ export default function NutritionAddFoodScreen() {
           ) : null}
 
           {mode === 'food' ? (
-            <AppCard>
-              <View style={styles.searchRow}>
-                <TextInput
-                  accessibilityLabel="Search food"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  clearButtonMode="while-editing"
-                  onChangeText={setQuery}
-                  placeholder="Search food"
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.searchInput}
-                  value={query}
-                />
-                {query.length > 0 ? (
-                  <Pressable accessibilityLabel="Clear search" hitSlop={10} onPress={() => setQuery('')} style={styles.clearButton}>
-                    <Text style={styles.clearButtonText}>×</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-
-              <View style={styles.listGap}>
-                {backendFoodSearchStatus === 'loading' ? (
-                  <Text selectable style={styles.helperText}>
-                    Searching food database...
-                  </Text>
-                ) : null}
-                {backendFoodSearchStatus === 'error' ? (
-                  <Text selectable style={styles.helperText}>
-                    Food database unavailable. Showing local foods.
-                  </Text>
-                ) : null}
-                {backendFoodResults.map((food) => {
-                  const nutrients = food.nutrientsPer100g ?? food.nutrientsPer100ml ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
-                  const serving = food.servings[0];
-                  const servingLabel = serving?.label ?? (food.servingBase === '100ml' ? '100 ml' : '100 g');
-                  return (
-                    <ListRow
-                      key={food.id}
-                      accessibilityHint="Tap to set a portion before adding"
-                      badge={formatProviderLabel(food.source.provider)}
-                      detail={`${food.brand ?? getFoodAttributionLabel(food)} · ${servingLabel} · ${formatNumber(nutrients.protein)}P · ${formatNumber(nutrients.carbs)}C · ${formatNumber(nutrients.fat)}F`}
-                      onPress={() => openDraftFromFoodItem(food)}
-                      title={food.name}
-                      trailing={
-                        <Pressable
-                          accessibilityLabel={`Quick add ${food.name} to ${selectedMealLabel}`}
-                          hitSlop={10}
-                          onPress={() => quickAddFoodItem(food)}
-                          style={styles.iconButton}>
-                          <Text style={styles.iconButtonText}>+</Text>
-                        </Pressable>
-                      }
-                      value={`${formatNumber(nutrients.calories)} kcal`}
-                    />
-                  );
-                })}
-                {searchResults.length > 0 ? (
-                  searchResults.map((food) => {
-                    const favorite = favoriteIds.includes(food.id) || favoriteSeedIds.includes(food.id);
-                    return (
-                      <ListRow
-                        key={food.id}
-                        accessibilityHint="Tap to set a portion before adding"
-                        detail={`${formatFoodServing(food)} · ${formatFoodMacros(food)}`}
-                        onPress={() => openDraftFromCatalog(food)}
-                        title={food.name}
-                        trailing={
-                          <View style={styles.rowActions}>
-                            <Pressable
-                              accessibilityLabel={`${favorite ? 'Remove' : 'Add'} ${food.name} from favorites`}
-                              hitSlop={10}
-                              onPress={() => toggleFavorite(food.id)}
-                              style={styles.iconButton}>
-                              <Text style={styles.iconButtonText}>{favorite ? '★' : '☆'}</Text>
-                            </Pressable>
-                            <Pressable
-                              accessibilityLabel={`Quick add ${food.name} to ${selectedMealLabel}`}
-                              hitSlop={10}
-                              onPress={() => quickAddCatalogFood(food)}
-                              style={styles.iconButton}>
-                              <Text style={styles.iconButtonText}>+</Text>
-                            </Pressable>
-                          </View>
-                        }
-                        value={`${formatNumber(food.calories)} kcal`}
-                      />
-                    );
-                  })
-                ) : backendFoodResults.length === 0 && backendFoodSearchStatus !== 'loading' ? (
-                  <Text selectable style={styles.emptyStateText}>
-                    No food found
-                  </Text>
-                ) : null}
-              </View>
-            </AppCard>
+            <FoodSearchModeSection
+              backendFoodResults={backendFoodResults} backendFoodSearchStatus={backendFoodSearchStatus} colors={colors}
+              favoriteIds={favoriteIds} favoriteSeedIds={favoriteSeedIds} formatProviderLabel={formatProviderLabel}
+              getFoodAttributionLabel={getFoodAttributionLabel} onClearQuery={() => setQuery('')} onOpenCatalogFood={openDraftFromCatalog}
+              onOpenFoodItem={openDraftFromFoodItem} onQuickAddCatalogFood={quickAddCatalogFood} onQuickAddFoodItem={quickAddFoodItem}
+              onToggleFavorite={toggleFavorite} query={query} searchResults={searchResults} selectedMealLabel={selectedMealLabel}
+              setQuery={setQuery} styles={styles}
+            />
           ) : null}
 
           {mode === 'recent' ? (
-            <AppCard>
-              <View style={styles.sectionHeader}>
-                <Text selectable style={styles.sectionTitle}>
-                  Recent foods
-                </Text>
-              </View>
-              {recentItems.length > 0 ? (
-                <View style={styles.listGap}>
-                  {recentItems.map((item) => (
-                    <ListRow
-                      key={item.key}
-                      accessibilityHint="Tap to adjust the portion"
-                      detail={`${item.portionLabel} · ${item.entry.brandName ?? 'recent'} `}
-                      onPress={() => {
-                        if (item.catalogFood) {
-                          openDraftFromCatalog(item.catalogFood, item.entry.quantity ?? item.catalogFood.servingSize);
-                          return;
-                        }
-
-                        setSelectedDraft({
-                          brandName: item.entry.brandName,
-                          attribution: item.entry.attribution,
-                          calories: item.entry.baseCalories ?? item.entry.calories,
-                          carbs: item.entry.baseCarbs ?? item.entry.carbs,
-                          externalId: item.entry.externalId,
-                          fats: item.entry.baseFats ?? item.entry.fats,
-                          name: item.entry.name,
-                          originalEntryId: item.entry.id,
-                          protein: item.entry.baseProtein ?? item.entry.protein,
-                          servingSize: item.entry.servingSize ?? item.entry.quantity ?? 1,
-                          servingUnit: item.entry.servingUnit ?? 'unit',
-                          source: item.entry.source,
-                          quantity: String(item.entry.quantity ?? item.entry.servingSize ?? 1),
-                        });
-                      }}
-                      title={item.label}
-                      trailing={
-                        <Pressable
-                          accessibilityLabel={`Quick add ${item.label} to ${selectedMealLabel}`}
-                          hitSlop={10}
-                          onPress={() => quickAddRecent(item)}
-                          style={styles.iconButton}>
-                          <Text style={styles.iconButtonText}>+</Text>
-                        </Pressable>
-                      }
-                      value={item.caloriesLabel}
-                    />
-                  ))}
-                </View>
-              ) : (
-                <View style={styles.emptyBlock}>
-                  <Text selectable style={styles.emptyStateText}>
-                    No recent foods yet.
-                  </Text>
-                  <AppButton label="Search food" onPress={() => setMode('food')} variant="secondary" />
-                </View>
-              )}
-            </AppCard>
+            <RecentFoodsModeSection
+              items={recentItems} onOpenFood={openDraftFromRecent} onQuickAdd={quickAddRecent}
+              onSearchFood={() => setMode('food')} selectedMealLabel={selectedMealLabel} styles={styles}
+            />
           ) : null}
 
           {mode === 'favorites' ? (
-            <AppCard>
-              <View style={styles.sectionHeader}>
-                <Text selectable style={styles.sectionTitle}>
-                  Favorites
-                </Text>
-              </View>
-              {favoriteFoods.length > 0 ? (
-                <View style={styles.listGap}>
-                  {favoriteFoods.map((food) => (
-                    <ListRow
-                      key={food.id}
-                      accessibilityHint="Tap to set a portion before adding"
-                      detail={`${formatFoodServing(food)} · ${formatFoodMacros(food)}`}
-                      onPress={() => openDraftFromCatalog(food)}
-                      title={food.name}
-                      trailing={
-                        <Pressable
-                          accessibilityLabel={`Quick add ${food.name} to ${selectedMealLabel}`}
-                          hitSlop={10}
-                          onPress={() => quickAddCatalogFood(food)}
-                          style={styles.iconButton}>
-                          <Text style={styles.iconButtonText}>+</Text>
-                        </Pressable>
-                      }
-                      value={`${formatNumber(food.calories)} kcal`}
-                    />
-                  ))}
-                </View>
-              ) : (
-                <View style={styles.emptyBlock}>
-                  <Text selectable style={styles.emptyStateText}>
-                    No favorites yet.
-                  </Text>
-                  <AppButton label="Search food" onPress={() => setMode('food')} variant="secondary" />
-                </View>
-              )}
-            </AppCard>
+            <FavoriteFoodsModeSection
+              foods={favoriteFoods} onOpenFood={openDraftFromCatalog} onQuickAdd={quickAddCatalogFood}
+              onSearchFood={() => setMode('food')} selectedMealLabel={selectedMealLabel} styles={styles}
+            />
           ) : null}
 
           {mode === 'meals' ? (
-            <AppCard>
-              <View style={styles.sectionHeader}>
-                <Text selectable style={styles.sectionTitle}>
-                  Meals
-                </Text>
-              </View>
-
-              <View style={styles.quietActionRow}>
-                <Pressable accessibilityLabel="Create meal" hitSlop={10} onPress={() => setCreateMealOpen((current) => !current)} style={styles.quietActionButton}>
-                  <Text style={styles.quietActionText}>Create meal</Text>
-                </Pressable>
-                <Pressable accessibilityLabel="Manage meals" hitSlop={10} onPress={() => setManageMealsOpen((current) => !current)} style={styles.quietActionButton}>
-                  <Text style={styles.quietActionText}>{manageMealsOpen ? 'Hide delete' : 'Manage meals'}</Text>
-                </Pressable>
-              </View>
-
-              {createMealOpen ? (
-                <View style={styles.inlineForm}>
-                  <TextInput
-                    accessibilityLabel="Meal name"
-                    autoCapitalize="words"
-                    onChangeText={setMealTemplateName}
-                    placeholder="Meal name"
-                    placeholderTextColor={colors.textSecondary}
-                    style={styles.input}
-                    value={mealTemplateName}
-                  />
-                  <Text selectable style={styles.helperText}>
-                    Saves the current {selectedMealLabel.toLowerCase()} diary items as a reusable meal.
-                  </Text>
-                  <AppButton label="Save meal" onPress={saveMealTemplateFromDiary} />
-                </View>
-              ) : null}
-
-              {mealTemplates.length > 0 ? (
-                <View style={styles.listGap}>
-                  {mealTemplates.map((template) => {
-                    const templateTotals = sumNutritionTotals(template.items);
-                    return (
-                      <ListRow
-                        key={template.id}
-                        accessibilityHint="Add this saved meal to the selected day and meal"
-                        detail={`${template.items.length} item${template.items.length === 1 ? '' : 's'} · ${formatCompactMacroTotals(templateTotals)}`}
-                        onPress={() => quickAddMealTemplate(template)}
-                        title={template.name}
-                        trailing={
-                          <View style={styles.rowActions}>
-                            <Pressable
-                              accessibilityLabel={`Add ${template.name} to ${selectedMealLabel}`}
-                              hitSlop={10}
-                              onPress={() => quickAddMealTemplate(template)}
-                              style={styles.iconButton}>
-                              <Text style={styles.iconButtonText}>+</Text>
-                            </Pressable>
-                            {manageMealsOpen ? (
-                              <Pressable
-                                accessibilityLabel={`Delete ${template.name}`}
-                                hitSlop={10}
-                                onPress={() => deleteMealTemplate(template.id)}
-                                style={styles.iconButton}>
-                                <Text style={styles.iconButtonText}>×</Text>
-                              </Pressable>
-                            ) : null}
-                          </View>
-                        }
-                        value={`${formatNumber(templateTotals.calories)} kcal`}
-                      />
-                    );
-                  })}
-                </View>
-              ) : (
-                <View style={styles.emptyBlock}>
-                  <Text selectable style={styles.emptyStateText}>
-                    No saved meals yet.
-                  </Text>
-                </View>
-              )}
-            </AppCard>
+            <SavedMealsModeSection
+              colors={colors} createMealOpen={createMealOpen} manageMealsOpen={manageMealsOpen} mealTemplateName={mealTemplateName}
+              mealTemplates={mealTemplates} onDeleteMealTemplate={deleteMealTemplate} onQuickAddMealTemplate={quickAddMealTemplate}
+              onSaveMealTemplate={saveMealTemplateFromDiary} onToggleCreateMeal={() => setCreateMealOpen((current) => !current)}
+              onToggleManageMeals={() => setManageMealsOpen((current) => !current)} selectedMealLabel={selectedMealLabel}
+              setMealTemplateName={setMealTemplateName} styles={styles}
+            />
           ) : null}
 
           <View style={styles.quietActionRow}>
@@ -855,27 +621,11 @@ export default function NutritionAddFoodScreen() {
           </View>
           {createFoodOpen ? (
             <CreateFoodInlineForm
-              colors={colors}
-              foodBrand={foodBrand}
-              foodCalories={foodCalories}
-              foodCarbs={foodCarbs}
-              foodFats={foodFats}
-              foodName={foodName}
-              foodProtein={foodProtein}
-              foodQuantity={foodQuantity}
-              foodServingSize={foodServingSize}
-              foodServingUnit={foodServingUnit}
-              onSave={saveCustomFood}
-              setFoodBrand={setFoodBrand}
-              setFoodCalories={setFoodCalories}
-              setFoodCarbs={setFoodCarbs}
-              setFoodFats={setFoodFats}
-              setFoodName={setFoodName}
-              setFoodProtein={setFoodProtein}
-              setFoodQuantity={setFoodQuantity}
-              setFoodServingSize={setFoodServingSize}
-              setFoodServingUnit={setFoodServingUnit}
-              styles={styles}
+              colors={colors} foodBrand={foodBrand} foodCalories={foodCalories} foodCarbs={foodCarbs} foodFats={foodFats}
+              foodName={foodName} foodProtein={foodProtein} foodQuantity={foodQuantity} foodServingSize={foodServingSize}
+              foodServingUnit={foodServingUnit} onSave={saveCustomFood} setFoodBrand={setFoodBrand} setFoodCalories={setFoodCalories}
+              setFoodCarbs={setFoodCarbs} setFoodFats={setFoodFats} setFoodName={setFoodName} setFoodProtein={setFoodProtein}
+              setFoodQuantity={setFoodQuantity} setFoodServingSize={setFoodServingSize} setFoodServingUnit={setFoodServingUnit} styles={styles}
             />
           ) : null}
         </View>
@@ -883,21 +633,12 @@ export default function NutritionAddFoodScreen() {
 
       {selectedDraft ? (
         <FoodPortionSheet
-          attributionLabel={selectedDraftAttributionLabel}
-          colors={colors}
-          deleteLabel={deleteEntryLabel}
-          draft={selectedDraft}
-          insetsBottom={insets.bottom}
-          macroTotalsLabel={selectedDraftMacroTotalsLabel}
+          attributionLabel={selectedDraftAttributionLabel} colors={colors} deleteLabel={deleteEntryLabel} draft={selectedDraft}
+          insetsBottom={insets.bottom} macroTotalsLabel={selectedDraftMacroTotalsLabel}
           onChangeQuantity={(value) => setSelectedDraft((current) => (current ? { ...current, quantity: value } : current))}
-          onClose={() => setSelectedDraft(null)}
-          onDelete={deleteSelectedDraft}
-          onSave={saveDraft}
-          selectedDateLabel={selectedDateLabel}
-          selectedMealLabel={selectedMealLabel}
-          submitLabel={selectedDraftSubmitLabel}
-          servingLabel={selectedDraftServingLabel}
-          styles={styles}
+          onClose={() => setSelectedDraft(null)} onDelete={deleteSelectedDraft} onSave={saveDraft}
+          selectedDateLabel={selectedDateLabel} selectedMealLabel={selectedMealLabel} submitLabel={selectedDraftSubmitLabel}
+          servingLabel={selectedDraftServingLabel} styles={styles}
         />
       ) : null}
     </KeyboardAvoidingView>
