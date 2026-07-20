@@ -12,13 +12,13 @@ describe('mobile api config', () => {
   });
 
   it('trims configured https urls without trailing slashes', () => {
-    vi.stubEnv('EXPO_PUBLIC_API_BASE_URL', 'https://api.peptonio.com/');
+    vi.stubEnv('EXPO_PUBLIC_API_BASE_URL', 'https://peptonio.com/');
 
     expect(getMobileApiBaseUrl()).toBe(PRODUCTION_API_BASE_URL);
-    expect(normalizeMobileApiBaseUrl('https://api.peptonio.com///')).toBe(PRODUCTION_API_BASE_URL);
+    expect(normalizeMobileApiBaseUrl('https://peptonio.com///')).toBe(PRODUCTION_API_BASE_URL);
   });
 
   it('rejects non-https base urls', () => {
-    expect(() => normalizeMobileApiBaseUrl('http://api.peptonio.com')).toThrow(/HTTPS/);
+    expect(() => normalizeMobileApiBaseUrl('http://peptonio.com')).toThrow(/HTTPS/);
   });
 });

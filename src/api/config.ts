@@ -1,4 +1,4 @@
-export const PRODUCTION_API_BASE_URL = 'https://api.peptonio.com';
+export const PRODUCTION_API_BASE_URL = 'https://peptonio.com';
 
 const readConfiguredBaseUrl = (): string | undefined =>
   process.env.EXPO_PUBLIC_API_BASE_URL?.trim() || process.env.EXPO_PUBLIC_API_URL?.trim() || undefined;
