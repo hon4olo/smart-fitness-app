@@ -15,6 +15,12 @@
     },
     "production": {
       "autoIncrement": true,
+      "environment": "production",
+      "channel": "production"
+    },
+    "production-internal": {
+      "distribution": "internal",
+      "environment": "production",
       "channel": "production"
     }
   },
