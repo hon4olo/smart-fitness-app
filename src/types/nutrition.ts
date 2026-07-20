@@ -43,7 +43,7 @@ export type FoodEntry = {
   baseProtein?: number;
   baseCarbs?: number;
   baseFats?: number;
-  source: 'manual' | 'fatsecret' | 'openfoodfacts' | 'usda';
+  source: 'manual' | 'local' | 'fatsecret' | 'openfoodfacts' | 'custom' | 'usda';
   externalId?: string;
   servingSize?: number;
   servingUnit?: string;

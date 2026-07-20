@@ -7,6 +7,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { ListRow } from '@/components/ui/ListRow';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { isFoodApiConfigured, searchFoods, type FoodItem } from '@/api/foods';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { foodCatalog } from '@/data/foods';
@@ -153,6 +154,8 @@ export default function NutritionAddFoodScreen() {
   const [foodProtein, setFoodProtein] = useState('0');
   const [foodCarbs, setFoodCarbs] = useState('0');
   const [foodFats, setFoodFats] = useState('0');
+  const [backendFoodResults, setBackendFoodResults] = useState<FoodItem[]>([]);
+  const [backendFoodSearchStatus, setBackendFoodSearchStatus] = useState<'idle' | 'loading' | 'error'>('idle');
 
   const editingEntry = useMemo(() => foodEntries.find((entry) => entry.id === entryId), [entryId, foodEntries]);
   const defaultCatalogResults = useMemo(() => searchFoodCatalog(foodCatalog, query, { favoriteIds: favoriteIds.length > 0 ? favoriteIds : favoriteSeedIds, recentIds: recentCatalogIds }), [favoriteIds, favoriteSeedIds, query, recentCatalogIds]);
@@ -210,6 +213,59 @@ export default function NutritionAddFoodScreen() {
       source: 'usda',
       quantity: String(quantity),
     });
+  };
+
+  const createDraftFromFoodItem = (food: FoodItem): DraftItem => {
+    const nutrients = food.nutrientsPer100g ?? food.nutrientsPer100ml ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    const defaultUnit = food.servingBase === '100ml' ? 'ml' : 'g';
+    const serving = food.servings[0];
+    const servingSize = serving?.quantity && serving.quantity > 0 ? serving.quantity : 100;
+    const servingUnit = serving?.unit || defaultUnit;
+    const baseMultiplier = servingSize / 100;
+
+    return {
+      brandName: food.brand,
+      calories: Math.round(nutrients.calories * baseMultiplier * 10) / 10,
+      carbs: Math.round(nutrients.carbs * baseMultiplier * 10) / 10,
+      externalId: food.id,
+      fats: Math.round(nutrients.fat * baseMultiplier * 10) / 10,
+      name: food.name,
+      protein: Math.round(nutrients.protein * baseMultiplier * 10) / 10,
+      servingSize,
+      servingUnit,
+      source: food.source.provider,
+      quantity: String(servingSize),
+    };
+  };
+
+  const openDraftFromFoodItem = (food: FoodItem) => {
+    setSelectedDraft(createDraftFromFoodItem(food));
+  };
+
+  const quickAddFoodItem = (food: FoodItem) => {
+    const draft = createDraftFromFoodItem(food);
+    addFoodEntry({
+      id: `${draft.externalId ?? draft.name}-${Date.now()}`,
+      name: draft.name,
+      brandName: draft.brandName,
+      date: selectedDate,
+      mealType: selectedMeal,
+      calories: draft.calories,
+      protein: draft.protein,
+      carbs: draft.carbs,
+      fats: draft.fats,
+      baseCalories: draft.calories,
+      baseProtein: draft.protein,
+      baseCarbs: draft.carbs,
+      baseFats: draft.fats,
+      source: draft.source,
+      externalId: draft.externalId,
+      servingSize: draft.servingSize,
+      servingUnit: draft.servingUnit,
+      quantity: draft.servingSize,
+      createdAt: new Date().toISOString(),
+    });
+    setMessage(`Added ${draft.name} to ${selectedMealLabel}`);
   };
 
   const quickAddCatalogFood = (food: FoodCatalogItem, servings = 1) => {
@@ -376,6 +432,40 @@ export default function NutritionAddFoodScreen() {
   }, [defaultCatalogResults, mode]);
 
   useEffect(() => {
+    const trimmedQuery = query.trim();
+    if (mode !== 'food' || !isFoodApiConfigured() || trimmedQuery.length < 2) {
+      setBackendFoodResults([]);
+      setBackendFoodSearchStatus('idle');
+      return;
+    }
+
+    let active = true;
+    setBackendFoodSearchStatus('loading');
+
+    searchFoods(trimmedQuery)
+      .then((foods) => {
+        if (!active) {
+          return;
+        }
+
+        setBackendFoodResults(foods.slice(0, 8));
+        setBackendFoodSearchStatus('idle');
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        setBackendFoodResults([]);
+        setBackendFoodSearchStatus('error');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [mode, query]);
+
+  useEffect(() => {
     if (mode === 'recent' && recentItems.length === 0) {
       setMode('food');
     }
@@ -459,6 +549,40 @@ export default function NutritionAddFoodScreen() {
               </View>
 
               <View style={styles.listGap}>
+                {backendFoodSearchStatus === 'loading' ? (
+                  <Text selectable style={styles.helperText}>
+                    Searching food database...
+                  </Text>
+                ) : null}
+                {backendFoodSearchStatus === 'error' ? (
+                  <Text selectable style={styles.helperText}>
+                    Food database unavailable. Showing local foods.
+                  </Text>
+                ) : null}
+                {backendFoodResults.map((food) => {
+                  const nutrients = food.nutrientsPer100g ?? food.nutrientsPer100ml ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
+                  const serving = food.servings[0];
+                  const servingLabel = serving?.label ?? (food.servingBase === '100ml' ? '100 ml' : '100 g');
+                  return (
+                    <ListRow
+                      key={food.id}
+                      accessibilityHint="Tap to set a portion before adding"
+                      detail={`${food.brand ?? food.source.provider} · ${servingLabel} · ${formatNumber(nutrients.protein)}P · ${formatNumber(nutrients.carbs)}C · ${formatNumber(nutrients.fat)}F`}
+                      onPress={() => openDraftFromFoodItem(food)}
+                      title={food.name}
+                      trailing={
+                        <Pressable
+                          accessibilityLabel={`Quick add ${food.name} to ${selectedMealLabel}`}
+                          hitSlop={10}
+                          onPress={() => quickAddFoodItem(food)}
+                          style={styles.iconButton}>
+                          <Text style={styles.iconButtonText}>+</Text>
+                        </Pressable>
+                      }
+                      value={`${formatNumber(nutrients.calories)} kcal`}
+                    />
+                  );
+                })}
                 {searchResults.length > 0 ? (
                   searchResults.map((food) => {
                     const favorite = favoriteIds.includes(food.id) || favoriteSeedIds.includes(food.id);
@@ -491,11 +615,11 @@ export default function NutritionAddFoodScreen() {
                       />
                     );
                   })
-                ) : (
+                ) : backendFoodResults.length === 0 ? (
                   <Text selectable style={styles.emptyStateText}>
                     No food found
                   </Text>
-                )}
+                ) : null}
               </View>
             </AppCard>
           ) : null}
