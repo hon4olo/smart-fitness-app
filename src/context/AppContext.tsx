@@ -35,11 +35,39 @@ import type {
   WorkoutSet,
 } from '@/types';
 import { defaultState as defaultAppState } from '@/data/defaults';
-import { createExerciseId, getLastWorkoutSession as getLastWorkoutSessionFromState } from '@/lib/appState';
+import { getLastWorkoutSession as getLastWorkoutSessionFromState } from '@/lib/appState';
 import { upsertWorkoutSessionById } from '@/lib/workouts';
 import { createRepositoryFactory } from '@/repositories';
 import { createAsyncStorageAdapter } from '@/storage';
 import { AuthProvider } from '@/auth';
+import {
+  addFoodEntriesToState,
+  addFoodEntryToState,
+  deleteFoodEntryFromState,
+  normalizeFoodEntry,
+  updateFoodEntryInState,
+} from './appContext/nutritionActions';
+import {
+  addWorkoutTemplateToState,
+  deleteCustomExerciseFromState,
+  deleteCustomWorkoutTemplateFromState,
+  deleteTrainingProgramFromState,
+  deleteWorkoutSessionFromState,
+  saveTrainingProgramToState,
+  toggleTrainingProgramFavoriteInState,
+  updateCustomWorkoutTemplateInState,
+  updateWorkoutSessionPreservingImmutableFields,
+} from './appContext/workoutActions';
+import {
+  addBodyMeasurementToState,
+  addWeightEntryToState,
+  completeOnboardingInState,
+  deleteBodyMeasurementFromState,
+  deleteWeightEntryFromState,
+  resetOnboardingInState,
+  updateProfileGoalsInState,
+  updateWeightEntryInState,
+} from './appContext/progressActions';
 
 export type {
   AppContextType,
@@ -107,22 +135,8 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const addFoodEntry = useCallback((entry: FoodEntry) => {
     setState((currentState) => {
-      const foodEntry = {
-        ...entry,
-        mealType: entry.mealType ?? 'breakfast',
-        source: entry.source ?? 'manual',
-        createdAt: entry.createdAt ?? new Date().toISOString(),
-      };
-      const nextState = {
-        ...currentState,
-        foodEntries: [foodEntry, ...currentState.foodEntries],
-        nutrition: {
-          calories: currentState.nutrition.calories + foodEntry.calories,
-          protein: currentState.nutrition.protein + foodEntry.protein,
-          carbs: currentState.nutrition.carbs + foodEntry.carbs,
-          fats: currentState.nutrition.fats + foodEntry.fats,
-        },
-      };
+      const foodEntry = normalizeFoodEntry(entry, new Date().toISOString());
+      const nextState = addFoodEntryToState(currentState, foodEntry);
       void repository.saveState(nextState);
       return nextState;
     });
@@ -130,31 +144,8 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const addFoodEntries = useCallback((entries: FoodEntry[]) => {
     setState((currentState) => {
-      const normalizedEntries = entries.map((entry) => ({
-        ...entry,
-        mealType: entry.mealType ?? 'breakfast',
-        source: entry.source ?? 'manual',
-        createdAt: entry.createdAt ?? new Date().toISOString(),
-      }));
-      const addedNutrition = normalizedEntries.reduce(
-        (totals, entry) => ({
-          calories: totals.calories + entry.calories,
-          protein: totals.protein + entry.protein,
-          carbs: totals.carbs + entry.carbs,
-          fats: totals.fats + entry.fats,
-        }),
-        { calories: 0, protein: 0, carbs: 0, fats: 0 }
-      );
-      const nextState = {
-        ...currentState,
-        foodEntries: [...normalizedEntries, ...currentState.foodEntries],
-        nutrition: {
-          calories: currentState.nutrition.calories + addedNutrition.calories,
-          protein: currentState.nutrition.protein + addedNutrition.protein,
-          carbs: currentState.nutrition.carbs + addedNutrition.carbs,
-          fats: currentState.nutrition.fats + addedNutrition.fats,
-        },
-      };
+      const normalizedEntries = entries.map((entry) => normalizeFoodEntry(entry, new Date().toISOString()));
+      const nextState = addFoodEntriesToState(currentState, normalizedEntries);
       void repository.saveState(nextState);
       return nextState;
     });
@@ -214,31 +205,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       createdAt: string;
     }) => {
       setState((currentState) => {
-        const nextWorkout = {
-          id: template.id,
-          title: template.title,
-          description: template.description,
-          createdAt: template.createdAt,
-          isCustom: true,
-          duration: `${Math.max(15, template.exercises.length * 10)} min`,
-          exercises: template.exercises.map((exercise, index) => ({
-            id: `${createExerciseId(exercise)}-${index}`,
-            name: exercise,
-            isCustom: true,
-            createdAt: template.createdAt,
-          })),
-        } satisfies Workout;
-
-        const existingIndex = currentState.workouts.findIndex((item) => item.id === nextWorkout.id);
-        const nextWorkouts =
-          existingIndex === -1
-            ? [...currentState.workouts, nextWorkout]
-            : currentState.workouts.map((item) => (item.id === nextWorkout.id ? nextWorkout : item));
-
-        const nextState = {
-          ...currentState,
-          workouts: nextWorkouts,
-        };
+        const nextState = addWorkoutTemplateToState(currentState, template);
         void repository.saveState(nextState);
         return nextState;
       });
@@ -256,31 +223,12 @@ export function AppProvider({ children }: PropsWithChildren) {
       }
     ) => {
       setState((currentState) => {
-        const workout = currentState.workouts.find((item) => item.id === templateId);
-
-        if (!workout || !workout.isCustom) {
-          return currentState;
-        }
-
-        const nextState = {
-          ...currentState,
-          workouts: currentState.workouts.map((item) =>
-            item.id === templateId
-              ? {
-                  ...item,
-                  title: updatedTemplate.title,
-                  description: updatedTemplate.description,
-                  duration: `${Math.max(15, updatedTemplate.exercises.length * 10)} min`,
-                  exercises: updatedTemplate.exercises.map((exercise, index) => ({
-                    id: `${createExerciseId(exercise)}-${index}`,
-                    name: exercise,
-                    isCustom: true,
-                    createdAt: item.createdAt ?? new Date().toISOString(),
-                  })),
-                }
-              : item
-          ),
-        };
+        const nextState = updateCustomWorkoutTemplateInState(
+          currentState,
+          templateId,
+          updatedTemplate,
+          new Date().toISOString()
+        );
         void repository.saveState(nextState);
         return nextState;
       });
@@ -290,24 +238,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const saveTrainingProgram = useCallback((program: TrainingProgram) => {
     setState((currentState) => {
-      const nextProgram: TrainingProgram = {
-        ...program,
-        name: program.name.trim(),
-        days: program.days.map((day) => ({ ...day })),
-        progression: program.progression ? { ...program.progression } : undefined,
-        metadata: program.metadata ? { ...program.metadata } : undefined,
-        updatedAt: new Date().toISOString(),
-        isCustom: program.isCustom ?? true,
-      };
-      const existingIndex = currentState.trainingPrograms.findIndex((item) => item.id === nextProgram.id);
-      const trainingPrograms =
-        existingIndex === -1
-          ? [nextProgram, ...currentState.trainingPrograms]
-          : currentState.trainingPrograms.map((item) => (item.id === nextProgram.id ? nextProgram : item));
-      const nextState = {
-        ...currentState,
-        trainingPrograms,
-      };
+      const nextState = saveTrainingProgramToState(currentState, program, new Date().toISOString());
       void repository.saveState(nextState);
       return nextState;
     });
@@ -315,10 +246,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const deleteTrainingProgram = useCallback((programId: string) => {
     setState((currentState) => {
-      const nextState = {
-        ...currentState,
-        trainingPrograms: currentState.trainingPrograms.filter((program) => program.id !== programId),
-      };
+      const nextState = deleteTrainingProgramFromState(currentState, programId);
       void repository.saveState(nextState);
       return nextState;
     });
@@ -326,21 +254,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const toggleTrainingProgramFavorite = useCallback((programId: string) => {
     setState((currentState) => {
-      const nextState = {
-        ...currentState,
-        trainingPrograms: currentState.trainingPrograms.map((program) =>
-          program.id === programId
-            ? {
-                ...program,
-                metadata: {
-                  ...(program.metadata ?? {}),
-                  favorite: !Boolean(program.metadata?.favorite),
-                },
-                updatedAt: new Date().toISOString(),
-              }
-            : program
-        ),
-      };
+      const nextState = toggleTrainingProgramFavoriteInState(currentState, programId, new Date().toISOString());
       void repository.saveState(nextState);
       return nextState;
     });
@@ -354,25 +268,16 @@ export function AppProvider({ children }: PropsWithChildren) {
         return currentState;
       }
 
-      const foodEntry = {
-        ...updatedEntry,
-        id: entryId,
-        mealType: updatedEntry.mealType ?? oldEntry.mealType,
-        source: updatedEntry.source ?? oldEntry.source,
-        createdAt: updatedEntry.createdAt ?? oldEntry.createdAt,
-      };
-      const nextState = {
-        ...currentState,
-        foodEntries: currentState.foodEntries.map((entry) =>
-          entry.id === entryId ? foodEntry : entry
-        ),
-        nutrition: {
-          calories: Math.max(0, currentState.nutrition.calories - oldEntry.calories + foodEntry.calories),
-          protein: Math.max(0, currentState.nutrition.protein - oldEntry.protein + foodEntry.protein),
-          carbs: Math.max(0, currentState.nutrition.carbs - oldEntry.carbs + foodEntry.carbs),
-          fats: Math.max(0, currentState.nutrition.fats - oldEntry.fats + foodEntry.fats),
+      const foodEntry = normalizeFoodEntry(
+        {
+          ...updatedEntry,
+          id: entryId,
+          mealType: updatedEntry.mealType ?? oldEntry.mealType,
+          source: updatedEntry.source ?? oldEntry.source,
         },
-      };
+        oldEntry.createdAt
+      );
+      const nextState = updateFoodEntryInState(currentState, entryId, oldEntry, foodEntry);
       void repository.saveState(nextState);
       return nextState;
     });
@@ -380,16 +285,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const deleteWorkoutTemplate = useCallback((templateId: string) => {
     setState((currentState) => {
-      const workout = currentState.workouts.find((item) => item.id === templateId);
-
-      if (!workout || !workout.isCustom) {
-        return currentState;
-      }
-
-      const nextState = {
-        ...currentState,
-        workouts: currentState.workouts.filter((item) => item.id !== templateId),
-      };
+      const nextState = deleteCustomWorkoutTemplateFromState(currentState, templateId);
       void repository.saveState(nextState);
       return nextState;
     });
@@ -397,16 +293,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const deleteExercise = useCallback((exerciseId: string) => {
     setState((currentState) => {
-      const exercise = currentState.exercises.find((item) => item.id === exerciseId);
-
-      if (!exercise || !exercise.isCustom) {
-        return currentState;
-      }
-
-      const nextState = {
-        ...currentState,
-        exercises: currentState.exercises.filter((item) => item.id !== exerciseId),
-      };
+      const nextState = deleteCustomExerciseFromState(currentState, exerciseId);
       void repository.saveState(nextState);
       return nextState;
     });
@@ -420,16 +307,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         return currentState;
       }
 
-      const nextState = {
-        ...currentState,
-        foodEntries: currentState.foodEntries.filter((foodEntry) => foodEntry.id !== entryId),
-        nutrition: {
-          calories: Math.max(0, currentState.nutrition.calories - entry.calories),
-          protein: Math.max(0, currentState.nutrition.protein - entry.protein),
-          carbs: Math.max(0, currentState.nutrition.carbs - entry.carbs),
-          fats: Math.max(0, currentState.nutrition.fats - entry.fats),
-        },
-      };
+      const nextState = deleteFoodEntryFromState(currentState, entry);
       void repository.saveState(nextState);
       return nextState;
     });
@@ -465,13 +343,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       trainingDaysPerWeek: number;
     }) => {
       setState((currentState) => {
-        const nextState = {
-          ...currentState,
-          profile: {
-            ...currentState.profile,
-            ...goals,
-          },
-        };
+        const nextState = updateProfileGoalsInState(currentState, goals);
         void repository.saveState(nextState);
         return nextState;
       });
@@ -499,10 +371,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const addWeightEntry = useCallback((entry: WeightEntry) => {
     setState((currentState) => {
-      const nextState = {
-        ...currentState,
-        weightHistory: [entry, ...currentState.weightHistory],
-      };
+      const nextState = addWeightEntryToState(currentState, entry);
       void repository.saveState(nextState);
       void queueWeightHistoryOperation('create', entry);
       return nextState;
@@ -511,17 +380,10 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const updateWeightEntry = useCallback((entryId: string, entry: WeightEntry) => {
     setState((currentState) => {
-      const index = currentState.weightHistory.findIndex((item) => item.id === entryId);
-      if (index < 0) {
+      const nextState = updateWeightEntryInState(currentState, entryId, entry);
+      if (nextState === currentState) {
         return currentState;
       }
-
-      const nextHistory = [...currentState.weightHistory];
-      nextHistory[index] = entry;
-      const nextState = {
-        ...currentState,
-        weightHistory: nextHistory,
-      };
       void repository.saveState(nextState);
       void queueWeightHistoryOperation('update', entry);
       return nextState;
@@ -530,10 +392,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const addBodyMeasurement = useCallback((entry: BodyMeasurement) => {
     setState((currentState) => {
-      const nextState = {
-        ...currentState,
-        bodyMeasurements: [entry, ...currentState.bodyMeasurements],
-      };
+      const nextState = addBodyMeasurementToState(currentState, entry);
       void repository.saveState(nextState);
       return nextState;
     });
@@ -542,10 +401,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const deleteWeightEntry = useCallback((entryId: string) => {
     setState((currentState) => {
       const entry = currentState.weightHistory.find((item) => item.id === entryId);
-      const nextState = {
-        ...currentState,
-        weightHistory: currentState.weightHistory.filter((item) => item.id !== entryId),
-      };
+      const nextState = deleteWeightEntryFromState(currentState, entryId);
       void repository.saveState(nextState);
       if (entry) {
         void queueWeightHistoryOperation('delete', entry);
@@ -556,10 +412,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const deleteBodyMeasurement = useCallback((entryId: string) => {
     setState((currentState) => {
-      const nextState = {
-        ...currentState,
-        bodyMeasurements: currentState.bodyMeasurements.filter((entry) => entry.id !== entryId),
-      };
+      const nextState = deleteBodyMeasurementFromState(currentState, entryId);
       void repository.saveState(nextState);
       return nextState;
     });
@@ -588,27 +441,14 @@ export function AppProvider({ children }: PropsWithChildren) {
         month: 'short',
       }).format(new Date());
       const now = new Date().toISOString();
-      const initialWeightEntry: WeightEntry = {
-        id: `${Date.now()}`,
-        date: today,
-        weight: setup.currentWeight,
-        createdAt: now,
-      };
+      const initialWeightInput = { id: `${Date.now()}`, date: today, createdAt: now };
 
       setState((currentState) => {
-        const nextState = {
-          ...currentState,
-          onboardingCompleted: true,
-          profile: {
-            ...currentState.profile,
-            targetWeight: setup.targetWeight,
-            goalType: setup.goalType,
-            weeklyWeightChangeGoal: currentState.profile.weeklyWeightChangeGoal,
-            trainingDaysPerWeek: setup.trainingDaysPerWeek,
-            weight: `${setup.currentWeight.toFixed(1)} kg`,
-          },
-          weightHistory: [initialWeightEntry, ...currentState.weightHistory],
-        };
+        const { nextState, initialWeightEntry } = completeOnboardingInState(
+          currentState,
+          setup,
+          initialWeightInput
+        );
         void repository.saveState(nextState);
         void queueWeightHistoryOperation('create', initialWeightEntry);
         return nextState;
@@ -619,10 +459,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const resetOnboarding = useCallback(() => {
     setState((currentState) => {
-      const nextState = {
-        ...currentState,
-        onboardingCompleted: false,
-      };
+      const nextState = resetOnboardingInState(currentState);
       void repository.saveState(nextState);
       return nextState;
     });
@@ -630,10 +467,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const deleteWorkoutSession = useCallback((sessionId: string) => {
     setState((currentState) => {
-      const nextState = {
-        ...currentState,
-        workoutSessions: currentState.workoutSessions.filter((session) => session.id !== sessionId),
-      };
+      const nextState = deleteWorkoutSessionFromState(currentState, sessionId);
       void repository.saveState(nextState);
       return nextState;
     });
@@ -641,27 +475,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const updateWorkoutSession = useCallback((sessionId: string, updatedSession: WorkoutSession) => {
     setState((currentState) => {
-      const existingSession = currentState.workoutSessions.find((session) => session.id === sessionId);
-
-      if (!existingSession) {
-        return currentState;
-      }
-
-      const nextSession = {
-        ...updatedSession,
-        id: sessionId,
-        workoutId: existingSession.workoutId,
-        workoutTitle: existingSession.workoutTitle,
-        startedAt: existingSession.startedAt,
-        finishedAt: existingSession.finishedAt,
-      };
-
-      const nextState = {
-        ...currentState,
-        workoutSessions: currentState.workoutSessions.map((session) =>
-          session.id === sessionId ? nextSession : session
-        ),
-      };
+      const nextState = updateWorkoutSessionPreservingImmutableFields(currentState, sessionId, updatedSession);
       void repository.saveState(nextState);
       return nextState;
     });
