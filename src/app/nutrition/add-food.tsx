@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { isFoodApiConfigured, searchFoods, type FoodItem } from '@/api/foods';
+import { autocompleteFoods, isFoodApiConfigured, searchFoods, type FoodItem } from '@/api/foods';
 import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { foodCatalog } from '@/data/foods';
@@ -169,6 +169,7 @@ export default function NutritionAddFoodScreen() {
   const [foodFats, setFoodFats] = useState('0');
   const [backendFoodResults, setBackendFoodResults] = useState<FoodItem[]>([]);
   const [backendFoodSearchStatus, setBackendFoodSearchStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [foodSuggestions, setFoodSuggestions] = useState<string[]>([]);
 
   const editingEntry = useMemo(() => foodEntries.find((entry) => entry.id === entryId), [entryId, foodEntries]);
   const defaultCatalogResults = useMemo(() => searchFoodCatalog(foodCatalog, query, { favoriteIds: favoriteIds.length > 0 ? favoriteIds : favoriteSeedIds, recentIds: recentCatalogIds }), [favoriteIds, favoriteSeedIds, query, recentCatalogIds]);
@@ -355,6 +356,11 @@ export default function NutritionAddFoodScreen() {
     setFavoriteIds((current) => (current.includes(foodId) ? current.filter((item) => item !== foodId) : [foodId, ...current]));
   };
 
+  const selectFoodSuggestion = (suggestion: string) => {
+    setQuery(suggestion);
+    setFoodSuggestions([]);
+  };
+
   const saveDraft = () => {
     if (!selectedDraft) {
       return;
@@ -515,6 +521,38 @@ export default function NutritionAddFoodScreen() {
   }, [mode, query]);
 
   useEffect(() => {
+    const trimmedQuery = query.trim();
+    if (mode !== 'food' || !isFoodApiConfigured() || trimmedQuery.length < 2) {
+      setFoodSuggestions([]);
+      return;
+    }
+
+    let active = true;
+    const timeout = setTimeout(() => {
+      autocompleteFoods(trimmedQuery)
+        .then((suggestions) => {
+          if (!active) {
+            return;
+          }
+
+          setFoodSuggestions(suggestions.filter((suggestion) => suggestion.toLowerCase() !== trimmedQuery.toLowerCase()).slice(0, 5));
+        })
+        .catch(() => {
+          if (!active) {
+            return;
+          }
+
+          setFoodSuggestions([]);
+        });
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [mode, query]);
+
+  useEffect(() => {
     if (mode === 'recent' && recentItems.length === 0) {
       setMode('food');
     }
@@ -580,8 +618,12 @@ export default function NutritionAddFoodScreen() {
             <FoodSearchModeSection
               backendFoodResults={backendFoodResults} backendFoodSearchStatus={backendFoodSearchStatus} colors={colors}
               favoriteIds={favoriteIds} favoriteSeedIds={favoriteSeedIds} formatProviderLabel={formatProviderLabel}
-              getFoodAttributionLabel={getFoodAttributionLabel} onClearQuery={() => setQuery('')} onOpenCatalogFood={openDraftFromCatalog}
+              foodSuggestions={foodSuggestions} getFoodAttributionLabel={getFoodAttributionLabel} onClearQuery={() => {
+                setQuery('');
+                setFoodSuggestions([]);
+              }} onOpenCatalogFood={openDraftFromCatalog}
               onOpenFoodItem={openDraftFromFoodItem} onQuickAddCatalogFood={quickAddCatalogFood} onQuickAddFoodItem={quickAddFoodItem}
+              onSelectSuggestion={selectFoodSuggestion}
               onToggleFavorite={toggleFavorite} query={query} searchResults={searchResults} selectedMealLabel={selectedMealLabel}
               setQuery={setQuery} styles={styles}
             />

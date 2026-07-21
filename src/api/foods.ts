@@ -1,4 +1,5 @@
 import { createApiClient } from '@/api/client';
+import { isApiError } from '@/api/client/errors';
 
 export type FoodProviderName = 'local' | 'fatsecret' | 'openfoodfacts' | 'custom';
 
@@ -42,23 +43,69 @@ export type FoodItem = {
   };
 };
 
-type FoodSearchResponse = {
-  foods: FoodItem[];
-};
-
-const configuredFoodApiBaseUrl = process.env.EXPO_PUBLIC_FOOD_API_BASE_URL?.trim();
+const FOOD_API_BASE_URL = 'https://api.peptonio.com';
 
 const stripTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
 
-export const isFoodApiConfigured = (): boolean => Boolean(configuredFoodApiBaseUrl);
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const getFoodApiClient = () => {
-  if (!configuredFoodApiBaseUrl) {
-    return null;
+const isFoodNutrients = (value: unknown): value is FoodNutrients => {
+  if (!isRecord(value)) {
+    return false;
   }
 
+  return (
+    typeof value.calories === 'number' &&
+    typeof value.protein === 'number' &&
+    typeof value.carbs === 'number' &&
+    typeof value.fat === 'number'
+  );
+};
+
+const isFoodServing = (value: unknown): value is FoodServing => {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === 'string' &&
+    typeof value.label === 'string' &&
+    typeof value.quantity === 'number' &&
+    typeof value.unit === 'string'
+  );
+};
+
+const isFoodProviderName = (value: unknown): value is FoodProviderName =>
+  value === 'local' || value === 'fatsecret' || value === 'openfoodfacts' || value === 'custom';
+
+const isFoodItem = (value: unknown): value is FoodItem => {
+  if (!isRecord(value) || !isRecord(value.source)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === 'string' &&
+    isFoodProviderName(value.source.provider) &&
+    typeof value.source.sourceId === 'string' &&
+    typeof value.name === 'string' &&
+    (value.servingBase === '100g' || value.servingBase === '100ml') &&
+    (value.nutrientsPer100g === undefined || isFoodNutrients(value.nutrientsPer100g)) &&
+    (value.nutrientsPer100ml === undefined || isFoodNutrients(value.nutrientsPer100ml)) &&
+    Array.isArray(value.servings) &&
+    value.servings.every(isFoodServing) &&
+    typeof value.verified === 'boolean'
+  );
+};
+
+const hasFoodNotFoundCode = (body: unknown): boolean =>
+  isRecord(body) && (body.code === 'FOOD_NOT_FOUND' || body.error === 'FOOD_NOT_FOUND');
+
+export const isFoodApiConfigured = (): boolean => true;
+
+const getFoodApiClient = () => {
   return createApiClient({
-    baseUrl: stripTrailingSlash(configuredFoodApiBaseUrl),
+    baseUrl: stripTrailingSlash(FOOD_API_BASE_URL),
     defaultTimeoutMs: 8_000,
     defaultRetry: {
       attempts: 1,
@@ -71,33 +118,66 @@ const getFoodApiClient = () => {
 export const searchFoods = async (query: string): Promise<FoodItem[]> => {
   const trimmedQuery = query.trim();
   const client = getFoodApiClient();
-  if (!client || !trimmedQuery) {
+  if (!trimmedQuery) {
     return [];
   }
 
-  const response = await client.get<FoodSearchResponse>('/foods/search', {
+  const response = await client.get<unknown>('/foods/search', {
     query: { q: trimmedQuery },
   });
 
-  return response.foods;
+  return isRecord(response) && Array.isArray(response.foods) ? response.foods.filter(isFoodItem) : [];
 };
 
-export const getFoodByBarcode = async (barcode: string): Promise<FoodItem | null> => {
+export const autocompleteFoods = async (query: string): Promise<string[]> => {
+  const trimmedQuery = query.trim();
+  const client = getFoodApiClient();
+  if (trimmedQuery.length < 2) {
+    return [];
+  }
+
+  const response = await client.get<unknown>('/foods/autocomplete', {
+    query: { q: trimmedQuery },
+  });
+
+  if (!isRecord(response) || !Array.isArray(response.suggestions)) {
+    return [];
+  }
+
+  return response.suggestions
+    .filter((suggestion): suggestion is string => typeof suggestion === 'string' && suggestion.trim().length > 0)
+    .map((suggestion) => suggestion.trim())
+    .slice(0, 8);
+};
+
+export const lookupFoodByBarcode = async (barcode: string): Promise<FoodItem | null> => {
   const trimmedBarcode = barcode.trim();
   const client = getFoodApiClient();
-  if (!client || !trimmedBarcode) {
+  if (!trimmedBarcode) {
     return null;
   }
 
-  return client.get<FoodItem>(`/foods/barcode/${encodeURIComponent(trimmedBarcode)}`);
+  try {
+    const response = await client.get<unknown>(`/foods/barcode/${encodeURIComponent(trimmedBarcode)}`);
+    return isFoodItem(response) ? response : null;
+  } catch (error) {
+    if (isApiError(error) && error.status === 404 && (error.code === 'not_found' || hasFoodNotFoundCode(error.body))) {
+      return null;
+    }
+
+    throw error;
+  }
 };
+
+export const getFoodByBarcode = lookupFoodByBarcode;
 
 export const getFoodById = async (id: string): Promise<FoodItem | null> => {
   const trimmedId = id.trim();
   const client = getFoodApiClient();
-  if (!client || !trimmedId) {
+  if (!trimmedId) {
     return null;
   }
 
-  return client.get<FoodItem>(`/foods/${encodeURIComponent(trimmedId)}`);
+  const response = await client.get<unknown>(`/foods/${encodeURIComponent(trimmedId)}`);
+  return isFoodItem(response) ? response : null;
 };

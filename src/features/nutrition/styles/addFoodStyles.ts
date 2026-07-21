@@ -135,6 +135,12 @@ export const createAddFoodStyles = (colors: typeof Colors.dark) =>
       flexDirection: 'row',
       gap: Spacing.one,
     },
+    resultAttribution: {
+      color: colors.textMuted,
+      fontSize: 11,
+      lineHeight: 15,
+      paddingTop: Spacing.one,
+    },
     searchInput: {
       backgroundColor: colors.surfaceSecondary,
       borderColor: colors.borderSubtle,
@@ -307,6 +313,28 @@ export const createAddFoodStyles = (colors: typeof Colors.dark) =>
       color: colors.textPrimary,
       fontSize: 14,
       fontWeight: '800',
+    },
+    suggestionChip: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      minHeight: 36,
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.two,
+      paddingVertical: Spacing.one,
+    },
+    suggestionList: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.one,
+      marginBottom: Spacing.two,
+    },
+    suggestionText: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '700',
     },
     subtitle: {
       color: colors.textSecondary,

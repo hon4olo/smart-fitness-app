@@ -76,12 +76,6 @@ export function FoodPortionSheet({
         <Text selectable style={styles.sheetMeta}>
           {servingLabel}
         </Text>
-        {attributionLabel ? (
-          <Text selectable style={styles.sheetAttribution}>
-            {attributionLabel}
-          </Text>
-        ) : null}
-
         <View style={styles.sheetField}>
           <Text selectable style={styles.sheetLabel}>
             Quantity
@@ -107,6 +101,12 @@ export function FoodPortionSheet({
         <Text selectable style={styles.sheetHint}>
           {draft.originalEntryId ? 'Update the selected entry and keep the diary context unchanged.' : 'Add this food to the selected meal without leaving the picker.'}
         </Text>
+
+        {attributionLabel ? (
+          <Text selectable style={styles.sheetAttribution}>
+            {attributionLabel}
+          </Text>
+        ) : null}
 
         {draft.originalEntryId ? <AppButton label={deleteLabel} onPress={onDelete} variant="secondary" /> : null}
 

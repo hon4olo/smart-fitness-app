@@ -12,6 +12,7 @@ type FoodSearchModeSectionProps = {
   colors: Record<string, any>;
   favoriteIds: string[];
   favoriteSeedIds: string[];
+  foodSuggestions: string[];
   formatProviderLabel: (provider: FoodItem['source']['provider']) => string;
   getFoodAttributionLabel: (food: Pick<FoodItem, 'attribution' | 'source'>) => string;
   onClearQuery: () => void;
@@ -19,6 +20,7 @@ type FoodSearchModeSectionProps = {
   onOpenFoodItem: (food: FoodItem) => void;
   onQuickAddCatalogFood: (food: FoodCatalogItem) => void;
   onQuickAddFoodItem: (food: FoodItem) => void;
+  onSelectSuggestion: (suggestion: string) => void;
   onToggleFavorite: (foodId: string) => void;
   query: string;
   searchResults: FoodCatalogItem[];
@@ -33,6 +35,7 @@ export function FoodSearchModeSection({
   colors,
   favoriteIds,
   favoriteSeedIds,
+  foodSuggestions,
   formatProviderLabel,
   getFoodAttributionLabel,
   onClearQuery,
@@ -40,6 +43,7 @@ export function FoodSearchModeSection({
   onOpenFoodItem,
   onQuickAddCatalogFood,
   onQuickAddFoodItem,
+  onSelectSuggestion,
   onToggleFavorite,
   query,
   searchResults,
@@ -47,6 +51,8 @@ export function FoodSearchModeSection({
   setQuery,
   styles,
 }: FoodSearchModeSectionProps) {
+  const fatSecretAttributionFood = backendFoodResults.find((food) => food.source.provider === 'fatsecret');
+
   return (
     <AppCard>
       <View style={styles.searchRow}>
@@ -67,6 +73,20 @@ export function FoodSearchModeSection({
           </Pressable>
         ) : null}
       </View>
+      {foodSuggestions.length > 0 ? (
+        <View style={styles.suggestionList}>
+          {foodSuggestions.map((suggestion) => (
+            <Pressable
+              accessibilityLabel={`Search ${suggestion}`}
+              hitSlop={6}
+              key={suggestion}
+              onPress={() => onSelectSuggestion(suggestion)}
+              style={styles.suggestionChip}>
+              <Text style={styles.suggestionText}>{suggestion}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.listGap}>
         {backendFoodSearchStatus === 'loading' ? (
@@ -83,12 +103,13 @@ export function FoodSearchModeSection({
           const nutrients = food.nutrientsPer100g ?? food.nutrientsPer100ml ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
           const serving = food.servings[0];
           const servingLabel = serving?.label ?? (food.servingBase === '100ml' ? '100 ml' : '100 g');
+          const detailPrefix = food.brand ? `${food.brand} · ` : '';
           return (
             <ListRow
               key={food.id}
               accessibilityHint="Tap to set a portion before adding"
               badge={formatProviderLabel(food.source.provider)}
-              detail={`${food.brand ?? getFoodAttributionLabel(food)} · ${servingLabel} · ${formatNumber(nutrients.protein)}P · ${formatNumber(nutrients.carbs)}C · ${formatNumber(nutrients.fat)}F`}
+              detail={`${detailPrefix}${servingLabel} · ${formatNumber(nutrients.protein)}P · ${formatNumber(nutrients.carbs)}C · ${formatNumber(nutrients.fat)}F`}
               onPress={() => onOpenFoodItem(food)}
               title={food.name}
               trailing={
@@ -104,6 +125,11 @@ export function FoodSearchModeSection({
             />
           );
         })}
+        {fatSecretAttributionFood ? (
+          <Text selectable style={styles.resultAttribution}>
+            {getFoodAttributionLabel(fatSecretAttributionFood)}
+          </Text>
+        ) : null}
         {searchResults.length > 0 ? (
           searchResults.map((food) => {
             const favorite = favoriteIds.includes(food.id) || favoriteSeedIds.includes(food.id);
