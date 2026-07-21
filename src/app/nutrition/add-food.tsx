@@ -10,6 +10,7 @@ import { useAppContext } from '@/context/AppContext';
 import { foodCatalog } from '@/data/foods';
 import { CreateFoodInlineForm } from '@/features/nutrition/components/CreateFoodInlineForm';
 import { FavoriteFoodsModeSection } from '@/features/nutrition/components/FavoriteFoodsModeSection';
+import { BarcodeScannerModal } from '@/features/nutrition/components/BarcodeScannerModal';
 import { FoodSearchModeSection } from '@/features/nutrition/components/FoodSearchModeSection';
 import { FoodPortionSheet } from '@/features/nutrition/components/FoodPortionSheet';
 import { RecentFoodsModeSection } from '@/features/nutrition/components/RecentFoodsModeSection';
@@ -95,7 +96,7 @@ const providerLabels: Record<FoodItem['source']['provider'] | 'manual' | 'usda',
 const formatProviderLabel = (provider: FoodItem['source']['provider'] | FoodEntry['source']) => providerLabels[provider] ?? provider;
 
 const getFoodAttributionLabel = (food: Pick<FoodItem, 'attribution' | 'source'>) =>
-  food.attribution?.text ?? `Source: ${formatProviderLabel(food.source.provider)}`;
+  food.source.provider === 'fatsecret' ? 'Food data provided by FatSecret' : food.attribution?.text ?? `Source: ${formatProviderLabel(food.source.provider)}`;
 
 export default function NutritionAddFoodScreen() {
   const { colors } = useAppTheme();
@@ -170,6 +171,7 @@ export default function NutritionAddFoodScreen() {
   const [backendFoodResults, setBackendFoodResults] = useState<FoodItem[]>([]);
   const [backendFoodSearchStatus, setBackendFoodSearchStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [foodSuggestions, setFoodSuggestions] = useState<string[]>([]);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const editingEntry = useMemo(() => foodEntries.find((entry) => entry.id === entryId), [entryId, foodEntries]);
   const defaultCatalogResults = useMemo(() => searchFoodCatalog(foodCatalog, query, { favoriteIds: favoriteIds.length > 0 ? favoriteIds : favoriteSeedIds, recentIds: recentCatalogIds }), [favoriteIds, favoriteSeedIds, query, recentCatalogIds]);
@@ -182,7 +184,9 @@ export default function NutritionAddFoodScreen() {
   const selectedDraftServingLabel = selectedDraft ? formatFoodServing({ servingSize: selectedDraft.servingSize, servingUnit: selectedDraft.servingUnit }) : '';
   const selectedDraftAttributionLabel =
     selectedDraft && (selectedDraft.attribution || selectedDraft.source === 'fatsecret')
-      ? selectedDraft.attribution?.text ?? `Source: ${formatProviderLabel(selectedDraft.source)}`
+      ? selectedDraft.source === 'fatsecret'
+        ? 'Food data provided by FatSecret'
+        : selectedDraft.attribution?.text ?? `Source: ${formatProviderLabel(selectedDraft.source)}`
       : undefined;
   const selectedDraftMacroTotalsLabel = selectedDraft
     ? formatCompactMacroTotals({
@@ -264,6 +268,11 @@ export default function NutritionAddFoodScreen() {
   };
 
   const openDraftFromFoodItem = (food: FoodItem) => {
+    setSelectedDraft(createDraftFromFoodItem(food));
+  };
+
+  const openDraftFromScannedFood = (food: FoodItem) => {
+    setScannerOpen(false);
     setSelectedDraft(createDraftFromFoodItem(food));
   };
 
@@ -623,6 +632,7 @@ export default function NutritionAddFoodScreen() {
                 setFoodSuggestions([]);
               }} onOpenCatalogFood={openDraftFromCatalog}
               onOpenFoodItem={openDraftFromFoodItem} onQuickAddCatalogFood={quickAddCatalogFood} onQuickAddFoodItem={quickAddFoodItem}
+              onOpenScanner={() => setScannerOpen(true)}
               onSelectSuggestion={selectFoodSuggestion}
               onToggleFavorite={toggleFavorite} query={query} searchResults={searchResults} selectedMealLabel={selectedMealLabel}
               setQuery={setQuery} styles={styles}
@@ -683,6 +693,8 @@ export default function NutritionAddFoodScreen() {
           servingLabel={selectedDraftServingLabel} styles={styles}
         />
       ) : null}
+
+      <BarcodeScannerModal onClose={() => setScannerOpen(false)} onFoodFound={openDraftFromScannedFood} styles={styles} visible={scannerOpen} />
     </KeyboardAvoidingView>
   );
 }

@@ -18,6 +18,7 @@ type FoodSearchModeSectionProps = {
   onClearQuery: () => void;
   onOpenCatalogFood: (food: FoodCatalogItem) => void;
   onOpenFoodItem: (food: FoodItem) => void;
+  onOpenScanner: () => void;
   onQuickAddCatalogFood: (food: FoodCatalogItem) => void;
   onQuickAddFoodItem: (food: FoodItem) => void;
   onSelectSuggestion: (suggestion: string) => void;
@@ -41,6 +42,7 @@ export function FoodSearchModeSection({
   onClearQuery,
   onOpenCatalogFood,
   onOpenFoodItem,
+  onOpenScanner,
   onQuickAddCatalogFood,
   onQuickAddFoodItem,
   onSelectSuggestion,
@@ -72,6 +74,9 @@ export function FoodSearchModeSection({
             <Text style={styles.clearButtonText}>×</Text>
           </Pressable>
         ) : null}
+        <Pressable accessibilityLabel="Scan food barcode" hitSlop={10} onPress={onOpenScanner} style={styles.scanButton}>
+          <Text style={styles.scanButtonText}>Scan</Text>
+        </Pressable>
       </View>
       {foodSuggestions.length > 0 ? (
         <View style={styles.suggestionList}>

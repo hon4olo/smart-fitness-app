@@ -31,6 +31,13 @@
       "expo-router",
       "expo-image",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "We use the camera to scan food barcodes.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",
