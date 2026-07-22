@@ -11,11 +11,11 @@ describe('mobile api config', () => {
     expect(getMobileApiBaseUrl()).toBe(PRODUCTION_API_BASE_URL);
   });
 
-  it('trims configured https urls without trailing slashes', () => {
+  it('uses configured https urls without trailing slashes', () => {
     vi.stubEnv('EXPO_PUBLIC_API_BASE_URL', 'https://peptonio.com/');
 
-    expect(getMobileApiBaseUrl()).toBe(PRODUCTION_API_BASE_URL);
-    expect(normalizeMobileApiBaseUrl('https://peptonio.com///')).toBe(PRODUCTION_API_BASE_URL);
+    expect(getMobileApiBaseUrl()).toBe('https://peptonio.com');
+    expect(normalizeMobileApiBaseUrl('https://peptonio.com///')).toBe('https://peptonio.com');
   });
 
   it('rejects non-https base urls', () => {
