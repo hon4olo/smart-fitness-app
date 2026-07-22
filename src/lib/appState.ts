@@ -26,6 +26,7 @@ export const normalizeExercises = (exercises: Exercise[]) => {
 export const normalizeFoodEntries = (foodEntries: FoodEntry[]) => {
   return foodEntries.map((entry) => ({
     ...entry,
+    id: ensureUuid(entry.id),
     date:
       entry.date ??
       (entry.createdAt
