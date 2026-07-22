@@ -1,14 +1,33 @@
-import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState, useContext } from 'react';
+import {
+  createContext,
+  PropsWithChildren,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useContext,
+} from 'react';
 import { AppState as ReactNativeAppState } from 'react-native';
 
 import { useAuthSession } from '@/hooks/useAuthSession';
 import type { AppState } from '@/types';
 import type { SyncCoordinator } from '@/cloud';
-import { applyRemoteWeightHistoryChanges, filterWeightHistoryQueueOperations } from '@/cloud/WeightHistorySync';
+import {
+  applyRemoteWeightHistoryChanges,
+  filterWeightHistoryQueueOperations,
+} from '@/cloud/WeightHistorySync';
 import type { OfflineSyncQueueStore } from '@/cloud/CloudQueueStore';
 import type { WeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
+import { getDefaultSyncCursorStore } from '@/storage';
 
-export type WeightSyncStatus = 'local-only' | 'syncing' | 'synced' | 'offline' | 'conflict' | 'error';
+export type WeightSyncStatus =
+  | 'local-only'
+  | 'syncing'
+  | 'synced'
+  | 'offline'
+  | 'conflict'
+  | 'error';
 
 export type WeightSyncContextValue = {
   status: WeightSyncStatus;
@@ -29,7 +48,11 @@ type SyncProviderProps = PropsWithChildren<{
 
 const WeightSyncContext = createContext<WeightSyncContextValue | null>(null);
 
-const resolveStatus = (phase: string, hasConflicts: boolean, sessionActive: boolean): WeightSyncStatus => {
+const resolveStatus = (
+  phase: string,
+  hasConflicts: boolean,
+  sessionActive: boolean,
+): WeightSyncStatus => {
   if (!sessionActive) {
     return 'local-only';
   }
@@ -50,21 +73,63 @@ const resolveStatus = (phase: string, hasConflicts: boolean, sessionActive: bool
     return 'conflict';
   }
 
-  if (phase === 'Uploading' || phase === 'Downloading' || phase === 'Preparing' || phase === 'Resolving') {
+  if (
+    phase === 'Uploading' ||
+    phase === 'Downloading' ||
+    phase === 'Preparing' ||
+    phase === 'Resolving'
+  ) {
     return 'syncing';
   }
 
   return 'synced';
 };
 
-const saveMetadataRecords = async (metadataStore: WeightSyncMetadataStore, records: Awaited<ReturnType<WeightSyncMetadataStore['load']>>) => {
+const saveMetadataRecords = async (
+  metadataStore: WeightSyncMetadataStore,
+  records: Awaited<ReturnType<WeightSyncMetadataStore['load']>>,
+) => {
   await metadataStore.clear();
   for (const record of records.values()) {
     await metadataStore.set(record);
   }
 };
 
-export function SyncProvider({ children, metadataStore, queueStore, replaceState, state, syncCoordinator }: SyncProviderProps) {
+const resolvePulledRevision = (pullResult: {
+  serverRevision?: number;
+  revision?: number | { number: number };
+}): number | null => {
+  if (
+    typeof pullResult.serverRevision === 'number' &&
+    Number.isFinite(pullResult.serverRevision)
+  ) {
+    return Math.max(0, Math.floor(pullResult.serverRevision));
+  }
+
+  if (typeof pullResult.revision === 'number' && Number.isFinite(pullResult.revision)) {
+    return Math.max(0, Math.floor(pullResult.revision));
+  }
+
+  if (
+    typeof pullResult.revision === 'object' &&
+    pullResult.revision !== null &&
+    typeof pullResult.revision.number === 'number' &&
+    Number.isFinite(pullResult.revision.number)
+  ) {
+    return Math.max(0, Math.floor(pullResult.revision.number));
+  }
+
+  return null;
+};
+
+export function SyncProvider({
+  children,
+  metadataStore,
+  queueStore,
+  replaceState,
+  state,
+  syncCoordinator,
+}: SyncProviderProps) {
   const { ready, session, isAuthenticated } = useAuthSession();
   const [status, setStatus] = useState<WeightSyncStatus>('local-only');
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
@@ -73,6 +138,7 @@ export function SyncProvider({ children, metadataStore, queueStore, replaceState
   const [error, setError] = useState<string | null>(null);
   const syncingRef = useRef(false);
   const latestStateRef = useRef(state);
+  const cursorStore = useMemo(() => getDefaultSyncCursorStore(), []);
 
   useEffect(() => {
     latestStateRef.current = state;
@@ -102,12 +168,20 @@ export function SyncProvider({ children, metadataStore, queueStore, replaceState
       const result = await syncCoordinator.syncNow();
       const pushResult = result.push?.result;
       const pullResult = result.pull?.result;
-      const nextConflictCount = (pushResult?.conflicts?.length ?? 0) + (pullResult?.conflicts?.length ?? 0) + result.conflicts.records.length;
+      const nextConflictCount =
+        (pushResult?.conflicts?.length ?? 0) +
+        (pullResult?.conflicts?.length ?? 0) +
+        result.conflicts.records.length;
       setConflictCount(nextConflictCount);
 
       if (pushResult?.appliedOperations?.length) {
-        const appliedKeys = new Set(pushResult.appliedOperations.map((appliedOperation) => appliedOperation.id));
-        const queuedOperations = (await queueStore.loadOperations()) as Array<{ opId: string; idempotencyKey: string }>;
+        const appliedKeys = new Set(
+          pushResult.appliedOperations.map((appliedOperation) => appliedOperation.id),
+        );
+        const queuedOperations = (await queueStore.loadOperations()) as Array<{
+          opId: string;
+          idempotencyKey: string;
+        }>;
         for (const queuedOperation of queuedOperations) {
           if (appliedKeys.has(queuedOperation.idempotencyKey)) {
             await queueStore.acknowledge(queuedOperation.opId);
@@ -117,21 +191,52 @@ export function SyncProvider({ children, metadataStore, queueStore, replaceState
       }
 
       if (pullResult) {
+        const syncedAt = pullResult.serverTimestamp ?? new Date().toISOString();
         const remoteChanges = applyRemoteWeightHistoryChanges(
           latestStateRef.current,
-          (pullResult.changedEntities ?? []) as Array<{ payload?: Record<string, unknown> | null; entityId?: string | null; entityType: string; revision?: number; operationType?: string; appliedAt?: string | null }>,
-          (pullResult.deletedEntities ?? []) as Array<{ id?: string; entityId?: string; entityType: string; revision?: number; appliedAt?: string | null }>,
+          (pullResult.changedEntities ?? []) as Array<{
+            payload?: Record<string, unknown> | null;
+            entityId?: string | null;
+            entityType: string;
+            revision?: number;
+            operationType?: string;
+            appliedAt?: string | null;
+          }>,
+          (pullResult.deletedEntities ?? []) as Array<{
+            id?: string;
+            entityId?: string;
+            entityType: string;
+            revision?: number;
+            appliedAt?: string | null;
+          }>,
           await metadataStore.load(),
-          pullResult.serverTimestamp ?? new Date().toISOString()
+          syncedAt,
         );
 
         replaceState(remoteChanges.nextState);
-        await saveMetadataRecords(metadataStore, new Map(remoteChanges.metadata.map((record) => [record.id, record])));
+        await saveMetadataRecords(
+          metadataStore,
+          new Map(remoteChanges.metadata.map((record) => [record.id, record])),
+        );
+
+        const pulledRevision = resolvePulledRevision(pullResult);
+        if (pulledRevision !== null) {
+          await cursorStore.set({
+            userId: session.user.id,
+            deviceId: session.device.id,
+            serverRevision: pulledRevision,
+            lastSyncedAt: syncedAt,
+          });
+        }
       }
 
       const afterPending = await queueStore.getPending();
       setPendingOperations(filterWeightHistoryQueueOperations(afterPending).length);
-      setLastSyncAt(pushResult?.serverTimestamp ?? pullResult?.serverTimestamp ?? new Date().toISOString());
+      setLastSyncAt(
+        pushResult?.serverTimestamp ??
+          pullResult?.serverTimestamp ??
+          new Date().toISOString(),
+      );
       setStatus(resolveStatus(result.status.phase, nextConflictCount > 0, true));
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Sync failed';
@@ -140,7 +245,16 @@ export function SyncProvider({ children, metadataStore, queueStore, replaceState
     } finally {
       syncingRef.current = false;
     }
-  }, [isAuthenticated, metadataStore, queueStore, refreshQueueStats, replaceState, session, syncCoordinator]);
+  }, [
+    cursorStore,
+    isAuthenticated,
+    metadataStore,
+    queueStore,
+    refreshQueueStats,
+    replaceState,
+    session,
+    syncCoordinator,
+  ]);
 
   useEffect(() => {
     if (!ready) {
@@ -179,10 +293,12 @@ export function SyncProvider({ children, metadataStore, queueStore, replaceState
       error,
       syncNow,
     }),
-    [conflictCount, error, lastSyncAt, pendingOperations, status, syncNow]
+    [conflictCount, error, lastSyncAt, pendingOperations, status, syncNow],
   );
 
-  return <WeightSyncContext.Provider value={value}>{children}</WeightSyncContext.Provider>;
+  return (
+    <WeightSyncContext.Provider value={value}>{children}</WeightSyncContext.Provider>
+  );
 }
 
 export const useWeightSync = (): WeightSyncContextValue => {
