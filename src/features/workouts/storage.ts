@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { WorkoutSession } from '@/types';
 
+import { enqueueWorkoutSessionSyncOperation } from './queueWorkoutSessionSyncOperation';
 import type { WorkoutSessionDraft, WorkoutSessionStatus } from './types';
 
 const ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY = 'active-workout-session-draft';
@@ -16,8 +17,14 @@ const activeWorkoutSessionDraftHydrationPromise = new Promise<void>((resolve) =>
   resolveActiveWorkoutSessionDraftHydration = resolve;
 });
 let activeWorkoutSessionStatus: WorkoutSessionStatus = 'idle';
+let pendingCompletedWorkoutSession = null as WorkoutSession | null;
 
 const cloneSet = (set: WorkoutSession['sets'][number]) => ({ ...set });
+
+const cloneWorkoutSession = (session: WorkoutSession): WorkoutSession => ({
+  ...session,
+  sets: session.sets.map(cloneSet),
+});
 
 const cloneWorkoutSessionDraft = (draft: WorkoutSessionDraft): WorkoutSessionDraft => ({
   ...draft,
@@ -103,8 +110,18 @@ export const markActiveWorkoutSessionFinishing = () => {
   }
 };
 
+export const stageCompletedWorkoutSessionForSync = (session: WorkoutSession) => {
+  pendingCompletedWorkoutSession = cloneWorkoutSession(session);
+};
+
 export const markActiveWorkoutSessionCompleted = () => {
   activeWorkoutSessionStatus = 'completed';
+  const completedSession = pendingCompletedWorkoutSession;
+  pendingCompletedWorkoutSession = null;
+
+  if (completedSession) {
+    void enqueueWorkoutSessionSyncOperation('create', completedSession);
+  }
 };
 
 export const setActiveWorkoutSessionDraft = (draft: WorkoutSessionDraft | null) => {
@@ -127,6 +144,7 @@ export const resetWorkoutSessionStorage = () => {
   activeWorkoutSessionDraftHydrated = false;
   activeWorkoutSessionStatus = 'idle';
   activeWorkoutSessionDraftWriteQueue = Promise.resolve();
+  pendingCompletedWorkoutSession = null;
 };
 
 export const loadWorkoutRpeTrackingEnabled = async () => {
