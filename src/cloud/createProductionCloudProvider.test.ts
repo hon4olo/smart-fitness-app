@@ -137,13 +137,74 @@ describe('createProductionCloudProvider', () => {
     );
   });
 
+  it('pushes fitness profile snapshots with their canonical entity type', async () => {
+    const requests: ApiRequestOptions[] = [];
+    const apiClient = {
+      async request(options: ApiRequestOptions) {
+        requests.push(options);
+        return {
+          revision: 12,
+          appliedOperations: [],
+          conflicts: [],
+          duplicateIdempotencyKeys: [],
+          serverTimestamp: '2026-07-23T12:00:01.000Z',
+        };
+      },
+    } as unknown as ApiClient;
+    const provider = createProductionCloudProvider({
+      apiClient,
+      authService,
+      cursorStore: { async get() { return null; } },
+    });
+
+    await provider.pushOperations({
+      id: 'batch-profile',
+      createdAt: '2026-07-23T12:00:00.000Z',
+      operations: [
+        {
+          id: 'fitnessProfiles:profile-1',
+          entity: 'fitnessProfiles',
+          entityId: '11111111-1111-4111-8111-111111111111',
+          action: 'upsert',
+          payload: {
+            schemaVersion: 1,
+            goal: 'fat_loss',
+            calculationSex: 'male',
+          },
+          revision: {
+            id: 'rev-4',
+            number: 4,
+            createdAt: '2026-07-23T11:00:00.000Z',
+          },
+          metadata: {
+            requestId: 'queue:fitnessProfiles:profile-1:update:unique',
+          },
+          createdAt: '2026-07-23T12:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(requests[0]?.body).toEqual(
+      expect.objectContaining({
+        operations: [
+          expect.objectContaining({
+            entityType: 'fitnessProfiles',
+            baseRevision: 4,
+            idempotencyKey: 'queue:fitnessProfiles:profile-1:update:unique',
+            payload: expect.objectContaining({ goal: 'fat_loss' }),
+          }),
+        ],
+      }),
+    );
+  });
+
   it('preserves supported remote entity types and reports unknown ones', async () => {
     const requests: ApiRequestOptions[] = [];
     const apiClient = {
       async request(options: ApiRequestOptions) {
         requests.push(options);
         return {
-          revision: 11,
+          revision: 12,
           changedEntities: [
             {
               id: 'operation-1',
@@ -156,11 +217,21 @@ describe('createProductionCloudProvider', () => {
               appliedAt: '2026-07-22T10:00:00.000Z',
             },
             {
+              id: 'operation-profile',
+              idempotencyKey: 'queue:fitnessProfiles:profile-1:update:unique',
+              entityType: 'fitness_profiles',
+              entityId: 'profile-1',
+              operationType: 'upsert',
+              revision: 11,
+              payload: { schemaVersion: 1, id: 'profile-1', goal: 'fat_loss' },
+              appliedAt: '2026-07-22T10:00:00.500Z',
+            },
+            {
               id: 'operation-2',
               entityType: 'unknown_entity',
               entityId: 'unknown-1',
               operationType: 'upsert',
-              revision: 11,
+              revision: 12,
               payload: { id: 'unknown-1' },
               appliedAt: '2026-07-22T10:00:01.000Z',
             },
@@ -192,11 +263,15 @@ describe('createProductionCloudProvider', () => {
     const body = requests[0]?.body as { clientRevision: number };
 
     expect(body.clientRevision).toBe(9);
-    expect(result.serverRevision).toBe(11);
+    expect(result.serverRevision).toBe(12);
     expect(result.operations).toEqual([
       expect.objectContaining({
         entity: 'workoutSessions',
         entityId: 'session-1',
+      }),
+      expect.objectContaining({
+        entity: 'fitnessProfiles',
+        entityId: 'profile-1',
       }),
     ]);
     expect(result.metadata?.unsupportedEntityCount).toBe(1);
