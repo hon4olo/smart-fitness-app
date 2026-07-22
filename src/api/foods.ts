@@ -1,5 +1,6 @@
 import { createApiClient } from '@/api/client';
 import { isApiError } from '@/api/client/errors';
+import { getMobileApiBaseUrl } from '@/api/config';
 
 export type FoodProviderName = 'local' | 'fatsecret' | 'openfoodfacts' | 'custom';
 
@@ -53,10 +54,6 @@ export type CreateCustomBarcodeFoodPayload = {
   carbsPer100g: number;
   imageUrl?: string;
 };
-
-const FOOD_API_BASE_URL = 'https://api.peptonio.com';
-
-const stripTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -114,17 +111,17 @@ const hasFoodNotFoundCode = (body: unknown): boolean =>
 
 export const isFoodApiConfigured = (): boolean => true;
 
-const getFoodApiClient = () => {
-  return createApiClient({
-    baseUrl: stripTrailingSlash(FOOD_API_BASE_URL),
-    defaultTimeoutMs: 8_000,
-    defaultRetry: {
-      attempts: 1,
-      delayMs: 250,
-      factor: 2,
-    },
-  });
-};
+const foodApiClient = createApiClient({
+  baseUrl: getMobileApiBaseUrl(),
+  defaultTimeoutMs: 8_000,
+  defaultRetry: {
+    attempts: 1,
+    delayMs: 250,
+    factor: 2,
+  },
+});
+
+const getFoodApiClient = () => foodApiClient;
 
 export const searchFoods = async (query: string): Promise<FoodItem[]> => {
   const trimmedQuery = query.trim();
