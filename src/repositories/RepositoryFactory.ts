@@ -1,7 +1,10 @@
 import type { AppRepository } from './AppRepository';
+import { createFoodEntrySyncingRepository } from './FoodEntrySyncingRepository';
 import { createLocalAppRepository } from './LocalAppRepository';
 import type { RemoteProfileRepository } from './RemoteProfileRepository';
 import type { StorageAdapter } from '@/storage/StorageAdapter';
+import { createAsyncStorageOperationQueueStore } from '@/storage/AsyncStorageOperationQueueStore';
+import { createFoodEntrySyncMetadataStore } from '@/storage/FoodEntrySyncMetadataStore';
 import { createApiClient, type ApiClient } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api';
 import { createAuthService, createTokenManager, getDefaultAuthDeviceInfo, type AuthService, type TokenManager } from '@/auth';
@@ -60,7 +63,7 @@ const createNoopAuthService = (): AuthService & { profileRepository: RemoteProfi
 });
 
 export const createRepositoryFactory = (storage: StorageAdapter, options: RepositoryFactoryOptions = {}): RepositoryProvider => {
-  const repository = createLocalAppRepository(storage);
+  const localRepository = createLocalAppRepository(storage);
   const tokenManager = options.tokenManager ?? createTokenManager(storage);
   const apiBaseUrl = options.apiBaseUrl ?? getMobileApiBaseUrl();
   const apiClient = options.apiClient ?? (apiBaseUrl ? createApiClient({ baseUrl: apiBaseUrl }) : undefined);
@@ -74,8 +77,11 @@ export const createRepositoryFactory = (storage: StorageAdapter, options: Reposi
           defaultDevice: getDefaultAuthDeviceInfo(),
         })
       : createNoopAuthService());
-
-  void repository;
+  const repository = createFoodEntrySyncingRepository(localRepository, {
+    authService,
+    queueStore: createAsyncStorageOperationQueueStore(storage),
+    metadataStore: createFoodEntrySyncMetadataStore(storage),
+  });
 
   return {
     getRepository: () => repository,
