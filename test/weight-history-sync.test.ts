@@ -37,6 +37,9 @@ const baseState = (): AppState => ({
     goalType: 'lose_fat',
     weeklyWeightChangeGoal: 0.5,
     trainingDaysPerWeek: 3,
+    dateOfBirth: null,
+    calculationSex: null,
+    trainingExperience: null,
   },
   onboardingCompleted: true,
 });
