@@ -220,7 +220,7 @@ export function SyncProvider({
         );
 
         const pulledRevision = resolvePulledRevision(pullResult);
-        if (pulledRevision !== null) {
+        if (pulledRevision !== null && nextConflictCount === 0) {
           await cursorStore.set({
             userId: session.user.id,
             deviceId: session.device.id,
