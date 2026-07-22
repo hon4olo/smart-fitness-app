@@ -1,0 +1,152 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import { ApiError, type ApiClient } from '@/api/client';
+import { createCoachApi, parseCoachRunEnvelope } from './coach';
+
+const runId = '11111111-1111-4111-8111-111111111111';
+const userId = '22222222-2222-4222-8222-222222222222';
+
+const makeEnvelope = (status: 'queued' | 'running' | 'completed' | 'rejected' | 'failed') => ({
+  run: {
+    id: runId,
+    userId,
+    domain: 'strength',
+    requestType: 'session_review',
+    status,
+    idempotencyKey: null,
+    requestData: {},
+    contextSnapshot: {},
+    result: status === 'completed' ? { kind: 'strength-session-review' } : null,
+    error: null,
+    policyVersions: { metrics: 'strength-metrics-v2' },
+    requestedAt: '2026-07-22T12:00:00.000Z',
+    startedAt: '2026-07-22T12:00:01.000Z',
+    completedAt: status === 'completed' ? '2026-07-22T12:00:02.000Z' : null,
+    createdAt: '2026-07-22T12:00:00.000Z',
+    updatedAt: '2026-07-22T12:00:02.000Z',
+  },
+  agentRuns: [],
+});
+
+const makeClient = (overrides: Partial<ApiClient>): ApiClient => ({
+  request: vi.fn(),
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+  ...overrides,
+});
+
+describe('coach API', () => {
+  it('parses and sorts a valid run envelope', () => {
+    const value = makeEnvelope('completed');
+    value.agentRuns = [
+      {
+        id: '33333333-3333-4333-8333-333333333333',
+        coachRunId: runId,
+        userId,
+        sequence: 2,
+        agentName: 'strength-metrics',
+        status: 'completed',
+        policyVersion: 'strength-metrics-v2',
+        inputSnapshot: {},
+        output: {},
+        error: null,
+        startedAt: '2026-07-22T12:00:01.000Z',
+        completedAt: '2026-07-22T12:00:02.000Z',
+        createdAt: '2026-07-22T12:00:01.000Z',
+        updatedAt: '2026-07-22T12:00:02.000Z',
+      },
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        coachRunId: runId,
+        userId,
+        sequence: 1,
+        agentName: 'strength-data-completeness',
+        status: 'completed',
+        policyVersion: 'strength-data-completeness-v2',
+        inputSnapshot: {},
+        output: {},
+        error: null,
+        startedAt: '2026-07-22T12:00:01.000Z',
+        completedAt: '2026-07-22T12:00:02.000Z',
+        createdAt: '2026-07-22T12:00:01.000Z',
+        updatedAt: '2026-07-22T12:00:02.000Z',
+      },
+    ];
+
+    const parsed = parseCoachRunEnvelope(value);
+    expect(parsed.agentRuns.map((agentRun) => agentRun.sequence)).toEqual([1, 2]);
+  });
+
+  it('refreshes an expired access token once and retries the request', async () => {
+    const post = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApiError({ code: 'unauthorized', message: 'Unauthorized', status: 401 }),
+      )
+      .mockResolvedValueOnce(makeEnvelope('completed'));
+    const api = createCoachApi(
+      {
+        getAccessToken: vi.fn(async () => 'expired-token'),
+        refreshAccessToken: vi.fn(async () => 'fresh-token'),
+      },
+      makeClient({ post }),
+    );
+
+    const result = await api.startStrengthRun({ requestType: 'session_review' });
+
+    expect(result.run.status).toBe('completed');
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post.mock.calls[1]?.[2]).toEqual(
+      expect.objectContaining({ headers: { authorization: 'Bearer fresh-token' } }),
+    );
+  });
+
+  it('polls queued runs until a terminal response is returned', async () => {
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce(makeEnvelope('running'))
+      .mockResolvedValueOnce(makeEnvelope('completed'));
+    const api = createCoachApi(
+      {
+        getAccessToken: vi.fn(async () => 'token'),
+        refreshAccessToken: vi.fn(async () => null),
+      },
+      makeClient({ get }),
+    );
+
+    const result = await api.waitForTerminalRun(parseCoachRunEnvelope(makeEnvelope('queued')), {
+      intervalMs: 1,
+      maxPolls: 3,
+    });
+
+    expect(result.run.status).toBe('completed');
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects cross-user agent run records', () => {
+    const value = makeEnvelope('completed');
+    value.agentRuns = [
+      {
+        id: '33333333-3333-4333-8333-333333333333',
+        coachRunId: runId,
+        userId: '99999999-9999-4999-8999-999999999999',
+        sequence: 1,
+        agentName: 'strength-metrics',
+        status: 'completed',
+        policyVersion: null,
+        inputSnapshot: {},
+        output: {},
+        error: null,
+        startedAt: null,
+        completedAt: null,
+        createdAt: '2026-07-22T12:00:01.000Z',
+        updatedAt: '2026-07-22T12:00:02.000Z',
+      },
+    ];
+
+    expect(() => parseCoachRunEnvelope(value)).toThrow('Invalid coach response ownership');
+  });
+});
