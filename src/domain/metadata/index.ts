@@ -2,6 +2,7 @@ export const DOMAIN_ENTITY_NAMES = [
   'appState',
   'bodyMeasurements',
   'exercises',
+  'fitnessProfiles',
   'foodEntries',
   'mealTemplates',
   'nutritionTargets',
