@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,6 +8,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import {
@@ -17,13 +18,16 @@ import {
 
 const LOOKBACK_OPTIONS = [7, 14, 30] as const;
 
+type AppliedConfirmation = {
+  revision: number;
+  appliedAt: string | null;
+};
+
 const formatNumber = (value: number): string =>
   new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
 
-const createIdempotencyKey = (lookbackDays: number): string =>
-  `mobile-nutrition-target-proposal-${lookbackDays}-${Date.now().toString(36)}-${Math.random()
-    .toString(16)
-    .slice(2)}`;
+const createIdempotencyKey = (scope: string): string =>
+  `mobile-${scope}-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
 
 function TargetSummary({ label, totals }: { label: string; totals: NutritionMetricTotals }) {
   const { colors } = useAppTheme();
@@ -45,12 +49,16 @@ export default function NutritionTargetProposalScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { isRestoringState } = useAppContext();
+  const { syncNow } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
   const [lookbackDays, setLookbackDays] = useState<(typeof LOOKBACK_OPTIONS)[number]>(14);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [busy, setBusy] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState<AppliedConfirmation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const confirmationKeyRef = useRef<string | null>(null);
 
   const viewModel = useMemo(() => (run ? buildNutritionCoachViewModel(run) : null), [run]);
   const authenticated = Boolean(session?.tokens.accessToken);
@@ -70,21 +78,27 @@ export default function NutritionTargetProposalScreen() {
     [],
   );
 
+  const clearProposalState = () => {
+    setRun(null);
+    setApplied(null);
+    setError(null);
+    confirmationKeyRef.current = null;
+  };
+
   const startProposal = async () => {
-    if (busy) return;
+    if (busy || applying) return;
 
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setBusy(true);
-    setError(null);
-    setRun(null);
+    clearProposalState();
 
     try {
       const initial = await coachApi.startNutritionRun({
         requestType: 'nutrition_target_proposal',
         lookbackDays,
-        idempotencyKey: createIdempotencyKey(lookbackDays),
+        idempotencyKey: createIdempotencyKey(`nutrition-target-proposal-${lookbackDays}`),
       });
       setRun(initial);
       setRun(
@@ -109,7 +123,81 @@ export default function NutritionTargetProposalScreen() {
     }
   };
 
+  const applyProposal = async () => {
+    if (
+      applying ||
+      !run ||
+      viewModel?.kind !== 'proposal' ||
+      viewModel.guardrailStatus !== 'valid' ||
+      !viewModel.changed ||
+      applied
+    ) {
+      return;
+    }
+
+    const confirmationKey =
+      confirmationKeyRef.current ?? createIdempotencyKey(`confirm-${run.run.id}`);
+    confirmationKeyRef.current = confirmationKey;
+    setApplying(true);
+    setError(null);
+
+    try {
+      const confirmed = await coachApi.confirmRun(run.run.id, {
+        idempotencyKey: confirmationKey,
+      });
+      const result = confirmed.run.result;
+      const appliedRevision = result?.appliedRevision;
+      const appliedAt = result?.appliedAt;
+      if (
+        result?.applied !== true ||
+        typeof appliedRevision !== 'number' ||
+        !Number.isInteger(appliedRevision) ||
+        appliedRevision < 0 ||
+        (appliedAt !== undefined && typeof appliedAt !== 'string')
+      ) {
+        throw new Error('The backend did not return a valid applied proposal result.');
+      }
+
+      setApplied({
+        revision: appliedRevision,
+        appliedAt: typeof appliedAt === 'string' ? appliedAt : null,
+      });
+      await syncNow();
+    } catch (applyError) {
+      setError(
+        applyError instanceof Error
+          ? applyError.message
+          : 'The proposal could not be applied. Generate a new proposal and try again.',
+      );
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const requestApplyConfirmation = () => {
+    if (viewModel?.kind !== 'proposal') return;
+
+    Alert.alert(
+      'Apply nutrition target changes?',
+      `Calories stay at ${formatNumber(viewModel.proposedTargets.calories)} kcal. Macros will change to P ${formatNumber(viewModel.proposedTargets.protein)}, C ${formatNumber(viewModel.proposedTargets.carbs)}, F ${formatNumber(viewModel.proposedTargets.fats)}. The backend will reject the change if the target is stale.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Apply',
+          onPress: () => {
+            void applyProposal();
+          },
+        },
+      ],
+    );
+  };
+
   const loading = !ready || isRestoringState;
+  const canApply =
+    viewModel?.kind === 'proposal' &&
+    viewModel.guardrailStatus === 'valid' &&
+    viewModel.changed &&
+    !applied;
 
   return (
     <View style={styles.screen}>
@@ -134,7 +222,7 @@ export default function NutritionTargetProposalScreen() {
           <AppCard>
             <View style={styles.badgeRow}>
               <Text style={styles.badge}>Preview</Text>
-              <Text style={styles.metaText}>Never auto-applied</Text>
+              <Text style={styles.metaText}>Explicit confirmation required</Text>
             </View>
             <Text style={styles.cardTitle}>Calorie-neutral macro reconciliation</Text>
             <Text style={styles.bodyText}>
@@ -162,11 +250,10 @@ export default function NutritionTargetProposalScreen() {
                       key={days}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
-                      disabled={busy}
+                      disabled={busy || applying}
                       onPress={() => {
                         setLookbackDays(days);
-                        setRun(null);
-                        setError(null);
+                        clearProposalState();
                       }}
                       style={({ pressed }) => [
                         styles.periodButton,
@@ -181,13 +268,13 @@ export default function NutritionTargetProposalScreen() {
                 })}
               </View>
               <PrimaryButton
-                disabled={busy}
+                disabled={busy || applying}
                 label="Generate guarded proposal"
                 loading={busy}
                 onPress={() => void startProposal()}
               />
               <Text style={styles.disclaimer}>
-                Requires at least three tracked days and an active synchronized target. There is no apply action in this preview.
+                Requires at least three tracked days and an active synchronized target. Applying a valid result triggers backend revision checks and then normal sync pull.
               </Text>
             </AppCard>
           )}
@@ -231,12 +318,31 @@ export default function NutritionTargetProposalScreen() {
                       • {issue.message}
                     </Text>
                   ))}
-                  <View style={styles.notAppliedBox}>
-                    <Text style={styles.sectionTitle}>Not applied</Text>
-                    <Text style={styles.disclaimer}>
-                      A confirmation endpoint must re-check the latest target revision before any future write.
-                    </Text>
-                  </View>
+
+                  {applied ? (
+                    <View style={styles.appliedBox}>
+                      <Text style={styles.appliedTitle}>Applied</Text>
+                      <Text style={styles.disclaimer}>
+                        Backend revision {applied.revision} was created and a normal sync pull was requested.
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.notAppliedBox}>
+                      <Text style={styles.sectionTitle}>Not applied</Text>
+                      <Text style={styles.disclaimer}>
+                        The backend will reload the current target, compare its revision with this proposal and rerun guardrails before writing.
+                      </Text>
+                    </View>
+                  )}
+
+                  {canApply ? (
+                    <PrimaryButton
+                      disabled={applying}
+                      label="Apply validated target"
+                      loading={applying}
+                      onPress={requestApplyConfirmation}
+                    />
+                  ) : null}
                 </View>
               ) : null}
 
@@ -253,6 +359,20 @@ export default function NutritionTargetProposalScreen() {
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
+    appliedBox: {
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.accent,
+      borderRadius: Radii.medium,
+      borderWidth: 1,
+      gap: Spacing.one,
+      padding: Spacing.three,
+    },
+    appliedTitle: {
+      color: colors.accent,
+      fontSize: Typography.label.fontSize,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+    },
     backButton: { alignItems: 'center', height: 42, justifyContent: 'center', width: 42 },
     backLabel: { color: colors.textPrimary, fontSize: 42, fontWeight: '300', lineHeight: 42 },
     badge: {
