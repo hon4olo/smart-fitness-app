@@ -10,6 +10,11 @@ import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants
 import { useAppContext } from '@/context/AppContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { NutritionDeterministicSummaryView } from '../components/NutritionDeterministicSummaryView';
+import {
+  getNutritionRejectionCopy,
+  readNutritionDeterministicSummary,
+} from '../nutritionDeterministicSummary';
 import {
   buildNutritionCoachViewModel,
   type NutritionCoachMetricSummary,
@@ -70,7 +75,9 @@ function ReviewMetrics({ metrics }: { metrics: NutritionCoachMetricSummary }) {
           <Text style={styles.metaText}>Missing days</Text>
         </View>
         <View style={styles.summaryCell}>
-          <Text style={styles.summaryValue}>{formatNumber(metrics.completeness.coveragePercent)}%</Text>
+          <Text style={styles.summaryValue}>
+            {formatNumber(metrics.completeness.coveragePercent)}%
+          </Text>
           <Text style={styles.metaText}>Coverage</Text>
         </View>
       </View>
@@ -125,7 +132,9 @@ function ReviewMetrics({ metrics }: { metrics: NutritionCoachMetricSummary }) {
           <Text style={styles.sectionTitle}>Protein relative to body weight</Text>
           <View style={styles.infoRow}>
             <Text style={styles.metaText}>Weight baseline</Text>
-            <Text style={styles.infoValue}>{formatNumber(metrics.proteinPerKg.weightKg)} kg</Text>
+            <Text style={styles.infoValue}>
+              {formatNumber(metrics.proteinPerKg.weightKg)} kg
+            </Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.metaText}>Calendar-day average</Text>
@@ -157,8 +166,12 @@ function ReviewMetrics({ metrics }: { metrics: NutritionCoachMetricSummary }) {
               </Text>
             </View>
             <View style={styles.dayValues}>
-              <Text style={styles.infoValue}>{formatNumber(day.totals.calories, 0)} kcal</Text>
-              <Text style={styles.metaText}>{formatNumber(day.totals.protein)} g protein</Text>
+              <Text style={styles.infoValue}>
+                {formatNumber(day.totals.calories, 0)} kcal
+              </Text>
+              <Text style={styles.metaText}>
+                {formatNumber(day.totals.protein)} g protein
+              </Text>
             </View>
           </View>
         ))}
@@ -181,6 +194,17 @@ export default function NutritionCoachScreen() {
 
   const isAuthenticated = Boolean(session?.tokens.accessToken);
   const viewModel = useMemo(() => (run ? buildNutritionCoachViewModel(run) : null), [run]);
+  const deterministicSummary = useMemo(
+    () => (run ? readNutritionDeterministicSummary(run) : null),
+    [run],
+  );
+  const rejectionCopy = useMemo(
+    () =>
+      viewModel?.kind === 'rejected'
+        ? getNutritionRejectionCopy(viewModel.reason)
+        : null,
+    [viewModel],
+  );
   const coachApi = useMemo(
     () =>
       createCoachApi({
@@ -253,7 +277,10 @@ export default function NutritionCoachScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.eight }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + Spacing.eight },
+        ]}
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <AppCard>
@@ -263,8 +290,8 @@ export default function NutritionCoachScreen() {
             </View>
             <Text style={styles.cardTitle}>Validated nutrition review</Text>
             <Text style={styles.bodyText}>
-              This screen reads synchronized food entries, nutrition targets and the latest weight.
-              It calculates metrics only and never changes your targets automatically.
+              This screen reads synchronized food entries, nutrition targets, latest weight and the
+              revisioned Coach profile. All displayed energy values are calculated deterministically.
             </Text>
           </AppCard>
 
@@ -316,7 +343,8 @@ export default function NutritionCoachScreen() {
                 onPress={() => void startReview()}
               />
               <Text style={styles.disclaimer}>
-                Missing days are kept separate from tracked-day averages. At least three tracked days are required for an approved review.
+                Missing days remain separate from tracked-day averages. At least three tracked days
+                are required before readiness and energy workers run.
               </Text>
             </AppCard>
           )}
@@ -331,13 +359,21 @@ export default function NutritionCoachScreen() {
           {viewModel ? (
             <AppCard>
               <View style={styles.resultHeader}>
-                <Text style={styles.cardTitle}>{viewModel.title}</Text>
+                <Text style={styles.cardTitle}>
+                  {rejectionCopy?.title ?? viewModel.title}
+                </Text>
                 <Text style={styles.resultStatus}>{run?.run.status.toUpperCase()}</Text>
               </View>
-              <Text style={styles.bodyText}>{viewModel.message}</Text>
+              <Text style={styles.bodyText}>
+                {rejectionCopy?.message ?? viewModel.message}
+              </Text>
 
               {viewModel.kind === 'review' ? (
                 <ReviewMetrics metrics={viewModel.metrics} />
+              ) : null}
+
+              {deterministicSummary ? (
+                <NutritionDeterministicSummaryView summary={deterministicSummary} />
               ) : null}
 
               {viewModel.kind === 'rejected' ? (
@@ -347,7 +383,8 @@ export default function NutritionCoachScreen() {
                     <View style={styles.infoRow}>
                       <Text style={styles.metaText}>Tracked days</Text>
                       <Text style={styles.infoValue}>
-                        {viewModel.metrics.completeness.trackedDays} / {viewModel.metrics.period.lookbackDays}
+                        {viewModel.metrics.completeness.trackedDays} /{' '}
+                        {viewModel.metrics.period.lookbackDays}
                       </Text>
                     </View>
                   ) : null}
@@ -497,8 +534,8 @@ const createStyles = (colors: typeof Colors.light) =>
       borderRadius: Radii.medium,
       borderWidth: StyleSheet.hairlineWidth,
       flex: 1,
-      minHeight: 42,
       justifyContent: 'center',
+      minHeight: 42,
       paddingHorizontal: Spacing.two,
     },
     periodButtonSelected: {
