@@ -67,6 +67,10 @@ export type StartNutritionCoachRunInput = {
   idempotencyKey?: string;
 };
 
+export type ConfirmCoachRunInput = {
+  idempotencyKey: string;
+};
+
 type CoachApiAuth = {
   getAccessToken(): Promise<string | null>;
   refreshAccessToken(): Promise<string | null>;
@@ -81,6 +85,7 @@ type WaitForRunOptions = {
 export type CoachApi = {
   startStrengthRun(input: StartStrengthCoachRunInput): Promise<CoachRunEnvelope>;
   startNutritionRun(input?: StartNutritionCoachRunInput): Promise<CoachRunEnvelope>;
+  confirmRun(runId: string, input: ConfirmCoachRunInput): Promise<CoachRunEnvelope>;
   getRun(runId: string): Promise<CoachRunEnvelope>;
   waitForTerminalRun(initial: CoachRunEnvelope, options?: WaitForRunOptions): Promise<CoachRunEnvelope>;
 };
@@ -331,6 +336,19 @@ export const createCoachApi = (
         ),
       );
     },
+    confirmRun: async (runId, input) =>
+      requestWithAuth(async (accessToken) =>
+        parseCoachRunEnvelope(
+          await apiClient.post<unknown, ConfirmCoachRunInput>(
+            `/v1/coach/runs/${encodeURIComponent(runId)}/confirm`,
+            input,
+            {
+              headers: { authorization: `Bearer ${accessToken}` },
+              retry: false,
+            },
+          ),
+        ),
+      ),
     getRun,
     waitForTerminalRun: async (initial, options = {}) => {
       let current = initial;
