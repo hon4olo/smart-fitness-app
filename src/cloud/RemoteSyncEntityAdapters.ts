@@ -22,6 +22,8 @@ const ENTITY_TYPE_ALIASES: Record<string, DomainEntityName> = {
   bodymeasurements: 'bodyMeasurements',
   body_measurements: 'bodyMeasurements',
   exercises: 'exercises',
+  fitnessprofiles: 'fitnessProfiles',
+  fitness_profiles: 'fitnessProfiles',
   foodentries: 'foodEntries',
   food_entries: 'foodEntries',
   mealtemplates: 'mealTemplates',
