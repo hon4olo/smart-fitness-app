@@ -6,6 +6,7 @@ export const DOMAIN_ENTITY_NAMES = [
   'mealTemplates',
   'nutritionTargets',
   'profile',
+  'trainingPrograms',
   'weightHistory',
   'workouts',
   'workoutSessions',
