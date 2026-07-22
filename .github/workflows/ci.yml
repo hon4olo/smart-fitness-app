@@ -1,0 +1,65 @@
+name: Mobile CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        id: lint
+        run: npm run lint > lint.log 2>&1
+
+      - name: Upload lint log
+        if: failure() && steps.lint.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-lint-log
+          path: lint.log
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: TypeScript
+        id: typescript
+        run: npx tsc --noEmit > typescript.log 2>&1
+
+      - name: Upload TypeScript log
+        if: failure() && steps.typescript.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-typescript-log
+          path: typescript.log
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Test
+        id: test
+        run: npm test > test.log 2>&1
+
+      - name: Upload Vitest log
+        if: failure() && steps.test.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-vitest-log
+          path: test.log
+          if-no-files-found: error
+          retention-days: 3
