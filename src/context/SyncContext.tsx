@@ -16,10 +16,19 @@ import type { SyncCoordinator } from '@/cloud';
 import {
   applyRemoteWeightHistoryChanges,
   filterWeightHistoryQueueOperations,
+  isWeightHistoryQueueOperation,
 } from '@/cloud/WeightHistorySync';
+import {
+  applyRemoteWorkoutSessionChanges,
+  isWorkoutSessionQueueOperation,
+} from '@/cloud/WorkoutSessionSync';
 import type { OfflineSyncQueueStore } from '@/cloud/CloudQueueStore';
 import type { WeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
-import { getDefaultSyncCursorStore } from '@/storage';
+import {
+  createAsyncStorageAdapter,
+  createWorkoutSessionSyncMetadataStore,
+  getDefaultSyncCursorStore,
+} from '@/storage';
 
 export type WeightSyncStatus =
   | 'local-only'
@@ -45,6 +54,23 @@ type SyncProviderProps = PropsWithChildren<{
   metadataStore: WeightSyncMetadataStore;
   syncCoordinator: SyncCoordinator;
 }>;
+
+type RemoteChangedEntity = {
+  payload?: Record<string, unknown> | null;
+  entityId?: string | null;
+  entityType: string;
+  revision?: number;
+  operationType?: string;
+  appliedAt?: string | null;
+};
+
+type RemoteDeletedEntity = {
+  id?: string;
+  entityId?: string;
+  entityType: string;
+  revision?: number;
+  appliedAt?: string | null;
+};
 
 const WeightSyncContext = createContext<WeightSyncContextValue | null>(null);
 
@@ -85,7 +111,7 @@ const resolveStatus = (
   return 'synced';
 };
 
-const saveMetadataRecords = async (
+const saveWeightMetadataRecords = async (
   metadataStore: WeightSyncMetadataStore,
   records: Awaited<ReturnType<WeightSyncMetadataStore['load']>>,
 ) => {
@@ -122,16 +148,24 @@ const resolvePulledRevision = (pullResult: {
   return null;
 };
 
-const hasUnappliedRemoteEntities = (pullResult: {
+const hasUnsupportedRemoteEntities = (pullResult: {
   operations: Array<{ entity: string }>;
   metadata?: Record<string, unknown>;
 }): boolean => {
   const unsupportedEntityCount = pullResult.metadata?.unsupportedEntityCount;
   return (
     (typeof unsupportedEntityCount === 'number' && unsupportedEntityCount > 0) ||
-    pullResult.operations.some((operation) => operation.entity !== 'weightHistory')
+    pullResult.operations.some(
+      (operation) =>
+        operation.entity !== 'weightHistory' && operation.entity !== 'workoutSessions',
+    )
   );
 };
+
+const isSupportedQueueOperation = (
+  operation: Parameters<typeof isWeightHistoryQueueOperation>[0],
+): boolean =>
+  isWeightHistoryQueueOperation(operation) || isWorkoutSessionQueueOperation(operation);
 
 export function SyncProvider({
   children,
@@ -150,6 +184,11 @@ export function SyncProvider({
   const syncingRef = useRef(false);
   const latestStateRef = useRef(state);
   const cursorStore = useMemo(() => getDefaultSyncCursorStore(), []);
+  const syncStorage = useMemo(() => createAsyncStorageAdapter(), []);
+  const workoutSessionMetadataStore = useMemo(
+    () => createWorkoutSessionSyncMetadataStore(syncStorage),
+    [syncStorage],
+  );
 
   useEffect(() => {
     latestStateRef.current = state;
@@ -157,7 +196,7 @@ export function SyncProvider({
 
   const refreshQueueStats = useCallback(async () => {
     const pending = await queueStore.getPending();
-    setPendingOperations(filterWeightHistoryQueueOperations(pending).length);
+    setPendingOperations(pending.filter(isSupportedQueueOperation).length);
   }, [queueStore]);
 
   const syncNow = useCallback(async () => {
@@ -203,38 +242,48 @@ export function SyncProvider({
 
       if (pullResult) {
         const syncedAt = pullResult.serverTimestamp ?? new Date().toISOString();
-        const remoteChanges = applyRemoteWeightHistoryChanges(
+        const changedEntities = (pullResult.changedEntities ?? []) as RemoteChangedEntity[];
+        const nonDeletedChangedEntities = changedEntities.filter(
+          (entity) => entity.operationType !== 'delete',
+        );
+        const deletedEntities = (pullResult.deletedEntities ?? []) as RemoteDeletedEntity[];
+
+        const weightChanges = applyRemoteWeightHistoryChanges(
           latestStateRef.current,
-          (pullResult.changedEntities ?? []) as Array<{
-            payload?: Record<string, unknown> | null;
-            entityId?: string | null;
-            entityType: string;
-            revision?: number;
-            operationType?: string;
-            appliedAt?: string | null;
-          }>,
-          (pullResult.deletedEntities ?? []) as Array<{
-            id?: string;
-            entityId?: string;
-            entityType: string;
-            revision?: number;
-            appliedAt?: string | null;
-          }>,
+          nonDeletedChangedEntities,
+          deletedEntities,
           await metadataStore.load(),
           syncedAt,
         );
-
-        replaceState(remoteChanges.nextState);
-        await saveMetadataRecords(
-          metadataStore,
-          new Map(remoteChanges.metadata.map((record) => [record.id, record])),
+        const workoutSessionChanges = applyRemoteWorkoutSessionChanges(
+          weightChanges.nextState,
+          nonDeletedChangedEntities,
+          deletedEntities,
+          await workoutSessionMetadataStore.load(),
+          syncedAt,
         );
 
+        replaceState(workoutSessionChanges.nextState);
+        await saveWeightMetadataRecords(
+          metadataStore,
+          new Map(weightChanges.metadata.map((record) => [record.id, record])),
+        );
+        await workoutSessionMetadataStore.clear();
+        for (const record of workoutSessionChanges.metadata) {
+          await workoutSessionMetadataStore.set(record);
+        }
+
+        const handledOperationCount =
+          weightChanges.appliedRecordIds.length +
+          weightChanges.deletedRecordIds.length +
+          workoutSessionChanges.appliedRecordIds.length +
+          workoutSessionChanges.deletedRecordIds.length;
         const pulledRevision = resolvePulledRevision(pullResult);
         if (
           pulledRevision !== null &&
           nextConflictCount === 0 &&
-          !hasUnappliedRemoteEntities(pullResult)
+          !hasUnsupportedRemoteEntities(pullResult) &&
+          handledOperationCount === pullResult.operations.length
         ) {
           await cursorStore.set({
             userId: session.user.id,
@@ -246,7 +295,7 @@ export function SyncProvider({
       }
 
       const afterPending = await queueStore.getPending();
-      setPendingOperations(filterWeightHistoryQueueOperations(afterPending).length);
+      setPendingOperations(afterPending.filter(isSupportedQueueOperation).length);
       setLastSyncAt(
         pushResult?.serverTimestamp ??
           pullResult?.serverTimestamp ??
@@ -269,6 +318,7 @@ export function SyncProvider({
     replaceState,
     session,
     syncCoordinator,
+    workoutSessionMetadataStore,
   ]);
 
   useEffect(() => {
