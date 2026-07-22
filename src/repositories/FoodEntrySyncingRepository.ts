@@ -92,11 +92,12 @@ export const createFoodEntrySyncingRepository = (
       return state;
     },
     async saveState(state) {
+      const suppressOutbox = isFoodEntryOutboxSuppressed();
       const prior = previousState;
       previousState = state;
       await baseRepository.saveState(state);
 
-      if (isFoodEntryOutboxSuppressed()) {
+      if (suppressOutbox) {
         return;
       }
 
