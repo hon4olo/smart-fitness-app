@@ -44,6 +44,7 @@ jobs:
           npx vitest run
           src/api/coach.test.ts
           src/features/coach/strengthCoachViewModel.test.ts
+          src/features/coach/nutritionCoachViewModel.test.ts
           src/cloud/FoodEntrySync.test.ts
           src/repositories/FoodEntrySyncingRepository.test.ts
           src/cloud/NutritionTargetSync.test.ts
