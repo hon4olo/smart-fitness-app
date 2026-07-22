@@ -1,4 +1,4 @@
-import { ensureUuid } from '@/lib';
+import { ensureUuid } from '@/lib/ids';
 import type { AppState, BodyMeasurement, ProfileGoalType, WeightEntry } from '@/types';
 
 export type ProfileGoalsUpdate = {
