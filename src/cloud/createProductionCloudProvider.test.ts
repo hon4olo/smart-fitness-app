@@ -137,7 +137,7 @@ describe('createProductionCloudProvider', () => {
     );
   });
 
-  it('preserves supported remote entity types and drops unknown ones', async () => {
+  it('preserves supported remote entity types and reports unknown ones', async () => {
     const requests: ApiRequestOptions[] = [];
     const apiClient = {
       async request(options: ApiRequestOptions) {
@@ -199,5 +199,6 @@ describe('createProductionCloudProvider', () => {
         entityId: 'session-1',
       }),
     ]);
+    expect(result.metadata?.unsupportedEntityCount).toBe(1);
   });
 });
