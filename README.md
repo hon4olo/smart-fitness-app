@@ -1,15 +1,31 @@
 # Smart Fitness App
 
-Clean Expo MVP scaffold for a fitness tracking app.
+Expo React Native client for the Smart Fitness product.
 
-## Current MVP
+## Current foundation
 
-- Home dashboard with calories, protein, body weight, last workout, and start workout action.
-- Workouts screen with mock routines and exercises.
-- Nutrition screen with macro totals and food entries.
-- Progress screen with weight history and body measurement mocks.
-- Profile screen with basic height, weight, goal, and activity level fields.
-- AsyncStorage is used only as temporary local storage.
+- Offline-first local `AppState` persisted through AsyncStorage.
+- Authenticated backend synchronization with revisioned operations and conflict handling.
+- Normalized sync support for weight history, workout sessions, food entries, nutrition targets, and fitness profiles.
+- Deterministic Strength Coach and Nutrition Coach preview flows backed by the private Fastify API.
+- Explicit, revision-safe confirmation before a validated Nutrition Coach proposal can change a target.
+
+## Fitness profile synchronization
+
+The local profile remains immediately usable offline. When an authenticated sync runs, the client maps legacy UI fields into a versioned `fitnessProfiles` full snapshot with a deterministic profile ID. Server revisions and the last accepted snapshot are stored separately from `AppState` so remote pull can be applied without generating a second local outbox operation.
+
+The authoritative AI Coach profile fields are:
+
+- date of birth;
+- calculation sex used only by deterministic energy formulas;
+- height;
+- goal and target weekly weight-change rate;
+- activity level;
+- training experience;
+- training days per week;
+- target weight.
+
+Missing fields remain nullable. The backend readiness worker returns `needs_input`; it must not infer them through an LLM.
 
 ## Run
 
@@ -18,8 +34,8 @@ npm install
 npx expo start
 ```
 
-## Food API
+## API configuration
 
-Set `EXPO_PUBLIC_FOOD_API_BASE_URL` to enable backend-proxied food search. If it is missing, the app keeps using the existing local nutrition catalog.
+Set `EXPO_PUBLIC_API_BASE_URL` for the backend. The older food-specific variable may remain as a compatibility fallback only where already supported.
 
-Do not add FatSecret client ids or client secrets to Expo environment variables. FatSecret credentials live only in `smart-fitness-backend`; the app consumes normalized backend `FoodItem` responses and never calls FatSecret directly. Preserve attribution for provider food data where applicable, do not cache FatSecret data permanently unless terms allow it, and do not redistribute FatSecret as a standalone database.
+Do not add FatSecret, model-provider, or other service credentials to Expo environment variables. Provider credentials live only in `smart-fitness-backend`; the app consumes normalized backend DTOs and never calls those providers directly.
