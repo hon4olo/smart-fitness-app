@@ -1,7 +1,9 @@
 import { Text } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { DestructiveButton } from '@/components/ui/DestructiveButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, Spacing, Typography } from '@/constants/theme';
 
 type ProfileActionsCardProps = {
@@ -9,10 +11,17 @@ type ProfileActionsCardProps = {
 };
 
 export function ProfileActionsCard({ onResetOnboarding }: ProfileActionsCardProps) {
+  const router = useRouter();
+
   return (
     <AppCard>
       <Text style={styles.title}>Developer settings</Text>
       <Text style={styles.badge}>Developer</Text>
+      <SecondaryButton
+        accessibilityHint="Opens the deterministic Strength Coach preview"
+        label="Strength Coach preview"
+        onPress={() => router.push('/workouts/coach')}
+      />
       <DestructiveButton accessibilityHint="Resets the setup flow for this device" label="Reset onboarding" onPress={onResetOnboarding} />
     </AppCard>
   );
