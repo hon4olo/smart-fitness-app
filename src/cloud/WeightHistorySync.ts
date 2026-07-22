@@ -61,6 +61,7 @@ export const createWeightHistoryQueueOperation = (
   const now = input.now ?? new Date().toISOString();
   const operationId = `weightHistory:${input.entry.id}`;
   const clientTimestamp = now;
+  const idempotencyKey = `queue:weightHistory:${input.entry.id}:${input.action}:${clientTimestamp}:${input.actorId ?? ''}:${input.baseRevision}:${input.entry.weight}:${input.entry.createdAt}`;
   const payload =
     input.action === 'delete'
       ? {
@@ -91,12 +92,13 @@ export const createWeightHistoryQueueOperation = (
     },
     clientTimestamp,
     actorId: input.actorId,
-    idempotencyKey: `queue:weightHistory:${input.entry.id}:${input.action}:${clientTimestamp}:${input.actorId ?? ''}:${input.baseRevision}:${input.entry.weight}:${input.entry.createdAt}`,
+    idempotencyKey,
     retryCount: 0,
     status: 'pending',
     metadata: {
       entityName: 'weightHistory',
       deviceId: input.deviceId,
+      requestId: idempotencyKey,
       source: 'local',
       userId: input.actorId,
       lastSyncedAt: input.previous?.syncedAt,
