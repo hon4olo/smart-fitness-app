@@ -1,4 +1,5 @@
 import type { Workout, WorkoutRpe, WorkoutSession, WorkoutSet } from '@/types';
+import { createUuid } from '@/lib/ids';
 
 import { buildCompletedWorkoutSessionSnapshot } from './sessionModel';
 import type { WorkoutSessionDraft } from './types';
@@ -7,7 +8,7 @@ type WorkoutSessionSetField = 'reps' | 'weight';
 
 const cloneSet = (set: WorkoutSet) => ({ ...set });
 
-const createWorkoutSessionSetId = (draft: WorkoutSessionDraft) => `${draft.id}-${draft.sets.length + 1}-${Date.now()}`;
+const createWorkoutSessionSetId = () => createUuid();
 
 const parseWorkoutSessionFieldValue = (value: string) => {
   const parsed = Number.parseFloat(value.replace(',', '.').trim());
@@ -23,7 +24,7 @@ export const createWorkoutSessionDraft = (workout: Workout, existingDraft?: Work
   }
 
   return {
-    id: `${Date.now()}`,
+    id: createUuid(),
     workoutId: workout.id,
     workoutTitle: workout.title,
     startedAt: new Date().toISOString(),
@@ -37,7 +38,7 @@ export const addWorkoutSessionSet = (
   previousSet?: WorkoutSet,
 ) => {
   const nextSet: WorkoutSet = {
-    id: createWorkoutSessionSetId(draft),
+    id: createWorkoutSessionSetId(),
     exerciseId: exercise.id,
     exerciseName: exercise.name,
     weight: previousSet?.weight ?? 60,
@@ -64,7 +65,7 @@ export const addWorkoutSessionExercises = (
     }
 
     nextSets.push({
-      id: createWorkoutSessionSetId({ ...draft, sets: nextSets }),
+      id: createWorkoutSessionSetId(),
       exerciseId: exercise.id,
       exerciseName: exercise.name,
       weight: 60,
