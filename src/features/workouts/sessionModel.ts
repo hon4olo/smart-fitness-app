@@ -1,5 +1,6 @@
 import type { WorkoutSession } from '@/types';
 
+import { normalizeWorkoutSessionForSync } from '@/cloud/WorkoutSessionSync';
 import { stageCompletedWorkoutSessionForSync } from './storage';
 import type { WorkoutSessionDraft } from './types';
 
@@ -20,7 +21,7 @@ export const buildCompletedWorkoutSessionSnapshot = (
   options: { finishedAt?: string; notes?: string } = {},
 ) => {
   const finishedAt = options.finishedAt ?? new Date().toISOString();
-  const session = {
+  const session = normalizeWorkoutSessionForSync({
     id: draft.id,
     workoutId: draft.workoutId,
     workoutTitle: draft.workoutTitle,
@@ -28,7 +29,7 @@ export const buildCompletedWorkoutSessionSnapshot = (
     finishedAt,
     notes: options.notes?.trim() || undefined,
     sets: draft.sets.map(cloneSet),
-  } satisfies WorkoutSession;
+  });
 
   stageCompletedWorkoutSessionForSync(session);
   return session;
