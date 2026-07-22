@@ -1,5 +1,4 @@
-import { isApiError } from '@/api/client';
-import type { ApiClient } from '@/api/client';
+import { isApiError, type ApiClient } from '@/api/client';
 import type { AuthService } from '@/auth';
 import { getDefaultSyncCursorStore, type SyncCursorStore } from '@/storage';
 
@@ -18,7 +17,7 @@ export type CreateProductionCloudProviderOptions = {
   now?: () => string;
 };
 
-type SyncResponseEnvelope = {
+type SyncEnvelope = {
   revision?: number;
   serverRevision?: number;
   serverTimestamp?: string;
@@ -29,13 +28,13 @@ type SyncResponseEnvelope = {
   conflictCount?: number;
 };
 
-type SyncPushResponse = SyncResponseEnvelope & {
+type SyncPushResponse = SyncEnvelope & {
   appliedOperations?: unknown[];
   conflicts?: unknown[];
   duplicateIdempotencyKeys?: string[];
 };
 
-type SyncPullResponse = SyncResponseEnvelope & {
+type SyncPullResponse = SyncEnvelope & {
   changedEntities?: unknown[];
   deletedEntities?: unknown[];
   conflicts?: unknown[];
@@ -45,39 +44,6 @@ type SyncPullResponse = SyncResponseEnvelope & {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isStringArray = (value: unknown): value is string[] =>
-  Array.isArray(value) && value.every((item) => typeof item === 'string');
-
-const buildAuthHeader = (token: string): Record<string, string> => ({ authorization: `Bearer ${token}` });
-
-const normalizeSyncState = (
-  envelope: SyncResponseEnvelope | undefined,
-  fallback: SyncState['status'],
-): SyncState => ({
-  status: envelope?.status ?? fallback,
-  pendingOperations: envelope?.pendingOperations ?? 0,
-  conflictCount: envelope?.conflictCount ?? envelope?.pendingConflicts ?? 0,
-  lastSyncedAt: envelope?.lastSuccessfulSync ?? envelope?.serverTimestamp,
-});
-
-const withRetry = async <T>(operation: () => Promise<T>, attempts = 2): Promise<T> => {
-  let lastError: unknown;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      const statusCode =
-        isApiError(error) && typeof error.status === 'number' ? error.status : undefined;
-      if (statusCode === undefined || statusCode < 500 || statusCode >= 600) {
-        throw error;
-      }
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error('Request failed');
-};
-
 const requestWithAuth = async <T>(
   apiClient: ApiClient,
   authService: CreateProductionCloudProviderOptions['authService'],
@@ -85,43 +51,38 @@ const requestWithAuth = async <T>(
   path: string,
   body?: unknown,
 ): Promise<T> => {
-  const perform = async (token: string | null): Promise<T> => {
-    if (!token) {
-      throw new Error('authentication required');
-    }
-
-    return apiClient.request<T, unknown>({
+  const perform = async (token: string) =>
+    apiClient.request<T, unknown>({
       method,
       path,
       body,
-      headers: buildAuthHeader(token),
+      headers: { authorization: `Bearer ${token}` },
       retry: false,
     });
-  };
 
-  const initialToken = await authService.getAccessToken();
-  if (!initialToken) {
+  const token = await authService.getAccessToken();
+  if (!token) {
     throw new Error('authentication required');
   }
 
   try {
-    return await withRetry(() => perform(initialToken));
+    return await perform(token);
   } catch (error) {
-    if (isApiError(error) && error.status === 401) {
-      const refreshed = await authService.refresh();
-      const nextToken = refreshed?.tokens.accessToken ?? (await authService.getAccessToken());
-      if (!nextToken) {
-        throw new Error('authentication required');
-      }
-
-      return withRetry(() => perform(nextToken));
+    if (!isApiError(error) || error.status !== 401) {
+      throw error;
     }
 
-    throw error;
+    const refreshed = await authService.refresh();
+    const nextToken = refreshed?.tokens.accessToken ?? (await authService.getAccessToken());
+    if (!nextToken) {
+      throw new Error('authentication required');
+    }
+
+    return perform(nextToken);
   }
 };
 
-const resolveSyncIdentity = async (
+const resolveIdentity = async (
   authService: CreateProductionCloudProviderOptions['authService'],
 ): Promise<{ userId: string; deviceId: string }> => {
   const session = await authService.getCurrentSession();
@@ -129,67 +90,70 @@ const resolveSyncIdentity = async (
     throw new Error('authentication required');
   }
 
+  return { userId: session.user.id, deviceId: session.device.id };
+};
+
+const toSyncState = (response: SyncEnvelope, fallback: SyncState['status']): SyncState => ({
+  status: response.status ?? fallback,
+  pendingOperations: response.pendingOperations ?? 0,
+  conflictCount: response.conflictCount ?? response.pendingConflicts ?? 0,
+  lastSyncedAt: response.lastSuccessfulSync ?? response.serverTimestamp,
+});
+
+const normalizeOperations = (
+  values: unknown[] | undefined,
+  fallbackRevision: number,
+  fallbackCreatedAt: string,
+): SyncOperation[] =>
+  (values ?? [])
+    .filter(isRecord)
+    .map((record) => toRemoteSyncOperation(record, fallbackRevision, fallbackCreatedAt))
+    .filter((operation): operation is SyncOperation => Boolean(operation));
+
+const toPushResult = (response: SyncPushResponse, timestamp: string): CloudPushResult => {
+  const revision = response.revision ?? 0;
+  const appliedOperations = normalizeOperations(
+    response.appliedOperations,
+    revision,
+    response.serverTimestamp ?? timestamp,
+  );
+
   return {
-    userId: session.user.id,
-    deviceId: session.device.id,
+    status: response.status ?? (response.conflicts?.length ? 'conflict' : 'idle'),
+    pendingOperations: response.pendingOperations ?? 0,
+    conflictCount: response.conflictCount ?? response.conflicts?.length ?? 0,
+    lastSyncedAt: response.serverTimestamp,
+    ...(response.revision === undefined ? {} : { revision: response.revision }),
+    ...(response.serverTimestamp ? { serverTimestamp: response.serverTimestamp } : {}),
+    ...(appliedOperations.length ? { appliedOperations } : {}),
+    ...(Array.isArray(response.conflicts)
+      ? { conflicts: response.conflicts as ConflictRecord[] }
+      : {}),
+    ...(Array.isArray(response.duplicateIdempotencyKeys)
+      ? { duplicateIdempotencyKeys: response.duplicateIdempotencyKeys.filter((key): key is string => typeof key === 'string') }
+      : {}),
   };
 };
 
-const resolveClientRevision = async (
-  cursorStore: Pick<SyncCursorStore, 'get'>,
-  userId: string,
-): Promise<number> => (await cursorStore.get(userId))?.serverRevision ?? 0;
-
-const toCloudPushResult = (response: SyncPushResponse): CloudPushResult => ({
-  status: response.status ?? (response.conflicts?.length ? 'conflict' : 'idle'),
-  pendingOperations: response.pendingOperations ?? 0,
-  conflictCount: response.conflictCount ?? response.conflicts?.length ?? 0,
-  lastSyncedAt: response.serverTimestamp,
-  ...(response.revision !== undefined ? { revision: response.revision } : {}),
-  ...(response.serverTimestamp ? { serverTimestamp: response.serverTimestamp } : {}),
-  ...(Array.isArray(response.appliedOperations)
-    ? { appliedOperations: response.appliedOperations as SyncOperation[] }
-    : {}),
-  ...(Array.isArray(response.conflicts)
-    ? { conflicts: response.conflicts as ConflictRecord[] }
-    : {}),
-  ...(isStringArray(response.duplicateIdempotencyKeys)
-    ? { duplicateIdempotencyKeys: response.duplicateIdempotencyKeys }
-    : {}),
-});
-
-const toCloudPullResult = (response: SyncPullResponse, now: string): CloudPullResult => {
-  const changedRecords = (
-    Array.isArray(response.changedEntities) ? response.changedEntities.filter(isRecord) : []
-  ) as Array<Record<string, unknown>>;
-  const deletedRecords = (
-    Array.isArray(response.deletedEntities) ? response.deletedEntities.filter(isRecord) : []
-  ) as Array<Record<string, unknown>>;
+const toPullResult = (response: SyncPullResponse, timestamp: string): CloudPullResult => {
+  const changed = (response.changedEntities ?? []).filter(isRecord);
+  const deleted = (response.deletedEntities ?? []).filter(isRecord);
   const serverRevision = response.serverRevision ?? response.revision ?? 0;
-
-  const changedOperations = changedRecords
-    .filter((record) => record.operationType !== 'delete')
-    .map((record) => toRemoteSyncOperation(record, serverRevision, now))
-    .filter((operation): operation is SyncOperation => Boolean(operation));
-  const deletedOperations = deletedRecords
-    .map((record) =>
-      toRemoteSyncOperation(
-        {
-          ...record,
-          operationType: 'delete',
-          createdAt:
-            typeof record.appliedAt === 'string' ? record.appliedAt : now,
-        },
-        serverRevision,
-        now,
-      ),
-    )
-    .filter((operation): operation is SyncOperation => Boolean(operation));
+  const changedOperations = normalizeOperations(
+    changed.filter((record) => record.operationType !== 'delete'),
+    serverRevision,
+    timestamp,
+  );
+  const deletedOperations = normalizeOperations(
+    deleted.map((record) => ({ ...record, operationType: 'delete' })),
+    serverRevision,
+    timestamp,
+  );
 
   return {
-    id: `pull-${response.serverTimestamp ?? now}`,
+    id: `pull-${response.serverTimestamp ?? timestamp}`,
     operations: [...changedOperations, ...deletedOperations],
-    createdAt: response.serverTimestamp ?? now,
+    createdAt: response.serverTimestamp ?? timestamp,
     status: response.status ?? 'idle',
     pendingOperations: response.pendingOperations ?? 0,
     conflictCount: response.conflictCount ?? response.conflicts?.length ?? 0,
@@ -197,8 +161,8 @@ const toCloudPullResult = (response: SyncPullResponse, now: string): CloudPullRe
     revision: serverRevision,
     serverRevision,
     ...(response.serverTimestamp ? { serverTimestamp: response.serverTimestamp } : {}),
-    ...(changedRecords.length ? { changedEntities: changedRecords } : {}),
-    ...(deletedRecords.length ? { deletedEntities: deletedRecords } : {}),
+    ...(changed.length ? { changedEntities: changed } : {}),
+    ...(deleted.length ? { deletedEntities: deleted } : {}),
     ...(Array.isArray(response.conflicts)
       ? { conflicts: response.conflicts as ConflictRecord[] }
       : {}),
@@ -212,98 +176,80 @@ export const createProductionCloudProvider = ({
   cursorStore = getDefaultSyncCursorStore(),
   now = () => new Date().toISOString(),
 }: CreateProductionCloudProviderOptions): ProductionCloudProvider => {
+  const getClientRevision = async (userId: string): Promise<number> =>
+    (await cursorStore.get(userId))?.serverRevision ?? 0;
+
   const status = async (): Promise<SyncState> => {
     try {
-      const response = await requestWithAuth<SyncResponseEnvelope>(
+      const response = await requestWithAuth<SyncEnvelope>(
         apiClient,
         authService,
         'GET',
         '/v1/sync/status',
       );
-      return normalizeSyncState(response, 'idle');
+      return toSyncState(response, 'idle');
     } catch (error) {
-      if (isApiError(error) && error.status === 401) {
-        return {
-          status: 'needsAuthentication',
-          pendingOperations: 0,
-          conflictCount: 0,
-          lastSyncedAt: undefined,
-        };
-      }
-
       return {
-        status: 'error',
+        status: isApiError(error) && error.status === 401 ? 'needsAuthentication' : 'error',
         pendingOperations: 0,
         conflictCount: 0,
-        lastSyncedAt: undefined,
       };
     }
-  };
-
-  const pushOperations = async (batch: SyncBatch): Promise<CloudPushResult> => {
-    const identity = await resolveSyncIdentity(authService);
-    const clientRevision = await resolveClientRevision(cursorStore, identity.userId);
-    const response = await requestWithAuth<SyncPushResponse>(
-      apiClient,
-      authService,
-      'POST',
-      '/v1/sync/push',
-      {
-        deviceId: identity.deviceId,
-        clientRevision,
-        operations: batch.operations.map((operation) => ({
-          entityType: operation.entity,
-          entityId: operation.entityId ?? operation.id,
-          operationType: operation.action === 'merge' ? 'upsert' : operation.action,
-          baseRevision: operation.revision?.number ?? 0,
-          idempotencyKey: operation.id,
-          ...(operation.payload === undefined ? {} : { payload: operation.payload }),
-        })),
-      },
-    );
-
-    return toCloudPushResult(response);
-  };
-
-  const pullChanges = async (): Promise<CloudPullResult> => {
-    const identity = await resolveSyncIdentity(authService);
-    const clientRevision = await resolveClientRevision(cursorStore, identity.userId);
-    const response = await requestWithAuth<SyncPullResponse>(
-      apiClient,
-      authService,
-      'POST',
-      '/v1/sync/pull',
-      {
-        deviceId: identity.deviceId,
-        clientRevision,
-      },
-    );
-
-    return toCloudPullResult(response, now());
   };
 
   return {
     status,
     healthCheck: status,
-    pushOperations,
-    pullChanges,
-    getSnapshot: async () => ({
-      id: `snapshot-${now()}`,
-      revision: { id: 'local', number: 0, createdAt: now() },
-      state: {},
-      createdAt: now(),
-    }),
-    uploadSnapshot: async () => ({
-      status: 'idle',
-      pendingOperations: 0,
-      conflictCount: 0,
-      lastSyncedAt: now(),
-    }),
-    resolveConflict: async () => ({
-      status: 'conflict',
-      pendingOperations: 0,
-      conflictCount: 1,
-      lastSyncedAt: now(),
-    }),
+    async pushOperations(batch: SyncBatch) {
+      const identity = await resolveIdentity(authService);
+      const response = await requestWithAuth<SyncPushResponse>(
+        apiClient,
+        authService,
+        'POST',
+        '/v1/sync/push',
+        {
+          deviceId: identity.deviceId,
+          clientRevision: await getClientRevision(identity.userId),
+          operations: batch.operations.map((operation) => ({
+            entityType: operation.entity,
+            entityId: operation.entityId ?? operation.id,
+            operationType: operation.action === 'merge' ? 'upsert' : operation.action,
+            baseRevision: operation.revision?.number ?? 0,
+            idempotencyKey: operation.metadata?.requestId ?? operation.id,
+            ...(operation.payload === undefined ? {} : { payload: operation.payload }),
+          })),
+        },
+      );
+      return toPushResult(response, now());
+    },
+    async pullChanges() {
+      const identity = await resolveIdentity(authService);
+      const response = await requestWithAuth<SyncPullResponse>(
+        apiClient,
+        authService,
+        'POST',
+        '/v1/sync/pull',
+        {
+          deviceId: identity.deviceId,
+          clientRevision: await getClientRevision(identity.userId),
+        },
+      );
+      return toPullResult(response, now());
+    },
+    async getSnapshot() {
+      const timestamp = now();
+      return {
+        id: `snapshot-${timestamp}`,
+        revision: { id: 'local', number: 0, createdAt: timestamp },
+        state: {},
+        createdAt: timestamp,
+      };
+    },
+    async uploadSnapshot() {
+      return { status: 'idle', pendingOperations: 0, conflictCount: 0, lastSyncedAt: now() };
+    },
+    async resolveConflict() {
+      return { status: 'conflict', pendingOperations: 0, conflictCount: 1, lastSyncedAt: now() };
+    },
   };
 };
