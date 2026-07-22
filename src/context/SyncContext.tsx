@@ -122,6 +122,17 @@ const resolvePulledRevision = (pullResult: {
   return null;
 };
 
+const hasUnappliedRemoteEntities = (pullResult: {
+  operations: Array<{ entity: string }>;
+  metadata?: Record<string, unknown>;
+}): boolean => {
+  const unsupportedEntityCount = pullResult.metadata?.unsupportedEntityCount;
+  return (
+    (typeof unsupportedEntityCount === 'number' && unsupportedEntityCount > 0) ||
+    pullResult.operations.some((operation) => operation.entity !== 'weightHistory')
+  );
+};
+
 export function SyncProvider({
   children,
   metadataStore,
@@ -220,7 +231,11 @@ export function SyncProvider({
         );
 
         const pulledRevision = resolvePulledRevision(pullResult);
-        if (pulledRevision !== null && nextConflictCount === 0) {
+        if (
+          pulledRevision !== null &&
+          nextConflictCount === 0 &&
+          !hasUnappliedRemoteEntities(pullResult)
+        ) {
           await cursorStore.set({
             userId: session.user.id,
             deviceId: session.device.id,
