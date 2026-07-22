@@ -11,6 +11,14 @@ export type {
   WorkoutSessionSyncMetadata,
   WorkoutSessionSyncMetadataStore,
 } from './WorkoutSessionSyncMetadataStore';
+export {
+  createFoodEntrySyncMetadataStore,
+  FOOD_ENTRY_SYNC_METADATA_STORAGE_KEY,
+} from './FoodEntrySyncMetadataStore';
+export type {
+  FoodEntrySyncMetadata,
+  FoodEntrySyncMetadataStore,
+} from './FoodEntrySyncMetadataStore';
 export { createSyncCursorStore, SYNC_CURSOR_STORAGE_KEY } from './SyncCursorStore';
 export type { SyncCursor, SyncCursorStore } from './SyncCursorStore';
 export { getDefaultSyncCursorStore } from './defaultSyncCursorStore';
