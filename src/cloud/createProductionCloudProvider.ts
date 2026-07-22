@@ -44,6 +44,29 @@ type SyncPullResponse = SyncEnvelope & {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const withServerRetry = async <T>(operation: () => Promise<T>, attempts = 2): Promise<T> => {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      const retryable =
+        isApiError(error) &&
+        typeof error.status === 'number' &&
+        error.status >= 500 &&
+        error.status < 600;
+
+      if (!retryable || attempt === attempts - 1) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Request failed');
+};
+
 const requestWithAuth = async <T>(
   apiClient: ApiClient,
   authService: CreateProductionCloudProviderOptions['authService'],
@@ -66,7 +89,7 @@ const requestWithAuth = async <T>(
   }
 
   try {
-    return await perform(token);
+    return await withServerRetry(() => perform(token));
   } catch (error) {
     if (!isApiError(error) || error.status !== 401) {
       throw error;
@@ -78,7 +101,7 @@ const requestWithAuth = async <T>(
       throw new Error('authentication required');
     }
 
-    return perform(nextToken);
+    return withServerRetry(() => perform(nextToken));
   }
 };
 
@@ -113,7 +136,9 @@ const normalizeOperations = (
 const toPushResult = (response: SyncPushResponse, timestamp: string): CloudPushResult => {
   const revision = response.revision ?? 0;
   const appliedOperations = normalizeOperations(
-    response.appliedOperations,
+    (response.appliedOperations ?? []).filter(
+      (operation) => isRecord(operation) && operation.status === 'applied',
+    ),
     revision,
     response.serverTimestamp ?? timestamp,
   );
@@ -130,7 +155,11 @@ const toPushResult = (response: SyncPushResponse, timestamp: string): CloudPushR
       ? { conflicts: response.conflicts as ConflictRecord[] }
       : {}),
     ...(Array.isArray(response.duplicateIdempotencyKeys)
-      ? { duplicateIdempotencyKeys: response.duplicateIdempotencyKeys.filter((key): key is string => typeof key === 'string') }
+      ? {
+          duplicateIdempotencyKeys: response.duplicateIdempotencyKeys.filter(
+            (key): key is string => typeof key === 'string',
+          ),
+        }
       : {}),
   };
 };
@@ -189,8 +218,12 @@ export const createProductionCloudProvider = ({
       );
       return toSyncState(response, 'idle');
     } catch (error) {
+      const needsAuthentication =
+        (isApiError(error) && error.status === 401) ||
+        (error instanceof Error && error.message === 'authentication required');
+
       return {
-        status: isApiError(error) && error.status === 401 ? 'needsAuthentication' : 'error',
+        status: needsAuthentication ? 'needsAuthentication' : 'error',
         pendingOperations: 0,
         conflictCount: 0,
       };
