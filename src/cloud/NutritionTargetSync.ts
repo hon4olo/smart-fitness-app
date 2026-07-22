@@ -128,7 +128,7 @@ export const applyRemoteNutritionTargetChanges = (
     entityType: string;
     revision?: number;
     appliedAt?: string | null;
-  }> = [],
+  }>,
   userId: string,
   existingMetadata: Map<string, NutritionTargetSyncMetadata> = new Map(),
   syncedAt = new Date().toISOString(),
