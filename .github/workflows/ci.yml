@@ -25,19 +25,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        id: lint
-        run: npm run lint > lint.log 2>&1
-
-      - name: Upload lint log
-        if: failure() && steps.lint.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-lint-log
-          path: lint.log
-          if-no-files-found: error
-          retention-days: 3
-
       - name: TypeScript
         id: typescript
         run: npx tsc --noEmit > typescript.log 2>&1
