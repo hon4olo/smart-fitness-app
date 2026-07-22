@@ -38,7 +38,7 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-      - name: Coach and food sync contract tests
+      - name: Coach and sync contract tests
         id: contract-tests
         run: >-
           npx vitest run
@@ -46,6 +46,7 @@ jobs:
           src/features/coach/strengthCoachViewModel.test.ts
           src/cloud/FoodEntrySync.test.ts
           src/repositories/FoodEntrySyncingRepository.test.ts
+          src/storage/AsyncStorageOperationQueueStore.concurrent.test.ts
           > contract-tests.log 2>&1
 
       - name: Upload contract test log
