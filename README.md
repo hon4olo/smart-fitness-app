@@ -27,6 +27,12 @@ The authoritative AI Coach profile fields are:
 
 The Profile tab includes a dedicated Coach profile editor with strict date, age, height, and enum validation. Saving updates only local `AppState`; the normal sync coordinator detects the changed normalized snapshot and queues it. Missing fields remain nullable until the user provides them. The backend readiness worker returns `needs_input`; it must not infer them through an LLM.
 
+## Deterministic Nutrition Review
+
+The Nutrition Coach review parses versioned readiness and energy-worker outputs from the backend. It shows either the exact missing profile fields, typed policy blocks, or deterministic Mifflin–St Jeor BMR, TDEE, goal-adjusted calories, permissible calorie range, and protein/fat policy ranges. These values are read-only calculations; the screen does not call a model or change nutrition targets.
+
+Malformed or unsupported worker versions are not displayed as valid metrics. Typed rejection reasons such as an unreconcilable calorie/macro target receive dedicated user-facing explanations rather than a generic missing-data message.
+
 ## Run
 
 ```bash
