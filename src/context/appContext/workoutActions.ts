@@ -1,5 +1,6 @@
 import type { AppState, Exercise, TrainingProgram, Workout, WorkoutSession } from '@/types';
 import { createExerciseId } from '@/lib/appState';
+import { enqueueWorkoutSessionSyncOperation } from '@/features/workouts/queueWorkoutSessionSyncOperation';
 
 export type WorkoutTemplateInput = {
   id: string;
@@ -174,9 +175,16 @@ export function deleteCustomExerciseFromState(currentState: AppState, exerciseId
 }
 
 export function deleteWorkoutSessionFromState(currentState: AppState, sessionId: string): AppState {
+  const session = currentState.workoutSessions.find((item) => item.id === sessionId);
+  if (!session) {
+    return currentState;
+  }
+
+  void enqueueWorkoutSessionSyncOperation('delete', session);
+
   return {
     ...currentState,
-    workoutSessions: currentState.workoutSessions.filter((session) => session.id !== sessionId),
+    workoutSessions: currentState.workoutSessions.filter((item) => item.id !== sessionId),
   };
 }
 
@@ -199,6 +207,8 @@ export function updateWorkoutSessionPreservingImmutableFields(
     startedAt: existingSession.startedAt,
     finishedAt: existingSession.finishedAt,
   };
+
+  void enqueueWorkoutSessionSyncOperation('update', nextSession);
 
   return {
     ...currentState,
