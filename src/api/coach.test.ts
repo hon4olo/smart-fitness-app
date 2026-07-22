@@ -6,7 +6,15 @@ import { createCoachApi, parseCoachRunEnvelope } from './coach';
 const runId = '11111111-1111-4111-8111-111111111111';
 const userId = '22222222-2222-4222-8222-222222222222';
 
-const makeEnvelope = (status: 'queued' | 'running' | 'completed' | 'rejected' | 'failed') => ({
+type RawCoachAgentRun = Record<string, unknown>;
+type RawCoachEnvelope = {
+  run: Record<string, unknown>;
+  agentRuns: RawCoachAgentRun[];
+};
+
+const makeEnvelope = (
+  status: 'queued' | 'running' | 'completed' | 'rejected' | 'failed',
+): RawCoachEnvelope => ({
   run: {
     id: runId,
     userId,
