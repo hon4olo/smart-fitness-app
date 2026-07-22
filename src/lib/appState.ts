@@ -1,6 +1,19 @@
-import type { BodyMeasurement, Exercise, FoodEntry, MealTemplate, WeightEntry, WorkoutSession } from '@/types';
+import type {
+  BodyMeasurement,
+  Exercise,
+  FoodEntry,
+  MealTemplate,
+  WeightEntry,
+  WorkoutSession,
+} from '@/types';
 
-export { createWorkoutExerciseId as createExerciseId, normalizeWorkouts, normalizeWorkoutSessions } from '@/features/workouts';
+import { ensureUuid } from './ids';
+
+export {
+  createWorkoutExerciseId as createExerciseId,
+  normalizeWorkouts,
+  normalizeWorkoutSessions,
+} from '@/features/workouts';
 
 export const normalizeExercises = (exercises: Exercise[]) => {
   return exercises.map((exercise) => ({
@@ -13,7 +26,11 @@ export const normalizeExercises = (exercises: Exercise[]) => {
 export const normalizeFoodEntries = (foodEntries: FoodEntry[]) => {
   return foodEntries.map((entry) => ({
     ...entry,
-    date: entry.date ?? (entry.createdAt ? entry.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10)),
+    date:
+      entry.date ??
+      (entry.createdAt
+        ? entry.createdAt.slice(0, 10)
+        : new Date().toISOString().slice(0, 10)),
     mealType: entry.mealType ?? 'breakfast',
     carbs: entry.carbs ?? 0,
     fats: entry.fats ?? 0,
@@ -33,18 +50,24 @@ export const normalizeMealTemplates = (mealTemplates: MealTemplate[]) => {
   }));
 };
 
+const resolveWeightCreatedAt = (entry: WeightEntry): string => {
+  if (entry.createdAt && Number.isFinite(Date.parse(entry.createdAt))) {
+    return new Date(entry.createdAt).toISOString();
+  }
+
+  const parsedDate = Date.parse(entry.date);
+  return Number.isFinite(parsedDate)
+    ? new Date(parsedDate).toISOString()
+    : new Date().toISOString();
+};
+
 export const normalizeWeightHistory = (weightHistory: WeightEntry[]) => {
   return weightHistory
-    .map((entry) => {
-      const parsedDate = new Date(`${entry.date} 2026`);
-
-      return {
-        ...entry,
-        createdAt:
-          entry.createdAt ??
-          (Number.isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString()),
-      };
-    })
+    .map((entry) => ({
+      ...entry,
+      id: ensureUuid(entry.id),
+      createdAt: resolveWeightCreatedAt(entry),
+    }))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
