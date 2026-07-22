@@ -1,3 +1,4 @@
+import { ensureUuid } from '@/lib';
 import type { AppState, BodyMeasurement, ProfileGoalType, WeightEntry } from '@/types';
 
 export type ProfileGoalsUpdate = {
@@ -20,7 +21,10 @@ export type InitialWeightEntryInput = {
   createdAt: string;
 };
 
-export function updateProfileGoalsInState(currentState: AppState, goals: ProfileGoalsUpdate): AppState {
+export function updateProfileGoalsInState(
+  currentState: AppState,
+  goals: ProfileGoalsUpdate,
+): AppState {
   return {
     ...currentState,
     profile: {
@@ -30,7 +34,10 @@ export function updateProfileGoalsInState(currentState: AppState, goals: Profile
   };
 }
 
-export function addWeightEntryToState(currentState: AppState, entry: WeightEntry): AppState {
+export function addWeightEntryToState(
+  currentState: AppState,
+  entry: WeightEntry,
+): AppState {
   return {
     ...currentState,
     weightHistory: [entry, ...currentState.weightHistory],
@@ -40,7 +47,7 @@ export function addWeightEntryToState(currentState: AppState, entry: WeightEntry
 export function updateWeightEntryInState(
   currentState: AppState,
   entryId: string,
-  entry: WeightEntry
+  entry: WeightEntry,
 ): AppState {
   const index = currentState.weightHistory.findIndex((item) => item.id === entryId);
 
@@ -57,21 +64,30 @@ export function updateWeightEntryInState(
   };
 }
 
-export function deleteWeightEntryFromState(currentState: AppState, entryId: string): AppState {
+export function deleteWeightEntryFromState(
+  currentState: AppState,
+  entryId: string,
+): AppState {
   return {
     ...currentState,
     weightHistory: currentState.weightHistory.filter((item) => item.id !== entryId),
   };
 }
 
-export function addBodyMeasurementToState(currentState: AppState, entry: BodyMeasurement): AppState {
+export function addBodyMeasurementToState(
+  currentState: AppState,
+  entry: BodyMeasurement,
+): AppState {
   return {
     ...currentState,
     bodyMeasurements: [entry, ...currentState.bodyMeasurements],
   };
 }
 
-export function deleteBodyMeasurementFromState(currentState: AppState, entryId: string): AppState {
+export function deleteBodyMeasurementFromState(
+  currentState: AppState,
+  entryId: string,
+): AppState {
   return {
     ...currentState,
     bodyMeasurements: currentState.bodyMeasurements.filter((entry) => entry.id !== entryId),
@@ -81,10 +97,10 @@ export function deleteBodyMeasurementFromState(currentState: AppState, entryId: 
 export function completeOnboardingInState(
   currentState: AppState,
   setup: OnboardingSetup,
-  initialWeightInput: InitialWeightEntryInput
+  initialWeightInput: InitialWeightEntryInput,
 ): { nextState: AppState; initialWeightEntry: WeightEntry } {
   const initialWeightEntry: WeightEntry = {
-    id: initialWeightInput.id,
+    id: ensureUuid(initialWeightInput.id),
     date: initialWeightInput.date,
     weight: setup.currentWeight,
     createdAt: initialWeightInput.createdAt,
