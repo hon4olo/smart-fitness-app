@@ -1,5 +1,5 @@
 import type { AppState, WorkoutRpe, WorkoutSession, WorkoutSet } from '@/types';
-import { ensureUuid } from '@/lib/ids';
+import { ensureUuid, isUuid } from '@/lib/ids';
 import type {
   WorkoutSessionSyncMetadata,
 } from '@/storage/WorkoutSessionSyncMetadataStore';
@@ -35,13 +35,14 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isWorkoutRpe = (value: unknown): value is WorkoutRpe =>
   typeof value === 'number' && WORKOUT_RPE_VALUES.includes(value as WorkoutRpe);
 
+const isValidTimestamp = (value: string): boolean =>
+  Number.isFinite(new Date(value).getTime());
+
 export const isWorkoutSessionEntity = (entityType: string): boolean =>
   entityType === 'workoutSessions' || entityType === 'workout_sessions';
 
 const normalizeSet = (
   value: unknown,
-  sessionId: string,
-  index: number,
 ): WorkoutSet | null => {
   if (!isRecord(value)) {
     return null;
@@ -53,26 +54,26 @@ const normalizeSet = (
   const reps = typeof value.reps === 'number' ? value.reps : Number(value.reps);
 
   if (
+    !isUuid(value.id) ||
     !exerciseId ||
     !exerciseName ||
     !Number.isFinite(weight) ||
     weight < 0 ||
-    !Number.isFinite(reps) ||
-    reps < 0
+    !Number.isInteger(reps) ||
+    reps < 0 ||
+    (value.completed !== undefined && typeof value.completed !== 'boolean') ||
+    (value.targetRpe !== undefined && !isWorkoutRpe(value.targetRpe)) ||
+    (value.actualRpe !== undefined && !isWorkoutRpe(value.actualRpe))
   ) {
     return null;
   }
 
   const set: WorkoutSet = {
-    id: ensureUuid(
-      typeof value.id === 'string' && value.id.trim()
-        ? value.id
-        : `${sessionId}:set:${index}`,
-    ),
+    id: value.id.toLowerCase(),
     exerciseId,
     exerciseName,
     weight,
-    reps: Math.floor(reps),
+    reps,
     completed: value.completed !== false,
   };
 
@@ -176,6 +177,54 @@ export const isWorkoutSessionQueueOperation = (
   operation: OfflineSyncQueueOperation,
 ): boolean => isWorkoutSessionEntity(operation.entityType);
 
+const parseRemoteSession = (
+  entity: {
+    payload?: Record<string, unknown> | null;
+    entityId?: string | null;
+    revision?: number;
+  },
+): WorkoutSession | null => {
+  const payload = isRecord(entity.payload) ? entity.payload : null;
+  if (!payload || payload.schemaVersion !== 1) {
+    return null;
+  }
+
+  const rawId = typeof payload.id === 'string' ? payload.id : entity.entityId ?? '';
+  const workoutId = typeof payload.workoutId === 'string' ? payload.workoutId.trim() : '';
+  const workoutTitle = typeof payload.workoutTitle === 'string' ? payload.workoutTitle.trim() : '';
+  const startedAt = typeof payload.startedAt === 'string' ? payload.startedAt : '';
+  const finishedAt = typeof payload.finishedAt === 'string' ? payload.finishedAt : '';
+
+  if (
+    !isUuid(rawId) ||
+    !workoutId ||
+    !workoutTitle ||
+    !isValidTimestamp(startedAt) ||
+    !isValidTimestamp(finishedAt) ||
+    new Date(finishedAt).getTime() < new Date(startedAt).getTime() ||
+    !Array.isArray(payload.sets)
+  ) {
+    return null;
+  }
+
+  const sets = payload.sets.map(normalizeSet);
+  if (sets.some((set) => set === null)) {
+    return null;
+  }
+
+  return {
+    id: rawId.toLowerCase(),
+    workoutId,
+    workoutTitle,
+    startedAt,
+    finishedAt,
+    sets: sets as WorkoutSet[],
+    ...(typeof payload.notes === 'string' && payload.notes.trim()
+      ? { notes: payload.notes.trim() }
+      : {}),
+  };
+};
+
 export const applyRemoteWorkoutSessionChanges = (
   state: AppState,
   changedEntities: Array<{
@@ -221,45 +270,16 @@ export const applyRemoteWorkoutSessionChanges = (
       continue;
     }
 
-    const payload = isRecord(entity.payload) ? entity.payload : null;
-    if (!payload) {
+    const session = parseRemoteSession(entity);
+    if (!session) {
       continue;
     }
 
-    const rawId =
-      typeof payload.id === 'string' ? payload.id : entity.entityId ?? '';
-    const id = ensureUuid(rawId);
-    const workoutId = typeof payload.workoutId === 'string' ? payload.workoutId.trim() : '';
-    const workoutTitle =
-      typeof payload.workoutTitle === 'string' ? payload.workoutTitle.trim() : '';
-    const startedAt = typeof payload.startedAt === 'string' ? payload.startedAt : '';
-    const finishedAt = typeof payload.finishedAt === 'string' ? payload.finishedAt : '';
-    const sets = Array.isArray(payload.sets)
-      ? payload.sets
-          .map((set, index) => normalizeSet(set, id, index))
-          .filter((set): set is WorkoutSet => Boolean(set))
-      : [];
-
-    if (!rawId || !workoutId || !workoutTitle || !startedAt || !finishedAt) {
-      continue;
-    }
-
-    const session: WorkoutSession = {
-      id,
-      workoutId,
-      workoutTitle,
-      startedAt,
-      finishedAt,
-      sets,
-      ...(typeof payload.notes === 'string' && payload.notes.trim()
-        ? { notes: payload.notes.trim() }
-        : {}),
-    };
-
+    const payload = entity.payload as Record<string, unknown>;
     upsertSession(session);
-    appliedRecordIds.push(id);
-    metadata.set(id, {
-      id,
+    appliedRecordIds.push(session.id);
+    metadata.set(session.id, {
+      id: session.id,
       revision:
         typeof entity.revision === 'number' && Number.isFinite(entity.revision)
           ? Math.max(0, Math.floor(entity.revision))
@@ -268,7 +288,7 @@ export const applyRemoteWorkoutSessionChanges = (
         typeof payload.deviceId === 'string' && payload.deviceId.trim()
           ? payload.deviceId
           : 'unknown',
-      startedAt,
+      startedAt: session.startedAt,
       syncedAt,
       deletedAt: null,
     });
@@ -280,11 +300,11 @@ export const applyRemoteWorkoutSessionChanges = (
     }
 
     const rawId = deleted.entityId ?? deleted.id;
-    if (!rawId) {
+    if (!isUuid(rawId)) {
       continue;
     }
 
-    const id = ensureUuid(rawId);
+    const id = rawId.toLowerCase();
     removeSession(id);
     deletedRecordIds.push(id);
     metadata.set(id, {
