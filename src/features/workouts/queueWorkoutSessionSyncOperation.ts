@@ -44,22 +44,27 @@ export const enqueueWorkoutSessionSyncOperation = async (
   inputSession: WorkoutSession,
 ): Promise<WorkoutSession> => {
   const session = normalizeWorkoutSessionForSync(inputSession);
-  const storage = createAsyncStorageAdapter();
-  const queueStore = createAsyncStorageOperationQueueStore(storage);
-  const metadataStore = createWorkoutSessionSyncMetadataStore(storage);
-  const identity = await loadStoredAuthIdentity();
-  const metadata = await metadataStore.get(session.id);
 
-  await queueStore.enqueue(
-    createWorkoutSessionQueueOperation({
-      action,
-      session,
-      deviceId: identity.deviceId ?? LOCAL_DEVICE_ID,
-      baseRevision: metadata?.revision ?? 0,
-      actorId: identity.userId,
-      previous: metadata,
-    }),
-  );
+  try {
+    const storage = createAsyncStorageAdapter();
+    const queueStore = createAsyncStorageOperationQueueStore(storage);
+    const metadataStore = createWorkoutSessionSyncMetadataStore(storage);
+    const identity = await loadStoredAuthIdentity();
+    const metadata = await metadataStore.get(session.id);
+
+    await queueStore.enqueue(
+      createWorkoutSessionQueueOperation({
+        action,
+        session,
+        deviceId: identity.deviceId ?? LOCAL_DEVICE_ID,
+        baseRevision: metadata?.revision ?? 0,
+        actorId: identity.userId,
+        previous: metadata,
+      }),
+    );
+  } catch (error) {
+    console.warn('Failed to enqueue workout session sync operation', error);
+  }
 
   return session;
 };
