@@ -1,10 +1,12 @@
 import type { AppRepository } from './AppRepository';
 import { createFoodEntrySyncingRepository } from './FoodEntrySyncingRepository';
 import { createLocalAppRepository } from './LocalAppRepository';
+import { createNutritionTargetSyncingRepository } from './NutritionTargetSyncingRepository';
 import type { RemoteProfileRepository } from './RemoteProfileRepository';
 import type { StorageAdapter } from '@/storage/StorageAdapter';
 import { createAsyncStorageOperationQueueStore } from '@/storage/AsyncStorageOperationQueueStore';
 import { createFoodEntrySyncMetadataStore } from '@/storage/FoodEntrySyncMetadataStore';
+import { createNutritionTargetSyncMetadataStore } from '@/storage/NutritionTargetSyncMetadataStore';
 import { createApiClient, type ApiClient } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api';
 import { createAuthService, createTokenManager, getDefaultAuthDeviceInfo, type AuthService, type TokenManager } from '@/auth';
@@ -77,10 +79,16 @@ export const createRepositoryFactory = (storage: StorageAdapter, options: Reposi
           defaultDevice: getDefaultAuthDeviceInfo(),
         })
       : createNoopAuthService());
-  const repository = createFoodEntrySyncingRepository(localRepository, {
+  const queueStore = createAsyncStorageOperationQueueStore(storage);
+  const foodRepository = createFoodEntrySyncingRepository(localRepository, {
     authService,
-    queueStore: createAsyncStorageOperationQueueStore(storage),
+    queueStore,
     metadataStore: createFoodEntrySyncMetadataStore(storage),
+  });
+  const repository = createNutritionTargetSyncingRepository(foodRepository, {
+    authService,
+    queueStore,
+    metadataStore: createNutritionTargetSyncMetadataStore(storage),
   });
 
   return {
