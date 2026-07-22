@@ -15,7 +15,10 @@ export type WeightHistoryRemoteRecord = {
   deviceId: string | null;
 };
 
-export type WeightHistoryRemoteDelete = Pick<WeightHistoryRemoteRecord, 'id' | 'deletedAt' | 'revision' | 'deviceId'> & {
+export type WeightHistoryRemoteDelete = Pick<
+  WeightHistoryRemoteRecord,
+  'id' | 'deletedAt' | 'revision' | 'deviceId'
+> & {
   appliedAt?: string | null;
 };
 
@@ -26,9 +29,21 @@ export type WeightHistorySyncResult = {
   metadata: WeightSyncMetadata[];
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isWeightHistoryEntity = (entityType: string): boolean => entityType === 'weightHistory' || entityType === 'weight_history';
+export const isWeightHistoryEntity = (entityType: string): boolean =>
+  entityType === 'weightHistory' || entityType === 'weight_history';
+
+const toFiniteNumber = (value: unknown): number | null => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const toRevision = (value: unknown, fallback = 0): number => {
+  const parsed = toFiniteNumber(value);
+  return parsed === null ? fallback : Math.max(0, Math.floor(parsed));
+};
 
 export const getWeightHistoryRecordKey = (entry: WeightEntry): string => entry.id;
 
@@ -46,21 +61,22 @@ export const createWeightHistoryQueueOperation = (
   const now = input.now ?? new Date().toISOString();
   const operationId = `weightHistory:${input.entry.id}`;
   const clientTimestamp = now;
-  const payload = input.action === 'delete'
-    ? {
-        id: input.entry.id,
-        recordedAt: input.entry.createdAt,
-        deletedAt: now,
-        deviceId: input.deviceId,
-      }
-    : {
-        id: input.entry.id,
-        weight: input.entry.weight,
-        recordedAt: input.entry.createdAt,
-        createdAt: input.entry.createdAt,
-        updatedAt: now,
-        deviceId: input.deviceId,
-      };
+  const payload =
+    input.action === 'delete'
+      ? {
+          id: input.entry.id,
+          recordedAt: input.entry.createdAt,
+          deletedAt: now,
+          deviceId: input.deviceId,
+        }
+      : {
+          id: input.entry.id,
+          weight: input.entry.weight,
+          recordedAt: input.entry.createdAt,
+          createdAt: input.entry.createdAt,
+          updatedAt: now,
+          deviceId: input.deviceId,
+        };
 
   return {
     opId: operationId,
@@ -88,10 +104,13 @@ export const createWeightHistoryQueueOperation = (
   };
 };
 
-export const isWeightHistoryQueueOperation = (operation: OfflineSyncQueueOperation): boolean => isWeightHistoryEntity(operation.entityType);
+export const isWeightHistoryQueueOperation = (
+  operation: OfflineSyncQueueOperation,
+): boolean => isWeightHistoryEntity(operation.entityType);
 
-export const filterWeightHistoryQueueOperations = (operations: OfflineSyncQueueOperation[]): OfflineSyncQueueOperation[] =>
-  operations.filter(isWeightHistoryQueueOperation);
+export const filterWeightHistoryQueueOperations = (
+  operations: OfflineSyncQueueOperation[],
+): OfflineSyncQueueOperation[] => operations.filter(isWeightHistoryQueueOperation);
 
 export const toLocalWeightEntry = (record: WeightHistoryRemoteRecord): WeightEntry => ({
   id: record.id,
@@ -102,8 +121,22 @@ export const toLocalWeightEntry = (record: WeightHistoryRemoteRecord): WeightEnt
 
 export const applyRemoteWeightHistoryChanges = (
   state: AppState,
-  changedEntities: Array<{ payload?: Record<string, unknown> | null; entityId?: string | null; entityType: string; revision?: number; operationType?: string; appliedAt?: string | null }>,
-  deletedEntities: Array<{ id?: string; entityId?: string; entityType: string; revision?: number; appliedAt?: string | null }> = [],
+  changedEntities: Array<{
+    payload?: Record<string, unknown> | null;
+    entityId?: string | null;
+    entityType: string;
+    revision?: number;
+    operationType?: string;
+    appliedAt?: string | null;
+  }>,
+  deletedEntities: Array<{
+    id?: string;
+    entityId?: string;
+    entityType: string;
+    revision?: number;
+    appliedAt?: string | null;
+    deviceId?: string | null;
+  }> = [],
   existingMetadata: Map<string, WeightSyncMetadata> = new Map(),
   syncedAt = new Date().toISOString(),
 ): WeightHistorySyncResult => {
@@ -126,7 +159,7 @@ export const applyRemoteWeightHistoryChanges = (
   };
 
   const applyRecord = (record: WeightHistoryRemoteRecord) => {
-    if (!isRecord(record) || !record.id) {
+    if (!record.id) {
       return;
     }
 
@@ -149,8 +182,8 @@ export const applyRemoteWeightHistoryChanges = (
   };
 
   const sortedChanged = [...changedEntities].sort((left, right) => {
-    const leftRevision = typeof left.revision === 'number' ? left.revision : 0;
-    const rightRevision = typeof right.revision === 'number' ? right.revision : 0;
+    const leftRevision = toRevision(left.revision);
+    const rightRevision = toRevision(right.revision);
     if (leftRevision !== rightRevision) {
       return leftRevision - rightRevision;
     }
@@ -169,20 +202,32 @@ export const applyRemoteWeightHistoryChanges = (
       continue;
     }
 
+    const id = typeof payload.id === 'string' ? payload.id : entity.entityId ?? '';
+    const deletedAt = typeof payload.deletedAt === 'string' ? payload.deletedAt : null;
+    const weight = toFiniteNumber(payload.weight);
+    if (!id || (!deletedAt && weight === null)) {
+      continue;
+    }
+
     applyRecord({
-      id: typeof payload.id === 'string' ? payload.id : entity.entityId ?? '',
-      weight: typeof payload.weight === 'number' ? payload.weight : Number(payload.weight ?? 0),
-      recordedAt: typeof payload.recordedAt === 'string' ? payload.recordedAt : syncedAt,
+      id,
+      weight: weight ?? 0,
+      recordedAt:
+        typeof payload.recordedAt === 'string' ? payload.recordedAt : syncedAt,
       createdAt: typeof payload.createdAt === 'string' ? payload.createdAt : syncedAt,
       updatedAt: typeof payload.updatedAt === 'string' ? payload.updatedAt : syncedAt,
-      deletedAt: typeof payload.deletedAt === 'string' ? payload.deletedAt : null,
-      revision: typeof payload.revision === 'number' ? payload.revision : 0,
+      deletedAt,
+      revision: toRevision(payload.revision, toRevision(entity.revision)),
       deviceId: typeof payload.deviceId === 'string' ? payload.deviceId : null,
     });
   }
 
   for (const deleted of deletedEntities) {
-    const id = deleted.id ?? deleted.entityId;
+    if (!isWeightHistoryEntity(deleted.entityType)) {
+      continue;
+    }
+
+    const id = deleted.entityId ?? deleted.id;
     if (!id) {
       continue;
     }
@@ -192,8 +237,11 @@ export const applyRemoteWeightHistoryChanges = (
 
     metadata.set(id, {
       id,
-      revision: typeof deleted.revision === 'number' ? deleted.revision : 0,
-      deviceId: 'unknown',
+      revision: toRevision(deleted.revision),
+      deviceId:
+        typeof deleted.deviceId === 'string' && deleted.deviceId
+          ? deleted.deviceId
+          : 'unknown',
       recordedAt: syncedAt,
       syncedAt,
       deletedAt: deleted.appliedAt ?? syncedAt,
