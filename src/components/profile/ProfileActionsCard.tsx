@@ -27,6 +27,11 @@ export function ProfileActionsCard({ onResetOnboarding }: ProfileActionsCardProp
         label="Nutrition Coach preview"
         onPress={() => router.push('/nutrition/coach')}
       />
+      <SecondaryButton
+        accessibilityHint="Opens the guarded nutrition target proposal preview"
+        label="Nutrition target proposal"
+        onPress={() => router.push('/nutrition/coach-proposal')}
+      />
       <DestructiveButton
         accessibilityHint="Resets the setup flow for this device"
         label="Reset onboarding"
