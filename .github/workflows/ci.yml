@@ -38,16 +38,22 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-      - name: Coach contract tests
-        id: coach-tests
-        run: npx vitest run src/api/coach.test.ts src/features/coach/strengthCoachViewModel.test.ts > coach-tests.log 2>&1
+      - name: Coach and food sync contract tests
+        id: contract-tests
+        run: >-
+          npx vitest run
+          src/api/coach.test.ts
+          src/features/coach/strengthCoachViewModel.test.ts
+          src/cloud/FoodEntrySync.test.ts
+          src/repositories/FoodEntrySyncingRepository.test.ts
+          > contract-tests.log 2>&1
 
-      - name: Upload coach test log
-        if: failure() && steps.coach-tests.outcome == 'failure'
+      - name: Upload contract test log
+        if: failure() && steps.contract-tests.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
-          name: mobile-coach-test-log
-          path: coach-tests.log
+          name: mobile-contract-test-log
+          path: contract-tests.log
           if-no-files-found: error
           retention-days: 3
 
