@@ -1,4 +1,5 @@
 import type { Exercise, Workout, WorkoutSession } from '@/types';
+import { ensureUuid } from '@/lib/ids';
 
 export const createWorkoutExerciseId = (name: string) => {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -93,17 +94,24 @@ export const normalizeWorkouts = (workouts: Workout[], defaultWorkoutTemplateIds
 
 export const normalizeWorkoutSessions = (sessions: WorkoutSession[]) => {
   const deduped = dedupeById(
-    sessions.map((session) => ({
-      ...session,
-      sets: session.sets.map((set) => {
-        const legacySet = set as WorkoutSession['sets'][number] & { exerciseId?: string };
+    sessions.map((session) => {
+      const legacySessionId = session.id;
+      const sessionId = ensureUuid(legacySessionId);
 
-        return {
-          ...legacySet,
-          exerciseId: legacySet.exerciseId || createWorkoutExerciseId(legacySet.exerciseName),
-        };
-      }),
-    }))
+      return {
+        ...session,
+        id: sessionId,
+        sets: session.sets.map((set, index) => {
+          const legacySet = set as WorkoutSession['sets'][number] & { exerciseId?: string };
+
+          return {
+            ...legacySet,
+            id: ensureUuid(legacySet.id || `${legacySessionId}:set:${index}`),
+            exerciseId: legacySet.exerciseId || createWorkoutExerciseId(legacySet.exerciseName),
+          };
+        }),
+      };
+    })
   );
 
   return [...deduped].sort((left, right) => {
