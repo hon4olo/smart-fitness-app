@@ -22,7 +22,16 @@ export function ProfileActionsCard({ onResetOnboarding }: ProfileActionsCardProp
         label="Strength Coach preview"
         onPress={() => router.push('/workouts/coach')}
       />
-      <DestructiveButton accessibilityHint="Resets the setup flow for this device" label="Reset onboarding" onPress={onResetOnboarding} />
+      <SecondaryButton
+        accessibilityHint="Opens the deterministic Nutrition Coach preview"
+        label="Nutrition Coach preview"
+        onPress={() => router.push('/nutrition/coach')}
+      />
+      <DestructiveButton
+        accessibilityHint="Resets the setup flow for this device"
+        label="Reset onboarding"
+        onPress={onResetOnboarding}
+      />
     </AppCard>
   );
 }
