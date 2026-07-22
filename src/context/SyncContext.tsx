@@ -19,6 +19,13 @@ import {
   runWithoutFoodEntryOutbox,
 } from '@/cloud/FoodEntrySync';
 import {
+  applyRemoteNutritionTargetChanges,
+  createNutritionTargetQueueOperation,
+  getNutritionTargetEntityId,
+  isNutritionTargetQueueOperation,
+  runWithoutNutritionTargetOutbox,
+} from '@/cloud/NutritionTargetSync';
+import {
   applyRemoteWeightHistoryChanges,
   filterWeightHistoryQueueOperations,
 } from '@/cloud/WeightHistorySync';
@@ -32,6 +39,7 @@ import type { WeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore'
 import {
   createAsyncStorageAdapter,
   createFoodEntrySyncMetadataStore,
+  createNutritionTargetSyncMetadataStore,
   createWorkoutSessionSyncMetadataStore,
   getDefaultSyncCursorStore,
 } from '@/storage';
@@ -55,6 +63,7 @@ export type WeightSyncContextValue = {
 
 type SyncProviderProps = PropsWithChildren<{
   state: AppState;
+  isRestoringState: boolean;
   replaceState(nextState: AppState): void;
   queueStore: OfflineSyncQueueStore;
   metadataStore: WeightSyncMetadataStore;
@@ -85,26 +94,18 @@ const resolveStatus = (
   hasConflicts: boolean,
   sessionActive: boolean,
 ): WeightSyncStatus => {
-  if (!sessionActive) {
+  if (!sessionActive || phase === 'NeedsAuthentication') {
     return 'local-only';
   }
-
-  if (phase === 'NeedsAuthentication') {
-    return 'local-only';
-  }
-
   if (phase === 'Offline') {
     return 'offline';
   }
-
   if (phase === 'Failed') {
     return 'error';
   }
-
   if (hasConflicts || phase === 'Conflict') {
     return 'conflict';
   }
-
   if (
     phase === 'Uploading' ||
     phase === 'Downloading' ||
@@ -113,7 +114,6 @@ const resolveStatus = (
   ) {
     return 'syncing';
   }
-
   return 'synced';
 };
 
@@ -137,11 +137,9 @@ const resolvePulledRevision = (pullResult: {
   ) {
     return Math.max(0, Math.floor(pullResult.serverRevision));
   }
-
   if (typeof pullResult.revision === 'number' && Number.isFinite(pullResult.revision)) {
     return Math.max(0, Math.floor(pullResult.revision));
   }
-
   if (
     typeof pullResult.revision === 'object' &&
     pullResult.revision !== null &&
@@ -150,7 +148,6 @@ const resolvePulledRevision = (pullResult: {
   ) {
     return Math.max(0, Math.floor(pullResult.revision.number));
   }
-
   return null;
 };
 
@@ -165,7 +162,8 @@ const hasUnsupportedRemoteEntities = (pullResult: {
       (operation) =>
         operation.entity !== 'weightHistory' &&
         operation.entity !== 'workoutSessions' &&
-        operation.entity !== 'foodEntries',
+        operation.entity !== 'foodEntries' &&
+        operation.entity !== 'nutritionTargets',
     )
   );
 };
@@ -175,10 +173,12 @@ const countSupportedQueueOperations = (
 ): number =>
   filterWeightHistoryQueueOperations(operations).length +
   operations.filter(isWorkoutSessionQueueOperation).length +
-  operations.filter(isFoodEntryQueueOperation).length;
+  operations.filter(isFoodEntryQueueOperation).length +
+  operations.filter(isNutritionTargetQueueOperation).length;
 
 export function SyncProvider({
   children,
+  isRestoringState,
   metadataStore,
   queueStore,
   replaceState,
@@ -203,6 +203,10 @@ export function SyncProvider({
     () => createFoodEntrySyncMetadataStore(syncStorage),
     [syncStorage],
   );
+  const nutritionTargetMetadataStore = useMemo(
+    () => createNutritionTargetSyncMetadataStore(syncStorage),
+    [syncStorage],
+  );
 
   useEffect(() => {
     latestStateRef.current = state;
@@ -213,8 +217,34 @@ export function SyncProvider({
     setPendingOperations(countSupportedQueueOperations(pending));
   }, [queueStore]);
 
+  const ensureNutritionTargetBootstrap = useCallback(async () => {
+    if (!session?.user.id || !session.device.id) {
+      return;
+    }
+    const entityId = getNutritionTargetEntityId(session.user.id);
+    const metadata = await nutritionTargetMetadataStore.get(entityId);
+    const pending = await queueStore.getPending();
+    if (
+      (metadata && !metadata.deletedAt) ||
+      pending.some(isNutritionTargetQueueOperation)
+    ) {
+      return;
+    }
+
+    await queueStore.enqueue(
+      createNutritionTargetQueueOperation({
+        action: 'create',
+        targets: latestStateRef.current.nutritionTargets,
+        userId: session.user.id,
+        deviceId: session.device.id,
+        baseRevision: metadata?.revision ?? 0,
+        previous: metadata,
+      }),
+    );
+  }, [nutritionTargetMetadataStore, queueStore, session]);
+
   const syncNow = useCallback(async () => {
-    if (syncingRef.current) {
+    if (syncingRef.current || isRestoringState) {
       return;
     }
 
@@ -229,6 +259,7 @@ export function SyncProvider({
         return;
       }
 
+      await ensureNutritionTargetBootstrap();
       const result = await syncCoordinator.syncNow();
       const pushResult = result.push?.result;
       const pullResult = result.pull?.result;
@@ -283,8 +314,20 @@ export function SyncProvider({
           await foodEntryMetadataStore.load(),
           syncedAt,
         );
+        const nutritionTargetChanges = applyRemoteNutritionTargetChanges(
+          foodEntryChanges.nextState,
+          nonDeletedChangedEntities,
+          deletedEntities,
+          session.user.id,
+          await nutritionTargetMetadataStore.load(),
+          syncedAt,
+        );
 
-        runWithoutFoodEntryOutbox(() => replaceState(foodEntryChanges.nextState));
+        runWithoutFoodEntryOutbox(() =>
+          runWithoutNutritionTargetOutbox(() =>
+            replaceState(nutritionTargetChanges.nextState),
+          ),
+        );
         await saveWeightMetadataRecords(
           metadataStore,
           new Map(weightChanges.metadata.map((record) => [record.id, record])),
@@ -297,6 +340,10 @@ export function SyncProvider({
         for (const record of foodEntryChanges.metadata) {
           await foodEntryMetadataStore.set(record);
         }
+        await nutritionTargetMetadataStore.clear();
+        for (const record of nutritionTargetChanges.metadata) {
+          await nutritionTargetMetadataStore.set(record);
+        }
 
         const handledOperationCount =
           weightChanges.appliedRecordIds.length +
@@ -304,7 +351,9 @@ export function SyncProvider({
           workoutSessionChanges.appliedRecordIds.length +
           workoutSessionChanges.deletedRecordIds.length +
           foodEntryChanges.appliedRecordIds.length +
-          foodEntryChanges.deletedRecordIds.length;
+          foodEntryChanges.deletedRecordIds.length +
+          nutritionTargetChanges.appliedRecordIds.length +
+          nutritionTargetChanges.deletedRecordIds.length;
         const pulledRevision = resolvePulledRevision(pullResult);
         if (
           pulledRevision !== null &&
@@ -338,9 +387,12 @@ export function SyncProvider({
     }
   }, [
     cursorStore,
+    ensureNutritionTargetBootstrap,
     foodEntryMetadataStore,
     isAuthenticated,
+    isRestoringState,
     metadataStore,
+    nutritionTargetMetadataStore,
     queueStore,
     refreshQueueStats,
     replaceState,
@@ -350,7 +402,7 @@ export function SyncProvider({
   ]);
 
   useEffect(() => {
-    if (!ready) {
+    if (!ready || isRestoringState) {
       return;
     }
 
@@ -363,11 +415,11 @@ export function SyncProvider({
     } else {
       setStatus('local-only');
     }
-  }, [ready, refreshQueueStats, session, syncNow]);
+  }, [isRestoringState, ready, refreshQueueStats, session, syncNow]);
 
   useEffect(() => {
     const subscription = ReactNativeAppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active' && session) {
+      if (nextState === 'active' && session && !isRestoringState) {
         void syncNow();
       }
     });
@@ -375,7 +427,7 @@ export function SyncProvider({
     return () => {
       subscription.remove();
     };
-  }, [session, syncNow]);
+  }, [isRestoringState, session, syncNow]);
 
   const value = useMemo<WeightSyncContextValue>(
     () => ({
