@@ -1,8 +1,10 @@
+import { ensureUuid } from '@/lib/ids';
 import type { AppState, FoodEntry, NutritionState } from '@/types';
 
 export function normalizeFoodEntry(entry: FoodEntry, fallbackCreatedAt: string): FoodEntry {
   return {
     ...entry,
+    id: ensureUuid(entry.id),
     mealType: entry.mealType ?? 'breakfast',
     source: entry.source ?? 'manual',
     createdAt: entry.createdAt ?? fallbackCreatedAt,
