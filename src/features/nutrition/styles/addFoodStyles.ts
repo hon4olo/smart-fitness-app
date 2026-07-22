@@ -49,6 +49,12 @@ export const createAddFoodStyles = (colors: typeof Colors.dark) =>
       fontSize: Typography.body.fontSize,
       lineHeight: Typography.body.lineHeight,
     },
+    formErrorText: {
+      color: colors.error,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 16,
+    },
     footer: {},
     grid: {
       flexDirection: 'row',
@@ -79,6 +85,9 @@ export const createAddFoodStyles = (colors: typeof Colors.dark) =>
       color: colors.textSecondary,
       fontSize: 13,
       fontWeight: '800',
+    },
+    readOnlyInput: {
+      color: colors.textMuted,
     },
     headerSpacer: {
       width: 72,
@@ -210,6 +219,21 @@ export const createAddFoodStyles = (colors: typeof Colors.dark) =>
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: 44,
+    },
+    scannerManualForm: {
+      backgroundColor: colors.surfacePrimary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      gap: Spacing.two,
+      padding: Spacing.three,
+    },
+    scannerManualHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      justifyContent: 'space-between',
     },
     scannerManualText: {
       color: colors.textSecondary,
@@ -423,6 +447,9 @@ export const createAddFoodStyles = (colors: typeof Colors.dark) =>
       borderWidth: StyleSheet.hairlineWidth,
       padding: Spacing.two,
     },
+    nutritionGrid: {
+      gap: Spacing.two,
+    },
     summaryCalories: {
       color: colors.textPrimary,
       fontSize: 15,
@@ -480,5 +507,33 @@ export const createAddFoodStyles = (colors: typeof Colors.dark) =>
       color: colors.textPrimary,
       fontSize: 20,
       fontWeight: '900',
+    },
+    unitToggle: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: Radii.large,
+      borderWidth: StyleSheet.hairlineWidth,
+      flexDirection: 'row',
+      gap: Spacing.one,
+      padding: Spacing.one,
+    },
+    unitToggleOption: {
+      alignItems: 'center',
+      borderRadius: Radii.medium,
+      flex: 1,
+      justifyContent: 'center',
+      minHeight: 40,
+    },
+    unitToggleOptionActive: {
+      backgroundColor: colors.accent,
+    },
+    unitToggleText: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    unitToggleTextActive: {
+      color: colors.background,
     },
   });

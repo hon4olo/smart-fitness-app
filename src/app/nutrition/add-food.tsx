@@ -276,6 +276,11 @@ export default function NutritionAddFoodScreen() {
     setSelectedDraft(createDraftFromFoodItem(food));
   };
 
+  const closeScannerForNameSearch = () => {
+    setScannerOpen(false);
+    setMode('food');
+  };
+
   const quickAddFoodItem = (food: FoodItem) => {
     const draft = createDraftFromFoodItem(food);
     addFoodEntry({
@@ -694,7 +699,14 @@ export default function NutritionAddFoodScreen() {
         />
       ) : null}
 
-      <BarcodeScannerModal onClose={() => setScannerOpen(false)} onFoodFound={openDraftFromScannedFood} styles={styles} visible={scannerOpen} />
+      <BarcodeScannerModal
+        colors={colors}
+        onClose={() => setScannerOpen(false)}
+        onFoodFound={openDraftFromScannedFood}
+        onSearchByName={closeScannerForNameSearch}
+        styles={styles}
+        visible={scannerOpen}
+      />
     </KeyboardAvoidingView>
   );
 }

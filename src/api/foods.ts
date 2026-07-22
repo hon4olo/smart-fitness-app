@@ -43,6 +43,17 @@ export type FoodItem = {
   };
 };
 
+export type CreateCustomBarcodeFoodPayload = {
+  name: string;
+  brand?: string;
+  servingUnit: 'g' | 'ml';
+  caloriesPer100g: number;
+  proteinPer100g: number;
+  fatPer100g: number;
+  carbsPer100g: number;
+  imageUrl?: string;
+};
+
 const FOOD_API_BASE_URL = 'https://api.peptonio.com';
 
 const stripTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
@@ -170,6 +181,25 @@ export const lookupFoodByBarcode = async (barcode: string): Promise<FoodItem | n
 };
 
 export const getFoodByBarcode = lookupFoodByBarcode;
+
+export const createCustomBarcodeFood = async (barcode: string, payload: CreateCustomBarcodeFoodPayload): Promise<FoodItem> => {
+  const trimmedBarcode = barcode.trim();
+  const client = getFoodApiClient();
+  if (!trimmedBarcode) {
+    throw new Error('Barcode is required');
+  }
+
+  const response = await client.post<unknown, CreateCustomBarcodeFoodPayload>(
+    `/foods/barcode/${encodeURIComponent(trimmedBarcode)}/custom`,
+    payload
+  );
+
+  if (!isFoodItem(response)) {
+    throw new Error('Food database returned an invalid product.');
+  }
+
+  return response;
+};
 
 export const getFoodById = async (id: string): Promise<FoodItem | null> => {
   const trimmedId = id.trim();
