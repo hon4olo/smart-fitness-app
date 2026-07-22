@@ -122,7 +122,7 @@ describe('coach API', () => {
         getAccessToken: vi.fn(async () => 'token'),
         refreshAccessToken: vi.fn(async () => null),
       },
-      makeClient({ post }),
+      makeClient({ post: post as unknown as ApiClient['post'] }),
     );
 
     const result = await api.startNutritionRun({ lookbackDays: 14 });
