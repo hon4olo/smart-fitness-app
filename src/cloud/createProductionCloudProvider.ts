@@ -168,8 +168,9 @@ const toPullResult = (response: SyncPullResponse, timestamp: string): CloudPullR
   const changed = (response.changedEntities ?? []).filter(isRecord);
   const deleted = (response.deletedEntities ?? []).filter(isRecord);
   const serverRevision = response.serverRevision ?? response.revision ?? 0;
+  const changedCandidates = changed.filter((record) => record.operationType !== 'delete');
   const changedOperations = normalizeOperations(
-    changed.filter((record) => record.operationType !== 'delete'),
+    changedCandidates,
     serverRevision,
     timestamp,
   );
@@ -178,6 +179,8 @@ const toPullResult = (response: SyncPullResponse, timestamp: string): CloudPullR
     serverRevision,
     timestamp,
   );
+  const unsupportedEntityCount =
+    changedCandidates.length + deleted.length - changedOperations.length - deletedOperations.length;
 
   return {
     id: `pull-${response.serverTimestamp ?? timestamp}`,
@@ -195,7 +198,10 @@ const toPullResult = (response: SyncPullResponse, timestamp: string): CloudPullR
     ...(Array.isArray(response.conflicts)
       ? { conflicts: response.conflicts as ConflictRecord[] }
       : {}),
-    ...(response.metadata ? { metadata: response.metadata } : {}),
+    metadata: {
+      ...(response.metadata ?? {}),
+      unsupportedEntityCount,
+    },
   };
 };
 
