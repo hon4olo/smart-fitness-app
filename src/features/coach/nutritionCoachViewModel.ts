@@ -47,6 +47,13 @@ export type NutritionCoachMetricSummary = {
   days: NutritionDailyMetric[];
 };
 
+export type NutritionProposalIssue = {
+  code: string;
+  severity: 'warning' | 'block';
+  field: string;
+  message: string;
+};
+
 export type NutritionCoachViewModel =
   | {
       kind: 'pending';
@@ -72,9 +79,29 @@ export type NutritionCoachViewModel =
       targetAvailable: boolean;
       latestWeightAvailable: boolean;
       metrics: NutritionCoachMetricSummary;
+    }
+  | {
+      kind: 'proposal';
+      title: string;
+      message: string;
+      metrics: NutritionCoachMetricSummary;
+      currentTargets: NutritionMetricTotals;
+      proposedTargets: NutritionMetricTotals;
+      changes: NutritionMetricTotals;
+      changed: boolean;
+      reason: 'already_consistent' | 'macro_calorie_mismatch';
+      currentMacroCalories: number;
+      proposedMacroCalories: number;
+      calorieMathMismatchBefore: number;
+      calorieMathMismatchAfter: number;
+      guardrailStatus: 'valid' | 'modify' | 'blocked';
+      issues: NutritionProposalIssue[];
+      requiresConfirmation: true;
+      applied: false;
     };
 
 const COMPLETENESS_STATUSES = new Set(['insufficient', 'partial', 'complete']);
+const GUARDRAIL_STATUSES = new Set(['valid', 'modify', 'blocked']);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -247,7 +274,7 @@ const readTargetComparison = (
   if (
     !target ||
     !averageCalendarDayDelta ||
-    averageTrackedDayDelta === null && value.averageTrackedDayDelta !== null ||
+    (averageTrackedDayDelta === null && value.averageTrackedDayDelta !== null) ||
     daysWithinCaloriesTenPercent === null ||
     !Number.isInteger(daysWithinCaloriesTenPercent) ||
     trackedDayAdherencePercent === undefined ||
@@ -325,12 +352,118 @@ const readMetrics = (value: unknown): NutritionCoachMetricSummary | null => {
   };
 };
 
+const readProposalIssues = (value: unknown): NutritionProposalIssue[] | null => {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const issues: NutritionProposalIssue[] = [];
+  for (const item of value) {
+    if (
+      !isRecord(item) ||
+      typeof item.code !== 'string' ||
+      !item.code ||
+      (item.severity !== 'warning' && item.severity !== 'block') ||
+      typeof item.field !== 'string' ||
+      !item.field ||
+      typeof item.message !== 'string' ||
+      !item.message
+    ) {
+      return null;
+    }
+    issues.push({
+      code: item.code,
+      severity: item.severity,
+      field: item.field,
+      message: item.message,
+    });
+  }
+  return issues;
+};
+
+const readProposalViewModel = (
+  result: Record<string, unknown>,
+): Extract<NutritionCoachViewModel, { kind: 'proposal' }> | null => {
+  if (!isRecord(result.proposal) || !isRecord(result.guardrail)) {
+    return null;
+  }
+  const metrics = readMetrics(result.metrics);
+  const currentTargets = readTotals(result.proposal.currentTargets);
+  const proposedTargets = readTotals(result.proposal.proposedTargets);
+  const changes = readTotals(result.proposal.changes);
+  const currentMacroCalories = readFiniteNumber(result.proposal, 'currentMacroCalories');
+  const proposedMacroCalories = readFiniteNumber(result.proposal, 'proposedMacroCalories');
+  const calorieMathMismatchBefore = readFiniteNumber(
+    result.proposal,
+    'calorieMathMismatchBefore',
+  );
+  const calorieMathMismatchAfter = readFiniteNumber(
+    result.proposal,
+    'calorieMathMismatchAfter',
+  );
+  const guardrailStatus = result.guardrail.status;
+  const issues = readProposalIssues(result.guardrail.issues);
+  const changed = readBoolean(result.proposal, 'changed');
+  const requiresConfirmation = readBoolean(result, 'requiresConfirmation');
+  const applied = readBoolean(result, 'applied');
+  const reason = result.proposal.reason;
+
+  if (
+    !metrics ||
+    !currentTargets ||
+    !proposedTargets ||
+    !changes ||
+    currentMacroCalories === null ||
+    proposedMacroCalories === null ||
+    calorieMathMismatchBefore === null ||
+    calorieMathMismatchAfter === null ||
+    typeof guardrailStatus !== 'string' ||
+    !GUARDRAIL_STATUSES.has(guardrailStatus) ||
+    !issues ||
+    changed === null ||
+    requiresConfirmation !== true ||
+    applied !== false ||
+    (reason !== 'already_consistent' && reason !== 'macro_calorie_mismatch')
+  ) {
+    return null;
+  }
+
+  const status = guardrailStatus as 'valid' | 'modify' | 'blocked';
+  return {
+    kind: 'proposal',
+    title: changed ? 'Target consistency proposal' : 'Targets already consistent',
+    message:
+      status === 'valid'
+        ? changed
+          ? 'A calorie-neutral macro correction passed deterministic validation. It has not been applied.'
+          : 'The current calorie and macro targets already reconcile within tolerance.'
+        : 'The proposal did not pass all deterministic guardrails and cannot be applied.',
+    metrics,
+    currentTargets,
+    proposedTargets,
+    changes,
+    changed,
+    reason,
+    currentMacroCalories,
+    proposedMacroCalories,
+    calorieMathMismatchBefore,
+    calorieMathMismatchAfter,
+    guardrailStatus: status,
+    issues,
+    requiresConfirmation: true,
+    applied: false,
+  };
+};
+
 export const buildNutritionCoachViewModel = (
   envelope: CoachRunEnvelope,
 ): NutritionCoachViewModel => {
   const { run } = envelope;
 
-  if (run.domain !== 'nutrition' || run.requestType !== 'nutrition_review') {
+  if (
+    run.domain !== 'nutrition' ||
+    (run.requestType !== 'nutrition_review' &&
+      run.requestType !== 'nutrition_target_proposal')
+  ) {
     return {
       kind: 'failed',
       title: 'Unsupported run',
@@ -350,7 +483,7 @@ export const buildNutritionCoachViewModel = (
     return {
       kind: 'failed',
       title: 'Nutrition analysis failed',
-      message: run.error?.message ?? 'Nutrition Coach could not complete this review.',
+      message: run.error?.message ?? 'Nutrition Coach could not complete this run.',
     };
   }
 
@@ -363,16 +496,33 @@ export const buildNutritionCoachViewModel = (
     };
   }
 
+  if (result.kind === 'nutrition-target-proposal') {
+    return (
+      readProposalViewModel(result) ?? {
+        kind: 'failed',
+        title: 'Invalid proposal',
+        message: 'Nutrition target proposal could not be read safely.',
+      }
+    );
+  }
+
   if (run.status === 'rejected') {
     const metrics = readMetrics(result.metrics);
+    const reason =
+      typeof result.reason === 'string' && result.reason
+        ? result.reason
+        : 'insufficient_logged_days';
     return {
       kind: 'rejected',
-      title: 'More logged days are required',
-      message: 'The deterministic review did not have enough tracked days to form a stable summary.',
-      reason:
-        typeof result.reason === 'string' && result.reason
-          ? result.reason
-          : 'insufficient_logged_days',
+      title:
+        reason === 'nutrition_target_unavailable'
+          ? 'Active nutrition target required'
+          : 'More logged days are required',
+      message:
+        reason === 'nutrition_target_unavailable'
+          ? 'Create and synchronize an active nutrition target before requesting a proposal.'
+          : 'The deterministic review did not have enough tracked days to form a stable summary.',
+      reason,
       metrics,
     };
   }
@@ -386,7 +536,11 @@ export const buildNutritionCoachViewModel = (
   }
 
   const metrics = readMetrics(result.metrics);
-  if (!metrics || typeof result.targetAvailable !== 'boolean' || typeof result.latestWeightAvailable !== 'boolean') {
+  if (
+    !metrics ||
+    typeof result.targetAvailable !== 'boolean' ||
+    typeof result.latestWeightAvailable !== 'boolean'
+  ) {
     return {
       kind: 'failed',
       title: 'Invalid metrics',
