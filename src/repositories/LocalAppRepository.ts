@@ -1,5 +1,8 @@
 import type { CloudProvider } from '@/cloud';
-import { DEFAULT_WORKOUT_TEMPLATE_IDS as DEFAULT_WORKOUT_TEMPLATE_IDS_FROM_DATA, defaultState as defaultAppState } from '@/data/defaults';
+import {
+  DEFAULT_WORKOUT_TEMPLATE_IDS as DEFAULT_WORKOUT_TEMPLATE_IDS_FROM_DATA,
+  defaultState as defaultAppState,
+} from '@/data/defaults';
 import { exerciseDatabase, mergeExerciseCatalog } from '@/data/exercises';
 import type { AppState } from '@/types';
 import {
@@ -26,30 +29,47 @@ const defaultState: AppState = defaultAppState;
 const normalizeStoredState = (storedState: Partial<AppState>): AppState => ({
   ...defaultState,
   ...storedState,
-  workouts: normalizeWorkouts(storedState.workouts ?? defaultState.workouts, DEFAULT_WORKOUT_TEMPLATE_IDS),
-  trainingPrograms: (storedState.trainingPrograms ?? defaultState.trainingPrograms).map((program) => ({
-    ...program,
-    days: program.days.map((day) => ({ ...day })),
-    progression: program.progression ? { ...program.progression } : undefined,
-    metadata: program.metadata ? { ...program.metadata } : undefined,
-  })),
+  workouts: normalizeWorkouts(
+    storedState.workouts ?? defaultState.workouts,
+    DEFAULT_WORKOUT_TEMPLATE_IDS,
+  ),
+  trainingPrograms: (storedState.trainingPrograms ?? defaultState.trainingPrograms).map(
+    (program) => ({
+      ...program,
+      days: program.days.map((day) => ({ ...day })),
+      progression: program.progression ? { ...program.progression } : undefined,
+      metadata: program.metadata ? { ...program.metadata } : undefined,
+    }),
+  ),
   exercises: storedState.exercises
     ? mergeExerciseCatalog(exerciseDatabase, normalizeExercises(storedState.exercises))
     : defaultState.exercises,
-  workoutSessions: normalizeWorkoutSessions(storedState.workoutSessions ?? defaultState.workoutSessions),
+  workoutSessions: normalizeWorkoutSessions(
+    storedState.workoutSessions ?? defaultState.workoutSessions,
+  ),
   foodEntries: normalizeFoodEntries(storedState.foodEntries ?? defaultState.foodEntries),
-  mealTemplates: normalizeMealTemplates(storedState.mealTemplates ?? defaultState.mealTemplates),
+  mealTemplates: normalizeMealTemplates(
+    storedState.mealTemplates ?? defaultState.mealTemplates,
+  ),
   nutritionTargets: storedState.nutritionTargets ?? defaultState.nutritionTargets,
   profile: {
     ...defaultState.profile,
     ...(storedState.profile ?? {}),
   },
-  onboardingCompleted: storedState.onboardingCompleted ?? defaultState.onboardingCompleted,
-  weightHistory: normalizeWeightHistory(storedState.weightHistory ?? defaultState.weightHistory),
-  bodyMeasurements: normalizeBodyMeasurements(storedState.bodyMeasurements ?? defaultState.bodyMeasurements),
+  onboardingCompleted:
+    storedState.onboardingCompleted ?? defaultState.onboardingCompleted,
+  weightHistory: normalizeWeightHistory(
+    storedState.weightHistory ?? defaultState.weightHistory,
+  ),
+  bodyMeasurements: normalizeBodyMeasurements(
+    storedState.bodyMeasurements ?? defaultState.bodyMeasurements,
+  ),
 });
 
-export const createLocalAppRepository = (storage: StorageAdapter, options: LocalAppRepositoryOptions = {}): AppRepository => {
+export const createLocalAppRepository = (
+  storage: StorageAdapter,
+  options: LocalAppRepositoryOptions = {},
+): AppRepository => {
   void options.cloudProvider;
 
   return {
@@ -61,7 +81,15 @@ export const createLocalAppRepository = (storage: StorageAdapter, options: Local
           return null;
         }
 
-        return normalizeStoredState(JSON.parse(storedState) as Partial<AppState>);
+        const normalizedState = normalizeStoredState(
+          JSON.parse(storedState) as Partial<AppState>,
+        );
+        const normalizedJson = JSON.stringify(normalizedState);
+        if (normalizedJson !== storedState) {
+          await storage.write(APP_STATE_KEY, normalizedJson);
+        }
+
+        return normalizedState;
       } catch (error) {
         console.warn('Failed to restore MVP app state', error);
         return null;
