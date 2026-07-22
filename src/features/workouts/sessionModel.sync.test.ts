@@ -1,7 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { WorkoutSession } from '@/types';
+import type { WorkoutSessionDraft } from './types';
+
 const { enqueueWorkoutSessionSyncOperationMock } = vi.hoisted(() => ({
-  enqueueWorkoutSessionSyncOperationMock: vi.fn(async (_action, session) => session),
+  enqueueWorkoutSessionSyncOperationMock: vi.fn(
+    async (
+      _action: 'create' | 'update' | 'delete',
+      session: WorkoutSession,
+    ) => session,
+  ),
 }));
 
 vi.mock('./queueWorkoutSessionSyncOperation', () => ({
@@ -31,7 +39,7 @@ const draft = {
       actualRpe: 8.5 as const,
     },
   ],
-};
+} satisfies WorkoutSessionDraft;
 
 describe('completed workout session sync lifecycle', () => {
   beforeEach(() => {
