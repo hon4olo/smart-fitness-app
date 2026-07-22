@@ -115,6 +115,49 @@ const makeEnvelope = (
   agentRuns: [],
 });
 
+const makeProposalEnvelope = (guardrailStatus: 'valid' | 'modify' | 'blocked'): CoachRunEnvelope => {
+  const envelope = makeEnvelope(guardrailStatus === 'valid' ? 'completed' : 'rejected');
+  envelope.run.requestType = 'nutrition_target_proposal';
+  envelope.run.result = {
+    kind: 'nutrition-target-proposal',
+    metrics: makeMetrics(),
+    proposal: {
+      policyVersion: 'nutrition-target-proposal-v1',
+      proposalType: 'macro_reconciliation',
+      currentTargets: { calories: 2200, protein: 170, carbs: 250, fats: 70 },
+      proposedTargets: { calories: 2200, protein: 170, carbs: 222, fats: 70 },
+      changes: { calories: 0, protein: 0, carbs: -28, fats: 0 },
+      currentMacroCalories: 2310,
+      proposedMacroCalories: 2198,
+      calorieMathMismatchBefore: -110,
+      calorieMathMismatchAfter: 2,
+      changed: true,
+      reason: 'macro_calorie_mismatch',
+      requiresConfirmation: true,
+    },
+    guardrail: {
+      policyVersion: 'nutrition-target-guardrail-v1',
+      status: guardrailStatus,
+      issues:
+        guardrailStatus === 'valid'
+          ? []
+          : [
+              {
+                code: 'NUTRITION_CARBS_CHANGE_REVIEW',
+                severity: guardrailStatus === 'blocked' ? 'block' : 'warning',
+                field: 'carbs',
+                message: 'Carbs change requires review.',
+              },
+            ],
+      approvedForAutomaticApply: false,
+      requiresConfirmation: true,
+    },
+    requiresConfirmation: true,
+    applied: false,
+  };
+  return envelope;
+};
+
 describe('nutrition coach view model', () => {
   it('builds a safe deterministic nutrition review', () => {
     const viewModel = buildNutritionCoachViewModel(makeEnvelope());
@@ -132,6 +175,28 @@ describe('nutrition coach view model', () => {
     expect(viewModel.metrics.targetComparison?.trackedDayAdherencePercent).toBe(100);
     expect(viewModel.metrics.proteinPerKg?.averageTrackedDay).toBe(2.43);
     expect(viewModel.metrics.days).toHaveLength(3);
+  });
+
+  it('builds an unapplied validated target proposal', () => {
+    const viewModel = buildNutritionCoachViewModel(makeProposalEnvelope('valid'));
+
+    expect(viewModel.kind).toBe('proposal');
+    if (viewModel.kind !== 'proposal') return;
+    expect(viewModel.guardrailStatus).toBe('valid');
+    expect(viewModel.proposedTargets.carbs).toBe(222);
+    expect(viewModel.changes.carbs).toBe(-28);
+    expect(viewModel.requiresConfirmation).toBe(true);
+    expect(viewModel.applied).toBe(false);
+  });
+
+  it('preserves blocked proposal diagnostics', () => {
+    const viewModel = buildNutritionCoachViewModel(makeProposalEnvelope('blocked'));
+
+    expect(viewModel.kind).toBe('proposal');
+    if (viewModel.kind !== 'proposal') return;
+    expect(viewModel.guardrailStatus).toBe('blocked');
+    expect(viewModel.issues[0]?.severity).toBe('block');
+    expect(viewModel.applied).toBe(false);
   });
 
   it('preserves readable completeness metrics for a rejected review', () => {
