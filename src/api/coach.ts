@@ -2,7 +2,10 @@ import { createApiClient, isApiError, type ApiClient } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api/config';
 
 export type CoachRunStatus = 'queued' | 'running' | 'completed' | 'rejected' | 'failed';
+export type CoachDomain = 'strength' | 'nutrition';
 export type StrengthCoachRequestType = 'session_review' | 'next_workout_proposal';
+export type NutritionCoachRequestType = 'nutrition_review';
+export type CoachRequestType = StrengthCoachRequestType | NutritionCoachRequestType;
 
 export type CoachRunError = {
   code: string;
@@ -13,8 +16,8 @@ export type CoachRunError = {
 export type CoachRunRecord = {
   id: string;
   userId: string;
-  domain: 'strength';
-  requestType: StrengthCoachRequestType;
+  domain: CoachDomain;
+  requestType: CoachRequestType;
   status: CoachRunStatus;
   idempotencyKey: string | null;
   requestData: Record<string, unknown>;
@@ -58,6 +61,12 @@ export type StartStrengthCoachRunInput = {
   idempotencyKey?: string;
 };
 
+export type StartNutritionCoachRunInput = {
+  requestType?: NutritionCoachRequestType;
+  lookbackDays?: number;
+  idempotencyKey?: string;
+};
+
 type CoachApiAuth = {
   getAccessToken(): Promise<string | null>;
   refreshAccessToken(): Promise<string | null>;
@@ -71,6 +80,7 @@ type WaitForRunOptions = {
 
 export type CoachApi = {
   startStrengthRun(input: StartStrengthCoachRunInput): Promise<CoachRunEnvelope>;
+  startNutritionRun(input?: StartNutritionCoachRunInput): Promise<CoachRunEnvelope>;
   getRun(runId: string): Promise<CoachRunEnvelope>;
   waitForTerminalRun(initial: CoachRunEnvelope, options?: WaitForRunOptions): Promise<CoachRunEnvelope>;
 };
@@ -83,7 +93,11 @@ const defaultApiClient = createApiClient({
 
 const TERMINAL_STATUSES = new Set<CoachRunStatus>(['completed', 'rejected', 'failed']);
 const RUN_STATUSES = new Set<CoachRunStatus>(['queued', 'running', 'completed', 'rejected', 'failed']);
-const REQUEST_TYPES = new Set<StrengthCoachRequestType>(['session_review', 'next_workout_proposal']);
+const STRENGTH_REQUEST_TYPES = new Set<StrengthCoachRequestType>([
+  'session_review',
+  'next_workout_proposal',
+]);
+const NUTRITION_REQUEST_TYPES = new Set<NutritionCoachRequestType>(['nutrition_review']);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -145,26 +159,43 @@ const parseStatus = (value: unknown): CoachRunStatus => {
   return value as CoachRunStatus;
 };
 
-const parseRequestType = (value: unknown): StrengthCoachRequestType => {
-  if (typeof value !== 'string' || !REQUEST_TYPES.has(value as StrengthCoachRequestType)) {
+const parseDomain = (value: unknown): CoachDomain => {
+  if (value !== 'strength' && value !== 'nutrition') {
+    throw new Error('Invalid coach response: domain');
+  }
+  return value;
+};
+
+const parseRequestType = (domain: CoachDomain, value: unknown): CoachRequestType => {
+  if (typeof value !== 'string') {
     throw new Error('Invalid coach response: requestType');
   }
-  return value as StrengthCoachRequestType;
+  if (
+    domain === 'strength' &&
+    STRENGTH_REQUEST_TYPES.has(value as StrengthCoachRequestType)
+  ) {
+    return value as StrengthCoachRequestType;
+  }
+  if (
+    domain === 'nutrition' &&
+    NUTRITION_REQUEST_TYPES.has(value as NutritionCoachRequestType)
+  ) {
+    return value as NutritionCoachRequestType;
+  }
+  throw new Error('Invalid coach response: requestType');
 };
 
 const parseCoachRun = (value: unknown): CoachRunRecord => {
   if (!isRecord(value)) {
     throw new Error('Invalid coach response: run');
   }
-  if (value.domain !== 'strength') {
-    throw new Error('Invalid coach response: domain');
-  }
+  const domain = parseDomain(value.domain);
 
   return {
     id: readString(value, 'id'),
     userId: readString(value, 'userId'),
-    domain: 'strength',
-    requestType: parseRequestType(value.requestType),
+    domain,
+    requestType: parseRequestType(domain, value.requestType),
     status: parseStatus(value.status),
     idempotencyKey: readNullableString(value, 'idempotencyKey'),
     requestData: readRecord(value, 'requestData'),
@@ -246,7 +277,7 @@ export const createCoachApi = (
   const requestWithAuth = async <T>(request: (accessToken: string) => Promise<T>): Promise<T> => {
     const accessToken = await auth.getAccessToken();
     if (!accessToken) {
-      throw new Error('Sign in is required to use Strength Coach.');
+      throw new Error('Sign in is required to use Coach.');
     }
 
     try {
@@ -283,6 +314,20 @@ export const createCoachApi = (
           }),
         ),
       ),
+    startNutritionRun: async (input = {}) => {
+      const body: StartNutritionCoachRunInput = {
+        requestType: 'nutrition_review',
+        ...input,
+      };
+      return requestWithAuth(async (accessToken) =>
+        parseCoachRunEnvelope(
+          await apiClient.post<unknown, StartNutritionCoachRunInput>('/v1/coach/nutrition/runs', body, {
+            headers: { authorization: `Bearer ${accessToken}` },
+            retry: false,
+          }),
+        ),
+      );
+    },
     getRun,
     waitForTerminalRun: async (initial, options = {}) => {
       let current = initial;
@@ -297,7 +342,7 @@ export const createCoachApi = (
         current = await getRun(current.run.id);
       }
 
-      throw new Error('Strength Coach is taking longer than expected. Try opening the run again shortly.');
+      throw new Error('Coach is taking longer than expected. Try opening the run again shortly.');
     },
   };
 };
