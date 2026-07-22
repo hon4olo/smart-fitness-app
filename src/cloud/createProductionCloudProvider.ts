@@ -205,6 +205,9 @@ const toPullResult = (response: SyncPullResponse, timestamp: string): CloudPullR
   };
 };
 
+const canPushOperationForUser = (operation: SyncOperation, userId: string): boolean =>
+  !operation.metadata?.userId || operation.metadata.userId === userId;
+
 export const createProductionCloudProvider = ({
   apiClient,
   authService,
@@ -241,6 +244,19 @@ export const createProductionCloudProvider = ({
     healthCheck: status,
     async pushOperations(batch: SyncBatch) {
       const identity = await resolveIdentity(authService);
+      const operations = batch.operations.filter((operation) =>
+        canPushOperationForUser(operation, identity.userId),
+      );
+
+      if (operations.length === 0) {
+        return {
+          status: 'idle',
+          pendingOperations: batch.operations.length,
+          conflictCount: 0,
+          lastSyncedAt: now(),
+        };
+      }
+
       const response = await requestWithAuth<SyncPushResponse>(
         apiClient,
         authService,
@@ -249,7 +265,7 @@ export const createProductionCloudProvider = ({
         {
           deviceId: identity.deviceId,
           clientRevision: await getClientRevision(identity.userId),
-          operations: batch.operations.map((operation) => ({
+          operations: operations.map((operation) => ({
             entityType: operation.entity,
             entityId: operation.entityId ?? operation.id,
             operationType: operation.action === 'merge' ? 'upsert' : operation.action,
