@@ -19,6 +19,14 @@ export type {
   FoodEntrySyncMetadata,
   FoodEntrySyncMetadataStore,
 } from './FoodEntrySyncMetadataStore';
+export {
+  createNutritionTargetSyncMetadataStore,
+  NUTRITION_TARGET_SYNC_METADATA_STORAGE_KEY,
+} from './NutritionTargetSyncMetadataStore';
+export type {
+  NutritionTargetSyncMetadata,
+  NutritionTargetSyncMetadataStore,
+} from './NutritionTargetSyncMetadataStore';
 export { createSyncCursorStore, SYNC_CURSOR_STORAGE_KEY } from './SyncCursorStore';
 export type { SyncCursor, SyncCursorStore } from './SyncCursorStore';
 export { getDefaultSyncCursorStore } from './defaultSyncCursorStore';
