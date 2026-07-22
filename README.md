@@ -25,7 +25,7 @@ The authoritative AI Coach profile fields are:
 - training days per week;
 - target weight.
 
-Missing fields remain nullable. The backend readiness worker returns `needs_input`; it must not infer them through an LLM.
+The Profile tab includes a dedicated Coach profile editor with strict date, age, height, and enum validation. Saving updates only local `AppState`; the normal sync coordinator detects the changed normalized snapshot and queues it. Missing fields remain nullable until the user provides them. The backend readiness worker returns `needs_input`; it must not infer them through an LLM.
 
 ## Run
 
