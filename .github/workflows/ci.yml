@@ -46,6 +46,8 @@ jobs:
           src/features/coach/strengthCoachViewModel.test.ts
           src/cloud/FoodEntrySync.test.ts
           src/repositories/FoodEntrySyncingRepository.test.ts
+          src/cloud/NutritionTargetSync.test.ts
+          src/repositories/NutritionTargetSyncingRepository.test.ts
           src/storage/AsyncStorageOperationQueueStore.concurrent.test.ts
           > contract-tests.log 2>&1
 
