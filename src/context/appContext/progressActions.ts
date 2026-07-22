@@ -1,11 +1,26 @@
 import { ensureUuid } from '@/lib/ids';
-import type { AppState, BodyMeasurement, ProfileGoalType, WeightEntry } from '@/types';
+import type {
+  AppState,
+  BodyMeasurement,
+  ProfileCalculationSex,
+  ProfileGoalType,
+  ProfileTrainingExperience,
+  WeightEntry,
+} from '@/types';
 
 export type ProfileGoalsUpdate = {
   targetWeight: number;
   goalType: ProfileGoalType;
   weeklyWeightChangeGoal: number;
   trainingDaysPerWeek: number;
+};
+
+export type CoachProfileUpdate = {
+  dateOfBirth: string;
+  calculationSex: ProfileCalculationSex;
+  height: string;
+  activityLevel: 'sedentary' | 'light' | 'moderate' | 'high' | 'very_high';
+  trainingExperience: ProfileTrainingExperience;
 };
 
 export type OnboardingSetup = {
@@ -30,6 +45,19 @@ export function updateProfileGoalsInState(
     profile: {
       ...currentState.profile,
       ...goals,
+    },
+  };
+}
+
+export function updateCoachProfileInState(
+  currentState: AppState,
+  profile: CoachProfileUpdate,
+): AppState {
+  return {
+    ...currentState,
+    profile: {
+      ...currentState.profile,
+      ...profile,
     },
   };
 }
