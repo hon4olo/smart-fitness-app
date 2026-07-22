@@ -15,16 +15,25 @@ import {
   buildNutritionCoachViewModel,
   type NutritionMetricTotals,
 } from '../nutritionCoachViewModel';
+import {
+  readAppliedNutritionProposal,
+  type AppliedNutritionProposal,
+} from '../nutritionProposalConfirmation';
 
 const LOOKBACK_OPTIONS = [7, 14, 30] as const;
 
-type AppliedConfirmation = {
-  revision: number;
-  appliedAt: string | null;
-};
-
 const formatNumber = (value: number): string =>
   new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
+
+const formatDateTime = (value: string): string => {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime())
+    ? new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(date)
+    : value;
+};
 
 const createIdempotencyKey = (scope: string): string =>
   `mobile-${scope}-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
@@ -38,7 +47,8 @@ function TargetSummary({ label, totals }: { label: string; totals: NutritionMetr
       <Text style={styles.sectionTitle}>{label}</Text>
       <Text style={styles.targetCalories}>{formatNumber(totals.calories)} kcal</Text>
       <Text style={styles.metaText}>
-        P {formatNumber(totals.protein)} · C {formatNumber(totals.carbs)} · F {formatNumber(totals.fats)}
+        P {formatNumber(totals.protein)} · C {formatNumber(totals.carbs)} · F{' '}
+        {formatNumber(totals.fats)}
       </Text>
     </View>
   );
@@ -55,7 +65,7 @@ export default function NutritionTargetProposalScreen() {
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [busy, setBusy] = useState(false);
   const [applying, setApplying] = useState(false);
-  const [applied, setApplied] = useState<AppliedConfirmation | null>(null);
+  const [applied, setApplied] = useState<AppliedNutritionProposal | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const confirmationKeyRef = useRef<string | null>(null);
@@ -145,23 +155,7 @@ export default function NutritionTargetProposalScreen() {
       const confirmed = await coachApi.confirmRun(run.run.id, {
         idempotencyKey: confirmationKey,
       });
-      const result = confirmed.run.result;
-      const appliedRevision = result?.appliedRevision;
-      const appliedAt = result?.appliedAt;
-      if (
-        result?.applied !== true ||
-        typeof appliedRevision !== 'number' ||
-        !Number.isInteger(appliedRevision) ||
-        appliedRevision < 0 ||
-        (appliedAt !== undefined && typeof appliedAt !== 'string')
-      ) {
-        throw new Error('The backend did not return a valid applied proposal result.');
-      }
-
-      setApplied({
-        revision: appliedRevision,
-        appliedAt: typeof appliedAt === 'string' ? appliedAt : null,
-      });
+      setApplied(readAppliedNutritionProposal(confirmed));
       await syncNow();
     } catch (applyError) {
       setError(
@@ -226,7 +220,8 @@ export default function NutritionTargetProposalScreen() {
             </View>
             <Text style={styles.cardTitle}>Calorie-neutral macro reconciliation</Text>
             <Text style={styles.bodyText}>
-              Checks 4P + 4C + 9F against the current calorie target and proposes the smallest macro correction. It never raises or lowers calories from observed eating behaviour.
+              Checks 4P + 4C + 9F against the current calorie target and proposes the smallest
+              macro correction. It never raises or lowers calories from observed eating behaviour.
             </Text>
           </AppCard>
 
@@ -274,7 +269,8 @@ export default function NutritionTargetProposalScreen() {
                 onPress={() => void startProposal()}
               />
               <Text style={styles.disclaimer}>
-                Requires at least three tracked days and an active synchronized target. Applying a valid result triggers backend revision checks and then normal sync pull.
+                Requires at least three tracked days and an active synchronized target. Applying a
+                valid result triggers backend revision checks and then normal sync pull.
               </Text>
             </AppCard>
           )}
@@ -307,10 +303,12 @@ export default function NutritionTargetProposalScreen() {
                   <View style={styles.mathBox}>
                     <Text style={styles.sectionTitle}>Math validation</Text>
                     <Text style={styles.bodyText}>
-                      Before: {formatNumber(viewModel.currentMacroCalories)} kcal · mismatch {formatNumber(viewModel.calorieMathMismatchBefore)}
+                      Before: {formatNumber(viewModel.currentMacroCalories)} kcal · mismatch{' '}
+                      {formatNumber(viewModel.calorieMathMismatchBefore)}
                     </Text>
                     <Text style={styles.bodyText}>
-                      After: {formatNumber(viewModel.proposedMacroCalories)} kcal · mismatch {formatNumber(viewModel.calorieMathMismatchAfter)}
+                      After: {formatNumber(viewModel.proposedMacroCalories)} kcal · mismatch{' '}
+                      {formatNumber(viewModel.calorieMathMismatchAfter)}
                     </Text>
                   </View>
                   {viewModel.issues.map((issue) => (
@@ -323,14 +321,16 @@ export default function NutritionTargetProposalScreen() {
                     <View style={styles.appliedBox}>
                       <Text style={styles.appliedTitle}>Applied</Text>
                       <Text style={styles.disclaimer}>
-                        Backend revision {applied.revision} was created and a normal sync pull was requested.
+                        Backend revision {applied.revision} was created at{' '}
+                        {formatDateTime(applied.appliedAt)}. A normal sync pull was requested.
                       </Text>
                     </View>
                   ) : (
                     <View style={styles.notAppliedBox}>
                       <Text style={styles.sectionTitle}>Not applied</Text>
                       <Text style={styles.disclaimer}>
-                        The backend will reload the current target, compare its revision with this proposal and rerun guardrails before writing.
+                        The backend will reload the current target, compare its revision with this
+                        proposal and rerun guardrails before writing.
                       </Text>
                     </View>
                   )}
@@ -397,14 +397,22 @@ const createStyles = (colors: typeof Colors.light) =>
       lineHeight: Typography.cardTitle.lineHeight,
     },
     container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
-    content: { alignItems: 'center', paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
+    content: {
+      alignItems: 'center',
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.three,
+    },
     disclaimer: {
       color: colors.textMuted,
       fontSize: Typography.caption.fontSize,
       lineHeight: Typography.caption.lineHeight,
     },
     errorCard: { backgroundColor: colors.errorSoft, borderColor: colors.error },
-    errorTitle: { color: colors.error, fontSize: Typography.cardTitle.fontSize, fontWeight: '800' },
+    errorTitle: {
+      color: colors.error,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: '800',
+    },
     header: {
       alignItems: 'center',
       flexDirection: 'row',
@@ -412,7 +420,11 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingBottom: Spacing.two,
       paddingHorizontal: Spacing.two,
     },
-    issueText: { color: colors.error, fontSize: Typography.body.fontSize, lineHeight: Typography.body.lineHeight },
+    issueText: {
+      color: colors.error,
+      fontSize: Typography.body.fontSize,
+      lineHeight: Typography.body.lineHeight,
+    },
     mathBox: { gap: Spacing.one },
     metaText: { color: colors.textMuted, fontSize: Typography.caption.fontSize },
     notAppliedBox: {
@@ -429,16 +441,35 @@ const createStyles = (colors: typeof Colors.light) =>
       flex: 1,
       paddingVertical: Spacing.two,
     },
-    periodButtonSelected: { backgroundColor: colors.backgroundSelected, borderColor: colors.accent },
-    periodLabel: { color: colors.textSecondary, fontSize: Typography.label.fontSize, fontWeight: '700' },
+    periodButtonSelected: {
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.accent,
+    },
+    periodLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.label.fontSize,
+      fontWeight: '700',
+    },
     periodLabelSelected: { color: colors.accent },
     periodRow: { flexDirection: 'row', gap: Spacing.two },
     pressed: { opacity: 0.72 },
-    resultHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+    resultHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
     resultStack: { gap: Spacing.four },
-    resultStatus: { color: colors.textMuted, fontSize: Typography.caption.fontSize, fontWeight: '800' },
+    resultStatus: {
+      color: colors.textMuted,
+      fontSize: Typography.caption.fontSize,
+      fontWeight: '800',
+    },
     screen: { backgroundColor: colors.background, flex: 1 },
-    sectionTitle: { color: colors.textPrimary, fontSize: Typography.label.fontSize, fontWeight: '800' },
+    sectionTitle: {
+      color: colors.textPrimary,
+      fontSize: Typography.label.fontSize,
+      fontWeight: '800',
+    },
     subtitle: { color: colors.textMuted, fontSize: Typography.caption.fontSize },
     targetBox: {
       borderColor: colors.borderSubtle,
@@ -456,6 +487,15 @@ const createStyles = (colors: typeof Colors.light) =>
       fontWeight: Typography.screenTitle.fontWeight,
       lineHeight: Typography.screenTitle.lineHeight,
     },
-    verdict: { color: colors.accent, fontSize: Typography.label.fontSize, fontWeight: '800', textTransform: 'uppercase' },
-    verdictRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+    verdict: {
+      color: colors.accent,
+      fontSize: Typography.label.fontSize,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+    },
+    verdictRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
   });
