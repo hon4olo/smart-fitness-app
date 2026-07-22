@@ -8,7 +8,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { formatShortDate } from '@/lib';
+import { createUuid, formatShortDate } from '@/lib';
 
 export default function WeightEntryScreen() {
   const { addWeightEntry } = useAppContext();
@@ -26,7 +26,7 @@ export default function WeightEntryScreen() {
 
     const now = new Date();
     addWeightEntry({
-      id: `${Date.now()}`,
+      id: createUuid(),
       date: formatShortDate(now.toISOString()),
       weight: parsedWeight,
       createdAt: now.toISOString(),
@@ -38,7 +38,15 @@ export default function WeightEntryScreen() {
   };
 
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} keyboardShouldPersistTaps="handled" style={styles.screen}>
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: safeAreaInsets.bottom + 120 },
+      ]}
+      keyboardShouldPersistTaps="handled"
+      style={styles.screen}
+    >
       <View style={styles.container}>
         <SectionHeader title="Add weight" />
 
