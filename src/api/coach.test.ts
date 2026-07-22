@@ -38,21 +38,33 @@ const makeStrengthEnvelope = (
 
 const makeNutritionEnvelope = (
   status: 'queued' | 'running' | 'completed' | 'rejected' | 'failed' = 'completed',
+  requestType: 'nutrition_review' | 'nutrition_target_proposal' = 'nutrition_review',
 ): RawCoachEnvelope => ({
   run: {
     id: runId,
     userId,
     domain: 'nutrition',
-    requestType: 'nutrition_review',
+    requestType,
     status,
     idempotencyKey: null,
     requestData: { lookbackDays: 14 },
     contextSnapshot: {},
-    result: status === 'completed' ? { kind: 'nutrition-review', metrics: {} } : null,
+    result:
+      status === 'completed'
+        ? {
+            kind:
+              requestType === 'nutrition_review'
+                ? 'nutrition-review'
+                : 'nutrition-target-proposal',
+            metrics: {},
+          }
+        : null,
     error: null,
     policyVersions: {
       context: 'nutrition-context-v1',
       math: 'nutrition-math-v1',
+      proposal: 'nutrition-target-proposal-v1',
+      guardrail: 'nutrition-target-guardrail-v1',
     },
     requestedAt: '2026-07-22T12:00:00.000Z',
     startedAt: '2026-07-22T12:00:01.000Z',
@@ -136,6 +148,31 @@ describe('coach API', () => {
         headers: { authorization: 'Bearer token' },
         retry: false,
       }),
+    );
+  });
+
+  it('starts a guarded nutrition target proposal on the same endpoint', async () => {
+    const post = vi.fn(async () =>
+      makeNutritionEnvelope('completed', 'nutrition_target_proposal'),
+    );
+    const api = createCoachApi(
+      {
+        getAccessToken: vi.fn(async () => 'token'),
+        refreshAccessToken: vi.fn(async () => null),
+      },
+      makeClient({ post: post as unknown as ApiClient['post'] }),
+    );
+
+    const result = await api.startNutritionRun({
+      requestType: 'nutrition_target_proposal',
+      lookbackDays: 14,
+    });
+
+    expect(result.run.requestType).toBe('nutrition_target_proposal');
+    expect(post).toHaveBeenCalledWith(
+      '/v1/coach/nutrition/runs',
+      { requestType: 'nutrition_target_proposal', lookbackDays: 14 },
+      expect.objectContaining({ retry: false }),
     );
   });
 
