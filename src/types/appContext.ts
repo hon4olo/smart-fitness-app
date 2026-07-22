@@ -5,10 +5,8 @@ import type {
   MealTemplate,
   NutritionState,
   NutritionTargets,
-  ProfileCalculationSex,
   ProfileGoalType,
   ProfileState,
-  ProfileTrainingExperience,
   TrainingProgram,
   WeightEntry,
   Workout,
@@ -70,13 +68,6 @@ export type AppContextType = AppState & {
     goalType: ProfileGoalType;
     weeklyWeightChangeGoal: number;
     trainingDaysPerWeek: number;
-  }) => void;
-  updateCoachProfile: (profile: {
-    dateOfBirth: string;
-    calculationSex: ProfileCalculationSex;
-    height: string;
-    activityLevel: 'sedentary' | 'light' | 'moderate' | 'high' | 'very_high';
-    trainingExperience: ProfileTrainingExperience;
   }) => void;
   updateFoodEntry: (entryId: string, updatedEntry: FoodEntry) => void;
   deleteFoodEntry: (entryId: string) => void;
