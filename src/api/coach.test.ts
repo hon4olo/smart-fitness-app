@@ -12,7 +12,7 @@ type RawCoachEnvelope = {
   agentRuns: RawCoachAgentRun[];
 };
 
-const makeEnvelope = (
+const makeStrengthEnvelope = (
   status: 'queued' | 'running' | 'completed' | 'rejected' | 'failed',
 ): RawCoachEnvelope => ({
   run: {
@@ -36,6 +36,33 @@ const makeEnvelope = (
   agentRuns: [],
 });
 
+const makeNutritionEnvelope = (
+  status: 'queued' | 'running' | 'completed' | 'rejected' | 'failed' = 'completed',
+): RawCoachEnvelope => ({
+  run: {
+    id: runId,
+    userId,
+    domain: 'nutrition',
+    requestType: 'nutrition_review',
+    status,
+    idempotencyKey: null,
+    requestData: { lookbackDays: 14 },
+    contextSnapshot: {},
+    result: status === 'completed' ? { kind: 'nutrition-review', metrics: {} } : null,
+    error: null,
+    policyVersions: {
+      context: 'nutrition-context-v1',
+      math: 'nutrition-math-v1',
+    },
+    requestedAt: '2026-07-22T12:00:00.000Z',
+    startedAt: '2026-07-22T12:00:01.000Z',
+    completedAt: status === 'completed' ? '2026-07-22T12:00:02.000Z' : null,
+    createdAt: '2026-07-22T12:00:00.000Z',
+    updatedAt: '2026-07-22T12:00:02.000Z',
+  },
+  agentRuns: [],
+});
+
 const makeClient = (overrides: Partial<ApiClient>): ApiClient => ({
   request: vi.fn(),
   get: vi.fn(),
@@ -47,8 +74,8 @@ const makeClient = (overrides: Partial<ApiClient>): ApiClient => ({
 });
 
 describe('coach API', () => {
-  it('parses and sorts a valid run envelope', () => {
-    const value = makeEnvelope('completed');
+  it('parses and sorts a valid strength run envelope', () => {
+    const value = makeStrengthEnvelope('completed');
     value.agentRuns = [
       {
         id: '33333333-3333-4333-8333-333333333333',
@@ -88,13 +115,46 @@ describe('coach API', () => {
     expect(parsed.agentRuns.map((agentRun) => agentRun.sequence)).toEqual([1, 2]);
   });
 
+  it('starts an authenticated nutrition review on the nutrition endpoint', async () => {
+    const post = vi.fn(async () => makeNutritionEnvelope());
+    const api = createCoachApi(
+      {
+        getAccessToken: vi.fn(async () => 'token'),
+        refreshAccessToken: vi.fn(async () => null),
+      },
+      makeClient({ post }),
+    );
+
+    const result = await api.startNutritionRun({ lookbackDays: 14 });
+
+    expect(result.run.domain).toBe('nutrition');
+    expect(result.run.requestType).toBe('nutrition_review');
+    expect(post).toHaveBeenCalledWith(
+      '/v1/coach/nutrition/runs',
+      { requestType: 'nutrition_review', lookbackDays: 14 },
+      expect.objectContaining({
+        headers: { authorization: 'Bearer token' },
+        retry: false,
+      }),
+    );
+  });
+
+  it('rejects a request type that does not belong to the response domain', () => {
+    const invalid = makeNutritionEnvelope();
+    invalid.run.requestType = 'session_review';
+
+    expect(() => parseCoachRunEnvelope(invalid)).toThrow(
+      'Invalid coach response: requestType',
+    );
+  });
+
   it('refreshes an expired access token once and retries the request', async () => {
     const post = vi
       .fn()
       .mockRejectedValueOnce(
         new ApiError({ code: 'unauthorized', message: 'Unauthorized', status: 401 }),
       )
-      .mockResolvedValueOnce(makeEnvelope('completed'));
+      .mockResolvedValueOnce(makeStrengthEnvelope('completed'));
     const api = createCoachApi(
       {
         getAccessToken: vi.fn(async () => 'expired-token'),
@@ -115,8 +175,8 @@ describe('coach API', () => {
   it('polls queued runs until a terminal response is returned', async () => {
     const get = vi
       .fn()
-      .mockResolvedValueOnce(makeEnvelope('running'))
-      .mockResolvedValueOnce(makeEnvelope('completed'));
+      .mockResolvedValueOnce(makeStrengthEnvelope('running'))
+      .mockResolvedValueOnce(makeStrengthEnvelope('completed'));
     const api = createCoachApi(
       {
         getAccessToken: vi.fn(async () => 'token'),
@@ -125,17 +185,17 @@ describe('coach API', () => {
       makeClient({ get }),
     );
 
-    const result = await api.waitForTerminalRun(parseCoachRunEnvelope(makeEnvelope('queued')), {
-      intervalMs: 1,
-      maxPolls: 3,
-    });
+    const result = await api.waitForTerminalRun(
+      parseCoachRunEnvelope(makeStrengthEnvelope('queued')),
+      { intervalMs: 1, maxPolls: 3 },
+    );
 
     expect(result.run.status).toBe('completed');
     expect(get).toHaveBeenCalledTimes(2);
   });
 
   it('rejects cross-user agent run records', () => {
-    const value = makeEnvelope('completed');
+    const value = makeStrengthEnvelope('completed');
     value.agentRuns = [
       {
         id: '33333333-3333-4333-8333-333333333333',
