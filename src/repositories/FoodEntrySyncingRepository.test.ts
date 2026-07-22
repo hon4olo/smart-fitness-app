@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { defaultState } from '@/data/defaults';
 import { normalizeFoodEntryForSync, runWithoutFoodEntryOutbox } from '@/cloud/FoodEntrySync';
+import type { OfflineSyncQueueStore } from '@/cloud/CloudQueueStore';
+import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
 import type { AppRepository } from './AppRepository';
 import { createFoodEntrySyncingRepository, diffFoodEntries } from './FoodEntrySyncingRepository';
-import type { FoodEntry } from '@/types';
+import type { AppState, FoodEntry } from '@/types';
 
 const entry: FoodEntry = {
   id: 'legacy-food-1',
@@ -19,16 +21,18 @@ const entry: FoodEntry = {
   createdAt: '2026-07-22T08:00:00.000Z',
 };
 
-const makeBaseRepository = (state = { ...defaultState, foodEntries: [] }): AppRepository => ({
+const makeBaseRepository = (
+  state: AppState = { ...defaultState, foodEntries: [] },
+): AppRepository => ({
   loadState: vi.fn(async () => state),
   saveState: vi.fn(async () => undefined),
   clearState: vi.fn(async () => undefined),
 });
 
-const makeQueueStore = () => ({
+const makeQueueStore = (): OfflineSyncQueueStore => ({
   loadOperations: vi.fn(async () => []),
-  enqueue: vi.fn(async (operation) => [operation]),
-  enqueueBatch: vi.fn(async (operations) => operations),
+  enqueue: vi.fn(async (operation: OfflineSyncQueueOperation) => [operation]),
+  enqueueBatch: vi.fn(async (operations: OfflineSyncQueueOperation[]) => operations),
   updateOperation: vi.fn(async () => []),
   acknowledge: vi.fn(async () => []),
   removeAcknowledged: vi.fn(async () => []),
