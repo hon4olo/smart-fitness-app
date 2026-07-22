@@ -7,6 +7,7 @@ import {
   normalizeOfflineSyncQueueOperation,
 } from '@/cloud/CloudQueueHelpers';
 
+import { withOfflineQueueMutationLock } from './OfflineQueueMutationLock';
 import type { StorageAdapter } from './StorageAdapter';
 
 export const OFFLINE_SYNC_QUEUE_STORAGE_KEY = '@smart_fitness_mvp_offline_sync_queue';
@@ -91,42 +92,49 @@ export const createAsyncStorageOperationQueueStore = (storage: StorageAdapter): 
     return operations;
   };
 
-  const updateOperation = async (opId: string, patch: OfflineSyncQueueOperationPatch): Promise<OfflineSyncQueueOperation[]> => {
-    const currentOperations = await loadOperations();
-    const nextOperations = dedupeOfflineSyncQueueOperations(
-      updateOperationInList(currentOperations, opId, patch).map((operation) => normalizeOfflineSyncQueueOperation(operation) ?? operation),
-    );
+  const updateOperation = async (opId: string, patch: OfflineSyncQueueOperationPatch): Promise<OfflineSyncQueueOperation[]> =>
+    withOfflineQueueMutationLock(async () => {
+      const currentOperations = await loadOperations();
+      const nextOperations = dedupeOfflineSyncQueueOperations(
+        updateOperationInList(currentOperations, opId, patch).map((operation) => normalizeOfflineSyncQueueOperation(operation) ?? operation),
+      );
 
-    return persistAndReturn(nextOperations);
-  };
+      return persistAndReturn(nextOperations);
+    });
 
   const store: OfflineSyncQueueStore = {
     loadOperations,
     async enqueue(operation) {
-      const currentOperations = await loadOperations();
-      const normalized = normalizeOfflineSyncQueueOperation(operation, currentOperations.length) ?? operation;
-      return persistAndReturn(upsertOperation(currentOperations, normalized));
+      return withOfflineQueueMutationLock(async () => {
+        const currentOperations = await loadOperations();
+        const normalized = normalizeOfflineSyncQueueOperation(operation, currentOperations.length) ?? operation;
+        return persistAndReturn(upsertOperation(currentOperations, normalized));
+      });
     },
     async enqueueBatch(operations) {
-      let currentOperations = await loadOperations();
+      return withOfflineQueueMutationLock(async () => {
+        let currentOperations = await loadOperations();
 
-      for (const operation of operations) {
-        const normalized = normalizeOfflineSyncQueueOperation(operation, currentOperations.length) ?? operation;
-        currentOperations = upsertOperation(currentOperations, normalized);
-      }
+        for (const operation of operations) {
+          const normalized = normalizeOfflineSyncQueueOperation(operation, currentOperations.length) ?? operation;
+          currentOperations = upsertOperation(currentOperations, normalized);
+        }
 
-      return persistAndReturn(currentOperations);
+        return persistAndReturn(currentOperations);
+      });
     },
     updateOperation,
     async acknowledge(opId) {
       return updateOperation(opId, { status: 'acknowledged', lastError: undefined });
     },
     async removeAcknowledged() {
-      const currentOperations = await loadOperations();
-      return persistAndReturn(currentOperations.filter((operation) => operation.status !== 'acknowledged'));
+      return withOfflineQueueMutationLock(async () => {
+        const currentOperations = await loadOperations();
+        return persistAndReturn(currentOperations.filter((operation) => operation.status !== 'acknowledged'));
+      });
     },
     async clear() {
-      await storage.remove(OFFLINE_SYNC_QUEUE_STORAGE_KEY);
+      await withOfflineQueueMutationLock(async () => storage.remove(OFFLINE_SYNC_QUEUE_STORAGE_KEY));
     },
     async getPending() {
       return filterPendingOfflineSyncQueueOperations(await loadOperations());
