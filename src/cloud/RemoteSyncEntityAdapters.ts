@@ -4,6 +4,7 @@ import type { SyncOperation } from './CloudSyncTypes';
 
 export type RemoteSyncOperationRecord = {
   id?: unknown;
+  idempotencyKey?: unknown;
   entityType?: unknown;
   entityId?: unknown;
   operationType?: unknown;
@@ -79,9 +80,11 @@ export const toRemoteSyncOperation = (
 
   const revisionNumber = normalizeRevision(record.revision, fallbackRevision);
   const operationId =
-    typeof record.id === 'string' && record.id.trim()
-      ? record.id.trim()
-      : `remote:${entity}:${entityId}:${revisionNumber}`;
+    typeof record.idempotencyKey === 'string' && record.idempotencyKey.trim()
+      ? record.idempotencyKey.trim()
+      : typeof record.id === 'string' && record.id.trim()
+        ? record.id.trim()
+        : `remote:${entity}:${entityId}:${revisionNumber}`;
   const createdAt =
     typeof record.appliedAt === 'string' && record.appliedAt.trim()
       ? record.appliedAt.trim()
