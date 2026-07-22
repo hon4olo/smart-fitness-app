@@ -16,13 +16,13 @@ import type { SyncCoordinator } from '@/cloud';
 import {
   applyRemoteWeightHistoryChanges,
   filterWeightHistoryQueueOperations,
-  isWeightHistoryQueueOperation,
 } from '@/cloud/WeightHistorySync';
 import {
   applyRemoteWorkoutSessionChanges,
   isWorkoutSessionQueueOperation,
 } from '@/cloud/WorkoutSessionSync';
 import type { OfflineSyncQueueStore } from '@/cloud/CloudQueueStore';
+import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
 import type { WeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
 import {
   createAsyncStorageAdapter,
@@ -162,10 +162,11 @@ const hasUnsupportedRemoteEntities = (pullResult: {
   );
 };
 
-const isSupportedQueueOperation = (
-  operation: Parameters<typeof isWeightHistoryQueueOperation>[0],
-): boolean =>
-  isWeightHistoryQueueOperation(operation) || isWorkoutSessionQueueOperation(operation);
+const countSupportedQueueOperations = (
+  operations: OfflineSyncQueueOperation[],
+): number =>
+  filterWeightHistoryQueueOperations(operations).length +
+  operations.filter(isWorkoutSessionQueueOperation).length;
 
 export function SyncProvider({
   children,
@@ -196,7 +197,7 @@ export function SyncProvider({
 
   const refreshQueueStats = useCallback(async () => {
     const pending = await queueStore.getPending();
-    setPendingOperations(pending.filter(isSupportedQueueOperation).length);
+    setPendingOperations(countSupportedQueueOperations(pending));
   }, [queueStore]);
 
   const syncNow = useCallback(async () => {
@@ -295,7 +296,7 @@ export function SyncProvider({
       }
 
       const afterPending = await queueStore.getPending();
-      setPendingOperations(afterPending.filter(isSupportedQueueOperation).length);
+      setPendingOperations(countSupportedQueueOperations(afterPending));
       setLastSyncAt(
         pushResult?.serverTimestamp ??
           pullResult?.serverTimestamp ??
