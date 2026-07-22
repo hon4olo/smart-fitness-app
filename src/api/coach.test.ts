@@ -176,6 +176,37 @@ describe('coach API', () => {
     );
   });
 
+  it('confirms a persisted proposal without sending target values from mobile', async () => {
+    const confirmed = makeNutritionEnvelope('completed', 'nutrition_target_proposal');
+    confirmed.run.result = {
+      kind: 'nutrition-target-proposal',
+      applied: true,
+      appliedRevision: 21,
+    };
+    const post = vi.fn(async () => confirmed);
+    const api = createCoachApi(
+      {
+        getAccessToken: vi.fn(async () => 'token'),
+        refreshAccessToken: vi.fn(async () => null),
+      },
+      makeClient({ post: post as unknown as ApiClient['post'] }),
+    );
+
+    const result = await api.confirmRun(runId, { idempotencyKey: 'confirm-1' });
+
+    expect(result.run.result).toEqual(
+      expect.objectContaining({ applied: true, appliedRevision: 21 }),
+    );
+    expect(post).toHaveBeenCalledWith(
+      `/v1/coach/runs/${runId}/confirm`,
+      { idempotencyKey: 'confirm-1' },
+      expect.objectContaining({
+        headers: { authorization: 'Bearer token' },
+        retry: false,
+      }),
+    );
+  });
+
   it('rejects a request type that does not belong to the response domain', () => {
     const invalid = makeNutritionEnvelope();
     invalid.run.requestType = 'session_review';
