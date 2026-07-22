@@ -91,5 +91,8 @@ export const defaultState: AppDefaultState = {
     goalType: 'gain_muscle',
     weeklyWeightChangeGoal: 0.25,
     trainingDaysPerWeek: 3,
+    dateOfBirth: null,
+    calculationSex: null,
+    trainingExperience: null,
   },
 };
