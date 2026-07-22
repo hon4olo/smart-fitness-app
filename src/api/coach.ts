@@ -4,7 +4,7 @@ import { getMobileApiBaseUrl } from '@/api/config';
 export type CoachRunStatus = 'queued' | 'running' | 'completed' | 'rejected' | 'failed';
 export type CoachDomain = 'strength' | 'nutrition';
 export type StrengthCoachRequestType = 'session_review' | 'next_workout_proposal';
-export type NutritionCoachRequestType = 'nutrition_review';
+export type NutritionCoachRequestType = 'nutrition_review' | 'nutrition_target_proposal';
 export type CoachRequestType = StrengthCoachRequestType | NutritionCoachRequestType;
 
 export type CoachRunError = {
@@ -97,7 +97,10 @@ const STRENGTH_REQUEST_TYPES = new Set<StrengthCoachRequestType>([
   'session_review',
   'next_workout_proposal',
 ]);
-const NUTRITION_REQUEST_TYPES = new Set<NutritionCoachRequestType>(['nutrition_review']);
+const NUTRITION_REQUEST_TYPES = new Set<NutritionCoachRequestType>([
+  'nutrition_review',
+  'nutrition_target_proposal',
+]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
