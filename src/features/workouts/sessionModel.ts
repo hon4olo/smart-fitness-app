@@ -1,5 +1,6 @@
 import type { WorkoutSession } from '@/types';
 
+import { stageCompletedWorkoutSessionForSync } from './storage';
 import type { WorkoutSessionDraft } from './types';
 
 const cloneSet = (set: WorkoutSession['sets'][number]) => ({ ...set });
@@ -19,8 +20,7 @@ export const buildCompletedWorkoutSessionSnapshot = (
   options: { finishedAt?: string; notes?: string } = {},
 ) => {
   const finishedAt = options.finishedAt ?? new Date().toISOString();
-
-  return {
+  const session = {
     id: draft.id,
     workoutId: draft.workoutId,
     workoutTitle: draft.workoutTitle,
@@ -29,6 +29,9 @@ export const buildCompletedWorkoutSessionSnapshot = (
     notes: options.notes?.trim() || undefined,
     sets: draft.sets.map(cloneSet),
   } satisfies WorkoutSession;
+
+  stageCompletedWorkoutSessionForSync(session);
+  return session;
 };
 
 export const upsertWorkoutSessionById = (sessions: WorkoutSession[], session: WorkoutSession) =>
