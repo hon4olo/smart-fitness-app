@@ -63,7 +63,7 @@ export type WeightSyncContextValue = {
 
 type SyncProviderProps = PropsWithChildren<{
   state: AppState;
-  isRestoringState: boolean;
+  isRestoringState?: boolean;
   replaceState(nextState: AppState): void;
   queueStore: OfflineSyncQueueStore;
   metadataStore: WeightSyncMetadataStore;
@@ -178,7 +178,7 @@ const countSupportedQueueOperations = (
 
 export function SyncProvider({
   children,
-  isRestoringState,
+  isRestoringState = false,
   metadataStore,
   queueStore,
   replaceState,
@@ -218,7 +218,11 @@ export function SyncProvider({
   }, [queueStore]);
 
   const ensureNutritionTargetBootstrap = useCallback(async () => {
-    if (!session?.user.id || !session.device.id) {
+    if (
+      !latestStateRef.current.onboardingCompleted ||
+      !session?.user.id ||
+      !session.device.id
+    ) {
       return;
     }
     const entityId = getNutritionTargetEntityId(session.user.id);
