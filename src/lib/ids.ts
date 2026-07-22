@@ -4,8 +4,8 @@ const ENTITY_ID_NAMESPACE = 'smart-fitness-entity-id:v1:';
 export const isUuid = (value: unknown): value is string =>
   typeof value === 'string' && UUID_PATTERN.test(value.trim());
 
-const formatUuidBytes = (bytes: Uint8Array): string => {
-  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x50;
+const formatUuidBytes = (bytes: Uint8Array, versionBits: number): string => {
+  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | versionBits;
   bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80;
   const hex = [...bytes].map((value) => value.toString(16).padStart(2, '0'));
 
@@ -51,7 +51,7 @@ export const createDeterministicUuid = (source: string): string => {
   view.setUint32(4, hash32(value, 0x85ebca77));
   view.setUint32(8, hash32(value, 0xc2b2ae3d));
   view.setUint32(12, hash32(value, 0x27d4eb2f));
-  return formatUuidBytes(bytes);
+  return formatUuidBytes(bytes, 0x50);
 };
 
 export const createUuid = (): string => {
@@ -60,10 +60,7 @@ export const createUuid = (): string => {
     return cryptoApi.randomUUID();
   }
 
-  const bytes = createRandomBytes();
-  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x40;
-  bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80;
-  return formatUuidBytes(bytes);
+  return formatUuidBytes(createRandomBytes(), 0x40);
 };
 
 export const ensureUuid = (value: unknown): string => {
