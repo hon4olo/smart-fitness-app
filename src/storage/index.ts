@@ -27,6 +27,15 @@ export type {
   NutritionTargetSyncMetadata,
   NutritionTargetSyncMetadataStore,
 } from './NutritionTargetSyncMetadataStore';
+export {
+  createFitnessProfileSyncMetadataStore,
+  FITNESS_PROFILE_SYNC_METADATA_STORAGE_KEY,
+} from './FitnessProfileSyncMetadataStore';
+export type {
+  FitnessProfileSyncMetadata,
+  FitnessProfileSyncMetadataStore,
+  FitnessProfileSyncSnapshot,
+} from './FitnessProfileSyncMetadataStore';
 export { createSyncCursorStore, SYNC_CURSOR_STORAGE_KEY } from './SyncCursorStore';
 export type { SyncCursor, SyncCursorStore } from './SyncCursorStore';
 export { getDefaultSyncCursorStore } from './defaultSyncCursorStore';
