@@ -35,7 +35,6 @@ export function WorkoutSessionModalLayer({
   onCloseWorkoutOverflow,
   onDiscardWorkout,
   onOpenAddExercises,
-  onReplaceExercise,
   onSelectReplacement,
   onSetActualRpe,
   onSetExerciseOverflow,
@@ -62,7 +61,6 @@ export function WorkoutSessionModalLayer({
   onCloseWorkoutOverflow(): void;
   onDiscardWorkout(): void;
   onOpenAddExercises(): void;
-  onReplaceExercise(target: ExerciseTarget): void;
   onSelectReplacement(exercise: ReplacementExercise): void;
   onSetActualRpe(setId: string, actualRpe?: WorkoutRpe): void;
   onSetExerciseOverflow(target: ExerciseTarget | null): void;
@@ -94,7 +92,6 @@ export function WorkoutSessionModalLayer({
         onReplace={(target) => {
           onSetReplacementTarget(target);
           onSetExerciseOverflow(null);
-          onReplaceExercise(target);
         }}
         styles={styles}
       />
