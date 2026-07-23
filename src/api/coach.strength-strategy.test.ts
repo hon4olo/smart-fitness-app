@@ -43,7 +43,9 @@ const makeClient = (post: ApiClient['post']): ApiClient => ({
 
 describe('Strength Strategy API contract', () => {
   it('sends only run selection and idempotency inputs', async () => {
-    const postMock = vi.fn(async () => response);
+    const postMock = vi.fn(
+      async (_path: string, _body?: unknown, _options?: unknown) => response,
+    );
     const api = createCoachApi(
       {
         getAccessToken: vi.fn(async () => 'access-token'),
