@@ -82,7 +82,6 @@ export function AppProvider({ children }: PropsWithChildren) {
   } = useAppInfrastructure(setState, setIsRestoringState);
   const {
     dismissMutationFailure,
-    enqueueStateMutation,
     mutationFailure,
     pendingMutationCount,
     retryFailedMutation,
@@ -354,11 +353,11 @@ export function AppProvider({ children }: PropsWithChildren) {
   );
 
   const replaceState = useCallback(
-    async (nextState: AppState) => {
+    (nextState: AppState) => {
       setState(nextState);
-      await enqueueStateMutation({ label: 'Apply synchronized data', nextState });
+      scheduleStateMutation({ label: 'Apply synchronized data', nextState });
     },
-    [enqueueStateMutation],
+    [scheduleStateMutation],
   );
 
   const getLastWorkoutSession = useCallback(
