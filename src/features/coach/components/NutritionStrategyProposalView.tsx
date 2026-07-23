@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import type { NutritionStrategyViewModel } from '../nutritionStrategyViewModel';
 
@@ -33,19 +34,47 @@ const formatNumber = (value: number, maximumFractionDigits = 0): string =>
 const formatConfidence = (value: number): string =>
   `${formatNumber(value * 100)}%`;
 
+const formatTimestamp = (value: string): string => {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime())
+    ? new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(date)
+    : value;
+};
+
+type StrategyResultView = Extract<
+  NutritionStrategyViewModel,
+  { kind: 'proposal' | 'applied' }
+>;
+
 export function NutritionStrategyProposalView({
+  confirmationSupported,
+  confirming,
+  onConfirm,
   viewModel,
 }: {
-  viewModel: Extract<NutritionStrategyViewModel, { kind: 'proposal' }>;
+  confirmationSupported: boolean;
+  confirming: boolean;
+  onConfirm: () => void;
+  viewModel: StrategyResultView;
 }) {
   const { proposal } = viewModel;
+  const applied = viewModel.kind === 'applied';
 
   return (
     <View style={styles.stack}>
-      <View style={styles.previewBanner}>
-        <Text style={styles.previewTitle}>Preview only · not applied</Text>
+      <View style={applied ? styles.appliedBanner : styles.previewBanner}>
+        <Text style={applied ? styles.appliedTitle : styles.previewTitle}>
+          {applied ? 'Applied to active target' : 'Preview · not applied'}
+        </Text>
         <Text style={styles.previewText}>
-          This result passed deterministic validation, but the current app cannot apply an AI strategy.
+          {applied
+            ? `Revision ${viewModel.appliedRevision} · ${formatTimestamp(viewModel.appliedAt)}`
+            : confirmationSupported
+              ? 'Applying requires a separate confirmation. The backend will reload the run, verify the target revision and rerun deterministic guardrails.'
+              : 'This backend supports strategy preview but does not advertise strategy confirmation.'}
         </Text>
       </View>
 
@@ -143,15 +172,53 @@ export function NutritionStrategyProposalView({
           ))}
         </View>
       ) : null}
+
+      {!applied && confirmationSupported ? (
+        <View style={styles.confirmationSection}>
+          <Text style={styles.confirmationText}>
+            Confirmation replaces the active calorie and macro target with the values shown above.
+          </Text>
+          <PrimaryButton
+            disabled={confirming}
+            label="Apply strategy to targets"
+            loading={confirming}
+            onPress={onConfirm}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  appliedBanner: {
+    backgroundColor: Colors.dark.successSoft,
+    borderColor: Colors.dark.success,
+    borderRadius: Radii.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: Spacing.one,
+    padding: Spacing.three,
+  },
+  appliedTitle: {
+    color: Colors.dark.success,
+    fontSize: Typography.label.fontSize,
+    fontWeight: '800',
+  },
   bodyText: {
     color: Colors.dark.textSecondary,
     fontSize: Typography.body.fontSize,
     lineHeight: Typography.body.lineHeight,
+  },
+  confirmationSection: {
+    borderTopColor: Colors.dark.borderSubtle,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: Spacing.two,
+    paddingTop: Spacing.three,
+  },
+  confirmationText: {
+    color: Colors.dark.warning,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
   },
   headerCopy: {
     flex: 1,
