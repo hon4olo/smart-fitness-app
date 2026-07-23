@@ -59,31 +59,59 @@ const makeEnvelope = (
   agentRuns: [],
 });
 
+const expectedProposal = {
+  strategy: 'reduce' as const,
+  calorieTarget: 2_200,
+  macros: { protein: 160, carbs: 250, fats: 62 },
+  adjustmentCadenceDays: 14,
+  rationaleCodes: ['goal_energy_delta', 'current_target_continuity'] as const,
+  caveatCodes: ['target_requires_confirmation'] as const,
+  dataQuality: 'sufficient' as const,
+  confidence: 0.82,
+  userSummary: 'Keep calories stable while preserving deterministic protein and fat ranges.',
+};
+
+const expectedDetails = {
+  proposal: expectedProposal,
+  guardrailStatus: 'valid' as const,
+  issues: [],
+  calculatedMacroCalories: 2_198,
+  calorieMathMismatch: 2,
+  modelAttempts: 2,
+  modelLatencyMs: 850,
+  requiresConfirmation: true as const,
+};
+
 describe('nutrition strategy view model', () => {
-  it('reads a completed validated preview without exposing an apply action', () => {
+  it('reads a completed validated preview', () => {
     expect(buildNutritionStrategyViewModel(makeEnvelope())).toEqual({
+      ...expectedDetails,
       kind: 'proposal',
       title: 'Nutrition strategy preview',
       message: 'The structured proposal passed deterministic validation. It has not been applied.',
-      proposal: {
-        strategy: 'reduce',
-        calorieTarget: 2_200,
-        macros: { protein: 160, carbs: 250, fats: 62 },
-        adjustmentCadenceDays: 14,
-        rationaleCodes: ['goal_energy_delta', 'current_target_continuity'],
-        caveatCodes: ['target_requires_confirmation'],
-        dataQuality: 'sufficient',
-        confidence: 0.82,
-        userSummary: 'Keep calories stable while preserving deterministic protein and fat ranges.',
-      },
-      guardrailStatus: 'valid',
-      issues: [],
-      calculatedMacroCalories: 2_198,
-      calorieMathMismatch: 2,
-      modelAttempts: 2,
-      modelLatencyMs: 850,
-      requiresConfirmation: true,
       applied: false,
+    });
+  });
+
+  it('reads a revisioned applied result', () => {
+    const envelope = makeEnvelope();
+    if (!envelope.run.result) throw new Error('Missing result fixture');
+    Object.assign(envelope.run.result, {
+      applied: true,
+      appliedAt: '2026-07-23T13:00:00.000Z',
+      appliedRevision: 21,
+      confirmationIdempotencyKey: 'coach-confirm:run:confirm-1',
+    });
+
+    expect(buildNutritionStrategyViewModel(envelope)).toEqual({
+      ...expectedDetails,
+      kind: 'applied',
+      title: 'Nutrition strategy applied',
+      message: 'The backend revalidated the proposal and updated the active nutrition target.',
+      applied: true,
+      appliedAt: '2026-07-23T13:00:00.000Z',
+      appliedRevision: 21,
+      confirmationIdempotencyKey: 'coach-confirm:run:confirm-1',
     });
   });
 
@@ -166,7 +194,7 @@ describe('nutrition strategy view model', () => {
     });
   });
 
-  it('rejects malformed schemas, unsafe confidence and applied strategy results', () => {
+  it('rejects malformed schemas, unsafe confidence and incomplete applied metadata', () => {
     const wrongSchema = makeEnvelope();
     const wrongSchemaResult = wrongSchema.run.result;
     if (!wrongSchemaResult || typeof wrongSchemaResult.proposal !== 'object' || wrongSchemaResult.proposal === null) {
@@ -186,7 +214,11 @@ describe('nutrition strategy view model', () => {
     const applied = makeEnvelope();
     if (!applied.run.result) throw new Error('Missing result fixture');
     applied.run.result.applied = true;
-    expect(buildNutritionStrategyViewModel(applied)).toMatchObject({ kind: 'failed' });
+    expect(buildNutritionStrategyViewModel(applied)).toEqual({
+      kind: 'failed',
+      title: 'Invalid applied strategy',
+      message: 'The strategy confirmation metadata could not be read safely.',
+    });
   });
 
   it('keeps queued runs in a pending state', () => {
