@@ -32,6 +32,7 @@ Do not introduce Supabase, Firebase, or a second backend. Do not claim that the 
 - Expo Router
 - TypeScript
 - AsyncStorage for offline-first application state and queues
+- Expo SecureStore for native access and refresh tokens
 - production backend through `src/api/`
 - dark minimal UI
 
@@ -50,14 +51,16 @@ The mobile client currently has entity-specific revisioned sync for:
 - nutrition targets;
 - fitness profile;
 - user limitations;
-- recovery check-ins.
+- recovery check-ins;
+- typed body measurements;
+- training programs.
 
 Remaining sync work includes:
-- typed body measurements;
-- training programs as their own synchronized entity;
 - meal templates;
 - custom exercises;
-- stronger observable local-persistence and outbox failure handling.
+- restart, retry, and two-device conflict hardening across all critical entities.
+
+Critical local persistence is ordered and observable through the application mutation queue. Save and outbox failures are surfaced with retry controls. This does not make application-state persistence and outbox enqueue one atomic storage transaction, so recovery semantics must remain explicit and tested.
 
 Do not describe synchronization as weight-only and do not route unrelated entities through the weight adapter.
 
@@ -72,18 +75,36 @@ The codebase already supports:
 - read-only Combined Coach review.
 
 A provider-backed model is capability-gated by the backend. The mobile client must remain provider-neutral.
-Full Combined proposal composition is not complete until the backend capability and a strict mobile parser/UI are merged.
 
-### Known hardening work
+The existing Combined flow is a deterministic read-only review. Full Combined Strategy proposal composition is not complete until the backend request/response contract, separate capability flag, strict mobile parser, view model, and preview UI are merged together. Automatic application remains prohibited.
+
+### Authentication and persistence hardening already implemented
+
+The mobile client already:
+- stores native access and refresh tokens in Expo SecureStore;
+- migrates verified legacy AsyncStorage token envelopes into secure storage;
+- keeps ordinary cached session storage tokenless;
+- uses volatile token storage for web and non-native test runtimes;
+- serializes critical local persistence mutations;
+- surfaces persistence and outbox failures;
+- provides explicit retry controls.
+
+`expo-secure-store` is a native runtime dependency. A matching native build/runtime is required before releasing JavaScript that imports it. Do not label native dependency or runtime changes OTA-only.
+
+### Known remaining hardening work
 
 Still required:
-- move access and refresh tokens to platform secure storage;
-- stop duplicating tokens inside the ordinary AsyncStorage session envelope;
-- make critical persistence and enqueue failures observable instead of fire-and-forget;
-- finish normalization of body measurements and units;
-- finish remaining entity sync contracts.
+- finish revisioned sync for meal templates and custom exercises;
+- audit restart recovery when local save succeeds but outbox enqueue fails;
+- test token refresh during push and pull;
+- test concurrent local mutation and remote materialization;
+- test two-device conflicts for all mutable synchronized entities;
+- activate and validate the model provider in staging without weakening deterministic fallbacks;
+- complete Combined Strategy proposal composition without automatic application;
+- make the full mobile regression suite blocking in CI;
+- decompose audited hand-written files that exceed 500 physical lines.
 
-Moving tokens to secure storage adds a native Expo dependency and therefore requires a new matching native build/runtime. Do not label that change OTA-only.
+The cross-repository execution plan is `docs/implementation-plan.md`.
 
 ## AI Trainer architecture
 
@@ -119,7 +140,7 @@ LLMs must not perform authoritative calculations or enforce hard safety limits. 
 
 The mobile app must never call an LLM provider directly and must never contain provider secrets. It calls only the Smart Fitness backend.
 
-The authoritative design document is in the backend repository at `docs/architecture/ai-coach.md`.
+The authoritative AI Coach architecture documents are in the backend repository under `docs/architecture/`.
 
 ## Required workflow
 
@@ -127,10 +148,11 @@ Before code changes:
 1. Locate the repository root.
 2. Read `AGENTS.md` once per working session.
 3. Read `PROJECT_LEARNINGS.md`.
-4. For bug fixes or failed validation, read `DEBUGGING_SKILL.md` if present.
-5. Inspect current `main` because concurrent work may have landed.
-6. Read only files relevant to the task unless the user requests a repository-wide review.
-7. Make small, targeted changes and preserve existing behavior.
+4. Read `docs/implementation-plan.md` when working on roadmap items.
+5. For bug fixes or failed validation, read `DEBUGGING_SKILL.md` if present.
+6. Inspect current `main` because concurrent work may have landed.
+7. Read only files relevant to the task unless the user requests a repository-wide review.
+8. Make small, targeted changes and preserve existing behavior.
 
 After TypeScript / TSX changes, run:
 
@@ -153,12 +175,14 @@ Hand-written source files should not exceed 500 physical lines.
 
 Rules:
 - when touching a hand-written file already over 500 lines, include a focused extraction when it can be done safely;
-- extract cohesive components, hooks, styles, parsers, or pure helpers into the existing feature folder;
+- extract cohesive components, hooks, styles, parsers, contracts, or pure helpers into the existing feature folder;
 - keep every newly created hand-written file at or below 500 lines;
 - run independent extractions in parallel branches when they do not touch the same files;
 - do not create broad abstractions merely to reduce line count;
 - generated or machine-maintained files such as lockfiles, migrations generated by tooling, and `repomix-output.xml` are excluded from this limit;
 - preserve public behavior and add tests when logic moves.
+
+Current priority oversized files are recorded in `docs/implementation-plan.md`.
 
 ## Scope rules
 
@@ -200,10 +224,10 @@ When adding or changing cloud sync:
 - never silently overwrite unresolved conflicts;
 - validate remote payloads at the trust boundary;
 - never replace the full local state with an unvalidated response;
-- test round-trip, deletion, duplicate delivery, offline queueing, and conflicts;
+- test round-trip, deletion, duplicate delivery, offline queueing, restart recovery, and conflicts;
 - advance the sync cursor only after all returned operations are safely handled.
 
-Critical mutations must not rely on unobserved `void repository.saveState(...)` or `void enqueue(...)` calls once the relevant persistence flow is hardened.
+Critical mutations must use the ordered observable mutation flow. Do not reintroduce unobserved `void repository.saveState(...)` or `void enqueue(...)` calls.
 
 ## Coding rules
 
@@ -283,11 +307,12 @@ Do not state that a change is installed on the phone unless an EAS/native build 
 
 ## Current priority order
 
-1. Keep architecture and project documentation synchronized with the actual implementation.
-2. Move auth tokens to platform secure storage in a coordinated native-build change.
-3. Make critical local persistence and outbox operations observable and ordered.
-4. Finish remaining revisioned sync entities one at a time.
-5. Normalize body measurements and units.
-6. Complete Combined proposal review capability, strict mobile parsing, and read-only proposal UI.
-7. Continue decomposing audited hand-written files until all are at or below 500 lines.
-8. Add education, lab tracking, marketplace, social, and payments only when explicitly prioritized.
+1. Keep architecture and implementation-status documentation synchronized with actual code.
+2. Decompose the audited hand-written files that exceed 500 physical lines, starting with `src/api/coach.ts`.
+3. Finish revisioned sync for custom exercises.
+4. Finish revisioned sync for meal templates.
+5. Complete restart, retry, token-refresh, and two-device conflict hardening.
+6. Activate and validate the provider-neutral Coach model configuration in staging.
+7. Complete Combined Strategy proposal composition, strict mobile parsing, and read-only preview before any applying workflow.
+8. Make the full mobile regression suite blocking and complete release-device validation.
+9. Add education, lab tracking, marketplace, social, and payments only when explicitly prioritized.
