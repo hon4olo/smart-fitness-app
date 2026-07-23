@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
 
 import { AppProvider } from '@/context/AppContext';
+import { SafetyRecoveryProvider } from '@/context/SafetyRecoveryContext';
 import { AppThemeProvider, useAppTheme } from '@/theme/AppThemeProvider';
 
 function RootNavigator() {
@@ -43,29 +44,31 @@ function RootNavigator() {
   return (
     <ThemeProvider value={navigationTheme}>
       <AppProvider>
-        <StatusBar style={resolvedAppearance === 'dark' ? 'light' : 'dark'} />
-        <Stack
-          screenOptions={{
-            contentStyle: { backgroundColor: colors.background },
-            headerBackTitle: 'Back',
-            headerShadowVisible: false,
-            headerStyle: { backgroundColor: colors.surfacePrimary },
-            headerTintColor: colors.textPrimary,
-            headerTitleStyle: { color: colors.textPrimary },
-          }}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="auth" options={{ headerShown: false }} />
-          <Stack.Screen name="exercises/[exerciseId]" options={{ headerShown: false }} />
-          <Stack.Screen name="nutrition/add-food" options={{ headerShown: false }} />
-          <Stack.Screen name="nutrition/date-picker" options={{ headerShown: false }} />
-          <Stack.Screen name="workout-session" options={{ headerShown: false }} />
-          <Stack.Screen name="workout-session/exercises" options={{ headerShown: false }} />
-          <Stack.Screen name="workout-session-finish" options={{ headerShown: false }} />
-          <Stack.Screen name="workouts/builder" options={{ headerShown: false }} />
-          <Stack.Screen name="workouts/program/[programId]" options={{ headerShown: false }} />
-          <Stack.Screen name="workouts/routine/new" options={{ headerShown: false }} />
-          <Stack.Screen name="workouts/template/[workoutId]" options={{ headerShown: false }} />
-        </Stack>
+        <SafetyRecoveryProvider>
+          <StatusBar style={resolvedAppearance === 'dark' ? 'light' : 'dark'} />
+          <Stack
+            screenOptions={{
+              contentStyle: { backgroundColor: colors.background },
+              headerBackTitle: 'Back',
+              headerShadowVisible: false,
+              headerStyle: { backgroundColor: colors.surfacePrimary },
+              headerTintColor: colors.textPrimary,
+              headerTitleStyle: { color: colors.textPrimary },
+            }}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="auth" options={{ headerShown: false }} />
+            <Stack.Screen name="exercises/[exerciseId]" options={{ headerShown: false }} />
+            <Stack.Screen name="nutrition/add-food" options={{ headerShown: false }} />
+            <Stack.Screen name="nutrition/date-picker" options={{ headerShown: false }} />
+            <Stack.Screen name="workout-session" options={{ headerShown: false }} />
+            <Stack.Screen name="workout-session/exercises" options={{ headerShown: false }} />
+            <Stack.Screen name="workout-session-finish" options={{ headerShown: false }} />
+            <Stack.Screen name="workouts/builder" options={{ headerShown: false }} />
+            <Stack.Screen name="workouts/program/[programId]" options={{ headerShown: false }} />
+            <Stack.Screen name="workouts/routine/new" options={{ headerShown: false }} />
+            <Stack.Screen name="workouts/template/[workoutId]" options={{ headerShown: false }} />
+          </Stack>
+        </SafetyRecoveryProvider>
       </AppProvider>
     </ThemeProvider>
   );
