@@ -78,6 +78,16 @@ export default function WeightDetailsScreen() {
           )}
         </AppCard>
 
+        <AppCard>
+          <Text selectable style={styles.title}>
+            Training history
+          </Text>
+          <Text selectable style={styles.detail}>
+            Open completed workouts, logged sets, RPE values and the Safety & Recovery context recorded before each session.
+          </Text>
+          <AppButton label="Open workout history" onPress={() => router.push('/workout-history')} />
+        </AppCard>
+
         <AppButton label="Back" onPress={() => router.back()} variant="secondary" />
       </View>
     </ScrollView>
