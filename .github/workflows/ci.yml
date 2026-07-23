@@ -61,6 +61,9 @@ jobs:
           src/features/coach/strengthStrategyViewModel.test.ts
           src/features/coach/nutritionCoachViewModel.test.ts
           src/features/workouts/workoutSafetyGateModel.test.ts
+          src/features/workouts/workoutSafetySessionMetadata.test.ts
+          src/cloud/WorkoutSessionSync.test.ts
+          src/cloud/WorkoutSessionSafetyMetadataSync.test.ts
           src/cloud/SafetyRecoverySync.test.ts
           src/cloud/SafetyRecoverySyncPlanner.test.ts
           src/cloud/WorkoutTemplateSync.test.ts

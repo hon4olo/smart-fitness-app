@@ -63,6 +63,7 @@ export type {
 } from './SafetyRecoveryReviewStore';
 export {
   createWorkoutSafetyAcknowledgementStore,
+  createWorkoutSafetyMetadataFromAcknowledgement,
   WORKOUT_SAFETY_ACKNOWLEDGEMENT_STORAGE_KEY,
 } from './WorkoutSafetyAcknowledgementStore';
 export type {

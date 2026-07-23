@@ -9,10 +9,13 @@ import type { WorkoutSafetyGateDecision } from '@/features/workouts/workoutSafet
 import {
   getActiveWorkoutSessionDraft,
   hydrateActiveWorkoutSessionDraft,
+  setActiveWorkoutSessionDraft,
 } from '@/lib/workouts';
 import {
   createAsyncStorageAdapter,
   createWorkoutSafetyAcknowledgementStore,
+  createWorkoutSafetyMetadataFromAcknowledgement,
+  type WorkoutSafetyAcknowledgement,
 } from '@/storage';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
@@ -45,7 +48,7 @@ export default function WorkoutSessionRoute() {
       const acknowledgement = await acknowledgementStore.get(activeDraft.id);
       if (cancelled) return;
       setDraft(activeDraft);
-      setGateComplete(Boolean(acknowledgement));
+      setGateComplete(Boolean(acknowledgement && activeDraft.safetyRecovery));
       setLoading(false);
     };
 
@@ -55,19 +58,48 @@ export default function WorkoutSessionRoute() {
     };
   }, [acknowledgementStore]);
 
-  const continueToWorkout = async (decision: WorkoutSafetyGateDecision) => {
+  const continueToWorkout = async (
+    decision: WorkoutSafetyGateDecision,
+    explicitlyAcknowledged: boolean,
+  ) => {
     if (!draft) {
       setGateComplete(true);
       return;
     }
-    await acknowledgementStore.set({
-      schemaVersion: 1,
+
+    const acknowledgement: WorkoutSafetyAcknowledgement = {
+      schemaVersion: 2,
       draftId: draft.id,
+      gateKind: decision.kind,
       acknowledgedAt: new Date().toISOString(),
+      acknowledgementRequired: decision.requiresAcknowledgement,
+      explicitlyAcknowledged,
       reviewRunId: decision.reviewRunId,
       sourceFingerprint: decision.sourceFingerprint,
       reviewStatus: decision.reviewStatus,
-    });
+      recommendedLoadMultiplier:
+        decision.recommendedLoadPercent === null
+          ? null
+          : decision.recommendedLoadPercent / 100,
+      restrictions: decision.restrictions.map((restriction) => ({
+        ...restriction,
+        movementPatterns: [...restriction.movementPatterns],
+      })),
+      issues: decision.issues.map((issue) => ({
+        code: issue.code,
+        severity: issue.severity,
+        message: issue.message,
+      })),
+    };
+    const safetyRecovery = createWorkoutSafetyMetadataFromAcknowledgement(acknowledgement);
+    if (!safetyRecovery) {
+      throw new Error('The workout safety acknowledgement could not be captured.');
+    }
+
+    await acknowledgementStore.set(acknowledgement);
+    const nextDraft = { ...draft, safetyRecovery };
+    setActiveWorkoutSessionDraft(nextDraft);
+    setDraft(nextDraft);
     setGateComplete(true);
   };
 

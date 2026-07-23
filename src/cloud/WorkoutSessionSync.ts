@@ -1,4 +1,5 @@
 import type { AppState, WorkoutRpe, WorkoutSession, WorkoutSet } from '@/types';
+import { cloneWorkoutSafetyMetadata, parseWorkoutSafetyMetadata } from '@/features/workouts/workoutSafetySessionMetadata';
 import { ensureUuid, isUuid } from '@/lib/ids';
 import type {
   WorkoutSessionSyncMetadata,
@@ -15,6 +16,7 @@ export type WorkoutSessionRemoteRecord = {
   finishedAt: string;
   sets: WorkoutSet[];
   notes?: string;
+  safetyRecovery?: WorkoutSession['safetyRecovery'];
   revision: number;
   deviceId: string | null;
   deletedAt: string | null;
@@ -91,6 +93,9 @@ export const normalizeWorkoutSessionForSync = (
   session: WorkoutSession,
 ): WorkoutSession => {
   const id = ensureUuid(session.id);
+  const safetyRecovery = session.safetyRecovery
+    ? cloneWorkoutSafetyMetadata(session.safetyRecovery)
+    : null;
 
   return {
     ...session,
@@ -100,6 +105,7 @@ export const normalizeWorkoutSessionForSync = (
       id: ensureUuid(set.id || `${session.id}:set:${index}`),
       completed: set.completed !== false,
     })),
+    ...(safetyRecovery ? { safetyRecovery } : {}),
   };
 };
 
@@ -136,6 +142,11 @@ export const createWorkoutSessionQueueOperation = (input: {
           finishedAt: session.finishedAt,
           sets: session.sets.map((set) => ({ ...set })),
           ...(session.notes ? { notes: session.notes } : {}),
+          ...(session.safetyRecovery
+            ? {
+                safetyRecovery: cloneWorkoutSafetyMetadata(session.safetyRecovery),
+              }
+            : {}),
           updatedAt: now,
           deviceId: input.deviceId,
         };
@@ -212,6 +223,14 @@ const parseRemoteSession = (
     return null;
   }
 
+  const safetyRecovery =
+    payload.safetyRecovery === undefined
+      ? undefined
+      : parseWorkoutSafetyMetadata(payload.safetyRecovery);
+  if (payload.safetyRecovery !== undefined && !safetyRecovery) {
+    return null;
+  }
+
   return {
     id: rawId.toLowerCase(),
     workoutId,
@@ -222,6 +241,7 @@ const parseRemoteSession = (
     ...(typeof payload.notes === 'string' && payload.notes.trim()
       ? { notes: payload.notes.trim() }
       : {}),
+    ...(safetyRecovery ? { safetyRecovery } : {}),
   };
 };
 
@@ -321,13 +341,7 @@ export const applyRemoteWorkoutSessionChanges = (
   }
 
   return {
-    nextState: {
-      ...state,
-      workoutSessions: sessions.sort(
-        (left, right) =>
-          new Date(left.finishedAt).getTime() - new Date(right.finishedAt).getTime(),
-      ),
-    },
+    nextState: { ...state, workoutSessions: sessions },
     appliedRecordIds,
     deletedRecordIds,
     metadata: [...metadata.values()],

@@ -1,16 +1,13 @@
-import type { SafetyRecoveryStatus } from '@/features/coach/safetyRecoveryViewModel';
+import { parseWorkoutSafetyMetadata } from '@/features/workouts/workoutSafetySessionMetadata';
+import type { WorkoutSafetyMetadata } from '@/types';
 import type { StorageAdapter } from './StorageAdapter';
 
 export const WORKOUT_SAFETY_ACKNOWLEDGEMENT_STORAGE_KEY =
-  '@smart_fitness_workout_safety_acknowledgement_v1';
+  '@smart_fitness_workout_safety_acknowledgement_v2';
 
-export type WorkoutSafetyAcknowledgement = {
-  schemaVersion: 1;
+export type WorkoutSafetyAcknowledgement = Omit<WorkoutSafetyMetadata, 'schemaVersion'> & {
+  schemaVersion: 2;
   draftId: string;
-  acknowledgedAt: string;
-  reviewRunId: string | null;
-  sourceFingerprint: string | null;
-  reviewStatus: SafetyRecoveryStatus | null;
 };
 
 export type WorkoutSafetyAcknowledgementStore = {
@@ -19,40 +16,46 @@ export type WorkoutSafetyAcknowledgementStore = {
   clear(): Promise<void>;
 };
 
-const STATUSES = new Set<SafetyRecoveryStatus>([
-  'ready',
-  'needs_input',
-  'modify',
-  'blocked',
-]);
-
 const parseRecord = (value: unknown): WorkoutSafetyAcknowledgement | null => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
   if (
-    record.schemaVersion !== 1 ||
+    record.schemaVersion !== 2 ||
     typeof record.draftId !== 'string' ||
-    !record.draftId.trim() ||
-    typeof record.acknowledgedAt !== 'string' ||
-    !Number.isFinite(Date.parse(record.acknowledgedAt)) ||
-    (record.reviewRunId !== null && typeof record.reviewRunId !== 'string') ||
-    (record.sourceFingerprint !== null && typeof record.sourceFingerprint !== 'string') ||
-    (record.reviewStatus !== null &&
-      (typeof record.reviewStatus !== 'string' ||
-        !STATUSES.has(record.reviewStatus as SafetyRecoveryStatus)))
+    !record.draftId.trim()
   ) {
     return null;
   }
 
-  return {
+  const metadata = parseWorkoutSafetyMetadata({
+    ...record,
     schemaVersion: 1,
+  });
+  if (!metadata) return null;
+
+  return {
+    schemaVersion: 2,
     draftId: record.draftId,
-    acknowledgedAt: new Date(record.acknowledgedAt).toISOString(),
-    reviewRunId: record.reviewRunId as string | null,
-    sourceFingerprint: record.sourceFingerprint as string | null,
-    reviewStatus: record.reviewStatus as SafetyRecoveryStatus | null,
+    gateKind: metadata.gateKind,
+    acknowledgedAt: metadata.acknowledgedAt,
+    acknowledgementRequired: metadata.acknowledgementRequired,
+    explicitlyAcknowledged: metadata.explicitlyAcknowledged,
+    reviewRunId: metadata.reviewRunId,
+    reviewStatus: metadata.reviewStatus,
+    sourceFingerprint: metadata.sourceFingerprint,
+    recommendedLoadMultiplier: metadata.recommendedLoadMultiplier,
+    restrictions: metadata.restrictions,
+    issues: metadata.issues,
   };
 };
+
+export const createWorkoutSafetyMetadataFromAcknowledgement = (
+  record: WorkoutSafetyAcknowledgement,
+): WorkoutSafetyMetadata | null =>
+  parseWorkoutSafetyMetadata({
+    ...record,
+    schemaVersion: 1,
+  });
 
 export const createWorkoutSafetyAcknowledgementStore = (
   storage: StorageAdapter,

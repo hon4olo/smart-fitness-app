@@ -1,4 +1,11 @@
-import type { Exercise, TrainingProgram, TrainingProgramDay, Workout, WorkoutSession } from '@/types';
+import type {
+  Exercise,
+  TrainingProgram,
+  TrainingProgramDay,
+  Workout,
+  WorkoutSafetyMetadata,
+  WorkoutSession,
+} from '@/types';
 
 export type WorkoutDefinition = Workout;
 export type WorkoutTemplate = Workout;
@@ -25,6 +32,7 @@ export type WorkoutSessionDraft = {
   workoutTitle: string;
   startedAt: string;
   sets: WorkoutSet[];
+  safetyRecovery?: WorkoutSafetyMetadata;
 };
 
 export type SimilarExerciseMatch = {

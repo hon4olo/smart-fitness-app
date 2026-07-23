@@ -37,7 +37,10 @@ export default function WorkoutSafetyGateScreen({
   onContinue,
 }: {
   draft: WorkoutSessionDraft;
-  onContinue(decision: WorkoutSafetyGateDecision): Promise<void> | void;
+  onContinue(
+    decision: WorkoutSafetyGateDecision,
+    explicitlyAcknowledged: boolean,
+  ): Promise<void> | void;
 }) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -95,7 +98,10 @@ export default function WorkoutSafetyGateScreen({
     if (loading || continuing || (decision.requiresAcknowledgement && !acknowledged)) return;
     setContinuing(true);
     try {
-      await onContinue(decision);
+      await onContinue(
+        decision,
+        decision.requiresAcknowledgement ? acknowledged : false,
+      );
     } finally {
       setContinuing(false);
     }
