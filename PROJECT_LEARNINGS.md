@@ -8,6 +8,7 @@ Reusable project-specific lessons and known pitfalls.
 - Production API traffic uses `src/api/config.ts`, defaulting to `https://api.peptonio.com`.
 - Shared user state goes through `src/context/AppContext.tsx`; synchronization orchestration goes through `src/context/SyncContext.tsx` and `src/cloud/`.
 - The app is offline-first. Preserve local mutations and extend cloud synchronization through entity-specific adapters, revisions, idempotency, tombstones, and explicit conflict handling.
+- The cross-repository execution plan is `docs/implementation-plan.md`.
 - Avoid mixing demo data with user-created state unless explicitly requested.
 - Do not add lab analysis, pharmacology logic, payments, social features, or marketplace functionality without explicit approval.
 
@@ -21,14 +22,15 @@ Revisioned sync currently exists for:
 - nutrition targets;
 - fitness profile;
 - user limitations;
-- recovery check-ins.
+- recovery check-ins;
+- typed body measurements;
+- training programs.
 
 Still local-only or incomplete:
-- typed body measurements;
-- training programs as a synchronized entity;
 - meal templates;
 - custom exercises;
-- atomic or observable persistence-plus-outbox behavior for all critical mutations.
+- restart and retry hardening for save-succeeded/enqueue-failed mutations;
+- complete two-device conflict coverage across every mutable synchronized entity.
 
 Do not describe the project as weight-sync-only, but also do not assume every `AppState` field is cloud-backed.
 
@@ -45,12 +47,13 @@ Do not describe the project as weight-sync-only, but also do not assume every `A
 Implemented Coach slices:
 - deterministic Nutrition metrics/review;
 - structured Nutrition Strategy preview and explicit confirmation;
+- deterministic Strength review and metrics;
 - structured Strength Strategy preview and explicit workout-template confirmation;
 - deterministic Safety & Recovery review;
 - pre-workout Safety acknowledgement and immutable completed-workout provenance;
 - read-only Combined Coach review.
 
-Full Combined proposal composition still requires an exposed backend capability and strict mobile parser/UI. Do not infer capability support from schema version alone.
+The existing Combined Coach aggregates deterministic reviews. Full Combined Strategy proposal composition still requires a separate backend request/response contract, capability flag, strict mobile parser, view model, and preview UI. Do not infer capability support from schema version alone. Automatic application remains prohibited.
 
 ## API and authentication
 
@@ -61,24 +64,28 @@ Full Combined proposal composition still requires an exposed backend capability 
 - Ordinary auth-session storage contains only user, device, and session metadata; it must never contain access or refresh tokens.
 - Native access and refresh tokens use Expo SecureStore. Existing AsyncStorage token envelopes migrate once, are verified in secure storage, and are removed only after successful verification.
 - Web and non-native test runtimes intentionally use volatile in-memory token storage instead of silently downgrading secrets to ordinary persistent storage.
-- `expo-secure-store` is a native runtime dependency. A matching new native build is required before releasing JavaScript that depends on it.
+- `expo-secure-store` is a native runtime dependency. A matching native build is required before releasing JavaScript that imports it.
+- A backend model provider is optional and capability-gated. Deterministic reviews must remain available when it is disabled.
 
 ## Synchronization
 
 - Use stable IDs, ISO timestamps, schema versions, idempotency keys, and explicit revision metadata.
 - Read the stored sync cursor; revision zero is only the initial state, not a permanent pull value.
 - Every synchronized entity needs an explicit adapter and parser. Never coerce unrelated entities into weight history.
-- Add one entity at a time with round-trip, offline queue, duplicate delivery, conflict, malformed payload, and deletion tests.
+- Add one entity at a time with round-trip, offline queue, duplicate delivery, conflict, malformed payload, deletion, and restart-recovery tests.
 - Advance the cursor only when every returned operation is supported and safely materialized.
-- Fire-and-forget `repository.saveState()` or enqueue calls can hide data loss. Critical mutations need observable sequencing and error handling.
-- Queue mutation locking and deduplication protect the queue itself, but do not make application-state persistence and outbox enqueue atomic.
+- Critical mutations use the ordered application mutation queue and expose persistence or outbox failures with retry controls.
+- Queue mutation locking and deduplication protect the queue itself, but do not make application-state persistence and outbox enqueue one atomic storage transaction.
+- The save-succeeded/enqueue-failed path must remain recoverable after application restart and must never be hidden from the user.
 
 ## Data readiness
 
 - Workout analytics use normalized sessions and sets with canonical `exerciseId` values.
 - Preserve `exerciseId` through active drafts, saved sessions, synchronization, and backend storage.
 - Store target and actual RPE explicitly.
-- Body measurements still require migration from free-form `label` / `value` strings to typed kind, numeric value, unit, and ISO timestamp.
+- Body measurements use typed metric, numeric value, unit, and ISO timestamp fields. Legacy free-form measurements must be normalized or rejected before synchronization.
+- Training programs synchronize as their own versioned entity and preserve references to canonical workout-template IDs.
+- Custom-exercise sync must be completed before depending on cross-device exercise references in AI-generated or user-created templates.
 - Nutrition recommendations return `needs_input` when required profile fields are missing rather than inventing age, sex, activity, or body-composition inputs.
 - Safety analysis uses explicit limitations and recovery check-ins; missing information remains unknown.
 
@@ -98,6 +105,7 @@ Full Combined proposal composition still requires an exposed backend capability 
 - Food lists and meal history should use vertical mobile layouts rather than cramped rows.
 - Forms inside `ScrollView` use `keyboardShouldPersistTaps="handled"`.
 - Search, autocomplete, barcode lookup, and custom barcode products share the same API base URL.
+- Meal templates remain local-only until their dedicated revisioned sync contract is implemented.
 
 ## Workouts
 
@@ -107,12 +115,14 @@ Full Combined proposal composition still requires an exposed backend capability 
 - Exercise picker data flows through `src/features/exercises` and stores canonical exercise IDs.
 - Exercise Library rows do not autoplay remote GIFs; animated playback belongs on the detail screen to limit release-device memory pressure.
 - Safety context stored on a completed workout is an immutable record of what the user saw before starting, not a current recommendation.
+- Custom exercises remain local-only until their dedicated revisioned sync contract is implemented.
 
 ## Progress
 
 - Progress screens grow quickly. Extract focused cards, styles, and pure view models instead of extending one screen indefinitely.
 - Keep useful summary cards visible and collapse or move heavy sections when necessary.
 - Safety analytics use immutable completed-workout metadata and must exclude stale/missing reviews from fresh status calculations.
+- Typed body measurements are synchronized; malformed legacy values must fail closed rather than be guessed.
 
 ## Mobile layout
 
@@ -124,11 +134,12 @@ Full Combined proposal composition still requires an exposed backend capability 
 ## File size
 
 - Hand-written source files should remain at or below 500 physical lines.
-- When touching an oversized file, extract cohesive styles, components, hooks, parsers, or pure helpers when safe.
+- When touching an oversized file, extract cohesive styles, components, hooks, parsers, contracts, or pure helpers when safe.
 - Keep every new hand-written file at or below 500 lines.
 - Independent file splits may run in parallel branches if they do not overlap.
 - Lockfiles, generated migrations, and packed outputs such as `repomix-output.xml` are excluded.
 - Do not replace one oversized file with an untestable generic abstraction.
+- Current priority oversized files and extraction order are recorded in `docs/implementation-plan.md`.
 
 ## Build and deployment
 
@@ -139,3 +150,4 @@ Full Combined proposal composition still requires an exposed backend capability 
 - Before enabling JavaScript that imports a new native module, bump or align the runtime, create a new native build, and publish only to the matching channel.
 - Expo native modules must remain on the same SDK patch set. Dyld symbol failures usually indicate ABI drift; run `npx expo install --fix`, `npx expo-doctor`, and regenerate native projects/pods before rebuilding.
 - A merge to `main` is not an OTA or device deployment. Never claim installation unless publishing/building actually occurred.
+- The full mobile regression suite currently must become blocking before green CI can be treated as complete release validation.
