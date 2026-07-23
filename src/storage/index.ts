@@ -18,6 +18,7 @@ export {
 export type {
   WorkoutTemplateSyncMetadata,
   WorkoutTemplateSyncMetadataStore,
+  WorkoutTemplateSyncSnapshot,
 } from './WorkoutTemplateSyncMetadataStore';
 export {
   createFoodEntrySyncMetadataStore,
