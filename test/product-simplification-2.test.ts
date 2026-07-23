@@ -112,7 +112,7 @@ describe('product simplification 2.0', () => {
     expect(source).toContain("label: 'Meals'");
     expect(source).toContain('Create food');
     expect(source).toContain('Create meal');
-    expect(source).toContain('Quick add');
+    expect(source).toContain('onQuickAdd');
     expect(source).toContain('Delete entry');
     expect(source).toContain('Save changes');
     expect(source).toContain('Add to ${selectedMealLabel}');
