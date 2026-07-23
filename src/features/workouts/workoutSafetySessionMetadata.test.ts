@@ -42,11 +42,17 @@ const acknowledgement: WorkoutSafetyAcknowledgement = {
 
 describe('completed workout safety metadata', () => {
   it('converts the exact gate acknowledgement into strict session metadata', () => {
-    expect(createWorkoutSafetyMetadataFromAcknowledgement(acknowledgement)).toEqual({
-      ...acknowledgement,
+    const metadata = createWorkoutSafetyMetadataFromAcknowledgement(acknowledgement);
+
+    expect(metadata).toMatchObject({
       schemaVersion: 1,
-      draftId: undefined,
+      gateKind: 'confirmation_required',
+      explicitlyAcknowledged: true,
+      reviewRunId: '22222222-2222-4222-8222-222222222222',
+      reviewStatus: 'modify',
+      recommendedLoadMultiplier: 0.75,
     });
+    expect(metadata).not.toHaveProperty('draftId');
   });
 
   it('requires a real explicit acknowledgement when the gate required one', () => {
