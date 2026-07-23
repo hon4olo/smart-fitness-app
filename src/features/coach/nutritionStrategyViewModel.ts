@@ -37,6 +37,17 @@ export type NutritionStrategyProposal = {
   userSummary: string;
 };
 
+type NutritionStrategyValidatedDetails = {
+  proposal: NutritionStrategyProposal;
+  guardrailStatus: 'valid';
+  issues: NutritionStrategyIssue[];
+  calculatedMacroCalories: number;
+  calorieMathMismatch: number;
+  modelAttempts: number;
+  modelLatencyMs: number;
+  requiresConfirmation: true;
+};
+
 export type NutritionStrategyViewModel =
   | {
       kind: 'pending';
@@ -55,20 +66,21 @@ export type NutritionStrategyViewModel =
       reason: string;
       issues: NutritionStrategyIssue[];
     }
-  | {
+  | (NutritionStrategyValidatedDetails & {
       kind: 'proposal';
       title: string;
       message: string;
-      proposal: NutritionStrategyProposal;
-      guardrailStatus: 'valid';
-      issues: NutritionStrategyIssue[];
-      calculatedMacroCalories: number;
-      calorieMathMismatch: number;
-      modelAttempts: number;
-      modelLatencyMs: number;
-      requiresConfirmation: true;
       applied: false;
-    };
+    })
+  | (NutritionStrategyValidatedDetails & {
+      kind: 'applied';
+      title: string;
+      message: string;
+      applied: true;
+      appliedAt: string;
+      appliedRevision: number;
+      confirmationIdempotencyKey: string;
+    });
 
 const STRATEGIES = new Set(['maintain', 'reduce', 'increase', 'recompose']);
 const DATA_QUALITY = new Set(['partial', 'sufficient', 'strong']);
@@ -259,6 +271,24 @@ const readModelMetadata = (value: unknown) => {
   return { attempts, latencyMs };
 };
 
+const readAppliedMetadata = (result: Record<string, unknown>) => {
+  const appliedRevision = readNonnegativeInteger(result, 'appliedRevision');
+  if (
+    typeof result.appliedAt !== 'string' ||
+    !Number.isFinite(new Date(result.appliedAt).getTime()) ||
+    appliedRevision === null ||
+    typeof result.confirmationIdempotencyKey !== 'string' ||
+    !result.confirmationIdempotencyKey.trim()
+  ) {
+    return null;
+  }
+  return {
+    appliedAt: new Date(result.appliedAt).toISOString(),
+    appliedRevision,
+    confirmationIdempotencyKey: result.confirmationIdempotencyKey.trim(),
+  };
+};
+
 export const buildNutritionStrategyViewModel = (
   envelope: CoachRunEnvelope,
 ): NutritionStrategyViewModel => {
@@ -326,8 +356,7 @@ export const buildNutritionStrategyViewModel = (
     !proposal ||
     !guardrail ||
     !model ||
-    run.result.requiresConfirmation !== true ||
-    run.result.applied !== false
+    run.result.requiresConfirmation !== true
   ) {
     return {
       kind: 'failed',
@@ -354,10 +383,7 @@ export const buildNutritionStrategyViewModel = (
     };
   }
 
-  return {
-    kind: 'proposal',
-    title: 'Nutrition strategy preview',
-    message: 'The structured proposal passed deterministic validation. It has not been applied.',
+  const details: NutritionStrategyValidatedDetails = {
     proposal,
     guardrailStatus: 'valid',
     issues: guardrail.issues,
@@ -366,6 +392,40 @@ export const buildNutritionStrategyViewModel = (
     modelAttempts: model.attempts,
     modelLatencyMs: model.latencyMs,
     requiresConfirmation: true,
+  };
+
+  if (run.result.applied === true) {
+    const appliedMetadata = readAppliedMetadata(run.result);
+    if (!appliedMetadata) {
+      return {
+        kind: 'failed',
+        title: 'Invalid applied strategy',
+        message: 'The strategy confirmation metadata could not be read safely.',
+      };
+    }
+    return {
+      ...details,
+      ...appliedMetadata,
+      kind: 'applied',
+      title: 'Nutrition strategy applied',
+      message: 'The backend revalidated the proposal and updated the active nutrition target.',
+      applied: true,
+    };
+  }
+
+  if (run.result.applied !== false) {
+    return {
+      kind: 'failed',
+      title: 'Invalid strategy proposal',
+      message: 'The strategy applied state could not be read safely.',
+    };
+  }
+
+  return {
+    ...details,
+    kind: 'proposal',
+    title: 'Nutrition strategy preview',
+    message: 'The structured proposal passed deterministic validation. It has not been applied.',
     applied: false,
   };
 };

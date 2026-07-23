@@ -11,11 +11,12 @@ export type NutritionCoachRequestType =
 export type CoachRequestType = StrengthCoachRequestType | NutritionCoachRequestType;
 
 export type CoachCapabilities = {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   nutrition: {
     deterministicReview: true;
     deterministicTargetProposal: true;
     structuredStrategyProposal: boolean;
+    structuredStrategyConfirmation?: boolean;
     strategyRequiresConfirmation: true;
   };
 };
@@ -265,7 +266,11 @@ const parseAgentRun = (value: unknown): CoachAgentRunRecord => {
 };
 
 export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
-  if (!isRecord(value) || value.schemaVersion !== 1 || !isRecord(value.nutrition)) {
+  if (
+    !isRecord(value) ||
+    (value.schemaVersion !== 1 && value.schemaVersion !== 2) ||
+    !isRecord(value.nutrition)
+  ) {
     throw new Error('Invalid coach capabilities response');
   }
 
@@ -274,17 +279,25 @@ export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
     nutrition.deterministicReview !== true ||
     nutrition.deterministicTargetProposal !== true ||
     typeof nutrition.structuredStrategyProposal !== 'boolean' ||
-    nutrition.strategyRequiresConfirmation !== true
+    nutrition.strategyRequiresConfirmation !== true ||
+    (value.schemaVersion === 2 &&
+      typeof nutrition.structuredStrategyConfirmation !== 'boolean')
   ) {
     throw new Error('Invalid coach capabilities response');
   }
 
   return {
-    schemaVersion: 1,
+    schemaVersion: value.schemaVersion,
     nutrition: {
       deterministicReview: true,
       deterministicTargetProposal: true,
       structuredStrategyProposal: nutrition.structuredStrategyProposal,
+      ...(value.schemaVersion === 2
+        ? {
+            structuredStrategyConfirmation:
+              nutrition.structuredStrategyConfirmation as boolean,
+          }
+        : {}),
       strategyRequiresConfirmation: true,
     },
   };

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,6 +13,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { NutritionDeterministicSummaryView } from '../components/NutritionDeterministicSummaryView';
@@ -37,6 +38,11 @@ const createIdempotencyKey = (
   lookbackDays: number,
 ): string =>
   `mobile-${requestType}-${lookbackDays}-${Date.now().toString(36)}-${Math.random()
+    .toString(16)
+    .slice(2)}`;
+
+const createConfirmationIdempotencyKey = (runId: string): string =>
+  `mobile-strategy-confirm-${runId}-${Date.now().toString(36)}-${Math.random()
     .toString(16)
     .slice(2)}`;
 
@@ -197,10 +203,12 @@ export default function NutritionCoachScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { isRestoringState } = useAppContext();
+  const { syncNow } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
   const [lookbackDays, setLookbackDays] = useState<(typeof LOOKBACK_OPTIONS)[number]>(14);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [activeRunType, setActiveRunType] = useState<ActiveRunType | null>(null);
+  const [confirmingStrategy, setConfirmingStrategy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
   const [capabilitiesLoading, setCapabilitiesLoading] = useState(false);
@@ -282,7 +290,7 @@ export default function NutritionCoachScreen() {
   const startNutritionRun = async (
     requestType: 'nutrition_review' | 'nutrition_strategy_proposal',
   ) => {
-    if (activeRunType) return;
+    if (activeRunType || confirmingStrategy) return;
     if (
       requestType === 'nutrition_strategy_proposal' &&
       capabilities?.nutrition.structuredStrategyProposal !== true
@@ -328,9 +336,58 @@ export default function NutritionCoachScreen() {
     }
   };
 
+  const confirmStrategy = async () => {
+    if (
+      confirmingStrategy ||
+      !run ||
+      strategyViewModel?.kind !== 'proposal' ||
+      capabilities?.nutrition.structuredStrategyConfirmation !== true
+    ) {
+      return;
+    }
+
+    setConfirmingStrategy(true);
+    setError(null);
+    try {
+      const confirmed = await coachApi.confirmRun(run.run.id, {
+        idempotencyKey: createConfirmationIdempotencyKey(run.run.id),
+      });
+      setRun(confirmed);
+      await syncNow();
+    } catch (confirmationError) {
+      setError(
+        confirmationError instanceof Error
+          ? confirmationError.message
+          : 'The Nutrition Strategy could not be applied.',
+      );
+    } finally {
+      setConfirmingStrategy(false);
+    }
+  };
+
+  const requestStrategyConfirmation = () => {
+    if (strategyViewModel?.kind !== 'proposal') return;
+    const { proposal } = strategyViewModel;
+    Alert.alert(
+      'Apply AI strategy?',
+      `Replace the active nutrition target with ${formatNumber(proposal.calorieTarget, 0)} kcal, ${formatNumber(proposal.macros.protein, 0)} g protein, ${formatNumber(proposal.macros.carbs, 0)} g carbs and ${formatNumber(proposal.macros.fats, 0)} g fats?\n\nThe backend will verify the target revision and rerun deterministic guardrails before applying.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Apply strategy',
+          style: 'destructive',
+          onPress: () => void confirmStrategy(),
+        },
+      ],
+    );
+  };
+
   const loading = !ready || isRestoringState;
   const strategyAvailable =
     capabilities?.nutrition.structuredStrategyProposal === true;
+  const strategyConfirmationSupported =
+    capabilities?.nutrition.structuredStrategyConfirmation === true;
+  const controlsBusy = Boolean(activeRunType) || confirmingStrategy;
 
   return (
     <View style={styles.screen}>
@@ -396,7 +453,7 @@ export default function NutritionCoachScreen() {
                       key={days}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
-                      disabled={Boolean(activeRunType)}
+                      disabled={controlsBusy}
                       onPress={() => {
                         setLookbackDays(days);
                         setRun(null);
@@ -405,7 +462,7 @@ export default function NutritionCoachScreen() {
                       style={({ pressed }) => [
                         styles.periodButton,
                         selected && styles.periodButtonSelected,
-                        pressed && !activeRunType && styles.pressed,
+                        pressed && !controlsBusy && styles.pressed,
                       ]}>
                       <Text style={[styles.periodLabel, selected && styles.periodLabelSelected]}>
                         {days} days
@@ -417,7 +474,7 @@ export default function NutritionCoachScreen() {
 
               <View style={styles.actionStack}>
                 <PrimaryButton
-                  disabled={Boolean(activeRunType)}
+                  disabled={controlsBusy}
                   label="Review synchronized nutrition"
                   loading={activeRunType === 'review'}
                   onPress={() => void startNutritionRun('nutrition_review')}
@@ -425,7 +482,7 @@ export default function NutritionCoachScreen() {
 
                 {strategyAvailable ? (
                   <PrimaryButton
-                    disabled={Boolean(activeRunType)}
+                    disabled={controlsBusy}
                     label="Generate AI strategy preview"
                     loading={activeRunType === 'strategy'}
                     onPress={() => void startNutritionRun('nutrition_strategy_proposal')}
@@ -442,8 +499,8 @@ export default function NutritionCoachScreen() {
               </View>
 
               <Text style={styles.disclaimer}>
-                At least three tracked days are required. Strategy output is preview-only and is never
-                applied automatically.
+                At least three tracked days are required. Strategy output is not applied until a
+                separate confirmation succeeds.
               </Text>
             </AppCard>
           )}
@@ -504,8 +561,13 @@ export default function NutritionCoachScreen() {
                 <NutritionDeterministicSummaryView summary={deterministicSummary} />
               ) : null}
 
-              {strategyViewModel.kind === 'proposal' ? (
-                <NutritionStrategyProposalView viewModel={strategyViewModel} />
+              {strategyViewModel.kind === 'proposal' || strategyViewModel.kind === 'applied' ? (
+                <NutritionStrategyProposalView
+                  confirmationSupported={strategyConfirmationSupported}
+                  confirming={confirmingStrategy}
+                  onConfirm={requestStrategyConfirmation}
+                  viewModel={strategyViewModel}
+                />
               ) : null}
 
               {strategyViewModel.kind === 'rejected' ? (
