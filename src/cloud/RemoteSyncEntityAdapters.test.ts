@@ -12,6 +12,10 @@ describe('RemoteSyncEntityAdapters', () => {
     expect(normalizeRemoteEntityType('training-programs')).toBe('trainingPrograms');
     expect(normalizeRemoteEntityType('fitnessProfiles')).toBe('fitnessProfiles');
     expect(normalizeRemoteEntityType('fitness_profiles')).toBe('fitnessProfiles');
+    expect(normalizeRemoteEntityType('customExercises')).toBe('customExercises');
+    expect(normalizeRemoteEntityType('custom_exercises')).toBe('customExercises');
+    expect(normalizeRemoteEntityType('user_limitations')).toBe('userLimitations');
+    expect(normalizeRemoteEntityType('recovery_check_ins')).toBe('recoveryCheckIns');
   });
 
   it('rejects unsupported entity types instead of coercing them to weight history', () => {
@@ -47,6 +51,7 @@ describe('RemoteSyncEntityAdapters', () => {
       entityId: 'entry-1',
       action: 'upsert',
       revision: { number: 8 },
+      metadata: { requestId: 'queue:weightHistory:entry-1:update:timestamp' },
     });
   });
 
@@ -75,5 +80,35 @@ describe('RemoteSyncEntityAdapters', () => {
         calculationSex: 'male',
       },
     });
+  });
+
+  it('keeps custom exercise and safety operations in the normalized pull batch', () => {
+    expect(
+      toRemoteSyncOperation({
+        idempotencyKey: 'queue:customExercises:exercise-1:update:timestamp',
+        entityType: 'custom_exercises',
+        entityId: 'exercise-1',
+        operationType: 'upsert',
+        revision: 14,
+      }),
+    ).toMatchObject({ entity: 'customExercises', entityId: 'exercise-1' });
+    expect(
+      toRemoteSyncOperation({
+        idempotencyKey: 'queue:userLimitations:limitation-1:update:timestamp',
+        entityType: 'userLimitations',
+        entityId: 'limitation-1',
+        operationType: 'upsert',
+        revision: 15,
+      }),
+    ).toMatchObject({ entity: 'userLimitations', entityId: 'limitation-1' });
+    expect(
+      toRemoteSyncOperation({
+        idempotencyKey: 'queue:recoveryCheckIns:check-in-1:update:timestamp',
+        entityType: 'recoveryCheckIns',
+        entityId: 'check-in-1',
+        operationType: 'upsert',
+        revision: 16,
+      }),
+    ).toMatchObject({ entity: 'recoveryCheckIns', entityId: 'check-in-1' });
   });
 });
