@@ -160,6 +160,8 @@ export default function ProfileScreen() {
       nutritionTargets: app.nutritionTargets,
       weightHistory: app.weightHistory,
       bodyMeasurements: app.bodyMeasurements,
+      userLimitations: app.userLimitations,
+      recoveryCheckIns: app.recoveryCheckIns,
       profile: {
         ...app.profile,
         ...coachProfileValidation.value,
@@ -274,7 +276,7 @@ export default function ProfileScreen() {
             <Text style={styles.sectionTitle}>Developer settings</Text>
             <SecondaryButton
               label={developerExpanded ? 'Hide tools' : 'Show tools'}
-              onPress={() => setDeveloperExpanded((current) => !current)}
+              onPress={() => setDeveloperExpanded((current) => !current}
             />
           </View>
 
