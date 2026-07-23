@@ -148,7 +148,9 @@ jobs:
 
       - name: Run complete backend test suite
         working-directory: backend
-        run: npm test
+        env:
+          NODE_ENV: test
+        run: npm test -- --maxWorkers=1 --no-file-parallelism
 
       - name: Start production server and verify health
         id: startup
