@@ -52,21 +52,32 @@ const makeSafetyMetadata = ({
 
 const makeSession = ({
   day,
+  finishedAt,
   id,
   safetyRecovery,
 }: {
-  day: number;
+  day?: number;
+  finishedAt?: string;
   id: string;
   safetyRecovery?: WorkoutSafetyMetadata;
-}): WorkoutSession => ({
-  id,
-  workoutId: `workout-${id}`,
-  workoutTitle: `Workout ${id}`,
-  startedAt: `2026-07-${String(day).padStart(2, '0')}T10:00:00.000Z`,
-  finishedAt: `2026-07-${String(day).padStart(2, '0')}T11:00:00.000Z`,
-  sets: [],
-  safetyRecovery,
-});
+}): WorkoutSession => {
+  const resolvedFinishedAt =
+    finishedAt ?? `2026-07-${String(day ?? 1).padStart(2, '0')}T11:00:00.000Z`;
+  const finishedTimestamp = Date.parse(resolvedFinishedAt);
+  const startedAt = Number.isFinite(finishedTimestamp)
+    ? new Date(finishedTimestamp - 60 * 60 * 1000).toISOString()
+    : resolvedFinishedAt;
+
+  return {
+    id,
+    workoutId: `workout-${id}`,
+    workoutTitle: `Workout ${id}`,
+    startedAt,
+    finishedAt: resolvedFinishedAt,
+    sets: [],
+    safetyRecovery,
+  };
+};
 
 describe('Safety Recovery progress analytics', () => {
   it('aggregates fresh reviewed statuses, load ceilings and movement restriction frequency', () => {
@@ -115,6 +126,8 @@ describe('Safety Recovery progress analytics', () => {
     const analytics = buildSafetyRecoveryProgressAnalytics(sessions);
 
     expect(analytics).toMatchObject({
+      period: 'all',
+      periodLabel: 'All time',
       totalWorkouts: 6,
       contextWorkouts: 5,
       reviewedWorkouts: 4,
@@ -122,6 +135,8 @@ describe('Safety Recovery progress analytics', () => {
       missingOrStaleWorkouts: 1,
       noContextWorkouts: 1,
       restrictedWorkouts: 2,
+      restrictedWorkoutShareLabel: '50%',
+      comparison: null,
       loadTrend: {
         latestMultiplier: 0.5,
         previousMultiplier: 0.75,
@@ -133,10 +148,30 @@ describe('Safety Recovery progress analytics', () => {
     });
 
     expect(analytics.statusMetrics).toEqual([
-      expect.objectContaining({ status: 'ready', count: 1, shareLabel: '25%' }),
-      expect.objectContaining({ status: 'modify', count: 1, shareLabel: '25%' }),
-      expect.objectContaining({ status: 'blocked', count: 1, shareLabel: '25%' }),
-      expect.objectContaining({ status: 'needs_input', count: 1, shareLabel: '25%' }),
+      expect.objectContaining({
+        status: 'ready',
+        count: 1,
+        shareLabel: '25%',
+        deltaLabel: null,
+      }),
+      expect.objectContaining({
+        status: 'modify',
+        count: 1,
+        shareLabel: '25%',
+        deltaLabel: null,
+      }),
+      expect.objectContaining({
+        status: 'blocked',
+        count: 1,
+        shareLabel: '25%',
+        deltaLabel: null,
+      }),
+      expect.objectContaining({
+        status: 'needs_input',
+        count: 1,
+        shareLabel: '25%',
+        deltaLabel: null,
+      }),
     ]);
     expect(analytics.topMovementPatterns).toEqual([
       expect.objectContaining({
@@ -154,8 +189,114 @@ describe('Safety Recovery progress analytics', () => {
     ]);
   });
 
+  it('limits finite periods and compares the selected window with the immediately previous window', () => {
+    const now = Date.parse('2026-07-31T12:00:00.000Z');
+    const sessions: WorkoutSession[] = [
+      makeSession({
+        id: 'current-ready',
+        finishedAt: '2026-07-30T11:00:00.000Z',
+        safetyRecovery: makeSafetyMetadata({ status: 'ready', multiplier: 0.9 }),
+      }),
+      makeSession({
+        id: 'current-modify',
+        finishedAt: '2026-07-15T11:00:00.000Z',
+        safetyRecovery: makeSafetyMetadata({
+          status: 'modify',
+          multiplier: 0.7,
+          movementPatterns: ['horizontal_push'],
+        }),
+      }),
+      makeSession({
+        id: 'current-no-context',
+        finishedAt: '2026-07-10T11:00:00.000Z',
+      }),
+      makeSession({
+        id: 'previous-ready',
+        finishedAt: '2026-06-25T11:00:00.000Z',
+        safetyRecovery: makeSafetyMetadata({
+          status: 'ready',
+          multiplier: 0.85,
+          movementPatterns: ['vertical_push'],
+        }),
+      }),
+      makeSession({
+        id: 'previous-blocked',
+        finishedAt: '2026-06-10T11:00:00.000Z',
+        safetyRecovery: makeSafetyMetadata({
+          status: 'blocked',
+          multiplier: 0.5,
+          movementPatterns: ['squat'],
+        }),
+      }),
+      makeSession({ id: 'old', finishedAt: '2026-05-20T11:00:00.000Z' }),
+      makeSession({ id: 'future', finishedAt: '2026-08-02T11:00:00.000Z' }),
+    ];
+
+    const analytics = buildSafetyRecoveryProgressAnalytics(sessions, '30d', now);
+
+    expect(analytics).toMatchObject({
+      period: '30d',
+      periodLabel: 'Last 30 days',
+      totalWorkouts: 3,
+      reviewedWorkouts: 2,
+      reviewCoverageLabel: '67%',
+      restrictedWorkouts: 1,
+      restrictedWorkoutShareLabel: '50%',
+      loadTrend: {
+        latestMultiplier: 0.9,
+        previousMultiplier: 0.7,
+        deltaPercentagePoints: 20,
+        direction: 'up',
+      },
+      comparison: {
+        previousPeriodLabel: 'Previous 30 days',
+        previousTotalWorkouts: 2,
+        previousReviewedWorkouts: 2,
+        workoutCountDelta: 1,
+        reviewedWorkoutsDelta: 0,
+        reviewCoverageDeltaPercentagePoints: -33,
+        restrictedWorkoutShareDeltaPercentagePoints: -50,
+      },
+    });
+
+    expect(analytics.statusMetrics).toEqual([
+      expect.objectContaining({
+        status: 'ready',
+        count: 1,
+        shareLabel: '50%',
+        previousShare: 0.5,
+        deltaPercentagePoints: 0,
+      }),
+      expect.objectContaining({
+        status: 'modify',
+        count: 1,
+        shareLabel: '50%',
+        previousShare: 0,
+        deltaPercentagePoints: 50,
+      }),
+      expect.objectContaining({
+        status: 'blocked',
+        count: 0,
+        shareLabel: '0%',
+        previousShare: 0.5,
+        deltaPercentagePoints: -50,
+      }),
+      expect.objectContaining({
+        status: 'needs_input',
+        count: 0,
+        shareLabel: '0%',
+        previousShare: 0,
+        deltaPercentagePoints: 0,
+      }),
+    ]);
+  });
+
   it('returns explicit empty analytics instead of inferring readiness', () => {
-    expect(buildSafetyRecoveryProgressAnalytics([])).toEqual({
+    const analytics = buildSafetyRecoveryProgressAnalytics([]);
+
+    expect(analytics).toMatchObject({
+      period: 'all',
+      periodLabel: 'All time',
       totalWorkouts: 0,
       contextWorkouts: 0,
       reviewedWorkouts: 0,
@@ -163,18 +304,11 @@ describe('Safety Recovery progress analytics', () => {
       reviewCoverageLabel: '0%',
       missingOrStaleWorkouts: 0,
       noContextWorkouts: 0,
-      statusMetrics: [
-        { status: 'ready', label: 'Ready', count: 0, share: 0, shareLabel: '0%' },
-        { status: 'modify', label: 'Modify', count: 0, share: 0, shareLabel: '0%' },
-        { status: 'blocked', label: 'Blocked', count: 0, share: 0, shareLabel: '0%' },
-        {
-          status: 'needs_input',
-          label: 'Needs input',
-          count: 0,
-          share: 0,
-          shareLabel: '0%',
-        },
-      ],
+      restrictedWorkouts: 0,
+      restrictedWorkoutShare: 0,
+      restrictedWorkoutShareLabel: '0%',
+      topMovementPatterns: [],
+      comparison: null,
       loadTrend: {
         latestMultiplier: null,
         previousMultiplier: null,
@@ -183,8 +317,28 @@ describe('Safety Recovery progress analytics', () => {
         deltaLabel: 'No reviewed load ceilings yet',
         direction: 'unknown',
       },
-      restrictedWorkouts: 0,
-      topMovementPatterns: [],
     });
+
+    expect(analytics.statusMetrics).toEqual([
+      expect.objectContaining({ status: 'ready', count: 0, shareLabel: '0%' }),
+      expect.objectContaining({ status: 'modify', count: 0, shareLabel: '0%' }),
+      expect.objectContaining({ status: 'blocked', count: 0, shareLabel: '0%' }),
+      expect.objectContaining({ status: 'needs_input', count: 0, shareLabel: '0%' }),
+    ]);
+  });
+
+  it('keeps all-time analytics comparison-free', () => {
+    const analytics = buildSafetyRecoveryProgressAnalytics([
+      makeSession({
+        id: 'historic',
+        finishedAt: '2025-01-10T11:00:00.000Z',
+        safetyRecovery: makeSafetyMetadata({ status: 'ready', multiplier: 1 }),
+      }),
+    ]);
+
+    expect(analytics.period).toBe('all');
+    expect(analytics.totalWorkouts).toBe(1);
+    expect(analytics.comparison).toBeNull();
+    expect(analytics.statusMetrics.every((metric) => metric.deltaLabel === null)).toBe(true);
   });
 });
