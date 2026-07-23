@@ -84,8 +84,8 @@ export function AddBodyMeasurementCard({
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Value</Text>
           <TextInput
-            decimalPad
             inputMode="decimal"
+            keyboardType="decimal-pad"
             onChangeText={onChangeValue}
             placeholder={kind === 'body_fat' ? '15' : '84'}
             placeholderTextColor={Colors.dark.textSecondary}
