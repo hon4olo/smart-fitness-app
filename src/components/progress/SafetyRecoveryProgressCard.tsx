@@ -1,16 +1,25 @@
-import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Spacing } from '@/constants/theme';
-import { buildSafetyRecoveryProgressAnalytics } from '@/features/progress/safetyRecoveryProgressAnalytics';
+import { Colors, Radii, Spacing } from '@/constants/theme';
+import {
+  buildSafetyRecoveryProgressAnalytics,
+  type SafetyRecoveryProgressPeriod,
+} from '@/features/progress/safetyRecoveryProgressAnalytics';
 import type { WorkoutSafetyReviewStatus, WorkoutSession } from '@/types';
 
 type SafetyRecoveryProgressCardProps = {
   sessions: WorkoutSession[];
   onOpenHistory(): void;
 };
+
+const PERIOD_OPTIONS: Array<{ id: SafetyRecoveryProgressPeriod; label: string }> = [
+  { id: '30d', label: '30 days' },
+  { id: '90d', label: '90 days' },
+  { id: 'all', label: 'All time' },
+];
 
 const getStatusColor = (status: WorkoutSafetyReviewStatus): string => {
   if (status === 'ready') return Colors.dark.success;
@@ -19,13 +28,19 @@ const getStatusColor = (status: WorkoutSafetyReviewStatus): string => {
   return Colors.dark.accent;
 };
 
+const formatSignedValue = (value: number, suffix = ''): string => {
+  if (value > 0) return `+${value}${suffix}`;
+  return `${value}${suffix}`;
+};
+
 export function SafetyRecoveryProgressCard({
   onOpenHistory,
   sessions,
 }: SafetyRecoveryProgressCardProps) {
+  const [period, setPeriod] = useState<SafetyRecoveryProgressPeriod>('30d');
   const analytics = useMemo(
-    () => buildSafetyRecoveryProgressAnalytics(sessions),
-    [sessions],
+    () => buildSafetyRecoveryProgressAnalytics(sessions, period),
+    [period, sessions],
   );
   const visibleStatusMetrics = analytics.statusMetrics.filter(
     (metric) => metric.status !== 'needs_input' || metric.count > 0,
@@ -39,6 +54,36 @@ export function SafetyRecoveryProgressCard({
         </Text>
         <Text selectable style={styles.subtitle}>
           Historical context from completed workouts. This is not a current readiness result.
+        </Text>
+      </View>
+
+      <View style={styles.periodSection}>
+        <Text selectable style={styles.periodLabel}>
+          Period
+        </Text>
+        <View style={styles.periodRow}>
+          {PERIOD_OPTIONS.map((option) => {
+            const selected = period === option.id;
+            return (
+              <Pressable
+                key={option.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => setPeriod(option.id)}
+                style={({ pressed }) => [
+                  styles.periodChip,
+                  selected && styles.periodChipSelected,
+                  pressed && styles.pressed,
+                ]}>
+                <Text style={[styles.periodChipLabel, selected && styles.periodChipLabelSelected]}>
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text selectable style={styles.periodHelp}>
+          Showing {analytics.periodLabel.toLowerCase()}.
         </Text>
       </View>
 
@@ -77,13 +122,80 @@ export function SafetyRecoveryProgressCard({
         </View>
       </View>
 
+      {analytics.comparison ? (
+        <View style={styles.section}>
+          <Text selectable style={styles.sectionTitle}>
+            Period comparison
+          </Text>
+          <Text selectable style={styles.sectionHelp}>
+            {analytics.periodLabel} compared with {analytics.comparison.previousPeriodLabel.toLowerCase()}.
+          </Text>
+          <View style={styles.comparisonGrid}>
+            <View style={styles.comparisonCell}>
+              <Text selectable style={styles.comparisonValue}>
+                {formatSignedValue(analytics.comparison.workoutCountDelta)}
+              </Text>
+              <Text selectable style={styles.comparisonLabel}>
+                Workouts
+              </Text>
+              <Text selectable style={styles.comparisonDetail}>
+                {analytics.totalWorkouts} vs {analytics.comparison.previousTotalWorkouts}
+              </Text>
+            </View>
+            <View style={styles.comparisonCell}>
+              <Text selectable style={styles.comparisonValue}>
+                {formatSignedValue(analytics.comparison.reviewedWorkoutsDelta)}
+              </Text>
+              <Text selectable style={styles.comparisonLabel}>
+                Fresh reviews
+              </Text>
+              <Text selectable style={styles.comparisonDetail}>
+                {analytics.reviewedWorkouts} vs {analytics.comparison.previousReviewedWorkouts}
+              </Text>
+            </View>
+            <View style={styles.comparisonCell}>
+              <Text selectable style={styles.comparisonValue}>
+                {analytics.comparison.reviewCoverageDeltaPercentagePoints === null
+                  ? '—'
+                  : formatSignedValue(
+                      analytics.comparison.reviewCoverageDeltaPercentagePoints,
+                      ' pp',
+                    )}
+              </Text>
+              <Text selectable style={styles.comparisonLabel}>
+                Review coverage
+              </Text>
+              <Text selectable style={styles.comparisonDetail}>
+                {analytics.comparison.reviewCoverageDeltaLabel}
+              </Text>
+            </View>
+            <View style={styles.comparisonCell}>
+              <Text selectable style={styles.comparisonValue}>
+                {analytics.comparison.restrictedWorkoutShareDeltaPercentagePoints === null
+                  ? '—'
+                  : formatSignedValue(
+                      analytics.comparison.restrictedWorkoutShareDeltaPercentagePoints,
+                      ' pp',
+                    )}
+              </Text>
+              <Text selectable style={styles.comparisonLabel}>
+                Restricted reviews
+              </Text>
+              <Text selectable style={styles.comparisonDetail}>
+                {analytics.comparison.restrictedWorkoutShareDeltaLabel}
+              </Text>
+            </View>
+          </View>
+        </View>
+      ) : null}
+
       {analytics.reviewedWorkouts > 0 ? (
         <View style={styles.section}>
           <Text selectable style={styles.sectionTitle}>
             Review status distribution
           </Text>
           <Text selectable style={styles.sectionHelp}>
-            Shares use only fresh reviewed workout contexts.
+            Shares use only fresh reviewed workout contexts in the selected period.
           </Text>
           <View style={styles.statusList}>
             {visibleStatusMetrics.map((metric) => (
@@ -99,16 +211,23 @@ export function SafetyRecoveryProgressCard({
                     {metric.label}
                   </Text>
                 </View>
-                <Text selectable style={styles.statusValue}>
-                  {metric.shareLabel} · {metric.count}
-                </Text>
+                <View style={styles.statusValueCopy}>
+                  <Text selectable style={styles.statusValue}>
+                    {metric.shareLabel} · {metric.count}
+                  </Text>
+                  {metric.deltaLabel ? (
+                    <Text selectable style={styles.statusDelta}>
+                      {metric.deltaLabel}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
             ))}
           </View>
         </View>
       ) : (
         <Text selectable style={styles.emptyText}>
-          Complete a workout after a fresh Safety & Recovery review to populate status analytics.
+          No fresh reviewed workouts were completed in the selected period.
         </Text>
       )}
 
@@ -120,7 +239,8 @@ export function SafetyRecoveryProgressCard({
           {analytics.loadTrend.deltaLabel}
         </Text>
         <Text selectable style={styles.sectionHelp}>
-          This compares the two latest fresh reviewed workout ceilings, not the weight actually used.
+          This compares the two latest fresh reviewed workout ceilings inside the selected period,
+          not the weight actually used.
         </Text>
       </View>
 
@@ -148,7 +268,8 @@ export function SafetyRecoveryProgressCard({
           </View>
         ) : (
           <Text selectable style={styles.emptyText}>
-            No structured movement restrictions have been recorded in fresh reviewed workouts.
+            No structured movement restrictions were recorded in fresh reviewed workouts for this
+            period.
           </Text>
         )}
       </View>
@@ -164,6 +285,33 @@ export function SafetyRecoveryProgressCard({
 }
 
 const styles = StyleSheet.create({
+  comparisonCell: {
+    flexBasis: '46%',
+    gap: 2,
+  },
+  comparisonDetail: {
+    color: Colors.dark.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  comparisonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.three,
+    marginTop: Spacing.one,
+  },
+  comparisonLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  comparisonValue: {
+    color: Colors.dark.textPrimary,
+    fontSize: 18,
+    fontWeight: '900',
+    lineHeight: 24,
+  },
   contextNote: {
     color: Colors.dark.textMuted,
     fontSize: 12,
@@ -212,6 +360,51 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 19,
   },
+  periodChip: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
+    borderRadius: Radii.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'center',
+    minHeight: 36,
+    paddingHorizontal: Spacing.three,
+  },
+  periodChipLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  periodChipLabelSelected: {
+    color: Colors.dark.accent,
+  },
+  periodChipSelected: {
+    backgroundColor: Colors.dark.accentSoft,
+    borderColor: Colors.dark.accent,
+  },
+  periodHelp: {
+    color: Colors.dark.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  periodLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  periodRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.one,
+  },
+  periodSection: {
+    gap: Spacing.one,
+  },
+  pressed: {
+    opacity: 0.68,
+  },
   section: {
     gap: Spacing.one,
   },
@@ -230,6 +423,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: Spacing.two,
+  },
+  statusDelta: {
+    color: Colors.dark.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'right',
   },
   statusDot: {
     borderRadius: 999,
@@ -257,6 +456,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     lineHeight: 19,
+    textAlign: 'right',
+  },
+  statusValueCopy: {
+    alignItems: 'flex-end',
+    flexShrink: 1,
+    gap: 1,
   },
   subtitle: {
     color: Colors.dark.textSecondary,
