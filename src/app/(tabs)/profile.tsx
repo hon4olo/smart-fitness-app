@@ -276,7 +276,7 @@ export default function ProfileScreen() {
             <Text style={styles.sectionTitle}>Developer settings</Text>
             <SecondaryButton
               label={developerExpanded ? 'Hide tools' : 'Show tools'}
-              onPress={() => setDeveloperExpanded((current) => !current}
+              onPress={() => setDeveloperExpanded((current) => !current)}
             />
           </View>
 
