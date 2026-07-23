@@ -109,6 +109,7 @@ describe('workout template sync', () => {
         },
       ],
       [],
+      userId,
       new Map(),
       '2026-07-23T12:00:00.000Z',
     );
@@ -119,7 +120,13 @@ describe('workout template sync', () => {
       title: 'Remote push day',
       duration: '50 min',
     });
-    expect(result.metadata[0]).toMatchObject({ id: entityId, revision: 5, deviceId });
+    expect(result.metadata[0]).toMatchObject({
+      id: entityId,
+      userId,
+      revision: 5,
+      deviceId,
+      snapshot: { title: 'Remote push day' },
+    });
   });
 
   it('ignores malformed payloads and applies tombstones', () => {
@@ -142,6 +149,7 @@ describe('workout template sync', () => {
         },
       ],
       [],
+      userId,
     );
     expect(malformed.appliedRecordIds).toEqual([]);
     expect(malformed.nextState.workouts).toEqual([workout]);
@@ -157,6 +165,7 @@ describe('workout template sync', () => {
           appliedAt: '2026-07-23T13:00:00.000Z',
         },
       ],
+      userId,
     );
     expect(deleted.nextState.workouts).toEqual([]);
     expect(deleted.deletedRecordIds).toEqual([entityId]);
