@@ -1,4 +1,4 @@
-import type { WorkoutSession } from '@/types';
+import type { WorkoutSafetyMetadata, WorkoutSession } from '@/types';
 
 import { normalizeWorkoutSessionForSync } from '@/cloud/WorkoutSessionSync';
 import { stageCompletedWorkoutSessionForSync } from './storage';
@@ -18,7 +18,11 @@ export const formatWorkoutSessionElapsedLabel = (startedAt: string, now = Date.n
 
 export const buildCompletedWorkoutSessionSnapshot = (
   draft: WorkoutSessionDraft,
-  options: { finishedAt?: string; notes?: string } = {},
+  options: {
+    finishedAt?: string;
+    notes?: string;
+    safetyRecovery?: WorkoutSafetyMetadata;
+  } = {},
 ) => {
   const finishedAt = options.finishedAt ?? new Date().toISOString();
   const session = normalizeWorkoutSessionForSync({
@@ -29,6 +33,7 @@ export const buildCompletedWorkoutSessionSnapshot = (
     finishedAt,
     notes: options.notes?.trim() || undefined,
     sets: draft.sets.map(cloneSet),
+    ...(options.safetyRecovery ? { safetyRecovery: options.safetyRecovery } : {}),
   });
 
   stageCompletedWorkoutSessionForSync(session);
