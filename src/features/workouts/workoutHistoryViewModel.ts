@@ -20,10 +20,16 @@ export type WorkoutHistorySafetyFilter =
   | 'no_context';
 export type WorkoutHistoryProgramFilter = 'all' | 'unassigned' | string;
 
+export type WorkoutHistoryDateRange = {
+  startAt: number;
+  endAt: number;
+};
+
 export type WorkoutHistoryFilters = {
   period: WorkoutHistoryPeriodFilter;
   programId: WorkoutHistoryProgramFilter;
   safety: WorkoutHistorySafetyFilter;
+  dateRange?: WorkoutHistoryDateRange | null;
 };
 
 export type WorkoutHistoryProgramOption = {
@@ -89,10 +95,7 @@ export const formatWorkoutVolume = (volume: number): string =>
 const safetyCopy = (
   metadata: WorkoutSafetyMetadata | undefined,
 ): { label: string; tone: WorkoutHistorySafetyTone } => {
-  if (!metadata) {
-    return { label: 'No recorded review', tone: 'neutral' };
-  }
-
+  if (!metadata) return { label: 'No recorded review', tone: 'neutral' };
   if (metadata.gateKind === 'review_missing') {
     return { label: 'Continued without review', tone: 'warning' };
   }
@@ -111,7 +114,6 @@ const safetyCopy = (
   if (metadata.reviewStatus === 'ready') {
     return { label: 'Ready review', tone: 'positive' };
   }
-
   return { label: 'Safety context recorded', tone: 'neutral' };
 };
 
@@ -158,14 +160,29 @@ export const buildWorkoutHistoryProgramOptions = (
   { id: 'unassigned', label: 'Unassigned' },
 ];
 
+const isValidDateRange = (
+  range: WorkoutHistoryDateRange | null | undefined,
+): range is WorkoutHistoryDateRange =>
+  Boolean(
+    range &&
+      Number.isFinite(range.startAt) &&
+      Number.isFinite(range.endAt) &&
+      range.startAt >= 0 &&
+      range.endAt > range.startAt,
+  );
+
 const matchesPeriod = (
   session: WorkoutSession,
   period: WorkoutHistoryPeriodFilter,
   now: number,
+  dateRange?: WorkoutHistoryDateRange | null,
 ): boolean => {
-  if (period === 'all') return true;
   const timestamp = getWorkoutTimestamp(session);
   if (timestamp <= 0) return false;
+  if (isValidDateRange(dateRange)) {
+    return timestamp >= dateRange.startAt && timestamp < dateRange.endAt;
+  }
+  if (period === 'all') return true;
   const cutoff = now - PERIOD_DAYS[period] * 24 * 60 * 60 * 1000;
   return timestamp >= cutoff && timestamp <= now;
 };
@@ -205,7 +222,7 @@ export const filterWorkoutHistory = (
 ): WorkoutHistoryItemView[] =>
   buildWorkoutHistory(sessions).filter(
     (item) =>
-      matchesPeriod(item.session, filters.period, now) &&
+      matchesPeriod(item.session, filters.period, now, filters.dateRange) &&
       matchesProgram(item.session, filters.programId, programs) &&
       matchesSafety(item.session, filters.safety),
   );
@@ -214,7 +231,6 @@ export const groupWorkoutSessionSets = (
   session: WorkoutSession,
 ): WorkoutHistoryExerciseGroup[] => {
   const groups = new Map<string, WorkoutHistoryExerciseGroup>();
-
   session.sets.forEach((set) => {
     const key = `${set.exerciseId}::${set.exerciseName}`;
     const current = groups.get(key) ?? {
@@ -229,7 +245,6 @@ export const groupWorkoutSessionSets = (
     current.volume += set.weight * set.reps;
     groups.set(key, current);
   });
-
   return [...groups.values()];
 };
 
