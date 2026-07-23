@@ -185,11 +185,41 @@ export const createRecoveryCheckInQueueOperation = (input: {
   };
 };
 
-const parseRemoteLimitation = (payload: Record<string, unknown>) =>
-  normalizeUserLimitation(payload);
+const isNullableIntegerScale = (
+  value: unknown,
+  minimum: number,
+  maximum: number,
+): boolean =>
+  value === null ||
+  (typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= minimum &&
+    value <= maximum);
 
-const parseRemoteCheckIn = (payload: Record<string, unknown>) =>
-  normalizeRecoveryCheckIn(payload);
+const parseRemoteLimitation = (payload: Record<string, unknown>) => {
+  if (payload.schemaVersion !== 1) return null;
+  return normalizeUserLimitation(payload);
+};
+
+const parseRemoteCheckIn = (payload: Record<string, unknown>) => {
+  if (
+    payload.schemaVersion !== 1 ||
+    (payload.sleepDurationHours !== null &&
+      (typeof payload.sleepDurationHours !== 'number' ||
+        !Number.isFinite(payload.sleepDurationHours) ||
+        payload.sleepDurationHours < 0 ||
+        payload.sleepDurationHours > 24)) ||
+    !isNullableIntegerScale(payload.sleepQuality, 1, 5) ||
+    !isNullableIntegerScale(payload.fatigue, 1, 5) ||
+    !isNullableIntegerScale(payload.soreness, 0, 5) ||
+    !isNullableIntegerScale(payload.stress, 1, 5) ||
+    !isNullableIntegerScale(payload.painInterference, 0, 5) ||
+    !isNullableIntegerScale(payload.readiness, 1, 5)
+  ) {
+    return null;
+  }
+  return normalizeRecoveryCheckIn(payload);
+};
 
 export type SafetyRecoverySyncResult = {
   nextState: AppState;
