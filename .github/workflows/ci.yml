@@ -66,6 +66,7 @@ jobs:
           src/features/coach/strengthCoachViewModel.test.ts
           src/features/coach/strengthStrategyViewModel.test.ts
           src/features/coach/nutritionCoachViewModel.test.ts
+          src/features/nutrition/addFoodModel.test.ts
           src/features/progress/safetyRecoveryProgressAnalytics.test.ts
           src/features/progress/safetyRecoveryWeeklyTrend.test.ts
           src/features/workouts/workoutHistoryViewModel.test.ts
