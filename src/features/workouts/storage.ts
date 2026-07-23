@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { cloneWorkoutSafetyMetadata, parseWorkoutSafetyMetadata } from './workoutSafetySessionMetadata';
 import type { WorkoutSession } from '@/types';
 
 import { enqueueWorkoutSessionSyncOperation } from './queueWorkoutSessionSyncOperation';
@@ -24,11 +25,17 @@ const cloneSet = (set: WorkoutSession['sets'][number]) => ({ ...set });
 const cloneWorkoutSession = (session: WorkoutSession): WorkoutSession => ({
   ...session,
   sets: session.sets.map(cloneSet),
+  ...(session.safetyRecovery
+    ? { safetyRecovery: cloneWorkoutSafetyMetadata(session.safetyRecovery) ?? undefined }
+    : {}),
 });
 
 const cloneWorkoutSessionDraft = (draft: WorkoutSessionDraft): WorkoutSessionDraft => ({
   ...draft,
   sets: draft.sets.map(cloneSet),
+  ...(draft.safetyRecovery
+    ? { safetyRecovery: cloneWorkoutSafetyMetadata(draft.safetyRecovery) ?? undefined }
+    : {}),
 });
 
 const parseWorkoutSessionDraft = (value: string | null): WorkoutSessionDraft | null => {
@@ -53,12 +60,21 @@ const parseWorkoutSessionDraft = (value: string | null): WorkoutSessionDraft | n
       return null;
     }
 
+    const safetyRecovery =
+      parsed.safetyRecovery === undefined
+        ? undefined
+        : parseWorkoutSafetyMetadata(parsed.safetyRecovery);
+    if (parsed.safetyRecovery !== undefined && !safetyRecovery) {
+      return null;
+    }
+
     return {
       id: parsed.id,
       workoutId: parsed.workoutId,
       workoutTitle: parsed.workoutTitle,
       startedAt: parsed.startedAt,
       sets: parsed.sets.filter((set): set is WorkoutSession['sets'][number] => Boolean(set)).map(cloneSet),
+      ...(safetyRecovery ? { safetyRecovery } : {}),
     };
   } catch {
     return null;
@@ -87,7 +103,8 @@ const persistActiveWorkoutSessionDraft = (draft: WorkoutSessionDraft | null, rev
   return activeWorkoutSessionDraftWriteQueue;
 };
 
-export const getActiveWorkoutSessionDraft = () => (activeWorkoutSessionDraft ? { ...activeWorkoutSessionDraft, sets: activeWorkoutSessionDraft.sets.map(cloneSet) } : null);
+export const getActiveWorkoutSessionDraft = () =>
+  activeWorkoutSessionDraft ? cloneWorkoutSessionDraft(activeWorkoutSessionDraft) : null;
 
 export const hydrateActiveWorkoutSessionDraft = async () => {
   const storedDraft = parseWorkoutSessionDraft(await AsyncStorage.getItem(ACTIVE_WORKOUT_SESSION_DRAFT_STORAGE_KEY));
