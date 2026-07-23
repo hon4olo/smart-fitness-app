@@ -7,6 +7,7 @@ const runId = '11111111-1111-4111-8111-111111111111';
 const userId = '22222222-2222-4222-8222-222222222222';
 const sessionId = '33333333-3333-4333-8333-333333333333';
 const setId = '44444444-4444-4444-8444-444444444444';
+const templateId = '55555555-5555-4555-8555-555555555555';
 
 const makeEnvelope = (): CoachRunEnvelope => ({
   run: {
@@ -81,6 +82,7 @@ describe('Strength Strategy view model', () => {
   it('reads a validated preview and keeps it explicitly unapplied', () => {
     expect(buildStrengthStrategyViewModel(makeEnvelope())).toEqual({
       kind: 'proposal',
+      runId,
       title: 'AI Strength Strategy preview',
       message: 'Progress one set within deterministic limits.',
       metrics: {
@@ -117,6 +119,42 @@ describe('Strength Strategy view model', () => {
       latencyMs: 24,
       requiresConfirmation: true,
       applied: false,
+    });
+  });
+
+  it('reads a confirmed template only with complete server metadata', () => {
+    const applied = makeEnvelope();
+    if (!applied.run.result) throw new Error('Missing result fixture');
+    applied.run.result = {
+      ...applied.run.result,
+      applied: true,
+      appliedAt: '2026-07-23T12:05:00.000Z',
+      appliedRevision: 14,
+      templateId,
+    };
+
+    expect(buildStrengthStrategyViewModel(applied)).toMatchObject({
+      kind: 'applied',
+      runId,
+      title: 'Strength template created',
+      applied: true,
+      appliedAt: '2026-07-23T12:05:00.000Z',
+      appliedRevision: 14,
+      templateId,
+    });
+
+    const malformed = makeEnvelope();
+    if (!malformed.run.result) throw new Error('Missing result fixture');
+    malformed.run.result = {
+      ...malformed.run.result,
+      applied: true,
+      appliedAt: 'bad-date',
+      appliedRevision: 14,
+      templateId,
+    };
+    expect(buildStrengthStrategyViewModel(malformed)).toMatchObject({
+      kind: 'failed',
+      title: 'Invalid confirmation result',
     });
   });
 

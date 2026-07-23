@@ -43,8 +43,16 @@ jobs:
         run: >-
           npx vitest run
           src/api/coach.test.ts
+          src/api/coach.capabilities.v3.test.ts
+          src/api/coach.capabilities.v4.test.ts
+          src/api/coach.strength-strategy.test.ts
+          src/api/coach.strength-confirmation.test.ts
           src/features/coach/strengthCoachViewModel.test.ts
+          src/features/coach/strengthStrategyViewModel.test.ts
           src/features/coach/nutritionCoachViewModel.test.ts
+          src/cloud/WorkoutTemplateSync.test.ts
+          src/cloud/WorkoutTemplateSyncPlanner.test.ts
+          src/storage/WorkoutTemplateSyncMetadataStore.test.ts
           src/cloud/FoodEntrySync.test.ts
           src/repositories/FoodEntrySyncingRepository.test.ts
           src/cloud/NutritionTargetSync.test.ts

@@ -1,4 +1,5 @@
 import type { CoachRunEnvelope } from '@/api/coach';
+import { isUuid } from '@/lib/ids';
 
 export type StrengthStrategyMetricSummary = {
   completedSets: number;
@@ -30,6 +31,29 @@ export type StrengthStrategySet = {
     | 'limited_rpe_data';
 };
 
+type StrengthStrategyProposalFields = {
+  runId: string;
+  title: string;
+  message: string;
+  metrics: StrengthStrategyMetricSummary;
+  sourceSessionId: string;
+  strategy: 'deload' | 'maintain' | 'progress';
+  sets: StrengthStrategySet[];
+  rationaleCodes: string[];
+  caveatCodes: string[];
+  dataQuality: 'sufficient' | 'limited';
+  confidence: number;
+  guardrailStatus: 'valid' | 'modify' | 'blocked';
+  proposedTonnage: number;
+  volumeChangePercent: number | null;
+  issues: StrengthStrategyIssue[];
+  provider: string;
+  model: string;
+  attempts: number;
+  latencyMs: number;
+  requiresConfirmation: true;
+};
+
 export type StrengthStrategyViewModel =
   | {
       kind: 'pending';
@@ -48,29 +72,22 @@ export type StrengthStrategyViewModel =
       reason: string;
       issues: string[];
     }
-  | {
+  | (StrengthStrategyProposalFields & {
       kind: 'proposal';
-      title: string;
-      message: string;
-      metrics: StrengthStrategyMetricSummary;
-      sourceSessionId: string;
-      strategy: 'deload' | 'maintain' | 'progress';
-      sets: StrengthStrategySet[];
-      rationaleCodes: string[];
-      caveatCodes: string[];
-      dataQuality: 'sufficient' | 'limited';
-      confidence: number;
-      guardrailStatus: 'valid' | 'modify' | 'blocked';
-      proposedTonnage: number;
-      volumeChangePercent: number | null;
-      issues: StrengthStrategyIssue[];
-      provider: string;
-      model: string;
-      attempts: number;
-      latencyMs: number;
-      requiresConfirmation: true;
       applied: false;
-    };
+    })
+  | (StrengthStrategyProposalFields & {
+      kind: 'applied';
+      applied: true;
+      appliedAt: string;
+      appliedRevision: number;
+      templateId: string;
+    });
+
+export type StrengthStrategyDisplayViewModel = Extract<
+  StrengthStrategyViewModel,
+  { kind: 'proposal' | 'applied' }
+>;
 
 const VALID_RPE = new Set([6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]);
 
@@ -349,7 +366,7 @@ export const buildStrengthStrategyViewModel = (
     attempts < 1 ||
     latencyMs === null ||
     run.result.requiresConfirmation !== true ||
-    run.result.applied !== false
+    typeof run.result.applied !== 'boolean'
   ) {
     return {
       kind: 'failed',
@@ -358,8 +375,8 @@ export const buildStrengthStrategyViewModel = (
     };
   }
 
-  return {
-    kind: 'proposal',
+  const common: StrengthStrategyProposalFields = {
+    runId: run.id,
     title: 'AI Strength Strategy preview',
     message: userSummary,
     metrics,
@@ -379,6 +396,36 @@ export const buildStrengthStrategyViewModel = (
     attempts,
     latencyMs,
     requiresConfirmation: true,
-    applied: false,
+  };
+
+  if (run.result.applied === false) {
+    return { ...common, kind: 'proposal', applied: false };
+  }
+
+  const appliedAt = readString(run.result, 'appliedAt');
+  const appliedRevision = readNonnegativeInteger(run.result, 'appliedRevision');
+  const templateId = readString(run.result, 'templateId');
+  if (
+    !appliedAt ||
+    !Number.isFinite(new Date(appliedAt).getTime()) ||
+    appliedRevision === null ||
+    !templateId ||
+    !isUuid(templateId)
+  ) {
+    return {
+      kind: 'failed',
+      title: 'Invalid confirmation result',
+      message: 'The confirmed Strength template metadata could not be verified.',
+    };
+  }
+
+  return {
+    ...common,
+    kind: 'applied',
+    title: 'Strength template created',
+    applied: true,
+    appliedAt: new Date(appliedAt).toISOString(),
+    appliedRevision,
+    templateId,
   };
 };

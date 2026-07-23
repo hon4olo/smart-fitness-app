@@ -1,11 +1,20 @@
 import { createOfflineSyncQueueIdempotencyKey } from './CloudQueueHelpers';
 import type { OfflineSyncQueueOperation } from './CloudQueueTypes';
 import { ensureUuid, isUuid } from '@/lib/ids';
-import type { AppState, Exercise, Workout } from '@/types';
+import type {
+  AppState,
+  Exercise,
+  Workout,
+  WorkoutCoachMetadata,
+  WorkoutPrescriptionSet,
+  WorkoutRpe,
+} from '@/types';
 import type {
   WorkoutTemplateSyncMetadata,
   WorkoutTemplateSyncSnapshot,
 } from '@/storage/WorkoutTemplateSyncMetadataStore';
+
+const RPE_VALUES = new Set<number>([6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -39,6 +48,39 @@ const normalizeExercise = (exercise: Exercise, fallbackCreatedAt: string): Exerc
     : fallbackCreatedAt,
 });
 
+const normalizePrescription = (
+  prescription: WorkoutPrescriptionSet[] | undefined,
+): WorkoutPrescriptionSet[] | undefined => {
+  if (!prescription?.length) return undefined;
+  return prescription.map((set) => ({
+    ...(set.sourceSetId?.trim() ? { sourceSetId: set.sourceSetId.trim() } : {}),
+    exerciseId: set.exerciseId.trim(),
+    exerciseName: set.exerciseName.trim(),
+    weight: set.weight,
+    reps: set.reps,
+    targetRpe: set.targetRpe,
+    ...(set.adjustment ? { adjustment: set.adjustment } : {}),
+    ...(set.rationaleCode?.trim()
+      ? { rationaleCode: set.rationaleCode.trim() }
+      : {}),
+  }));
+};
+
+const normalizeCoachMetadata = (
+  value: WorkoutCoachMetadata | undefined,
+): WorkoutCoachMetadata | undefined => {
+  if (!value) return undefined;
+  return {
+    schemaVersion: 1,
+    runId: value.runId.trim(),
+    sourceSessionId: value.sourceSessionId.trim(),
+    strategy: value.strategy,
+    confirmedAt: isTimestamp(value.confirmedAt)
+      ? new Date(value.confirmedAt).toISOString()
+      : value.confirmedAt,
+  };
+};
+
 export const normalizeWorkoutTemplateForSync = (
   workout: Workout,
   now = new Date().toISOString(),
@@ -46,6 +88,8 @@ export const normalizeWorkoutTemplateForSync = (
   const createdAt = isTimestamp(workout.createdAt)
     ? new Date(workout.createdAt).toISOString()
     : now;
+  const prescription = normalizePrescription(workout.prescription);
+  const coachMetadata = normalizeCoachMetadata(workout.coachMetadata);
   return {
     id: getWorkoutTemplateEntityId(workout.id),
     title: workout.title.trim(),
@@ -56,6 +100,9 @@ export const normalizeWorkoutTemplateForSync = (
     exercises: workout.exercises.map((exercise) =>
       normalizeExercise(exercise, createdAt),
     ),
+    ...(prescription && coachMetadata
+      ? { prescription, coachMetadata }
+      : {}),
     createdAt,
     isCustom: true,
   };
@@ -74,6 +121,26 @@ export const toWorkoutTemplateSyncSnapshot = (
     isCustom: Boolean(exercise.isCustom),
     createdAt: exercise.createdAt,
   })),
+  prescription:
+    workout.prescription?.map((set) => ({
+      sourceSetId: set.sourceSetId?.trim() || null,
+      exerciseId: set.exerciseId.trim(),
+      exerciseName: set.exerciseName.trim(),
+      weight: set.weight,
+      reps: set.reps,
+      targetRpe: set.targetRpe,
+      adjustment: set.adjustment ?? null,
+      rationaleCode: set.rationaleCode?.trim() || null,
+    })) ?? null,
+  coachMetadata: workout.coachMetadata
+    ? {
+        schemaVersion: 1,
+        runId: workout.coachMetadata.runId.trim(),
+        sourceSessionId: workout.coachMetadata.sourceSessionId.trim(),
+        strategy: workout.coachMetadata.strategy,
+        confirmedAt: workout.coachMetadata.confirmedAt,
+      }
+    : null,
   isCustom: true,
 });
 
@@ -100,6 +167,21 @@ export const workoutFromTemplateMetadata = (
     isCustom: exercise.isCustom,
     createdAt: exercise.createdAt,
   })),
+  ...(metadata.snapshot.prescription && metadata.snapshot.coachMetadata
+    ? {
+        prescription: metadata.snapshot.prescription.map((set) => ({
+          ...(set.sourceSetId ? { sourceSetId: set.sourceSetId } : {}),
+          exerciseId: set.exerciseId,
+          exerciseName: set.exerciseName,
+          weight: set.weight,
+          reps: set.reps,
+          targetRpe: set.targetRpe as WorkoutRpe,
+          ...(set.adjustment ? { adjustment: set.adjustment } : {}),
+          ...(set.rationaleCode ? { rationaleCode: set.rationaleCode } : {}),
+        })),
+        coachMetadata: metadata.snapshot.coachMetadata,
+      }
+    : {}),
   createdAt: metadata.createdAt,
   isCustom: true,
 });
@@ -143,6 +225,23 @@ export const createWorkoutTemplateQueueOperation = (input: {
             isCustom: exercise.isCustom,
             createdAt: exercise.createdAt,
           })),
+          ...(snapshot.prescription && snapshot.coachMetadata
+            ? {
+                prescription: snapshot.prescription.map((set) => ({
+                  ...(set.sourceSetId ? { sourceSetId: set.sourceSetId } : {}),
+                  exerciseId: set.exerciseId,
+                  exerciseName: set.exerciseName,
+                  weight: set.weight,
+                  reps: set.reps,
+                  targetRpe: set.targetRpe,
+                  ...(set.adjustment ? { adjustment: set.adjustment } : {}),
+                  ...(set.rationaleCode
+                    ? { rationaleCode: set.rationaleCode }
+                    : {}),
+                })),
+                coachMetadata: snapshot.coachMetadata,
+              }
+            : {}),
           isCustom: true,
           createdAt: previous?.createdAt ?? workout.createdAt ?? now,
           updatedAt: now,
@@ -210,7 +309,89 @@ const readExercise = (value: unknown): Exercise | null => {
   };
 };
 
+const readPrescription = (value: unknown): WorkoutPrescriptionSet[] | null | undefined => {
+  if (value === undefined || value === null) return null;
+  if (!Array.isArray(value) || value.length === 0) return undefined;
+  const result: WorkoutPrescriptionSet[] = [];
+  const sourceIds = new Set<string>();
+  for (const set of value) {
+    if (
+      !isRecord(set) ||
+      (set.sourceSetId !== undefined &&
+        (typeof set.sourceSetId !== 'string' || !isUuid(set.sourceSetId))) ||
+      typeof set.exerciseId !== 'string' ||
+      !set.exerciseId.trim() ||
+      typeof set.exerciseName !== 'string' ||
+      !set.exerciseName.trim() ||
+      typeof set.weight !== 'number' ||
+      !Number.isFinite(set.weight) ||
+      set.weight < 0 ||
+      typeof set.reps !== 'number' ||
+      !Number.isSafeInteger(set.reps) ||
+      set.reps < 1 ||
+      typeof set.targetRpe !== 'number' ||
+      !RPE_VALUES.has(set.targetRpe) ||
+      (set.adjustment !== undefined &&
+        set.adjustment !== 'decrease' &&
+        set.adjustment !== 'maintain' &&
+        set.adjustment !== 'increase') ||
+      (set.rationaleCode !== undefined &&
+        (typeof set.rationaleCode !== 'string' || !set.rationaleCode.trim()))
+    ) {
+      return undefined;
+    }
+    const sourceSetId =
+      typeof set.sourceSetId === 'string' ? set.sourceSetId : undefined;
+    if (sourceSetId && sourceIds.has(sourceSetId)) return undefined;
+    if (sourceSetId) sourceIds.add(sourceSetId);
+    result.push({
+      ...(sourceSetId ? { sourceSetId } : {}),
+      exerciseId: set.exerciseId.trim(),
+      exerciseName: set.exerciseName.trim(),
+      weight: set.weight,
+      reps: set.reps,
+      targetRpe: set.targetRpe as WorkoutRpe,
+      ...(set.adjustment === 'decrease' ||
+      set.adjustment === 'maintain' ||
+      set.adjustment === 'increase'
+        ? { adjustment: set.adjustment }
+        : {}),
+      ...(typeof set.rationaleCode === 'string'
+        ? { rationaleCode: set.rationaleCode.trim() }
+        : {}),
+    });
+  }
+  return result;
+};
+
+const readCoachMetadata = (value: unknown): WorkoutCoachMetadata | null | undefined => {
+  if (value === undefined || value === null) return null;
+  if (
+    !isRecord(value) ||
+    value.schemaVersion !== 1 ||
+    typeof value.runId !== 'string' ||
+    !isUuid(value.runId) ||
+    typeof value.sourceSessionId !== 'string' ||
+    !isUuid(value.sourceSessionId) ||
+    (value.strategy !== 'deload' &&
+      value.strategy !== 'maintain' &&
+      value.strategy !== 'progress') ||
+    !isTimestamp(value.confirmedAt)
+  ) {
+    return undefined;
+  }
+  return {
+    schemaVersion: 1,
+    runId: value.runId,
+    sourceSessionId: value.sourceSessionId,
+    strategy: value.strategy,
+    confirmedAt: new Date(value.confirmedAt).toISOString(),
+  };
+};
+
 const readRemoteWorkout = (payload: Record<string, unknown>): Workout | null => {
+  const prescription = readPrescription(payload.prescription);
+  const coachMetadata = readCoachMetadata(payload.coachMetadata);
   if (
     payload.schemaVersion !== 1 ||
     typeof payload.id !== 'string' ||
@@ -222,7 +403,10 @@ const readRemoteWorkout = (payload: Record<string, unknown>): Workout | null => 
     payload.isCustom !== true ||
     !Array.isArray(payload.exercises) ||
     payload.exercises.length === 0 ||
-    !isTimestamp(payload.createdAt)
+    !isTimestamp(payload.createdAt) ||
+    prescription === undefined ||
+    coachMetadata === undefined ||
+    Boolean(prescription) !== Boolean(coachMetadata)
   ) {
     return null;
   }
@@ -240,6 +424,7 @@ const readRemoteWorkout = (payload: Record<string, unknown>): Workout | null => 
     if (exerciseIds.has(exercise.id)) return null;
     exerciseIds.add(exercise.id);
   }
+  if (prescription?.some((set) => !exerciseIds.has(set.exerciseId))) return null;
 
   return {
     id: payload.id,
@@ -249,6 +434,9 @@ const readRemoteWorkout = (payload: Record<string, unknown>): Workout | null => 
       : {}),
     duration: payload.duration.trim(),
     exercises: exercises as Exercise[],
+    ...(prescription && coachMetadata
+      ? { prescription, coachMetadata }
+      : {}),
     createdAt,
     isCustom: true,
   };

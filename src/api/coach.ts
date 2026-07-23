@@ -14,7 +14,7 @@ export type NutritionCoachRequestType =
 export type CoachRequestType = StrengthCoachRequestType | NutritionCoachRequestType;
 
 export type CoachCapabilities = {
-  schemaVersion: 1 | 2 | 3;
+  schemaVersion: 1 | 2 | 3 | 4;
   nutrition: {
     deterministicReview: true;
     deterministicTargetProposal: true;
@@ -26,7 +26,7 @@ export type CoachCapabilities = {
     deterministicReview: true;
     deterministicMockProposal: true;
     structuredStrategyProposal: boolean;
-    structuredStrategyConfirmation: false;
+    structuredStrategyConfirmation: boolean;
     strategyRequiresConfirmation: true;
   };
 };
@@ -147,9 +147,7 @@ const readString = (record: Record<string, unknown>, key: string): string => {
 
 const readNullableString = (record: Record<string, unknown>, key: string): string | null => {
   const value = record[key];
-  if (value === null) {
-    return null;
-  }
+  if (value === null) return null;
   if (typeof value !== 'string') {
     throw new Error(`Invalid coach response: ${key}`);
   }
@@ -169,9 +167,7 @@ const readNullableRecord = (
   key: string,
 ): Record<string, unknown> | null => {
   const value = record[key];
-  if (value === null) {
-    return null;
-  }
+  if (value === null) return null;
   if (!isRecord(value)) {
     throw new Error(`Invalid coach response: ${key}`);
   }
@@ -179,15 +175,15 @@ const readNullableRecord = (
 };
 
 const parseError = (value: unknown): CoachRunError | null => {
-  if (value === null) {
-    return null;
-  }
+  if (value === null) return null;
   if (!isRecord(value)) {
     throw new Error('Invalid coach response: error');
   }
   const code = readString(value, 'code');
   const message = readString(value, 'message');
-  return value.details === undefined ? { code, message } : { code, message, details: value.details };
+  return value.details === undefined
+    ? { code, message }
+    : { code, message, details: value.details };
 };
 
 const parseStatus = (value: unknown): CoachRunStatus => {
@@ -228,7 +224,6 @@ const parseCoachRun = (value: unknown): CoachRunRecord => {
     throw new Error('Invalid coach response: run');
   }
   const domain = parseDomain(value.domain);
-
   return {
     id: readString(value, 'id'),
     userId: readString(value, 'userId'),
@@ -257,7 +252,6 @@ const parseAgentRun = (value: unknown): CoachAgentRunRecord => {
   if (!isRecord(value) || typeof value.sequence !== 'number' || !Number.isInteger(value.sequence)) {
     throw new Error('Invalid coach response: agent run');
   }
-
   return {
     id: readString(value, 'id'),
     coachRunId: readString(value, 'coachRunId'),
@@ -281,7 +275,8 @@ export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
     !isRecord(value) ||
     (value.schemaVersion !== 1 &&
       value.schemaVersion !== 2 &&
-      value.schemaVersion !== 3) ||
+      value.schemaVersion !== 3 &&
+      value.schemaVersion !== 4) ||
     !isRecord(value.nutrition)
   ) {
     throw new Error('Invalid coach capabilities response');
@@ -293,13 +288,15 @@ export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
     nutrition.deterministicTargetProposal !== true ||
     typeof nutrition.structuredStrategyProposal !== 'boolean' ||
     nutrition.strategyRequiresConfirmation !== true ||
-    ((value.schemaVersion === 2 || value.schemaVersion === 3) &&
+    ((value.schemaVersion === 2 ||
+      value.schemaVersion === 3 ||
+      value.schemaVersion === 4) &&
       typeof nutrition.structuredStrategyConfirmation !== 'boolean')
   ) {
     throw new Error('Invalid coach capabilities response');
   }
 
-  if (value.schemaVersion === 3) {
+  if (value.schemaVersion === 3 || value.schemaVersion === 4) {
     if (!isRecord(value.strength)) {
       throw new Error('Invalid coach capabilities response');
     }
@@ -308,14 +305,15 @@ export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
       strength.deterministicReview !== true ||
       strength.deterministicMockProposal !== true ||
       typeof strength.structuredStrategyProposal !== 'boolean' ||
-      strength.structuredStrategyConfirmation !== false ||
+      typeof strength.structuredStrategyConfirmation !== 'boolean' ||
+      (value.schemaVersion === 3 && strength.structuredStrategyConfirmation !== false) ||
       strength.strategyRequiresConfirmation !== true
     ) {
       throw new Error('Invalid coach capabilities response');
     }
 
     return {
-      schemaVersion: 3,
+      schemaVersion: value.schemaVersion,
       nutrition: {
         deterministicReview: true,
         deterministicTargetProposal: true,
@@ -328,7 +326,7 @@ export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
         deterministicReview: true,
         deterministicMockProposal: true,
         structuredStrategyProposal: strength.structuredStrategyProposal,
-        structuredStrategyConfirmation: false,
+        structuredStrategyConfirmation: strength.structuredStrategyConfirmation,
         strategyRequiresConfirmation: true,
       },
     };
@@ -355,13 +353,18 @@ export const parseCoachRunEnvelope = (value: unknown): CoachRunEnvelope => {
   if (!isRecord(value) || !Array.isArray(value.agentRuns)) {
     throw new Error('Invalid coach response envelope');
   }
-
   const run = parseCoachRun(value.run);
-  const agentRuns = value.agentRuns.map(parseAgentRun).sort((left, right) => left.sequence - right.sequence);
-  if (agentRuns.some((agentRun) => agentRun.coachRunId !== run.id || agentRun.userId !== run.userId)) {
+  const agentRuns = value.agentRuns
+    .map(parseAgentRun)
+    .sort((left, right) => left.sequence - right.sequence);
+  if (
+    agentRuns.some(
+      (agentRun) =>
+        agentRun.coachRunId !== run.id || agentRun.userId !== run.userId,
+    )
+  ) {
     throw new Error('Invalid coach response ownership');
   }
-
   return { run, agentRuns };
 };
 
@@ -371,7 +374,6 @@ const sleep = (ms: number, signal?: AbortSignal): Promise<void> =>
       reject(new DOMException('Coach request aborted', 'AbortError'));
       return;
     }
-
     const timer = setTimeout(resolve, ms);
     signal?.addEventListener(
       'abort',
@@ -392,14 +394,10 @@ export const createCoachApi = (
     if (!accessToken) {
       throw new Error('Sign in is required to use Coach.');
     }
-
     try {
       return await request(accessToken);
     } catch (error) {
-      if (!isApiError(error) || error.status !== 401) {
-        throw error;
-      }
-
+      if (!isApiError(error) || error.status !== 401) throw error;
       const refreshedToken = await auth.refreshAccessToken();
       if (!refreshedToken) {
         throw new Error('Your session expired. Sign in again to continue.');
@@ -429,10 +427,14 @@ export const createCoachApi = (
     startStrengthRun: async (input) =>
       requestWithAuth(async (accessToken) =>
         parseCoachRunEnvelope(
-          await apiClient.post<unknown, StartStrengthCoachRunInput>('/v1/coach/strength/runs', input, {
-            headers: { authorization: `Bearer ${accessToken}` },
-            retry: false,
-          }),
+          await apiClient.post<unknown, StartStrengthCoachRunInput>(
+            '/v1/coach/strength/runs',
+            input,
+            {
+              headers: { authorization: `Bearer ${accessToken}` },
+              retry: false,
+            },
+          ),
         ),
       ),
     startNutritionRun: async (input = {}) => {
@@ -442,10 +444,14 @@ export const createCoachApi = (
       };
       return requestWithAuth(async (accessToken) =>
         parseCoachRunEnvelope(
-          await apiClient.post<unknown, StartNutritionCoachRunInput>('/v1/coach/nutrition/runs', body, {
-            headers: { authorization: `Bearer ${accessToken}` },
-            retry: false,
-          }),
+          await apiClient.post<unknown, StartNutritionCoachRunInput>(
+            '/v1/coach/nutrition/runs',
+            body,
+            {
+              headers: { authorization: `Bearer ${accessToken}` },
+              retry: false,
+            },
+          ),
         ),
       );
     },
@@ -467,15 +473,11 @@ export const createCoachApi = (
       let current = initial;
       const intervalMs = Math.max(100, options.intervalMs ?? 750);
       const maxPolls = Math.max(1, Math.floor(options.maxPolls ?? 20));
-
       for (let poll = 0; poll < maxPolls; poll += 1) {
-        if (TERMINAL_STATUSES.has(current.run.status)) {
-          return current;
-        }
+        if (TERMINAL_STATUSES.has(current.run.status)) return current;
         await sleep(intervalMs, options.signal);
         current = await getRun(current.run.id);
       }
-
       throw new Error('Coach is taking longer than expected. Try opening the run again shortly.');
     },
   };
