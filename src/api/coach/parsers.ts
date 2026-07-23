@@ -126,7 +126,10 @@ const parseRequestType = (
   if (domain === 'safety_recovery' && value === 'safety_recovery_review') {
     return value;
   }
-  if (domain === 'combined' && value === 'combined_review') {
+  if (
+    domain === 'combined' &&
+    (value === 'combined_review' || value === 'combined_proposal_review')
+  ) {
     return value;
   }
   throw new Error('Invalid coach response: requestType');
@@ -215,7 +218,7 @@ const parseNutritionCapabilities = (
 
 const parseStrengthCapabilities = (
   value: unknown,
-  schemaVersion: 3 | 4 | 5 | 6,
+  schemaVersion: 3 | 4 | 5 | 6 | 7,
 ): NonNullable<CoachCapabilities['strength']> => {
   if (!isRecord(value)) throw new Error('Invalid coach capabilities response');
   if (
@@ -259,16 +262,26 @@ const parseSafetyCapabilities = (
 
 const parseCombinedCapabilities = (
   value: unknown,
+  schemaVersion: 6 | 7,
 ): NonNullable<CoachCapabilities['combined']> => {
   if (
     !isRecord(value) ||
     value.deterministicReview !== true ||
-    value.automaticApplication !== false
+    value.automaticApplication !== false ||
+    (schemaVersion === 7 &&
+      (value.deterministicProposalReview !== true ||
+        value.proposalRequiresExplicitConfirmation !== true))
   ) {
     throw new Error('Invalid coach capabilities response');
   }
   return {
     deterministicReview: true,
+    ...(schemaVersion === 7
+      ? {
+          deterministicProposalReview: true as const,
+          proposalRequiresExplicitConfirmation: true as const,
+        }
+      : {}),
     automaticApplication: false,
   };
 };
@@ -276,7 +289,7 @@ const parseCombinedCapabilities = (
 export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
   if (
     !isRecord(value) ||
-    ![1, 2, 3, 4, 5, 6].includes(value.schemaVersion as number) ||
+    ![1, 2, 3, 4, 5, 6, 7].includes(value.schemaVersion as number) ||
     !isRecord(value.nutrition)
   ) {
     throw new Error('Invalid coach capabilities response');
@@ -299,7 +312,7 @@ export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
     nutrition,
     strength,
     safety,
-    combined: parseCombinedCapabilities(value.combined),
+    combined: parseCombinedCapabilities(value.combined, schemaVersion),
   };
 };
 

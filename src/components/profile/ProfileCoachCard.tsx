@@ -206,6 +206,11 @@ export function ProfileCoachCard({
         label="Open Combined Coach"
         onPress={() => router.push('/profile/combined-review')}
       />
+      <SecondaryButton
+        accessibilityHint="Builds read-only Strength and Nutrition proposals under the Safety ceiling"
+        label="Open Combined proposal"
+        onPress={() => router.push('/profile/combined-proposal')}
+      />
     </AppCard>
   );
 }
