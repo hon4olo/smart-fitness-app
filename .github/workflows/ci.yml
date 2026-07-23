@@ -16,6 +16,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Audit tracked file line counts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          paths = subprocess.check_output(['git', 'ls-files', '-z']).split(b'\0')
+          rows = []
+          binary_files = 0
+
+          for raw_path in paths:
+              if not raw_path:
+                  continue
+              path = Path(raw_path.decode('utf-8', errors='surrogateescape'))
+              if not path.is_file():
+                  continue
+              data = path.read_bytes()
+              if b'\0' in data[:8192]:
+                  binary_files += 1
+                  continue
+              lines = data.count(b'\n') + (1 if data and not data.endswith(b'\n') else 0)
+              rows.append((lines, path.as_posix()))
+
+          rows.sort(key=lambda item: (-item[0], item[1]))
+          print('FILE_LINE_AUDIT_BEGIN')
+          print(f'TRACKED_FILES={len(paths) - 1}')
+          print(f'TEXT_FILES={len(rows)}')
+          print(f'BINARY_FILES={binary_files}')
+          print(f'TOTAL_TEXT_LINES={sum(lines for lines, _ in rows)}')
+          for rank, (lines, path) in enumerate(rows[:20], start=1):
+              print(f'{rank}\t{lines}\t{path}')
+          print('FILE_LINE_AUDIT_END')
+          PY
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
