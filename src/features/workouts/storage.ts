@@ -22,21 +22,29 @@ let pendingCompletedWorkoutSession = null as WorkoutSession | null;
 
 const cloneSet = (set: WorkoutSession['sets'][number]) => ({ ...set });
 
-const cloneWorkoutSession = (session: WorkoutSession): WorkoutSession => ({
-  ...session,
-  sets: session.sets.map(cloneSet),
-  ...(session.safetyRecovery
-    ? { safetyRecovery: cloneWorkoutSafetyMetadata(session.safetyRecovery) ?? undefined }
-    : {}),
-});
+const cloneWorkoutSession = (session: WorkoutSession): WorkoutSession => {
+  const { safetyRecovery: rawSafetyRecovery, ...base } = session;
+  const safetyRecovery = rawSafetyRecovery
+    ? cloneWorkoutSafetyMetadata(rawSafetyRecovery)
+    : null;
+  return {
+    ...base,
+    sets: session.sets.map(cloneSet),
+    ...(safetyRecovery ? { safetyRecovery } : {}),
+  };
+};
 
-const cloneWorkoutSessionDraft = (draft: WorkoutSessionDraft): WorkoutSessionDraft => ({
-  ...draft,
-  sets: draft.sets.map(cloneSet),
-  ...(draft.safetyRecovery
-    ? { safetyRecovery: cloneWorkoutSafetyMetadata(draft.safetyRecovery) ?? undefined }
-    : {}),
-});
+const cloneWorkoutSessionDraft = (draft: WorkoutSessionDraft): WorkoutSessionDraft => {
+  const { safetyRecovery: rawSafetyRecovery, ...base } = draft;
+  const safetyRecovery = rawSafetyRecovery
+    ? cloneWorkoutSafetyMetadata(rawSafetyRecovery)
+    : null;
+  return {
+    ...base,
+    sets: draft.sets.map(cloneSet),
+    ...(safetyRecovery ? { safetyRecovery } : {}),
+  };
+};
 
 const parseWorkoutSessionDraft = (value: string | null): WorkoutSessionDraft | null => {
   if (!value) {
