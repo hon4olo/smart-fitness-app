@@ -13,6 +13,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isTimestamp = (value: unknown): value is string =>
   typeof value === 'string' && Number.isFinite(new Date(value).getTime());
 
+const metadataKey = (userId: string, id: string): string => `${userId}:${id}`;
+
 export const isWorkoutTemplateEntity = (entityType: string): boolean =>
   entityType === 'workouts' ||
   entityType === 'workoutTemplates' ||
@@ -116,10 +118,12 @@ export const createWorkoutTemplateQueueOperation = (input: {
     : new Date().toISOString();
   const workout = normalizeWorkoutTemplateForSync(input.workout, now);
   const snapshot = toWorkoutTemplateSyncSnapshot(workout);
+  const previous =
+    input.previous?.userId === input.userId ? input.previous : null;
   const baseRevision = {
-    id: input.previous ? `rev-${input.previous.revision}` : 'rev-0',
+    id: previous ? `rev-${previous.revision}` : 'rev-0',
     number: input.baseRevision,
-    createdAt: input.previous?.syncedAt ?? now,
+    createdAt: previous?.syncedAt ?? now,
   };
   const payload =
     input.action === 'delete'
@@ -140,7 +144,7 @@ export const createWorkoutTemplateQueueOperation = (input: {
             createdAt: exercise.createdAt,
           })),
           isCustom: true,
-          createdAt: input.previous?.createdAt ?? workout.createdAt ?? now,
+          createdAt: previous?.createdAt ?? workout.createdAt ?? now,
           updatedAt: now,
           deviceId: input.deviceId,
         };
@@ -171,7 +175,7 @@ export const createWorkoutTemplateQueueOperation = (input: {
       deviceId: input.deviceId,
       source: 'local',
       userId: input.userId,
-      lastSyncedAt: input.previous?.syncedAt,
+      lastSyncedAt: previous?.syncedAt,
       requestId: idempotencyKey,
     },
   };
@@ -273,6 +277,7 @@ export const applyRemoteWorkoutTemplateChanges = (
     revision?: number;
     appliedAt?: string | null;
   }>,
+  userId: string,
   existingMetadata: Map<string, WorkoutTemplateSyncMetadata> = new Map(),
   syncedAt = new Date().toISOString(),
 ): WorkoutTemplateSyncResult => {
@@ -297,8 +302,9 @@ export const applyRemoteWorkoutTemplateChanges = (
       workout,
     ];
     appliedRecordIds.push(workout.id);
-    metadata.set(workout.id, {
+    metadata.set(metadataKey(userId, workout.id), {
       id: workout.id,
+      userId,
       revision:
         typeof entity.revision === 'number' && Number.isFinite(entity.revision)
           ? Math.max(0, Math.floor(entity.revision))
@@ -322,9 +328,10 @@ export const applyRemoteWorkoutTemplateChanges = (
       (item) => getWorkoutTemplateEntityId(item.id) !== id,
     );
     deletedRecordIds.push(id);
-    const previous = metadata.get(id);
+    const key = metadataKey(userId, id);
+    const previous = metadata.get(key);
     if (previous) {
-      metadata.set(id, {
+      metadata.set(key, {
         ...previous,
         revision:
           typeof deleted.revision === 'number' && Number.isFinite(deleted.revision)
