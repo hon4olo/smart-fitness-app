@@ -97,15 +97,21 @@ const viewModel: SafetyRecoveryViewModel = {
   },
 };
 
+const createSnapshot = () => {
+  const snapshot = buildSafetyRecoveryReviewSnapshot({
+    run,
+    viewModel,
+    recoveryCheckIns: [checkIn],
+    userLimitations: [limitation],
+    savedAt: '2026-07-23T11:01:00.000Z',
+  });
+  if (!snapshot) throw new Error('Expected a valid Safety Recovery snapshot');
+  return snapshot;
+};
+
 describe('Safety Recovery review snapshot', () => {
   it('builds and parses a strict account-scoped snapshot', () => {
-    const snapshot = buildSafetyRecoveryReviewSnapshot({
-      run,
-      viewModel,
-      recoveryCheckIns: [checkIn],
-      userLimitations: [limitation],
-      savedAt: '2026-07-23T11:01:00.000Z',
-    });
+    const snapshot = createSnapshot();
 
     expect(snapshot).toMatchObject({
       schemaVersion: 1,
@@ -136,14 +142,11 @@ describe('Safety Recovery review snapshot', () => {
     expect(changedSignal).not.toBe(base);
   });
 
-  it('rejects automatic-application-shaped or malformed stored data', () => {
-    const snapshot = buildSafetyRecoveryReviewSnapshot({
-      run,
-      viewModel,
-      recoveryCheckIns: [checkIn],
-      userLimitations: [limitation],
-    });
-    expect(parseSafetyRecoveryReviewSnapshot({ ...snapshot, recommendedLoadMultiplier: 2 })).toBeNull();
+  it('rejects malformed stored data', () => {
+    const snapshot = createSnapshot();
+    expect(
+      parseSafetyRecoveryReviewSnapshot({ ...snapshot, recommendedLoadMultiplier: 2 }),
+    ).toBeNull();
     expect(parseSafetyRecoveryReviewSnapshot({ ...snapshot, status: 'unknown' })).toBeNull();
   });
 });
