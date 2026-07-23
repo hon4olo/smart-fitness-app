@@ -4,8 +4,21 @@ import { getMobileApiBaseUrl } from '@/api/config';
 export type CoachRunStatus = 'queued' | 'running' | 'completed' | 'rejected' | 'failed';
 export type CoachDomain = 'strength' | 'nutrition';
 export type StrengthCoachRequestType = 'session_review' | 'next_workout_proposal';
-export type NutritionCoachRequestType = 'nutrition_review' | 'nutrition_target_proposal';
+export type NutritionCoachRequestType =
+  | 'nutrition_review'
+  | 'nutrition_target_proposal'
+  | 'nutrition_strategy_proposal';
 export type CoachRequestType = StrengthCoachRequestType | NutritionCoachRequestType;
+
+export type CoachCapabilities = {
+  schemaVersion: 1;
+  nutrition: {
+    deterministicReview: true;
+    deterministicTargetProposal: true;
+    structuredStrategyProposal: boolean;
+    strategyRequiresConfirmation: true;
+  };
+};
 
 export type CoachRunError = {
   code: string;
@@ -83,6 +96,7 @@ type WaitForRunOptions = {
 };
 
 export type CoachApi = {
+  getCapabilities(): Promise<CoachCapabilities>;
   startStrengthRun(input: StartStrengthCoachRunInput): Promise<CoachRunEnvelope>;
   startNutritionRun(input?: StartNutritionCoachRunInput): Promise<CoachRunEnvelope>;
   confirmRun(runId: string, input: ConfirmCoachRunInput): Promise<CoachRunEnvelope>;
@@ -105,6 +119,7 @@ const STRENGTH_REQUEST_TYPES = new Set<StrengthCoachRequestType>([
 const NUTRITION_REQUEST_TYPES = new Set<NutritionCoachRequestType>([
   'nutrition_review',
   'nutrition_target_proposal',
+  'nutrition_strategy_proposal',
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -137,7 +152,10 @@ const readRecord = (record: Record<string, unknown>, key: string): Record<string
   return value;
 };
 
-const readNullableRecord = (record: Record<string, unknown>, key: string): Record<string, unknown> | null => {
+const readNullableRecord = (
+  record: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> | null => {
   const value = record[key];
   if (value === null) {
     return null;
@@ -246,6 +264,32 @@ const parseAgentRun = (value: unknown): CoachAgentRunRecord => {
   };
 };
 
+export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
+  if (!isRecord(value) || value.schemaVersion !== 1 || !isRecord(value.nutrition)) {
+    throw new Error('Invalid coach capabilities response');
+  }
+
+  const nutrition = value.nutrition;
+  if (
+    nutrition.deterministicReview !== true ||
+    nutrition.deterministicTargetProposal !== true ||
+    typeof nutrition.structuredStrategyProposal !== 'boolean' ||
+    nutrition.strategyRequiresConfirmation !== true
+  ) {
+    throw new Error('Invalid coach capabilities response');
+  }
+
+  return {
+    schemaVersion: 1,
+    nutrition: {
+      deterministicReview: true,
+      deterministicTargetProposal: true,
+      structuredStrategyProposal: nutrition.structuredStrategyProposal,
+      strategyRequiresConfirmation: true,
+    },
+  };
+};
+
 export const parseCoachRunEnvelope = (value: unknown): CoachRunEnvelope => {
   if (!isRecord(value) || !Array.isArray(value.agentRuns)) {
     throw new Error('Invalid coach response envelope');
@@ -313,6 +357,14 @@ export const createCoachApi = (
     );
 
   return {
+    getCapabilities: async () =>
+      requestWithAuth(async (accessToken) =>
+        parseCoachCapabilities(
+          await apiClient.get<unknown>('/v1/coach/capabilities', {
+            headers: { authorization: `Bearer ${accessToken}` },
+          }),
+        ),
+      ),
     startStrengthRun: async (input) =>
       requestWithAuth(async (accessToken) =>
         parseCoachRunEnvelope(

@@ -3,7 +3,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { createCoachApi, type CoachRunEnvelope } from '@/api/coach';
+import {
+  createCoachApi,
+  type CoachCapabilities,
+  type CoachRunEnvelope,
+  type NutritionCoachRequestType,
+} from '@/api/coach';
 import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
@@ -11,6 +16,7 @@ import { useAppContext } from '@/context/AppContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { NutritionDeterministicSummaryView } from '../components/NutritionDeterministicSummaryView';
+import { NutritionStrategyProposalView } from '../components/NutritionStrategyProposalView';
 import {
   getNutritionRejectionCopy,
   readNutritionDeterministicSummary,
@@ -20,11 +26,17 @@ import {
   type NutritionCoachMetricSummary,
   type NutritionMetricTotals,
 } from '../nutritionCoachViewModel';
+import { buildNutritionStrategyViewModel } from '../nutritionStrategyViewModel';
 
 const LOOKBACK_OPTIONS = [7, 14, 30] as const;
 
-const createIdempotencyKey = (lookbackDays: number): string =>
-  `mobile-nutrition-review-${lookbackDays}-${Date.now().toString(36)}-${Math.random()
+type ActiveRunType = 'review' | 'strategy';
+
+const createIdempotencyKey = (
+  requestType: NutritionCoachRequestType,
+  lookbackDays: number,
+): string =>
+  `mobile-${requestType}-${lookbackDays}-${Date.now().toString(36)}-${Math.random()
     .toString(16)
     .slice(2)}`;
 
@@ -188,22 +200,33 @@ export default function NutritionCoachScreen() {
   const { ready, refresh, session } = useAuthSession();
   const [lookbackDays, setLookbackDays] = useState<(typeof LOOKBACK_OPTIONS)[number]>(14);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [activeRunType, setActiveRunType] = useState<ActiveRunType | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
+  const [capabilitiesLoading, setCapabilitiesLoading] = useState(false);
+  const [capabilitiesError, setCapabilitiesError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const isAuthenticated = Boolean(session?.tokens.accessToken);
-  const viewModel = useMemo(() => (run ? buildNutritionCoachViewModel(run) : null), [run]);
+  const isStrategyRun = run?.run.requestType === 'nutrition_strategy_proposal';
+  const reviewViewModel = useMemo(
+    () => (run && !isStrategyRun ? buildNutritionCoachViewModel(run) : null),
+    [isStrategyRun, run],
+  );
+  const strategyViewModel = useMemo(
+    () => (run && isStrategyRun ? buildNutritionStrategyViewModel(run) : null),
+    [isStrategyRun, run],
+  );
   const deterministicSummary = useMemo(
     () => (run ? readNutritionDeterministicSummary(run) : null),
     [run],
   );
-  const rejectionCopy = useMemo(
+  const reviewRejectionCopy = useMemo(
     () =>
-      viewModel?.kind === 'rejected'
-        ? getNutritionRejectionCopy(viewModel.reason)
+      reviewViewModel?.kind === 'rejected'
+        ? getNutritionRejectionCopy(reviewViewModel.reason)
         : null,
-    [viewModel],
+    [reviewViewModel],
   );
   const coachApi = useMemo(
     () =>
@@ -221,20 +244,65 @@ export default function NutritionCoachScreen() {
     [],
   );
 
-  const startReview = async () => {
-    if (busy) return;
+  useEffect(() => {
+    if (!ready || !isAuthenticated) {
+      setCapabilities(null);
+      setCapabilitiesError(null);
+      setCapabilitiesLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCapabilitiesLoading(true);
+    setCapabilitiesError(null);
+
+    void coachApi
+      .getCapabilities()
+      .then((nextCapabilities) => {
+        if (!cancelled) setCapabilities(nextCapabilities);
+      })
+      .catch((capabilityError: unknown) => {
+        if (cancelled) return;
+        setCapabilities(null);
+        setCapabilitiesError(
+          capabilityError instanceof Error
+            ? capabilityError.message
+            : 'Coach capabilities could not be verified.',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setCapabilitiesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [coachApi, isAuthenticated, ready]);
+
+  const startNutritionRun = async (
+    requestType: 'nutrition_review' | 'nutrition_strategy_proposal',
+  ) => {
+    if (activeRunType) return;
+    if (
+      requestType === 'nutrition_strategy_proposal' &&
+      capabilities?.nutrition.structuredStrategyProposal !== true
+    ) {
+      setError('AI strategy is not enabled on this backend.');
+      return;
+    }
 
     abortControllerRef.current?.abort();
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
-    setBusy(true);
+    setActiveRunType(requestType === 'nutrition_review' ? 'review' : 'strategy');
     setError(null);
     setRun(null);
 
     try {
       const initial = await coachApi.startNutritionRun({
+        requestType,
         lookbackDays,
-        idempotencyKey: createIdempotencyKey(lookbackDays),
+        idempotencyKey: createIdempotencyKey(requestType, lookbackDays),
       });
       setRun(initial);
       const terminal = await coachApi.waitForTerminalRun(initial, {
@@ -248,17 +316,21 @@ export default function NutritionCoachScreen() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : 'Nutrition Coach could not complete the review.',
+          : requestType === 'nutrition_strategy_proposal'
+            ? 'Nutrition Strategy could not complete the preview.'
+            : 'Nutrition Coach could not complete the review.',
       );
     } finally {
       if (abortControllerRef.current === abortController) {
         abortControllerRef.current = null;
-        setBusy(false);
+        setActiveRunType(null);
       }
     }
   };
 
   const loading = !ready || isRestoringState;
+  const strategyAvailable =
+    capabilities?.nutrition.structuredStrategyProposal === true;
 
   return (
     <View style={styles.screen}>
@@ -272,7 +344,7 @@ export default function NutritionCoachScreen() {
         </Pressable>
         <View style={styles.headerCopy}>
           <Text style={styles.title}>Nutrition Coach</Text>
-          <Text style={styles.subtitle}>Deterministic preview</Text>
+          <Text style={styles.subtitle}>Deterministic review · gated AI preview</Text>
         </View>
       </View>
 
@@ -286,12 +358,18 @@ export default function NutritionCoachScreen() {
           <AppCard>
             <View style={styles.badgeRow}>
               <Text style={styles.previewBadge}>Preview</Text>
-              <Text style={styles.statusText}>No LLM provider connected</Text>
+              <Text style={styles.statusText}>
+                {strategyAvailable
+                  ? 'Structured strategy provider available'
+                  : capabilitiesLoading
+                    ? 'Checking backend capabilities'
+                    : 'Deterministic review available'}
+              </Text>
             </View>
-            <Text style={styles.cardTitle}>Validated nutrition review</Text>
+            <Text style={styles.cardTitle}>Validated nutrition analysis</Text>
             <Text style={styles.bodyText}>
-              This screen reads synchronized food entries, nutrition targets, latest weight and the
-              revisioned Coach profile. All displayed energy values are calculated deterministically.
+              Deterministic review is always calculated from synchronized records. AI Strategy is
+              shown only when the authenticated backend reports an enabled structured provider.
             </Text>
           </AppCard>
 
@@ -309,7 +387,7 @@ export default function NutritionCoachScreen() {
             </AppCard>
           ) : (
             <AppCard>
-              <Text style={styles.cardTitle}>Review period</Text>
+              <Text style={styles.cardTitle}>Analysis period</Text>
               <View style={styles.periodRow}>
                 {LOOKBACK_OPTIONS.map((days) => {
                   const selected = days === lookbackDays;
@@ -318,7 +396,7 @@ export default function NutritionCoachScreen() {
                       key={days}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
-                      disabled={busy}
+                      disabled={Boolean(activeRunType)}
                       onPress={() => {
                         setLookbackDays(days);
                         setRun(null);
@@ -327,7 +405,7 @@ export default function NutritionCoachScreen() {
                       style={({ pressed }) => [
                         styles.periodButton,
                         selected && styles.periodButtonSelected,
-                        pressed && !busy && styles.pressed,
+                        pressed && !activeRunType && styles.pressed,
                       ]}>
                       <Text style={[styles.periodLabel, selected && styles.periodLabelSelected]}>
                         {days} days
@@ -336,15 +414,36 @@ export default function NutritionCoachScreen() {
                   );
                 })}
               </View>
-              <PrimaryButton
-                disabled={busy}
-                label="Review synchronized nutrition"
-                loading={busy}
-                onPress={() => void startReview()}
-              />
+
+              <View style={styles.actionStack}>
+                <PrimaryButton
+                  disabled={Boolean(activeRunType)}
+                  label="Review synchronized nutrition"
+                  loading={activeRunType === 'review'}
+                  onPress={() => void startNutritionRun('nutrition_review')}
+                />
+
+                {strategyAvailable ? (
+                  <PrimaryButton
+                    disabled={Boolean(activeRunType)}
+                    label="Generate AI strategy preview"
+                    loading={activeRunType === 'strategy'}
+                    onPress={() => void startNutritionRun('nutrition_strategy_proposal')}
+                  />
+                ) : (
+                  <Text style={styles.capabilityText}>
+                    {capabilitiesLoading
+                      ? 'Checking whether AI Strategy is enabled…'
+                      : capabilitiesError
+                        ? 'AI Strategy availability could not be verified. Deterministic review remains available.'
+                        : 'AI strategy provider is not enabled on this backend.'}
+                  </Text>
+                )}
+              </View>
+
               <Text style={styles.disclaimer}>
-                Missing days remain separate from tracked-day averages. At least three tracked days
-                are required before readiness and energy workers run.
+                At least three tracked days are required. Strategy output is preview-only and is never
+                applied automatically.
               </Text>
             </AppCard>
           )}
@@ -356,38 +455,67 @@ export default function NutritionCoachScreen() {
             </AppCard>
           ) : null}
 
-          {viewModel ? (
+          {reviewViewModel ? (
             <AppCard>
               <View style={styles.resultHeader}>
                 <Text style={styles.cardTitle}>
-                  {rejectionCopy?.title ?? viewModel.title}
+                  {reviewRejectionCopy?.title ?? reviewViewModel.title}
                 </Text>
                 <Text style={styles.resultStatus}>{run?.run.status.toUpperCase()}</Text>
               </View>
               <Text style={styles.bodyText}>
-                {rejectionCopy?.message ?? viewModel.message}
+                {reviewRejectionCopy?.message ?? reviewViewModel.message}
               </Text>
 
-              {viewModel.kind === 'review' ? (
-                <ReviewMetrics metrics={viewModel.metrics} />
+              {reviewViewModel.kind === 'review' ? (
+                <ReviewMetrics metrics={reviewViewModel.metrics} />
               ) : null}
 
               {deterministicSummary ? (
                 <NutritionDeterministicSummaryView summary={deterministicSummary} />
               ) : null}
 
-              {viewModel.kind === 'rejected' ? (
+              {reviewViewModel.kind === 'rejected' ? (
                 <View style={styles.resultStack}>
-                  <Text style={styles.warningText}>Reason: {viewModel.reason}</Text>
-                  {viewModel.metrics ? (
+                  <Text style={styles.warningText}>Reason: {reviewViewModel.reason}</Text>
+                  {reviewViewModel.metrics ? (
                     <View style={styles.infoRow}>
                       <Text style={styles.metaText}>Tracked days</Text>
                       <Text style={styles.infoValue}>
-                        {viewModel.metrics.completeness.trackedDays} /{' '}
-                        {viewModel.metrics.period.lookbackDays}
+                        {reviewViewModel.metrics.completeness.trackedDays} /{' '}
+                        {reviewViewModel.metrics.period.lookbackDays}
                       </Text>
                     </View>
                   ) : null}
+                </View>
+              ) : null}
+            </AppCard>
+          ) : null}
+
+          {strategyViewModel ? (
+            <AppCard>
+              <View style={styles.resultHeader}>
+                <Text style={styles.cardTitle}>{strategyViewModel.title}</Text>
+                <Text style={styles.resultStatus}>{run?.run.status.toUpperCase()}</Text>
+              </View>
+              <Text style={styles.bodyText}>{strategyViewModel.message}</Text>
+
+              {deterministicSummary ? (
+                <NutritionDeterministicSummaryView summary={deterministicSummary} />
+              ) : null}
+
+              {strategyViewModel.kind === 'proposal' ? (
+                <NutritionStrategyProposalView viewModel={strategyViewModel} />
+              ) : null}
+
+              {strategyViewModel.kind === 'rejected' ? (
+                <View style={styles.resultStack}>
+                  <Text style={styles.warningText}>Reason: {strategyViewModel.reason}</Text>
+                  {strategyViewModel.issues.map((issue) => (
+                    <Text key={`${issue.code}:${issue.path}`} style={styles.issueText}>
+                      • {issue.message}
+                    </Text>
+                  ))}
                 </View>
               ) : null}
             </AppCard>
@@ -423,6 +551,9 @@ const baseStyles = StyleSheet.create({
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
+    actionStack: {
+      gap: Spacing.two,
+    },
     backButton: {
       alignItems: 'center',
       height: 42,
@@ -445,6 +576,12 @@ const createStyles = (colors: typeof Colors.light) =>
       color: colors.textSecondary,
       fontSize: Typography.body.fontSize,
       lineHeight: Typography.body.lineHeight,
+    },
+    capabilityText: {
+      color: colors.textMuted,
+      fontSize: Typography.caption.fontSize,
+      lineHeight: Typography.caption.lineHeight,
+      textAlign: 'center',
     },
     cardTitle: {
       color: colors.textPrimary,
@@ -521,6 +658,11 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: Typography.bodyEmphasized.fontSize,
       fontWeight: Typography.bodyEmphasized.fontWeight,
       lineHeight: Typography.bodyEmphasized.lineHeight,
+    },
+    issueText: {
+      color: colors.textSecondary,
+      fontSize: Typography.body.fontSize,
+      lineHeight: Typography.body.lineHeight,
     },
     metaText: {
       color: colors.textMuted,

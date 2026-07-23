@@ -133,7 +133,9 @@ const readReadiness = (value: unknown): NutritionAgentReadinessView | null => {
     value.messageCode === 'nutrition_agent_profile_incomplete'
   ) {
     const missingFields = readNonemptyStrings(value.missingFields);
-    return missingFields ? { status: 'needs_input', missingFields, messageCode: value.messageCode } : null;
+    return missingFields
+      ? { status: 'needs_input', missingFields, messageCode: value.messageCode }
+      : null;
   }
 
   if (
@@ -147,9 +149,7 @@ const readReadiness = (value: unknown): NutritionAgentReadinessView | null => {
   return null;
 };
 
-const readRange = (
-  value: unknown,
-): { min: number; max: number } | null => {
+const readRange = (value: unknown): { min: number; max: number } | null => {
   if (!isRecord(value)) return null;
   const min = readFiniteNumber(value, 'min');
   const max = readFiniteNumber(value, 'max');
@@ -267,9 +267,7 @@ export const readNutritionDeterministicSummary = (
     return { readiness, energy };
   }
 
-  return run.result.energyMetrics === null
-    ? { readiness, energy: null }
-    : null;
+  return run.result.energyMetrics === null ? { readiness, energy: null } : null;
 };
 
 export const getNutritionRejectionCopy = (reason: string): NutritionRejectionCopy => {
@@ -284,6 +282,32 @@ export const getNutritionRejectionCopy = (reason: string): NutritionRejectionCop
       title: 'Current target is mathematically inconsistent',
       message:
         'The current calorie and macro values cannot be reconciled safely without making a macro negative. Edit the target manually, synchronize it, and generate a new proposal.',
+    };
+  }
+  if (reason === 'nutrition_model_provider_unavailable') {
+    return {
+      title: 'AI strategy is unavailable',
+      message: 'AI strategy is not enabled on this backend.',
+    };
+  }
+  if (reason === 'nutrition_agent_needs_input') {
+    return {
+      title: 'Coach profile needs input',
+      message:
+        'Complete the Coach profile and synchronize the missing data before requesting an AI strategy.',
+    };
+  }
+  if (reason === 'nutrition_agent_context_blocked') {
+    return {
+      title: 'AI strategy is blocked for this context',
+      message:
+        'The deterministic readiness policy does not support the current profile or nutrition context.',
+    };
+  }
+  if (reason === 'nutrition_strategy_invalid_after_retries') {
+    return {
+      title: 'Strategy failed deterministic validation',
+      message: 'The model did not produce a valid bounded proposal after three attempts.',
     };
   }
   if (reason === 'insufficient_logged_days') {
