@@ -12,45 +12,19 @@ import { AppState as ReactNativeAppState } from 'react-native';
 
 import type { SyncCoordinator } from '@/cloud';
 import type { OfflineSyncQueueStore } from '@/cloud/CloudQueueStore';
-import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
 import {
-  applyRemoteFitnessProfileChanges,
   areFitnessProfileSnapshotsEqual,
   createFitnessProfileQueueOperation,
   getFitnessProfileEntityId,
   isFitnessProfileQueueOperation,
   normalizeFitnessProfileForSync,
-  runWithoutFitnessProfileOutbox,
 } from '@/cloud/FitnessProfileSync';
 import {
-  applyRemoteFoodEntryChanges,
-  isFoodEntryQueueOperation,
-  runWithoutFoodEntryOutbox,
-} from '@/cloud/FoodEntrySync';
-import {
-  applyRemoteNutritionTargetChanges,
   createNutritionTargetQueueOperation,
   getNutritionTargetEntityId,
   isNutritionTargetQueueOperation,
-  runWithoutNutritionTargetOutbox,
 } from '@/cloud/NutritionTargetSync';
-import {
-  applyRemoteSafetyRecoveryChanges,
-  isSafetyRecoveryQueueOperation,
-} from '@/cloud/SafetyRecoverySync';
 import { planSafetyRecoverySyncOperations } from '@/cloud/SafetyRecoverySyncPlanner';
-import {
-  applyRemoteWeightHistoryChanges,
-  filterWeightHistoryQueueOperations,
-} from '@/cloud/WeightHistorySync';
-import {
-  applyRemoteWorkoutSessionChanges,
-  isWorkoutSessionQueueOperation,
-} from '@/cloud/WorkoutSessionSync';
-import {
-  applyRemoteWorkoutTemplateChanges,
-  isWorkoutTemplateQueueOperation,
-} from '@/cloud/WorkoutTemplateSync';
 import { planWorkoutTemplateSyncOperations } from '@/cloud/WorkoutTemplateSyncPlanner';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import {
@@ -66,22 +40,16 @@ import {
 import type { WeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
 import type { AppState } from '@/types';
 
-export type WeightSyncStatus =
-  | 'local-only'
-  | 'syncing'
-  | 'synced'
-  | 'offline'
-  | 'conflict'
-  | 'error';
+import { applySyncPullResult } from './applySyncPullResult';
+import {
+  countSupportedQueueOperations,
+  resolveStatus,
+  type SyncPullResult,
+  type WeightSyncContextValue,
+  type WeightSyncStatus,
+} from './syncContextModel';
 
-export type WeightSyncContextValue = {
-  status: WeightSyncStatus;
-  lastSyncAt: string | null;
-  pendingOperations: number;
-  conflictCount: number;
-  error: string | null;
-  syncNow(): Promise<void>;
-};
+export type { WeightSyncContextValue, WeightSyncStatus } from './syncContextModel';
 
 type SyncProviderProps = PropsWithChildren<{
   state: AppState;
@@ -92,110 +60,7 @@ type SyncProviderProps = PropsWithChildren<{
   syncCoordinator: SyncCoordinator;
 }>;
 
-type RemoteChangedEntity = {
-  payload?: Record<string, unknown> | null;
-  entityId?: string | null;
-  entityType: string;
-  revision?: number;
-  operationType?: string;
-  appliedAt?: string | null;
-};
-
-type RemoteDeletedEntity = {
-  id?: string;
-  entityId?: string;
-  entityType: string;
-  revision?: number;
-  appliedAt?: string | null;
-};
-
 const WeightSyncContext = createContext<WeightSyncContextValue | null>(null);
-
-const resolveStatus = (
-  phase: string,
-  hasConflicts: boolean,
-  sessionActive: boolean,
-): WeightSyncStatus => {
-  if (!sessionActive || phase === 'NeedsAuthentication') return 'local-only';
-  if (phase === 'Offline') return 'offline';
-  if (phase === 'Failed') return 'error';
-  if (hasConflicts || phase === 'Conflict') return 'conflict';
-  if (
-    phase === 'Uploading' ||
-    phase === 'Downloading' ||
-    phase === 'Preparing' ||
-    phase === 'Resolving'
-  ) {
-    return 'syncing';
-  }
-  return 'synced';
-};
-
-const saveWeightMetadataRecords = async (
-  metadataStore: WeightSyncMetadataStore,
-  records: Awaited<ReturnType<WeightSyncMetadataStore['load']>>,
-) => {
-  await metadataStore.clear();
-  for (const record of records.values()) {
-    await metadataStore.set(record);
-  }
-};
-
-const resolvePulledRevision = (pullResult: {
-  serverRevision?: number;
-  revision?: number | { number: number };
-}): number | null => {
-  if (
-    typeof pullResult.serverRevision === 'number' &&
-    Number.isFinite(pullResult.serverRevision)
-  ) {
-    return Math.max(0, Math.floor(pullResult.serverRevision));
-  }
-  if (typeof pullResult.revision === 'number' && Number.isFinite(pullResult.revision)) {
-    return Math.max(0, Math.floor(pullResult.revision));
-  }
-  if (
-    typeof pullResult.revision === 'object' &&
-    pullResult.revision !== null &&
-    typeof pullResult.revision.number === 'number' &&
-    Number.isFinite(pullResult.revision.number)
-  ) {
-    return Math.max(0, Math.floor(pullResult.revision.number));
-  }
-  return null;
-};
-
-const hasUnsupportedRemoteEntities = (pullResult: {
-  operations: Array<{ entity: string }>;
-  metadata?: Record<string, unknown>;
-}): boolean => {
-  const unsupportedEntityCount = pullResult.metadata?.unsupportedEntityCount;
-  return (
-    (typeof unsupportedEntityCount === 'number' && unsupportedEntityCount > 0) ||
-    pullResult.operations.some(
-      (operation) =>
-        operation.entity !== 'weightHistory' &&
-        operation.entity !== 'workoutSessions' &&
-        operation.entity !== 'workouts' &&
-        operation.entity !== 'foodEntries' &&
-        operation.entity !== 'nutritionTargets' &&
-        operation.entity !== 'fitnessProfiles' &&
-        operation.entity !== 'userLimitations' &&
-        operation.entity !== 'recoveryCheckIns',
-    )
-  );
-};
-
-const countSupportedQueueOperations = (
-  operations: OfflineSyncQueueOperation[],
-): number =>
-  filterWeightHistoryQueueOperations(operations).length +
-  operations.filter(isWorkoutSessionQueueOperation).length +
-  operations.filter(isWorkoutTemplateQueueOperation).length +
-  operations.filter(isFoodEntryQueueOperation).length +
-  operations.filter(isNutritionTargetQueueOperation).length +
-  operations.filter(isFitnessProfileQueueOperation).length +
-  operations.filter(isSafetyRecoveryQueueOperation).length;
 
 export function SyncProvider({
   children,
@@ -390,133 +255,21 @@ export function SyncProvider({
       }
 
       if (pullResult) {
-        const syncedAt = pullResult.serverTimestamp ?? new Date().toISOString();
-        const changedEntities = (pullResult.changedEntities ?? []) as RemoteChangedEntity[];
-        const nonDeletedChangedEntities = changedEntities.filter(
-          (entity) => entity.operationType !== 'delete',
-        );
-        const deletedEntities = (pullResult.deletedEntities ?? []) as RemoteDeletedEntity[];
-
-        const weightChanges = applyRemoteWeightHistoryChanges(
-          latestStateRef.current,
-          nonDeletedChangedEntities,
-          deletedEntities,
-          await metadataStore.load(),
-          syncedAt,
-        );
-        const workoutSessionChanges = applyRemoteWorkoutSessionChanges(
-          weightChanges.nextState,
-          nonDeletedChangedEntities,
-          deletedEntities,
-          await workoutSessionMetadataStore.load(),
-          syncedAt,
-        );
-        const workoutTemplateChanges = applyRemoteWorkoutTemplateChanges(
-          workoutSessionChanges.nextState,
-          nonDeletedChangedEntities,
-          deletedEntities,
-          session.user.id,
-          await workoutTemplateMetadataStore.load(),
-          syncedAt,
-        );
-        const safetyRecoveryChanges = applyRemoteSafetyRecoveryChanges(
-          workoutTemplateChanges.nextState,
-          nonDeletedChangedEntities,
-          deletedEntities,
-          session.user.id,
-          await safetyRecoveryMetadataStore.load(),
-          syncedAt,
-        );
-        const foodEntryChanges = applyRemoteFoodEntryChanges(
-          safetyRecoveryChanges.nextState,
-          nonDeletedChangedEntities,
-          deletedEntities,
-          await foodEntryMetadataStore.load(),
-          syncedAt,
-        );
-        const nutritionTargetChanges = applyRemoteNutritionTargetChanges(
-          foodEntryChanges.nextState,
-          nonDeletedChangedEntities,
-          deletedEntities,
-          session.user.id,
-          await nutritionTargetMetadataStore.load(),
-          syncedAt,
-        );
-        const fitnessProfileChanges = applyRemoteFitnessProfileChanges(
-          nutritionTargetChanges.nextState,
-          nonDeletedChangedEntities,
-          deletedEntities,
-          session.user.id,
-          await fitnessProfileMetadataStore.load(),
-          syncedAt,
-        );
-
-        runWithoutFoodEntryOutbox(() =>
-          runWithoutNutritionTargetOutbox(() =>
-            runWithoutFitnessProfileOutbox(() =>
-              replaceState(fitnessProfileChanges.nextState),
-            ),
-          ),
-        );
-
-        await saveWeightMetadataRecords(
+        await applySyncPullResult({
+          cursorStore,
+          fitnessProfileMetadataStore,
+          foodEntryMetadataStore,
           metadataStore,
-          new Map(weightChanges.metadata.map((record) => [record.id, record])),
-        );
-        await workoutSessionMetadataStore.clear();
-        for (const record of workoutSessionChanges.metadata) {
-          await workoutSessionMetadataStore.set(record);
-        }
-        await workoutTemplateMetadataStore.clear();
-        for (const record of workoutTemplateChanges.metadata) {
-          await workoutTemplateMetadataStore.set(record);
-        }
-        await safetyRecoveryMetadataStore.clear();
-        for (const record of safetyRecoveryChanges.metadata) {
-          await safetyRecoveryMetadataStore.set(record);
-        }
-        await foodEntryMetadataStore.clear();
-        for (const record of foodEntryChanges.metadata) {
-          await foodEntryMetadataStore.set(record);
-        }
-        await nutritionTargetMetadataStore.clear();
-        for (const record of nutritionTargetChanges.metadata) {
-          await nutritionTargetMetadataStore.set(record);
-        }
-        await fitnessProfileMetadataStore.clear();
-        for (const record of fitnessProfileChanges.metadata) {
-          await fitnessProfileMetadataStore.set(record);
-        }
-
-        const handledOperationCount =
-          weightChanges.appliedRecordIds.length +
-          weightChanges.deletedRecordIds.length +
-          workoutSessionChanges.appliedRecordIds.length +
-          workoutSessionChanges.deletedRecordIds.length +
-          workoutTemplateChanges.appliedRecordIds.length +
-          workoutTemplateChanges.deletedRecordIds.length +
-          safetyRecoveryChanges.appliedRecordIds.length +
-          safetyRecoveryChanges.deletedRecordIds.length +
-          foodEntryChanges.appliedRecordIds.length +
-          foodEntryChanges.deletedRecordIds.length +
-          nutritionTargetChanges.appliedRecordIds.length +
-          nutritionTargetChanges.deletedRecordIds.length +
-          fitnessProfileChanges.appliedRecordIds.length +
-          fitnessProfileChanges.deletedRecordIds.length;
-        const pulledRevision = resolvePulledRevision(pullResult);
-        if (
-          pulledRevision !== null &&
-          nextConflictCount === 0 &&
-          !hasUnsupportedRemoteEntities(pullResult) &&
-          handledOperationCount === pullResult.operations.length
-        ) {
-          await cursorStore.set({
-            userId: session.user.id,
-            deviceId: session.device.id,
-            serverRevision: pulledRevision,
-            lastSyncedAt: syncedAt,
-          });
-        }
+          nextConflictCount,
+          nutritionTargetMetadataStore,
+          pullResult: pullResult as SyncPullResult,
+          replaceState,
+          safetyRecoveryMetadataStore,
+          session,
+          state: latestStateRef.current,
+          workoutSessionMetadataStore,
+          workoutTemplateMetadataStore,
+        });
       }
 
       const afterPending = await queueStore.getPending();
