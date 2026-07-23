@@ -35,6 +35,11 @@ import {
   runWithoutNutritionTargetOutbox,
 } from '@/cloud/NutritionTargetSync';
 import {
+  applyRemoteSafetyRecoveryChanges,
+  isSafetyRecoveryQueueOperation,
+} from '@/cloud/SafetyRecoverySync';
+import { planSafetyRecoverySyncOperations } from '@/cloud/SafetyRecoverySyncPlanner';
+import {
   applyRemoteWeightHistoryChanges,
   filterWeightHistoryQueueOperations,
 } from '@/cloud/WeightHistorySync';
@@ -53,6 +58,7 @@ import {
   createFitnessProfileSyncMetadataStore,
   createFoodEntrySyncMetadataStore,
   createNutritionTargetSyncMetadataStore,
+  createSafetyRecoverySyncMetadataStore,
   createWorkoutSessionSyncMetadataStore,
   createWorkoutTemplateSyncMetadataStore,
   getDefaultSyncCursorStore,
@@ -173,7 +179,9 @@ const hasUnsupportedRemoteEntities = (pullResult: {
         operation.entity !== 'workouts' &&
         operation.entity !== 'foodEntries' &&
         operation.entity !== 'nutritionTargets' &&
-        operation.entity !== 'fitnessProfiles',
+        operation.entity !== 'fitnessProfiles' &&
+        operation.entity !== 'userLimitations' &&
+        operation.entity !== 'recoveryCheckIns',
     )
   );
 };
@@ -186,7 +194,8 @@ const countSupportedQueueOperations = (
   operations.filter(isWorkoutTemplateQueueOperation).length +
   operations.filter(isFoodEntryQueueOperation).length +
   operations.filter(isNutritionTargetQueueOperation).length +
-  operations.filter(isFitnessProfileQueueOperation).length;
+  operations.filter(isFitnessProfileQueueOperation).length +
+  operations.filter(isSafetyRecoveryQueueOperation).length;
 
 export function SyncProvider({
   children,
@@ -225,6 +234,10 @@ export function SyncProvider({
   );
   const fitnessProfileMetadataStore = useMemo(
     () => createFitnessProfileSyncMetadataStore(syncStorage),
+    [syncStorage],
+  );
+  const safetyRecoveryMetadataStore = useMemo(
+    () => createSafetyRecoverySyncMetadataStore(syncStorage),
     [syncStorage],
   );
 
@@ -317,6 +330,22 @@ export function SyncProvider({
     }
   }, [queueStore, session, workoutTemplateMetadataStore]);
 
+  const ensureSafetyRecoverySync = useCallback(async () => {
+    if (!session?.user.id || !session.device.id) return;
+
+    const operations = planSafetyRecoverySyncOperations({
+      userLimitations: latestStateRef.current.userLimitations,
+      recoveryCheckIns: latestStateRef.current.recoveryCheckIns,
+      metadata: await safetyRecoveryMetadataStore.load(),
+      pendingOperations: await queueStore.getPending(),
+      userId: session.user.id,
+      deviceId: session.device.id,
+    });
+    for (const operation of operations) {
+      await queueStore.enqueue(operation);
+    }
+  }, [queueStore, safetyRecoveryMetadataStore, session]);
+
   const syncNow = useCallback(async () => {
     if (syncingRef.current || isRestoringState) return;
 
@@ -334,6 +363,7 @@ export function SyncProvider({
       await ensureNutritionTargetBootstrap();
       await ensureFitnessProfileSync();
       await ensureWorkoutTemplateSync();
+      await ensureSafetyRecoverySync();
       const result = await syncCoordinator.syncNow();
       const pushResult = result.push?.result;
       const pullResult = result.pull?.result;
@@ -389,8 +419,16 @@ export function SyncProvider({
           await workoutTemplateMetadataStore.load(),
           syncedAt,
         );
-        const foodEntryChanges = applyRemoteFoodEntryChanges(
+        const safetyRecoveryChanges = applyRemoteSafetyRecoveryChanges(
           workoutTemplateChanges.nextState,
+          nonDeletedChangedEntities,
+          deletedEntities,
+          session.user.id,
+          await safetyRecoveryMetadataStore.load(),
+          syncedAt,
+        );
+        const foodEntryChanges = applyRemoteFoodEntryChanges(
+          safetyRecoveryChanges.nextState,
           nonDeletedChangedEntities,
           deletedEntities,
           await foodEntryMetadataStore.load(),
@@ -433,6 +471,10 @@ export function SyncProvider({
         for (const record of workoutTemplateChanges.metadata) {
           await workoutTemplateMetadataStore.set(record);
         }
+        await safetyRecoveryMetadataStore.clear();
+        for (const record of safetyRecoveryChanges.metadata) {
+          await safetyRecoveryMetadataStore.set(record);
+        }
         await foodEntryMetadataStore.clear();
         for (const record of foodEntryChanges.metadata) {
           await foodEntryMetadataStore.set(record);
@@ -453,6 +495,8 @@ export function SyncProvider({
           workoutSessionChanges.deletedRecordIds.length +
           workoutTemplateChanges.appliedRecordIds.length +
           workoutTemplateChanges.deletedRecordIds.length +
+          safetyRecoveryChanges.appliedRecordIds.length +
+          safetyRecoveryChanges.deletedRecordIds.length +
           foodEntryChanges.appliedRecordIds.length +
           foodEntryChanges.deletedRecordIds.length +
           nutritionTargetChanges.appliedRecordIds.length +
@@ -494,6 +538,7 @@ export function SyncProvider({
     cursorStore,
     ensureFitnessProfileSync,
     ensureNutritionTargetBootstrap,
+    ensureSafetyRecoverySync,
     ensureWorkoutTemplateSync,
     fitnessProfileMetadataStore,
     foodEntryMetadataStore,
@@ -504,6 +549,7 @@ export function SyncProvider({
     queueStore,
     refreshQueueStats,
     replaceState,
+    safetyRecoveryMetadataStore,
     session,
     syncCoordinator,
     workoutSessionMetadataStore,
