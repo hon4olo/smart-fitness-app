@@ -2,8 +2,8 @@ import type { Dispatch, SetStateAction } from 'react';
 import { useCallback } from 'react';
 
 import type { AuthService } from '@/auth';
+import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
 import { createWeightHistoryQueueOperation } from '@/cloud/WeightHistorySync';
-import type { AppRepository } from '@/repositories';
 import type { createAsyncStorageOperationQueueStore } from '@/storage/AsyncStorageOperationQueueStore';
 import type { createWeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
 import type { AppState, WeightEntry } from '@/types';
@@ -13,11 +13,14 @@ import {
   deleteWeightEntryFromState,
   updateWeightEntryInState,
 } from './progressActions';
+import type { ScheduleAppStateMutation } from './useAppMutationQueue';
+
+type WeightHistoryAction = 'create' | 'update' | 'delete';
 
 type WeightHistoryActionsOptions = {
   authService: AuthService;
   queueStore: ReturnType<typeof createAsyncStorageOperationQueueStore>;
-  repository: AppRepository;
+  scheduleStateMutation: ScheduleAppStateMutation;
   setState: Dispatch<SetStateAction<AppState>>;
   weightSyncMetadataStore: ReturnType<typeof createWeightSyncMetadataStore>;
 };
@@ -25,15 +28,15 @@ type WeightHistoryActionsOptions = {
 export function useWeightHistoryActions({
   authService,
   queueStore,
-  repository,
+  scheduleStateMutation,
   setState,
   weightSyncMetadataStore,
 }: WeightHistoryActionsOptions) {
-  const queueWeightHistoryOperation = useCallback(
-    async (action: 'create' | 'update' | 'delete', entry: WeightEntry) => {
+  const buildWeightHistoryOperation = useCallback(
+    async (action: WeightHistoryAction, entry: WeightEntry): Promise<OfflineSyncQueueOperation> => {
       const session = await authService.getCurrentSession();
       const metadata = await weightSyncMetadataStore.get(entry.id);
-      const operation = createWeightHistoryQueueOperation({
+      return createWeightHistoryQueueOperation({
         action,
         entry,
         deviceId: session?.device.id ?? 'local-device',
@@ -41,21 +44,34 @@ export function useWeightHistoryActions({
         actorId: session?.user.id,
         previous: metadata,
       });
-      await queueStore.enqueue(operation);
     },
-    [authService, queueStore, weightSyncMetadataStore],
+    [authService, weightSyncMetadataStore],
+  );
+
+  const createWeightHistoryOutboxStep = useCallback(
+    (action: WeightHistoryAction, entry: WeightEntry): (() => Promise<void>) => {
+      let operationPromise: Promise<OfflineSyncQueueOperation> | null = null;
+      return async () => {
+        operationPromise ??= buildWeightHistoryOperation(action, entry);
+        await queueStore.enqueue(await operationPromise);
+      };
+    },
+    [buildWeightHistoryOperation, queueStore],
   );
 
   const addWeightEntry = useCallback(
     (entry: WeightEntry) => {
       setState((currentState) => {
         const nextState = addWeightEntryToState(currentState, entry);
-        void repository.saveState(nextState);
-        void queueWeightHistoryOperation('create', entry);
+        scheduleStateMutation({
+          label: 'Save weight entry',
+          nextState,
+          outbox: createWeightHistoryOutboxStep('create', entry),
+        });
         return nextState;
       });
     },
-    [queueWeightHistoryOperation, repository, setState],
+    [createWeightHistoryOutboxStep, scheduleStateMutation, setState],
   );
 
   const updateWeightEntry = useCallback(
@@ -63,12 +79,15 @@ export function useWeightHistoryActions({
       setState((currentState) => {
         const nextState = updateWeightEntryInState(currentState, entryId, entry);
         if (nextState === currentState) return currentState;
-        void repository.saveState(nextState);
-        void queueWeightHistoryOperation('update', entry);
+        scheduleStateMutation({
+          label: 'Update weight entry',
+          nextState,
+          outbox: createWeightHistoryOutboxStep('update', entry),
+        });
         return nextState;
       });
     },
-    [queueWeightHistoryOperation, repository, setState],
+    [createWeightHistoryOutboxStep, scheduleStateMutation, setState],
   );
 
   const deleteWeightEntry = useCallback(
@@ -76,18 +95,22 @@ export function useWeightHistoryActions({
       setState((currentState) => {
         const entry = currentState.weightHistory.find((item) => item.id === entryId);
         const nextState = deleteWeightEntryFromState(currentState, entryId);
-        void repository.saveState(nextState);
-        if (entry) void queueWeightHistoryOperation('delete', entry);
+        if (nextState === currentState) return currentState;
+        scheduleStateMutation({
+          label: 'Delete weight entry',
+          nextState,
+          outbox: entry ? createWeightHistoryOutboxStep('delete', entry) : undefined,
+        });
         return nextState;
       });
     },
-    [queueWeightHistoryOperation, repository, setState],
+    [createWeightHistoryOutboxStep, scheduleStateMutation, setState],
   );
 
   return {
     addWeightEntry,
+    createWeightHistoryOutboxStep,
     deleteWeightEntry,
-    queueWeightHistoryOperation,
     updateWeightEntry,
   };
 }
