@@ -1,12 +1,12 @@
 import { Stack } from 'expo-router';
 
-import SafetyRecoveryCoachScreen from '@/features/coach/screens/SafetyRecoveryCoachScreen';
+import SafetyRecoveryPreflightScreen from '@/features/coach/screens/SafetyRecoveryPreflightScreen';
 
-export default function SafetyRecoveryCoachRoute() {
+export default function SafetyRecoveryPreflightRoute() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafetyRecoveryCoachScreen />
+      <SafetyRecoveryPreflightScreen />
     </>
   );
 }
