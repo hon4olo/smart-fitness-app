@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError, type ApiClient } from '@/api/client';
-import { createCoachApi, parseCoachRunEnvelope } from './coach';
+import {
+  createCoachApi,
+  parseCoachCapabilities,
+  parseCoachRunEnvelope,
+  type NutritionCoachRequestType,
+} from './coach';
 
 const runId = '11111111-1111-4111-8111-111111111111';
 const userId = '22222222-2222-4222-8222-222222222222';
@@ -38,7 +43,7 @@ const makeStrengthEnvelope = (
 
 const makeNutritionEnvelope = (
   status: 'queued' | 'running' | 'completed' | 'rejected' | 'failed' = 'completed',
-  requestType: 'nutrition_review' | 'nutrition_target_proposal' = 'nutrition_review',
+  requestType: NutritionCoachRequestType = 'nutrition_review',
 ): RawCoachEnvelope => ({
   run: {
     id: runId,
@@ -55,13 +60,15 @@ const makeNutritionEnvelope = (
             kind:
               requestType === 'nutrition_review'
                 ? 'nutrition-review'
-                : 'nutrition-target-proposal',
+                : requestType === 'nutrition_target_proposal'
+                  ? 'nutrition-target-proposal'
+                  : 'nutrition-strategy-proposal',
             metrics: {},
           }
         : null,
     error: null,
     policyVersions: {
-      context: 'nutrition-context-v1',
+      context: 'nutrition-context-v2',
       math: 'nutrition-math-v1',
       proposal: 'nutrition-target-proposal-v1',
       guardrail: 'nutrition-target-guardrail-v1',
@@ -127,6 +134,62 @@ describe('coach API', () => {
     expect(parsed.agentRuns.map((agentRun) => agentRun.sequence)).toEqual([1, 2]);
   });
 
+  it('strictly parses the safe capability response', () => {
+    expect(
+      parseCoachCapabilities({
+        schemaVersion: 1,
+        nutrition: {
+          deterministicReview: true,
+          deterministicTargetProposal: true,
+          structuredStrategyProposal: false,
+          strategyRequiresConfirmation: true,
+        },
+      }),
+    ).toEqual({
+      schemaVersion: 1,
+      nutrition: {
+        deterministicReview: true,
+        deterministicTargetProposal: true,
+        structuredStrategyProposal: false,
+        strategyRequiresConfirmation: true,
+      },
+    });
+
+    expect(() =>
+      parseCoachCapabilities({
+        schemaVersion: 1,
+        nutrition: { structuredStrategyProposal: true },
+      }),
+    ).toThrow('Invalid coach capabilities response');
+  });
+
+  it('loads authenticated capabilities before exposing strategy UI', async () => {
+    const get = vi.fn(async () => ({
+      schemaVersion: 1,
+      nutrition: {
+        deterministicReview: true,
+        deterministicTargetProposal: true,
+        structuredStrategyProposal: true,
+        strategyRequiresConfirmation: true,
+      },
+    }));
+    const api = createCoachApi(
+      {
+        getAccessToken: vi.fn(async () => 'token'),
+        refreshAccessToken: vi.fn(async () => null),
+      },
+      makeClient({ get: get as unknown as ApiClient['get'] }),
+    );
+
+    const capabilities = await api.getCapabilities();
+
+    expect(capabilities.nutrition.structuredStrategyProposal).toBe(true);
+    expect(get).toHaveBeenCalledWith(
+      '/v1/coach/capabilities',
+      expect.objectContaining({ headers: { authorization: 'Bearer token' } }),
+    );
+  });
+
   it('starts an authenticated nutrition review on the nutrition endpoint', async () => {
     const post = vi.fn(async () => makeNutritionEnvelope());
     const api = createCoachApi(
@@ -172,6 +235,31 @@ describe('coach API', () => {
     expect(post).toHaveBeenCalledWith(
       '/v1/coach/nutrition/runs',
       { requestType: 'nutrition_target_proposal', lookbackDays: 14 },
+      expect.objectContaining({ retry: false }),
+    );
+  });
+
+  it('starts a structured strategy proposal only through the explicit request type', async () => {
+    const post = vi.fn(async () =>
+      makeNutritionEnvelope('completed', 'nutrition_strategy_proposal'),
+    );
+    const api = createCoachApi(
+      {
+        getAccessToken: vi.fn(async () => 'token'),
+        refreshAccessToken: vi.fn(async () => null),
+      },
+      makeClient({ post: post as unknown as ApiClient['post'] }),
+    );
+
+    const result = await api.startNutritionRun({
+      requestType: 'nutrition_strategy_proposal',
+      lookbackDays: 14,
+    });
+
+    expect(result.run.requestType).toBe('nutrition_strategy_proposal');
+    expect(post).toHaveBeenCalledWith(
+      '/v1/coach/nutrition/runs',
+      { requestType: 'nutrition_strategy_proposal', lookbackDays: 14 },
       expect.objectContaining({ retry: false }),
     );
   });
