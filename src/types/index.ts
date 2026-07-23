@@ -3,6 +3,19 @@ export type { BodyMeasurement, WeightEntry } from './progress';
 export type { FoodAttribution, FoodBrowserMode, FoodCatalogItem, FoodEntry, FoodCategory, MealTemplate, MealType, NutritionState, NutritionTargets } from './nutrition';
 export type { ProfileCalculationSex, ProfileGoalType, ProfileState, ProfileTrainingExperience } from './profile';
 export type {
+  RecoveryCheckIn,
+  RecoveryScaleValue,
+  RecoveryZeroToFiveValue,
+  UserLimitation,
+  UserLimitationBodyRegion,
+  UserLimitationKind,
+  UserLimitationMovementPattern,
+  UserLimitationSeverity,
+  UserLimitationSide,
+  UserLimitationStatus,
+  UserLimitationTrainingImpact,
+} from './safetyRecovery';
+export type {
   Exercise,
   Workout,
   WorkoutCoachMetadata,
