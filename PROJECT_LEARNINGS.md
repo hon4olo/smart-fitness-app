@@ -58,8 +58,10 @@ Full Combined proposal composition still requires an exposed backend capability 
 - `EXPO_PUBLIC_FOOD_API_BASE_URL` is only a backwards-compatible fallback.
 - Feature modules must not hardcode backend hosts.
 - Food-provider and AI-provider credentials remain backend-only.
-- Access and refresh tokens currently pass through the common storage abstraction and are also represented in the cached auth session. Production hardening must move tokens to platform secure storage and remove ordinary-storage duplication.
-- Adding `expo-secure-store` is a native runtime change: validate with Expo Doctor and produce a new matching native build before using it in released code.
+- Ordinary auth-session storage contains only user, device, and session metadata; it must never contain access or refresh tokens.
+- Native access and refresh tokens use Expo SecureStore. Existing AsyncStorage token envelopes migrate once, are verified in secure storage, and are removed only after successful verification.
+- Web and non-native test runtimes intentionally use volatile in-memory token storage instead of silently downgrading secrets to ordinary persistent storage.
+- `expo-secure-store` is a native runtime dependency. A matching new native build is required before releasing JavaScript that depends on it.
 
 ## Synchronization
 
