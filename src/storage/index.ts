@@ -12,6 +12,14 @@ export type {
   WorkoutSessionSyncMetadataStore,
 } from './WorkoutSessionSyncMetadataStore';
 export {
+  createWorkoutTemplateSyncMetadataStore,
+  WORKOUT_TEMPLATE_SYNC_METADATA_STORAGE_KEY,
+} from './WorkoutTemplateSyncMetadataStore';
+export type {
+  WorkoutTemplateSyncMetadata,
+  WorkoutTemplateSyncMetadataStore,
+} from './WorkoutTemplateSyncMetadataStore';
+export {
   createFoodEntrySyncMetadataStore,
   FOOD_ENTRY_SYNC_METADATA_STORAGE_KEY,
 } from './FoodEntrySyncMetadataStore';
