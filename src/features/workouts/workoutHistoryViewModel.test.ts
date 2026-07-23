@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { WorkoutSession } from '@/types';
+import type { TrainingProgram, WorkoutSession } from '@/types';
 import {
   buildWorkoutHistory,
   buildWorkoutHistoryItemView,
+  buildWorkoutHistoryProgramOptions,
+  filterWorkoutHistory,
   formatWorkoutSafetyGate,
   groupWorkoutSessionSets,
 } from './workoutHistoryViewModel';
@@ -72,6 +74,40 @@ const baseSession: WorkoutSession = {
   },
 };
 
+const upperProgram: TrainingProgram = {
+  id: 'program-upper',
+  name: 'Upper program',
+  goal: 'Strength',
+  difficulty: 'intermediate',
+  durationWeeks: 8,
+  createdAt: '2026-07-01T00:00:00.000Z',
+  days: [
+    {
+      id: 'program-upper-day',
+      weekday: 'monday',
+      workoutTemplateId: 'upper-a',
+      workoutTemplateName: 'Upper A',
+    },
+  ],
+};
+
+const lowerProgram: TrainingProgram = {
+  id: 'program-lower',
+  name: 'Lower program',
+  goal: 'Strength',
+  difficulty: 'intermediate',
+  durationWeeks: 8,
+  createdAt: '2026-07-01T00:00:00.000Z',
+  days: [
+    {
+      id: 'program-lower-day',
+      weekday: 'wednesday',
+      workoutTemplateId: 'lower-a',
+      workoutTemplateName: 'Lower A',
+    },
+  ],
+};
+
 describe('workout history view model', () => {
   it('summarizes session metrics and recorded Safety Recovery context', () => {
     expect(buildWorkoutHistoryItemView(baseSession)).toMatchObject({
@@ -128,5 +164,65 @@ describe('workout history view model', () => {
       safetyTone: 'neutral',
       hasSafetyContext: false,
     });
+  });
+
+  it('builds stable program filter options with an unassigned fallback', () => {
+    expect(buildWorkoutHistoryProgramOptions([upperProgram, lowerProgram])).toEqual([
+      { id: 'all', label: 'All programs' },
+      { id: 'program-lower', label: 'Lower program' },
+      { id: 'program-upper', label: 'Upper program' },
+      { id: 'unassigned', label: 'Unassigned' },
+    ]);
+  });
+
+  it('combines period, program and Safety filters without mutating sessions', () => {
+    const readyLower: WorkoutSession = {
+      ...baseSession,
+      id: '77777777-7777-4777-8777-777777777777',
+      workoutId: 'lower-a',
+      workoutTitle: 'Lower A',
+      startedAt: '2026-07-18T10:00:00.000Z',
+      finishedAt: '2026-07-18T11:00:00.000Z',
+      safetyRecovery: {
+        ...baseSession.safetyRecovery!,
+        gateKind: 'ready',
+        acknowledgementRequired: false,
+        explicitlyAcknowledged: false,
+        reviewStatus: 'ready',
+        recommendedLoadMultiplier: 1,
+        restrictions: [],
+        issues: [],
+      },
+    };
+    const oldUnassigned: WorkoutSession = {
+      ...baseSession,
+      id: '88888888-8888-4888-8888-888888888888',
+      workoutId: 'custom-one-off',
+      workoutTitle: 'One-off workout',
+      startedAt: '2026-05-01T10:00:00.000Z',
+      finishedAt: '2026-05-01T11:00:00.000Z',
+      safetyRecovery: undefined,
+    };
+    const source = [oldUnassigned, readyLower, baseSession];
+
+    expect(
+      filterWorkoutHistory(
+        source,
+        [upperProgram, lowerProgram],
+        { period: '7d', programId: 'program-upper', safety: 'modify' },
+        Date.parse('2026-07-24T00:00:00.000Z'),
+      ).map((item) => item.session.id),
+    ).toEqual([baseSession.id]);
+
+    expect(
+      filterWorkoutHistory(
+        source,
+        [upperProgram, lowerProgram],
+        { period: 'all', programId: 'unassigned', safety: 'no_context' },
+        Date.parse('2026-07-24T00:00:00.000Z'),
+      ).map((item) => item.session.id),
+    ).toEqual([oldUnassigned.id]);
+
+    expect(source).toEqual([oldUnassigned, readyLower, baseSession]);
   });
 });
