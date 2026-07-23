@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { Colors } from '@/constants/theme';
 import WorkoutSafetyGateScreen from '@/features/workouts/screens/WorkoutSafetyGateScreen';
 import WorkoutSessionScreen from '@/features/workouts/screens/WorkoutSessionScreen';
 import type { WorkoutSessionDraft } from '@/features/workouts/types';
@@ -85,7 +86,7 @@ export default function WorkoutSessionRoute() {
   return <WorkoutSessionScreen />;
 }
 
-const createStyles = (colors: { background: string; textSecondary: string }) =>
+const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     loadingScreen: {
       alignItems: 'center',
