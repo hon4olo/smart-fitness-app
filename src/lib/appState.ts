@@ -6,6 +6,7 @@ import type {
   WeightEntry,
   WorkoutSession,
 } from '@/types';
+import { normalizeBodyMeasurementList } from '@/features/progress/bodyMeasurementModel';
 
 import { ensureUuid } from './ids';
 
@@ -72,14 +73,8 @@ export const normalizeWeightHistory = (weightHistory: WeightEntry[]) => {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
-export const normalizeBodyMeasurements = (bodyMeasurements: BodyMeasurement[]) => {
-  return bodyMeasurements
-    .map((entry) => ({
-      ...entry,
-      createdAt: entry.createdAt ?? new Date().toISOString(),
-    }))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-};
+export const normalizeBodyMeasurements = (bodyMeasurements: unknown): BodyMeasurement[] =>
+  normalizeBodyMeasurementList(bodyMeasurements);
 
 export const getLastWorkoutSession = (workoutSessions: WorkoutSession[]) => {
   return workoutSessions.at(-1) ?? null;
