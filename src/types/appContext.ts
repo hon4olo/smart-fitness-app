@@ -7,7 +7,9 @@ import type {
   NutritionTargets,
   ProfileGoalType,
   ProfileState,
+  RecoveryCheckIn,
   TrainingProgram,
+  UserLimitation,
   WeightEntry,
   Workout,
   WorkoutSession,
@@ -25,6 +27,8 @@ export type AppState = {
   nutritionTargets: NutritionTargets;
   weightHistory: WeightEntry[];
   bodyMeasurements: BodyMeasurement[];
+  userLimitations: UserLimitation[];
+  recoveryCheckIns: RecoveryCheckIn[];
   profile: ProfileState;
   onboardingCompleted: boolean;
 };
@@ -69,6 +73,10 @@ export type AppContextType = AppState & {
     weeklyWeightChangeGoal: number;
     trainingDaysPerWeek: number;
   }) => void;
+  upsertUserLimitation: (limitation: UserLimitation) => void;
+  deleteUserLimitation: (limitationId: string) => void;
+  upsertRecoveryCheckIn: (checkIn: RecoveryCheckIn) => void;
+  deleteRecoveryCheckIn: (checkInId: string) => void;
   updateFoodEntry: (entryId: string, updatedEntry: FoodEntry) => void;
   deleteFoodEntry: (entryId: string) => void;
   deleteMealTemplate: (templateId: string) => void;
