@@ -46,6 +46,8 @@ const baseState = (): AppState => ({
   onboardingCompleted: true,
 });
 
+const cursorStore = { get: vi.fn().mockResolvedValue(null) };
+
 describe('weight history sync helpers', () => {
   it('builds deterministic queue operations', () => {
     const operation = createWeightHistoryQueueOperation({
@@ -171,6 +173,7 @@ describe('production cloud provider', () => {
     const provider = createProductionCloudProvider({
       apiClient: { request } as never,
       authService: authService as never,
+      cursorStore,
       now: () => '2025-01-03T12:30:00.000Z',
     });
 
@@ -222,6 +225,7 @@ describe('production cloud provider', () => {
           device: { id: 'device-a' },
         }),
       } as never,
+      cursorStore,
       now: () => '2025-01-03T12:30:00.000Z',
     });
 
