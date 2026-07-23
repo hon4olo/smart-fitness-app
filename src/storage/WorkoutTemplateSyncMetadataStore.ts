@@ -19,6 +19,7 @@ export type WorkoutTemplateSyncSnapshot = {
 
 export type WorkoutTemplateSyncMetadata = {
   id: string;
+  userId: string;
   revision: number;
   deviceId: string;
   createdAt: string;
@@ -95,6 +96,8 @@ const normalize = (value: unknown): WorkoutTemplateSyncMetadata | null => {
     !isRecord(value) ||
     typeof value.id !== 'string' ||
     !value.id.trim() ||
+    typeof value.userId !== 'string' ||
+    !value.userId.trim() ||
     typeof value.revision !== 'number' ||
     !Number.isFinite(value.revision) ||
     typeof value.deviceId !== 'string' ||
@@ -110,6 +113,7 @@ const normalize = (value: unknown): WorkoutTemplateSyncMetadata | null => {
 
   return {
     id: value.id.trim(),
+    userId: value.userId.trim(),
     revision: Math.max(0, Math.floor(value.revision)),
     deviceId: value.deviceId.trim(),
     createdAt: value.createdAt.trim(),
@@ -138,7 +142,7 @@ const parse = async (
     const records = values
       .map(normalize)
       .filter((record): record is WorkoutTemplateSyncMetadata => Boolean(record));
-    return new Map(records.map((record) => [record.id, record]));
+    return new Map(records.map((record) => [`${record.userId}:${record.id}`, record]));
   } catch {
     return new Map();
   }
@@ -164,11 +168,12 @@ export const createWorkoutTemplateSyncMetadataStore = (
   return {
     load: () => parse(storage),
     async get(id) {
-      return (await parse(storage)).get(id) ?? null;
+      const records = await parse(storage);
+      return [...records.values()].find((record) => record.id === id) ?? null;
     },
     async set(record) {
       const records = await parse(storage);
-      records.set(record.id, record);
+      records.set(`${record.userId}:${record.id}`, record);
       return persist(records);
     },
     async clear() {
