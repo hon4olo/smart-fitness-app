@@ -21,6 +21,7 @@ import {
   isFitnessProfileQueueOperation,
   normalizeFitnessProfileForSync,
 } from '@/cloud/FitnessProfileSync';
+import { planMealTemplateSyncOperations } from '@/cloud/MealTemplateSyncPlanner';
 import {
   createNutritionTargetQueueOperation,
   getNutritionTargetEntityId,
@@ -36,6 +37,7 @@ import {
   createCustomExerciseSyncMetadataStore,
   createFitnessProfileSyncMetadataStore,
   createFoodEntrySyncMetadataStore,
+  createMealTemplateSyncMetadataStore,
   createNutritionTargetSyncMetadataStore,
   createSafetyRecoverySyncMetadataStore,
   createTrainingProgramSyncMetadataStore,
@@ -109,6 +111,10 @@ export function SyncProvider({
   );
   const foodEntryMetadataStore = useMemo(
     () => createFoodEntrySyncMetadataStore(syncStorage),
+    [syncStorage],
+  );
+  const mealTemplateMetadataStore = useMemo(
+    () => createMealTemplateSyncMetadataStore(syncStorage),
     [syncStorage],
   );
   const nutritionTargetMetadataStore = useMemo(
@@ -252,6 +258,18 @@ export function SyncProvider({
     }
   }, [queueStore, session, trainingProgramMetadataStore]);
 
+  const ensureMealTemplateSync = useCallback(async () => {
+    if (!session?.user.id || !session.device.id) return;
+    const operations = planMealTemplateSyncOperations({
+      templates: latestStateRef.current.mealTemplates,
+      metadata: await mealTemplateMetadataStore.load(),
+      pendingOperations: await queueStore.getPending(),
+      userId: session.user.id,
+      deviceId: session.device.id,
+    });
+    for (const operation of operations) await queueStore.enqueue(operation);
+  }, [mealTemplateMetadataStore, queueStore, session]);
+
   const ensureSafetyRecoverySync = useCallback(async () => {
     if (!session?.user.id || !session.device.id) return;
 
@@ -288,6 +306,7 @@ export function SyncProvider({
       await ensureCustomExerciseSync();
       await ensureWorkoutTemplateSync();
       await ensureTrainingProgramSync();
+      await ensureMealTemplateSync();
       await ensureSafetyRecoverySync();
       const result = await syncCoordinator.syncNow();
       const pushResult = result.push?.result;
@@ -321,6 +340,7 @@ export function SyncProvider({
           customExerciseMetadataStore,
           fitnessProfileMetadataStore,
           foodEntryMetadataStore,
+          mealTemplateMetadataStore,
           metadataStore,
           nextConflictCount,
           nutritionTargetMetadataStore,
@@ -357,6 +377,7 @@ export function SyncProvider({
     ensureBodyMeasurementSync,
     ensureCustomExerciseSync,
     ensureFitnessProfileSync,
+    ensureMealTemplateSync,
     ensureNutritionTargetBootstrap,
     ensureSafetyRecoverySync,
     ensureTrainingProgramSync,
@@ -365,6 +386,7 @@ export function SyncProvider({
     foodEntryMetadataStore,
     isAuthenticated,
     isRestoringState,
+    mealTemplateMetadataStore,
     metadataStore,
     nutritionTargetMetadataStore,
     queueStore,

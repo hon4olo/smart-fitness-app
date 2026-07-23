@@ -8,6 +8,7 @@ import {
   applyRemoteFoodEntryChanges,
   runWithoutFoodEntryOutbox,
 } from '@/cloud/FoodEntrySync';
+import { applyRemoteMealTemplateChanges } from '@/cloud/MealTemplateRemoteSync';
 import {
   applyRemoteNutritionTargetChanges,
   runWithoutNutritionTargetOutbox,
@@ -22,6 +23,7 @@ import type {
   createCustomExerciseSyncMetadataStore,
   createFitnessProfileSyncMetadataStore,
   createFoodEntrySyncMetadataStore,
+  createMealTemplateSyncMetadataStore,
   createNutritionTargetSyncMetadataStore,
   createSafetyRecoverySyncMetadataStore,
   createTrainingProgramSyncMetadataStore,
@@ -49,6 +51,7 @@ type ApplySyncPullResultOptions = {
   customExerciseMetadataStore: ReturnType<typeof createCustomExerciseSyncMetadataStore>;
   fitnessProfileMetadataStore: ReturnType<typeof createFitnessProfileSyncMetadataStore>;
   foodEntryMetadataStore: ReturnType<typeof createFoodEntrySyncMetadataStore>;
+  mealTemplateMetadataStore: ReturnType<typeof createMealTemplateSyncMetadataStore>;
   metadataStore: WeightSyncMetadataStore;
   nextConflictCount: number;
   nutritionTargetMetadataStore: ReturnType<typeof createNutritionTargetSyncMetadataStore>;
@@ -84,6 +87,7 @@ export async function applySyncPullResult({
   customExerciseMetadataStore,
   fitnessProfileMetadataStore,
   foodEntryMetadataStore,
+  mealTemplateMetadataStore,
   metadataStore,
   nextConflictCount,
   nutritionTargetMetadataStore,
@@ -164,8 +168,16 @@ export async function applySyncPullResult({
     await foodEntryMetadataStore.load(),
     syncedAt,
   );
-  const nutritionTargetChanges = applyRemoteNutritionTargetChanges(
+  const mealTemplateChanges = applyRemoteMealTemplateChanges(
     foodEntryChanges.nextState,
+    nonDeletedChangedEntities,
+    deletedEntities,
+    session.user.id,
+    await mealTemplateMetadataStore.load(),
+    syncedAt,
+  );
+  const nutritionTargetChanges = applyRemoteNutritionTargetChanges(
+    mealTemplateChanges.nextState,
     nonDeletedChangedEntities,
     deletedEntities,
     session.user.id,
@@ -198,6 +210,7 @@ export async function applySyncPullResult({
   await replaceMetadataRecords(trainingProgramMetadataStore, trainingProgramChanges.metadata);
   await replaceMetadataRecords(safetyRecoveryMetadataStore, safetyRecoveryChanges.metadata);
   await replaceMetadataRecords(foodEntryMetadataStore, foodEntryChanges.metadata);
+  await replaceMetadataRecords(mealTemplateMetadataStore, mealTemplateChanges.metadata);
   await replaceMetadataRecords(nutritionTargetMetadataStore, nutritionTargetChanges.metadata);
   await replaceMetadataRecords(fitnessProfileMetadataStore, fitnessProfileChanges.metadata);
 
@@ -218,6 +231,8 @@ export async function applySyncPullResult({
     safetyRecoveryChanges.deletedRecordIds.length +
     foodEntryChanges.appliedRecordIds.length +
     foodEntryChanges.deletedRecordIds.length +
+    mealTemplateChanges.appliedRecordIds.length +
+    mealTemplateChanges.deletedRecordIds.length +
     nutritionTargetChanges.appliedRecordIds.length +
     nutritionTargetChanges.deletedRecordIds.length +
     fitnessProfileChanges.appliedRecordIds.length +

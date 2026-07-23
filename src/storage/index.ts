@@ -58,6 +58,16 @@ export type {
   FoodEntrySyncMetadataStore,
 } from './FoodEntrySyncMetadataStore';
 export {
+  createMealTemplateSyncMetadataStore,
+  MEAL_TEMPLATE_SYNC_METADATA_STORAGE_KEY,
+} from './MealTemplateSyncMetadataStore';
+export type {
+  MealTemplateItemSyncSnapshot,
+  MealTemplateSyncMetadata,
+  MealTemplateSyncMetadataStore,
+  MealTemplateSyncSnapshot,
+} from './MealTemplateSyncMetadataStore';
+export {
   createNutritionTargetSyncMetadataStore,
   NUTRITION_TARGET_SYNC_METADATA_STORAGE_KEY,
 } from './NutritionTargetSyncMetadataStore';
