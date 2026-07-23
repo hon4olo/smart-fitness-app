@@ -25,6 +25,7 @@ export const buildCompletedWorkoutSessionSnapshot = (
   } = {},
 ) => {
   const finishedAt = options.finishedAt ?? new Date().toISOString();
+  const safetyRecovery = options.safetyRecovery ?? draft.safetyRecovery;
   const session = normalizeWorkoutSessionForSync({
     id: draft.id,
     workoutId: draft.workoutId,
@@ -33,7 +34,7 @@ export const buildCompletedWorkoutSessionSnapshot = (
     finishedAt,
     notes: options.notes?.trim() || undefined,
     sets: draft.sets.map(cloneSet),
-    ...(options.safetyRecovery ? { safetyRecovery: options.safetyRecovery } : {}),
+    ...(safetyRecovery ? { safetyRecovery } : {}),
   });
 
   stageCompletedWorkoutSessionForSync(session);
