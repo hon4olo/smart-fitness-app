@@ -7,11 +7,12 @@ import type {
   NutritionTargets,
   ProfileGoalType,
   ProfileState,
+  RecoveryCheckIn,
   TrainingProgram,
+  UserLimitation,
   WeightEntry,
   Workout,
   WorkoutSession,
-  WorkoutSet,
 } from './index';
 
 export type AppState = {
@@ -25,6 +26,8 @@ export type AppState = {
   nutritionTargets: NutritionTargets;
   weightHistory: WeightEntry[];
   bodyMeasurements: BodyMeasurement[];
+  userLimitations: UserLimitation[];
+  recoveryCheckIns: RecoveryCheckIn[];
   profile: ProfileState;
   onboardingCompleted: boolean;
 };

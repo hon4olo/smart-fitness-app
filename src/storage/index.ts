@@ -45,6 +45,15 @@ export type {
   FitnessProfileSyncMetadataStore,
   FitnessProfileSyncSnapshot,
 } from './FitnessProfileSyncMetadataStore';
+export {
+  createSafetyRecoverySyncMetadataStore,
+  SAFETY_RECOVERY_SYNC_METADATA_STORAGE_KEY,
+} from './SafetyRecoverySyncMetadataStore';
+export type {
+  SafetyRecoveryEntityType,
+  SafetyRecoverySyncMetadata,
+  SafetyRecoverySyncMetadataStore,
+} from './SafetyRecoverySyncMetadataStore';
 export { createSyncCursorStore, SYNC_CURSOR_STORAGE_KEY } from './SyncCursorStore';
 export type { SyncCursor, SyncCursorStore } from './SyncCursorStore';
 export { getDefaultSyncCursorStore } from './defaultSyncCursorStore';

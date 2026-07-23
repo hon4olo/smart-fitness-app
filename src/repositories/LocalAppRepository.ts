@@ -14,6 +14,10 @@ import {
   normalizeWorkouts,
   normalizeWorkoutSessions,
 } from '@/lib/appState';
+import {
+  normalizeRecoveryCheckIns,
+  normalizeUserLimitations,
+} from '@/lib/safetyRecoveryState';
 
 import type { AppRepository } from './AppRepository';
 import type { StorageAdapter } from '@/storage/StorageAdapter';
@@ -64,6 +68,8 @@ const normalizeStoredState = (storedState: Partial<AppState>): AppState => ({
   bodyMeasurements: normalizeBodyMeasurements(
     storedState.bodyMeasurements ?? defaultState.bodyMeasurements,
   ),
+  userLimitations: normalizeUserLimitations(storedState.userLimitations),
+  recoveryCheckIns: normalizeRecoveryCheckIns(storedState.recoveryCheckIns),
 });
 
 export const createLocalAppRepository = (
