@@ -3,12 +3,27 @@ import type { StorageAdapter } from './StorageAdapter';
 export const WORKOUT_TEMPLATE_SYNC_METADATA_STORAGE_KEY =
   '@smart_fitness_mvp_workout_template_sync_metadata';
 
+export type WorkoutTemplateSyncSnapshot = {
+  title: string;
+  description: string | null;
+  duration: string;
+  exercises: Array<{
+    id: string;
+    name: string;
+    muscleGroup: string | null;
+    isCustom: boolean;
+    createdAt: string;
+  }>;
+  isCustom: true;
+};
+
 export type WorkoutTemplateSyncMetadata = {
   id: string;
   revision: number;
   deviceId: string;
   createdAt: string;
   syncedAt: string;
+  snapshot: WorkoutTemplateSyncSnapshot;
   deletedAt?: string | null;
 };
 
@@ -22,7 +37,60 @@ export type WorkoutTemplateSyncMetadataStore = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const readSnapshot = (value: unknown): WorkoutTemplateSyncSnapshot | null => {
+  if (
+    !isRecord(value) ||
+    typeof value.title !== 'string' ||
+    !value.title.trim() ||
+    (value.description !== null && typeof value.description !== 'string') ||
+    typeof value.duration !== 'string' ||
+    !value.duration.trim() ||
+    value.isCustom !== true ||
+    !Array.isArray(value.exercises) ||
+    value.exercises.length === 0
+  ) {
+    return null;
+  }
+
+  const exercises: WorkoutTemplateSyncSnapshot['exercises'] = [];
+  for (const exercise of value.exercises) {
+    if (
+      !isRecord(exercise) ||
+      typeof exercise.id !== 'string' ||
+      !exercise.id.trim() ||
+      typeof exercise.name !== 'string' ||
+      !exercise.name.trim() ||
+      (exercise.muscleGroup !== null && typeof exercise.muscleGroup !== 'string') ||
+      typeof exercise.isCustom !== 'boolean' ||
+      typeof exercise.createdAt !== 'string' ||
+      !exercise.createdAt.trim()
+    ) {
+      return null;
+    }
+    exercises.push({
+      id: exercise.id.trim(),
+      name: exercise.name.trim(),
+      muscleGroup:
+        typeof exercise.muscleGroup === 'string'
+          ? exercise.muscleGroup.trim()
+          : null,
+      isCustom: exercise.isCustom,
+      createdAt: exercise.createdAt.trim(),
+    });
+  }
+
+  return {
+    title: value.title.trim(),
+    description:
+      typeof value.description === 'string' ? value.description.trim() : null,
+    duration: value.duration.trim(),
+    exercises,
+    isCustom: true,
+  };
+};
+
 const normalize = (value: unknown): WorkoutTemplateSyncMetadata | null => {
+  const snapshot = isRecord(value) ? readSnapshot(value.snapshot) : null;
   if (
     !isRecord(value) ||
     typeof value.id !== 'string' ||
@@ -34,7 +102,8 @@ const normalize = (value: unknown): WorkoutTemplateSyncMetadata | null => {
     typeof value.createdAt !== 'string' ||
     !value.createdAt.trim() ||
     typeof value.syncedAt !== 'string' ||
-    !value.syncedAt.trim()
+    !value.syncedAt.trim() ||
+    !snapshot
   ) {
     return null;
   }
@@ -45,6 +114,7 @@ const normalize = (value: unknown): WorkoutTemplateSyncMetadata | null => {
     deviceId: value.deviceId.trim(),
     createdAt: value.createdAt.trim(),
     syncedAt: value.syncedAt.trim(),
+    snapshot,
     ...(typeof value.deletedAt === 'string'
       ? { deletedAt: value.deletedAt.trim() }
       : value.deletedAt === null
