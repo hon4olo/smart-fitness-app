@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,9 +8,30 @@ import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants
 import { useAppContext } from '@/context/AppContext';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import {
-  buildWorkoutHistory,
+  buildWorkoutHistoryProgramOptions,
+  filterWorkoutHistory,
+  type WorkoutHistoryPeriodFilter,
+  type WorkoutHistoryProgramFilter,
+  type WorkoutHistorySafetyFilter,
   type WorkoutHistorySafetyTone,
 } from '../workoutHistoryViewModel';
+
+const PERIOD_OPTIONS: Array<{ id: WorkoutHistoryPeriodFilter; label: string }> = [
+  { id: 'all', label: 'All time' },
+  { id: '7d', label: '7 days' },
+  { id: '30d', label: '30 days' },
+  { id: '90d', label: '90 days' },
+];
+
+const SAFETY_OPTIONS: Array<{ id: WorkoutHistorySafetyFilter; label: string }> = [
+  { id: 'all', label: 'All statuses' },
+  { id: 'ready', label: 'Ready' },
+  { id: 'modify', label: 'Modify' },
+  { id: 'blocked', label: 'Blocked' },
+  { id: 'needs_input', label: 'Needs input' },
+  { id: 'missing_or_stale', label: 'Missing / stale' },
+  { id: 'no_context', label: 'No context' },
+];
 
 const getToneColor = (
   tone: WorkoutHistorySafetyTone,
@@ -22,13 +43,86 @@ const getToneColor = (
   return colors.textMuted;
 };
 
+function FilterChip({
+  label,
+  onPress,
+  selected,
+}: {
+  label: string;
+  onPress(): void;
+  selected: boolean;
+}) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createFilterChipStyles(colors), [colors]);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.chip,
+        selected && styles.chipSelected,
+        pressed && styles.pressed,
+      ]}>
+      <Text style={[styles.label, selected && styles.labelSelected]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function FilterRow({
+  children,
+  label,
+}: {
+  children: React.ReactNode;
+  label: string;
+}) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createFilterRowStyles(colors), [colors]);
+
+  return (
+    <View style={styles.group}>
+      <Text style={styles.title}>{label}</Text>
+      <ScrollView
+        horizontal
+        contentContainerStyle={styles.row}
+        showsHorizontalScrollIndicator={false}>
+        {children}
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function WorkoutHistoryScreen() {
-  const { workoutSessions } = useAppContext();
+  const { trainingPrograms, workoutSessions } = useAppContext();
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const history = useMemo(() => buildWorkoutHistory(workoutSessions), [workoutSessions]);
+  const [period, setPeriod] = useState<WorkoutHistoryPeriodFilter>('all');
+  const [programId, setProgramId] = useState<WorkoutHistoryProgramFilter>('all');
+  const [safety, setSafety] = useState<WorkoutHistorySafetyFilter>('all');
+
+  const programOptions = useMemo(
+    () => buildWorkoutHistoryProgramOptions(trainingPrograms),
+    [trainingPrograms],
+  );
+  const history = useMemo(
+    () =>
+      filterWorkoutHistory(workoutSessions, trainingPrograms, {
+        period,
+        programId,
+        safety,
+      }),
+    [period, programId, safety, trainingPrograms, workoutSessions],
+  );
   const reviewedCount = history.filter((item) => item.hasSafetyContext).length;
+  const filtersActive = period !== 'all' || programId !== 'all' || safety !== 'all';
+
+  const clearFilters = () => {
+    setPeriod('all');
+    setProgramId('all');
+    setSafety('all');
+  };
 
   return (
     <View style={styles.screen}>
@@ -57,7 +151,9 @@ export default function WorkoutHistoryScreen() {
             <View style={styles.summaryRow}>
               <View style={styles.summaryCell}>
                 <Text style={styles.summaryValue}>{history.length}</Text>
-                <Text style={styles.summaryLabel}>Completed workouts</Text>
+                <Text style={styles.summaryLabel}>
+                  {filtersActive ? `Showing of ${workoutSessions.length}` : 'Completed workouts'}
+                </Text>
               </View>
               <View style={styles.summaryCell}>
                 <Text style={styles.summaryValue}>{reviewedCount}</Text>
@@ -70,12 +166,75 @@ export default function WorkoutHistoryScreen() {
             </Text>
           </AppCard>
 
-          {history.length === 0 ? (
+          <AppCard style={styles.filtersCard}>
+            <View style={styles.filtersHeader}>
+              <View style={styles.filtersHeaderCopy}>
+                <Text style={styles.cardTitle}>Filters</Text>
+                <Text style={styles.helperText}>Period, program and recorded Safety status</Text>
+              </View>
+              {filtersActive ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={clearFilters}
+                  style={({ pressed }) => [pressed && styles.pressed]}>
+                  <Text style={styles.clearLabel}>Clear</Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            <FilterRow label="Period">
+              {PERIOD_OPTIONS.map((option) => (
+                <FilterChip
+                  key={option.id}
+                  label={option.label}
+                  onPress={() => setPeriod(option.id)}
+                  selected={period === option.id}
+                />
+              ))}
+            </FilterRow>
+
+            <FilterRow label="Program">
+              {programOptions.map((option) => (
+                <FilterChip
+                  key={option.id}
+                  label={option.label}
+                  onPress={() => setProgramId(option.id)}
+                  selected={programId === option.id}
+                />
+              ))}
+            </FilterRow>
+
+            <FilterRow label="Safety status">
+              {SAFETY_OPTIONS.map((option) => (
+                <FilterChip
+                  key={option.id}
+                  label={option.label}
+                  onPress={() => setSafety(option.id)}
+                  selected={safety === option.id}
+                />
+              ))}
+            </FilterRow>
+          </AppCard>
+
+          {workoutSessions.length === 0 ? (
             <AppCard>
               <Text style={styles.cardTitle}>No completed workouts yet</Text>
               <Text style={styles.bodyText}>
                 Finish and save a workout to create the first history entry.
               </Text>
+            </AppCard>
+          ) : history.length === 0 ? (
+            <AppCard>
+              <Text style={styles.cardTitle}>No workouts match these filters</Text>
+              <Text style={styles.bodyText}>
+                Change the period, program or Safety status to widen the result set.
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={clearFilters}
+                style={({ pressed }) => [styles.resetButton, pressed && styles.pressed]}>
+                <Text style={styles.resetLabel}>Clear filters</Text>
+              </Pressable>
             </AppCard>
           ) : (
             <View style={styles.list}>
@@ -142,6 +301,53 @@ export default function WorkoutHistoryScreen() {
   );
 }
 
+const createFilterChipStyles = (colors: typeof Colors.light) =>
+  StyleSheet.create({
+    chip: {
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderRadius: Radii.pill,
+      borderWidth: StyleSheet.hairlineWidth,
+      justifyContent: 'center',
+      minHeight: 38,
+      paddingHorizontal: Spacing.three,
+    },
+    chipSelected: {
+      backgroundColor: colors.accentSoft,
+      borderColor: colors.accent,
+    },
+    label: {
+      color: colors.textSecondary,
+      fontSize: Typography.label.fontSize,
+      fontWeight: Typography.label.fontWeight,
+      lineHeight: Typography.label.lineHeight,
+    },
+    labelSelected: {
+      color: colors.accent,
+    },
+    pressed: {
+      opacity: 0.68,
+    },
+  });
+
+const createFilterRowStyles = (colors: typeof Colors.light) =>
+  StyleSheet.create({
+    group: {
+      gap: Spacing.one,
+    },
+    row: {
+      gap: Spacing.one,
+      paddingRight: Spacing.two,
+    },
+    title: {
+      color: colors.textSecondary,
+      fontSize: Typography.label.fontSize,
+      fontWeight: Typography.label.fontWeight,
+      lineHeight: Typography.label.lineHeight,
+    },
+  });
+
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     backButton: {
@@ -183,6 +389,12 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: 24,
       lineHeight: 24,
     },
+    clearLabel: {
+      color: colors.accent,
+      fontSize: Typography.label.fontSize,
+      fontWeight: '800',
+      lineHeight: Typography.label.lineHeight,
+    },
     container: {
       gap: Spacing.four,
       maxWidth: MaxContentWidth,
@@ -192,6 +404,19 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       paddingHorizontal: Spacing.three,
       paddingTop: Spacing.three,
+    },
+    filtersCard: {
+      gap: Spacing.three,
+    },
+    filtersHeader: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      justifyContent: 'space-between',
+    },
+    filtersHeaderCopy: {
+      flex: 1,
+      gap: 2,
     },
     header: {
       alignItems: 'center',
@@ -257,6 +482,23 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     pressed: {
       opacity: 0.68,
+    },
+    resetButton: {
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      backgroundColor: colors.accentSoft,
+      borderColor: colors.accent,
+      borderRadius: Radii.medium,
+      borderWidth: StyleSheet.hairlineWidth,
+      minHeight: 42,
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.three,
+    },
+    resetLabel: {
+      color: colors.accent,
+      fontSize: Typography.label.fontSize,
+      fontWeight: '800',
+      lineHeight: Typography.label.lineHeight,
     },
     safetyBadge: {
       backgroundColor: colors.surfaceSecondary,
