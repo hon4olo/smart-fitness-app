@@ -187,6 +187,11 @@ export function ProfileCoachCard({
         onPress={onSave}
       />
       <SecondaryButton
+        accessibilityHint="Opens the self-reported recovery check-in form"
+        label="Add recovery check-in"
+        onPress={() => router.push('/profile/recovery-check-in')}
+      />
+      <SecondaryButton
         accessibilityHint="Opens the deterministic limitations and recovery readiness review"
         label="Open Safety & Recovery"
         onPress={() => router.push('/profile/safety-recovery')}
