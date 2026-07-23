@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddBodyMeasurementCard } from '@/components/progress/AddBodyMeasurementCard';
 import { EmptyProgressState } from '@/components/progress/EmptyProgressState';
 import { ProgressTrendChart, type ProgressTrendPoint } from '@/components/progress/ProgressTrendChart';
+import { SafetyRecoveryProgressCard } from '@/components/progress/SafetyRecoveryProgressCard';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -180,6 +181,11 @@ export default function ProgressScreen() {
 
           <AppButton label="Training details" onPress={() => router.push('/weight-details')} variant="secondary" />
         </AppCard>
+
+        <SafetyRecoveryProgressCard
+          onOpenHistory={() => router.push('/workout-history')}
+          sessions={workoutSessions}
+        />
       </View>
     </ScrollView>
   );
