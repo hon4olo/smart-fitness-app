@@ -327,7 +327,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     checkbox: {
       alignItems: 'center',
-      borderColor: colors.borderStrong,
+      borderColor: colors.border,
       borderRadius: 6,
       borderWidth: 1,
       height: 24,
