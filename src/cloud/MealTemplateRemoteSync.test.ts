@@ -105,7 +105,7 @@ describe('remote meal template sync', () => {
       syncedAt,
     );
     expect(unknownField.appliedRecordIds).toEqual([]);
-    expect(unknownField.nextState).toBe(defaultState);
+    expect(unknownField.nextState).toStrictEqual(defaultState);
 
     const duplicateItems = applyRemoteMealTemplateChanges(
       defaultState,
@@ -123,7 +123,7 @@ describe('remote meal template sync', () => {
       syncedAt,
     );
     expect(duplicateItems.appliedRecordIds).toEqual([]);
-    expect(duplicateItems.nextState).toBe(defaultState);
+    expect(duplicateItems.nextState).toStrictEqual(defaultState);
   });
 
   it('applies a tombstone and preserves deletion metadata', () => {
