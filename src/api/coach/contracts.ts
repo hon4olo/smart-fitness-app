@@ -9,7 +9,7 @@ export type NutritionCoachRequestType =
   | 'nutrition_target_proposal'
   | 'nutrition_strategy_proposal';
 export type SafetyRecoveryCoachRequestType = 'safety_recovery_review';
-export type CombinedCoachRequestType = 'combined_review';
+export type CombinedCoachRequestType = 'combined_review' | 'combined_proposal_review';
 export type CoachRequestType =
   | StrengthCoachRequestType
   | NutritionCoachRequestType
@@ -17,7 +17,7 @@ export type CoachRequestType =
   | CombinedCoachRequestType;
 
 export type CoachCapabilities = {
-  schemaVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  schemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   nutrition: {
     deterministicReview: true;
     deterministicTargetProposal: true;
@@ -40,6 +40,8 @@ export type CoachCapabilities = {
   };
   combined?: {
     deterministicReview: true;
+    deterministicProposalReview?: true;
+    proposalRequiresExplicitConfirmation?: true;
     automaticApplication: false;
   };
 };
