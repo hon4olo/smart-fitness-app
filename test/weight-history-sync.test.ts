@@ -162,7 +162,10 @@ describe('production cloud provider', () => {
     const authService = {
       getAccessToken: vi.fn().mockResolvedValue('token-a'),
       refresh: vi.fn().mockResolvedValue({ tokens: { accessToken: 'token-b' } }),
-      getCurrentSession: vi.fn().mockResolvedValue({ device: { id: 'device-a' } }),
+      getCurrentSession: vi.fn().mockResolvedValue({
+        user: { id: 'user-1' },
+        device: { id: 'device-a' },
+      }),
     };
 
     const provider = createProductionCloudProvider({
@@ -214,7 +217,10 @@ describe('production cloud provider', () => {
       authService: {
         getAccessToken: vi.fn().mockResolvedValue('token-a'),
         refresh: vi.fn(),
-        getCurrentSession: vi.fn().mockResolvedValue({ device: { id: 'device-a' } }),
+        getCurrentSession: vi.fn().mockResolvedValue({
+          user: { id: 'user-1' },
+          device: { id: 'device-a' },
+        }),
       } as never,
       now: () => '2025-01-03T12:30:00.000Z',
     });
