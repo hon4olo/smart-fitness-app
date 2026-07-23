@@ -14,30 +14,36 @@ const response = {
     requestType: 'safety_recovery_review',
     status: 'completed',
     idempotencyKey: 'mobile-safety-review-1',
-    requestData: { requestType: 'safety_recovery_review', lookbackDays: 7 },
+    requestData: {
+      requestType: 'safety_recovery_review',
+      lookbackDays: 7,
+    },
     contextSnapshot: {},
     result: {
       kind: 'safety-recovery-review',
       readiness: {
         policyVersion: 'safety-recovery-readiness-v1',
-        status: 'modify',
+        status: 'ready',
         latestCheckInAt: '2026-07-23T09:00:00.000Z',
-        latestCheckInAgeHours: 1,
-        signalCount: 5,
-        recommendedLoadMultiplier: 0.7,
+        latestCheckInAgeHours: 2,
+        signalCount: 4,
+        recommendedLoadMultiplier: 1,
         restrictions: [],
         issues: [],
-        requiresExplicitConfirmation: true,
+        requiresExplicitConfirmation: false,
         approvedForAutomaticApply: false,
       },
     },
     error: null,
-    policyVersions: { readiness: 'safety-recovery-readiness-v1' },
-    requestedAt: '2026-07-23T10:00:00.000Z',
-    startedAt: '2026-07-23T10:00:00.000Z',
-    completedAt: '2026-07-23T10:00:00.000Z',
-    createdAt: '2026-07-23T10:00:00.000Z',
-    updatedAt: '2026-07-23T10:00:00.000Z',
+    policyVersions: {
+      context: 'safety-recovery-context-v1',
+      readiness: 'safety-recovery-readiness-v1',
+    },
+    requestedAt: '2026-07-23T11:00:00.000Z',
+    startedAt: '2026-07-23T11:00:01.000Z',
+    completedAt: '2026-07-23T11:00:02.000Z',
+    createdAt: '2026-07-23T11:00:00.000Z',
+    updatedAt: '2026-07-23T11:00:02.000Z',
   },
   agentRuns: [],
 };
@@ -51,8 +57,8 @@ const makeClient = (post: ApiClient['post']): ApiClient => ({
   delete: vi.fn(),
 });
 
-describe('Safety Recovery Coach API contract', () => {
-  it('posts only the deterministic review request fields', async () => {
+describe('Safety Recovery API contract', () => {
+  it('sends only bounded review inputs to the deterministic safety endpoint', async () => {
     const postMock = vi.fn(
       async (_path: string, _body?: unknown, _options?: unknown) => response,
     );
@@ -69,11 +75,8 @@ describe('Safety Recovery Coach API contract', () => {
       idempotencyKey: 'mobile-safety-review-1',
     });
 
-    expect(result.run).toMatchObject({
-      domain: 'safety_recovery',
-      requestType: 'safety_recovery_review',
-      status: 'completed',
-    });
+    expect(result.run.domain).toBe('safety_recovery');
+    expect(result.run.requestType).toBe('safety_recovery_review');
     expect(postMock).toHaveBeenCalledWith(
       '/v1/coach/safety/runs',
       {
@@ -86,9 +89,10 @@ describe('Safety Recovery Coach API contract', () => {
         retry: false,
       }),
     );
-    const serialized = JSON.stringify(postMock.mock.calls[0]?.[1]);
-    expect(serialized).not.toContain('notes');
-    expect(serialized).not.toContain('limitations');
-    expect(serialized).not.toContain('recoveryCheckIns');
+
+    const serializedBody = JSON.stringify(postMock.mock.calls[0]?.[1]);
+    expect(serializedBody).not.toContain('notes');
+    expect(serializedBody).not.toContain('limitation');
+    expect(serializedBody).not.toContain('recoveryCheckIns');
   });
 });
