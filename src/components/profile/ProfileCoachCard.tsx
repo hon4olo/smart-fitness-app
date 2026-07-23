@@ -201,6 +201,11 @@ export function ProfileCoachCard({
         label="Open Safety & Recovery"
         onPress={() => router.push('/profile/safety-recovery')}
       />
+      <SecondaryButton
+        accessibilityHint="Opens the deterministic Strength, Nutrition, and Safety combined review"
+        label="Open Combined Coach"
+        onPress={() => router.push('/profile/combined-review')}
+      />
     </AppCard>
   );
 }
