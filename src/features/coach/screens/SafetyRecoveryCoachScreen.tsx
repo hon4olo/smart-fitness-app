@@ -13,7 +13,12 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import {
+  createAsyncStorageAdapter,
+  createSafetyRecoveryReviewStore,
+} from '@/storage';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { buildSafetyRecoveryReviewSnapshot } from '../safetyRecoveryReviewSnapshot';
 import {
   buildSafetyRecoveryViewModel,
   type SafetyRecoveryIssueSeverity,
@@ -62,14 +67,18 @@ export default function SafetyRecoveryCoachScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { isRestoringState } = useAppContext();
+  const app = useAppContext();
+  const { isRestoringState } = app;
   const { ready, refresh, session } = useAuthSession();
+  const storage = useMemo(() => createAsyncStorageAdapter(), []);
+  const reviewStore = useMemo(() => createSafetyRecoveryReviewStore(storage), [storage]);
   const [lookbackDays, setLookbackDays] = useState<(typeof LOOKBACK_OPTIONS)[number]>(7);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
   const [capabilitiesLoading, setCapabilitiesLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [snapshotMessage, setSnapshotMessage] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const isAuthenticated = Boolean(session?.tokens.accessToken);
@@ -135,6 +144,7 @@ export default function SafetyRecoveryCoachScreen() {
     abortControllerRef.current = abortController;
     setBusy(true);
     setError(null);
+    setSnapshotMessage(null);
     setRun(null);
 
     try {
@@ -149,6 +159,24 @@ export default function SafetyRecoveryCoachScreen() {
         maxPolls: 20,
       });
       setRun(terminal);
+
+      const terminalViewModel = buildSafetyRecoveryViewModel(terminal);
+      const snapshot = buildSafetyRecoveryReviewSnapshot({
+        run: terminal,
+        viewModel: terminalViewModel,
+        recoveryCheckIns: app.recoveryCheckIns,
+        userLimitations: app.userLimitations,
+      });
+      if (snapshot && session?.user.id === snapshot.userId) {
+        try {
+          await reviewStore.set(snapshot);
+          setSnapshotMessage('Saved for the pre-workout Safety & Recovery check.');
+        } catch {
+          setSnapshotMessage(
+            'Review completed, but the local pre-workout snapshot could not be saved.',
+          );
+        }
+      }
     } catch (requestError) {
       if (requestError instanceof Error && requestError.name === 'AbortError') return;
       setError(
@@ -235,6 +263,7 @@ export default function SafetyRecoveryCoachScreen() {
                         setLookbackDays(days);
                         setRun(null);
                         setError(null);
+                        setSnapshotMessage(null);
                       }}
                       style={({ pressed }) => [
                         styles.periodButton,
@@ -365,6 +394,7 @@ export default function SafetyRecoveryCoachScreen() {
                     </Text>
                   )}
 
+                  {snapshotMessage ? <Text style={styles.metaText}>{snapshotMessage}</Text> : null}
                   <Text style={styles.disclaimer}>
                     This product result is based on self-reported data and is not a medical diagnosis
                     or treatment recommendation.
