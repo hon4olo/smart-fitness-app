@@ -7,6 +7,7 @@ import { AddBodyMeasurementCard } from '@/components/progress/AddBodyMeasurement
 import { EmptyProgressState } from '@/components/progress/EmptyProgressState';
 import { ProgressTrendChart, type ProgressTrendPoint } from '@/components/progress/ProgressTrendChart';
 import { SafetyRecoveryProgressCard } from '@/components/progress/SafetyRecoveryProgressCard';
+import { SafetyRecoveryWeeklyTrendCard } from '@/components/progress/SafetyRecoveryWeeklyTrendCard';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -186,6 +187,8 @@ export default function ProgressScreen() {
           onOpenHistory={() => router.push('/workout-history')}
           sessions={workoutSessions}
         />
+
+        <SafetyRecoveryWeeklyTrendCard sessions={workoutSessions} />
       </View>
     </ScrollView>
   );
