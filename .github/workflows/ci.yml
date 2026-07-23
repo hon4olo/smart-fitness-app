@@ -55,10 +55,12 @@ jobs:
           src/features/coach/recoveryCheckInForm.test.ts
           src/features/coach/userLimitationForm.test.ts
           src/features/coach/safetyRecoveryLocalSummary.test.ts
+          src/features/coach/safetyRecoveryReviewSnapshot.test.ts
           src/features/coach/safetyRecoveryViewModel.test.ts
           src/features/coach/strengthCoachViewModel.test.ts
           src/features/coach/strengthStrategyViewModel.test.ts
           src/features/coach/nutritionCoachViewModel.test.ts
+          src/features/workouts/workoutSafetyGateModel.test.ts
           src/cloud/SafetyRecoverySync.test.ts
           src/cloud/SafetyRecoverySyncPlanner.test.ts
           src/cloud/WorkoutTemplateSync.test.ts
