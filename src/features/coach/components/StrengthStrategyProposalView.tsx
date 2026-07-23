@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import type { StrengthStrategyViewModel } from '../strengthStrategyViewModel';
+import type { StrengthStrategyDisplayViewModel } from '../strengthStrategyViewModel';
 
 const formatNumber = (value: number, maximumFractionDigits = 1): string =>
   new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value);
@@ -12,18 +13,50 @@ const formatCode = (value: string): string =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
+const formatDateTime = (value: string): string => {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+};
+
 export function StrengthStrategyProposalView({
+  confirmationEnabled,
+  confirming,
+  onConfirm,
   viewModel,
 }: {
-  viewModel: Extract<StrengthStrategyViewModel, { kind: 'proposal' }>;
+  confirmationEnabled: boolean;
+  confirming: boolean;
+  onConfirm(): void;
+  viewModel: StrengthStrategyDisplayViewModel;
 }) {
+  const applied = viewModel.kind === 'applied';
+
   return (
     <View style={styles.stack}>
-      <View style={styles.previewBanner}>
-        <Text style={styles.previewTitle}>AI preview · not applied</Text>
-        <Text style={styles.bodyText}>
-          This proposal passed deterministic source-set, load, repetition, RPE and total-volume validation. Strength confirmation is not enabled yet.
+      <View style={applied ? styles.appliedBanner : styles.previewBanner}>
+        <Text style={applied ? styles.appliedTitle : styles.previewTitle}>
+          {applied ? 'Template created' : 'AI preview · not applied'}
         </Text>
+        <Text style={styles.bodyText}>
+          {applied
+            ? 'The backend revalidated this proposal and created a new synchronized workout template. The completed source workout was not modified.'
+            : confirmationEnabled
+              ? 'This proposal passed deterministic source-set, load, repetition, RPE and total-volume validation. Confirmation creates a new workout template and does not edit workout history.'
+              : 'This proposal passed deterministic validation. Strength confirmation is not available on this backend version.'}
+        </Text>
+        {applied ? (
+          <View style={styles.appliedMetadata}>
+            <Text style={styles.metaText}>Revision {viewModel.appliedRevision}</Text>
+            <Text style={styles.metaText}>{formatDateTime(viewModel.appliedAt)}</Text>
+            <Text numberOfLines={1} style={styles.auditText}>
+              Template {viewModel.templateId}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.headerRow}>
@@ -97,6 +130,19 @@ export function StrengthStrategyProposalView({
         </View>
       ) : null}
 
+      {!applied && confirmationEnabled ? (
+        <View style={styles.confirmSection}>
+          <PrimaryButton
+            label="Create workout template"
+            loading={confirming}
+            onPress={onConfirm}
+          />
+          <Text style={styles.metaText}>
+            Only the run ID and a new idempotency key are sent. The backend reloads and revalidates the saved proposal before creating the template.
+          </Text>
+        </View>
+      ) : null}
+
       <Text style={styles.auditText}>
         {viewModel.provider} · {viewModel.model} · {viewModel.attempts} attempt{viewModel.attempts === 1 ? '' : 's'} · {viewModel.latencyMs} ms
       </Text>
@@ -108,6 +154,23 @@ const styles = StyleSheet.create({
   adjustment: {
     color: Colors.dark.accent,
     fontSize: Typography.caption.fontSize,
+    fontWeight: '800',
+  },
+  appliedBanner: {
+    backgroundColor: Colors.dark.successSoft,
+    borderColor: Colors.dark.success,
+    borderRadius: Radii.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: Spacing.one,
+    padding: Spacing.three,
+  },
+  appliedMetadata: {
+    gap: 2,
+    paddingTop: Spacing.one,
+  },
+  appliedTitle: {
+    color: Colors.dark.success,
+    fontSize: Typography.label.fontSize,
     fontWeight: '800',
   },
   auditText: {
@@ -127,6 +190,9 @@ const styles = StyleSheet.create({
   },
   codeSection: {
     gap: Spacing.one,
+  },
+  confirmSection: {
+    gap: Spacing.two,
   },
   headerCopy: {
     flex: 1,
