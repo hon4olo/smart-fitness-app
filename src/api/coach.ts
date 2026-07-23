@@ -11,11 +11,11 @@ export type NutritionCoachRequestType =
   | 'nutrition_review'
   | 'nutrition_target_proposal'
   | 'nutrition_strategy_proposal';
-export type SafetyRecoveryRequestType = 'safety_recovery_review';
+export type SafetyRecoveryCoachRequestType = 'safety_recovery_review';
 export type CoachRequestType =
   | StrengthCoachRequestType
   | NutritionCoachRequestType
-  | SafetyRecoveryRequestType;
+  | SafetyRecoveryCoachRequestType;
 
 export type CoachCapabilities = {
   schemaVersion: 1 | 2 | 3 | 4 | 5;
@@ -102,7 +102,7 @@ export type StartNutritionCoachRunInput = {
 };
 
 export type StartSafetyRecoveryRunInput = {
-  requestType?: SafetyRecoveryRequestType;
+  requestType?: SafetyRecoveryCoachRequestType;
   lookbackDays?: number;
   idempotencyKey?: string;
 };
@@ -138,7 +138,7 @@ const defaultApiClient = createApiClient({
   defaultRetry: { attempts: 1, delayMs: 350, factor: 2 },
 });
 
-const TERMINAL_STATUSES = new Set<CoachRunStatus>(['queued', 'running', 'completed', 'rejected', 'failed'].filter((status): status is CoachRunStatus => status === 'completed' || status === 'rejected' || status === 'failed'));
+const TERMINAL_STATUSES = new Set<CoachRunStatus>(['completed', 'rejected', 'failed']);
 const RUN_STATUSES = new Set<CoachRunStatus>(['queued', 'running', 'completed', 'rejected', 'failed']);
 const STRENGTH_REQUEST_TYPES = new Set<StrengthCoachRequestType>([
   'session_review',
@@ -165,13 +165,17 @@ const readString = (record: Record<string, unknown>, key: string): string => {
 const readNullableString = (record: Record<string, unknown>, key: string): string | null => {
   const value = record[key];
   if (value === null) return null;
-  if (typeof value !== 'string') throw new Error(`Invalid coach response: ${key}`);
+  if (typeof value !== 'string') {
+    throw new Error(`Invalid coach response: ${key}`);
+  }
   return value;
 };
 
 const readRecord = (record: Record<string, unknown>, key: string): Record<string, unknown> => {
   const value = record[key];
-  if (!isRecord(value)) throw new Error(`Invalid coach response: ${key}`);
+  if (!isRecord(value)) {
+    throw new Error(`Invalid coach response: ${key}`);
+  }
   return value;
 };
 
@@ -181,13 +185,17 @@ const readNullableRecord = (
 ): Record<string, unknown> | null => {
   const value = record[key];
   if (value === null) return null;
-  if (!isRecord(value)) throw new Error(`Invalid coach response: ${key}`);
+  if (!isRecord(value)) {
+    throw new Error(`Invalid coach response: ${key}`);
+  }
   return value;
 };
 
 const parseError = (value: unknown): CoachRunError | null => {
   if (value === null) return null;
-  if (!isRecord(value)) throw new Error('Invalid coach response: error');
+  if (!isRecord(value)) {
+    throw new Error('Invalid coach response: error');
+  }
   const code = readString(value, 'code');
   const message = readString(value, 'message');
   return value.details === undefined
@@ -210,11 +218,19 @@ const parseDomain = (value: unknown): CoachDomain => {
 };
 
 const parseRequestType = (domain: CoachDomain, value: unknown): CoachRequestType => {
-  if (typeof value !== 'string') throw new Error('Invalid coach response: requestType');
-  if (domain === 'strength' && STRENGTH_REQUEST_TYPES.has(value as StrengthCoachRequestType)) {
+  if (typeof value !== 'string') {
+    throw new Error('Invalid coach response: requestType');
+  }
+  if (
+    domain === 'strength' &&
+    STRENGTH_REQUEST_TYPES.has(value as StrengthCoachRequestType)
+  ) {
     return value as StrengthCoachRequestType;
   }
-  if (domain === 'nutrition' && NUTRITION_REQUEST_TYPES.has(value as NutritionCoachRequestType)) {
+  if (
+    domain === 'nutrition' &&
+    NUTRITION_REQUEST_TYPES.has(value as NutritionCoachRequestType)
+  ) {
     return value as NutritionCoachRequestType;
   }
   if (domain === 'safety_recovery' && value === 'safety_recovery_review') {
@@ -224,7 +240,9 @@ const parseRequestType = (domain: CoachDomain, value: unknown): CoachRequestType
 };
 
 const parseCoachRun = (value: unknown): CoachRunRecord => {
-  if (!isRecord(value)) throw new Error('Invalid coach response: run');
+  if (!isRecord(value)) {
+    throw new Error('Invalid coach response: run');
+  }
   const domain = parseDomain(value.domain);
   return {
     id: readString(value, 'id'),
@@ -272,86 +290,109 @@ const parseAgentRun = (value: unknown): CoachAgentRunRecord => {
   };
 };
 
+const parseNutritionCapabilities = (
+  value: Record<string, unknown>,
+  schemaVersion: CoachCapabilities['schemaVersion'],
+): CoachCapabilities['nutrition'] => {
+  if (
+    value.deterministicReview !== true ||
+    value.deterministicTargetProposal !== true ||
+    typeof value.structuredStrategyProposal !== 'boolean' ||
+    value.strategyRequiresConfirmation !== true ||
+    (schemaVersion >= 2 && typeof value.structuredStrategyConfirmation !== 'boolean')
+  ) {
+    throw new Error('Invalid coach capabilities response');
+  }
+
+  return {
+    deterministicReview: true,
+    deterministicTargetProposal: true,
+    structuredStrategyProposal: value.structuredStrategyProposal,
+    ...(schemaVersion >= 2
+      ? { structuredStrategyConfirmation: value.structuredStrategyConfirmation as boolean }
+      : {}),
+    strategyRequiresConfirmation: true,
+  };
+};
+
+const parseStrengthCapabilities = (
+  value: unknown,
+  schemaVersion: 3 | 4 | 5,
+): NonNullable<CoachCapabilities['strength']> => {
+  if (!isRecord(value)) {
+    throw new Error('Invalid coach capabilities response');
+  }
+  if (
+    value.deterministicReview !== true ||
+    value.deterministicMockProposal !== true ||
+    typeof value.structuredStrategyProposal !== 'boolean' ||
+    typeof value.structuredStrategyConfirmation !== 'boolean' ||
+    (schemaVersion === 3 && value.structuredStrategyConfirmation !== false) ||
+    value.strategyRequiresConfirmation !== true
+  ) {
+    throw new Error('Invalid coach capabilities response');
+  }
+
+  return {
+    deterministicReview: true,
+    deterministicMockProposal: true,
+    structuredStrategyProposal: value.structuredStrategyProposal,
+    structuredStrategyConfirmation: value.structuredStrategyConfirmation,
+    strategyRequiresConfirmation: true,
+  };
+};
+
+const parseSafetyCapabilities = (
+  value: unknown,
+): NonNullable<CoachCapabilities['safety']> => {
+  if (
+    !isRecord(value) ||
+    value.deterministicRecoveryReview !== true ||
+    value.revisionedLimitations !== true ||
+    value.revisionedRecoveryCheckIns !== true ||
+    value.automaticApplication !== false
+  ) {
+    throw new Error('Invalid coach capabilities response');
+  }
+
+  return {
+    deterministicRecoveryReview: true,
+    revisionedLimitations: true,
+    revisionedRecoveryCheckIns: true,
+    automaticApplication: false,
+  };
+};
+
 export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
   if (
     !isRecord(value) ||
-    ![1, 2, 3, 4, 5].includes(value.schemaVersion as number) ||
+    (value.schemaVersion !== 1 &&
+      value.schemaVersion !== 2 &&
+      value.schemaVersion !== 3 &&
+      value.schemaVersion !== 4 &&
+      value.schemaVersion !== 5) ||
     !isRecord(value.nutrition)
   ) {
     throw new Error('Invalid coach capabilities response');
   }
-  const schemaVersion = value.schemaVersion as CoachCapabilities['schemaVersion'];
-  const nutrition = value.nutrition;
-  if (
-    nutrition.deterministicReview !== true ||
-    nutrition.deterministicTargetProposal !== true ||
-    typeof nutrition.structuredStrategyProposal !== 'boolean' ||
-    nutrition.strategyRequiresConfirmation !== true ||
-    (schemaVersion >= 2 && typeof nutrition.structuredStrategyConfirmation !== 'boolean')
-  ) {
-    throw new Error('Invalid coach capabilities response');
+
+  const schemaVersion = value.schemaVersion;
+  const nutrition = parseNutritionCapabilities(value.nutrition, schemaVersion);
+
+  if (schemaVersion === 1 || schemaVersion === 2) {
+    return { schemaVersion, nutrition };
   }
 
-  let strength: CoachCapabilities['strength'];
-  if (schemaVersion >= 3) {
-    if (!isRecord(value.strength)) throw new Error('Invalid coach capabilities response');
-    const candidate = value.strength;
-    if (
-      candidate.deterministicReview !== true ||
-      candidate.deterministicMockProposal !== true ||
-      typeof candidate.structuredStrategyProposal !== 'boolean' ||
-      typeof candidate.structuredStrategyConfirmation !== 'boolean' ||
-      (schemaVersion === 3 && candidate.structuredStrategyConfirmation !== false) ||
-      candidate.strategyRequiresConfirmation !== true
-    ) {
-      throw new Error('Invalid coach capabilities response');
-    }
-    strength = {
-      deterministicReview: true,
-      deterministicMockProposal: true,
-      structuredStrategyProposal: candidate.structuredStrategyProposal,
-      structuredStrategyConfirmation: candidate.structuredStrategyConfirmation,
-      strategyRequiresConfirmation: true,
-    };
-  }
-
-  let safety: CoachCapabilities['safety'];
-  if (schemaVersion === 5) {
-    if (!isRecord(value.safety)) {
-      throw new Error('Invalid coach capabilities response');
-    }
-    if (
-      value.safety.deterministicRecoveryReview !== true ||
-      value.safety.revisionedLimitations !== true ||
-      value.safety.revisionedRecoveryCheckIns !== true ||
-      value.safety.automaticApplication !== false
-    ) {
-      throw new Error('Invalid coach capabilities response');
-    }
-    safety = {
-      deterministicRecoveryReview: true,
-      revisionedLimitations: true,
-      revisionedRecoveryCheckIns: true,
-      automaticApplication: false,
-    };
+  const strength = parseStrengthCapabilities(value.strength, schemaVersion);
+  if (schemaVersion === 3 || schemaVersion === 4) {
+    return { schemaVersion, nutrition, strength };
   }
 
   return {
     schemaVersion,
-    nutrition: {
-      deterministicReview: true,
-      deterministicTargetProposal: true,
-      structuredStrategyProposal: nutrition.structuredStrategyProposal,
-      ...(schemaVersion >= 2
-        ? {
-            structuredStrategyConfirmation:
-              nutrition.structuredStrategyConfirmation as boolean,
-          }
-        : {}),
-      strategyRequiresConfirmation: true,
-    },
-    ...(strength ? { strength } : {}),
-    ...(safety ? { safety } : {}),
+    nutrition,
+    strength,
+    safety: parseSafetyCapabilities(value.safety),
   };
 };
 
@@ -397,7 +438,9 @@ export const createCoachApi = (
 ): CoachApi => {
   const requestWithAuth = async <T>(request: (accessToken: string) => Promise<T>): Promise<T> => {
     const accessToken = await auth.getAccessToken();
-    if (!accessToken) throw new Error('Sign in is required to use Coach.');
+    if (!accessToken) {
+      throw new Error('Sign in is required to use Coach.');
+    }
     try {
       return await request(accessToken);
     } catch (error) {
@@ -434,7 +477,10 @@ export const createCoachApi = (
           await apiClient.post<unknown, StartStrengthCoachRunInput>(
             '/v1/coach/strength/runs',
             input,
-            { headers: { authorization: `Bearer ${accessToken}` }, retry: false },
+            {
+              headers: { authorization: `Bearer ${accessToken}` },
+              retry: false,
+            },
           ),
         ),
       ),
@@ -448,7 +494,10 @@ export const createCoachApi = (
           await apiClient.post<unknown, StartNutritionCoachRunInput>(
             '/v1/coach/nutrition/runs',
             body,
-            { headers: { authorization: `Bearer ${accessToken}` }, retry: false },
+            {
+              headers: { authorization: `Bearer ${accessToken}` },
+              retry: false,
+            },
           ),
         ),
       );
@@ -463,7 +512,10 @@ export const createCoachApi = (
           await apiClient.post<unknown, StartSafetyRecoveryRunInput>(
             '/v1/coach/safety/runs',
             body,
-            { headers: { authorization: `Bearer ${accessToken}` }, retry: false },
+            {
+              headers: { authorization: `Bearer ${accessToken}` },
+              retry: false,
+            },
           ),
         ),
       );
@@ -474,7 +526,10 @@ export const createCoachApi = (
           await apiClient.post<unknown, ConfirmCoachRunInput>(
             `/v1/coach/runs/${encodeURIComponent(runId)}/confirm`,
             input,
-            { headers: { authorization: `Bearer ${accessToken}` }, retry: false },
+            {
+              headers: { authorization: `Bearer ${accessToken}` },
+              retry: false,
+            },
           ),
         ),
       ),
