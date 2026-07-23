@@ -84,20 +84,25 @@ const isValidMultiplier = (value: number | null): value is number =>
 
 const buildLoadTrend = (sessions: WorkoutSession[]): SafetyRecoveryLoadTrend => {
   const entries = sessions
-    .map((session) => ({
-      timestamp: getWorkoutTimestamp(session),
-      metadata: session.safetyRecovery,
-    }))
-    .filter(
-      (entry) =>
-        entry.timestamp > 0 &&
-        isFreshReviewedContext(entry.metadata) &&
-        isValidMultiplier(entry.metadata.recommendedLoadMultiplier),
-    )
+    .flatMap((session) => {
+      const timestamp = getWorkoutTimestamp(session);
+      const metadata = session.safetyRecovery;
+      const multiplier = metadata?.recommendedLoadMultiplier ?? null;
+
+      if (
+        timestamp <= 0 ||
+        !isFreshReviewedContext(metadata) ||
+        !isValidMultiplier(multiplier)
+      ) {
+        return [];
+      }
+
+      return [{ timestamp, multiplier }];
+    })
     .sort((left, right) => left.timestamp - right.timestamp);
 
-  const latestMultiplier = entries.at(-1)?.metadata.recommendedLoadMultiplier ?? null;
-  const previousMultiplier = entries.at(-2)?.metadata.recommendedLoadMultiplier ?? null;
+  const latestMultiplier = entries.at(-1)?.multiplier ?? null;
+  const previousMultiplier = entries.at(-2)?.multiplier ?? null;
 
   if (!isValidMultiplier(latestMultiplier)) {
     return {
