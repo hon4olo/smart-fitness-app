@@ -21,6 +21,11 @@ export type {
   WorkoutCoachMetadata,
   WorkoutPrescriptionSet,
   WorkoutRpe,
+  WorkoutSafetyGateKind,
+  WorkoutSafetyIssue,
+  WorkoutSafetyMetadata,
+  WorkoutSafetyRestriction,
+  WorkoutSafetyReviewStatus,
   WorkoutSession,
   WorkoutSet,
 } from './workouts';
