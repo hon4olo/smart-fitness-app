@@ -24,6 +24,7 @@ import {
 } from '@/features/exercises';
 import { normalizeWorkoutSessions } from '@/features/workouts';
 import { addWorkoutSessionExercises } from '@/features/workouts/sessionScreenModel';
+import { ensureUuid } from '@/lib/ids';
 import type { WorkoutSession } from '@/types';
 
 afterEach(() => {
@@ -279,7 +280,7 @@ describe('exercise history and progress', () => {
     const [normalized] = normalizeWorkoutSessions(legacySessions);
 
     expect(normalized.sets[0]).toMatchObject({
-      id: 'legacy-set',
+      id: ensureUuid('legacy-set'),
       exerciseId: 'bench-press',
       exerciseName: 'Bench Press',
       weight: 80,
@@ -298,7 +299,6 @@ describe('exercise history and progress', () => {
     };
 
     const nextDraft = addWorkoutSessionExercises(draft, [{ id: inclinePress.id, name: inclinePress.name }]);
-
     expect(inclinePress.source.sourceId).toBe('local-incline-dumbbell-press');
     expect(nextDraft.sets[0]).toMatchObject({
       exerciseId: 'incline-dumbbell-press',
