@@ -1,9 +1,11 @@
+import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
 import { FormField } from '@/components/ui/FormField';
 import { InlineError } from '@/components/ui/InlineError';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import type {
   CoachActivityLevel,
@@ -183,6 +185,11 @@ export function ProfileCoachCard({
         disabled={isSaveDisabled}
         label="Save coach profile"
         onPress={onSave}
+      />
+      <SecondaryButton
+        accessibilityHint="Opens the deterministic limitations and recovery readiness review"
+        label="Open Safety & Recovery"
+        onPress={() => router.push('/profile/safety-recovery')}
       />
     </AppCard>
   );
