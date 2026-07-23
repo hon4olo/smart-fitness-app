@@ -1,4 +1,4 @@
-import type { BodyMeasurement, Exercise, FoodEntry, MealTemplate, NutritionState, NutritionTargets, ProfileState, TrainingProgram, WeightEntry, Workout, WorkoutSession } from '@/types';
+import type { BodyMeasurement, Exercise, FoodEntry, MealTemplate, NutritionState, NutritionTargets, ProfileState, RecoveryCheckIn, TrainingProgram, UserLimitation, WeightEntry, Workout, WorkoutSession } from '@/types';
 
 import { exerciseDatabase } from './exercises';
 
@@ -16,6 +16,8 @@ export type AppDefaultState = {
   nutritionTargets: NutritionTargets;
   weightHistory: WeightEntry[];
   bodyMeasurements: BodyMeasurement[];
+  userLimitations: UserLimitation[];
+  recoveryCheckIns: RecoveryCheckIn[];
   profile: ProfileState;
   onboardingCompleted: boolean;
 };
@@ -81,6 +83,8 @@ export const defaultState: AppDefaultState = {
   },
   weightHistory: [],
   bodyMeasurements: [],
+  userLimitations: [],
+  recoveryCheckIns: [],
   onboardingCompleted: false,
   profile: {
     height: '',
