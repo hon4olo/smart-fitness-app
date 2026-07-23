@@ -30,4 +30,8 @@ export type {
   TokenManager,
 } from './types';
 export { getDefaultAuthDeviceInfo } from './device';
+export {
+  createMigratingTokenManager,
+  SECURE_AUTH_TOKENS_STORAGE_KEY,
+} from './migrating-token-manager';
 export { createTokenManager, AUTH_TOKENS_STORAGE_KEY } from './token-manager';
