@@ -25,6 +25,7 @@ import type {
 
 import { SyncProvider } from './SyncContext';
 import { AppContext, useAppContext } from './appContext/AppContextCore';
+import { AppMutationFailureNotice } from './appContext/AppMutationFailureNotice';
 import {
   addBodyMeasurementToState,
   completeOnboardingInState,
@@ -33,6 +34,7 @@ import {
   updateProfileGoalsInState,
 } from './appContext/progressActions';
 import { useAppInfrastructure } from './appContext/useAppInfrastructure';
+import { useAppMutationQueue } from './appContext/useAppMutationQueue';
 import { useNutritionStateActions } from './appContext/useNutritionStateActions';
 import { useWeightHistoryActions } from './appContext/useWeightHistoryActions';
 import {
@@ -79,6 +81,14 @@ export function AppProvider({ children }: PropsWithChildren) {
     weightSyncMetadataStore,
   } = useAppInfrastructure(setState, setIsRestoringState);
   const {
+    dismissMutationFailure,
+    enqueueStateMutation,
+    mutationFailure,
+    pendingMutationCount,
+    retryFailedMutation,
+    scheduleStateMutation,
+  } = useAppMutationQueue(repository);
+  const {
     addFoodEntries,
     addFoodEntry,
     addMealTemplate,
@@ -86,16 +96,16 @@ export function AppProvider({ children }: PropsWithChildren) {
     deleteMealTemplate,
     updateFoodEntry,
     updateNutritionTargets,
-  } = useNutritionStateActions({ repository, setState });
+  } = useNutritionStateActions({ scheduleStateMutation, setState });
   const {
     addWeightEntry,
+    createWeightHistoryOutboxStep,
     deleteWeightEntry,
-    queueWeightHistoryOperation,
     updateWeightEntry,
   } = useWeightHistoryActions({
     authService,
     queueStore,
-    repository,
+    scheduleStateMutation,
     setState,
     weightSyncMetadataStore,
   });
@@ -120,11 +130,11 @@ export function AppProvider({ children }: PropsWithChildren) {
             },
           ],
         };
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Save custom exercise', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const addWorkoutTemplate = useCallback(
@@ -137,11 +147,11 @@ export function AppProvider({ children }: PropsWithChildren) {
     }) => {
       setState((currentState) => {
         const nextState = addWorkoutTemplateToState(currentState, template);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Save workout template', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const updateWorkoutTemplate = useCallback(
@@ -156,11 +166,11 @@ export function AppProvider({ children }: PropsWithChildren) {
           updatedTemplate,
           new Date().toISOString(),
         );
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Update workout template', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const saveTrainingProgram = useCallback(
@@ -171,22 +181,22 @@ export function AppProvider({ children }: PropsWithChildren) {
           program,
           new Date().toISOString(),
         );
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Save training program', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const deleteTrainingProgram = useCallback(
     (programId: string) => {
       setState((currentState) => {
         const nextState = deleteTrainingProgramFromState(currentState, programId);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Delete training program', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const toggleTrainingProgramFavorite = useCallback(
@@ -197,33 +207,33 @@ export function AppProvider({ children }: PropsWithChildren) {
           programId,
           new Date().toISOString(),
         );
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Update training program favorite', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const deleteWorkoutTemplate = useCallback(
     (templateId: string) => {
       setState((currentState) => {
         const nextState = deleteCustomWorkoutTemplateFromState(currentState, templateId);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Delete workout template', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const deleteExercise = useCallback(
     (exerciseId: string) => {
       setState((currentState) => {
         const nextState = deleteCustomExerciseFromState(currentState, exerciseId);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Delete custom exercise', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const updateProfileGoals = useCallback(
@@ -235,33 +245,33 @@ export function AppProvider({ children }: PropsWithChildren) {
     }) => {
       setState((currentState) => {
         const nextState = updateProfileGoalsInState(currentState, goals);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Save profile goals', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const addBodyMeasurement = useCallback(
     (entry: BodyMeasurement) => {
       setState((currentState) => {
         const nextState = addBodyMeasurementToState(currentState, entry);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Save body measurement', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const deleteBodyMeasurement = useCallback(
     (entryId: string) => {
       setState((currentState) => {
         const nextState = deleteBodyMeasurementFromState(currentState, entryId);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Delete body measurement', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const saveWorkoutSession = useCallback(
@@ -271,11 +281,11 @@ export function AppProvider({ children }: PropsWithChildren) {
           ...currentState,
           workoutSessions: upsertWorkoutSessionById(currentState.workoutSessions, session),
         };
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Save workout session', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const completeOnboarding = useCallback(
@@ -298,31 +308,34 @@ export function AppProvider({ children }: PropsWithChildren) {
           setup,
           initialWeightInput,
         );
-        void repository.saveState(nextState);
-        void queueWeightHistoryOperation('create', initialWeightEntry);
+        scheduleStateMutation({
+          label: 'Complete onboarding',
+          nextState,
+          outbox: createWeightHistoryOutboxStep('create', initialWeightEntry),
+        });
         return nextState;
       });
     },
-    [queueWeightHistoryOperation, repository],
+    [createWeightHistoryOutboxStep, scheduleStateMutation],
   );
 
   const resetOnboarding = useCallback(() => {
     setState((currentState) => {
       const nextState = resetOnboardingInState(currentState);
-      void repository.saveState(nextState);
+      scheduleStateMutation({ label: 'Reset onboarding', nextState });
       return nextState;
     });
-  }, [repository]);
+  }, [scheduleStateMutation]);
 
   const deleteWorkoutSession = useCallback(
     (sessionId: string) => {
       setState((currentState) => {
         const nextState = deleteWorkoutSessionFromState(currentState, sessionId);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Delete workout session', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const updateWorkoutSession = useCallback(
@@ -333,19 +346,19 @@ export function AppProvider({ children }: PropsWithChildren) {
           sessionId,
           updatedSession,
         );
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Update workout session', nextState });
         return nextState;
       });
     },
-    [repository],
+    [scheduleStateMutation],
   );
 
   const replaceState = useCallback(
-    (nextState: AppState) => {
+    async (nextState: AppState) => {
       setState(nextState);
-      void repository.saveState(nextState);
+      await enqueueStateMutation({ label: 'Apply synchronized data', nextState });
     },
-    [repository],
+    [enqueueStateMutation],
   );
 
   const getLastWorkoutSession = useCallback(
@@ -372,10 +385,14 @@ export function AppProvider({ children }: PropsWithChildren) {
       deleteWeightEntry,
       deleteWorkoutSession,
       deleteWorkoutTemplate,
+      dismissMutationFailure,
       getLastWorkoutSession,
       isRestoringState,
+      mutationFailure,
+      pendingMutationCount,
       replaceState,
       resetOnboarding,
+      retryFailedMutation,
       saveTrainingProgram,
       saveWorkoutSession,
       toggleTrainingProgramFavorite,
@@ -404,10 +421,14 @@ export function AppProvider({ children }: PropsWithChildren) {
       deleteWeightEntry,
       deleteWorkoutSession,
       deleteWorkoutTemplate,
+      dismissMutationFailure,
       getLastWorkoutSession,
       isRestoringState,
+      mutationFailure,
+      pendingMutationCount,
       replaceState,
       resetOnboarding,
+      retryFailedMutation,
       saveTrainingProgram,
       saveWorkoutSession,
       toggleTrainingProgramFavorite,
@@ -431,6 +452,12 @@ export function AppProvider({ children }: PropsWithChildren) {
           syncCoordinator={syncCoordinator}>
           {children}
         </SyncProvider>
+        <AppMutationFailureNotice
+          failure={mutationFailure}
+          onDismiss={dismissMutationFailure}
+          onRetry={retryFailedMutation}
+          pendingCount={pendingMutationCount}
+        />
       </AppContext.Provider>
     </AuthProvider>
   );
