@@ -4,7 +4,12 @@ export type {
   AppMutationStage,
   AppState,
 } from './appContext';
-export type { BodyMeasurement, WeightEntry } from './progress';
+export type {
+  BodyMeasurement,
+  BodyMeasurementMetric,
+  BodyMeasurementUnit,
+  WeightEntry,
+} from './progress';
 export type {
   FoodAttribution,
   FoodBrowserMode,
