@@ -4,6 +4,7 @@ import { ensureUuid, isUuid } from '@/lib/ids';
 import type { AppState, Exercise, Workout } from '@/types';
 import type {
   WorkoutTemplateSyncMetadata,
+  WorkoutTemplateSyncSnapshot,
 } from '@/storage/WorkoutTemplateSyncMetadataStore';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -58,6 +59,49 @@ export const normalizeWorkoutTemplateForSync = (
   };
 };
 
+export const toWorkoutTemplateSyncSnapshot = (
+  workout: Workout,
+): WorkoutTemplateSyncSnapshot => ({
+  title: workout.title.trim(),
+  description: workout.description?.trim() || null,
+  duration: workout.duration.trim() || '30 min',
+  exercises: workout.exercises.map((exercise) => ({
+    id: exercise.id.trim(),
+    name: exercise.name.trim(),
+    muscleGroup: exercise.muscleGroup?.trim() || null,
+    isCustom: Boolean(exercise.isCustom),
+    createdAt: exercise.createdAt,
+  })),
+  isCustom: true,
+});
+
+export const areWorkoutTemplateSnapshotsEqual = (
+  left: WorkoutTemplateSyncSnapshot,
+  right: WorkoutTemplateSyncSnapshot,
+): boolean => JSON.stringify(left) === JSON.stringify(right);
+
+export const workoutFromTemplateMetadata = (
+  metadata: WorkoutTemplateSyncMetadata,
+): Workout => ({
+  id: metadata.id,
+  title: metadata.snapshot.title,
+  ...(metadata.snapshot.description
+    ? { description: metadata.snapshot.description }
+    : {}),
+  duration: metadata.snapshot.duration,
+  exercises: metadata.snapshot.exercises.map((exercise) => ({
+    id: exercise.id,
+    name: exercise.name,
+    ...(exercise.muscleGroup
+      ? { muscleGroup: exercise.muscleGroup }
+      : {}),
+    isCustom: exercise.isCustom,
+    createdAt: exercise.createdAt,
+  })),
+  createdAt: metadata.createdAt,
+  isCustom: true,
+});
+
 export const createWorkoutTemplateQueueOperation = (input: {
   action: 'create' | 'update' | 'delete';
   workout: Workout;
@@ -71,6 +115,7 @@ export const createWorkoutTemplateQueueOperation = (input: {
     ? new Date(input.now).toISOString()
     : new Date().toISOString();
   const workout = normalizeWorkoutTemplateForSync(input.workout, now);
+  const snapshot = toWorkoutTemplateSyncSnapshot(workout);
   const baseRevision = {
     id: input.previous ? `rev-${input.previous.revision}` : 'rev-0',
     number: input.baseRevision,
@@ -82,17 +127,17 @@ export const createWorkoutTemplateQueueOperation = (input: {
       : {
           schemaVersion: 1,
           id: workout.id,
-          title: workout.title,
-          ...(workout.description ? { description: workout.description } : {}),
-          duration: workout.duration,
-          exercises: workout.exercises.map((exercise) => ({
+          title: snapshot.title,
+          ...(snapshot.description ? { description: snapshot.description } : {}),
+          duration: snapshot.duration,
+          exercises: snapshot.exercises.map((exercise) => ({
             id: exercise.id,
             name: exercise.name,
             ...(exercise.muscleGroup
               ? { muscleGroup: exercise.muscleGroup }
               : {}),
-            isCustom: Boolean(exercise.isCustom),
-            createdAt: exercise.createdAt ?? workout.createdAt ?? now,
+            isCustom: exercise.isCustom,
+            createdAt: exercise.createdAt,
           })),
           isCustom: true,
           createdAt: input.previous?.createdAt ?? workout.createdAt ?? now,
@@ -132,10 +177,7 @@ export const createWorkoutTemplateQueueOperation = (input: {
   };
 };
 
-const readExercise = (
-  value: unknown,
-  fallbackCreatedAt: string,
-): Exercise | null => {
+const readExercise = (value: unknown): Exercise | null => {
   if (
     !isRecord(value) ||
     typeof value.id !== 'string' ||
@@ -160,7 +202,7 @@ const readExercise = (
       ? { muscleGroup: value.muscleGroup.trim() }
       : {}),
     isCustom: value.isCustom,
-    createdAt: new Date(value.createdAt ?? fallbackCreatedAt).toISOString(),
+    createdAt: new Date(value.createdAt).toISOString(),
   };
 };
 
@@ -173,7 +215,7 @@ const readRemoteWorkout = (payload: Record<string, unknown>): Workout | null => 
     !payload.title.trim() ||
     typeof payload.duration !== 'string' ||
     !payload.duration.trim() ||
-    typeof payload.isCustom !== 'boolean' ||
+    payload.isCustom !== true ||
     !Array.isArray(payload.exercises) ||
     payload.exercises.length === 0 ||
     !isTimestamp(payload.createdAt)
@@ -187,9 +229,7 @@ const readRemoteWorkout = (payload: Record<string, unknown>): Workout | null => 
     return null;
   }
   const createdAt = new Date(payload.createdAt).toISOString();
-  const exercises = payload.exercises.map((exercise) =>
-    readExercise(exercise, createdAt),
-  );
+  const exercises = payload.exercises.map(readExercise);
   if (exercises.some((exercise) => !exercise)) return null;
   const exerciseIds = new Set<string>();
   for (const exercise of exercises as Exercise[]) {
@@ -269,6 +309,7 @@ export const applyRemoteWorkoutTemplateChanges = (
           : 'unknown',
       createdAt: workout.createdAt ?? syncedAt,
       syncedAt,
+      snapshot: toWorkoutTemplateSyncSnapshot(workout),
       deletedAt: null,
     });
   }
@@ -282,17 +323,17 @@ export const applyRemoteWorkoutTemplateChanges = (
     );
     deletedRecordIds.push(id);
     const previous = metadata.get(id);
-    metadata.set(id, {
-      id,
-      revision:
-        typeof deleted.revision === 'number' && Number.isFinite(deleted.revision)
-          ? Math.max(0, Math.floor(deleted.revision))
-          : 0,
-      deviceId: previous?.deviceId ?? 'unknown',
-      createdAt: previous?.createdAt ?? syncedAt,
-      syncedAt,
-      deletedAt: deleted.appliedAt ?? syncedAt,
-    });
+    if (previous) {
+      metadata.set(id, {
+        ...previous,
+        revision:
+          typeof deleted.revision === 'number' && Number.isFinite(deleted.revision)
+            ? Math.max(0, Math.floor(deleted.revision))
+            : previous.revision,
+        syncedAt,
+        deletedAt: deleted.appliedAt ?? syncedAt,
+      });
+    }
   }
 
   return {
