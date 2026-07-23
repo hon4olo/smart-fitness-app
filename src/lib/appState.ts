@@ -16,11 +16,20 @@ export {
 } from '@/features/workouts';
 
 export const normalizeExercises = (exercises: Exercise[]) => {
-  return exercises.map((exercise) => ({
-    ...exercise,
-    isCustom: exercise.isCustom ?? false,
-    createdAt: exercise.createdAt ?? new Date().toISOString(),
-  }));
+  return exercises.map((exercise) => {
+    const isCustom = exercise.isCustom ?? false;
+    return {
+      ...exercise,
+      id: isCustom ? ensureUuid(exercise.id) : exercise.id,
+      isCustom,
+      createdAt: exercise.createdAt ?? new Date().toISOString(),
+      ...(isCustom &&
+      exercise.source !== 'imported' &&
+      exercise.source !== 'remote'
+        ? { source: 'user' as const }
+        : {}),
+    };
+  });
 };
 
 export const normalizeFoodEntries = (foodEntries: FoodEntry[]) => {
