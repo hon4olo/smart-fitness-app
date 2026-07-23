@@ -42,6 +42,11 @@ import {
   applyRemoteWorkoutSessionChanges,
   isWorkoutSessionQueueOperation,
 } from '@/cloud/WorkoutSessionSync';
+import {
+  applyRemoteWorkoutTemplateChanges,
+  isWorkoutTemplateQueueOperation,
+} from '@/cloud/WorkoutTemplateSync';
+import { planWorkoutTemplateSyncOperations } from '@/cloud/WorkoutTemplateSyncPlanner';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import {
   createAsyncStorageAdapter,
@@ -49,6 +54,7 @@ import {
   createFoodEntrySyncMetadataStore,
   createNutritionTargetSyncMetadataStore,
   createWorkoutSessionSyncMetadataStore,
+  createWorkoutTemplateSyncMetadataStore,
   getDefaultSyncCursorStore,
 } from '@/storage';
 import type { WeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
@@ -164,6 +170,7 @@ const hasUnsupportedRemoteEntities = (pullResult: {
       (operation) =>
         operation.entity !== 'weightHistory' &&
         operation.entity !== 'workoutSessions' &&
+        operation.entity !== 'workouts' &&
         operation.entity !== 'foodEntries' &&
         operation.entity !== 'nutritionTargets' &&
         operation.entity !== 'fitnessProfiles',
@@ -176,6 +183,7 @@ const countSupportedQueueOperations = (
 ): number =>
   filterWeightHistoryQueueOperations(operations).length +
   operations.filter(isWorkoutSessionQueueOperation).length +
+  operations.filter(isWorkoutTemplateQueueOperation).length +
   operations.filter(isFoodEntryQueueOperation).length +
   operations.filter(isNutritionTargetQueueOperation).length +
   operations.filter(isFitnessProfileQueueOperation).length;
@@ -201,6 +209,10 @@ export function SyncProvider({
   const syncStorage = useMemo(() => createAsyncStorageAdapter(), []);
   const workoutSessionMetadataStore = useMemo(
     () => createWorkoutSessionSyncMetadataStore(syncStorage),
+    [syncStorage],
+  );
+  const workoutTemplateMetadataStore = useMemo(
+    () => createWorkoutTemplateSyncMetadataStore(syncStorage),
     [syncStorage],
   );
   const foodEntryMetadataStore = useMemo(
@@ -290,6 +302,21 @@ export function SyncProvider({
     );
   }, [fitnessProfileMetadataStore, queueStore, session]);
 
+  const ensureWorkoutTemplateSync = useCallback(async () => {
+    if (!session?.user.id || !session.device.id) return;
+
+    const operations = planWorkoutTemplateSyncOperations({
+      workouts: latestStateRef.current.workouts,
+      metadata: await workoutTemplateMetadataStore.load(),
+      pendingOperations: await queueStore.getPending(),
+      userId: session.user.id,
+      deviceId: session.device.id,
+    });
+    for (const operation of operations) {
+      await queueStore.enqueue(operation);
+    }
+  }, [queueStore, session, workoutTemplateMetadataStore]);
+
   const syncNow = useCallback(async () => {
     if (syncingRef.current || isRestoringState) return;
 
@@ -306,6 +333,7 @@ export function SyncProvider({
 
       await ensureNutritionTargetBootstrap();
       await ensureFitnessProfileSync();
+      await ensureWorkoutTemplateSync();
       const result = await syncCoordinator.syncNow();
       const pushResult = result.push?.result;
       const pullResult = result.pull?.result;
@@ -353,8 +381,16 @@ export function SyncProvider({
           await workoutSessionMetadataStore.load(),
           syncedAt,
         );
-        const foodEntryChanges = applyRemoteFoodEntryChanges(
+        const workoutTemplateChanges = applyRemoteWorkoutTemplateChanges(
           workoutSessionChanges.nextState,
+          nonDeletedChangedEntities,
+          deletedEntities,
+          session.user.id,
+          await workoutTemplateMetadataStore.load(),
+          syncedAt,
+        );
+        const foodEntryChanges = applyRemoteFoodEntryChanges(
+          workoutTemplateChanges.nextState,
           nonDeletedChangedEntities,
           deletedEntities,
           await foodEntryMetadataStore.load(),
@@ -393,6 +429,10 @@ export function SyncProvider({
         for (const record of workoutSessionChanges.metadata) {
           await workoutSessionMetadataStore.set(record);
         }
+        await workoutTemplateMetadataStore.clear();
+        for (const record of workoutTemplateChanges.metadata) {
+          await workoutTemplateMetadataStore.set(record);
+        }
         await foodEntryMetadataStore.clear();
         for (const record of foodEntryChanges.metadata) {
           await foodEntryMetadataStore.set(record);
@@ -411,6 +451,8 @@ export function SyncProvider({
           weightChanges.deletedRecordIds.length +
           workoutSessionChanges.appliedRecordIds.length +
           workoutSessionChanges.deletedRecordIds.length +
+          workoutTemplateChanges.appliedRecordIds.length +
+          workoutTemplateChanges.deletedRecordIds.length +
           foodEntryChanges.appliedRecordIds.length +
           foodEntryChanges.deletedRecordIds.length +
           nutritionTargetChanges.appliedRecordIds.length +
@@ -452,6 +494,7 @@ export function SyncProvider({
     cursorStore,
     ensureFitnessProfileSync,
     ensureNutritionTargetBootstrap,
+    ensureWorkoutTemplateSync,
     fitnessProfileMetadataStore,
     foodEntryMetadataStore,
     isAuthenticated,
@@ -464,6 +507,7 @@ export function SyncProvider({
     session,
     syncCoordinator,
     workoutSessionMetadataStore,
+    workoutTemplateMetadataStore,
   ]);
 
   useEffect(() => {
