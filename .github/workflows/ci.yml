@@ -11,7 +11,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,11 +55,13 @@ jobs:
           src/api/coach.capabilities.v4.test.ts
           src/api/coach.capabilities.v5.test.ts
           src/api/coach.capabilities.v6.test.ts
+          src/api/coach.capabilities.v7.test.ts
           src/api/coach.safety-recovery.test.ts
           src/api/coach.combined.test.ts
           src/api/coach.strength-strategy.test.ts
           src/api/coach.strength-confirmation.test.ts
           src/features/coach/combinedCoachViewModel.test.ts
+          src/features/coach/combinedCoachProposalViewModel.test.ts
           src/features/coach/recoveryCheckInForm.test.ts
           src/features/coach/userLimitationForm.test.ts
           src/features/coach/safetyRecoveryLocalSummary.test.ts
@@ -76,6 +78,8 @@ jobs:
           src/features/workouts/workoutSafetyGateModel.test.ts
           src/features/workouts/workoutSafetySessionMetadata.test.ts
           src/cloud/BodyMeasurementSync.test.ts
+          src/cloud/CustomExerciseSyncPlanner.test.ts
+          src/cloud/CustomExerciseRemoteSync.test.ts
           src/cloud/WorkoutSessionSync.test.ts
           src/cloud/WorkoutSessionSafetyMetadataSync.test.ts
           src/cloud/SafetyRecoverySync.test.ts
@@ -87,6 +91,8 @@ jobs:
           src/storage/WorkoutTemplateSyncMetadataStore.test.ts
           src/cloud/FoodEntrySync.test.ts
           src/repositories/FoodEntrySyncingRepository.test.ts
+          src/cloud/MealTemplateSyncPlanner.test.ts
+          src/cloud/MealTemplateRemoteSync.test.ts
           src/cloud/NutritionTargetSync.test.ts
           src/repositories/NutritionTargetSyncingRepository.test.ts
           src/storage/AsyncStorageOperationQueueStore.concurrent.test.ts
@@ -101,20 +107,15 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-      - name: Full regression diagnostics
+      - name: Full regression suite
         id: regressions
-        continue-on-error: true
         run: npm test > regression-tests.log 2>&1
 
-      - name: Upload regression diagnostics
-        if: always() && steps.regressions.outcome == 'failure'
+      - name: Upload regression test log
+        if: failure() && steps.regressions.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: mobile-regression-test-log
           path: regression-tests.log
           if-no-files-found: error
           retention-days: 3
-
-      - name: Report legacy regression status
-        if: always() && steps.regressions.outcome == 'failure'
-        run: echo "::warning::The full legacy regression suite still has known stale assertions; see mobile-regression-test-log."
