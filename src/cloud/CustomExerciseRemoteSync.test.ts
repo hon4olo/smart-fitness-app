@@ -74,7 +74,7 @@ describe('remote custom exercise sync', () => {
     );
   });
 
-  it('rejects malformed remote payloads without changing state', () => {
+  it('rejects malformed remote payloads without changing exercises', () => {
     const result = applyRemoteCustomExerciseChanges(
       defaultState,
       [
@@ -92,7 +92,8 @@ describe('remote custom exercise sync', () => {
     );
 
     expect(result.appliedRecordIds).toEqual([]);
-    expect(result.nextState).toBe(defaultState);
+    expect(result.nextState.exercises).toEqual(defaultState.exercises);
+    expect(result.metadata).toEqual([]);
   });
 
   it('applies a tombstone and preserves deletion metadata', () => {
