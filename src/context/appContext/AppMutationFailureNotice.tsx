@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { AppMutationFailure } from '@/types';
 
@@ -62,7 +62,7 @@ export function AppMutationFailureNotice({
   );
 }
 
-const createStyles = (colors: ReturnType<typeof useAppTheme>['colors']) =>
+const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     action: {
       alignItems: 'center',
@@ -125,7 +125,7 @@ const createStyles = (colors: ReturnType<typeof useAppTheme>['colors']) =>
       backgroundColor: colors.error,
     },
     retryLabel: {
-      color: colors.onAccent,
+      color: colors.textOnAccent,
       fontSize: Typography.label.fontSize,
       fontWeight: Typography.label.fontWeight,
     },
