@@ -1,4 +1,5 @@
 import type {
+  TrainingProgram,
   WorkoutSafetyMetadata,
   WorkoutSafetyReviewStatus,
   WorkoutSession,
@@ -8,6 +9,27 @@ import type {
 import { getSessionExercises, getSessionVolume, getWorkoutTimestamp } from './historyModel';
 
 export type WorkoutHistorySafetyTone = 'neutral' | 'positive' | 'warning' | 'critical';
+export type WorkoutHistoryPeriodFilter = 'all' | '7d' | '30d' | '90d';
+export type WorkoutHistorySafetyFilter =
+  | 'all'
+  | 'ready'
+  | 'modify'
+  | 'blocked'
+  | 'needs_input'
+  | 'missing_or_stale'
+  | 'no_context';
+export type WorkoutHistoryProgramFilter = 'all' | 'unassigned' | string;
+
+export type WorkoutHistoryFilters = {
+  period: WorkoutHistoryPeriodFilter;
+  programId: WorkoutHistoryProgramFilter;
+  safety: WorkoutHistorySafetyFilter;
+};
+
+export type WorkoutHistoryProgramOption = {
+  id: WorkoutHistoryProgramFilter;
+  label: string;
+};
 
 export type WorkoutHistoryItemView = {
   session: WorkoutSession;
@@ -28,6 +50,12 @@ export type WorkoutHistoryExerciseGroup = {
   sets: WorkoutSet[];
   completedSetCount: number;
   volume: number;
+};
+
+const PERIOD_DAYS: Record<Exclude<WorkoutHistoryPeriodFilter, 'all'>, number> = {
+  '7d': 7,
+  '30d': 30,
+  '90d': 90,
 };
 
 const formatDate = (value: string): string => {
@@ -112,6 +140,75 @@ export const buildWorkoutHistory = (
   [...sessions]
     .sort((left, right) => getWorkoutTimestamp(right) - getWorkoutTimestamp(left))
     .map(buildWorkoutHistoryItemView);
+
+const getProgramWorkoutIds = (program: TrainingProgram): Set<string> =>
+  new Set(
+    program.days
+      .map((day) => day.workoutTemplateId)
+      .filter((workoutId): workoutId is string => Boolean(workoutId?.trim())),
+  );
+
+export const buildWorkoutHistoryProgramOptions = (
+  programs: TrainingProgram[],
+): WorkoutHistoryProgramOption[] => [
+  { id: 'all', label: 'All programs' },
+  ...[...programs]
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((program) => ({ id: program.id, label: program.name })),
+  { id: 'unassigned', label: 'Unassigned' },
+];
+
+const matchesPeriod = (
+  session: WorkoutSession,
+  period: WorkoutHistoryPeriodFilter,
+  now: number,
+): boolean => {
+  if (period === 'all') return true;
+  const timestamp = getWorkoutTimestamp(session);
+  if (timestamp <= 0) return false;
+  const cutoff = now - PERIOD_DAYS[period] * 24 * 60 * 60 * 1000;
+  return timestamp >= cutoff && timestamp <= now;
+};
+
+const matchesProgram = (
+  session: WorkoutSession,
+  programId: WorkoutHistoryProgramFilter,
+  programs: TrainingProgram[],
+): boolean => {
+  if (programId === 'all') return true;
+  const matchingProgramIds = programs
+    .filter((program) => getProgramWorkoutIds(program).has(session.workoutId))
+    .map((program) => program.id);
+  if (programId === 'unassigned') return matchingProgramIds.length === 0;
+  return matchingProgramIds.includes(programId);
+};
+
+const matchesSafety = (
+  session: WorkoutSession,
+  safety: WorkoutHistorySafetyFilter,
+): boolean => {
+  if (safety === 'all') return true;
+  const metadata = session.safetyRecovery;
+  if (safety === 'no_context') return !metadata;
+  if (!metadata) return false;
+  if (safety === 'missing_or_stale') {
+    return metadata.gateKind === 'review_missing' || metadata.gateKind === 'review_stale';
+  }
+  return metadata.reviewStatus === safety;
+};
+
+export const filterWorkoutHistory = (
+  sessions: WorkoutSession[],
+  programs: TrainingProgram[],
+  filters: WorkoutHistoryFilters,
+  now = Date.now(),
+): WorkoutHistoryItemView[] =>
+  buildWorkoutHistory(sessions).filter(
+    (item) =>
+      matchesPeriod(item.session, filters.period, now) &&
+      matchesProgram(item.session, filters.programId, programs) &&
+      matchesSafety(item.session, filters.safety),
+  );
 
 export const groupWorkoutSessionSets = (
   session: WorkoutSession,
