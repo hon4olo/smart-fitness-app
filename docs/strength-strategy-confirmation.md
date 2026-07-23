@@ -37,3 +37,7 @@ The template snapshot preserves:
 - strategy type and confirmation timestamp.
 
 Legacy custom templates remain valid with `prescription` and `coachMetadata` normalized to `null`.
+
+## Validation gates
+
+The exact PR head must pass strict TypeScript compilation, Coach/sync contract tests and the full mobile regression suite before merge.
