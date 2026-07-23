@@ -1,4 +1,10 @@
-import type { Workout, WorkoutRpe, WorkoutSession, WorkoutSet } from '@/types';
+import type {
+  Workout,
+  WorkoutRpe,
+  WorkoutSafetyMetadata,
+  WorkoutSession,
+  WorkoutSet,
+} from '@/types';
 import { createUuid } from '@/lib/ids';
 
 import { buildCompletedWorkoutSessionSnapshot } from './sessionModel';
@@ -137,7 +143,11 @@ export const getPreviousCompletedSetsForExercise = (
 
 export const buildCompletedWorkoutSessionSnapshotFromDraft = (
   draft: WorkoutSessionDraft,
-  options: { finishedAt?: string; notes?: string } = {},
+  options: {
+    finishedAt?: string;
+    notes?: string;
+    safetyRecovery?: WorkoutSafetyMetadata;
+  } = {},
 ) => {
   const completedDraft: WorkoutSessionDraft = {
     ...draft,
