@@ -16,7 +16,7 @@ export type CoachCapabilities = {
     deterministicReview: true;
     deterministicTargetProposal: true;
     structuredStrategyProposal: boolean;
-    structuredStrategyConfirmation: boolean;
+    structuredStrategyConfirmation?: boolean;
     strategyRequiresConfirmation: true;
   };
 };
@@ -292,10 +292,12 @@ export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
       deterministicReview: true,
       deterministicTargetProposal: true,
       structuredStrategyProposal: nutrition.structuredStrategyProposal,
-      structuredStrategyConfirmation:
-        value.schemaVersion === 2
-          ? (nutrition.structuredStrategyConfirmation as boolean)
-          : false,
+      ...(value.schemaVersion === 2
+        ? {
+            structuredStrategyConfirmation:
+              nutrition.structuredStrategyConfirmation as boolean,
+          }
+        : {}),
       strategyRequiresConfirmation: true,
     },
   };
