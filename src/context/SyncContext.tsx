@@ -13,6 +13,7 @@ import { AppState as ReactNativeAppState } from 'react-native';
 import type { SyncCoordinator } from '@/cloud';
 import { planBodyMeasurementSyncOperations } from '@/cloud/BodyMeasurementSyncPlanner';
 import type { OfflineSyncQueueStore } from '@/cloud/CloudQueueStore';
+import { planCustomExerciseSyncOperations } from '@/cloud/CustomExerciseSyncPlanner';
 import {
   areFitnessProfileSnapshotsEqual,
   createFitnessProfileQueueOperation,
@@ -32,6 +33,7 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import {
   createAsyncStorageAdapter,
   createBodyMeasurementSyncMetadataStore,
+  createCustomExerciseSyncMetadataStore,
   createFitnessProfileSyncMetadataStore,
   createFoodEntrySyncMetadataStore,
   createNutritionTargetSyncMetadataStore,
@@ -99,6 +101,10 @@ export function SyncProvider({
   );
   const trainingProgramMetadataStore = useMemo(
     () => createTrainingProgramSyncMetadataStore(syncStorage),
+    [syncStorage],
+  );
+  const customExerciseMetadataStore = useMemo(
+    () => createCustomExerciseSyncMetadataStore(syncStorage),
     [syncStorage],
   );
   const foodEntryMetadataStore = useMemo(
@@ -204,6 +210,18 @@ export function SyncProvider({
     for (const operation of operations) await queueStore.enqueue(operation);
   }, [bodyMeasurementMetadataStore, queueStore, session]);
 
+  const ensureCustomExerciseSync = useCallback(async () => {
+    if (!session?.user.id || !session.device.id) return;
+    const operations = planCustomExerciseSyncOperations({
+      exercises: latestStateRef.current.exercises,
+      metadata: await customExerciseMetadataStore.load(),
+      pendingOperations: await queueStore.getPending(),
+      userId: session.user.id,
+      deviceId: session.device.id,
+    });
+    for (const operation of operations) await queueStore.enqueue(operation);
+  }, [customExerciseMetadataStore, queueStore, session]);
+
   const ensureWorkoutTemplateSync = useCallback(async () => {
     if (!session?.user.id || !session.device.id) return;
 
@@ -267,6 +285,7 @@ export function SyncProvider({
       await ensureNutritionTargetBootstrap();
       await ensureFitnessProfileSync();
       await ensureBodyMeasurementSync();
+      await ensureCustomExerciseSync();
       await ensureWorkoutTemplateSync();
       await ensureTrainingProgramSync();
       await ensureSafetyRecoverySync();
@@ -299,6 +318,7 @@ export function SyncProvider({
         await applySyncPullResult({
           bodyMeasurementMetadataStore,
           cursorStore,
+          customExerciseMetadataStore,
           fitnessProfileMetadataStore,
           foodEntryMetadataStore,
           metadataStore,
@@ -333,7 +353,9 @@ export function SyncProvider({
   }, [
     bodyMeasurementMetadataStore,
     cursorStore,
+    customExerciseMetadataStore,
     ensureBodyMeasurementSync,
+    ensureCustomExerciseSync,
     ensureFitnessProfileSync,
     ensureNutritionTargetBootstrap,
     ensureSafetyRecoverySync,
