@@ -56,8 +56,8 @@ type ApplySyncPullResultOptions = {
 
 const replaceMetadataRecords = async <RecordType>(
   store: {
-    clear(): Promise<void>;
-    set(record: RecordType): Promise<void>;
+    clear(): Promise<unknown>;
+    set(record: RecordType): Promise<unknown>;
   },
   records: RecordType[],
 ): Promise<void> => {
