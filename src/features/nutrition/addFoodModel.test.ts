@@ -41,6 +41,7 @@ describe('add food model', () => {
       servingBase: '100ml',
       servings: [{ id: 'serving-1', label: '250 ml', quantity: 250, unit: 'ml' }],
       nutrientsPer100ml: { calories: 50, protein: 3, carbs: 5, fat: 2 },
+      verified: true,
     };
 
     expect(createDraftFromFoodItem(food)).toMatchObject({
