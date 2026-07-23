@@ -23,6 +23,11 @@ export function ProfileActionsCard({ onResetOnboarding }: ProfileActionsCardProp
         onPress={() => router.push('/workouts/coach')}
       />
       <SecondaryButton
+        accessibilityHint="Opens the deterministic Safety and Recovery preview"
+        label="Safety & Recovery preview"
+        onPress={() => router.push('/workouts/safety-recovery')}
+      />
+      <SecondaryButton
         accessibilityHint="Opens the deterministic Nutrition Coach preview"
         label="Nutrition Coach preview"
         onPress={() => router.push('/nutrition/coach')}
