@@ -1,8 +1,8 @@
 import type { BodyMeasurement } from '@/types';
 
+import { resolveBodyMeasurementNumericValue } from '@/features/progress/bodyMeasurementModel';
 import {
   getTrendDirection,
-  parseNumericMeasurement,
   sortByCreatedAtAsc,
   type TrendDirection,
 } from '@/lib/progress/formatting';
@@ -19,15 +19,20 @@ export type MeasurementInsight = {
   createdAt: string;
 };
 
-export const getMeasurementInsights = (bodyMeasurements: BodyMeasurement[]): MeasurementInsight[] => {
-  const grouped = sortByCreatedAtAsc(bodyMeasurements).reduce<Record<string, BodyMeasurement[]>>((groups, measurement) => {
-    const key = measurement.label.trim().toLowerCase();
-    const nextGroup = groups[key] ?? [];
+const measurementGroupKey = (measurement: BodyMeasurement): string =>
+  measurement.metric
+    ? `${measurement.metric}:${measurement.metric === 'custom' ? measurement.label.trim().toLowerCase() : ''}`
+    : measurement.label.trim().toLowerCase();
 
-    return {
-      ...groups,
-      [key]: [...nextGroup, measurement],
-    };
+export const getMeasurementInsights = (
+  bodyMeasurements: BodyMeasurement[],
+): MeasurementInsight[] => {
+  const grouped = sortByCreatedAtAsc(bodyMeasurements).reduce<
+    Record<string, BodyMeasurement[]>
+  >((groups, measurement) => {
+    const key = measurementGroupKey(measurement);
+    const nextGroup = groups[key] ?? [];
+    return { ...groups, [key]: [...nextGroup, measurement] };
   }, {});
 
   return Object.values(grouped)
@@ -35,13 +40,18 @@ export const getMeasurementInsights = (bodyMeasurements: BodyMeasurement[]): Mea
       const sorted = sortByCreatedAtAsc(measurements);
       const latest = sorted.at(-1)!;
       const previous = sorted.at(-2);
-      const latestParsed = parseNumericMeasurement(latest.value);
-      const previousParsed = previous ? parseNumericMeasurement(previous.value) : null;
+      const latestParsed = resolveBodyMeasurementNumericValue(latest);
+      const previousParsed = previous
+        ? resolveBodyMeasurementNumericValue(previous)
+        : null;
       const comparable =
-        latestParsed && previousParsed && latestParsed.unit === previousParsed.unit && latestParsed.numeric !== undefined && previousParsed.numeric !== undefined;
-      const delta = comparable ? latestParsed.numeric - previousParsed.numeric : null;
+        latestParsed &&
+        previousParsed &&
+        latestParsed.unit === previousParsed.unit;
+      const delta = comparable
+        ? latestParsed.numeric - previousParsed.numeric
+        : null;
       const direction = getTrendDirection(delta);
-      const improved = delta !== null ? delta < 0 : false;
 
       return {
         id: latest.id,
@@ -54,10 +64,14 @@ export const getMeasurementInsights = (bodyMeasurements: BodyMeasurement[]): Mea
             ? undefined
             : `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}${latestParsed?.unit ? ` ${latestParsed.unit}` : ''}`,
         direction,
-        improved,
+        improved: delta !== null ? delta < 0 : false,
         createdAt: latest.createdAt,
       } satisfies MeasurementInsight;
     })
-    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+    .sort(
+      (left, right) =>
+        new Date(right.createdAt).getTime() -
+        new Date(left.createdAt).getTime(),
+    )
     .slice(0, 6);
 };
