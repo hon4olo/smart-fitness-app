@@ -1,0 +1,194 @@
+name: Smart Fitness Release Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_ref:
+        description: Mobile repository branch, tag, or commit
+        required: true
+        default: main
+        type: string
+      backend_ref:
+        description: Backend repository branch, tag, or commit
+        required: true
+        default: main
+        type: string
+  workflow_call:
+    inputs:
+      app_ref:
+        required: false
+        default: main
+        type: string
+      backend_ref:
+        required: false
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  mobile:
+    name: Mobile release validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout mobile
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.app_ref }}
+          path: mobile
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Validate TypeScript
+        working-directory: mobile
+        run: npx tsc --noEmit
+
+      - name: Run complete mobile test suite
+        working-directory: mobile
+        run: npm test
+
+      - name: Validate Expo public configuration
+        working-directory: mobile
+        env:
+          EXPO_PUBLIC_API_BASE_URL: https://release-gate.invalid
+        run: npx expo config --type public > expo-public-config.json
+
+      - name: Upload Expo configuration on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-expo-config
+          path: mobile/expo-public-config.json
+          if-no-files-found: ignore
+          retention-days: 3
+
+  backend:
+    name: Backend release validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: smart_fitness_release_gate
+          POSTGRES_USER: smart_fitness
+          POSTGRES_PASSWORD: smart_fitness_release_gate_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U smart_fitness -d smart_fitness_release_gate"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 127.0.0.1
+      DATABASE_URL: postgresql://smart_fitness:smart_fitness_release_gate_password@127.0.0.1:5432/smart_fitness_release_gate
+      AUTH_ACCESS_TOKEN_SECRET: release-gate-access-token-secret-at-least-32-characters
+      AUTH_REFRESH_TOKEN_SECRET: release-gate-refresh-token-secret-at-least-32-characters
+      CORS_ALLOWLIST: https://release-gate.invalid
+      COACH_MODEL_ENABLED: 'false'
+    steps:
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: hon4olo/smart-fitness-backend
+          ref: ${{ inputs.backend_ref }}
+          path: backend
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Lint backend
+        working-directory: backend
+        run: npm run lint
+
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+      - name: Validate compiled production configuration
+        working-directory: backend
+        run: >-
+          node --input-type=module -e
+          "import('./dist/config/env.js').then(({loadEnv}) => {
+            const value = loadEnv(process.env);
+            if (value.NODE_ENV !== 'production' || value.COACH_MODEL_ENABLED !== false) process.exit(1);
+          })"
+
+      - name: Apply backend migrations
+        working-directory: backend
+        run: npm run db:migrate
+
+      - name: Verify migration idempotency
+        working-directory: backend
+        run: npm run db:migrate
+
+      - name: Run complete backend test suite
+        working-directory: backend
+        run: npm test
+
+      - name: Start production server and verify health
+        id: startup
+        working-directory: backend
+        shell: bash
+        run: |
+          npm run start:production > release-startup.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat release-startup.log
+          exit 1
+
+      - name: Upload backend startup log
+        if: failure() && steps.startup.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-backend-startup-log
+          path: backend/release-startup.log
+          if-no-files-found: error
+          retention-days: 3
+
+  release-ready:
+    name: Release ready
+    runs-on: ubuntu-latest
+    needs: [mobile, backend]
+    if: always()
+    steps:
+      - name: Enforce all release checks
+        env:
+          MOBILE_RESULT: ${{ needs.mobile.result }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
+        run: |
+          if [ "$MOBILE_RESULT" != "success" ] || [ "$BACKEND_RESULT" != "success" ]; then
+            echo "Release blocked: mobile=$MOBILE_RESULT backend=$BACKEND_RESULT"
+            exit 1
+          fi
+          echo "Release gate passed for app=${{ inputs.app_ref }} backend=${{ inputs.backend_ref }}"
