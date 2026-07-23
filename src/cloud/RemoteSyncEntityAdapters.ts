@@ -21,6 +21,8 @@ const ENTITY_TYPE_ALIASES: Record<string, DomainEntityName> = {
   app_state: 'appState',
   bodymeasurements: 'bodyMeasurements',
   body_measurements: 'bodyMeasurements',
+  customexercises: 'customExercises',
+  custom_exercises: 'customExercises',
   exercises: 'exercises',
   fitnessprofiles: 'fitnessProfiles',
   fitness_profiles: 'fitnessProfiles',
@@ -31,9 +33,13 @@ const ENTITY_TYPE_ALIASES: Record<string, DomainEntityName> = {
   nutritiontargets: 'nutritionTargets',
   nutrition_targets: 'nutritionTargets',
   profile: 'profile',
+  recoverycheckins: 'recoveryCheckIns',
+  recovery_check_ins: 'recoveryCheckIns',
   user_profile: 'profile',
   trainingprograms: 'trainingPrograms',
   training_programs: 'trainingPrograms',
+  userlimitations: 'userLimitations',
+  user_limitations: 'userLimitations',
   weighthistory: 'weightHistory',
   weight_history: 'weightHistory',
   workouts: 'workouts',
@@ -81,12 +87,15 @@ export const toRemoteSyncOperation = (
   }
 
   const revisionNumber = normalizeRevision(record.revision, fallbackRevision);
-  const operationId =
+  const requestId =
     typeof record.idempotencyKey === 'string' && record.idempotencyKey.trim()
       ? record.idempotencyKey.trim()
-      : typeof record.id === 'string' && record.id.trim()
-        ? record.id.trim()
-        : `remote:${entity}:${entityId}:${revisionNumber}`;
+      : null;
+  const operationId =
+    requestId ??
+    (typeof record.id === 'string' && record.id.trim()
+      ? record.id.trim()
+      : `remote:${entity}:${entityId}:${revisionNumber}`);
   const createdAt =
     typeof record.appliedAt === 'string' && record.appliedAt.trim()
       ? record.appliedAt.trim()
@@ -109,6 +118,7 @@ export const toRemoteSyncOperation = (
     metadata: {
       entityName: entity,
       source: 'remote',
+      ...(requestId ? { requestId } : {}),
       ...(typeof record.deviceId === 'string' ? { deviceId: record.deviceId } : {}),
       ...(typeof record.userId === 'string' ? { userId: record.userId } : {}),
     },
