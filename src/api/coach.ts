@@ -2,7 +2,7 @@ import { createApiClient, isApiError, type ApiClient } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api/config';
 
 export type CoachRunStatus = 'queued' | 'running' | 'completed' | 'rejected' | 'failed';
-export type CoachDomain = 'strength' | 'nutrition';
+export type CoachDomain = 'strength' | 'nutrition' | 'safety_recovery';
 export type StrengthCoachRequestType =
   | 'session_review'
   | 'next_workout_proposal'
@@ -11,10 +11,14 @@ export type NutritionCoachRequestType =
   | 'nutrition_review'
   | 'nutrition_target_proposal'
   | 'nutrition_strategy_proposal';
-export type CoachRequestType = StrengthCoachRequestType | NutritionCoachRequestType;
+export type SafetyRecoveryCoachRequestType = 'safety_recovery_review';
+export type CoachRequestType =
+  | StrengthCoachRequestType
+  | NutritionCoachRequestType
+  | SafetyRecoveryCoachRequestType;
 
 export type CoachCapabilities = {
-  schemaVersion: 1 | 2 | 3 | 4;
+  schemaVersion: 1 | 2 | 3 | 4 | 5;
   nutrition: {
     deterministicReview: true;
     deterministicTargetProposal: true;
@@ -28,6 +32,12 @@ export type CoachCapabilities = {
     structuredStrategyProposal: boolean;
     structuredStrategyConfirmation: boolean;
     strategyRequiresConfirmation: true;
+  };
+  safety?: {
+    deterministicRecoveryReview: true;
+    revisionedLimitations: true;
+    revisionedRecoveryCheckIns: true;
+    automaticApplication: false;
   };
 };
 
@@ -91,6 +101,12 @@ export type StartNutritionCoachRunInput = {
   idempotencyKey?: string;
 };
 
+export type StartSafetyRecoveryRunInput = {
+  requestType?: SafetyRecoveryCoachRequestType;
+  lookbackDays?: number;
+  idempotencyKey?: string;
+};
+
 export type ConfirmCoachRunInput = {
   idempotencyKey: string;
 };
@@ -110,6 +126,7 @@ export type CoachApi = {
   getCapabilities(): Promise<CoachCapabilities>;
   startStrengthRun(input: StartStrengthCoachRunInput): Promise<CoachRunEnvelope>;
   startNutritionRun(input?: StartNutritionCoachRunInput): Promise<CoachRunEnvelope>;
+  startSafetyRecoveryRun(input?: StartSafetyRecoveryRunInput): Promise<CoachRunEnvelope>;
   confirmRun(runId: string, input: ConfirmCoachRunInput): Promise<CoachRunEnvelope>;
   getRun(runId: string): Promise<CoachRunEnvelope>;
   waitForTerminalRun(initial: CoachRunEnvelope, options?: WaitForRunOptions): Promise<CoachRunEnvelope>;
@@ -194,7 +211,7 @@ const parseStatus = (value: unknown): CoachRunStatus => {
 };
 
 const parseDomain = (value: unknown): CoachDomain => {
-  if (value !== 'strength' && value !== 'nutrition') {
+  if (value !== 'strength' && value !== 'nutrition' && value !== 'safety_recovery') {
     throw new Error('Invalid coach response: domain');
   }
   return value;
@@ -215,6 +232,9 @@ const parseRequestType = (domain: CoachDomain, value: unknown): CoachRequestType
     NUTRITION_REQUEST_TYPES.has(value as NutritionCoachRequestType)
   ) {
     return value as NutritionCoachRequestType;
+  }
+  if (domain === 'safety_recovery' && value === 'safety_recovery_review') {
+    return value;
   }
   throw new Error('Invalid coach response: requestType');
 };
@@ -270,82 +290,109 @@ const parseAgentRun = (value: unknown): CoachAgentRunRecord => {
   };
 };
 
+const parseNutritionCapabilities = (
+  value: Record<string, unknown>,
+  schemaVersion: CoachCapabilities['schemaVersion'],
+): CoachCapabilities['nutrition'] => {
+  if (
+    value.deterministicReview !== true ||
+    value.deterministicTargetProposal !== true ||
+    typeof value.structuredStrategyProposal !== 'boolean' ||
+    value.strategyRequiresConfirmation !== true ||
+    (schemaVersion >= 2 && typeof value.structuredStrategyConfirmation !== 'boolean')
+  ) {
+    throw new Error('Invalid coach capabilities response');
+  }
+
+  return {
+    deterministicReview: true,
+    deterministicTargetProposal: true,
+    structuredStrategyProposal: value.structuredStrategyProposal,
+    ...(schemaVersion >= 2
+      ? { structuredStrategyConfirmation: value.structuredStrategyConfirmation as boolean }
+      : {}),
+    strategyRequiresConfirmation: true,
+  };
+};
+
+const parseStrengthCapabilities = (
+  value: unknown,
+  schemaVersion: 3 | 4 | 5,
+): NonNullable<CoachCapabilities['strength']> => {
+  if (!isRecord(value)) {
+    throw new Error('Invalid coach capabilities response');
+  }
+  if (
+    value.deterministicReview !== true ||
+    value.deterministicMockProposal !== true ||
+    typeof value.structuredStrategyProposal !== 'boolean' ||
+    typeof value.structuredStrategyConfirmation !== 'boolean' ||
+    (schemaVersion === 3 && value.structuredStrategyConfirmation !== false) ||
+    value.strategyRequiresConfirmation !== true
+  ) {
+    throw new Error('Invalid coach capabilities response');
+  }
+
+  return {
+    deterministicReview: true,
+    deterministicMockProposal: true,
+    structuredStrategyProposal: value.structuredStrategyProposal,
+    structuredStrategyConfirmation: value.structuredStrategyConfirmation,
+    strategyRequiresConfirmation: true,
+  };
+};
+
+const parseSafetyCapabilities = (
+  value: unknown,
+): NonNullable<CoachCapabilities['safety']> => {
+  if (
+    !isRecord(value) ||
+    value.deterministicRecoveryReview !== true ||
+    value.revisionedLimitations !== true ||
+    value.revisionedRecoveryCheckIns !== true ||
+    value.automaticApplication !== false
+  ) {
+    throw new Error('Invalid coach capabilities response');
+  }
+
+  return {
+    deterministicRecoveryReview: true,
+    revisionedLimitations: true,
+    revisionedRecoveryCheckIns: true,
+    automaticApplication: false,
+  };
+};
+
 export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
   if (
     !isRecord(value) ||
     (value.schemaVersion !== 1 &&
       value.schemaVersion !== 2 &&
       value.schemaVersion !== 3 &&
-      value.schemaVersion !== 4) ||
+      value.schemaVersion !== 4 &&
+      value.schemaVersion !== 5) ||
     !isRecord(value.nutrition)
   ) {
     throw new Error('Invalid coach capabilities response');
   }
 
-  const nutrition = value.nutrition;
-  if (
-    nutrition.deterministicReview !== true ||
-    nutrition.deterministicTargetProposal !== true ||
-    typeof nutrition.structuredStrategyProposal !== 'boolean' ||
-    nutrition.strategyRequiresConfirmation !== true ||
-    ((value.schemaVersion === 2 ||
-      value.schemaVersion === 3 ||
-      value.schemaVersion === 4) &&
-      typeof nutrition.structuredStrategyConfirmation !== 'boolean')
-  ) {
-    throw new Error('Invalid coach capabilities response');
+  const schemaVersion = value.schemaVersion;
+  const nutrition = parseNutritionCapabilities(value.nutrition, schemaVersion);
+
+  if (schemaVersion === 1 || schemaVersion === 2) {
+    return { schemaVersion, nutrition };
   }
 
-  if (value.schemaVersion === 3 || value.schemaVersion === 4) {
-    if (!isRecord(value.strength)) {
-      throw new Error('Invalid coach capabilities response');
-    }
-    const strength = value.strength;
-    if (
-      strength.deterministicReview !== true ||
-      strength.deterministicMockProposal !== true ||
-      typeof strength.structuredStrategyProposal !== 'boolean' ||
-      typeof strength.structuredStrategyConfirmation !== 'boolean' ||
-      (value.schemaVersion === 3 && strength.structuredStrategyConfirmation !== false) ||
-      strength.strategyRequiresConfirmation !== true
-    ) {
-      throw new Error('Invalid coach capabilities response');
-    }
-
-    return {
-      schemaVersion: value.schemaVersion,
-      nutrition: {
-        deterministicReview: true,
-        deterministicTargetProposal: true,
-        structuredStrategyProposal: nutrition.structuredStrategyProposal,
-        structuredStrategyConfirmation:
-          nutrition.structuredStrategyConfirmation as boolean,
-        strategyRequiresConfirmation: true,
-      },
-      strength: {
-        deterministicReview: true,
-        deterministicMockProposal: true,
-        structuredStrategyProposal: strength.structuredStrategyProposal,
-        structuredStrategyConfirmation: strength.structuredStrategyConfirmation,
-        strategyRequiresConfirmation: true,
-      },
-    };
+  const strength = parseStrengthCapabilities(value.strength, schemaVersion);
+  if (schemaVersion === 3 || schemaVersion === 4) {
+    return { schemaVersion, nutrition, strength };
   }
 
   return {
-    schemaVersion: value.schemaVersion,
-    nutrition: {
-      deterministicReview: true,
-      deterministicTargetProposal: true,
-      structuredStrategyProposal: nutrition.structuredStrategyProposal,
-      ...(value.schemaVersion === 2
-        ? {
-            structuredStrategyConfirmation:
-              nutrition.structuredStrategyConfirmation as boolean,
-          }
-        : {}),
-      strategyRequiresConfirmation: true,
-    },
+    schemaVersion,
+    nutrition,
+    strength,
+    safety: parseSafetyCapabilities(value.safety),
   };
 };
 
@@ -446,6 +493,24 @@ export const createCoachApi = (
         parseCoachRunEnvelope(
           await apiClient.post<unknown, StartNutritionCoachRunInput>(
             '/v1/coach/nutrition/runs',
+            body,
+            {
+              headers: { authorization: `Bearer ${accessToken}` },
+              retry: false,
+            },
+          ),
+        ),
+      );
+    },
+    startSafetyRecoveryRun: async (input = {}) => {
+      const body: StartSafetyRecoveryRunInput = {
+        requestType: 'safety_recovery_review',
+        ...input,
+      };
+      return requestWithAuth(async (accessToken) =>
+        parseCoachRunEnvelope(
+          await apiClient.post<unknown, StartSafetyRecoveryRunInput>(
+            '/v1/coach/safety/runs',
             body,
             {
               headers: { authorization: `Bearer ${accessToken}` },
