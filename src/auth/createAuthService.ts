@@ -1,83 +1,94 @@
 import type { ApiClient } from '@/api/client';
 import { isApiError } from '@/api/client';
 
-import { createRemoteProfileRepository, type RemoteProfileRepository } from '@/repositories/RemoteProfileRepository';
+import {
+  createRemoteProfileRepository,
+  type RemoteProfileRepository,
+} from '@/repositories/RemoteProfileRepository';
 
 import { getDefaultAuthDeviceInfo } from './device';
 import { createTokenManager } from './token-manager';
 import type {
   AuthCredentials,
   AuthEnvelope,
-  AuthProfile,
   AuthProfileUpdate,
+  AuthService,
   AuthSession,
   AuthTokens,
-  AuthService,
   CreateAuthServiceOptions,
 } from './types';
 
 export const AUTH_SESSION_STORAGE_KEY = '@smart_fitness_mvp_auth_session';
+const AUTH_SESSION_SCHEMA_VERSION = 2;
 
-const authHeader = (token?: string): Record<string, string> | undefined => (token ? { authorization: `Bearer ${token}` } : undefined);
+type PersistedAuthSession = Pick<AuthSession, 'user' | 'device' | 'session'> & {
+  schemaVersion: typeof AUTH_SESSION_SCHEMA_VERSION;
+  updatedAt: string;
+};
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+type ParsedSessionMetadata = {
+  metadata: Pick<AuthSession, 'user' | 'device' | 'session'>;
+  requiresRewrite: boolean;
+};
 
-const parseSession = (value: string | null): AuthSession | null => {
-  if (!value) {
-    return null;
-  }
+const authHeader = (token?: string): Record<string, string> | undefined =>
+  token ? { authorization: `Bearer ${token}` } : undefined;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const parseSessionMetadata = (value: string | null): ParsedSessionMetadata | null => {
+  if (!value) return null;
 
   try {
     const parsed = JSON.parse(value) as unknown;
-    if (!isRecord(parsed)) {
-      return null;
-    }
+    if (!isRecord(parsed)) return null;
 
     const user = parsed.user;
     const device = parsed.device;
     const session = parsed.session;
-    const tokens = parsed.tokens;
-
-    if (!isRecord(user) || !isRecord(device) || !isRecord(session) || !isRecord(tokens)) {
-      return null;
-    }
+    if (!isRecord(user) || !isRecord(device) || !isRecord(session)) return null;
 
     if (
       typeof user.id !== 'string' ||
       typeof user.email !== 'string' ||
       typeof device.id !== 'string' ||
-      typeof session.id !== 'string' ||
-      typeof tokens.accessToken !== 'string' ||
-      typeof tokens.refreshToken !== 'string'
+      typeof session.id !== 'string'
     ) {
       return null;
     }
 
     return {
-      user: user as AuthSession['user'],
-      device: device as AuthSession['device'],
-      session: session as AuthSession['session'],
-      tokens: tokens as AuthTokens,
+      metadata: {
+        user: user as AuthSession['user'],
+        device: device as AuthSession['device'],
+        session: session as AuthSession['session'],
+      },
+      requiresRewrite:
+        parsed.schemaVersion !== AUTH_SESSION_SCHEMA_VERSION ||
+        Object.prototype.hasOwnProperty.call(parsed, 'tokens') ||
+        Object.prototype.hasOwnProperty.call(parsed, 'accessToken') ||
+        Object.prototype.hasOwnProperty.call(parsed, 'refreshToken'),
     };
   } catch {
     return null;
   }
 };
 
-const persistSession = async (
+const persistSessionMetadata = async (
   storage: CreateAuthServiceOptions['sessionStorage'],
   storageKey: string,
   session: AuthSession,
   now = new Date().toISOString(),
-): Promise<AuthSession> => {
-  await storage.write(
-    storageKey,
-    JSON.stringify({
-      ...session,
-      updatedAt: now,
-    }),
-  );
-  return session;
+): Promise<void> => {
+  const envelope: PersistedAuthSession = {
+    schemaVersion: AUTH_SESSION_SCHEMA_VERSION,
+    user: session.user,
+    device: session.device,
+    session: session.session,
+    updatedAt: now,
+  };
+  await storage.write(storageKey, JSON.stringify(envelope));
 };
 
 const toSession = (envelope: AuthEnvelope): AuthSession => ({
@@ -91,7 +102,10 @@ const toSession = (envelope: AuthEnvelope): AuthSession => ({
   },
 });
 
-const mergeDeviceInfo = (credentials: AuthCredentials, defaults: ReturnType<typeof getDefaultAuthDeviceInfo>) => ({
+const mergeDeviceInfo = (
+  credentials: AuthCredentials,
+  defaults: ReturnType<typeof getDefaultAuthDeviceInfo>,
+) => ({
   deviceName: credentials.device?.deviceName ?? defaults.deviceName,
   platform: credentials.device?.platform ?? defaults.platform,
   appVersion: credentials.device?.appVersion ?? defaults.appVersion,
@@ -109,48 +123,39 @@ export const createAuthService = ({
 
   const saveSession = async (session: AuthSession): Promise<AuthSession> => {
     await tokenManager.saveTokens(session.tokens);
-    await persistSession(sessionStorage, sessionStorageKey, session);
+    await persistSessionMetadata(sessionStorage, sessionStorageKey, session);
     onSessionChange?.(session);
     return session;
   };
 
   const loadSession = async (): Promise<AuthSession | null> => {
-    const cached = parseSession(await sessionStorage.read(sessionStorageKey));
-    if (!cached) {
-      return null;
-    }
+    const parsed = parseSessionMetadata(await sessionStorage.read(sessionStorageKey));
+    if (!parsed) return null;
 
     const tokens = await tokenManager.loadTokens();
     if (!tokens) {
+      await sessionStorage.remove(sessionStorageKey);
       return null;
     }
 
-    const cachedSession = {
-      ...cached,
-      tokens,
-    };
-
-    if (!tokenManager.isAccessTokenExpired(tokens.accessToken)) {
-      return cachedSession;
+    const cachedSession: AuthSession = { ...parsed.metadata, tokens };
+    if (parsed.requiresRewrite) {
+      await persistSessionMetadata(sessionStorage, sessionStorageKey, cachedSession);
     }
+
+    if (!tokenManager.isAccessTokenExpired(tokens.accessToken)) return cachedSession;
 
     const refreshed = await refresh();
-    if (refreshed) {
-      return refreshed;
-    }
+    if (refreshed) return refreshed;
 
     const currentTokens = await tokenManager.loadTokens();
-    if (!currentTokens) {
-      return null;
-    }
-
-    return {
-      ...cached,
-      tokens: currentTokens,
-    };
+    return currentTokens ? { ...parsed.metadata, tokens: currentTokens } : null;
   };
 
-  const performAuth = async (path: '/v1/auth/register' | '/v1/auth/login', credentials: AuthCredentials): Promise<AuthSession> => {
+  const performAuth = async (
+    path: '/v1/auth/register' | '/v1/auth/login',
+    credentials: AuthCredentials,
+  ): Promise<AuthSession> => {
     const response = await apiClient.post<AuthEnvelope, Record<string, unknown>>(
       path,
       {
@@ -168,12 +173,14 @@ export const createAuthService = ({
 
   const refresh = async (): Promise<AuthSession | null> => {
     const refreshToken = await tokenManager.getRefreshToken();
-    if (!refreshToken) {
-      return null;
-    }
+    if (!refreshToken) return null;
 
     try {
-      const response = await apiClient.post<AuthEnvelope, { refreshToken: string }>('/v1/auth/refresh', { refreshToken }, { retry: false });
+      const response = await apiClient.post<AuthEnvelope, { refreshToken: string }>(
+        '/v1/auth/refresh',
+        { refreshToken },
+        { retry: false },
+      );
       return await saveSession(toSession(response));
     } catch (error) {
       if (isApiError(error) && error.status === 401) {
@@ -181,21 +188,17 @@ export const createAuthService = ({
         await sessionStorage.remove(sessionStorageKey);
         onSessionChange?.(null);
       }
-
       return null;
     }
   };
 
   const getAccessToken = async (): Promise<string | null> => {
     const tokens = await tokenManager.loadTokens();
-    if (!tokens) {
-      return null;
-    }
+    if (!tokens) return null;
 
     if (tokenManager.isAccessTokenExpired(tokens.accessToken)) {
       return (await refresh())?.tokens.accessToken ?? null;
     }
-
     return tokens.accessToken;
   };
 
@@ -224,19 +227,11 @@ export const createAuthService = ({
     },
     fetchProfile: async () => {
       const accessToken = await getAccessToken();
-      if (!accessToken) {
-        return null;
-      }
-
-      return profileRepository.fetchProfile(accessToken);
+      return accessToken ? profileRepository.fetchProfile(accessToken) : null;
     },
     updateProfile: async (patch: AuthProfileUpdate) => {
       const accessToken = await getAccessToken();
-      if (!accessToken) {
-        return null;
-      }
-
-      return profileRepository.updateProfile(patch, accessToken);
+      return accessToken ? profileRepository.updateProfile(patch, accessToken) : null;
     },
     getAccessToken,
     getCurrentSession: loadSession,
