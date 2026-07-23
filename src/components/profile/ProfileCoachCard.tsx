@@ -192,9 +192,9 @@ export function ProfileCoachCard({
         onPress={() => router.push('/profile/recovery-check-in')}
       />
       <SecondaryButton
-        accessibilityHint="Opens the explicit self-reported training limitation form"
-        label="Add training limitation"
-        onPress={() => router.push('/profile/limitation')}
+        accessibilityHint="Opens saved self-reported training limitations"
+        label="Manage training limitations"
+        onPress={() => router.push('/profile/limitations')}
       />
       <SecondaryButton
         accessibilityHint="Opens the deterministic limitations and recovery readiness review"
