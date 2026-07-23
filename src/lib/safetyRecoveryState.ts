@@ -75,6 +75,9 @@ const MOVEMENT_PATTERNS = new Set<UserLimitationMovementPattern>([
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const isProvided = (value: unknown): boolean =>
+  value !== null && value !== undefined && value !== '';
+
 const toIso = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;
   const parsed = new Date(value);
@@ -82,7 +85,7 @@ const toIso = (value: unknown): string | null => {
 };
 
 const toDateOnly = (value: unknown): string | null => {
-  if (value === null || value === undefined || value === '') return null;
+  if (!isProvided(value)) return null;
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return null;
   }
@@ -136,20 +139,22 @@ export const normalizeUserLimitation = (
     !TRAINING_IMPACTS.has(trainingImpact as UserLimitationTrainingImpact) ||
     !createdAt ||
     !updatedAt ||
-    !Array.isArray(value.movementPatterns)
+    !Array.isArray(value.movementPatterns) ||
+    (isProvided(value.onsetDate) && onsetDate === null) ||
+    (isProvided(value.resolvedDate) && resolvedDate === null)
   ) {
     return null;
   }
 
-  const movementPatterns = [
-    ...new Set(
-      value.movementPatterns.filter(
-        (item): item is UserLimitationMovementPattern =>
-          typeof item === 'string' &&
-          MOVEMENT_PATTERNS.has(item as UserLimitationMovementPattern),
-      ),
-    ),
-  ].sort();
+  const validMovementPatterns = value.movementPatterns.filter(
+    (item): item is UserLimitationMovementPattern =>
+      typeof item === 'string' &&
+      MOVEMENT_PATTERNS.has(item as UserLimitationMovementPattern),
+  );
+  if (validMovementPatterns.length !== value.movementPatterns.length) {
+    return null;
+  }
+  const movementPatterns = [...new Set(validMovementPatterns)].sort();
   if (
     (status === 'active' && resolvedDate !== null) ||
     (status === 'resolved' && resolvedDate === null) ||
@@ -204,6 +209,13 @@ export const normalizeRecoveryCheckIn = (
     !recordedAt ||
     !createdAt ||
     !updatedAt ||
+    (isProvided(value.sleepDurationHours) && sleepDurationHours === null) ||
+    (isProvided(value.sleepQuality) && sleepQuality === null) ||
+    (isProvided(value.fatigue) && fatigue === null) ||
+    (isProvided(value.soreness) && soreness === null) ||
+    (isProvided(value.stress) && stress === null) ||
+    (isProvided(value.painInterference) && painInterference === null) ||
+    (isProvided(value.readiness) && readiness === null) ||
     (sleepDurationHours === null &&
       sleepQuality === null &&
       fatigue === null &&
