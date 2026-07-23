@@ -35,8 +35,8 @@ type SyncPushResponse = SyncEnvelope & {
 };
 
 type SyncPullResponse = SyncEnvelope & {
-  changedEntities?: unknown[];
-  deletedEntities?: unknown[];
+  changedEntities?: unknown;
+  deletedEntities?: unknown;
   conflicts?: unknown[];
   metadata?: Record<string, unknown>;
 };
@@ -109,7 +109,7 @@ const resolveIdentity = async (
   authService: CreateProductionCloudProviderOptions['authService'],
 ): Promise<{ userId: string; deviceId: string }> => {
   const session = await authService.getCurrentSession();
-  if (!session?.user.id || !session.device.id) {
+  if (!session?.user?.id || !session.device?.id) {
     throw new Error('authentication required');
   }
 
@@ -165,8 +165,12 @@ const toPushResult = (response: SyncPushResponse, timestamp: string): CloudPushR
 };
 
 const toPullResult = (response: SyncPullResponse, timestamp: string): CloudPullResult => {
-  const changed = (response.changedEntities ?? []).filter(isRecord);
-  const deleted = (response.deletedEntities ?? []).filter(isRecord);
+  const changed = (Array.isArray(response.changedEntities) ? response.changedEntities : []).filter(
+    isRecord,
+  );
+  const deleted = (Array.isArray(response.deletedEntities) ? response.deletedEntities : []).filter(
+    isRecord,
+  );
   const serverRevision = response.serverRevision ?? response.revision ?? 0;
   const changedCandidates = changed.filter((record) => record.operationType !== 'delete');
   const changedOperations = normalizeOperations(

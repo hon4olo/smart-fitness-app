@@ -101,7 +101,10 @@ describe('product simplification 2.0', () => {
   });
 
   test('nutrition picker route keeps the meal-aware modes and quiet edit/delete path', () => {
-    const source = readSource('src/app/nutrition/add-food.tsx');
+    const source = [
+      readSource('src/app/nutrition/add-food.tsx'),
+      readSource('src/features/nutrition/components/NutritionAddFoodView.tsx'),
+    ].join('\n');
 
     expect(source).toContain("label: 'Food'");
     expect(source).toContain("label: 'Recent'");
@@ -109,7 +112,7 @@ describe('product simplification 2.0', () => {
     expect(source).toContain("label: 'Meals'");
     expect(source).toContain('Create food');
     expect(source).toContain('Create meal');
-    expect(source).toContain('Quick add');
+    expect(source).toContain('onQuickAdd');
     expect(source).toContain('Delete entry');
     expect(source).toContain('Save changes');
     expect(source).toContain('Add to ${selectedMealLabel}');

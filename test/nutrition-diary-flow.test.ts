@@ -38,7 +38,7 @@ describe('nutrition compact diary 5.0', () => {
     expect(nutritionUi).toContain('macroGridCell');
     expect(nutritionUi).toContain('macroGridLabel');
     expect(nutritionUi).toContain('macroGridValue');
-    expect(count(nutritionUi, 'weekDayButton')).toBe(2); // style + extracted JSX usage
+    expect(count(nutritionUi, 'weekDayButton')).toBe(2);
     expect(source).toContain('summarySection');
     expect(source).toContain('mealSectionList');
     expect(nutritionUi).toContain('mealGroup');
@@ -115,15 +115,17 @@ describe('nutrition compact diary 5.0', () => {
   });
 
   test('picker returns to the selected meal and exposes a quiet delete action for edited entries', () => {
-    const source = readSource('src/app/nutrition/add-food.tsx');
+    const route = readSource('src/app/nutrition/add-food.tsx');
+    const view = readSource('src/features/nutrition/components/NutritionAddFoodView.tsx');
+    const source = [route, view].join('\n');
 
-    expect(source).toContain("router.replace({ pathname: '/nutrition', params: { date: selectedDate, openMeal: selectedMeal } })");
+    expect(route.replace(/\s+/g, ' ')).toContain("router.replace({ pathname: '/nutrition', params: { date: selectedDate, openMeal: selectedMeal }, })");
     expect(source).toContain('Delete entry');
-    expect(source).toContain('deleteSelectedDraft');
+    expect(route).toContain('deleteSelectedDraft');
     expect(source).toContain('Save changes');
-    expect(source).toContain('Add to ${selectedMealLabel}');
-    expect(source).toContain('selectedMeal');
-    expect(source).toContain('selectedDate');
+    expect(route).toContain('Add to ${selectedMealLabel}');
+    expect(route).toContain('selectedMeal');
+    expect(route).toContain('selectedDate');
   });
 
   test('nutrient breakdown is compact and only renders useful nutrient data', () => {

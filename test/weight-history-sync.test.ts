@@ -46,6 +46,8 @@ const baseState = (): AppState => ({
   onboardingCompleted: true,
 });
 
+const cursorStore = { get: vi.fn().mockResolvedValue(null) };
+
 describe('weight history sync helpers', () => {
   it('builds deterministic queue operations', () => {
     const operation = createWeightHistoryQueueOperation({
@@ -140,19 +142,28 @@ describe('production cloud provider', () => {
         lastSyncedAt: '2025-01-03T12:02:00.000Z',
         changedEntities: [
           {
-            id: 'remote-1',
-            weight: 79.1,
-            recordedAt: '2025-01-03T11:59:00.000Z',
-            createdAt: '2025-01-03T11:59:00.000Z',
-            updatedAt: '2025-01-03T12:02:00.000Z',
-            deletedAt: null,
+            entityType: 'weightHistory',
+            entityId: 'remote-1',
             revision: 12,
-            deviceId: 'device-b',
+            operationType: 'upsert',
+            appliedAt: '2025-01-03T12:02:00.000Z',
+            payload: {
+              id: 'remote-1',
+              weight: 79.1,
+              recordedAt: '2025-01-03T11:59:00.000Z',
+              createdAt: '2025-01-03T11:59:00.000Z',
+              updatedAt: '2025-01-03T12:02:00.000Z',
+              deletedAt: null,
+              revision: 12,
+              deviceId: 'device-b',
+            },
           },
         ],
         deletedEntities: [
           {
             id: 'remote-delete',
+            entityId: 'remote-delete',
+            entityType: 'weightHistory',
             revision: 13,
             appliedAt: '2025-01-03T12:03:00.000Z',
           },
@@ -162,12 +173,16 @@ describe('production cloud provider', () => {
     const authService = {
       getAccessToken: vi.fn().mockResolvedValue('token-a'),
       refresh: vi.fn().mockResolvedValue({ tokens: { accessToken: 'token-b' } }),
-      getCurrentSession: vi.fn().mockResolvedValue({ device: { id: 'device-a' } }),
+      getCurrentSession: vi.fn().mockResolvedValue({
+        user: { id: 'user-1' },
+        device: { id: 'device-a' },
+      }),
     };
 
     const provider = createProductionCloudProvider({
       apiClient: { request } as never,
       authService: authService as never,
+      cursorStore,
       now: () => '2025-01-03T12:30:00.000Z',
     });
 
@@ -214,8 +229,12 @@ describe('production cloud provider', () => {
       authService: {
         getAccessToken: vi.fn().mockResolvedValue('token-a'),
         refresh: vi.fn(),
-        getCurrentSession: vi.fn().mockResolvedValue({ device: { id: 'device-a' } }),
+        getCurrentSession: vi.fn().mockResolvedValue({
+          user: { id: 'user-1' },
+          device: { id: 'device-a' },
+        }),
       } as never,
+      cursorStore,
       now: () => '2025-01-03T12:30:00.000Z',
     });
 

@@ -9,6 +9,7 @@ const { resolve } = require('path') as { resolve: (...parts: string[]) => string
 import { defaultState } from '@/data/defaults';
 import { createDefaultTrainingProgram } from '@/features/workouts/defaults';
 import { normalizeWorkouts } from '@/lib/appState';
+import { ensureUuid } from '@/lib/ids';
 import {
   buildCompletedWorkoutSessionSnapshot,
   formatWorkoutSessionElapsedLabel,
@@ -173,7 +174,7 @@ describe('workout routing, duplicates, and timer regressions', () => {
     expect(first).toHaveLength(1);
     expect(second).toHaveLength(1);
     expect(second[0]).toMatchObject({
-      id: draft.id,
+      id: ensureUuid(draft.id),
       workoutId: draft.workoutId,
       notes: 'Great session',
     });
