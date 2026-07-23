@@ -13,7 +13,6 @@ import type {
   WeightEntry,
   Workout,
   WorkoutSession,
-  WorkoutSet,
 } from './index';
 
 export type AppState = {
@@ -73,10 +72,6 @@ export type AppContextType = AppState & {
     weeklyWeightChangeGoal: number;
     trainingDaysPerWeek: number;
   }) => void;
-  upsertUserLimitation: (limitation: UserLimitation) => void;
-  deleteUserLimitation: (limitationId: string) => void;
-  upsertRecoveryCheckIn: (checkIn: RecoveryCheckIn) => void;
-  deleteRecoveryCheckIn: (checkInId: string) => void;
   updateFoodEntry: (entryId: string, updatedEntry: FoodEntry) => void;
   deleteFoodEntry: (entryId: string) => void;
   deleteMealTemplate: (templateId: string) => void;
