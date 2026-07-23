@@ -33,10 +33,11 @@ export type CoachCapabilities = {
     structuredStrategyConfirmation: boolean;
     strategyRequiresConfirmation: true;
   };
-  safetyRecovery?: {
-    deterministicReview: true;
-    limitationSync: true;
-    recoveryCheckInSync: true;
+  safety?: {
+    deterministicRecoveryReview: true;
+    revisionedLimitations: true;
+    revisionedRecoveryCheckIns: true;
+    automaticApplication: false;
   };
 };
 
@@ -137,7 +138,7 @@ const defaultApiClient = createApiClient({
   defaultRetry: { attempts: 1, delayMs: 350, factor: 2 },
 });
 
-const TERMINAL_STATUSES = new Set<CoachRunStatus>(['completed', 'rejected', 'failed']);
+const TERMINAL_STATUSES = new Set<CoachRunStatus>(['queued', 'running', 'completed', 'rejected', 'failed'].filter((status): status is CoachRunStatus => status === 'completed' || status === 'rejected' || status === 'failed'));
 const RUN_STATUSES = new Set<CoachRunStatus>(['queued', 'running', 'completed', 'rejected', 'failed']);
 const STRENGTH_REQUEST_TYPES = new Set<StrengthCoachRequestType>([
   'session_review',
@@ -314,22 +315,24 @@ export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
     };
   }
 
-  let safetyRecovery: CoachCapabilities['safetyRecovery'];
+  let safety: CoachCapabilities['safety'];
   if (schemaVersion === 5) {
-    if (!isRecord(value.safetyRecovery)) {
+    if (!isRecord(value.safety)) {
       throw new Error('Invalid coach capabilities response');
     }
     if (
-      value.safetyRecovery.deterministicReview !== true ||
-      value.safetyRecovery.limitationSync !== true ||
-      value.safetyRecovery.recoveryCheckInSync !== true
+      value.safety.deterministicRecoveryReview !== true ||
+      value.safety.revisionedLimitations !== true ||
+      value.safety.revisionedRecoveryCheckIns !== true ||
+      value.safety.automaticApplication !== false
     ) {
       throw new Error('Invalid coach capabilities response');
     }
-    safetyRecovery = {
-      deterministicReview: true,
-      limitationSync: true,
-      recoveryCheckInSync: true,
+    safety = {
+      deterministicRecoveryReview: true,
+      revisionedLimitations: true,
+      revisionedRecoveryCheckIns: true,
+      automaticApplication: false,
     };
   }
 
@@ -348,7 +351,7 @@ export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
       strategyRequiresConfirmation: true,
     },
     ...(strength ? { strength } : {}),
-    ...(safetyRecovery ? { safetyRecovery } : {}),
+    ...(safety ? { safety } : {}),
   };
 };
 
