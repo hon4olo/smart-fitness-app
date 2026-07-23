@@ -2,7 +2,7 @@ import { createApiClient, isApiError, type ApiClient } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api/config';
 
 export type CoachRunStatus = 'queued' | 'running' | 'completed' | 'rejected' | 'failed';
-export type CoachDomain = 'strength' | 'nutrition';
+export type CoachDomain = 'strength' | 'nutrition' | 'safety_recovery';
 export type StrengthCoachRequestType =
   | 'session_review'
   | 'next_workout_proposal'
@@ -11,10 +11,14 @@ export type NutritionCoachRequestType =
   | 'nutrition_review'
   | 'nutrition_target_proposal'
   | 'nutrition_strategy_proposal';
-export type CoachRequestType = StrengthCoachRequestType | NutritionCoachRequestType;
+export type SafetyRecoveryRequestType = 'safety_recovery_review';
+export type CoachRequestType =
+  | StrengthCoachRequestType
+  | NutritionCoachRequestType
+  | SafetyRecoveryRequestType;
 
 export type CoachCapabilities = {
-  schemaVersion: 1 | 2 | 3 | 4;
+  schemaVersion: 1 | 2 | 3 | 4 | 5;
   nutrition: {
     deterministicReview: true;
     deterministicTargetProposal: true;
@@ -28,6 +32,11 @@ export type CoachCapabilities = {
     structuredStrategyProposal: boolean;
     structuredStrategyConfirmation: boolean;
     strategyRequiresConfirmation: true;
+  };
+  safetyRecovery?: {
+    deterministicReview: true;
+    limitationSync: true;
+    recoveryCheckInSync: true;
   };
 };
 
@@ -91,6 +100,12 @@ export type StartNutritionCoachRunInput = {
   idempotencyKey?: string;
 };
 
+export type StartSafetyRecoveryRunInput = {
+  requestType?: SafetyRecoveryRequestType;
+  lookbackDays?: number;
+  idempotencyKey?: string;
+};
+
 export type ConfirmCoachRunInput = {
   idempotencyKey: string;
 };
@@ -110,6 +125,7 @@ export type CoachApi = {
   getCapabilities(): Promise<CoachCapabilities>;
   startStrengthRun(input: StartStrengthCoachRunInput): Promise<CoachRunEnvelope>;
   startNutritionRun(input?: StartNutritionCoachRunInput): Promise<CoachRunEnvelope>;
+  startSafetyRecoveryRun(input?: StartSafetyRecoveryRunInput): Promise<CoachRunEnvelope>;
   confirmRun(runId: string, input: ConfirmCoachRunInput): Promise<CoachRunEnvelope>;
   getRun(runId: string): Promise<CoachRunEnvelope>;
   waitForTerminalRun(initial: CoachRunEnvelope, options?: WaitForRunOptions): Promise<CoachRunEnvelope>;
@@ -148,17 +164,13 @@ const readString = (record: Record<string, unknown>, key: string): string => {
 const readNullableString = (record: Record<string, unknown>, key: string): string | null => {
   const value = record[key];
   if (value === null) return null;
-  if (typeof value !== 'string') {
-    throw new Error(`Invalid coach response: ${key}`);
-  }
+  if (typeof value !== 'string') throw new Error(`Invalid coach response: ${key}`);
   return value;
 };
 
 const readRecord = (record: Record<string, unknown>, key: string): Record<string, unknown> => {
   const value = record[key];
-  if (!isRecord(value)) {
-    throw new Error(`Invalid coach response: ${key}`);
-  }
+  if (!isRecord(value)) throw new Error(`Invalid coach response: ${key}`);
   return value;
 };
 
@@ -168,17 +180,13 @@ const readNullableRecord = (
 ): Record<string, unknown> | null => {
   const value = record[key];
   if (value === null) return null;
-  if (!isRecord(value)) {
-    throw new Error(`Invalid coach response: ${key}`);
-  }
+  if (!isRecord(value)) throw new Error(`Invalid coach response: ${key}`);
   return value;
 };
 
 const parseError = (value: unknown): CoachRunError | null => {
   if (value === null) return null;
-  if (!isRecord(value)) {
-    throw new Error('Invalid coach response: error');
-  }
+  if (!isRecord(value)) throw new Error('Invalid coach response: error');
   const code = readString(value, 'code');
   const message = readString(value, 'message');
   return value.details === undefined
@@ -194,35 +202,28 @@ const parseStatus = (value: unknown): CoachRunStatus => {
 };
 
 const parseDomain = (value: unknown): CoachDomain => {
-  if (value !== 'strength' && value !== 'nutrition') {
+  if (value !== 'strength' && value !== 'nutrition' && value !== 'safety_recovery') {
     throw new Error('Invalid coach response: domain');
   }
   return value;
 };
 
 const parseRequestType = (domain: CoachDomain, value: unknown): CoachRequestType => {
-  if (typeof value !== 'string') {
-    throw new Error('Invalid coach response: requestType');
-  }
-  if (
-    domain === 'strength' &&
-    STRENGTH_REQUEST_TYPES.has(value as StrengthCoachRequestType)
-  ) {
+  if (typeof value !== 'string') throw new Error('Invalid coach response: requestType');
+  if (domain === 'strength' && STRENGTH_REQUEST_TYPES.has(value as StrengthCoachRequestType)) {
     return value as StrengthCoachRequestType;
   }
-  if (
-    domain === 'nutrition' &&
-    NUTRITION_REQUEST_TYPES.has(value as NutritionCoachRequestType)
-  ) {
+  if (domain === 'nutrition' && NUTRITION_REQUEST_TYPES.has(value as NutritionCoachRequestType)) {
     return value as NutritionCoachRequestType;
+  }
+  if (domain === 'safety_recovery' && value === 'safety_recovery_review') {
+    return value;
   }
   throw new Error('Invalid coach response: requestType');
 };
 
 const parseCoachRun = (value: unknown): CoachRunRecord => {
-  if (!isRecord(value)) {
-    throw new Error('Invalid coach response: run');
-  }
+  if (!isRecord(value)) throw new Error('Invalid coach response: run');
   const domain = parseDomain(value.domain);
   return {
     id: readString(value, 'id'),
@@ -273,72 +274,72 @@ const parseAgentRun = (value: unknown): CoachAgentRunRecord => {
 export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
   if (
     !isRecord(value) ||
-    (value.schemaVersion !== 1 &&
-      value.schemaVersion !== 2 &&
-      value.schemaVersion !== 3 &&
-      value.schemaVersion !== 4) ||
+    ![1, 2, 3, 4, 5].includes(value.schemaVersion as number) ||
     !isRecord(value.nutrition)
   ) {
     throw new Error('Invalid coach capabilities response');
   }
-
+  const schemaVersion = value.schemaVersion as CoachCapabilities['schemaVersion'];
   const nutrition = value.nutrition;
   if (
     nutrition.deterministicReview !== true ||
     nutrition.deterministicTargetProposal !== true ||
     typeof nutrition.structuredStrategyProposal !== 'boolean' ||
     nutrition.strategyRequiresConfirmation !== true ||
-    ((value.schemaVersion === 2 ||
-      value.schemaVersion === 3 ||
-      value.schemaVersion === 4) &&
-      typeof nutrition.structuredStrategyConfirmation !== 'boolean')
+    (schemaVersion >= 2 && typeof nutrition.structuredStrategyConfirmation !== 'boolean')
   ) {
     throw new Error('Invalid coach capabilities response');
   }
 
-  if (value.schemaVersion === 3 || value.schemaVersion === 4) {
-    if (!isRecord(value.strength)) {
-      throw new Error('Invalid coach capabilities response');
-    }
-    const strength = value.strength;
+  let strength: CoachCapabilities['strength'];
+  if (schemaVersion >= 3) {
+    if (!isRecord(value.strength)) throw new Error('Invalid coach capabilities response');
+    const candidate = value.strength;
     if (
-      strength.deterministicReview !== true ||
-      strength.deterministicMockProposal !== true ||
-      typeof strength.structuredStrategyProposal !== 'boolean' ||
-      typeof strength.structuredStrategyConfirmation !== 'boolean' ||
-      (value.schemaVersion === 3 && strength.structuredStrategyConfirmation !== false) ||
-      strength.strategyRequiresConfirmation !== true
+      candidate.deterministicReview !== true ||
+      candidate.deterministicMockProposal !== true ||
+      typeof candidate.structuredStrategyProposal !== 'boolean' ||
+      typeof candidate.structuredStrategyConfirmation !== 'boolean' ||
+      (schemaVersion === 3 && candidate.structuredStrategyConfirmation !== false) ||
+      candidate.strategyRequiresConfirmation !== true
     ) {
       throw new Error('Invalid coach capabilities response');
     }
+    strength = {
+      deterministicReview: true,
+      deterministicMockProposal: true,
+      structuredStrategyProposal: candidate.structuredStrategyProposal,
+      structuredStrategyConfirmation: candidate.structuredStrategyConfirmation,
+      strategyRequiresConfirmation: true,
+    };
+  }
 
-    return {
-      schemaVersion: value.schemaVersion,
-      nutrition: {
-        deterministicReview: true,
-        deterministicTargetProposal: true,
-        structuredStrategyProposal: nutrition.structuredStrategyProposal,
-        structuredStrategyConfirmation:
-          nutrition.structuredStrategyConfirmation as boolean,
-        strategyRequiresConfirmation: true,
-      },
-      strength: {
-        deterministicReview: true,
-        deterministicMockProposal: true,
-        structuredStrategyProposal: strength.structuredStrategyProposal,
-        structuredStrategyConfirmation: strength.structuredStrategyConfirmation,
-        strategyRequiresConfirmation: true,
-      },
+  let safetyRecovery: CoachCapabilities['safetyRecovery'];
+  if (schemaVersion === 5) {
+    if (!isRecord(value.safetyRecovery)) {
+      throw new Error('Invalid coach capabilities response');
+    }
+    if (
+      value.safetyRecovery.deterministicReview !== true ||
+      value.safetyRecovery.limitationSync !== true ||
+      value.safetyRecovery.recoveryCheckInSync !== true
+    ) {
+      throw new Error('Invalid coach capabilities response');
+    }
+    safetyRecovery = {
+      deterministicReview: true,
+      limitationSync: true,
+      recoveryCheckInSync: true,
     };
   }
 
   return {
-    schemaVersion: value.schemaVersion,
+    schemaVersion,
     nutrition: {
       deterministicReview: true,
       deterministicTargetProposal: true,
       structuredStrategyProposal: nutrition.structuredStrategyProposal,
-      ...(value.schemaVersion === 2
+      ...(schemaVersion >= 2
         ? {
             structuredStrategyConfirmation:
               nutrition.structuredStrategyConfirmation as boolean,
@@ -346,6 +347,8 @@ export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
         : {}),
       strategyRequiresConfirmation: true,
     },
+    ...(strength ? { strength } : {}),
+    ...(safetyRecovery ? { safetyRecovery } : {}),
   };
 };
 
@@ -391,9 +394,7 @@ export const createCoachApi = (
 ): CoachApi => {
   const requestWithAuth = async <T>(request: (accessToken: string) => Promise<T>): Promise<T> => {
     const accessToken = await auth.getAccessToken();
-    if (!accessToken) {
-      throw new Error('Sign in is required to use Coach.');
-    }
+    if (!accessToken) throw new Error('Sign in is required to use Coach.');
     try {
       return await request(accessToken);
     } catch (error) {
@@ -430,10 +431,7 @@ export const createCoachApi = (
           await apiClient.post<unknown, StartStrengthCoachRunInput>(
             '/v1/coach/strength/runs',
             input,
-            {
-              headers: { authorization: `Bearer ${accessToken}` },
-              retry: false,
-            },
+            { headers: { authorization: `Bearer ${accessToken}` }, retry: false },
           ),
         ),
       ),
@@ -447,10 +445,22 @@ export const createCoachApi = (
           await apiClient.post<unknown, StartNutritionCoachRunInput>(
             '/v1/coach/nutrition/runs',
             body,
-            {
-              headers: { authorization: `Bearer ${accessToken}` },
-              retry: false,
-            },
+            { headers: { authorization: `Bearer ${accessToken}` }, retry: false },
+          ),
+        ),
+      );
+    },
+    startSafetyRecoveryRun: async (input = {}) => {
+      const body: StartSafetyRecoveryRunInput = {
+        requestType: 'safety_recovery_review',
+        ...input,
+      };
+      return requestWithAuth(async (accessToken) =>
+        parseCoachRunEnvelope(
+          await apiClient.post<unknown, StartSafetyRecoveryRunInput>(
+            '/v1/coach/safety/runs',
+            body,
+            { headers: { authorization: `Bearer ${accessToken}` }, retry: false },
           ),
         ),
       );
@@ -461,10 +471,7 @@ export const createCoachApi = (
           await apiClient.post<unknown, ConfirmCoachRunInput>(
             `/v1/coach/runs/${encodeURIComponent(runId)}/confirm`,
             input,
-            {
-              headers: { authorization: `Bearer ${accessToken}` },
-              retry: false,
-            },
+            { headers: { authorization: `Bearer ${accessToken}` }, retry: false },
           ),
         ),
       ),
