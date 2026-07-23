@@ -4,21 +4,22 @@ import type { Exercise, Workout, WorkoutSet } from '@/types';
 import type { SessionExercise } from './components/session/types';
 import type { WorkoutPlanExercise, WorkoutSessionDraft } from './types';
 
+type ExerciseIdentity = Pick<Exercise, 'id' | 'name'>;
+
 const uniqueExercisesFromSets = (
   setNames: Array<{ exerciseId: string; exerciseName: string }>,
   catalog: Exercise[],
-): Exercise[] => {
+): ExerciseIdentity[] => {
   const seen = new Set<string>();
   return setNames
     .map(
-      (entry) =>
+      (entry): ExerciseIdentity =>
         resolveExerciseByName(entry.exerciseName, catalog) ??
         catalog.find((exercise) => exercise.id === entry.exerciseId) ?? {
           id: entry.exerciseId,
           name: entry.exerciseName,
         },
     )
-    .filter((exercise): exercise is Exercise => Boolean(exercise))
     .filter((exercise) => {
       if (seen.has(exercise.id)) return false;
       seen.add(exercise.id);
