@@ -11,6 +11,7 @@ import {
   runWithoutNutritionTargetOutbox,
 } from '@/cloud/NutritionTargetSync';
 import { applyRemoteSafetyRecoveryChanges } from '@/cloud/SafetyRecoverySync';
+import { applyRemoteTrainingProgramChanges } from '@/cloud/TrainingProgramRemoteSync';
 import { applyRemoteWeightHistoryChanges } from '@/cloud/WeightHistorySync';
 import { applyRemoteWorkoutSessionChanges } from '@/cloud/WorkoutSessionSync';
 import { applyRemoteWorkoutTemplateChanges } from '@/cloud/WorkoutTemplateSync';
@@ -19,6 +20,7 @@ import type {
   createFoodEntrySyncMetadataStore,
   createNutritionTargetSyncMetadataStore,
   createSafetyRecoverySyncMetadataStore,
+  createTrainingProgramSyncMetadataStore,
   createWorkoutSessionSyncMetadataStore,
   createWorkoutTemplateSyncMetadataStore,
   getDefaultSyncCursorStore,
@@ -50,6 +52,7 @@ type ApplySyncPullResultOptions = {
     user: { id: string };
   };
   state: AppState;
+  trainingProgramMetadataStore: ReturnType<typeof createTrainingProgramSyncMetadataStore>;
   workoutSessionMetadataStore: ReturnType<typeof createWorkoutSessionSyncMetadataStore>;
   workoutTemplateMetadataStore: ReturnType<typeof createWorkoutTemplateSyncMetadataStore>;
 };
@@ -79,6 +82,7 @@ export async function applySyncPullResult({
   safetyRecoveryMetadataStore,
   session,
   state,
+  trainingProgramMetadataStore,
   workoutSessionMetadataStore,
   workoutTemplateMetadataStore,
 }: ApplySyncPullResultOptions): Promise<void> {
@@ -111,8 +115,16 @@ export async function applySyncPullResult({
     await workoutTemplateMetadataStore.load(),
     syncedAt,
   );
-  const safetyRecoveryChanges = applyRemoteSafetyRecoveryChanges(
+  const trainingProgramChanges = applyRemoteTrainingProgramChanges(
     workoutTemplateChanges.nextState,
+    nonDeletedChangedEntities,
+    deletedEntities,
+    session.user.id,
+    await trainingProgramMetadataStore.load(),
+    syncedAt,
+  );
+  const safetyRecoveryChanges = applyRemoteSafetyRecoveryChanges(
+    trainingProgramChanges.nextState,
     nonDeletedChangedEntities,
     deletedEntities,
     session.user.id,
@@ -155,6 +167,7 @@ export async function applySyncPullResult({
   );
   await replaceMetadataRecords(workoutSessionMetadataStore, workoutSessionChanges.metadata);
   await replaceMetadataRecords(workoutTemplateMetadataStore, workoutTemplateChanges.metadata);
+  await replaceMetadataRecords(trainingProgramMetadataStore, trainingProgramChanges.metadata);
   await replaceMetadataRecords(safetyRecoveryMetadataStore, safetyRecoveryChanges.metadata);
   await replaceMetadataRecords(foodEntryMetadataStore, foodEntryChanges.metadata);
   await replaceMetadataRecords(nutritionTargetMetadataStore, nutritionTargetChanges.metadata);
@@ -167,6 +180,8 @@ export async function applySyncPullResult({
     workoutSessionChanges.deletedRecordIds.length +
     workoutTemplateChanges.appliedRecordIds.length +
     workoutTemplateChanges.deletedRecordIds.length +
+    trainingProgramChanges.appliedRecordIds.length +
+    trainingProgramChanges.deletedRecordIds.length +
     safetyRecoveryChanges.appliedRecordIds.length +
     safetyRecoveryChanges.deletedRecordIds.length +
     foodEntryChanges.appliedRecordIds.length +
