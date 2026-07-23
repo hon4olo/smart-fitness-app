@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,6 +14,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { WorkoutSession } from '@/types';
@@ -34,6 +35,11 @@ const createIdempotencyKey = (
   sessionId: string | null,
 ): string =>
   `mobile-${requestType}-${sessionId ?? 'latest'}-${Date.now().toString(36)}-${Math.random()
+    .toString(16)
+    .slice(2)}`;
+
+const createConfirmationKey = (runId: string): string =>
+  `mobile-strength-confirm-${runId}-${Date.now().toString(36)}-${Math.random()
     .toString(16)
     .slice(2)}`;
 
@@ -70,10 +76,12 @@ export default function StrengthCoachScreen() {
   const themedStyles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { isRestoringState, workoutSessions } = useAppContext();
+  const { syncNow } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
   const [busyAction, setBusyAction] = useState<StrengthCoachRequestType | null>(null);
+  const [confirmingStrategy, setConfirmingStrategy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -94,8 +102,10 @@ export default function StrengthCoachScreen() {
   );
   const isAuthenticated = Boolean(session?.tokens.accessToken);
   const strengthStrategyAvailable =
-    capabilities?.schemaVersion === 3 &&
-    capabilities.strength?.structuredStrategyProposal === true;
+    capabilities?.strength?.structuredStrategyProposal === true;
+  const strengthConfirmationAvailable =
+    capabilities?.schemaVersion === 4 &&
+    capabilities.strength?.structuredStrategyConfirmation === true;
 
   const coachApi = useMemo(
     () =>
@@ -137,7 +147,11 @@ export default function StrengthCoachScreen() {
   }, [coachApi, isAuthenticated, ready]);
 
   const startRun = async (requestType: StrengthCoachRequestType) => {
-    if (busyAction || (requestType === 'strength_strategy_proposal' && !strengthStrategyAvailable)) {
+    if (
+      busyAction ||
+      confirmingStrategy ||
+      (requestType === 'strength_strategy_proposal' && !strengthStrategyAvailable)
+    ) {
       return;
     }
 
@@ -179,8 +193,55 @@ export default function StrengthCoachScreen() {
     }
   };
 
+  const confirmStrategy = async () => {
+    if (
+      confirmingStrategy ||
+      !strengthConfirmationAvailable ||
+      !strategyViewModel ||
+      strategyViewModel.kind !== 'proposal'
+    ) {
+      return;
+    }
+
+    setConfirmingStrategy(true);
+    setError(null);
+    try {
+      const confirmed = await coachApi.confirmRun(strategyViewModel.runId, {
+        idempotencyKey: createConfirmationKey(strategyViewModel.runId),
+      });
+      setRun(confirmed);
+      await syncNow();
+    } catch (confirmationError) {
+      setError(
+        confirmationError instanceof Error
+          ? confirmationError.message
+          : 'The Strength Strategy template could not be created.',
+      );
+    } finally {
+      setConfirmingStrategy(false);
+    }
+  };
+
+  const requestStrategyConfirmation = () => {
+    if (!strategyViewModel || strategyViewModel.kind !== 'proposal') return;
+    Alert.alert(
+      'Create workout template?',
+      `Create a new ${strategyViewModel.strategy} template with ${strategyViewModel.sets.length} mapped set${strategyViewModel.sets.length === 1 ? '' : 's'} and ${strategyViewModel.proposedTonnage.toLocaleString()} kg proposed volume?\n\nThe completed source workout will not be changed.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Create template',
+          onPress: () => {
+            void confirmStrategy();
+          },
+        },
+      ],
+    );
+  };
+
   const loading = !ready || isRestoringState;
   const completedSetCount = latestSession ? getCompletedSetCount(latestSession) : 0;
+  const controlsBusy = Boolean(busyAction) || confirmingStrategy;
 
   return (
     <View style={themedStyles.screen}>
@@ -210,14 +271,16 @@ export default function StrengthCoachScreen() {
               <Text style={themedStyles.previewBadge}>Preview</Text>
               <Text style={themedStyles.statusText}>
                 {strengthStrategyAvailable
-                  ? 'Structured Strength provider available'
+                  ? strengthConfirmationAvailable
+                    ? 'Structured Strength provider and confirmation available'
+                    : 'Structured Strength preview available'
                   : 'Structured Strength provider disabled'}
               </Text>
             </View>
             <Text style={themedStyles.cardTitle}>Validated training analysis</Text>
             <Text style={themedStyles.bodyText}>
               This screen uses synchronized workout sets, deterministic metrics and hard guardrails.
-              Nothing is applied to your program automatically.
+              A confirmed strategy creates a new template and never edits completed workout history.
             </Text>
           </AppCard>
 
@@ -251,20 +314,20 @@ export default function StrengthCoachScreen() {
               )}
 
               <PrimaryButton
-                disabled={!latestSession || Boolean(busyAction)}
+                disabled={!latestSession || controlsBusy}
                 label="Review latest workout"
                 loading={busyAction === 'session_review'}
                 onPress={() => void startRun('session_review')}
               />
               <SecondaryButton
-                disabled={!latestSession || Boolean(busyAction)}
+                disabled={!latestSession || controlsBusy}
                 label="Propose next workout"
                 loading={busyAction === 'next_workout_proposal'}
                 onPress={() => void startRun('next_workout_proposal')}
               />
               {strengthStrategyAvailable ? (
                 <SecondaryButton
-                  disabled={!latestSession || Boolean(busyAction)}
+                  disabled={!latestSession || controlsBusy}
                   label="Generate AI Strength Strategy"
                   loading={busyAction === 'strength_strategy_proposal'}
                   onPress={() => void startRun('strength_strategy_proposal')}
@@ -340,8 +403,13 @@ export default function StrengthCoachScreen() {
                 <Text style={themedStyles.resultStatus}>{run?.run.status.toUpperCase()}</Text>
               </View>
               <Text style={themedStyles.bodyText}>{strategyViewModel.message}</Text>
-              {strategyViewModel.kind === 'proposal' ? (
-                <StrengthStrategyProposalView viewModel={strategyViewModel} />
+              {strategyViewModel.kind === 'proposal' || strategyViewModel.kind === 'applied' ? (
+                <StrengthStrategyProposalView
+                  confirmationEnabled={strengthConfirmationAvailable}
+                  confirming={confirmingStrategy}
+                  onConfirm={requestStrategyConfirmation}
+                  viewModel={strategyViewModel}
+                />
               ) : null}
               {strategyViewModel.kind === 'rejected' && strategyViewModel.issues.length > 0 ? (
                 <View style={themedStyles.issueList}>
