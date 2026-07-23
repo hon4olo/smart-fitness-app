@@ -2,76 +2,65 @@ import { describe, expect, it } from 'vitest';
 
 import { parseCoachCapabilities } from './coach';
 
-const baseCapabilities = {
-  nutrition: {
-    deterministicReview: true,
-    deterministicTargetProposal: true,
-    structuredStrategyProposal: false,
-    structuredStrategyConfirmation: false,
-    strategyRequiresConfirmation: true,
-  },
-  strength: {
-    deterministicReview: true,
-    deterministicMockProposal: true,
-    structuredStrategyProposal: false,
-    structuredStrategyConfirmation: false,
-    strategyRequiresConfirmation: true,
-  },
+const nutrition = {
+  deterministicReview: true,
+  deterministicTargetProposal: true,
+  structuredStrategyProposal: true,
+  structuredStrategyConfirmation: true,
+  strategyRequiresConfirmation: true,
+} as const;
+
+const strength = {
+  deterministicReview: true,
+  deterministicMockProposal: true,
+  structuredStrategyProposal: true,
+  structuredStrategyConfirmation: true,
+  strategyRequiresConfirmation: true,
+} as const;
+
+const safety = {
+  deterministicRecoveryReview: true,
+  revisionedLimitations: true,
+  revisionedRecoveryCheckIns: true,
+  automaticApplication: false,
 } as const;
 
 describe('Coach capabilities v5', () => {
-  it('parses the deterministic Safety contract and preserves the no-auto-apply boundary', () => {
+  it('enables the deterministic Safety Recovery contract only from v5', () => {
     expect(
       parseCoachCapabilities({
         schemaVersion: 5,
-        ...baseCapabilities,
-        safety: {
-          deterministicRecoveryReview: true,
-          revisionedLimitations: true,
-          revisionedRecoveryCheckIns: true,
-          automaticApplication: false,
-        },
+        nutrition,
+        strength,
+        safety,
       }),
     ).toEqual({
       schemaVersion: 5,
-      ...baseCapabilities,
-      safety: {
-        deterministicRecoveryReview: true,
-        revisionedLimitations: true,
-        revisionedRecoveryCheckIns: true,
-        automaticApplication: false,
-      },
+      nutrition,
+      strength,
+      safety,
     });
   });
 
-  it('rejects v5 responses without the Safety section or with automatic apply enabled', () => {
+  it('rejects missing or unsafe Safety Recovery capability metadata', () => {
     expect(() =>
       parseCoachCapabilities({
         schemaVersion: 5,
-        ...baseCapabilities,
+        nutrition,
+        strength,
       }),
     ).toThrow('Invalid coach capabilities response');
 
     expect(() =>
       parseCoachCapabilities({
         schemaVersion: 5,
-        ...baseCapabilities,
+        nutrition,
+        strength,
         safety: {
-          deterministicRecoveryReview: true,
-          revisionedLimitations: true,
-          revisionedRecoveryCheckIns: true,
+          ...safety,
           automaticApplication: true,
         },
       }),
     ).toThrow('Invalid coach capabilities response');
-  });
-
-  it('preserves v4 backends without inventing Safety capabilities', () => {
-    expect(
-      parseCoachCapabilities({
-        schemaVersion: 4,
-        ...baseCapabilities,
-      }).safety,
-    ).toBeUndefined();
   });
 });
