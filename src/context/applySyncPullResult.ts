@@ -1,4 +1,5 @@
 import { applyRemoteBodyMeasurementChanges } from '@/cloud/BodyMeasurementRemoteSync';
+import { applyRemoteCustomExerciseChanges } from '@/cloud/CustomExerciseRemoteSync';
 import {
   applyRemoteFitnessProfileChanges,
   runWithoutFitnessProfileOutbox,
@@ -18,6 +19,7 @@ import { applyRemoteWorkoutSessionChanges } from '@/cloud/WorkoutSessionSync';
 import { applyRemoteWorkoutTemplateChanges } from '@/cloud/WorkoutTemplateSync';
 import type {
   createBodyMeasurementSyncMetadataStore,
+  createCustomExerciseSyncMetadataStore,
   createFitnessProfileSyncMetadataStore,
   createFoodEntrySyncMetadataStore,
   createNutritionTargetSyncMetadataStore,
@@ -44,6 +46,7 @@ type ApplySyncPullResultOptions = {
     typeof createBodyMeasurementSyncMetadataStore
   >;
   cursorStore: ReturnType<typeof getDefaultSyncCursorStore>;
+  customExerciseMetadataStore: ReturnType<typeof createCustomExerciseSyncMetadataStore>;
   fitnessProfileMetadataStore: ReturnType<typeof createFitnessProfileSyncMetadataStore>;
   foodEntryMetadataStore: ReturnType<typeof createFoodEntrySyncMetadataStore>;
   metadataStore: WeightSyncMetadataStore;
@@ -78,6 +81,7 @@ const replaceMetadataRecords = async <RecordType>(
 export async function applySyncPullResult({
   bodyMeasurementMetadataStore,
   cursorStore,
+  customExerciseMetadataStore,
   fitnessProfileMetadataStore,
   foodEntryMetadataStore,
   metadataStore,
@@ -114,8 +118,16 @@ export async function applySyncPullResult({
     await bodyMeasurementMetadataStore.load(),
     syncedAt,
   );
-  const workoutSessionChanges = applyRemoteWorkoutSessionChanges(
+  const customExerciseChanges = applyRemoteCustomExerciseChanges(
     bodyMeasurementChanges.nextState,
+    nonDeletedChangedEntities,
+    deletedEntities,
+    session.user.id,
+    await customExerciseMetadataStore.load(),
+    syncedAt,
+  );
+  const workoutSessionChanges = applyRemoteWorkoutSessionChanges(
+    customExerciseChanges.nextState,
     nonDeletedChangedEntities,
     deletedEntities,
     await workoutSessionMetadataStore.load(),
@@ -180,6 +192,7 @@ export async function applySyncPullResult({
     new Map(weightChanges.metadata.map((record) => [record.id, record])),
   );
   await replaceMetadataRecords(bodyMeasurementMetadataStore, bodyMeasurementChanges.metadata);
+  await replaceMetadataRecords(customExerciseMetadataStore, customExerciseChanges.metadata);
   await replaceMetadataRecords(workoutSessionMetadataStore, workoutSessionChanges.metadata);
   await replaceMetadataRecords(workoutTemplateMetadataStore, workoutTemplateChanges.metadata);
   await replaceMetadataRecords(trainingProgramMetadataStore, trainingProgramChanges.metadata);
@@ -193,6 +206,8 @@ export async function applySyncPullResult({
     weightChanges.deletedRecordIds.length +
     bodyMeasurementChanges.appliedRecordIds.length +
     bodyMeasurementChanges.deletedRecordIds.length +
+    customExerciseChanges.appliedRecordIds.length +
+    customExerciseChanges.deletedRecordIds.length +
     workoutSessionChanges.appliedRecordIds.length +
     workoutSessionChanges.deletedRecordIds.length +
     workoutTemplateChanges.appliedRecordIds.length +

@@ -1,5 +1,6 @@
 import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
 import { isBodyMeasurementQueueOperation } from '@/cloud/BodyMeasurementSync';
+import { isCustomExerciseQueueOperation } from '@/cloud/CustomExerciseSync';
 import { isFitnessProfileQueueOperation } from '@/cloud/FitnessProfileSync';
 import { isFoodEntryQueueOperation } from '@/cloud/FoodEntrySync';
 import { isNutritionTargetQueueOperation } from '@/cloud/NutritionTargetSync';
@@ -114,6 +115,8 @@ export const hasUnsupportedRemoteEntities = (pullResult: SyncPullResult): boolea
         operation.entity !== 'weightHistory' &&
         operation.entity !== 'bodyMeasurements' &&
         operation.entity !== 'body_measurements' &&
+        operation.entity !== 'customExercises' &&
+        operation.entity !== 'custom_exercises' &&
         operation.entity !== 'workoutSessions' &&
         operation.entity !== 'workouts' &&
         operation.entity !== 'trainingPrograms' &&
@@ -132,6 +135,7 @@ export const countSupportedQueueOperations = (
 ): number =>
   filterWeightHistoryQueueOperations(operations).length +
   operations.filter(isBodyMeasurementQueueOperation).length +
+  operations.filter(isCustomExerciseQueueOperation).length +
   operations.filter(isWorkoutSessionQueueOperation).length +
   operations.filter(isWorkoutTemplateQueueOperation).length +
   operations.filter(isTrainingProgramQueueOperation).length +

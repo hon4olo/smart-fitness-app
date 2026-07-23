@@ -41,6 +41,15 @@ export type {
   TrainingProgramSyncSnapshot,
 } from './TrainingProgramSyncMetadataStore';
 export {
+  createCustomExerciseSyncMetadataStore,
+  CUSTOM_EXERCISE_SYNC_METADATA_STORAGE_KEY,
+} from './CustomExerciseSyncMetadataStore';
+export type {
+  CustomExerciseSyncMetadata,
+  CustomExerciseSyncMetadataStore,
+  CustomExerciseSyncSnapshot,
+} from './CustomExerciseSyncMetadataStore';
+export {
   createFoodEntrySyncMetadataStore,
   FOOD_ENTRY_SYNC_METADATA_STORAGE_KEY,
 } from './FoodEntrySyncMetadataStore';
