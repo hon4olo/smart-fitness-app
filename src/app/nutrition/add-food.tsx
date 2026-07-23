@@ -1,18 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { FoodItem } from '@/api/foods';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { foodCatalog } from '@/data/foods';
 import {
@@ -25,20 +15,13 @@ import {
   createDraftFromFoodItem,
   formatProviderLabel,
   formatScreenDate,
-  getFoodAttributionLabel,
   isMeaningfulFoodText,
   mealTypeLabels,
   type DraftItem,
   type PickerMode,
   type RecentItem,
 } from '@/features/nutrition/addFoodModel';
-import { BarcodeScannerModal } from '@/features/nutrition/components/BarcodeScannerModal';
-import { CreateFoodInlineForm } from '@/features/nutrition/components/CreateFoodInlineForm';
-import { FavoriteFoodsModeSection } from '@/features/nutrition/components/FavoriteFoodsModeSection';
-import { FoodPortionSheet } from '@/features/nutrition/components/FoodPortionSheet';
-import { FoodSearchModeSection } from '@/features/nutrition/components/FoodSearchModeSection';
-import { RecentFoodsModeSection } from '@/features/nutrition/components/RecentFoodsModeSection';
-import { SavedMealsModeSection } from '@/features/nutrition/components/SavedMealsModeSection';
+import { NutritionAddFoodView } from '@/features/nutrition/components/NutritionAddFoodView';
 import { createAddFoodStyles } from '@/features/nutrition/styles/addFoodStyles';
 import { useFoodProviderSearch } from '@/features/nutrition/useFoodProviderSearch';
 import {
@@ -168,7 +151,6 @@ export default function NutritionAddFoodScreen() {
         : selectedDraft.attribution?.text ??
           `Source: ${formatProviderLabel(selectedDraft.source)}`
       : undefined;
-  const selectedDraftMacroTotalsLabel = buildDraftMacroTotalsLabel(selectedDraft);
 
   useEffect(() => {
     if (editingEntry) {
@@ -335,226 +317,97 @@ export default function NutritionAddFoodScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingBottom: insets.bottom + Spacing.six,
-            paddingTop: insets.top + Spacing.three,
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.container}>
-          <View style={styles.headerRow}>
-            <Pressable
-              accessibilityLabel="Cancel"
-              hitSlop={10}
-              onPress={() => router.back()}
-              style={styles.backButton}>
-              <Text style={styles.backButtonText}>Cancel</Text>
-            </Pressable>
-            <View style={styles.headerCopy}>
-              <Text selectable style={styles.title}>{selectedMealLabel}</Text>
-              <Text selectable style={styles.subtitle}>{selectedDateLabel}</Text>
-            </View>
-            <View style={styles.headerSpacer} />
-          </View>
-
-          <SegmentedControl
-            accessibilityLabel="Food picker mode"
-            onChange={setMode}
-            options={[
-              { label: 'Food', value: 'food' },
-              { label: 'Recent', value: 'recent' },
-              { label: 'Favorites', value: 'favorites' },
-              { label: 'Meals', value: 'meals' },
-            ]}
-            value={mode}
-          />
-
-          <View style={styles.summaryPill}>
-            <View>
-              <Text selectable style={styles.summaryTitle}>{selectedMealCountLabel}</Text>
-              <Text selectable style={styles.summaryCopy}>
-                {formatCompactMacroTotals(selectedMealTotals)}
-              </Text>
-            </View>
-            <Text selectable style={styles.summaryCalories}>
-              {formatNumber(selectedMealTotals.calories)} kcal
-            </Text>
-          </View>
-
-          {message ? (
-            <View style={styles.messageBanner}>
-              <Text selectable style={styles.messageText}>{message}</Text>
-            </View>
-          ) : null}
-
-          {mode === 'food' ? (
-            <FoodSearchModeSection
-              backendFoodResults={backendFoodResults}
-              backendFoodSearchStatus={backendFoodSearchStatus}
-              colors={colors}
-              favoriteIds={favoriteIds}
-              favoriteSeedIds={favoriteSeedIds}
-              formatProviderLabel={formatProviderLabel}
-              foodSuggestions={foodSuggestions}
-              getFoodAttributionLabel={getFoodAttributionLabel}
-              onClearQuery={() => {
-                setQuery('');
-                setFoodSuggestions([]);
-              }}
-              onOpenCatalogFood={openDraftFromCatalog}
-              onOpenFoodItem={openDraftFromFoodItem}
-              onOpenScanner={() => setScannerOpen(true)}
-              onQuickAddCatalogFood={quickAddCatalogFood}
-              onQuickAddFoodItem={quickAddFoodItem}
-              onSelectSuggestion={(suggestion) => {
-                setQuery(suggestion);
-                setFoodSuggestions([]);
-              }}
-              onToggleFavorite={(foodId) =>
-                setFavoriteIds((current) =>
-                  current.includes(foodId)
-                    ? current.filter((item) => item !== foodId)
-                    : [foodId, ...current],
-                )
-              }
-              query={query}
-              searchResults={searchResults}
-              selectedMealLabel={selectedMealLabel}
-              setQuery={setQuery}
-              styles={styles}
-            />
-          ) : null}
-
-          {mode === 'recent' ? (
-            <RecentFoodsModeSection
-              items={recentItems}
-              onOpenFood={openDraftFromRecent}
-              onQuickAdd={quickAddRecent}
-              onSearchFood={() => setMode('food')}
-              selectedMealLabel={selectedMealLabel}
-              styles={styles}
-            />
-          ) : null}
-
-          {mode === 'favorites' ? (
-            <FavoriteFoodsModeSection
-              foods={favoriteFoods}
-              onOpenFood={openDraftFromCatalog}
-              onQuickAdd={quickAddCatalogFood}
-              onSearchFood={() => setMode('food')}
-              selectedMealLabel={selectedMealLabel}
-              styles={styles}
-            />
-          ) : null}
-
-          {mode === 'meals' ? (
-            <SavedMealsModeSection
-              colors={colors}
-              createMealOpen={createMealOpen}
-              manageMealsOpen={manageMealsOpen}
-              mealTemplateName={mealTemplateName}
-              mealTemplates={mealTemplates}
-              onDeleteMealTemplate={deleteMealTemplate}
-              onQuickAddMealTemplate={quickAddMealTemplate}
-              onSaveMealTemplate={saveMealTemplateFromDiary}
-              onToggleCreateMeal={() => setCreateMealOpen((current) => !current)}
-              onToggleManageMeals={() => setManageMealsOpen((current) => !current)}
-              selectedMealLabel={selectedMealLabel}
-              setMealTemplateName={setMealTemplateName}
-              styles={styles}
-            />
-          ) : null}
-
-          <View style={styles.quietActionRow}>
-            <Pressable
-              accessibilityLabel="Create food"
-              hitSlop={10}
-              onPress={() => setCreateFoodOpen((current) => !current)}
-              style={styles.quietActionButton}>
-              <Text style={styles.quietActionText}>
-                {createFoodOpen ? 'Hide create food' : 'Create food'}
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel="Go to meals mode"
-              hitSlop={10}
-              onPress={() => setMode('meals')}
-              style={styles.quietActionButton}>
-              <Text style={styles.quietActionText}>Create meal</Text>
-            </Pressable>
-          </View>
-
-          {createFoodOpen ? (
-            <CreateFoodInlineForm
-              colors={colors}
-              foodBrand={foodBrand}
-              foodCalories={foodCalories}
-              foodCarbs={foodCarbs}
-              foodFats={foodFats}
-              foodName={foodName}
-              foodProtein={foodProtein}
-              foodQuantity={foodQuantity}
-              foodServingSize={foodServingSize}
-              foodServingUnit={foodServingUnit}
-              onSave={saveCustomFood}
-              setFoodBrand={setFoodBrand}
-              setFoodCalories={setFoodCalories}
-              setFoodCarbs={setFoodCarbs}
-              setFoodFats={setFoodFats}
-              setFoodName={setFoodName}
-              setFoodProtein={setFoodProtein}
-              setFoodQuantity={setFoodQuantity}
-              setFoodServingSize={setFoodServingSize}
-              setFoodServingUnit={setFoodServingUnit}
-              styles={styles}
-            />
-          ) : null}
-        </View>
-      </ScrollView>
-
-      {selectedDraft ? (
-        <FoodPortionSheet
-          attributionLabel={selectedDraftAttributionLabel}
-          colors={colors}
-          deleteLabel="Delete entry"
-          draft={selectedDraft}
-          insetsBottom={insets.bottom}
-          macroTotalsLabel={selectedDraftMacroTotalsLabel}
-          onChangeQuantity={(value) =>
-            setSelectedDraft((current) => (current ? { ...current, quantity: value } : current))
-          }
-          onClose={() => setSelectedDraft(null)}
-          onDelete={deleteSelectedDraft}
-          onSave={saveDraft}
-          selectedDateLabel={selectedDateLabel}
-          selectedMealLabel={selectedMealLabel}
-          servingLabel={selectedDraftServingLabel}
-          submitLabel={selectedDraftSubmitLabel}
-          styles={styles}
-        />
-      ) : null}
-
-      <BarcodeScannerModal
-        colors={colors}
-        onClose={() => setScannerOpen(false)}
-        onFoodFound={(food) => {
-          setScannerOpen(false);
-          setSelectedDraft(createDraftFromFoodItem(food));
-        }}
-        onSearchByName={() => {
-          setScannerOpen(false);
-          setMode('food');
-        }}
-        styles={styles}
-        visible={scannerOpen}
-      />
-    </KeyboardAvoidingView>
+    <NutritionAddFoodView
+      backendFoodResults={backendFoodResults}
+      backendFoodSearchStatus={backendFoodSearchStatus}
+      bottomInset={insets.bottom}
+      colors={colors}
+      createFoodOpen={createFoodOpen}
+      createMealOpen={createMealOpen}
+      customFood={{
+        brand: { value: foodBrand, setValue: setFoodBrand },
+        calories: { value: foodCalories, setValue: setFoodCalories },
+        carbs: { value: foodCarbs, setValue: setFoodCarbs },
+        fats: { value: foodFats, setValue: setFoodFats },
+        name: { value: foodName, setValue: setFoodName },
+        protein: { value: foodProtein, setValue: setFoodProtein },
+        quantity: { value: foodQuantity, setValue: setFoodQuantity },
+        servingSize: { value: foodServingSize, setValue: setFoodServingSize },
+        servingUnit: { value: foodServingUnit, setValue: setFoodServingUnit },
+      }}
+      favoriteFoods={favoriteFoods}
+      favoriteIds={favoriteIds}
+      favoriteSeedIds={favoriteSeedIds}
+      foodSuggestions={foodSuggestions}
+      macroSummaryLabel={formatCompactMacroTotals(selectedMealTotals)}
+      manageMealsOpen={manageMealsOpen}
+      mealTemplateName={mealTemplateName}
+      mealTemplates={mealTemplates}
+      message={message}
+      mode={mode}
+      onBack={() => router.back()}
+      onChangeDraftQuantity={(value) =>
+        setSelectedDraft((current) => (current ? { ...current, quantity: value } : current))
+      }
+      onClearQuery={() => {
+        setQuery('');
+        setFoodSuggestions([]);
+      }}
+      onCloseDraft={() => setSelectedDraft(null)}
+      onCloseScanner={() => setScannerOpen(false)}
+      onDeleteDraft={deleteSelectedDraft}
+      onDeleteMealTemplate={deleteMealTemplate}
+      onFoodFound={(food) => {
+        setScannerOpen(false);
+        setSelectedDraft(createDraftFromFoodItem(food));
+      }}
+      onModeChange={setMode}
+      onOpenCatalogFood={openDraftFromCatalog}
+      onOpenFoodItem={openDraftFromFoodItem}
+      onOpenRecentFood={openDraftFromRecent}
+      onOpenScanner={() => setScannerOpen(true)}
+      onQuickAddCatalogFood={quickAddCatalogFood}
+      onQuickAddFoodItem={quickAddFoodItem}
+      onQuickAddMealTemplate={quickAddMealTemplate}
+      onQuickAddRecent={quickAddRecent}
+      onSaveCustomFood={saveCustomFood}
+      onSaveDraft={saveDraft}
+      onSaveMealTemplate={saveMealTemplateFromDiary}
+      onSearchByName={() => {
+        setScannerOpen(false);
+        setMode('food');
+      }}
+      onSelectSuggestion={(suggestion) => {
+        setQuery(suggestion);
+        setFoodSuggestions([]);
+      }}
+      onToggleCreateFood={() => setCreateFoodOpen((current) => !current)}
+      onToggleCreateMeal={() => setCreateMealOpen((current) => !current)}
+      onToggleFavorite={(foodId) =>
+        setFavoriteIds((current) =>
+          current.includes(foodId)
+            ? current.filter((item) => item !== foodId)
+            : [foodId, ...current],
+        )
+      }
+      onToggleManageMeals={() => setManageMealsOpen((current) => !current)}
+      query={query}
+      recentItems={recentItems}
+      scannerOpen={scannerOpen}
+      searchResults={searchResults}
+      selectedDateLabel={selectedDateLabel}
+      selectedDraft={selectedDraft}
+      selectedDraftAttributionLabel={selectedDraftAttributionLabel}
+      selectedDraftMacroTotalsLabel={buildDraftMacroTotalsLabel(selectedDraft)}
+      selectedDraftServingLabel={selectedDraftServingLabel}
+      selectedDraftSubmitLabel={selectedDraftSubmitLabel}
+      selectedMealCaloriesLabel={`${formatNumber(selectedMealTotals.calories)} kcal`}
+      selectedMealCountLabel={selectedMealCountLabel}
+      selectedMealLabel={selectedMealLabel}
+      setMealTemplateName={setMealTemplateName}
+      setQuery={setQuery}
+      styles={styles}
+      topInset={insets.top}
+    />
   );
 }
