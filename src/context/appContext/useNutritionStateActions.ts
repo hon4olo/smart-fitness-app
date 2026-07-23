@@ -1,7 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback } from 'react';
 
-import type { AppRepository } from '@/repositories';
 import type {
   AppState,
   FoodEntry,
@@ -16,14 +15,15 @@ import {
   normalizeFoodEntry,
   updateFoodEntryInState,
 } from './nutritionActions';
+import type { ScheduleAppStateMutation } from './useAppMutationQueue';
 
 type NutritionStateActionsOptions = {
-  repository: AppRepository;
+  scheduleStateMutation: ScheduleAppStateMutation;
   setState: Dispatch<SetStateAction<AppState>>;
 };
 
 export function useNutritionStateActions({
-  repository,
+  scheduleStateMutation,
   setState,
 }: NutritionStateActionsOptions) {
   const addFoodEntry = useCallback(
@@ -31,11 +31,11 @@ export function useNutritionStateActions({
       setState((currentState) => {
         const foodEntry = normalizeFoodEntry(entry, new Date().toISOString());
         const nextState = addFoodEntryToState(currentState, foodEntry);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Save food entry', nextState });
         return nextState;
       });
     },
-    [repository, setState],
+    [scheduleStateMutation, setState],
   );
 
   const addFoodEntries = useCallback(
@@ -45,11 +45,11 @@ export function useNutritionStateActions({
           normalizeFoodEntry(entry, new Date().toISOString()),
         );
         const nextState = addFoodEntriesToState(currentState, normalizedEntries);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Save food entries', nextState });
         return nextState;
       });
     },
-    [repository, setState],
+    [scheduleStateMutation, setState],
   );
 
   const addMealTemplate = useCallback(
@@ -66,11 +66,11 @@ export function useNutritionStateActions({
             ...currentState.mealTemplates,
           ],
         };
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Save meal template', nextState });
         return nextState;
       });
     },
-    [repository, setState],
+    [scheduleStateMutation, setState],
   );
 
   const updateFoodEntry = useCallback(
@@ -89,11 +89,11 @@ export function useNutritionStateActions({
           oldEntry.createdAt,
         );
         const nextState = updateFoodEntryInState(currentState, entryId, oldEntry, foodEntry);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Update food entry', nextState });
         return nextState;
       });
     },
-    [repository, setState],
+    [scheduleStateMutation, setState],
   );
 
   const deleteFoodEntry = useCallback(
@@ -102,11 +102,11 @@ export function useNutritionStateActions({
         const entry = currentState.foodEntries.find((item) => item.id === entryId);
         if (!entry) return currentState;
         const nextState = deleteFoodEntryFromState(currentState, entry);
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Delete food entry', nextState });
         return nextState;
       });
     },
-    [repository, setState],
+    [scheduleStateMutation, setState],
   );
 
   const deleteMealTemplate = useCallback(
@@ -118,22 +118,22 @@ export function useNutritionStateActions({
             (template) => template.id !== templateId,
           ),
         };
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Delete meal template', nextState });
         return nextState;
       });
     },
-    [repository, setState],
+    [scheduleStateMutation, setState],
   );
 
   const updateNutritionTargets = useCallback(
     (targets: NutritionTargets) => {
       setState((currentState) => {
         const nextState = { ...currentState, nutritionTargets: targets };
-        void repository.saveState(nextState);
+        scheduleStateMutation({ label: 'Save nutrition targets', nextState });
         return nextState;
       });
     },
-    [repository, setState],
+    [scheduleStateMutation, setState],
   );
 
   return {

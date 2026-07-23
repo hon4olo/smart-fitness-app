@@ -15,6 +15,16 @@ import type {
   WorkoutSession,
 } from './index';
 
+export type AppMutationStage = 'local_persistence' | 'outbox';
+
+export type AppMutationFailure = {
+  id: string;
+  label: string;
+  message: string;
+  occurredAt: string;
+  stage: AppMutationStage;
+};
+
 export type AppState = {
   workouts: Workout[];
   trainingPrograms: TrainingProgram[];
@@ -60,7 +70,7 @@ export type AppContextType = AppState & {
       title: string;
       description?: string;
       exercises: string[];
-    }
+    },
   ) => void;
   saveTrainingProgram: (program: TrainingProgram) => void;
   deleteTrainingProgram: (programId: string) => void;
@@ -83,6 +93,10 @@ export type AppContextType = AppState & {
   updateWorkoutSession: (sessionId: string, updatedSession: WorkoutSession) => void;
   saveWorkoutSession: (session: WorkoutSession) => void;
   isRestoringState: boolean;
+  pendingMutationCount: number;
+  mutationFailure: AppMutationFailure | null;
+  dismissMutationFailure: () => void;
+  retryFailedMutation: () => void;
   getLastWorkoutSession: () => WorkoutSession | null;
   completeOnboarding: (setup: {
     currentWeight: number;
