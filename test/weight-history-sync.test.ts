@@ -28,6 +28,8 @@ const baseState = (): AppState => ({
     { id: 'local-1', date: '2025-01-01', weight: 80, createdAt: '2025-01-01T10:00:00.000Z' },
   ],
   bodyMeasurements: [],
+  userLimitations: [],
+  recoveryCheckIns: [],
   profile: {
     height: '180 cm',
     weight: '80.0 kg',
