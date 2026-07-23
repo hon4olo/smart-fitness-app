@@ -6,12 +6,17 @@ import type {
 
 import { getWorkoutTimestamp } from '@/features/workouts/historyModel';
 
+export type SafetyRecoveryProgressPeriod = '30d' | '90d' | 'all';
+
 export type SafetyRecoveryStatusMetric = {
   status: WorkoutSafetyReviewStatus;
   label: string;
   count: number;
   share: number;
   shareLabel: string;
+  previousShare: number | null;
+  deltaPercentagePoints: number | null;
+  deltaLabel: string | null;
 };
 
 export type SafetyRecoveryMovementMetric = {
@@ -31,7 +36,23 @@ export type SafetyRecoveryLoadTrend = {
   direction: 'up' | 'down' | 'flat' | 'unknown';
 };
 
+export type SafetyRecoveryPeriodComparison = {
+  previousPeriodLabel: string;
+  previousTotalWorkouts: number;
+  previousReviewedWorkouts: number;
+  workoutCountDelta: number;
+  workoutCountDeltaLabel: string;
+  reviewedWorkoutsDelta: number;
+  reviewedWorkoutsDeltaLabel: string;
+  reviewCoverageDeltaPercentagePoints: number | null;
+  reviewCoverageDeltaLabel: string;
+  restrictedWorkoutShareDeltaPercentagePoints: number | null;
+  restrictedWorkoutShareDeltaLabel: string;
+};
+
 export type SafetyRecoveryProgressAnalytics = {
+  period: SafetyRecoveryProgressPeriod;
+  periodLabel: string;
   totalWorkouts: number;
   contextWorkouts: number;
   reviewedWorkouts: number;
@@ -42,7 +63,28 @@ export type SafetyRecoveryProgressAnalytics = {
   statusMetrics: SafetyRecoveryStatusMetric[];
   loadTrend: SafetyRecoveryLoadTrend;
   restrictedWorkouts: number;
+  restrictedWorkoutShare: number;
+  restrictedWorkoutShareLabel: string;
   topMovementPatterns: SafetyRecoveryMovementMetric[];
+  comparison: SafetyRecoveryPeriodComparison | null;
+};
+
+type SafetyRecoveryWindowAnalytics = Omit<
+  SafetyRecoveryProgressAnalytics,
+  'period' | 'periodLabel' | 'comparison'
+>;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const PERIOD_DAYS: Record<Exclude<SafetyRecoveryProgressPeriod, 'all'>, number> = {
+  '30d': 30,
+  '90d': 90,
+};
+
+const PERIOD_LABELS: Record<SafetyRecoveryProgressPeriod, string> = {
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
+  all: 'All time',
 };
 
 const STATUS_ORDER: WorkoutSafetyReviewStatus[] = [
@@ -146,9 +188,7 @@ const buildLoadTrend = (sessions: WorkoutSession[]): SafetyRecoveryLoadTrend => 
   };
 };
 
-export const buildSafetyRecoveryProgressAnalytics = (
-  sessions: WorkoutSession[],
-): SafetyRecoveryProgressAnalytics => {
+const buildWindowAnalytics = (sessions: WorkoutSession[]): SafetyRecoveryWindowAnalytics => {
   const totalWorkouts = sessions.length;
   const contextWorkouts = sessions.filter((session) => Boolean(session.safetyRecovery)).length;
   const noContextWorkouts = totalWorkouts - contextWorkouts;
@@ -163,7 +203,7 @@ export const buildSafetyRecoveryProgressAnalytics = (
   const reviewedWorkouts = reviewedSessions.length;
   const reviewCoverageShare = totalWorkouts > 0 ? reviewedWorkouts / totalWorkouts : 0;
 
-  const statusMetrics = STATUS_ORDER.map((status) => {
+  const statusMetrics = STATUS_ORDER.map((status): SafetyRecoveryStatusMetric => {
     const count = reviewedSessions.filter(
       (session) => session.safetyRecovery?.reviewStatus === status,
     ).length;
@@ -175,6 +215,9 @@ export const buildSafetyRecoveryProgressAnalytics = (
       count,
       share,
       shareLabel: percentageLabel(share),
+      previousShare: null,
+      deltaPercentagePoints: null,
+      deltaLabel: null,
     };
   });
 
@@ -198,6 +241,9 @@ export const buildSafetyRecoveryProgressAnalytics = (
       movementCounts.set(movementPattern, (movementCounts.get(movementPattern) ?? 0) + 1);
     });
   });
+
+  const restrictedWorkoutShare =
+    reviewedWorkouts > 0 ? restrictedWorkouts / reviewedWorkouts : 0;
 
   const topMovementPatterns = [...movementCounts.entries()]
     .map(([movementPattern, count]) => {
@@ -224,6 +270,147 @@ export const buildSafetyRecoveryProgressAnalytics = (
     statusMetrics,
     loadTrend: buildLoadTrend(sessions),
     restrictedWorkouts,
+    restrictedWorkoutShare,
+    restrictedWorkoutShareLabel: percentageLabel(restrictedWorkoutShare),
     topMovementPatterns,
+  };
+};
+
+const formatSignedCount = (value: number, subject: string): string => {
+  if (value > 0) return `+${value} ${subject} vs previous period`;
+  if (value < 0) return `${value} ${subject} vs previous period`;
+  return `No change in ${subject}`;
+};
+
+const formatPercentagePointDelta = (
+  value: number | null,
+  emptyLabel: string,
+): string => {
+  if (value === null) return emptyLabel;
+  if (value > 0) return `Up ${value} pp vs previous period`;
+  if (value < 0) return `Down ${Math.abs(value)} pp vs previous period`;
+  return 'No change vs previous period';
+};
+
+const applyStatusComparison = (
+  current: SafetyRecoveryStatusMetric[],
+  previous: SafetyRecoveryStatusMetric[],
+  previousReviewedWorkouts: number,
+): SafetyRecoveryStatusMetric[] =>
+  current.map((metric) => {
+    if (previousReviewedWorkouts === 0) {
+      return {
+        ...metric,
+        deltaLabel: 'No reviewed workouts in previous period',
+      };
+    }
+
+    const previousMetric = previous.find((candidate) => candidate.status === metric.status);
+    const previousShare = previousMetric?.share ?? 0;
+    const deltaPercentagePoints = Math.round((metric.share - previousShare) * 100);
+
+    return {
+      ...metric,
+      previousShare,
+      deltaPercentagePoints,
+      deltaLabel: formatPercentagePointDelta(deltaPercentagePoints, ''),
+    };
+  });
+
+const selectFinitePeriodSessions = (
+  sessions: WorkoutSession[],
+  period: Exclude<SafetyRecoveryProgressPeriod, 'all'>,
+  now: number,
+): { current: WorkoutSession[]; previous: WorkoutSession[] } => {
+  const windowMs = PERIOD_DAYS[period] * DAY_MS;
+  const currentStart = now - windowMs;
+  const previousStart = currentStart - windowMs;
+
+  const timestamped = sessions.flatMap((session) => {
+    const timestamp = getWorkoutTimestamp(session);
+    return timestamp > 0 && timestamp <= now ? [{ session, timestamp }] : [];
+  });
+
+  return {
+    current: timestamped
+      .filter((entry) => entry.timestamp >= currentStart)
+      .map((entry) => entry.session),
+    previous: timestamped
+      .filter((entry) => entry.timestamp >= previousStart && entry.timestamp < currentStart)
+      .map((entry) => entry.session),
+  };
+};
+
+const buildComparison = (
+  current: SafetyRecoveryWindowAnalytics,
+  previous: SafetyRecoveryWindowAnalytics,
+  period: Exclude<SafetyRecoveryProgressPeriod, 'all'>,
+): SafetyRecoveryPeriodComparison => {
+  const reviewCoverageDeltaPercentagePoints =
+    previous.totalWorkouts > 0
+      ? Math.round((current.reviewCoverageShare - previous.reviewCoverageShare) * 100)
+      : null;
+  const restrictedWorkoutShareDeltaPercentagePoints =
+    previous.reviewedWorkouts > 0
+      ? Math.round((current.restrictedWorkoutShare - previous.restrictedWorkoutShare) * 100)
+      : null;
+  const days = PERIOD_DAYS[period];
+
+  return {
+    previousPeriodLabel: `Previous ${days} days`,
+    previousTotalWorkouts: previous.totalWorkouts,
+    previousReviewedWorkouts: previous.reviewedWorkouts,
+    workoutCountDelta: current.totalWorkouts - previous.totalWorkouts,
+    workoutCountDeltaLabel: formatSignedCount(
+      current.totalWorkouts - previous.totalWorkouts,
+      'workouts',
+    ),
+    reviewedWorkoutsDelta: current.reviewedWorkouts - previous.reviewedWorkouts,
+    reviewedWorkoutsDeltaLabel: formatSignedCount(
+      current.reviewedWorkouts - previous.reviewedWorkouts,
+      'fresh reviews',
+    ),
+    reviewCoverageDeltaPercentagePoints,
+    reviewCoverageDeltaLabel: formatPercentagePointDelta(
+      reviewCoverageDeltaPercentagePoints,
+      'No workouts in previous period',
+    ),
+    restrictedWorkoutShareDeltaPercentagePoints,
+    restrictedWorkoutShareDeltaLabel: formatPercentagePointDelta(
+      restrictedWorkoutShareDeltaPercentagePoints,
+      'No fresh reviewed workouts in previous period',
+    ),
+  };
+};
+
+export const buildSafetyRecoveryProgressAnalytics = (
+  sessions: WorkoutSession[],
+  period: SafetyRecoveryProgressPeriod = 'all',
+  now = Date.now(),
+): SafetyRecoveryProgressAnalytics => {
+  if (period === 'all') {
+    return {
+      period,
+      periodLabel: PERIOD_LABELS[period],
+      ...buildWindowAnalytics(sessions),
+      comparison: null,
+    };
+  }
+
+  const effectiveNow = Number.isFinite(now) ? now : Date.now();
+  const periodSessions = selectFinitePeriodSessions(sessions, period, effectiveNow);
+  const current = buildWindowAnalytics(periodSessions.current);
+  const previous = buildWindowAnalytics(periodSessions.previous);
+
+  return {
+    period,
+    periodLabel: PERIOD_LABELS[period],
+    ...current,
+    statusMetrics: applyStatusComparison(
+      current.statusMetrics,
+      previous.statusMetrics,
+      previous.reviewedWorkouts,
+    ),
+    comparison: buildComparison(current, previous, period),
   };
 };
