@@ -7,7 +7,7 @@ import type {
   WorkoutSession,
 } from '@/types';
 
-import { ensureUuid } from './ids';
+import { ensureUuid, isUuid } from './ids';
 
 export {
   createWorkoutExerciseId as createExerciseId,
@@ -50,14 +50,26 @@ export const normalizeFoodEntries = (foodEntries: FoodEntry[]) => {
 };
 
 export const normalizeMealTemplates = (mealTemplates: MealTemplate[]) => {
-  return mealTemplates.map((template) => ({
-    ...template,
-    createdAt: template.createdAt ?? new Date().toISOString(),
-    items: normalizeFoodEntries(template.items ?? []).map((item, index) => ({
-      ...item,
-      id: `${template.id}-item-${index}`,
-    })),
-  }));
+  return mealTemplates.map((template) => {
+    const templateId = ensureUuid(template.id);
+    const usedItemIds = new Set<string>();
+    return {
+      ...template,
+      id: templateId,
+      createdAt: template.createdAt ?? new Date().toISOString(),
+      items: (template.items ?? []).map((item, index) => {
+        const normalized = normalizeFoodEntries([item])[0] as FoodEntry;
+        const candidate = isUuid(item.id)
+          ? item.id.toLowerCase()
+          : ensureUuid(`${templateId}:item:${item.id || index}`);
+        const itemId = usedItemIds.has(candidate)
+          ? ensureUuid(`${templateId}:item:${item.id || 'item'}:${index}`)
+          : candidate;
+        usedItemIds.add(itemId);
+        return { ...normalized, id: itemId };
+      }),
+    };
+  });
 };
 
 const resolveWeightCreatedAt = (entry: WeightEntry): string => {
