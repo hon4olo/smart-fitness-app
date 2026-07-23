@@ -46,6 +46,43 @@ export type WorkoutSet = {
   actualRpe?: WorkoutRpe;
 };
 
+export type WorkoutSafetyReviewStatus = 'ready' | 'needs_input' | 'modify' | 'blocked';
+export type WorkoutSafetyGateKind =
+  | 'review_missing'
+  | 'review_stale'
+  | 'ready'
+  | 'confirmation_required';
+
+export type WorkoutSafetyRestriction = {
+  limitationId: string;
+  bodyRegion: string;
+  side: 'left' | 'right' | 'bilateral' | 'midline' | 'not_applicable';
+  severity: 'mild' | 'moderate' | 'severe';
+  action: 'monitor' | 'reduce_load' | 'avoid_movement' | 'pause_training';
+  movementPatterns: string[];
+  maximumLoadMultiplier: number;
+};
+
+export type WorkoutSafetyIssue = {
+  code: string;
+  severity: 'input_required' | 'warning' | 'modify' | 'hard_block';
+  message: string;
+};
+
+export type WorkoutSafetyMetadata = {
+  schemaVersion: 1;
+  gateKind: WorkoutSafetyGateKind;
+  acknowledgedAt: string;
+  acknowledgementRequired: boolean;
+  explicitlyAcknowledged: boolean;
+  reviewRunId: string | null;
+  reviewStatus: WorkoutSafetyReviewStatus | null;
+  sourceFingerprint: string | null;
+  recommendedLoadMultiplier: number | null;
+  restrictions: WorkoutSafetyRestriction[];
+  issues: WorkoutSafetyIssue[];
+};
+
 export type WorkoutSession = {
   id: string;
   workoutId: string;
@@ -55,4 +92,5 @@ export type WorkoutSession = {
   sets: WorkoutSet[];
   notes?: string;
   photoUri?: string;
+  safetyRecovery?: WorkoutSafetyMetadata;
 };
