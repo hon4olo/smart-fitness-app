@@ -3,7 +3,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { createCoachApi, type CoachRunEnvelope, type StrengthCoachRequestType } from '@/api/coach';
+import {
+  createCoachApi,
+  type CoachCapabilities,
+  type CoachRunEnvelope,
+  type StrengthCoachRequestType,
+} from '@/api/coach';
 import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
@@ -12,7 +17,9 @@ import { useAppContext } from '@/context/AppContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { WorkoutSession } from '@/types';
+import { StrengthStrategyProposalView } from '../components/StrengthStrategyProposalView';
 import { buildStrengthCoachViewModel, type StrengthCoachMetricSummary } from '../strengthCoachViewModel';
+import { buildStrengthStrategyViewModel } from '../strengthStrategyViewModel';
 
 const getCompletedSetCount = (session: WorkoutSession): number =>
   session.sets.filter((set) => set.completed !== false).length;
@@ -22,7 +29,10 @@ const getLatestSession = (sessions: WorkoutSession[]): WorkoutSession | null =>
     (left, right) => Date.parse(right.finishedAt) - Date.parse(left.finishedAt),
   )[0] ?? null;
 
-const createIdempotencyKey = (requestType: StrengthCoachRequestType, sessionId: string | null): string =>
+const createIdempotencyKey = (
+  requestType: StrengthCoachRequestType,
+  sessionId: string | null,
+): string =>
   `mobile-${requestType}-${sessionId ?? 'latest'}-${Date.now().toString(36)}-${Math.random()
     .toString(16)
     .slice(2)}`;
@@ -62,13 +72,30 @@ export default function StrengthCoachScreen() {
   const { isRestoringState, workoutSessions } = useAppContext();
   const { ready, refresh, session } = useAuthSession();
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
+  const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
   const [busyAction, setBusyAction] = useState<StrengthCoachRequestType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const latestSession = useMemo(() => getLatestSession(workoutSessions), [workoutSessions]);
-  const viewModel = useMemo(() => (run ? buildStrengthCoachViewModel(run) : null), [run]);
+  const viewModel = useMemo(
+    () =>
+      run && run.run.requestType !== 'strength_strategy_proposal'
+        ? buildStrengthCoachViewModel(run)
+        : null,
+    [run],
+  );
+  const strategyViewModel = useMemo(
+    () =>
+      run?.run.requestType === 'strength_strategy_proposal'
+        ? buildStrengthStrategyViewModel(run)
+        : null,
+    [run],
+  );
   const isAuthenticated = Boolean(session?.tokens.accessToken);
+  const strengthStrategyAvailable =
+    capabilities?.schemaVersion === 3 &&
+    capabilities.strength?.structuredStrategyProposal === true;
 
   const coachApi = useMemo(
     () =>
@@ -86,8 +113,31 @@ export default function StrengthCoachScreen() {
     [],
   );
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!ready || !isAuthenticated) {
+      setCapabilities(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void coachApi
+      .getCapabilities()
+      .then((value) => {
+        if (!cancelled) setCapabilities(value);
+      })
+      .catch(() => {
+        if (!cancelled) setCapabilities(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [coachApi, isAuthenticated, ready]);
+
   const startRun = async (requestType: StrengthCoachRequestType) => {
-    if (busyAction) {
+    if (busyAction || (requestType === 'strength_strategy_proposal' && !strengthStrategyAvailable)) {
       return;
     }
 
@@ -144,7 +194,7 @@ export default function StrengthCoachScreen() {
         </Pressable>
         <View style={themedStyles.headerCopy}>
           <Text style={themedStyles.title}>Strength Coach</Text>
-          <Text style={themedStyles.subtitle}>Deterministic preview</Text>
+          <Text style={themedStyles.subtitle}>Deterministic and guarded preview</Text>
         </View>
       </View>
 
@@ -158,7 +208,11 @@ export default function StrengthCoachScreen() {
           <AppCard>
             <View style={themedStyles.badgeRow}>
               <Text style={themedStyles.previewBadge}>Preview</Text>
-              <Text style={themedStyles.statusText}>No LLM provider connected</Text>
+              <Text style={themedStyles.statusText}>
+                {strengthStrategyAvailable
+                  ? 'Structured Strength provider available'
+                  : 'Structured Strength provider disabled'}
+              </Text>
             </View>
             <Text style={themedStyles.cardTitle}>Validated training analysis</Text>
             <Text style={themedStyles.bodyText}>
@@ -208,8 +262,16 @@ export default function StrengthCoachScreen() {
                 loading={busyAction === 'next_workout_proposal'}
                 onPress={() => void startRun('next_workout_proposal')}
               />
+              {strengthStrategyAvailable ? (
+                <SecondaryButton
+                  disabled={!latestSession || Boolean(busyAction)}
+                  label="Generate AI Strength Strategy"
+                  loading={busyAction === 'strength_strategy_proposal'}
+                  onPress={() => void startRun('strength_strategy_proposal')}
+                />
+              ) : null}
               <Text style={themedStyles.disclaimer}>
-                The current proposal mirrors completed sets and adjusts load only from recorded RPE before guardrail validation.
+                The deterministic proposal mirrors completed sets. The optional AI strategy must map every source set exactly once and pass load, repetition, RPE and volume policies.
               </Text>
             </AppCard>
           )}
@@ -267,6 +329,28 @@ export default function StrengthCoachScreen() {
                     ))}
                   </View>
                 ) : null
+              ) : null}
+            </AppCard>
+          ) : null}
+
+          {strategyViewModel ? (
+            <AppCard>
+              <View style={themedStyles.resultHeader}>
+                <Text style={themedStyles.cardTitle}>{strategyViewModel.title}</Text>
+                <Text style={themedStyles.resultStatus}>{run?.run.status.toUpperCase()}</Text>
+              </View>
+              <Text style={themedStyles.bodyText}>{strategyViewModel.message}</Text>
+              {strategyViewModel.kind === 'proposal' ? (
+                <StrengthStrategyProposalView viewModel={strategyViewModel} />
+              ) : null}
+              {strategyViewModel.kind === 'rejected' && strategyViewModel.issues.length > 0 ? (
+                <View style={themedStyles.issueList}>
+                  {strategyViewModel.issues.map((issue, index) => (
+                    <Text key={`${issue}-${index}`} style={themedStyles.issueText}>
+                      • {issue}
+                    </Text>
+                  ))}
+                </View>
               ) : null}
             </AppCard>
           ) : null}

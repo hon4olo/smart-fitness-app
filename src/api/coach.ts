@@ -3,7 +3,10 @@ import { getMobileApiBaseUrl } from '@/api/config';
 
 export type CoachRunStatus = 'queued' | 'running' | 'completed' | 'rejected' | 'failed';
 export type CoachDomain = 'strength' | 'nutrition';
-export type StrengthCoachRequestType = 'session_review' | 'next_workout_proposal';
+export type StrengthCoachRequestType =
+  | 'session_review'
+  | 'next_workout_proposal'
+  | 'strength_strategy_proposal';
 export type NutritionCoachRequestType =
   | 'nutrition_review'
   | 'nutrition_target_proposal'
@@ -11,12 +14,19 @@ export type NutritionCoachRequestType =
 export type CoachRequestType = StrengthCoachRequestType | NutritionCoachRequestType;
 
 export type CoachCapabilities = {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   nutrition: {
     deterministicReview: true;
     deterministicTargetProposal: true;
     structuredStrategyProposal: boolean;
     structuredStrategyConfirmation?: boolean;
+    strategyRequiresConfirmation: true;
+  };
+  strength?: {
+    deterministicReview: true;
+    deterministicMockProposal: true;
+    structuredStrategyProposal: boolean;
+    structuredStrategyConfirmation: false;
     strategyRequiresConfirmation: true;
   };
 };
@@ -116,6 +126,7 @@ const RUN_STATUSES = new Set<CoachRunStatus>(['queued', 'running', 'completed', 
 const STRENGTH_REQUEST_TYPES = new Set<StrengthCoachRequestType>([
   'session_review',
   'next_workout_proposal',
+  'strength_strategy_proposal',
 ]);
 const NUTRITION_REQUEST_TYPES = new Set<NutritionCoachRequestType>([
   'nutrition_review',
@@ -268,7 +279,9 @@ const parseAgentRun = (value: unknown): CoachAgentRunRecord => {
 export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
   if (
     !isRecord(value) ||
-    (value.schemaVersion !== 1 && value.schemaVersion !== 2) ||
+    (value.schemaVersion !== 1 &&
+      value.schemaVersion !== 2 &&
+      value.schemaVersion !== 3) ||
     !isRecord(value.nutrition)
   ) {
     throw new Error('Invalid coach capabilities response');
@@ -280,10 +293,45 @@ export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
     nutrition.deterministicTargetProposal !== true ||
     typeof nutrition.structuredStrategyProposal !== 'boolean' ||
     nutrition.strategyRequiresConfirmation !== true ||
-    (value.schemaVersion === 2 &&
+    ((value.schemaVersion === 2 || value.schemaVersion === 3) &&
       typeof nutrition.structuredStrategyConfirmation !== 'boolean')
   ) {
     throw new Error('Invalid coach capabilities response');
+  }
+
+  if (value.schemaVersion === 3) {
+    if (!isRecord(value.strength)) {
+      throw new Error('Invalid coach capabilities response');
+    }
+    const strength = value.strength;
+    if (
+      strength.deterministicReview !== true ||
+      strength.deterministicMockProposal !== true ||
+      typeof strength.structuredStrategyProposal !== 'boolean' ||
+      strength.structuredStrategyConfirmation !== false ||
+      strength.strategyRequiresConfirmation !== true
+    ) {
+      throw new Error('Invalid coach capabilities response');
+    }
+
+    return {
+      schemaVersion: 3,
+      nutrition: {
+        deterministicReview: true,
+        deterministicTargetProposal: true,
+        structuredStrategyProposal: nutrition.structuredStrategyProposal,
+        structuredStrategyConfirmation:
+          nutrition.structuredStrategyConfirmation as boolean,
+        strategyRequiresConfirmation: true,
+      },
+      strength: {
+        deterministicReview: true,
+        deterministicMockProposal: true,
+        structuredStrategyProposal: strength.structuredStrategyProposal,
+        structuredStrategyConfirmation: false,
+        strategyRequiresConfirmation: true,
+      },
+    };
   }
 
   return {
