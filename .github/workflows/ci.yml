@@ -18,7 +18,7 @@ jobs:
 
       - name: Audit tracked file line counts
         run: |
-          python - <<'PY'
+          python - <<'PY' > file-line-audit.txt
           from pathlib import Path
           import subprocess
 
@@ -49,6 +49,15 @@ jobs:
               print(f'{rank}\t{lines}\t{path}')
           print('FILE_LINE_AUDIT_END')
           PY
+          cat file-line-audit.txt
+
+      - name: Upload file line audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: file-line-audit
+          path: file-line-audit.txt
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
