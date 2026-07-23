@@ -50,6 +50,7 @@ jobs:
           src/api/coach.strength-strategy.test.ts
           src/api/coach.strength-confirmation.test.ts
           src/features/coach/recoveryCheckInForm.test.ts
+          src/features/coach/userLimitationForm.test.ts
           src/features/coach/safetyRecoveryViewModel.test.ts
           src/features/coach/strengthCoachViewModel.test.ts
           src/features/coach/strengthStrategyViewModel.test.ts
