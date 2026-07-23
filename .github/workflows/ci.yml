@@ -80,6 +80,8 @@ jobs:
           src/cloud/SafetyRecoverySyncPlanner.test.ts
           src/cloud/WorkoutTemplateSync.test.ts
           src/cloud/WorkoutTemplateSyncPlanner.test.ts
+          src/cloud/TrainingProgramSync.test.ts
+          src/cloud/TrainingProgramSyncPlanner.test.ts
           src/storage/WorkoutTemplateSyncMetadataStore.test.ts
           src/cloud/FoodEntrySync.test.ts
           src/repositories/FoodEntrySyncingRepository.test.ts

@@ -21,6 +21,17 @@ export type {
   WorkoutTemplateSyncSnapshot,
 } from './WorkoutTemplateSyncMetadataStore';
 export {
+  createTrainingProgramSyncMetadataStore,
+  TRAINING_PROGRAM_SYNC_METADATA_STORAGE_KEY,
+} from './TrainingProgramSyncMetadataStore';
+export type {
+  TrainingProgramDaySyncSnapshot,
+  TrainingProgramProgressionSyncSnapshot,
+  TrainingProgramSyncMetadata,
+  TrainingProgramSyncMetadataStore,
+  TrainingProgramSyncSnapshot,
+} from './TrainingProgramSyncMetadataStore';
+export {
   createFoodEntrySyncMetadataStore,
   FOOD_ENTRY_SYNC_METADATA_STORAGE_KEY,
 } from './FoodEntrySyncMetadataStore';
