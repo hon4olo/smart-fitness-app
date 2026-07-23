@@ -7,7 +7,9 @@ import type {
   NutritionTargets,
   ProfileGoalType,
   ProfileState,
+  RecoveryCheckIn,
   TrainingProgram,
+  UserLimitation,
   WeightEntry,
   Workout,
   WorkoutSession,
@@ -25,6 +27,8 @@ export type AppState = {
   nutritionTargets: NutritionTargets;
   weightHistory: WeightEntry[];
   bodyMeasurements: BodyMeasurement[];
+  userLimitations: UserLimitation[];
+  recoveryCheckIns: RecoveryCheckIn[];
   profile: ProfileState;
   onboardingCompleted: boolean;
 };
@@ -79,6 +83,10 @@ export type AppContextType = AppState & {
   deleteWorkoutSession: (sessionId: string) => void;
   updateWorkoutSession: (sessionId: string, updatedSession: WorkoutSession) => void;
   saveWorkoutSession: (session: WorkoutSession) => void;
+  saveUserLimitation: (limitation: UserLimitation) => void;
+  deleteUserLimitation: (limitationId: string) => void;
+  saveRecoveryCheckIn: (checkIn: RecoveryCheckIn) => void;
+  deleteRecoveryCheckIn: (checkInId: string) => void;
   isRestoringState: boolean;
   getLastWorkoutSession: () => WorkoutSession | null;
   completeOnboarding: (setup: {
