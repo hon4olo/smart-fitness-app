@@ -40,4 +40,4 @@ Legacy custom templates remain valid with `prescription` and `coachMetadata` nor
 
 ## Validation gates
 
-The exact PR head must pass strict TypeScript compilation, Coach/sync contract tests and the full mobile regression suite before merge.
+The exact PR head must pass strict TypeScript compilation, Coach/sync contract tests and the full mobile regression suite before merge. The validation branch contains no provider secrets and does not enable live model calls.
