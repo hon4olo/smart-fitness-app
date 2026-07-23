@@ -11,6 +11,7 @@ import {
 import { AppState as ReactNativeAppState } from 'react-native';
 
 import type { SyncCoordinator } from '@/cloud';
+import { planBodyMeasurementSyncOperations } from '@/cloud/BodyMeasurementSyncPlanner';
 import type { OfflineSyncQueueStore } from '@/cloud/CloudQueueStore';
 import {
   areFitnessProfileSnapshotsEqual,
@@ -30,6 +31,7 @@ import { planWorkoutTemplateSyncOperations } from '@/cloud/WorkoutTemplateSyncPl
 import { useAuthSession } from '@/hooks/useAuthSession';
 import {
   createAsyncStorageAdapter,
+  createBodyMeasurementSyncMetadataStore,
   createFitnessProfileSyncMetadataStore,
   createFoodEntrySyncMetadataStore,
   createNutritionTargetSyncMetadataStore,
@@ -83,6 +85,10 @@ export function SyncProvider({
   const latestStateRef = useRef(state);
   const cursorStore = useMemo(() => getDefaultSyncCursorStore(), []);
   const syncStorage = useMemo(() => createAsyncStorageAdapter(), []);
+  const bodyMeasurementMetadataStore = useMemo(
+    () => createBodyMeasurementSyncMetadataStore(syncStorage),
+    [syncStorage],
+  );
   const workoutSessionMetadataStore = useMemo(
     () => createWorkoutSessionSyncMetadataStore(syncStorage),
     [syncStorage],
@@ -186,6 +192,18 @@ export function SyncProvider({
     );
   }, [fitnessProfileMetadataStore, queueStore, session]);
 
+  const ensureBodyMeasurementSync = useCallback(async () => {
+    if (!session?.user.id || !session.device.id) return;
+    const operations = planBodyMeasurementSyncOperations({
+      measurements: latestStateRef.current.bodyMeasurements,
+      metadata: await bodyMeasurementMetadataStore.load(),
+      pendingOperations: await queueStore.getPending(),
+      userId: session.user.id,
+      deviceId: session.device.id,
+    });
+    for (const operation of operations) await queueStore.enqueue(operation);
+  }, [bodyMeasurementMetadataStore, queueStore, session]);
+
   const ensureWorkoutTemplateSync = useCallback(async () => {
     if (!session?.user.id || !session.device.id) return;
 
@@ -248,6 +266,7 @@ export function SyncProvider({
 
       await ensureNutritionTargetBootstrap();
       await ensureFitnessProfileSync();
+      await ensureBodyMeasurementSync();
       await ensureWorkoutTemplateSync();
       await ensureTrainingProgramSync();
       await ensureSafetyRecoverySync();
@@ -278,6 +297,7 @@ export function SyncProvider({
 
       if (pullResult) {
         await applySyncPullResult({
+          bodyMeasurementMetadataStore,
           cursorStore,
           fitnessProfileMetadataStore,
           foodEntryMetadataStore,
@@ -311,7 +331,9 @@ export function SyncProvider({
       syncingRef.current = false;
     }
   }, [
+    bodyMeasurementMetadataStore,
     cursorStore,
+    ensureBodyMeasurementSync,
     ensureFitnessProfileSync,
     ensureNutritionTargetBootstrap,
     ensureSafetyRecoverySync,
