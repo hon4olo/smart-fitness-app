@@ -54,6 +54,21 @@ export type {
   SafetyRecoverySyncMetadata,
   SafetyRecoverySyncMetadataStore,
 } from './SafetyRecoverySyncMetadataStore';
+export {
+  createSafetyRecoveryReviewStore,
+  SAFETY_RECOVERY_REVIEW_STORAGE_KEY,
+} from './SafetyRecoveryReviewStore';
+export type {
+  SafetyRecoveryReviewStore,
+} from './SafetyRecoveryReviewStore';
+export {
+  createWorkoutSafetyAcknowledgementStore,
+  WORKOUT_SAFETY_ACKNOWLEDGEMENT_STORAGE_KEY,
+} from './WorkoutSafetyAcknowledgementStore';
+export type {
+  WorkoutSafetyAcknowledgement,
+  WorkoutSafetyAcknowledgementStore,
+} from './WorkoutSafetyAcknowledgementStore';
 export { createSyncCursorStore, SYNC_CURSOR_STORAGE_KEY } from './SyncCursorStore';
 export type { SyncCursor, SyncCursorStore } from './SyncCursorStore';
 export { getDefaultSyncCursorStore } from './defaultSyncCursorStore';
