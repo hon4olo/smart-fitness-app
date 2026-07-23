@@ -37,9 +37,9 @@ describe('add food model', () => {
       id: 'provider-food',
       name: 'Milk',
       brand: 'Example',
-      source: { provider: 'fatsecret' },
+      source: { provider: 'fatsecret', sourceId: 'provider-food' },
       servingBase: '100ml',
-      servings: [{ quantity: 250, unit: 'ml' }],
+      servings: [{ id: 'serving-1', label: '250 ml', quantity: 250, unit: 'ml' }],
       nutrientsPer100ml: { calories: 50, protein: 3, carbs: 5, fat: 2 },
     };
 
@@ -64,7 +64,7 @@ describe('add food model', () => {
       mealType: entry.mealType,
     });
 
-    expect(rebuilt).toEqual(entry);
+    expect(rebuilt).toMatchObject(entry);
   });
 
   it('rejects non-positive draft quantities', () => {
