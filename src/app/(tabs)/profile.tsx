@@ -10,6 +10,7 @@ import { ProfileCoachCard } from '@/components/profile/ProfileCoachCard';
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
 import { ProfilePreferencesCard } from '@/components/profile/ProfilePreferencesCard';
 import { ProfileRuntimeInfoCard } from '@/components/profile/ProfileRuntimeInfoCard';
+import { ProfileSafetyRecoveryInputsCard } from '@/components/profile/ProfileSafetyRecoveryInputsCard';
 import { ProfileSyncStatusCard } from '@/components/profile/ProfileSyncStatusCard';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
@@ -253,6 +254,11 @@ export default function ProfileScreen() {
             onTrainingExperienceChange={setCoachTrainingExperience}
             trainingExperience={coachTrainingExperience}
           />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Safety & Recovery inputs</Text>
+          <ProfileSafetyRecoveryInputsCard />
         </View>
 
         <View style={styles.section}>
