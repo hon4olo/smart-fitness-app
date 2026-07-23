@@ -4,6 +4,15 @@ export { createAsyncStorageOperationQueueStore, OFFLINE_SYNC_QUEUE_STORAGE_KEY }
 export { createWeightSyncMetadataStore, WEIGHT_SYNC_METADATA_STORAGE_KEY } from './WeightSyncMetadataStore';
 export type { WeightSyncMetadata, WeightSyncMetadataStore } from './WeightSyncMetadataStore';
 export {
+  createBodyMeasurementSyncMetadataStore,
+  BODY_MEASUREMENT_SYNC_METADATA_STORAGE_KEY,
+} from './BodyMeasurementSyncMetadataStore';
+export type {
+  BodyMeasurementSyncMetadata,
+  BodyMeasurementSyncMetadataStore,
+  BodyMeasurementSyncSnapshot,
+} from './BodyMeasurementSyncMetadataStore';
+export {
   createWorkoutSessionSyncMetadataStore,
   WORKOUT_SESSION_SYNC_METADATA_STORAGE_KEY,
 } from './WorkoutSessionSyncMetadataStore';
@@ -69,9 +78,7 @@ export {
   createSafetyRecoveryReviewStore,
   SAFETY_RECOVERY_REVIEW_STORAGE_KEY,
 } from './SafetyRecoveryReviewStore';
-export type {
-  SafetyRecoveryReviewStore,
-} from './SafetyRecoveryReviewStore';
+export type { SafetyRecoveryReviewStore } from './SafetyRecoveryReviewStore';
 export {
   createWorkoutSafetyAcknowledgementStore,
   createWorkoutSafetyMetadataFromAcknowledgement,
