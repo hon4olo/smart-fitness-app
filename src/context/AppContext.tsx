@@ -26,13 +26,6 @@ import type {
 import { SyncProvider } from './SyncContext';
 import { AppContext, useAppContext } from './appContext/AppContextCore';
 import {
-  addFoodEntriesToState,
-  addFoodEntryToState,
-  deleteFoodEntryFromState,
-  normalizeFoodEntry,
-  updateFoodEntryInState,
-} from './appContext/nutritionActions';
-import {
   addBodyMeasurementToState,
   completeOnboardingInState,
   deleteBodyMeasurementFromState,
@@ -40,6 +33,7 @@ import {
   updateProfileGoalsInState,
 } from './appContext/progressActions';
 import { useAppInfrastructure } from './appContext/useAppInfrastructure';
+import { useNutritionStateActions } from './appContext/useNutritionStateActions';
 import { useWeightHistoryActions } from './appContext/useWeightHistoryActions';
 import {
   addWorkoutTemplateToState,
@@ -85,6 +79,15 @@ export function AppProvider({ children }: PropsWithChildren) {
     weightSyncMetadataStore,
   } = useAppInfrastructure(setState, setIsRestoringState);
   const {
+    addFoodEntries,
+    addFoodEntry,
+    addMealTemplate,
+    deleteFoodEntry,
+    deleteMealTemplate,
+    updateFoodEntry,
+    updateNutritionTargets,
+  } = useNutritionStateActions({ repository, setState });
+  const {
     addWeightEntry,
     deleteWeightEntry,
     queueWeightHistoryOperation,
@@ -96,53 +99,6 @@ export function AppProvider({ children }: PropsWithChildren) {
     setState,
     weightSyncMetadataStore,
   });
-
-  const addFoodEntry = useCallback(
-    (entry: FoodEntry) => {
-      setState((currentState) => {
-        const foodEntry = normalizeFoodEntry(entry, new Date().toISOString());
-        const nextState = addFoodEntryToState(currentState, foodEntry);
-        void repository.saveState(nextState);
-        return nextState;
-      });
-    },
-    [repository],
-  );
-
-  const addFoodEntries = useCallback(
-    (entries: FoodEntry[]) => {
-      setState((currentState) => {
-        const normalizedEntries = entries.map((entry) =>
-          normalizeFoodEntry(entry, new Date().toISOString()),
-        );
-        const nextState = addFoodEntriesToState(currentState, normalizedEntries);
-        void repository.saveState(nextState);
-        return nextState;
-      });
-    },
-    [repository],
-  );
-
-  const addMealTemplate = useCallback(
-    (template: MealTemplate) => {
-      setState((currentState) => {
-        const nextState = {
-          ...currentState,
-          mealTemplates: [
-            {
-              ...template,
-              createdAt: template.createdAt ?? new Date().toISOString(),
-              items: template.items.map((item) => ({ ...item })),
-            },
-            ...currentState.mealTemplates,
-          ],
-        };
-        void repository.saveState(nextState);
-        return nextState;
-      });
-    },
-    [repository],
-  );
 
   const addExercise = useCallback(
     (exercise: {
@@ -248,29 +204,6 @@ export function AppProvider({ children }: PropsWithChildren) {
     [repository],
   );
 
-  const updateFoodEntry = useCallback(
-    (entryId: string, updatedEntry: FoodEntry) => {
-      setState((currentState) => {
-        const oldEntry = currentState.foodEntries.find((entry) => entry.id === entryId);
-        if (!oldEntry) return currentState;
-
-        const foodEntry = normalizeFoodEntry(
-          {
-            ...updatedEntry,
-            id: entryId,
-            mealType: updatedEntry.mealType ?? oldEntry.mealType,
-            source: updatedEntry.source ?? oldEntry.source,
-          },
-          oldEntry.createdAt,
-        );
-        const nextState = updateFoodEntryInState(currentState, entryId, oldEntry, foodEntry);
-        void repository.saveState(nextState);
-        return nextState;
-      });
-    },
-    [repository],
-  );
-
   const deleteWorkoutTemplate = useCallback(
     (templateId: string) => {
       setState((currentState) => {
@@ -286,46 +219,6 @@ export function AppProvider({ children }: PropsWithChildren) {
     (exerciseId: string) => {
       setState((currentState) => {
         const nextState = deleteCustomExerciseFromState(currentState, exerciseId);
-        void repository.saveState(nextState);
-        return nextState;
-      });
-    },
-    [repository],
-  );
-
-  const deleteFoodEntry = useCallback(
-    (entryId: string) => {
-      setState((currentState) => {
-        const entry = currentState.foodEntries.find((item) => item.id === entryId);
-        if (!entry) return currentState;
-        const nextState = deleteFoodEntryFromState(currentState, entry);
-        void repository.saveState(nextState);
-        return nextState;
-      });
-    },
-    [repository],
-  );
-
-  const deleteMealTemplate = useCallback(
-    (templateId: string) => {
-      setState((currentState) => {
-        const nextState = {
-          ...currentState,
-          mealTemplates: currentState.mealTemplates.filter(
-            (template) => template.id !== templateId,
-          ),
-        };
-        void repository.saveState(nextState);
-        return nextState;
-      });
-    },
-    [repository],
-  );
-
-  const updateNutritionTargets = useCallback(
-    (targets: NutritionTargets) => {
-      setState((currentState) => {
-        const nextState = { ...currentState, nutritionTargets: targets };
         void repository.saveState(nextState);
         return nextState;
       });
