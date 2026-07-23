@@ -43,13 +43,13 @@ const makeClient = (post: ApiClient['post']): ApiClient => ({
 
 describe('Strength Strategy API contract', () => {
   it('sends only run selection and idempotency inputs', async () => {
-    const post = vi.fn(async () => response) as unknown as ApiClient['post'];
+    const postMock = vi.fn(async () => response);
     const api = createCoachApi(
       {
         getAccessToken: vi.fn(async () => 'access-token'),
         refreshAccessToken: vi.fn(async () => null),
       },
-      makeClient(post),
+      makeClient(postMock as unknown as ApiClient['post']),
     );
 
     const result = await api.startStrengthRun({
@@ -60,7 +60,7 @@ describe('Strength Strategy API contract', () => {
     });
 
     expect(result.run.requestType).toBe('strength_strategy_proposal');
-    expect(post).toHaveBeenCalledWith(
+    expect(postMock).toHaveBeenCalledWith(
       '/v1/coach/strength/runs',
       {
         requestType: 'strength_strategy_proposal',
@@ -73,7 +73,7 @@ describe('Strength Strategy API contract', () => {
         retry: false,
       }),
     );
-    expect(JSON.stringify(post.mock.calls[0]?.[1])).not.toContain('sets');
-    expect(JSON.stringify(post.mock.calls[0]?.[1])).not.toContain('weight');
+    expect(JSON.stringify(postMock.mock.calls[0]?.[1])).not.toContain('sets');
+    expect(JSON.stringify(postMock.mock.calls[0]?.[1])).not.toContain('weight');
   });
 });
