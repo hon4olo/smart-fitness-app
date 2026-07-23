@@ -14,6 +14,10 @@ import {
   normalizeWorkouts,
   normalizeWorkoutSessions,
 } from '@/lib/appState';
+import {
+  normalizeRecoveryCheckIns,
+  normalizeUserLimitations,
+} from '@/lib/safetyRecovery';
 
 import type { AppRepository } from './AppRepository';
 import type { StorageAdapter } from '@/storage/StorageAdapter';
@@ -63,6 +67,12 @@ const normalizeStoredState = (storedState: Partial<AppState>): AppState => ({
   ),
   bodyMeasurements: normalizeBodyMeasurements(
     storedState.bodyMeasurements ?? defaultState.bodyMeasurements,
+  ),
+  userLimitations: normalizeUserLimitations(
+    storedState.userLimitations ?? defaultState.userLimitations,
+  ),
+  recoveryCheckIns: normalizeRecoveryCheckIns(
+    storedState.recoveryCheckIns ?? defaultState.recoveryCheckIns,
   ),
 });
 
