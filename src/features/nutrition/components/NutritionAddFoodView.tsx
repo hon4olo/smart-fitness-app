@@ -11,6 +11,7 @@ import type { FoodItem } from '@/api/foods';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, Spacing } from '@/constants/theme';
 import type {
+  CustomFoodValidationErrors,
   DraftItem,
   PickerMode,
   RecentItem,
@@ -52,6 +53,7 @@ export type NutritionAddFoodViewProps = {
     servingSize: TextFieldProps;
     servingUnit: TextFieldProps;
   };
+  customFoodErrors: CustomFoodValidationErrors;
   favoriteFoods: FoodCatalogItem[];
   favoriteIds: string[];
   favoriteSeedIds: string[];
@@ -115,6 +117,7 @@ export function NutritionAddFoodView({
   createFoodOpen,
   createMealOpen,
   customFood,
+  customFoodErrors,
   favoriteFoods,
   favoriteIds,
   favoriteSeedIds,
@@ -193,8 +196,12 @@ export function NutritionAddFoodView({
               <Text style={styles.backButtonText}>Cancel</Text>
             </Pressable>
             <View style={styles.headerCopy}>
-              <Text selectable style={styles.title}>{selectedMealLabel}</Text>
-              <Text selectable style={styles.subtitle}>{selectedDateLabel}</Text>
+              <Text selectable style={styles.title}>
+                {selectedMealLabel}
+              </Text>
+              <Text selectable style={styles.subtitle}>
+                {selectedDateLabel}
+              </Text>
             </View>
             <View style={styles.headerSpacer} />
           </View>
@@ -213,15 +220,23 @@ export function NutritionAddFoodView({
 
           <View style={styles.summaryPill}>
             <View>
-              <Text selectable style={styles.summaryTitle}>{selectedMealCountLabel}</Text>
-              <Text selectable style={styles.summaryCopy}>{macroSummaryLabel}</Text>
+              <Text selectable style={styles.summaryTitle}>
+                {selectedMealCountLabel}
+              </Text>
+              <Text selectable style={styles.summaryCopy}>
+                {macroSummaryLabel}
+              </Text>
             </View>
-            <Text selectable style={styles.summaryCalories}>{selectedMealCaloriesLabel}</Text>
+            <Text selectable style={styles.summaryCalories}>
+              {selectedMealCaloriesLabel}
+            </Text>
           </View>
 
           {message ? (
             <View style={styles.messageBanner}>
-              <Text selectable style={styles.messageText}>{message}</Text>
+              <Text selectable style={styles.messageText}>
+                {message}
+              </Text>
             </View>
           ) : null}
 
@@ -325,6 +340,7 @@ export function NutritionAddFoodView({
           {createFoodOpen ? (
             <CreateFoodInlineForm
               colors={colors}
+              errors={customFoodErrors}
               foodBrand={customFood.brand.value}
               foodCalories={customFood.calories.value}
               foodCarbs={customFood.carbs.value}

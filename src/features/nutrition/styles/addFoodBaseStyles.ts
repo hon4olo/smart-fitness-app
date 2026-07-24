@@ -39,6 +39,9 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
       flexGrow: 1,
       padding: Spacing.three,
     },
+    customFoodCard: {
+      gap: Spacing.three,
+    },
     emptyBlock: {
       alignItems: 'flex-start',
       gap: Spacing.two,
@@ -49,6 +52,16 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
       fontSize: Typography.body.fontSize,
       lineHeight: Typography.body.lineHeight,
     },
+    fieldGroup: {
+      gap: Spacing.one,
+    },
+    fieldLabel: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '800',
+      lineHeight: 16,
+      textTransform: 'uppercase',
+    },
     formErrorText: {
       color: colors.error,
       fontSize: 12,
@@ -57,8 +70,14 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
     },
     footer: {},
     grid: {
+      alignItems: 'flex-start',
       flexDirection: 'row',
       gap: Spacing.two,
+    },
+    gridField: {
+      flex: 1,
+      gap: Spacing.one,
+      minWidth: 0,
     },
     headerCopy: {
       alignItems: 'center',
@@ -72,17 +91,22 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
     },
     quietActionButton: {
       alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
       minHeight: 44,
       justifyContent: 'center',
-      paddingHorizontal: Spacing.one,
+      paddingHorizontal: Spacing.three,
     },
     quietActionRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: Spacing.three,
+      gap: Spacing.two,
     },
     quietActionText: {
-      color: colors.textSecondary,
+      color: colors.textPrimary,
       fontSize: 13,
       fontWeight: '800',
     },
@@ -195,6 +219,7 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
       flex: 1,
     },
     sectionHeader: {
+      gap: 2,
       marginBottom: Spacing.two,
     },
     sectionTitle: {
@@ -220,7 +245,7 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
       backgroundColor: colors.surfaceSecondary,
       borderColor: colors.borderSubtle,
       borderCurve: 'continuous',
-      borderRadius: Radii.large,
+      borderRadius: Radii.medium,
       borderWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -260,7 +285,7 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 20,
+      fontSize: 24,
       fontWeight: '900',
     },
     unitToggle: {
@@ -289,6 +314,6 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
       fontWeight: '800',
     },
     unitToggleTextActive: {
-      color: colors.background,
+      color: colors.textOnAccent,
     },
   });

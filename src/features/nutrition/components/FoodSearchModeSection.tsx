@@ -1,10 +1,11 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 
+import type { FoodItem } from '@/api/foods';
 import { AppCard } from '@/components/ui/AppCard';
 import { ListRow } from '@/components/ui/ListRow';
-import type { FoodItem } from '@/api/foods';
-import type { FoodCatalogItem } from '@/types';
+import { createDraftFromFoodItem } from '@/features/nutrition/addFoodModel';
 import { formatFoodMacros, formatFoodServing, formatNumber } from '@/lib/nutrition';
+import type { FoodCatalogItem } from '@/types';
 
 type FoodSearchModeSectionProps = {
   backendFoodResults: FoodItem[];
@@ -53,7 +54,9 @@ export function FoodSearchModeSection({
   setQuery,
   styles,
 }: FoodSearchModeSectionProps) {
-  const fatSecretAttributionFood = backendFoodResults.find((food) => food.source.provider === 'fatsecret');
+  const fatSecretAttributionFood = backendFoodResults.find(
+    (food) => food.source.provider === 'fatsecret',
+  );
 
   return (
     <AppCard>
@@ -70,11 +73,19 @@ export function FoodSearchModeSection({
           value={query}
         />
         {query.length > 0 ? (
-          <Pressable accessibilityLabel="Clear search" hitSlop={10} onPress={onClearQuery} style={styles.clearButton}>
+          <Pressable
+            accessibilityLabel="Clear search"
+            hitSlop={10}
+            onPress={onClearQuery}
+            style={styles.clearButton}>
             <Text style={styles.clearButtonText}>×</Text>
           </Pressable>
         ) : null}
-        <Pressable accessibilityLabel="Scan food barcode" hitSlop={10} onPress={onOpenScanner} style={styles.scanButton}>
+        <Pressable
+          accessibilityLabel="Scan food barcode"
+          hitSlop={10}
+          onPress={onOpenScanner}
+          style={styles.scanButton}>
           <Text style={styles.scanButtonText}>Scan</Text>
         </Pressable>
       </View>
@@ -105,16 +116,15 @@ export function FoodSearchModeSection({
           </Text>
         ) : null}
         {backendFoodResults.map((food) => {
-          const nutrients = food.nutrientsPer100g ?? food.nutrientsPer100ml ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
-          const serving = food.servings[0];
-          const servingLabel = serving?.label ?? (food.servingBase === '100ml' ? '100 ml' : '100 g');
+          const draft = createDraftFromFoodItem(food);
           const detailPrefix = food.brand ? `${food.brand} · ` : '';
+
           return (
             <ListRow
               key={food.id}
               accessibilityHint="Tap to set a portion before adding"
               badge={formatProviderLabel(food.source.provider)}
-              detail={`${detailPrefix}${servingLabel} · ${formatNumber(nutrients.protein)}P · ${formatNumber(nutrients.carbs)}C · ${formatNumber(nutrients.fat)}F`}
+              detail={`${detailPrefix}${formatFoodServing(draft)} · ${formatNumber(draft.protein)}P · ${formatNumber(draft.carbs)}C · ${formatNumber(draft.fats)}F`}
               onPress={() => onOpenFoodItem(food)}
               title={food.name}
               trailing={
@@ -126,7 +136,7 @@ export function FoodSearchModeSection({
                   <Text style={styles.iconButtonText}>+</Text>
                 </Pressable>
               }
-              value={`${formatNumber(nutrients.calories)} kcal`}
+              value={`${formatNumber(draft.calories)} kcal`}
             />
           );
         })}
@@ -138,6 +148,10 @@ export function FoodSearchModeSection({
         {searchResults.length > 0 ? (
           searchResults.map((food) => {
             const favorite = favoriteIds.includes(food.id) || favoriteSeedIds.includes(food.id);
+            const favoriteAccessibilityLabel = favorite
+              ? `Remove ${food.name} from favorites`
+              : `Add ${food.name} to favorites`;
+
             return (
               <ListRow
                 key={food.id}
@@ -148,7 +162,7 @@ export function FoodSearchModeSection({
                 trailing={
                   <View style={styles.rowActions}>
                     <Pressable
-                      accessibilityLabel={`${favorite ? 'Remove' : 'Add'} ${food.name} from favorites`}
+                      accessibilityLabel={favoriteAccessibilityLabel}
                       hitSlop={10}
                       onPress={() => onToggleFavorite(food.id)}
                       style={styles.iconButton}>

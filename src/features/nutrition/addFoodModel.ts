@@ -77,7 +77,7 @@ export const formatScreenDate = (dateLabel: string): string => {
 };
 
 export const parseFoodNumber = (value: string, fallback = 0): number => {
-  const parsed = Number.parseFloat(value);
+  const parsed = Number.parseFloat(value.trim().replace(',', '.'));
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
@@ -240,6 +240,45 @@ export type CustomFoodValues = {
   servingUnit: string;
 };
 
+export type CustomFoodValidationErrors = Partial<Record<keyof CustomFoodValues, string>>;
+
+const customNutritionFields = ['calories', 'protein', 'carbs', 'fats'] as const;
+
+export const validateCustomFoodValues = (
+  values: CustomFoodValues,
+): CustomFoodValidationErrors => {
+  const errors: CustomFoodValidationErrors = {};
+
+  if (!isMeaningfulFoodText(values.name)) {
+    errors.name = 'Enter a food name.';
+  }
+
+  if (!isMeaningfulFoodText(values.servingUnit)) {
+    errors.servingUnit = 'Enter a serving unit.';
+  }
+
+  const servingSize = parseFoodNumber(values.servingSize, Number.NaN);
+  if (!Number.isFinite(servingSize) || servingSize <= 0) {
+    errors.servingSize = 'Use a number greater than 0.';
+  }
+
+  const quantity = parseFoodNumber(values.quantity, Number.NaN);
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    errors.quantity = 'Use a number greater than 0.';
+  }
+
+  for (const field of customNutritionFields) {
+    const value = parseFoodNumber(values[field], Number.NaN);
+    if (!Number.isFinite(value)) {
+      errors[field] = 'Enter a number.';
+    } else if (value < 0) {
+      errors[field] = 'Use 0 or more.';
+    }
+  }
+
+  return errors;
+};
+
 export const buildCustomFoodEntry = ({
   date,
   mealType,
@@ -248,10 +287,14 @@ export const buildCustomFoodEntry = ({
   date: string;
   mealType: MealType;
   values: CustomFoodValues;
-}): FoodEntry => {
+}): FoodEntry | null => {
+  if (Object.keys(validateCustomFoodValues(values)).length > 0) {
+    return null;
+  }
+
   const servingSize = parseFoodNumber(values.servingSize, 1);
   const quantity = parseFoodNumber(values.quantity, servingSize);
-  const servings = servingSize > 0 ? quantity / servingSize : 1;
+  const servings = quantity / servingSize;
   const calories = parseFoodNumber(values.calories, 0);
   const protein = parseFoodNumber(values.protein, 0);
   const carbs = parseFoodNumber(values.carbs, 0);
@@ -273,7 +316,7 @@ export const buildCustomFoodEntry = ({
     baseFats: fats,
     source: 'manual',
     servingSize,
-    servingUnit: values.servingUnit.trim() || 'unit',
+    servingUnit: values.servingUnit.trim(),
     quantity,
     createdAt: new Date().toISOString(),
   };
