@@ -122,6 +122,11 @@ export const createCoachApi = (
         `/v1/coach/runs/${encodeURIComponent(runId)}/confirm-effective-strength`,
         input,
       ),
+    confirmCombinedNutrition: (runId, input) =>
+      postRun(
+        `/v1/coach/runs/${encodeURIComponent(runId)}/confirm-nutrition`,
+        input,
+      ),
     getRun,
     waitForTerminalRun: async (initial, options = {}) => {
       let current = initial;
