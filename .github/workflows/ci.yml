@@ -51,6 +51,7 @@ jobs:
           src/auth/migrating-token-manager.test.ts
           src/context/appContext/AppMutationQueue.test.ts
           src/context/appContext/AppMutationOutboxRecovery.test.ts
+          src/context/applySyncPullResult.concurrent.test.ts
           src/api/coach.test.ts
           src/api/coach.capabilities.v3.test.ts
           src/api/coach.capabilities.v4.test.ts
