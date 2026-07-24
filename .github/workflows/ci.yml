@@ -53,6 +53,7 @@ jobs:
           src/context/appContext/AppMutationOutboxRecovery.test.ts
           src/context/applySyncPullResult.concurrent.test.ts
           src/context/syncConflictCount.test.ts
+          src/context/syncConflictPersistence.test.ts
           src/api/coach.test.ts
           src/api/coach.capabilities.v3.test.ts
           src/api/coach.capabilities.v4.test.ts
@@ -108,6 +109,7 @@ jobs:
           src/cloud/NutritionTargetSync.test.ts
           src/repositories/NutritionTargetSyncingRepository.test.ts
           src/storage/AsyncStorageOperationQueueStore.concurrent.test.ts
+          src/storage/SyncConflictStore.test.ts
           > contract-tests.log 2>&1
 
       - name: Upload contract test log
