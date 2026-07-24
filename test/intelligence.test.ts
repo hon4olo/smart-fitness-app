@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createExercise } from '@/domain/models';
-import type { FoodEntry, Workout, WorkoutSession } from '@/types';
 import {
   asPercent,
   clampNumber,
@@ -14,138 +12,20 @@ import {
   pickRuleResult,
   safeDivide,
   uniqueValues,
-  type DeterministicRecommendation,
   type Rule,
 } from '@/lib/intelligence';
-
-const NOW = new Date('2026-01-10T12:00:00.000Z');
-const NOW_MS = NOW.getTime();
-const NOW_ISO = NOW.toISOString();
-
-const bench = createExercise({
-  aliases: ['barbell bench press'],
-  createdAt: NOW_ISO,
-  id: 'bench',
-  muscleGroup: 'chest',
-  name: 'Bench Press',
-  primaryMuscles: ['chest'],
-  secondaryMuscles: ['triceps', 'shoulders'],
-  tags: ['push'],
-});
-
-const row = createExercise({
-  aliases: ['barbell row'],
-  createdAt: NOW_ISO,
-  id: 'row',
-  muscleGroup: 'back',
-  name: 'Barbell Row',
-  primaryMuscles: ['back'],
-  secondaryMuscles: ['biceps'],
-  tags: ['pull'],
-});
-
-const squat = createExercise({
-  createdAt: NOW_ISO,
-  id: 'squat',
-  muscleGroup: 'quads',
-  name: 'Squat',
-  primaryMuscles: ['quads'],
-  secondaryMuscles: ['glutes', 'core'],
-  tags: ['legs'],
-});
-
-const rdl = createExercise({
-  createdAt: NOW_ISO,
-  id: 'rdl',
-  muscleGroup: 'hamstrings',
-  name: 'Romanian Deadlift',
-  primaryMuscles: ['hamstrings'],
-  secondaryMuscles: ['glutes', 'back'],
-  tags: ['legs'],
-});
-
-const rearDeltFly = createExercise({
-  aliases: ['rear delt raise'],
-  createdAt: NOW_ISO,
-  id: 'rear-delt-fly',
-  muscleGroup: 'shoulders',
-  name: 'Rear Delt Fly',
-  primaryMuscles: ['shoulders'],
-  secondaryMuscles: ['rear delts'],
-  tags: ['pull'],
-});
-
-const chestWorkout: Workout = {
-  createdAt: NOW_ISO,
-  description: 'Chest emphasis session',
-  duration: '45 min',
-  exercises: [bench],
-  id: 'push',
-  title: 'Push Day',
-};
-
-const backWorkout: Workout = {
-  createdAt: NOW_ISO,
-  description: 'Back emphasis session',
-  duration: '45 min',
-  exercises: [row],
-  id: 'pull',
-  title: 'Pull Day',
-};
-
-const legWorkout: Workout = {
-  createdAt: NOW_ISO,
-  description: 'Lower body session',
-  duration: '50 min',
-  exercises: [squat, rdl],
-  id: 'legs',
-  title: 'Leg Day',
-};
-
-const makeSet = (exerciseName: string, exerciseId: string, weight: number, reps: number, index: number) => ({
-  exerciseId,
-  exerciseName,
-  id: `${exerciseId}-${index}`,
-  reps,
-  weight,
-});
-
-const makeSession = ({
-  hoursAgo,
-  id,
-  sets,
-  workout,
-}: {
-  hoursAgo: number;
-  id: string;
-  sets: number;
-  workout: Workout;
-}): WorkoutSession => {
-  const finishedAt = new Date(NOW_MS - hoursAgo * 60 * 60 * 1000).toISOString();
-  const startedAt = new Date(NOW_MS - (hoursAgo + 1) * 60 * 60 * 1000).toISOString();
-
-  return {
-    finishedAt,
-    id,
-    sets: Array.from({ length: sets }, (_, index) => makeSet(workout.exercises[0].name, workout.exercises[0].id, 100, 8, index + 1)),
-    startedAt,
-    workoutId: workout.id,
-    workoutTitle: workout.title,
-  };
-};
-
-const makeFoodEntry = (mealType: FoodEntry['mealType'], calories: number, protein: number, carbs: number, fats: number, id: string): FoodEntry => ({
-  calories,
-  carbs,
-  createdAt: NOW_ISO,
-  date: '2026-01-10',
-  fats,
-  id,
-  mealType,
-  name: `${mealType}-${id}`,
-  source: 'manual',
-  protein,
-});
+import {
+  NOW,
+  backWorkout,
+  bench,
+  chestWorkout,
+  makeFoodEntry,
+  makeSession,
+  rdl,
+  rearDeltFly,
+  row,
+  squat,
+} from './intelligenceFixtures';
 
 describe('rule engine', () => {
   it('clamps numbers at the lower bound', () => {
@@ -179,11 +59,17 @@ describe('rule engine', () => {
       { id: 'high-b', priority: 10, when: () => true, then: () => 'high-b' },
     ];
 
-    expect(evaluateRules({ value: 3 }, rules).map((match) => match.result)).toEqual(['high-a', 'high-b', 'low']);
+    expect(evaluateRules({ value: 3 }, rules).map((match) => match.result)).toEqual([
+      'high-a',
+      'high-b',
+      'low',
+    ]);
   });
 
   it('returns a fallback when no rule matches', () => {
-    const rules: Rule<{ value: number }, string>[] = [{ id: 'never', priority: 1, when: () => false, then: () => 'hit' }];
+    const rules: Rule<{ value: number }, string>[] = [
+      { id: 'never', priority: 1, when: () => false, then: () => 'hit' },
+    ];
 
     expect(pickRuleResult({ value: 3 }, rules, 'fallback')).toBe('fallback');
   });
@@ -196,7 +82,9 @@ describe('training advisor', () => {
 
     const result = getTrainingAdvisor({
       exercises: [bench, row, squat, rdl, rearDeltFly],
-      workoutSessions: [makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout],
     });
 
@@ -216,11 +104,15 @@ describe('training advisor', () => {
 
     const result = getTrainingAdvisor({
       exercises: [bench, row, squat, rdl, rearDeltFly],
-      workoutSessions: [makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout],
     });
 
-    expect(result.recommendations.map((recommendation) => recommendation.title)).toContain('Add rear delts');
+    expect(result.recommendations.map((recommendation) => recommendation.title)).toContain(
+      'Add rear delts',
+    );
 
     vi.useRealTimers();
   });
@@ -231,11 +123,15 @@ describe('training advisor', () => {
 
     const result = getTrainingAdvisor({
       exercises: [bench, row, squat, rdl, rearDeltFly],
-      workoutSessions: [makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout],
     });
 
-    expect(result.recommendations.map((recommendation) => recommendation.title)).toContain('Increase back volume');
+    expect(result.recommendations.map((recommendation) => recommendation.title)).toContain(
+      'Increase back volume',
+    );
     expect(result.improvementOpportunities).toContain('Increase back volume');
 
     vi.useRealTimers();
@@ -247,11 +143,15 @@ describe('training advisor', () => {
 
     const result = getTrainingAdvisor({
       exercises: [bench, row, squat, rdl, rearDeltFly],
-      workoutSessions: [makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout],
     });
 
-    expect(result.recommendations.map((recommendation) => recommendation.title)).toContain('Train hamstrings');
+    expect(result.recommendations.map((recommendation) => recommendation.title)).toContain(
+      'Train hamstrings',
+    );
 
     vi.useRealTimers();
   });
@@ -262,7 +162,9 @@ describe('training advisor', () => {
 
     const result = getTrainingAdvisor({
       exercises: [bench, row, squat, rdl, rearDeltFly],
-      workoutSessions: [makeSession({ hoursAgo: 12, id: 's1', sets: 120, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 12, id: 's1', sets: 120, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout],
     });
 
@@ -278,7 +180,9 @@ describe('training advisor', () => {
 
     const result = getTrainingAdvisor({
       exercises: [bench, row, squat, rdl, rearDeltFly],
-      workoutSessions: [makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout],
     });
 
@@ -295,7 +199,9 @@ describe('training advisor', () => {
 
     const result = getTrainingAdvisor({
       exercises: [bench, row, squat, rdl, rearDeltFly],
-      workoutSessions: [makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout],
     });
 
@@ -311,7 +217,9 @@ describe('training advisor', () => {
 
     const result = getTrainingAdvisor({
       exercises: [bench, row, squat, rdl, rearDeltFly],
-      workoutSessions: [makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout],
     });
 
@@ -323,7 +231,11 @@ describe('training advisor', () => {
 
 describe('recovery advisor', () => {
   it('reports ready when no sessions exist', () => {
-    const result = getRecoveryAdvisor({ exercises: [bench, row], workoutSessions: [], workouts: [] });
+    const result = getRecoveryAdvisor({
+      exercises: [bench, row],
+      workoutSessions: [],
+      workouts: [],
+    });
 
     expect(result.status).toBe('Ready');
     expect(result.recommendedWaitTime).toBe('0h');
@@ -337,7 +249,9 @@ describe('recovery advisor', () => {
 
     const result = getRecoveryAdvisor({
       exercises: [bench, row],
-      workoutSessions: [makeSession({ hoursAgo: 6, id: 's1', sets: 5, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 6, id: 's1', sets: 5, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout, backWorkout],
     });
 
@@ -353,7 +267,9 @@ describe('recovery advisor', () => {
 
     const result = getRecoveryAdvisor({
       exercises: [bench, row],
-      workoutSessions: [makeSession({ hoursAgo: 18, id: 's1', sets: 5, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 18, id: 's1', sets: 5, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout, backWorkout],
     });
 
@@ -369,7 +285,9 @@ describe('recovery advisor', () => {
 
     const result = getRecoveryAdvisor({
       exercises: [bench, row],
-      workoutSessions: [makeSession({ hoursAgo: 36, id: 's1', sets: 10, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 36, id: 's1', sets: 10, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout, backWorkout],
     });
 
@@ -385,7 +303,9 @@ describe('recovery advisor', () => {
 
     const result = getRecoveryAdvisor({
       exercises: [bench, row],
-      workoutSessions: [makeSession({ hoursAgo: 60, id: 's1', sets: 5, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 60, id: 's1', sets: 5, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout, backWorkout],
     });
 
@@ -427,7 +347,6 @@ describe('nutrition advisor', () => {
       targets,
       goalType: 'maintain',
     });
-
     expect(result.consumed).toEqual({ calories: 1300, protein: 90, carbs: 110, fats: 45 });
     expect(result.caloriesRemaining).toBe(700);
     expect(result.proteinRemaining).toBe(50);
@@ -514,11 +433,21 @@ describe('motivation insight', () => {
 
     const training = getTrainingAdvisor({
       exercises: [bench, row, squat, rdl, rearDeltFly],
-      workoutSessions: [makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout })],
+      workoutSessions: [
+        makeSession({ hoursAgo: 12, id: 's1', sets: 8, workout: chestWorkout }),
+      ],
       workouts: [chestWorkout],
     });
-    const recovery = getRecoveryAdvisor({ exercises: [bench, row], workoutSessions: [], workouts: [] });
-    const nutrition = getNutritionAdvisor({ entries: [], targets: { calories: 2000, protein: 140, carbs: 180, fats: 70 }, goalType: 'maintain' });
+    const recovery = getRecoveryAdvisor({
+      exercises: [bench, row],
+      workoutSessions: [],
+      workouts: [],
+    });
+    const nutrition = getNutritionAdvisor({
+      entries: [],
+      targets: { calories: 2000, protein: 140, carbs: 180, fats: 70 },
+      goalType: 'maintain',
+    });
 
     expect(
       getMotivationInsight({
@@ -527,7 +456,7 @@ describe('motivation insight', () => {
         training,
         weeklyVolumeChangePercent: 12,
         weeklyWorkoutCount: 4,
-      })
+      }),
     ).toBe('You trained 4 times this week.');
 
     vi.useRealTimers();
