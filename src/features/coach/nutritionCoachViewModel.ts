@@ -2,7 +2,6 @@ import type { CoachRunEnvelope } from '@/api/coach';
 
 import {
   isNutritionCoachRecord,
-  readNutritionBoolean,
   readNutritionCoachMetrics,
 } from './nutritionCoachMetricParser';
 import { readNutritionProposalViewModel } from './nutritionCoachProposalParser';
@@ -17,91 +16,105 @@ export type {
 } from './nutritionCoachViewModelTypes';
 
 export const buildNutritionCoachViewModel = (
-  run: CoachRunEnvelope,
+  envelope: CoachRunEnvelope,
 ): NutritionCoachViewModel => {
-  if (run.status === 'pending' || run.status === 'running') {
+  const { run } = envelope;
+
+  if (
+    run.domain !== 'nutrition' ||
+    (run.requestType !== 'nutrition_review' &&
+      run.requestType !== 'nutrition_target_proposal')
+  ) {
+    return {
+      kind: 'failed',
+      title: 'Unsupported run',
+      message: 'This result does not belong to Nutrition Coach.',
+    };
+  }
+
+  if (run.status === 'queued' || run.status === 'running') {
     return {
       kind: 'pending',
-      title: 'Nutrition review in progress',
-      message: 'The Coach is evaluating logged nutrition data deterministically.',
+      title: 'Nutrition analysis in progress',
+      message: 'Synchronized food entries and targets are being validated and calculated.',
     };
   }
-  if (run.status === 'failed' || run.status === 'cancelled') {
+
+  if (run.status === 'failed') {
     return {
       kind: 'failed',
-      title: run.status === 'cancelled' ? 'Review cancelled' : 'Review failed',
-      message:
-        run.error?.message ??
-        (run.status === 'cancelled'
-          ? 'This review was cancelled.'
-          : 'The Nutrition Coach could not complete this review.'),
-    };
-  }
-  if (!run.result || !isNutritionCoachRecord(run.result)) {
-    return {
-      kind: 'failed',
-      title: 'Review unavailable',
-      message: 'The completed run did not return a supported Nutrition result.',
+      title: 'Nutrition analysis failed',
+      message: run.error?.message ?? 'Nutrition Coach could not complete this run.',
     };
   }
 
   const result = run.result;
-  const accepted = readNutritionBoolean(result, 'accepted');
-  const outcome = result.outcome;
-  if (accepted === false || outcome === 'rejected') {
+  if (!isNutritionCoachRecord(result)) {
     return {
-      kind: 'rejected',
-      title: 'More nutrition data is required',
-      message:
-        typeof result.reason === 'string'
-          ? result.reason
-          : 'The deterministic review rejected this snapshot.',
-      reason:
-        typeof result.reason === 'string'
-          ? result.reason
-          : 'Insufficient or invalid input.',
-      metrics: readNutritionCoachMetrics(result.metrics),
+      kind: 'failed',
+      title: 'Invalid result',
+      message: 'Nutrition Coach returned an unsupported result format.',
     };
   }
 
-  if (outcome === 'proposal') {
-    const proposal = readNutritionProposalViewModel(result);
-    if (!proposal) {
-      return {
+  if (result.kind === 'nutrition-target-proposal') {
+    return (
+      readNutritionProposalViewModel(result) ?? {
         kind: 'failed',
-        title: 'Proposal unavailable',
-        message: 'The completed run did not return a supported proposal payload.',
-      };
-    }
-    return proposal;
+        title: 'Invalid proposal',
+        message: 'Nutrition target proposal could not be read safely.',
+      }
+    );
+  }
+
+  if (run.status === 'rejected') {
+    const metrics = readNutritionCoachMetrics(result.metrics);
+    const reason =
+      typeof result.reason === 'string' && result.reason
+        ? result.reason
+        : 'insufficient_logged_days';
+    return {
+      kind: 'rejected',
+      title:
+        reason === 'nutrition_target_unavailable'
+          ? 'Active nutrition target required'
+          : 'More logged days are required',
+      message:
+        reason === 'nutrition_target_unavailable'
+          ? 'Create and synchronize an active nutrition target before requesting a proposal.'
+          : 'The deterministic review did not have enough tracked days to form a stable summary.',
+      reason,
+      metrics,
+    };
+  }
+
+  if (result.kind !== 'nutrition-review') {
+    return {
+      kind: 'failed',
+      title: 'Unsupported result',
+      message: 'This Nutrition Coach result type is not supported by the current app version.',
+    };
   }
 
   const metrics = readNutritionCoachMetrics(result.metrics);
-  const targetAvailable = readNutritionBoolean(result, 'targetAvailable');
-  const latestWeightAvailable = readNutritionBoolean(
-    result,
-    'latestWeightAvailable',
-  );
   if (
-    accepted !== true ||
-    outcome !== 'review' ||
     !metrics ||
-    targetAvailable === null ||
-    latestWeightAvailable === null
+    typeof result.targetAvailable !== 'boolean' ||
+    typeof result.latestWeightAvailable !== 'boolean'
   ) {
     return {
       kind: 'failed',
-      title: 'Review unavailable',
-      message: 'The completed run did not return a supported Nutrition review.',
+      title: 'Invalid metrics',
+      message: 'Nutrition Coach metrics could not be read safely.',
     };
   }
 
   return {
     kind: 'review',
-    title: 'Nutrition review ready',
-    message: 'This output is read-only and based only on logged deterministic metrics.',
-    targetAvailable,
-    latestWeightAvailable,
+    title: 'Nutrition review',
+    message: 'All values were calculated deterministically from synchronized nutrition records.',
+    targetAvailable: result.targetAvailable,
+    latestWeightAvailable: result.latestWeightAvailable,
     metrics,
   };
 };
