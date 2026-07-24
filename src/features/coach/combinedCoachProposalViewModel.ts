@@ -14,6 +14,8 @@ export type {
   CombinedEffectiveStrengthPlan,
   CombinedEffectiveStrengthSet,
   CombinedNutritionApplication,
+  CombinedNutritionReconciliation,
+  CombinedNutritionReconciliationReason,
   CombinedProposalAction,
   CombinedProposalIssue,
   CombinedProposalSet,
