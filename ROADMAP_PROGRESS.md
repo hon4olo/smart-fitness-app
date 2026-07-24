@@ -9,6 +9,8 @@ Read this file together with:
 - `AGENTS.md`;
 - `PROJECT_LEARNINGS.md`;
 - `docs/implementation-plan.md`;
+- `docs/release/validation-record-2026-07-24.md`;
+- `docs/release/rollout-and-rollback.md`;
 - backend `hon4olo/smart-fitness-backend/AGENTS.md` when backend changes are required.
 
 ## Repositories
@@ -31,15 +33,14 @@ Always inspect the latest `main` and open pull requests in both repositories bef
 
 ## Overall completion
 
-Estimated roadmap completion: about 98% at source-code level.
+Estimated roadmap completion: about 98–99% at source-code and repository-CI level.
 
-The remaining work is concentrated in external release validation:
+The remaining work is concentrated in protected/external validation:
 
-1. configure and smoke-test the model provider in the protected staging environment;
-2. harden the backend release gate for production configuration and PostgreSQL migrations;
-3. run fixed-SHA cross-repository validation;
-4. deploy and validate staging;
-5. complete native-build and real-device validation.
+1. configure read-only private-backend access for the combined release gate and rerun it on exact current SHAs;
+2. configure and smoke-test the model provider in protected staging;
+3. deploy and validate staging;
+4. complete native-build and real-device validation.
 
 ## Completed foundation
 
@@ -51,6 +52,7 @@ The remaining work is concentrated in external release validation:
 - [x] Changed-file and repository-wide 500-line audits are blocking in mobile CI.
 - [x] Full mobile regression suite is blocking in CI.
 - [x] A cross-repository fixed-SHA release-gate workflow exists.
+- [x] Release validation evidence and rollout/rollback procedures are documented.
 
 ### Authentication and persistence
 
@@ -189,12 +191,13 @@ Combined never offers an aggregate apply operation. Effective Strength and Nutri
 
 ### Phase E — release readiness
 
-Status: CI foundation exists; release validation remains incomplete.
+Status: repository-local gates and release procedures are complete; combined private-repository, staging, native, and device validation remain.
 
 Required:
 
-- [ ] make backend production-config and migration validation blocking on current `main`;
-- [ ] run the cross-repository release gate on fixed current mobile/backend SHAs;
+- [x] make backend production-config and migration validation blocking on current `main`;
+- [x] make compiled production startup and local `/health` blocking in backend CI;
+- [ ] run the cross-repository release gate successfully on fixed current mobile/backend SHAs;
 - [ ] deploy and validate backend in staging;
 - [ ] apply and verify migrations on staging PostgreSQL;
 - [ ] verify `/health`, auth, sync push/pull, and Coach polling against staging;
@@ -202,15 +205,25 @@ Required:
 - [ ] run real-device smoke tests for workout, nutrition, progress, auth, sync, and Coach flows;
 - [ ] test offline restart and queue recovery on device;
 - [ ] test sign-in and synchronization on a second device/account runtime;
-- [ ] document rollout and rollback steps;
+- [x] document rollout and rollback steps;
 - [ ] publish OTA only to a compatible runtime/channel when explicitly requested.
+
+Completed Phase E source/CI slices:
+
+- backend PR `#46`, merge `c8cf3f848e9debacf5e12a105501f5ca8d5cbc96`: PostgreSQL 16, production config, initial/repeated migrations, migrated-schema integration, and full tests;
+- backend PR `#47`, merge `bb9129ac6a4a3654f5c0d478a547d33fe5272b9a`: compiled production startup and `/health` gate;
+- mobile PR `#88`, merge `92749354b5812fe95ba8b698f2f78c67231d6bb7`: optional `BACKEND_REPOSITORY_TOKEN` support for private backend checkout;
+- validation attempt run `30099396214`: mobile exact-SHA job passed; backend job stopped at private cross-repository checkout before code execution.
+
+The combined gate remains blocked until the mobile repository receives a read-only Actions secret named `BACKEND_REPOSITORY_TOKEN` with access to `hon4olo/smart-fitness-backend`. This is an external repository-access configuration item. See `docs/release/validation-record-2026-07-24.md`.
 
 ## Recommended immediate next actions
 
-1. Inspect and modernize backend PR `#34` so production configuration and PostgreSQL migration checks run against current backend `main` without deployment.
-2. Merge that gate only after lint, TypeScript, full tests, production-config validation, and repeated clean-database migration application are green.
-3. Run the fixed-SHA cross-repository release gate on the resulting current mobile/backend pair.
-4. Configure protected staging credentials, deploy staging, create native builds, or publish OTA only after explicit authorization.
+1. Configure read-only `BACKEND_REPOSITORY_TOKEN` in mobile repository Actions secrets.
+2. Run `Smart Fitness Release Gate` through `workflow_dispatch` using exact current mobile and backend SHAs; record a fully green run.
+3. Configure protected staging credentials and deploy staging only when explicitly authorized.
+4. Complete staging smoke, native builds, real-device, offline-restart, and second-device validation.
+5. Publish OTA or activate production only when explicitly requested and only after runtime compatibility is confirmed.
 
 ## Validation expectations
 
@@ -227,10 +240,10 @@ For native dependency or Expo configuration changes:
 npx expo-doctor
 ```
 
-For backend changes, run the repository's blocking lint, build, test, production-configuration, and migration checks when available.
+For backend changes, run the repository's blocking lint, build, test, production-configuration, migration, schema, startup, and health checks.
 
 Do not claim completion when CI is failing or when an external environment action has not actually been performed.
 
 ## New-chat starter prompt
 
-> Continue the Smart Fitness roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, and `docs/implementation-plan.md` first. Inspect latest `main` and open PRs in both `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`. Continue from the first unchecked code-verifiable item in `ROADMAP_PROGRESS.md`; note external credential, deployment, native-build, device, and OTA blockers without inventing completion. Work in small focused PRs, run full blocking CI, merge only exact green heads, preserve existing behavior, and keep every hand-written source file at or below 500 lines. Do not perform OTA/EAS publish, native builds, device installation, backend deployment, staging credential activation, or production feature activation unless explicitly requested. After finishing a slice, update `ROADMAP_PROGRESS.md` and continue.
+> Continue the Smart Fitness roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, and the release documents first. Inspect latest `main` and open PRs in both `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`. Continue from the first unchecked code-verifiable item in `ROADMAP_PROGRESS.md`; note external credential, repository-access, deployment, native-build, device, and OTA blockers without inventing completion. Work in small focused PRs, run full blocking CI, merge only exact green heads, preserve existing behavior, and keep every hand-written source file at or below 500 lines. Do not perform OTA/EAS publish, native builds, device installation, backend deployment, staging credential activation, or production feature activation unless explicitly requested. After finishing a slice, update `ROADMAP_PROGRESS.md` and continue.
