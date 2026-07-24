@@ -32,12 +32,12 @@ Always inspect the latest `main` in both repositories before changing code becau
 
 ## Overall completion
 
-Estimated roadmap completion: about 92–95%.
+Estimated roadmap completion: about 94–96%.
 
 The remaining work is concentrated in:
 
 1. configure and smoke-test the model provider in the protected staging environment;
-2. complete Combined Strategy proposal composition and explicit application flows;
+2. complete Safety-adjusted Combined Strategy application and explicit confirmation flows;
 3. complete release-device and production-readiness validation.
 
 ## Completed foundation
@@ -99,6 +99,7 @@ Additional sync hardening completed:
 - [x] Deterministic Safety & Recovery review.
 - [x] Pre-workout Safety acknowledgement and immutable completed-workout provenance.
 - [x] Read-only Combined Coach review.
+- [x] Versioned read-only Combined Strategy proposal review.
 - [x] Provider-neutral backend model abstraction and capability gating.
 - [x] Provider-neutral default model with optional Nutrition, Strength, and Combined overrides.
 - [x] Domain guardrail repair/rejection and provider telemetry are explicitly covered.
@@ -109,6 +110,7 @@ Additional sync hardening completed:
 - [x] `SyncCoordinator.ts` is a compatibility facade over operations, state-machine, types, and helpers.
 - [x] `WorkoutTemplateSync.ts` is a compatibility facade over serialization/queue and remote-apply modules.
 - [x] Coach view models, large screens, Add Food styles, and intelligence fixtures are decomposed below the limit.
+- [x] The backend Combined proposal worker is split into contract, strict summary parser, and evaluator modules below 500 lines.
 
 ## Remaining roadmap
 
@@ -169,28 +171,36 @@ The remaining staging credential item requires real protected environment values
 
 ### Phase D — Combined Strategy proposal
 
-Status: read-only Combined review and deterministic proposal preview exist; coordinated application flow remains incomplete.
+Status: versioned read-only proposal composition is complete; Safety-adjusted application remains incomplete.
 
-Backend remaining:
+Backend:
 
-- [ ] finalize the versioned Combined Strategy request/response contract;
-- [ ] compose eligible Nutrition and Strength proposals with Safety context;
-- [ ] apply deterministic Safety restrictions and load ceilings;
+- [x] finalize the versioned Combined Strategy request/response contract;
+- [x] compose eligible Nutrition and Strength proposals with Safety context;
+- [ ] apply deterministic Safety restrictions and load ceilings to the effective Strength proposal;
 - [ ] reconcile nutrition targets with recovery state and training demand;
-- [ ] add a deterministic final combined guardrail;
-- [ ] persist child run IDs, versions, validation reports, and audit metadata;
-- [ ] expose a dedicated capability flag;
-- [ ] define partial-failure and retry behavior;
-- [ ] keep automatic application disabled.
+- [x] add a deterministic final combined guardrail;
+- [x] persist child run IDs, versions, validation reports, and audit metadata;
+- [x] expose a dedicated capability flag;
+- [ ] define explicit partial-failure and retry behavior;
+- [x] keep automatic application disabled.
 
-Mobile remaining:
+Mobile:
 
-- [ ] strict capability parsing;
-- [ ] strict versioned result parser and view model;
-- [ ] one combined preview screen;
-- [ ] clear blocking, input-required, modification, and warning states;
+- [x] strict capability parsing;
+- [x] strict versioned result parser and view model;
+- [x] one combined preview screen;
+- [x] clear blocking, input-required, modification, and warning states;
 - [ ] separate explicit confirmation for every applying action;
 - [ ] revision-safe and idempotent application of confirmed mutations.
+
+Completed Combined slices:
+
+- backend PR `#33` added the `combined_proposal_review` request, three child runs, final deterministic evaluation, child IDs, policy/audit metadata, capability schema v7, fail-closed child parsing, idempotent parent request handling, and `automaticApplication: false`;
+- mobile PR `#52` added strict capability v7 parsing, strict proposal parsing/view-model construction, and the read-only Combined proposal preview with pending-action and guardrail states;
+- backend PR `#38`, merge `1c39461d19b22f4953dd05841979ee6e75f9d45c`, decomposed the Combined proposal worker without changing its contract or behavior.
+
+The current preview exposes a deterministic Safety multiplier and flags `apply_safety_load_ceiling`, but it does not yet produce or confirm a Safety-adjusted effective Strength mutation. Nutrition and Strength child proposals still retain separate confirmation boundaries.
 
 ### Phase E — release readiness
 
@@ -211,11 +221,11 @@ Required:
 
 ## Recommended immediate next actions
 
-1. Continue with the first code-verifiable Phase D item: finalize the versioned Combined Strategy request/response contract.
-2. Compose eligible Nutrition and Strength proposals with deterministic Safety context and final guardrails.
-3. Add strict mobile capability/result parsing and the combined preview/confirmation flow.
-4. Configure protected staging credentials and run the provider smoke workflow only when real values are available and activation is explicitly authorized.
-5. Finish native-build and real-device release validation.
+1. Define the deterministic Safety-adjusted effective Strength proposal and confirmation contract.
+2. Reconcile Nutrition targets with recovery state and training demand without allowing Safety or model output to bypass deterministic bounds.
+3. Define Combined partial-failure/retry behavior.
+4. Add separate explicit mobile confirmation and revision-safe/idempotent application for each mutation.
+5. Configure protected staging credentials and complete release validation only when explicitly authorized.
 
 ## Validation expectations
 
