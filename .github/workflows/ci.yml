@@ -78,6 +78,7 @@ jobs:
           src/features/workouts/workoutHistoryViewModel.test.ts
           src/features/workouts/workoutSafetyGateModel.test.ts
           src/features/workouts/workoutSafetySessionMetadata.test.ts
+          src/cloud/createProductionCloudProvider.auth-refresh.test.ts
           src/cloud/BodyMeasurementSync.test.ts
           src/cloud/CustomExerciseSyncPlanner.test.ts
           src/cloud/CustomExerciseRemoteSync.test.ts
