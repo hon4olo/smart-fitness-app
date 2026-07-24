@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Repository file line audit
+        run: node scripts/check-repository-file-lines.mjs
+
       - name: Changed file line limit
         run: node scripts/check-changed-file-lines.mjs
 
