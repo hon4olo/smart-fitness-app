@@ -29,19 +29,25 @@ const actionCopy: Record<string, string> = {
   review_strength_proposal: 'Review the Strength proposal separately',
   apply_safety_load_ceiling: 'Create a workout template with the Safety load ceiling',
   resolve_movement_restrictions: 'Resolve restricted movement patterns before using Strength',
-  confirm_nutrition_target: 'Confirm the Nutrition target separately in Nutrition Coach',
+  confirm_nutrition_target: 'Apply the Nutrition target as a separate revisioned action',
 };
 
 export function CombinedCoachProposalResult({
   viewModel,
   canConfirmEffectiveStrength,
-  confirmationBusy,
+  effectiveStrengthBusy,
   onConfirmEffectiveStrength,
+  canConfirmNutrition,
+  nutritionBusy,
+  onConfirmNutrition,
 }: {
   viewModel: CombinedCoachProposalViewModel;
   canConfirmEffectiveStrength: boolean;
-  confirmationBusy: boolean;
+  effectiveStrengthBusy: boolean;
   onConfirmEffectiveStrength(): void;
+  canConfirmNutrition: boolean;
+  nutritionBusy: boolean;
+  onConfirmNutrition(): void;
 }) {
   const { colors } = useAppTheme();
   if (viewModel.kind !== 'review') {
@@ -50,7 +56,7 @@ export function CombinedCoachProposalResult({
         <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
           {viewModel.title}
         </Text>
-        <Text style={[styles.body, { color: colors.textSecondary }]}>
+        <Text style={[styles.body, { color: colors.textSecondary }]}> 
           {viewModel.message}
         </Text>
       </AppCard>
@@ -58,16 +64,17 @@ export function CombinedCoachProposalResult({
   }
 
   const effective = viewModel.effectiveStrength;
-  const application = viewModel.effectiveStrengthApplication;
+  const strengthApplication = viewModel.effectiveStrengthApplication;
+  const nutritionApplication = viewModel.nutritionApplication;
 
   return (
     <AppCard>
       <View style={styles.resultHeader}>
         <View style={styles.flexCopy}>
-          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}> 
             {viewModel.title}
           </Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}>
+          <Text style={[styles.body, { color: colors.textSecondary }]}> 
             {viewModel.message}
           </Text>
         </View>
@@ -79,13 +86,13 @@ export function CombinedCoachProposalResult({
                 viewModel.status === 'ready' ? colors.successSoft : colors.warningSoft,
               color: viewModel.status === 'ready' ? colors.success : colors.warning,
             },
-          ]}>
+          ]}> 
           {viewModel.status.toUpperCase()}
         </Text>
       </View>
 
       <View style={styles.stack}>
-        <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}>
+        <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}> 
           <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Strength proposal</Text>
           <Text style={[styles.body, { color: colors.textSecondary }]}> 
             {viewModel.strength.sets.length} sets · proposed tonnage{' '}
@@ -118,6 +125,23 @@ export function CombinedCoachProposalResult({
               ) : null}
             </View>
           ) : null}
+
+          {strengthApplication ? (
+            <View style={[styles.application, { borderColor: colors.success }]}> 
+              <Text style={[styles.domainTitle, { color: colors.success }]}> 
+                Workout template created
+              </Text>
+              <Text style={[styles.meta, { color: colors.textMuted }]}> 
+                Revision {strengthApplication.appliedRevision} · {strengthApplication.templateId}
+              </Text>
+            </View>
+          ) : canConfirmEffectiveStrength ? (
+            <PrimaryButton
+              label="Create effective Strength template"
+              loading={effectiveStrengthBusy}
+              onPress={onConfirmEffectiveStrength}
+            />
+          ) : null}
         </View>
 
         <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}> 
@@ -130,6 +154,23 @@ export function CombinedCoachProposalResult({
           <Text style={[styles.body, { color: colors.textSecondary }]}> 
             {formatTargets(viewModel.nutrition.proposedTargets)}
           </Text>
+
+          {nutritionApplication ? (
+            <View style={[styles.application, { borderColor: colors.success }]}> 
+              <Text style={[styles.domainTitle, { color: colors.success }]}> 
+                Nutrition target applied
+              </Text>
+              <Text style={[styles.meta, { color: colors.textMuted }]}> 
+                Revision {nutritionApplication.appliedRevision} · {nutritionApplication.targetId}
+              </Text>
+            </View>
+          ) : canConfirmNutrition ? (
+            <PrimaryButton
+              label="Apply Nutrition target"
+              loading={nutritionBusy}
+              onPress={onConfirmNutrition}
+            />
+          ) : null}
         </View>
 
         <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}> 
@@ -173,25 +214,10 @@ export function CombinedCoachProposalResult({
         </View>
       ) : null}
 
-      {application ? (
-        <View style={[styles.application, { borderColor: colors.success }]}> 
-          <Text style={[styles.domainTitle, { color: colors.success }]}>Workout template created</Text>
-          <Text style={[styles.meta, { color: colors.textMuted }]}> 
-            Revision {application.appliedRevision} · {application.templateId}
-          </Text>
-        </View>
-      ) : canConfirmEffectiveStrength ? (
-        <PrimaryButton
-          label="Create effective Strength template"
-          loading={confirmationBusy}
-          onPress={onConfirmEffectiveStrength}
-        />
-      ) : null}
-
       <View style={[styles.boundary, { borderColor: colors.borderSubtle }]}> 
         <Text style={[styles.meta, { color: colors.textMuted }]}> 
-          This action creates a new revisioned workout template. It never edits completed workout
-          history and does not confirm or apply the Nutrition proposal.
+          Strength and Nutrition are separate explicit actions. Creating a workout template never
+          edits completed history; applying Nutrition never creates or changes a workout template.
         </Text>
       </View>
     </AppCard>
