@@ -112,6 +112,7 @@ Additional sync hardening completed:
 - [x] `add-food.tsx` reduced below 500 lines.
 - [x] `SyncContext.tsx` reduced below 500 lines.
 - [x] `CloudConflictResolver.ts` reduced below 500 lines.
+- [x] `SyncCoordinator.ts` reduced to a compatibility facade with separate operations, state-machine, types, and helper modules below 500 lines.
 
 ## Remaining roadmap
 
@@ -152,7 +153,7 @@ Status: in progress; run in parallel with functional work when file sets do not 
 
 Known remaining candidates from the audit and later growth:
 
-- [ ] `src/cloud/SyncCoordinator.ts`;
+- [x] `src/cloud/SyncCoordinator.ts`;
 - [ ] `src/api/coach.ts`;
 - [ ] `src/features/coach/nutritionCoachViewModel.ts` if still above 500 lines;
 - [ ] `src/features/nutrition/styles/addFoodStyles.ts`;
@@ -222,7 +223,7 @@ Required:
 ## Recommended immediate next actions
 
 1. Inspect latest `main` and open PRs in both repositories.
-2. Split `src/cloud/SyncCoordinator.ts` below 500 lines without changing runtime behavior.
+2. Split `src/api/coach.ts` below 500 lines without changing its public contract.
 3. Rerun the complete line-count audit and update the oversized-file list.
 4. Continue with staging model-provider activation.
 5. Implement Combined Strategy proposal after provider/staging contracts are stable.
