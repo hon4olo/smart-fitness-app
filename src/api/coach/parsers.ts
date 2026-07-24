@@ -218,7 +218,7 @@ const parseNutritionCapabilities = (
 
 const parseStrengthCapabilities = (
   value: unknown,
-  schemaVersion: 3 | 4 | 5 | 6 | 7 | 8,
+  schemaVersion: 3 | 4 | 5 | 6 | 7 | 8 | 9,
 ): NonNullable<CoachCapabilities['strength']> => {
   if (!isRecord(value)) throw new Error('Invalid coach capabilities response');
   if (
@@ -262,7 +262,7 @@ const parseSafetyCapabilities = (
 
 const parseCombinedCapabilities = (
   value: unknown,
-  schemaVersion: 6 | 7 | 8,
+  schemaVersion: 6 | 7 | 8 | 9,
 ): NonNullable<CoachCapabilities['combined']> => {
   if (
     !isRecord(value) ||
@@ -271,7 +271,8 @@ const parseCombinedCapabilities = (
     (schemaVersion >= 7 &&
       (value.deterministicProposalReview !== true ||
         value.proposalRequiresExplicitConfirmation !== true)) ||
-    (schemaVersion === 8 && value.effectiveStrengthConfirmation !== true)
+    (schemaVersion >= 8 && value.effectiveStrengthConfirmation !== true) ||
+    (schemaVersion === 9 && value.nutritionConfirmation !== true)
   ) {
     throw new Error('Invalid coach capabilities response');
   }
@@ -283,9 +284,10 @@ const parseCombinedCapabilities = (
           proposalRequiresExplicitConfirmation: true as const,
         }
       : {}),
-    ...(schemaVersion === 8
+    ...(schemaVersion >= 8
       ? { effectiveStrengthConfirmation: true }
       : {}),
+    ...(schemaVersion === 9 ? { nutritionConfirmation: true } : {}),
     automaticApplication: false,
   };
 };
@@ -293,7 +295,7 @@ const parseCombinedCapabilities = (
 export const parseCoachCapabilities = (value: unknown): CoachCapabilities => {
   if (
     !isRecord(value) ||
-    ![1, 2, 3, 4, 5, 6, 7, 8].includes(value.schemaVersion as number) ||
+    ![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(value.schemaVersion as number) ||
     !isRecord(value.nutrition)
   ) {
     throw new Error('Invalid coach capabilities response');

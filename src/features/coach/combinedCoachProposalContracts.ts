@@ -71,6 +71,16 @@ export type CombinedEffectiveStrengthApplication = {
   policyVersion: 'combined-effective-strength-v1';
 };
 
+export type CombinedNutritionApplication = {
+  applied: true;
+  appliedAt: string;
+  appliedRevision: number;
+  confirmationIdempotencyKey: string;
+  childRunId: string;
+  targetId: string;
+  requestType: 'nutrition_target_proposal';
+};
+
 export type CombinedStrengthProposal = {
   runId: string;
   status: CombinedProposalStatus;
@@ -127,4 +137,5 @@ export type CombinedCoachProposalViewModel =
       rejected: boolean;
       reason: string | null;
       effectiveStrengthApplication: CombinedEffectiveStrengthApplication | null;
+      nutritionApplication: CombinedNutritionApplication | null;
     } & ParsedCombinedProposalReview);
