@@ -23,6 +23,9 @@ on:
         required: false
         default: main
         type: string
+    secrets:
+      BACKEND_REPOSITORY_TOKEN:
+        required: false
 
 permissions:
   contents: read
@@ -109,6 +112,8 @@ jobs:
           ref: ${{ inputs.backend_ref }}
           path: backend
           fetch-depth: 0
+          token: ${{ secrets.BACKEND_REPOSITORY_TOKEN || github.token }}
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
