@@ -81,6 +81,30 @@ export type CombinedNutritionApplication = {
   requestType: 'nutrition_target_proposal';
 };
 
+export type CombinedNutritionReconciliationReason =
+  | 'macro_only_energy_preserved'
+  | 'nutrition_proposal_unchanged'
+  | 'reduced_training_load_observed'
+  | 'normal_training_load_observed'
+  | 'energy_change_policy_unavailable'
+  | 'nutrition_proposal_unavailable'
+  | 'combined_safety_blocked';
+
+export type CombinedNutritionReconciliation = {
+  policyVersion: 'combined-nutrition-reconciliation-v1';
+  status: 'aligned' | 'needs_review' | 'not_applicable' | 'blocked';
+  decision: 'preserve_proposal' | 'hold_for_review' | 'not_applicable' | 'blocked';
+  currentCalories: number | null;
+  proposedCalories: number | null;
+  energyDeltaCalories: number | null;
+  safetyLoadMultiplier: number;
+  effectiveTrainingLoadRatio: number | null;
+  reasonCodes: CombinedNutritionReconciliationReason[];
+  approvedForConfirmation: boolean;
+  requiresExplicitConfirmation: true;
+  automaticApplication: false;
+};
+
 export type CombinedStrengthProposal = {
   runId: string;
   status: CombinedProposalStatus;
@@ -113,11 +137,15 @@ export type CombinedSafetyProposal = {
 };
 
 export type ParsedCombinedProposalReview = {
-  policyVersion: 'combined-coach-proposal-v1' | 'combined-coach-proposal-v2';
+  policyVersion:
+    | 'combined-coach-proposal-v1'
+    | 'combined-coach-proposal-v2'
+    | 'combined-coach-proposal-v3';
   status: CombinedProposalStatus;
   strength: CombinedStrengthProposal;
   effectiveStrength: CombinedEffectiveStrengthPlan | null;
   nutrition: CombinedNutritionProposal;
+  nutritionReconciliation: CombinedNutritionReconciliation | null;
   safety: CombinedSafetyProposal;
   maximumStrengthLoadMultiplier: number;
   strengthRequiresSafetyAdjustment: boolean;
