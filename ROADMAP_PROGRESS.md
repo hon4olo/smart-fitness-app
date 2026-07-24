@@ -129,7 +129,7 @@ Required next work:
 - [x] add explicit two-device conflict scenarios for body measurements;
 - [x] add explicit two-device conflict scenarios for nutrition targets;
 - [x] add explicit two-device conflict scenarios for limitations and recovery records;
-- [ ] test update-versus-delete in both directions for mutable entities;
+- [x] test update-versus-delete in both directions for mutable entities;
 - [ ] test duplicate remote delivery after conflict resolution;
 - [ ] verify conflict state remains visible and recoverable after restart.
 
@@ -143,6 +143,7 @@ Latest completed sync-hardening slices:
 - Body-measurement conflict coverage now verifies distinct append records, duplicate delivery, divergent same-record edits, and deterministic append-only union behavior.
 - Nutrition-target conflict coverage now verifies duplicate delivery, revision-number ordering, timestamp ordering, and stable revision-ID tie-breaking.
 - Safety/Recovery conflict coverage now explicitly merges independent limitation edits while preserving overlapping limitation edits and divergent recovery records for review.
+- Update/delete normalization now treats tombstones consistently across all mutable policies, including last-write-wins entities, and keeps both directions visible for manual review.
 
 ### Phase B — finish oversized-file decomposition
 
