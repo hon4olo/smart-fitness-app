@@ -9,7 +9,7 @@ import {
 
 import type { PickerMode } from './addFoodModel';
 
-export type FoodProviderSearchStatus = 'idle' | 'loading' | 'error';
+export type FoodProviderSearchStatus = 'idle' | 'debouncing' | 'loading' | 'empty' | 'error';
 
 export function useFoodProviderSearch(mode: PickerMode, query: string) {
   const [backendFoodResults, setBackendFoodResults] = useState<FoodItem[]>([]);
@@ -21,54 +21,43 @@ export function useFoodProviderSearch(mode: PickerMode, query: string) {
     const trimmedQuery = query.trim();
     if (mode !== 'food' || !isFoodApiConfigured() || trimmedQuery.length < 2) {
       setBackendFoodResults([]);
+      setFoodSuggestions([]);
       setBackendFoodSearchStatus('idle');
       return;
     }
 
     let active = true;
-    setBackendFoodSearchStatus('loading');
+    setBackendFoodSearchStatus('debouncing');
 
-    searchFoods(trimmedQuery)
-      .then((foods) => {
-        if (!active) return;
-        setBackendFoodResults(foods.slice(0, 8));
-        setBackendFoodSearchStatus('idle');
-      })
-      .catch(() => {
-        if (!active) return;
+    const timeout = setTimeout(async () => {
+      if (!active) return;
+      setBackendFoodSearchStatus('loading');
+
+      const [foodsResult, suggestionsResult] = await Promise.allSettled([
+        searchFoods(trimmedQuery),
+        autocompleteFoods(trimmedQuery),
+      ]);
+      if (!active) return;
+
+      if (foodsResult.status === 'fulfilled') {
+        const foods = foodsResult.value.slice(0, 8);
+        setBackendFoodResults(foods);
+        setBackendFoodSearchStatus(foods.length > 0 ? 'idle' : 'empty');
+      } else {
         setBackendFoodResults([]);
         setBackendFoodSearchStatus('error');
-      });
+      }
 
-    return () => {
-      active = false;
-    };
-  }, [mode, query]);
-
-  useEffect(() => {
-    const trimmedQuery = query.trim();
-    if (mode !== 'food' || !isFoodApiConfigured() || trimmedQuery.length < 2) {
-      setFoodSuggestions([]);
-      return;
-    }
-
-    let active = true;
-    const timeout = setTimeout(() => {
-      autocompleteFoods(trimmedQuery)
-        .then((suggestions) => {
-          if (!active) return;
-          setFoodSuggestions(
-            suggestions
-              .filter(
-                (suggestion) => suggestion.toLowerCase() !== trimmedQuery.toLowerCase(),
-              )
-              .slice(0, 5),
-          );
-        })
-        .catch(() => {
-          if (active) setFoodSuggestions([]);
-        });
-    }, 250);
+      if (suggestionsResult.status === 'fulfilled') {
+        setFoodSuggestions(
+          suggestionsResult.value
+            .filter((suggestion) => suggestion.toLowerCase() !== trimmedQuery.toLowerCase())
+            .slice(0, 5),
+        );
+      } else {
+        setFoodSuggestions([]);
+      }
+    }, 350);
 
     return () => {
       active = false;
