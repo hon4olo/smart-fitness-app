@@ -32,11 +32,11 @@ Always inspect the latest `main` in both repositories before changing code becau
 
 ## Overall completion
 
-Estimated roadmap completion: about 90–93%.
+Estimated roadmap completion: about 91–94%.
 
 The remaining work is concentrated in:
 
-1. activate and validate the model provider in staging;
+1. configure and validate the model provider in staging;
 2. complete Combined Strategy proposal composition and explicit application flows;
 3. complete release-device and production-readiness validation.
 
@@ -48,7 +48,7 @@ The remaining work is concentrated in:
 - [x] Mobile and backend agent instructions describe the current architecture.
 - [x] Cross-repository implementation plan exists.
 - [x] Hand-written file limit of 500 lines is enforced for changed files in CI.
-- [x] Repository-wide tracked-file line audit is enforced in blocking CI.
+- [x] Repository-wide tracked-file line audit is enforced in blocking mobile CI.
 - [x] Full mobile regression suite is blocking in CI.
 - [x] Cross-repository release-gate workflow exists.
 
@@ -84,7 +84,10 @@ Additional sync hardening completed:
 - [x] malformed and unsupported remote entities fail closed;
 - [x] cursor advancement requires every returned operation to be handled;
 - [x] local mutations arriving while pull metadata loads are preserved;
-- [x] deterministic baseline two-device conflict tests exist;
+- [x] deterministic two-device conflict coverage exists for every mutable entity policy;
+- [x] update-versus-delete is covered in both directions;
+- [x] duplicate remote delivery is idempotent after conflict resolution;
+- [x] unresolved conflicts persist per user and recover after restart;
 - [x] queue deduplication and idempotency protections exist.
 
 ### AI Coach
@@ -97,28 +100,14 @@ Additional sync hardening completed:
 - [x] Pre-workout Safety acknowledgement and immutable completed-workout provenance.
 - [x] Read-only Combined Coach review.
 - [x] Provider-neutral backend model abstraction and capability gating.
+- [x] Provider-neutral default model with optional Nutrition, Strength, and Combined overrides.
 
-### Major file decomposition already completed
+### Major file decomposition
 
-- [x] `WorkoutSessionScreen.tsx` reduced below 500 lines.
-- [x] `WorkoutSessionFinishScreen.tsx` reduced below 500 lines.
-- [x] `WorkoutHistoryScreen.tsx` reduced below 500 lines.
-- [x] `WorkoutHistoryDetailScreen.tsx` reduced below 500 lines.
-- [x] `WorkoutsScreen.tsx` reduced below 500 lines.
-- [x] `NutritionCoachScreen.tsx` reduced below 500 lines.
-- [x] `StrengthCoachScreen.tsx` reduced below 500 lines.
-- [x] `SafetyRecoveryCoachScreen.tsx` reduced below 500 lines.
-- [x] `UserLimitationScreen.tsx` reduced below 500 lines.
-- [x] `CombinedCoachScreen.tsx` reduced below 500 lines.
-- [x] `NutritionTargetProposalScreen.tsx` reduced below 500 lines.
-- [x] `add-food.tsx` reduced below 500 lines.
-- [x] `SyncContext.tsx` reduced below 500 lines.
-- [x] `CloudConflictResolver.ts` reduced below 500 lines.
-- [x] `SyncCoordinator.ts` reduced to a compatibility facade with separate operations, state-machine, types, and helper modules below 500 lines.
-- [x] `nutritionCoachViewModel.ts` reduced to a public builder and type re-export surface with separate metric, proposal, and type modules below 500 lines.
-- [x] `addFoodStyles.ts` reduced to a public style factory composed from separate base, scanner, and sheet style modules below 500 lines.
-- [x] `WorkoutTemplateSync.ts` reduced to a compatibility facade with separate serialization/queue and remote-apply modules below 500 lines.
-- [x] `test/intelligence.test.ts` reduced below 500 lines with shared fixture construction extracted.
+- [x] All tracked hand-written mobile files are at or below 500 physical lines.
+- [x] `SyncCoordinator.ts` is a compatibility facade over operations, state-machine, types, and helpers.
+- [x] `WorkoutTemplateSync.ts` is a compatibility facade over serialization/queue and remote-apply modules.
+- [x] Coach view models, large screens, Add Food styles, and intelligence fixtures are decomposed below the limit.
 
 ## Remaining roadmap
 
@@ -126,55 +115,31 @@ Additional sync hardening completed:
 
 Status: complete.
 
-Required work:
+Latest completed hardening:
 
-- [x] add explicit two-device conflict scenarios for workout templates;
-- [x] add explicit two-device conflict scenarios for training programs;
-- [x] add explicit two-device conflict scenarios for meal templates;
-- [x] add explicit two-device conflict scenarios for custom exercises;
-- [x] add explicit two-device conflict scenarios for body measurements;
-- [x] add explicit two-device conflict scenarios for nutrition targets;
-- [x] add explicit two-device conflict scenarios for limitations and recovery records;
-- [x] test update-versus-delete in both directions for mutable entities;
-- [x] test duplicate remote delivery after conflict resolution;
-- [x] verify conflict state remains visible and recoverable after restart.
-
-Latest completed sync-hardening slices:
-
-- `d5afb4d513c27e026f885efa8b3021033c76b245` — preserve local mutations during remote materialization.
-- Workout-template conflict coverage now includes independent two-device merges, overlapping edits, and update-versus-delete in both directions.
-- Training-program conflict coverage now includes independent metadata, schedule, and progression merges plus overlapping edits and update-versus-delete in both directions.
-- Meal-template conflict coverage now includes independent template, item-list, and nested item merges plus overlapping edits and update-versus-delete in both directions.
-- Custom-exercise conflict coverage now uses an explicit structured merge policy for independent edits while preserving overlapping and update-versus-delete conflicts for manual review.
-- Body-measurement conflict coverage now verifies distinct append records, duplicate delivery, divergent same-record edits, and deterministic append-only union behavior.
-- Nutrition-target conflict coverage now verifies duplicate delivery, revision-number ordering, timestamp ordering, and stable revision-ID tie-breaking.
-- Safety/Recovery conflict coverage now explicitly merges independent limitation edits while preserving overlapping limitation edits and divergent recovery records for review.
-- Update/delete normalization now treats tombstones consistently across all mutable policies, including last-write-wins entities, and keeps both directions visible for manual review.
-- Auto-resolved client conflicts no longer block cursor advancement; duplicate remote delivery retains a stable conflict identity and zero unresolved count.
-- Unresolved conflict snapshots are now stored per user, deduplicated by conflict ID, cleaned up by terminal updates, and restored after application restart.
+- independent and overlapping edits have explicit deterministic or manual-review policies;
+- tombstones are normalized across mutable policies;
+- auto-resolved conflicts no longer block cursor advancement;
+- duplicate delivery retains stable conflict identity and zero unresolved count;
+- unresolved conflict snapshots are stored per user, deduplicated, cleaned up by terminal updates, and restored after restart.
 
 ### Phase B — finish oversized-file decomposition
 
 Status: complete.
 
-Completed candidates from the audit and later growth:
+- [x] resolve every known oversized source file;
+- [x] rerun the repository-wide tracked-file audit;
+- [x] make the audit a permanent blocking mobile CI step.
 
-- [x] `src/cloud/SyncCoordinator.ts`;
-- [x] `src/api/coach.ts` — already a 24-line compatibility facade;
-- [x] `src/features/coach/nutritionCoachViewModel.ts`;
-- [x] `src/features/nutrition/styles/addFoodStyles.ts`;
-- [x] `src/cloud/WorkoutTemplateSync.ts`;
-- [x] rerun a repository-wide tracked-file line audit and resolve every violation.
-
-The permanent blocking audit checks tracked hand-written `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, and `.md` files. Generated files such as `package-lock.json` and `repomix-output.xml` remain excluded.
+Generated files such as `package-lock.json` and `repomix-output.xml` remain excluded.
 
 ### Phase C — staging model-provider activation
 
-Status: code foundation exists; runtime activation not verified.
+Status: provider-neutral code configuration complete; staging runtime activation not verified.
 
 Required:
 
-- [ ] make default Coach model configuration provider-neutral with optional domain overrides;
+- [x] make default Coach model configuration provider-neutral with optional domain overrides;
 - [ ] configure staging-only provider credentials on the backend;
 - [ ] verify Nutrition structured-output retry and guardrail rejection paths;
 - [ ] verify Strength structured-output retry and guardrail rejection paths;
@@ -182,11 +147,20 @@ Required:
 - [ ] confirm deterministic reviews continue to work with model execution disabled;
 - [ ] confirm capability flags reflect actual runtime availability.
 
-Never put provider credentials in mobile code or `EXPO_PUBLIC_*` variables.
+Completed provider configuration slice:
+
+- backend PR `#35`, merged as `0618ffc4534f72120ed2861b929fbd5021276294`;
+- `COACH_MODEL_DEFAULT_MODEL` is the provider-neutral fallback;
+- optional `COACH_NUTRITION_MODEL`, `COACH_STRENGTH_MODEL`, and `COACH_COMBINED_MODEL` overrides are routed per structured request;
+- the model feature remains disabled by default;
+- blank disabled configuration values are treated as unconfigured;
+- the staging smoke workflow uses the neutral default model and exposes no credentials or raw provider output.
+
+The staging credential item requires real protected environment values and cannot be marked complete from source code alone. Never put provider credentials in mobile code or `EXPO_PUBLIC_*` variables.
 
 ### Phase D — Combined Strategy proposal
 
-Status: read-only Combined review exists; coordinated proposal/application flow is incomplete.
+Status: read-only Combined review and deterministic proposal preview exist; coordinated application flow remains incomplete.
 
 Backend remaining:
 
@@ -228,10 +202,10 @@ Required:
 
 ## Recommended immediate next actions
 
-1. Make the backend default Coach model configuration provider-neutral with optional domain overrides.
-2. Add and validate staging-only model-provider configuration without exposing credentials to mobile code.
-3. Verify structured-output retry, guardrail rejection, telemetry, disabled-model behavior, and capability flags.
-4. Implement Combined Strategy proposal after provider/staging contracts are stable.
+1. Add explicit Nutrition and Strength structured-output retry and deterministic guardrail-rejection tests.
+2. Verify telemetry persistence, disabled-provider behavior, and capability flags.
+3. Configure staging-only provider credentials and run the protected smoke workflow when real values are available and activation is explicitly authorized.
+4. Implement the remaining Combined Strategy application flow after provider contracts are stable.
 5. Finish native-build and real-device release validation.
 
 ## Validation expectations
@@ -255,6 +229,4 @@ Do not claim completion when CI is failing. State blockers explicitly.
 
 ## New-chat starter prompt
 
-Use this in a new chat:
-
-> Continue the Smart Fitness roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, and `docs/implementation-plan.md` first. Inspect latest `main` and open PRs in both `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`. Continue from the first unchecked item in `ROADMAP_PROGRESS.md`. Work in small focused PRs, run full blocking CI, merge only green exact heads, preserve existing behavior, and keep every hand-written source file at or below 500 lines. Run independent decompositions in parallel when file sets do not overlap. Do not perform OTA/EAS publish, native builds, device installation, backend deployment, or production feature activation unless explicitly requested. After finishing a slice, update `ROADMAP_PROGRESS.md` and continue to the next item.
+> Continue the Smart Fitness roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, and `docs/implementation-plan.md` first. Inspect latest `main` and open PRs in both `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`. Continue from the first unchecked code-verifiable item in `ROADMAP_PROGRESS.md`; note external credential/deployment blockers without inventing completion. Work in small focused PRs, run full blocking CI, merge only green exact heads, preserve existing behavior, and keep every hand-written source file at or below 500 lines. Do not perform OTA/EAS publish, native builds, device installation, backend deployment, staging credential activation, or production feature activation unless explicitly requested. After finishing a slice, update `ROADMAP_PROGRESS.md` and continue.
