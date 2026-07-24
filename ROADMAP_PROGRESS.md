@@ -2,7 +2,7 @@
 
 Updated: 2026-07-24
 
-This is the canonical handoff document for continuing the current Smart Fitness roadmap in a new agent/chat session.
+This is the canonical handoff document for continuing the current Smart Fitness roadmap in a new agent or chat session.
 
 Read this file together with:
 
@@ -17,40 +17,40 @@ Read this file together with:
 - Backend: `hon4olo/smart-fitness-backend`
 - Production API: `https://api.peptonio.com`
 
-Always inspect the latest `main` in both repositories before changing code because concurrent work may have landed.
+Always inspect the latest `main` and open pull requests in both repositories before changing code. Do not infer merge state from an earlier conversation summary.
 
 ## Working rules
 
-- Continue the roadmap without asking for confirmation after every completed slice.
+- Continue the roadmap without asking for confirmation after every completed code slice.
 - Use small focused branches and pull requests.
-- Run full blocking CI before merge.
+- Run full blocking CI before merge and merge only the exact green head.
 - Preserve existing behavior unless the roadmap explicitly changes it.
 - Keep every hand-written source file at or below 500 physical lines.
-- When independent work does not touch the same files, it may run in parallel branches.
-- Do not add Supabase, Firebase, a second backend, direct mobile LLM calls, or provider secrets in the mobile app.
-- Do not perform OTA/EAS publish, native build, device installation, backend deployment, staging credential activation, or production feature activation unless explicitly requested.
+- Do not add Supabase, Firebase, a second backend, direct mobile model calls, or provider secrets in the mobile app.
+- Do not perform OTA/EAS publish, native builds, device installation, backend deployment, staging credential activation, or production feature activation unless explicitly requested.
 
 ## Overall completion
 
-Estimated roadmap completion: about 97–98%.
+Estimated roadmap completion: about 98% at source-code level.
 
-The remaining work is concentrated in:
+The remaining work is concentrated in external release validation:
 
 1. configure and smoke-test the model provider in the protected staging environment;
-2. finish the remaining Combined Nutrition reconciliation policy;
-3. complete release-device and production-readiness validation.
+2. harden the backend release gate for production configuration and PostgreSQL migrations;
+3. run fixed-SHA cross-repository validation;
+4. deploy and validate staging;
+5. complete native-build and real-device validation.
 
 ## Completed foundation
 
 ### Architecture and documentation
 
-- [x] Single production Fastify/PostgreSQL backend established.
+- [x] Single Fastify/PostgreSQL backend established.
 - [x] Mobile and backend agent instructions describe the current architecture.
 - [x] Cross-repository implementation plan exists.
-- [x] Hand-written file limit of 500 lines is enforced for changed files in CI.
-- [x] Repository-wide tracked-file line audit is enforced in blocking mobile CI.
+- [x] Changed-file and repository-wide 500-line audits are blocking in mobile CI.
 - [x] Full mobile regression suite is blocking in CI.
-- [x] Cross-repository release-gate workflow exists.
+- [x] A cross-repository fixed-SHA release-gate workflow exists.
 
 ### Authentication and persistence
 
@@ -79,12 +79,12 @@ Implemented for:
 - [x] typed body measurements;
 - [x] custom exercises.
 
-Additional sync hardening completed:
+Additional hardening:
 
 - [x] malformed and unsupported remote entities fail closed;
 - [x] cursor advancement requires every returned operation to be handled;
 - [x] local mutations arriving while pull metadata loads are preserved;
-- [x] deterministic two-device conflict coverage exists for every mutable entity policy;
+- [x] deterministic two-device conflict coverage exists for every mutable policy;
 - [x] update-versus-delete is covered in both directions;
 - [x] duplicate remote delivery is idempotent after conflict resolution;
 - [x] unresolved conflicts persist per user and recover after restart;
@@ -101,44 +101,32 @@ Additional sync hardening completed:
 - [x] Read-only Combined Coach review.
 - [x] Versioned Combined Strategy proposal review.
 - [x] Safety-adjusted effective Strength plan.
+- [x] Conservative Nutrition reconciliation against Safety and effective training demand.
 - [x] Separate explicit Combined Strength-template and Nutrition-target confirmations.
 - [x] Revision-safe, idempotent Combined mutation application and interrupted-write recovery.
 - [x] Provider-neutral backend model abstraction and capability gating.
 - [x] Provider-neutral default model with optional Nutrition, Strength, and Combined overrides.
-- [x] Domain guardrail repair/rejection and provider telemetry are explicitly covered.
+- [x] Domain guardrail repair/rejection and provider telemetry coverage.
 
 ### Major file decomposition
 
 - [x] All tracked hand-written mobile files are at or below 500 physical lines.
-- [x] `SyncCoordinator.ts` is a compatibility facade over operations, state-machine, types, and helpers.
-- [x] `WorkoutTemplateSync.ts` is a compatibility facade over serialization/queue and remote-apply modules.
-- [x] Coach view models, large screens, Add Food styles, and intelligence fixtures are decomposed below the limit.
-- [x] The backend Combined proposal worker is split into contract, strict summary parser, and evaluator modules below 500 lines.
-- [x] The mobile Combined parser and application UI are split into contracts, common parsing, v2 parsing, view-model, result, and screen modules below 500 lines.
+- [x] `SyncCoordinator.ts` is a compatibility facade over focused modules.
+- [x] `WorkoutTemplateSync.ts` is a compatibility facade over focused modules.
+- [x] Large Coach view models, screens, styles, fixtures, and parsers are decomposed.
+- [x] Backend Combined contract, summaries, evaluator, effective-Strength worker, and reconciliation worker remain separated.
 
 ## Remaining roadmap
 
-### Phase A — complete sync conflict matrix
+### Phase A — sync conflict matrix
 
 Status: complete.
 
-Latest completed hardening:
-
-- independent and overlapping edits have explicit deterministic or manual-review policies;
-- tombstones are normalized across mutable policies;
-- auto-resolved conflicts no longer block cursor advancement;
-- duplicate delivery retains stable conflict identity and zero unresolved count;
-- unresolved conflict snapshots are stored per user, deduplicated, cleaned up by terminal updates, and restored after restart.
-
-### Phase B — finish oversized-file decomposition
+### Phase B — oversized-file decomposition
 
 Status: complete.
 
-- [x] resolve every known oversized source file;
-- [x] rerun the repository-wide tracked-file audit;
-- [x] make the audit a permanent blocking mobile CI step.
-
-Generated files such as `package-lock.json` and `repomix-output.xml` remain excluded.
+Generated files such as `package-lock.json` and `repomix-output.xml` remain excluded from the hand-written source limit.
 
 ### Phase C — staging model-provider activation
 
@@ -146,86 +134,71 @@ Status: source-code configuration and verification complete; protected staging a
 
 Required:
 
-- [x] make default Coach model configuration provider-neutral with optional domain overrides;
+- [x] provider-neutral default Coach model with optional domain overrides;
 - [ ] configure staging-only provider credentials on the backend;
 - [x] verify Nutrition structured-output retry and guardrail rejection paths;
 - [x] verify Strength structured-output retry and guardrail rejection paths;
-- [x] record latency, provider/model identifier, attempts, token usage, and validation failures;
-- [x] confirm deterministic reviews continue to work with model execution disabled;
+- [x] persist latency, provider/model identifier, attempts, token usage, and validation failures;
+- [x] confirm deterministic reviews work with model execution disabled;
 - [x] confirm capability flags reflect actual runtime availability.
 
 Completed provider slices:
 
-- backend PR `#35`, merge `0618ffc4534f72120ed2861b929fbd5021276294`:
-  - `COACH_MODEL_DEFAULT_MODEL` is the provider-neutral fallback;
-  - optional Nutrition, Strength, and Combined overrides are routed per request;
-  - the model feature remains disabled by default;
-  - blank disabled configuration values are treated as unconfigured;
-  - the protected smoke workflow exposes no credentials or raw provider output;
-- backend PR `#36`, merge `1f295d8cc76ca4c3d53308929cc574dccf77fcc3`:
-  - Nutrition and Strength use real agent definitions in bounded repair-success and three-attempt rejection tests;
-  - deterministic guardrail issues are supplied to the next model attempt;
-- backend PR `#37`, merge `a15e751f4032f9dda1f88613523c3643ae56a8ec`:
-  - rejected structured runs retain provider, model, cumulative latency, token usage, attempts, and validation issues;
-  - Nutrition and Strength persist the rejection telemetry in agent-run error details.
+- backend PR `#35`, merge `0618ffc4534f72120ed2861b929fbd5021276294`: provider-neutral configuration and model routing;
+- backend PR `#36`, merge `1f295d8cc76ca4c3d53308929cc574dccf77fcc3`: bounded Nutrition and Strength repair/rejection tests;
+- backend PR `#37`, merge `a15e751f4032f9dda1f88613523c3643ae56a8ec`: persisted rejection telemetry.
 
-Disabled-provider verification is covered by the configured-client factory tests and deterministic orchestrator tests. Capability tests verify that structured Strategy flags are false without a runtime model client and true only when one is actually supplied.
+The remaining credential item requires protected environment values and an explicitly authorized smoke run. Never put provider credentials in mobile code or `EXPO_PUBLIC_*` variables.
 
-The remaining staging credential item requires real protected environment values and an explicitly authorized smoke run. It cannot be marked complete from source code alone. Never put provider credentials in mobile code or `EXPO_PUBLIC_*` variables.
+### Phase D — Combined Strategy
 
-### Phase D — Combined Strategy proposal
-
-Status: versioned composition, Safety-adjusted Strength planning, and separate explicit application flows are complete; Nutrition reconciliation remains.
+Status: complete at source-code level.
 
 Backend:
 
-- [x] finalize the versioned Combined Strategy request/response contract;
-- [x] compose eligible Nutrition and Strength proposals with Safety context;
-- [x] apply deterministic Safety restrictions and load ceilings to the effective Strength plan;
-- [ ] reconcile nutrition targets with recovery state and training demand;
-- [x] add a deterministic final combined guardrail;
-- [x] persist child run IDs, versions, validation reports, and audit/application metadata;
-- [x] expose dedicated capability flags;
-- [x] define explicit partial-failure and retry behavior;
-- [x] keep automatic application disabled.
+- [x] versioned Combined Strategy request/response contract;
+- [x] eligible Nutrition and Strength child proposals composed with Safety context;
+- [x] deterministic Safety restrictions and effective Strength load ceilings;
+- [x] conservative Nutrition reconciliation with recovery and effective training-load context;
+- [x] deterministic final guardrail;
+- [x] persisted child run IDs, policy versions, validation reports, and application metadata;
+- [x] capability schemas through v10;
+- [x] explicit partial-failure and retry behavior;
+- [x] automatic application disabled.
 
 Mobile:
 
-- [x] strict capability parsing;
-- [x] strict versioned result and application parsers;
-- [x] one combined preview/application screen;
-- [x] display proposed, maximum allowed, and effective Strength loads;
-- [x] clear blocking, input-required, modification, warning, and unresolved-movement states;
+- [x] strict capability parsing through v10;
+- [x] strict Combined result parsing through contract v3, with v1/v2 compatibility;
+- [x] one Combined preview/application screen;
+- [x] proposed, maximum allowed, and effective Strength loads displayed;
+- [x] reconciliation decision, calorie delta, Safety multiplier, and training-load ratio validated;
+- [x] blocking, input-required, modification, warning, and unresolved-movement states displayed;
 - [x] separate explicit confirmation for every applying action;
 - [x] revision-safe and idempotent application of confirmed mutations.
 
-Completed Combined slices:
+Latest Combined slices:
 
-- backend PR `#33` added the `combined_proposal_review` request, three child runs, final deterministic evaluation, child IDs, policy/audit metadata, capability schema v7, fail-closed child parsing, idempotent parent request handling, and `automaticApplication: false`;
-- mobile PR `#52` added strict capability v7 parsing, strict proposal parsing/view-model construction, and the read-only Combined proposal preview with pending-action and guardrail states;
-- backend PR `#38`, merge `1c39461d19b22f4953dd05841979ee6e75f9d45c`, decomposed the Combined proposal worker without changing its contract or behavior;
-- backend PR `#39`, merge `a291293faabb97a6766a053482f9e22649fc2e6a`, added contract v2, strict Safety restrictions, deterministic effective Strength weights/tonnage, and fail-closed unresolved movement restrictions;
-- mobile PR `#80`, merge `8b72fa1514611e7e8b8fd27fd46de66e885a8333`, added strict v2 arithmetic/restriction parsing, v1 compatibility, and effective-load rendering;
-- backend PR `#40`, merge `10b4c443321af96f387a24ec0734e46206616f17`, added explicit effective-Strength confirmation with Combined revalidation, revisioned template creation, deterministic identity, and operation recovery;
-- mobile PR `#82`, merge `ed1d866697ac64372897743451b42dbbc95fa61f`, added capability v8, a separate Strength confirmation dialog/control, stable retry identity, sync refresh, and strict application metadata parsing;
-- backend PR `#41`, merge `c2b894a6d7894b4fc16868f8207a5cd15c919042`, advertised effective-Strength confirmation in capability schema v8;
-- backend PR `#42`, merge `e988556b8053277d0e8c349a934240ad22d6ea60`, added explicit Combined Nutrition delegation, stable child idempotency, parent audit metadata, stale-state blocking, and interrupted-parent recovery;
-- mobile PR `#83`, merge `de36fae882c50cbbb45fe863592f8d3c7b4dd181`, added capability v9, a separate Nutrition confirmation dialog/control, and independent Strength/Nutrition application states;
-- backend PR `#43`, merge `3e4737bb5d6f35ed97a522b2aa0e049e4cb2bd79`, advertised both explicit confirmations in capability schema v9.
+- backend PR `#39`, merge `a291293faabb97a6766a053482f9e22649fc2e6a`: Combined v2 and effective Strength plan;
+- backend PRs `#40`–`#43`: separate Strength and Nutrition confirmation boundaries and capability schemas v8/v9;
+- backend PR `#44`, merge `a4927c5c017a086cfa4787558fa1d37547336780`: conservative reconciliation worker;
+- mobile PR `#85`, merge `2c0f8113358c0efacaf26bf8a57a37e718323ca4`: strict v3/v10 parsing, rendering, and confirmation gating;
+- backend PR `#45`, merge `14b24e41f27266555230120f3b31d47b86795a73`: Combined v3 integration, capability v10, v2 confirmation compatibility, and reconciliation-gated Nutrition writes.
 
-Combined never offers an aggregate apply operation. Effective Strength and Nutrition have separate routes, confirmation dialogs, idempotency identities, revisioned writes, application metadata, and retry/recovery rules. Completed workout history remains immutable and `automaticApplication` remains false.
+Combined never offers an aggregate apply operation. Effective Strength and Nutrition use separate routes, confirmation dialogs, idempotency identities, revisioned writes, metadata, and retry/recovery rules. Completed workout history remains immutable. A non-zero calorie delta is review-only until a separate deterministic energy-adjustment policy is approved.
 
 ### Phase E — release readiness
 
-Status: CI foundation mostly complete; real runtime validation remains.
+Status: CI foundation exists; release validation remains incomplete.
 
 Required:
 
-- [ ] run cross-repository release gate on fixed mobile/backend SHAs;
+- [ ] make backend production-config and migration validation blocking on current `main`;
+- [ ] run the cross-repository release gate on fixed current mobile/backend SHAs;
 - [ ] deploy and validate backend in staging;
 - [ ] apply and verify migrations on staging PostgreSQL;
 - [ ] verify `/health`, auth, sync push/pull, and Coach polling against staging;
-- [ ] create a matching native iOS/Android build containing Expo SecureStore;
+- [ ] create matching native iOS and Android builds containing Expo SecureStore;
 - [ ] run real-device smoke tests for workout, nutrition, progress, auth, sync, and Coach flows;
 - [ ] test offline restart and queue recovery on device;
 - [ ] test sign-in and synchronization on a second device/account runtime;
@@ -234,10 +207,10 @@ Required:
 
 ## Recommended immediate next actions
 
-1. Inspect the approved Nutrition and Combined policies, then define a conservative deterministic reconciliation contract for recovery state and training demand.
-2. Keep reconciliation read-only until strict parsing, final guardrails, and explicit confirmation behavior are defined.
-3. Configure protected staging credentials and run the provider smoke workflow only when explicitly authorized.
-4. Run the fixed-SHA cross-repository release gate and real staging/device validation when deployment and native-build actions are explicitly authorized.
+1. Inspect and modernize backend PR `#34` so production configuration and PostgreSQL migration checks run against current backend `main` without deployment.
+2. Merge that gate only after lint, TypeScript, full tests, production-config validation, and repeated clean-database migration application are green.
+3. Run the fixed-SHA cross-repository release gate on the resulting current mobile/backend pair.
+4. Configure protected staging credentials, deploy staging, create native builds, or publish OTA only after explicit authorization.
 
 ## Validation expectations
 
@@ -254,10 +227,10 @@ For native dependency or Expo configuration changes:
 npx expo-doctor
 ```
 
-For backend changes, run the repository's blocking lint, build, test, migration, and production-config checks.
+For backend changes, run the repository's blocking lint, build, test, production-configuration, and migration checks when available.
 
-Do not claim completion when CI is failing. State blockers explicitly.
+Do not claim completion when CI is failing or when an external environment action has not actually been performed.
 
 ## New-chat starter prompt
 
-> Continue the Smart Fitness roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, and `docs/implementation-plan.md` first. Inspect latest `main` and open PRs in both `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`. Continue from the first unchecked code-verifiable item in `ROADMAP_PROGRESS.md`; note external credential/deployment blockers without inventing completion. Work in small focused PRs, run full blocking CI, merge only green exact heads, preserve existing behavior, and keep every hand-written source file at or below 500 lines. Do not perform OTA/EAS publish, native builds, device installation, backend deployment, staging credential activation, or production feature activation unless explicitly requested. After finishing a slice, update `ROADMAP_PROGRESS.md` and continue.
+> Continue the Smart Fitness roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, and `docs/implementation-plan.md` first. Inspect latest `main` and open PRs in both `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`. Continue from the first unchecked code-verifiable item in `ROADMAP_PROGRESS.md`; note external credential, deployment, native-build, device, and OTA blockers without inventing completion. Work in small focused PRs, run full blocking CI, merge only exact green heads, preserve existing behavior, and keep every hand-written source file at or below 500 lines. Do not perform OTA/EAS publish, native builds, device installation, backend deployment, staging credential activation, or production feature activation unless explicitly requested. After finishing a slice, update `ROADMAP_PROGRESS.md` and continue.
