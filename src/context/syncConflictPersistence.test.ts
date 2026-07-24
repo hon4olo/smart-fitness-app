@@ -15,8 +15,11 @@ const readSource = (relativePath: string) =>
 describe('sync conflict persistence integration', () => {
   it('restores per-user conflict state after application restart', () => {
     const source = readSource('src/context/SyncContext.tsx');
+    const storeIndex = source.indexOf('conflictStore');
+    const restoreIndex = source.indexOf('.list(userId)', storeIndex);
 
-    expect(source).toContain('conflictStore.list(userId)');
+    expect(storeIndex).toBeGreaterThan(-1);
+    expect(restoreIndex).toBeGreaterThan(storeIndex);
     expect(source).toContain('setConflictCount(conflicts.length)');
   });
 
