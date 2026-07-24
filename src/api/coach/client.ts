@@ -117,6 +117,11 @@ export const createCoachApi = (
       } satisfies StartCombinedCoachRunInput),
     confirmRun: (runId, input) =>
       postRun(`/v1/coach/runs/${encodeURIComponent(runId)}/confirm`, input),
+    confirmCombinedEffectiveStrength: (runId, input) =>
+      postRun(
+        `/v1/coach/runs/${encodeURIComponent(runId)}/confirm-effective-strength`,
+        input,
+      ),
     getRun,
     waitForTerminalRun: async (initial, options = {}) => {
       let current = initial;

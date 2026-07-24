@@ -62,6 +62,15 @@ export type CombinedEffectiveStrengthPlan = {
   automaticApplication: false;
 };
 
+export type CombinedEffectiveStrengthApplication = {
+  applied: true;
+  appliedAt: string;
+  appliedRevision: number;
+  confirmationIdempotencyKey: string;
+  templateId: string;
+  policyVersion: 'combined-effective-strength-v1';
+};
+
 export type CombinedStrengthProposal = {
   runId: string;
   status: CombinedProposalStatus;
@@ -117,4 +126,5 @@ export type CombinedCoachProposalViewModel =
       message: string;
       rejected: boolean;
       reason: string | null;
+      effectiveStrengthApplication: CombinedEffectiveStrengthApplication | null;
     } & ParsedCombinedProposalReview);
