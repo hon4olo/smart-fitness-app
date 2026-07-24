@@ -5,10 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
-import { addDays, formatLocalDate } from '@/lib';
-import { useAppTheme } from '@/theme/AppThemeProvider';
 import { useAppContext } from '@/context/AppContext';
+import { addDays, formatLocalDate } from '@/lib';
 import { getLoggedFoodDates } from '@/lib/nutrition';
+import { useAppTheme } from '@/theme/AppThemeProvider';
+
+const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
 const formatMonthTitle = (date: Date) =>
   new Intl.DateTimeFormat(undefined, {
@@ -50,7 +52,8 @@ export default function NutritionDatePickerScreen() {
   const { foodEntries } = useAppContext();
   const params = useLocalSearchParams<{ date?: string }>();
   const todayKey = useMemo(() => formatLocalDate(new Date()), []);
-  const initialDate = typeof params.date === 'string' && params.date.length > 0 ? params.date : todayKey;
+  const initialDate =
+    typeof params.date === 'string' && params.date.length > 0 ? params.date : todayKey;
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [monthAnchor, setMonthAnchor] = useState(initialDate.slice(0, 7));
 
@@ -82,12 +85,26 @@ export default function NutritionDatePickerScreen() {
   }, [monthDate, selectedDate, todayKey, loggedDaySet]);
 
   const goToPreviousMonth = () => {
-    const previousMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1, 12, 0, 0);
+    const previousMonth = new Date(
+      monthDate.getFullYear(),
+      monthDate.getMonth() - 1,
+      1,
+      12,
+      0,
+      0,
+    );
     setMonthAnchor(formatLocalDate(previousMonth).slice(0, 7));
   };
 
   const goToNextMonth = () => {
-    const nextMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1, 12, 0, 0);
+    const nextMonth = new Date(
+      monthDate.getFullYear(),
+      monthDate.getMonth() + 1,
+      1,
+      12,
+      0,
+      0,
+    );
     setMonthAnchor(formatLocalDate(nextMonth).slice(0, 7));
   };
 
@@ -103,12 +120,22 @@ export default function NutritionDatePickerScreen() {
   return (
     <View style={styles.screen}>
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.six, paddingTop: insets.top + Spacing.three }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingBottom: insets.bottom + Spacing.six,
+            paddingTop: insets.top + Spacing.three,
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <View style={styles.headerRow}>
-            <Pressable accessibilityLabel="Cancel" hitSlop={10} onPress={() => router.back()} style={styles.headerButton}>
+            <Pressable
+              accessibilityLabel="Cancel"
+              hitSlop={10}
+              onPress={() => router.back()}
+              style={styles.headerButton}>
               <Text style={styles.headerButtonText}>Cancel</Text>
             </Pressable>
             <View style={styles.headerCopy}>
@@ -119,59 +146,89 @@ export default function NutritionDatePickerScreen() {
                 Jump to any day
               </Text>
             </View>
-            <Pressable accessibilityLabel="Done" hitSlop={10} onPress={confirmDate} style={styles.headerButton}>
+            <Pressable
+              accessibilityLabel="Done"
+              hitSlop={10}
+              onPress={confirmDate}
+              style={styles.headerButton}>
               <Text style={styles.headerButtonText}>Done</Text>
             </Pressable>
           </View>
 
           <AppCard style={styles.calendarCard}>
             <View style={styles.monthRow}>
-              <Pressable accessibilityLabel="Previous month" hitSlop={10} onPress={goToPreviousMonth} style={styles.monthNavButton}>
+              <Pressable
+                accessibilityLabel="Previous month"
+                hitSlop={10}
+                onPress={goToPreviousMonth}
+                style={styles.monthNavButton}>
                 <Text style={styles.monthNavText}>‹</Text>
               </Pressable>
               <Text selectable style={styles.monthTitle}>
                 {monthTitle}
               </Text>
-              <Pressable accessibilityLabel="Next month" hitSlop={10} onPress={goToNextMonth} style={styles.monthNavButton}>
+              <Pressable
+                accessibilityLabel="Next month"
+                hitSlop={10}
+                onPress={goToNextMonth}
+                style={styles.monthNavButton}>
                 <Text style={styles.monthNavText}>›</Text>
               </Pressable>
             </View>
 
             <View style={styles.weekHeader}>
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-                <Text key={day} selectable style={styles.weekHeaderLabel}>
-                  {day}
-                </Text>
+              {weekDays.map((day) => (
+                <View key={day} style={styles.weekHeaderCell}>
+                  <Text selectable style={styles.weekHeaderLabel}>
+                    {day}
+                  </Text>
+                </View>
               ))}
             </View>
 
             <View style={styles.grid}>
               {dayCells.map((day) => (
-                <Pressable
-                  key={day.dateKey}
-                  accessibilityLabel={`${day.weekdayLabel} ${day.dayLabel}${day.isToday ? ', today' : ''}${day.isLogged ? ', food logged' : ', no food logged'}`}
-                  accessibilityState={{ selected: day.isSelected }}
-                  hitSlop={8}
-                  onPress={() => applyDate(day.dateKey)}
-                  style={[
-                    styles.dayCell,
-                    !day.inMonth && styles.dayCellMuted,
-                    day.isLogged && styles.dayCellLogged,
-                    day.isToday && !day.isLogged && styles.dayCellToday,
-                    day.isSelected && styles.dayCellSelected,
-                  ]}>
-                  <Text
-                    selectable
+                <View key={day.dateKey} style={styles.daySlot}>
+                  <Pressable
+                    accessibilityLabel={`${day.weekdayLabel} ${day.dayLabel}${day.isToday ? ', today' : ''}${day.isLogged ? ', food logged' : ', no food logged'}`}
+                    accessibilityState={{ selected: day.isSelected }}
+                    hitSlop={4}
+                    onPress={() => applyDate(day.dateKey)}
                     style={[
-                      styles.dayCellText,
-                      !day.inMonth && styles.dayCellTextMuted,
-                      day.isSelected && styles.dayCellTextSelected,
+                      styles.dayCell,
+                      !day.inMonth && styles.dayCellMuted,
+                      day.isLogged && styles.dayCellLogged,
+                      day.isToday && !day.isLogged && styles.dayCellToday,
+                      day.isSelected && styles.dayCellSelected,
                     ]}>
-                    {day.dayLabel}
-                  </Text>
-                  {day.isLogged ? <Text style={[styles.dayCellCheck, day.isSelected && styles.dayCellCheckSelected]}>✓</Text> : null}
-                  {day.isToday && !day.isLogged ? <View style={[styles.todayDot, day.isSelected && styles.todayDotSelected]} /> : null}
-                </Pressable>
+                    <Text
+                      selectable
+                      style={[
+                        styles.dayCellText,
+                        !day.inMonth && styles.dayCellTextMuted,
+                        day.isSelected && styles.dayCellTextSelected,
+                      ]}>
+                      {day.dayLabel}
+                    </Text>
+                    {day.isLogged ? (
+                      <Text
+                        style={[
+                          styles.dayCellCheck,
+                          day.isSelected && styles.dayCellCheckSelected,
+                        ]}>
+                        ✓
+                      </Text>
+                    ) : null}
+                    {day.isToday && !day.isLogged ? (
+                      <View
+                        style={[
+                          styles.todayDot,
+                          day.isSelected && styles.todayDotSelected,
+                        ]}
+                      />
+                    ) : null}
+                  </Pressable>
+                </View>
               ))}
             </View>
           </AppCard>
@@ -184,7 +241,9 @@ export default function NutritionDatePickerScreen() {
 const createStyles = (colors: typeof Colors.dark) =>
   StyleSheet.create({
     calendarCard: {
-      gap: Spacing.three,
+      borderRadius: Radii.medium,
+      gap: Spacing.two,
+      padding: Spacing.three,
     },
     content: {
       alignItems: 'center',
@@ -200,15 +259,15 @@ const createStyles = (colors: typeof Colors.dark) =>
       backgroundColor: colors.surfaceSecondary,
       borderColor: colors.borderSubtle,
       borderCurve: 'continuous',
-      borderRadius: Radii.large,
+      borderRadius: 999,
       borderWidth: StyleSheet.hairlineWidth,
-      gap: 3,
-      height: 44,
+      gap: 1,
+      height: 38,
       justifyContent: 'center',
-      width: 44,
+      width: 38,
     },
     dayCellMuted: {
-      opacity: 0.58,
+      opacity: 0.5,
     },
     dayCellSelected: {
       backgroundColor: colors.accent,
@@ -217,9 +276,10 @@ const createStyles = (colors: typeof Colors.dark) =>
     },
     dayCellText: {
       color: colors.textPrimary,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '800',
       fontVariant: ['tabular-nums'],
+      lineHeight: 15,
     },
     dayCellTextMuted: {
       color: colors.textSecondary,
@@ -229,9 +289,9 @@ const createStyles = (colors: typeof Colors.dark) =>
     },
     dayCellCheck: {
       color: colors.accent,
-      fontSize: 8,
+      fontSize: 7,
       fontWeight: '900',
-      lineHeight: 8,
+      lineHeight: 7,
       textAlign: 'center',
     },
     dayCellCheckSelected: {
@@ -244,11 +304,15 @@ const createStyles = (colors: typeof Colors.dark) =>
     dayCellToday: {
       borderColor: colors.accent,
     },
+    daySlot: {
+      alignItems: 'center',
+      paddingVertical: 3,
+      width: '14.285714%',
+    },
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 6,
-      justifyContent: 'space-between',
+      width: '100%',
     },
     headerButton: {
       alignItems: 'center',
@@ -284,9 +348,9 @@ const createStyles = (colors: typeof Colors.dark) =>
       borderCurve: 'continuous',
       borderRadius: 999,
       borderWidth: StyleSheet.hairlineWidth,
-      height: 44,
+      height: 40,
       justifyContent: 'center',
-      width: 44,
+      width: 40,
     },
     monthNavText: {
       color: colors.textPrimary,
@@ -317,27 +381,30 @@ const createStyles = (colors: typeof Colors.dark) =>
     },
     title: {
       color: colors.textPrimary,
-      fontSize: 22,
+      fontSize: 24,
       fontWeight: '900',
     },
     todayDot: {
       backgroundColor: colors.accent,
       borderRadius: 999,
-      height: 5,
-      width: 5,
+      height: 4,
+      width: 4,
     },
     todayDotSelected: {
       backgroundColor: colors.textOnAccent,
     },
     weekHeader: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      width: '100%',
+    },
+    weekHeaderCell: {
+      alignItems: 'center',
+      width: '14.285714%',
     },
     weekHeaderLabel: {
       color: colors.textSecondary,
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '800',
       textAlign: 'center',
-      width: 44,
     },
   });
