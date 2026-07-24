@@ -1,13 +1,15 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import type { AuthService } from '@/auth';
 import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
 import { createWeightHistoryQueueOperation } from '@/cloud/WeightHistorySync';
+import { getDefaultAppMutationOutboxRecoveryStore } from '@/storage';
 import type { createAsyncStorageOperationQueueStore } from '@/storage/AsyncStorageOperationQueueStore';
 import type { createWeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
 import type { AppState, WeightEntry } from '@/types';
 
+import { createRecoverableOutboxStep } from './AppMutationOutboxRecovery';
 import {
   addWeightEntryToState,
   deleteWeightEntryFromState,
@@ -25,6 +27,12 @@ type WeightHistoryActionsOptions = {
   weightSyncMetadataStore: ReturnType<typeof createWeightSyncMetadataStore>;
 };
 
+const getRecoveryLabel = (action: WeightHistoryAction): string => {
+  if (action === 'create') return 'Save weight entry';
+  if (action === 'update') return 'Update weight entry';
+  return 'Delete weight entry';
+};
+
 export function useWeightHistoryActions({
   authService,
   queueStore,
@@ -32,6 +40,7 @@ export function useWeightHistoryActions({
   setState,
   weightSyncMetadataStore,
 }: WeightHistoryActionsOptions) {
+  const outboxRecoveryStore = useMemo(getDefaultAppMutationOutboxRecoveryStore, []);
   const buildWeightHistoryOperation = useCallback(
     async (action: WeightHistoryAction, entry: WeightEntry): Promise<OfflineSyncQueueOperation> => {
       const session = await authService.getCurrentSession();
@@ -49,14 +58,14 @@ export function useWeightHistoryActions({
   );
 
   const createWeightHistoryOutboxStep = useCallback(
-    (action: WeightHistoryAction, entry: WeightEntry): (() => Promise<void>) => {
-      let operationPromise: Promise<OfflineSyncQueueOperation> | null = null;
-      return async () => {
-        operationPromise ??= buildWeightHistoryOperation(action, entry);
-        await queueStore.enqueue(await operationPromise);
-      };
-    },
-    [buildWeightHistoryOperation, queueStore],
+    (action: WeightHistoryAction, entry: WeightEntry): (() => Promise<void>) =>
+      createRecoverableOutboxStep({
+        buildOperation: () => buildWeightHistoryOperation(action, entry),
+        label: getRecoveryLabel(action),
+        queueStore,
+        recoveryStore: outboxRecoveryStore,
+      }),
+    [buildWeightHistoryOperation, outboxRecoveryStore, queueStore],
   );
 
   const addWeightEntry = useCallback(

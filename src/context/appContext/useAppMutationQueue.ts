@@ -1,9 +1,15 @@
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 
 import type { AppRepository } from '@/repositories';
+import {
+  createAsyncStorageAdapter,
+  createAsyncStorageOperationQueueStore,
+  getDefaultAppMutationOutboxRecoveryStore,
+} from '@/storage';
 import type { AppState } from '@/types';
 
 import { AppMutationQueue, type AppMutationTask } from './AppMutationQueue';
+import { recoverAppMutationOutbox } from './AppMutationOutboxRecovery';
 
 export type EnqueueAppStateMutation = (input: {
   label: string;
@@ -19,7 +25,30 @@ export type ScheduleAppStateMutation = (input: {
 
 export function useAppMutationQueue(repository: AppRepository) {
   const queue = useMemo(() => new AppMutationQueue(), []);
+  const recoveryStore = useMemo(getDefaultAppMutationOutboxRecoveryStore, []);
+  const recoveryQueueStore = useMemo(
+    () => createAsyncStorageOperationQueueStore(createAsyncStorageAdapter()),
+    [],
+  );
   const snapshot = useSyncExternalStore(queue.subscribe, queue.getSnapshot, queue.getSnapshot);
+
+  useEffect(() => {
+    void queue
+      .enqueue({
+        label: 'Recover cloud queue',
+        steps: [
+          {
+            stage: 'outbox',
+            run: () =>
+              recoverAppMutationOutbox({
+                queueStore: recoveryQueueStore,
+                recoveryStore,
+              }).then(() => undefined),
+          },
+        ],
+      })
+      .catch(() => undefined);
+  }, [queue, recoveryQueueStore, recoveryStore]);
 
   const enqueueStateMutation = useCallback<EnqueueAppStateMutation>(
     ({ label, nextState, outbox }) => {
