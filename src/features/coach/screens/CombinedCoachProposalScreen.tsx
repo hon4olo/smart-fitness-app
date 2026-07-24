@@ -21,6 +21,7 @@ import {
   buildCombinedCoachProposalViewModel,
   type CombinedCoachProposalViewModel,
   type CombinedProposalTargets,
+  type CombinedSafetyRestriction,
 } from '../combinedCoachProposalViewModel';
 
 const createIdempotencyKey = (): string =>
@@ -36,9 +37,20 @@ const formatTargets = (targets: CombinedProposalTargets | null): string =>
     ? `${targets.calories} kcal · P ${targets.protein} · C ${targets.carbs} · F ${targets.fats}`
     : '—';
 
+const formatRestriction = (restriction: CombinedSafetyRestriction): string => {
+  const movementCopy =
+    restriction.movementPatterns.length > 0
+      ? ` · ${restriction.movementPatterns.join(', ')}`
+      : '';
+  return `${restriction.action.replaceAll('_', ' ')} · max ${Math.round(
+    restriction.maximumLoadMultiplier * 100,
+  )}%${movementCopy}`;
+};
+
 const actionCopy: Record<string, string> = {
   review_strength_proposal: 'Review the Strength proposal separately',
   apply_safety_load_ceiling: 'Apply the Safety load ceiling before confirming Strength',
+  resolve_movement_restrictions: 'Resolve restricted movement patterns before using Strength',
   confirm_nutrition_target: 'Confirm the Nutrition target in Nutrition Coach',
 };
 
@@ -47,18 +59,28 @@ function ProposalResult({ viewModel }: { viewModel: CombinedCoachProposalViewMod
   if (viewModel.kind !== 'review') {
     return (
       <AppCard>
-        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{viewModel.title}</Text>
-        <Text style={[styles.body, { color: colors.textSecondary }]}>{viewModel.message}</Text>
+        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+          {viewModel.title}
+        </Text>
+        <Text style={[styles.body, { color: colors.textSecondary }]}>
+          {viewModel.message}
+        </Text>
       </AppCard>
     );
   }
+
+  const effective = viewModel.effectiveStrength;
 
   return (
     <AppCard>
       <View style={styles.resultHeader}>
         <View style={styles.flexCopy}>
-          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{viewModel.title}</Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}>{viewModel.message}</Text>
+          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+            {viewModel.title}
+          </Text>
+          <Text style={[styles.body, { color: colors.textSecondary }]}>
+            {viewModel.message}
+          </Text>
         </View>
         <Text
           style={[
@@ -76,37 +98,67 @@ function ProposalResult({ viewModel }: { viewModel: CombinedCoachProposalViewMod
       <View style={styles.stack}>
         <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}>
           <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Strength proposal</Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}>
+          <Text style={[styles.body, { color: colors.textSecondary }]}> 
             {viewModel.strength.sets.length} sets · proposed tonnage{' '}
             {viewModel.strength.proposedTonnage ?? '—'} kg
           </Text>
           {viewModel.strength.sets.slice(0, 4).map((set) => (
-            <Text key={set.sourceSetId} style={[styles.meta, { color: colors.textMuted }]}>
+            <Text key={set.sourceSetId} style={[styles.meta, { color: colors.textMuted }]}> 
               {set.exerciseName}: {set.weight} kg × {set.reps} · RPE {set.targetRpe}
             </Text>
           ))}
+
+          {effective ? (
+            <View style={styles.stack}>
+              <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Effective plan</Text>
+              <Text style={[styles.body, { color: colors.textSecondary }]}> 
+                Effective tonnage: {effective.effectiveTonnage ?? 'blocked'} kg · load ceiling{' '}
+                {Math.round(effective.loadMultiplier * 100)}%
+              </Text>
+              {effective.sets.slice(0, 4).map((set) => (
+                <Text key={set.sourceSetId} style={[styles.meta, { color: colors.textMuted }]}> 
+                  {set.exerciseName}: proposed {set.proposedWeight} kg → effective{' '}
+                  {set.effectiveWeight} kg · ceiling {set.maximumAllowedWeight} kg
+                </Text>
+              ))}
+              {effective.unresolvedMovementPatterns.length > 0 ? (
+                <Text style={[styles.body, { color: colors.warning }]}> 
+                  Restricted movements unresolved:{' '}
+                  {effective.unresolvedMovementPatterns.join(', ')}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
         </View>
 
-        <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}>
+        <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}> 
           <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Nutrition target</Text>
           <Text style={[styles.meta, { color: colors.textMuted }]}>Current</Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}>
+          <Text style={[styles.body, { color: colors.textSecondary }]}> 
             {formatTargets(viewModel.nutrition.currentTargets)}
           </Text>
           <Text style={[styles.meta, { color: colors.textMuted }]}>Proposed</Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}>
+          <Text style={[styles.body, { color: colors.textSecondary }]}> 
             {formatTargets(viewModel.nutrition.proposedTargets)}
           </Text>
         </View>
 
-        <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}>
+        <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}> 
           <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Safety ceiling</Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}>
+          <Text style={[styles.body, { color: colors.textSecondary }]}> 
             Maximum Strength load: {Math.round(viewModel.maximumStrengthLoadMultiplier * 100)}%
           </Text>
-          <Text style={[styles.meta, { color: colors.textMuted }]}>
-            {viewModel.safety.restrictionCount} restrictions · {viewModel.safety.issueCount} findings
+          <Text style={[styles.meta, { color: colors.textMuted }]}> 
+            {viewModel.safety.restrictionCount} restrictions · {viewModel.safety.issueCount}{' '}
+            findings
           </Text>
+          {viewModel.safety.restrictions.slice(0, 4).map((restriction) => (
+            <Text
+              key={restriction.limitationId}
+              style={[styles.meta, { color: colors.textMuted }]}> 
+              • {formatRestriction(restriction)}
+            </Text>
+          ))}
         </View>
       </View>
 
@@ -114,7 +166,7 @@ function ProposalResult({ viewModel }: { viewModel: CombinedCoachProposalViewMod
         <View style={styles.stack}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Pending actions</Text>
           {viewModel.pendingActions.map((action) => (
-            <Text key={action} style={[styles.body, { color: colors.textSecondary }]}>
+            <Text key={action} style={[styles.body, { color: colors.textSecondary }]}> 
               • {actionCopy[action] ?? action}
             </Text>
           ))}
@@ -125,17 +177,17 @@ function ProposalResult({ viewModel }: { viewModel: CombinedCoachProposalViewMod
         <View style={styles.stack}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Guardrail findings</Text>
           {viewModel.issues.map((issue, index) => (
-            <Text key={`${issue.code}:${index}`} style={[styles.body, { color: colors.warning }]}>
+            <Text key={`${issue.code}:${index}`} style={[styles.body, { color: colors.warning }]}> 
               • {issue.message}
             </Text>
           ))}
         </View>
       ) : null}
 
-      <View style={[styles.boundary, { borderColor: colors.borderSubtle }]}>
-        <Text style={[styles.meta, { color: colors.textMuted }]}>
-          Combined Coach does not apply anything. Strength and Nutrition remain separate revisioned
-          proposals with their own explicit confirmation controls.
+      <View style={[styles.boundary, { borderColor: colors.borderSubtle }]}> 
+        <Text style={[styles.meta, { color: colors.textMuted }]}> 
+          Combined Coach does not apply anything. Effective Strength loads are a deterministic
+          read-only plan; Strength and Nutrition keep separate explicit confirmation controls.
         </Text>
       </View>
     </AppCard>
@@ -233,8 +285,11 @@ export default function CombinedCoachProposalScreen() {
 
   return (
     <View style={themed.screen}>
-      <View style={[themed.header, { paddingTop: insets.top + Spacing.two }]}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={themed.backButton}>
+      <View style={[themed.header, { paddingTop: insets.top + Spacing.two }]}> 
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.back()}
+          style={themed.backButton}> 
           <Text style={themed.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.flexCopy}>
@@ -245,15 +300,15 @@ export default function CombinedCoachProposalScreen() {
 
       <ScrollView
         contentContainerStyle={[themed.content, { paddingBottom: insets.bottom + Spacing.eight }]}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}> 
         <View style={themed.container}>
           <AppCard>
             <Text style={themed.cardTitle}>Read-only proposal review</Text>
-            <Text style={themed.body}>
-              Builds the existing Strength next-workout and Nutrition target proposals, then applies
-              the deterministic Safety ceiling without modifying either child proposal.
+            <Text style={themed.body}> 
+              Builds the existing Strength and Nutrition proposals, then derives a deterministic
+              effective Strength plan under the Safety ceiling. Nothing is applied automatically.
             </Text>
-            <Text style={themed.meta}>
+            <Text style={themed.meta}> 
               Capability: {available ? 'v7 available' : 'not enabled'} · Sync: {syncStatus}
             </Text>
             {!ready ? null : !isAuthenticated ? (
@@ -266,7 +321,10 @@ export default function CombinedCoachProposalScreen() {
                 onPress={() => void runProposal()}
               />
             )}
-            <SecondaryButton label="Open regular Combined review" onPress={() => router.push('/profile/combined-review')} />
+            <SecondaryButton
+              label="Open regular Combined review"
+              onPress={() => router.push('/profile/combined-review')}
+            />
           </AppCard>
 
           {error ? (
@@ -337,15 +395,46 @@ const createStyles = (colors: typeof Colors.light) =>
       width: 36,
     },
     backLabel: { color: colors.textPrimary, fontSize: 24, lineHeight: 25 },
-    body: { color: colors.textSecondary, fontSize: Typography.body.fontSize, lineHeight: Typography.body.lineHeight },
-    cardTitle: { color: colors.textPrimary, fontSize: Typography.cardTitle.fontSize, fontWeight: Typography.cardTitle.fontWeight },
-    container: { alignSelf: 'center', gap: Spacing.three, maxWidth: MaxContentWidth, width: '100%' },
+    body: {
+      color: colors.textSecondary,
+      fontSize: Typography.body.fontSize,
+      lineHeight: Typography.body.lineHeight,
+    },
+    cardTitle: {
+      color: colors.textPrimary,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: Typography.cardTitle.fontWeight,
+    },
+    container: {
+      alignSelf: 'center',
+      gap: Spacing.three,
+      maxWidth: MaxContentWidth,
+      width: '100%',
+    },
     content: { paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
     errorCard: { borderColor: colors.error },
-    errorTitle: { color: colors.error, fontSize: Typography.cardTitle.fontSize, fontWeight: '900' },
-    header: { alignItems: 'center', flexDirection: 'row', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingBottom: Spacing.two },
-    meta: { color: colors.textMuted, fontSize: Typography.caption.fontSize, lineHeight: Typography.caption.lineHeight },
+    errorTitle: {
+      color: colors.error,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: '900',
+    },
+    header: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      paddingBottom: Spacing.two,
+      paddingHorizontal: Spacing.three,
+    },
+    meta: {
+      color: colors.textMuted,
+      fontSize: Typography.caption.fontSize,
+      lineHeight: Typography.caption.lineHeight,
+    },
     screen: { backgroundColor: colors.background, flex: 1 },
     subtitle: { color: colors.textSecondary, fontSize: Typography.caption.fontSize },
-    title: { color: colors.textPrimary, fontSize: Typography.screenTitle.fontSize, fontWeight: Typography.screenTitle.fontWeight },
+    title: {
+      color: colors.textPrimary,
+      fontSize: Typography.screenTitle.fontSize,
+      fontWeight: Typography.screenTitle.fontWeight,
+    },
   });
