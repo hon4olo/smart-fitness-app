@@ -33,7 +33,7 @@ Always inspect the latest `main` and open pull requests in both repositories bef
 
 ## Overall completion
 
-The architecture, synchronization, Coach, and repository-CI roadmap remains about 98–99% complete at source-code level. A focused Nutrition UX hardening phase was added after a child-flow audit found concrete date, validation, serving-display, destructive-action, favorites, and narrow-device layout defects. This phase does not alter the main Nutrition diary screen.
+The architecture, synchronization, Coach, and repository-CI roadmap remains about 98–99% complete at source-code level. A focused Nutrition UX hardening phase was added after a child-flow audit found concrete date, validation, serving-display, destructive-action, favorites, keyboard, and narrow-device layout defects. This phase does not alter the main Nutrition diary screen.
 
 The remaining work is concentrated in:
 
@@ -231,16 +231,16 @@ Completed child-flow slices:
 - [x] keep the seven-column calendar grid stable on narrow iPhones;
 - [x] require confirmation before deleting a diary entry or saved meal;
 - [x] persist explicit local-catalog favorites in an anonymous device scope or a separate signed-in user scope;
-- [x] stop treating recent foods as implicit favorites and allow removal directly from the Favorites tab.
+- [x] stop treating recent foods as implicit favorites and allow removal directly from the Favorites tab;
+- [x] render the portion editor in an accessible modal with bounded height, scrolling, keyboard avoidance, and safe-area padding.
 
 Remaining Nutrition UX work:
 
 - [ ] decide whether remote-provider results need reusable favorite snapshots in addition to local-catalog favorites;
 - [ ] add a saved-meal detail/edit/rename flow instead of limiting management to quick add and delete;
-- [ ] make the portion editor scrollable and keyboard-safe on the smallest supported iPhone sizes;
 - [ ] debounce full remote food search, not only autocomplete, and distinguish offline, empty, and provider-error states;
 - [ ] decide whether reusable custom foods require a dedicated library/edit/delete screen;
-- [ ] run release-device smoke tests for date selection, search, provider portions, quick add, favorites across account changes, custom food, edit/delete, saved meals, barcode lookup, permission denial, and offline fallback.
+- [ ] run release-device smoke tests for date selection, search, provider portions, quick add, favorites across account changes, custom food, edit/delete, saved meals, barcode lookup, permission denial, keyboard handling, and offline fallback.
 
 Guardrails:
 
@@ -251,8 +251,8 @@ Guardrails:
 
 ## Recommended immediate next actions
 
-1. Validate and merge account-scoped Nutrition favorites through full mobile CI.
-2. Add saved-meal detail/edit/rename and keyboard-safe portion editing in separate focused PRs.
+1. Validate and merge the keyboard-safe portion editor through full mobile CI.
+2. Add saved-meal detail/edit/rename in a focused PR.
 3. Harden remote-search debounce and offline/error states.
 4. Run the Nutrition device matrix on a matching production-channel iOS build.
 5. Configure read-only `BACKEND_REPOSITORY_TOKEN` and rerun the fixed-SHA release gate.
