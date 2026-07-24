@@ -32,15 +32,14 @@ Always inspect the latest `main` in both repositories before changing code becau
 
 ## Overall completion
 
-Estimated roadmap completion: about 85–90%.
+Estimated roadmap completion: about 88–92%.
 
 The remaining work is concentrated in:
 
-1. complete multi-device sync hardening;
-2. finish remaining oversized-file decomposition;
-3. activate and validate the model provider in staging;
-4. complete Combined Strategy proposal composition and explicit application flows;
-5. complete release-device and production-readiness validation.
+1. finish remaining oversized-file decomposition;
+2. activate and validate the model provider in staging;
+3. complete Combined Strategy proposal composition and explicit application flows;
+4. complete release-device and production-readiness validation.
 
 ## Completed foundation
 
@@ -118,9 +117,9 @@ Additional sync hardening completed:
 
 ### Phase A — complete sync conflict matrix
 
-Status: in progress.
+Status: complete.
 
-Required next work:
+Required work:
 
 - [x] add explicit two-device conflict scenarios for workout templates;
 - [x] add explicit two-device conflict scenarios for training programs;
@@ -131,7 +130,7 @@ Required next work:
 - [x] add explicit two-device conflict scenarios for limitations and recovery records;
 - [x] test update-versus-delete in both directions for mutable entities;
 - [x] test duplicate remote delivery after conflict resolution;
-- [ ] verify conflict state remains visible and recoverable after restart.
+- [x] verify conflict state remains visible and recoverable after restart.
 
 Latest completed sync-hardening slices:
 
@@ -145,6 +144,7 @@ Latest completed sync-hardening slices:
 - Safety/Recovery conflict coverage now explicitly merges independent limitation edits while preserving overlapping limitation edits and divergent recovery records for review.
 - Update/delete normalization now treats tombstones consistently across all mutable policies, including last-write-wins entities, and keeps both directions visible for manual review.
 - Auto-resolved client conflicts no longer block cursor advancement; duplicate remote delivery retains a stable conflict identity and zero unresolved count.
+- Unresolved conflict snapshots are now stored per user, deduplicated by conflict ID, cleaned up by terminal updates, and restored after application restart.
 
 ### Phase B — finish oversized-file decomposition
 
@@ -222,12 +222,11 @@ Required:
 ## Recommended immediate next actions
 
 1. Inspect latest `main` and open PRs in both repositories.
-2. Complete the entity-specific two-device conflict matrix.
-3. In a separate non-overlapping branch, split `src/cloud/SyncCoordinator.ts` below 500 lines.
-4. Rerun the complete line-count audit and update the oversized-file list.
-5. Continue with staging model-provider activation.
-6. Implement Combined Strategy proposal after provider/staging contracts are stable.
-7. Finish native-build and real-device release validation.
+2. Split `src/cloud/SyncCoordinator.ts` below 500 lines without changing runtime behavior.
+3. Rerun the complete line-count audit and update the oversized-file list.
+4. Continue with staging model-provider activation.
+5. Implement Combined Strategy proposal after provider/staging contracts are stable.
+6. Finish native-build and real-device release validation.
 
 ## Validation expectations
 
