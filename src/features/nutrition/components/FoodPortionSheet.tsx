@@ -1,4 +1,13 @@
-import { Pressable, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { Spacing } from '@/constants/theme';
@@ -51,67 +60,96 @@ export function FoodPortionSheet({
   styles,
 }: FoodPortionSheetProps) {
   return (
-    <View style={[styles.sheetBackdrop, { paddingBottom: insetsBottom + Spacing.two }]} pointerEvents="box-none">
-      <Pressable accessibilityLabel="Close portion editor" onPress={onClose} style={styles.sheetScrim} />
-      <View style={styles.sheet}>
-        <View style={styles.sheetHeader}>
-          <View>
-            <Text selectable style={styles.sheetTitle}>
-              {draft.name}
+    <Modal
+      animationType="slide"
+      onRequestClose={onClose}
+      presentationStyle="overFullScreen"
+      transparent
+      visible>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.sheetBackdrop}>
+        <Pressable
+          accessibilityLabel="Close portion editor"
+          onPress={onClose}
+          style={styles.sheetScrim}
+        />
+        <View
+          accessibilityViewIsModal
+          style={[styles.sheetFrame, { paddingBottom: insetsBottom + Spacing.two }]}>
+          <ScrollView
+            bounces={false}
+            contentContainerStyle={styles.sheet}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetHeaderCopy}>
+                <Text selectable style={styles.sheetTitle}>
+                  {draft.name}
+                </Text>
+                <Text selectable style={styles.sheetSubtitle}>
+                  {selectedMealLabel} · {selectedDateLabel}
+                </Text>
+              </View>
+              <Pressable
+                accessibilityLabel="Close portion editor"
+                hitSlop={10}
+                onPress={onClose}
+                style={styles.sheetClose}>
+                <Text style={styles.sheetCloseText}>×</Text>
+              </Pressable>
+            </View>
+
+            {draft.brandName ? (
+              <Text selectable style={styles.sheetMeta}>
+                {draft.brandName}
+              </Text>
+            ) : null}
+            <Text selectable style={styles.sheetMeta}>
+              {servingLabel}
             </Text>
-            <Text selectable style={styles.sheetSubtitle}>
-              {selectedMealLabel} · {selectedDateLabel}
+            <View style={styles.sheetField}>
+              <Text selectable style={styles.sheetLabel}>
+                Quantity
+              </Text>
+              <TextInput
+                accessibilityLabel="Quantity"
+                autoFocus
+                keyboardType="decimal-pad"
+                onChangeText={onChangeQuantity}
+                placeholder="Quantity"
+                placeholderTextColor={colors.textSecondary}
+                returnKeyType="done"
+                style={styles.sheetInput}
+                value={draft.quantity}
+              />
+            </View>
+
+            <View style={styles.sheetTotals}>
+              <Text selectable style={styles.sheetTotalLine}>
+                {macroTotalsLabel}
+              </Text>
+            </View>
+
+            <Text selectable style={styles.sheetHint}>
+              {draft.originalEntryId
+                ? 'Update the selected entry and keep the diary context unchanged.'
+                : 'Add this food to the selected meal without leaving the picker.'}
             </Text>
-          </View>
-          <Pressable accessibilityLabel="Close portion editor" hitSlop={10} onPress={onClose} style={styles.sheetClose}>
-            <Text style={styles.sheetCloseText}>×</Text>
-          </Pressable>
+
+            {attributionLabel ? (
+              <Text selectable style={styles.sheetAttribution}>
+                {attributionLabel}
+              </Text>
+            ) : null}
+
+            {draft.originalEntryId ? (
+              <AppButton label={deleteLabel} onPress={onDelete} variant="secondary" />
+            ) : null}
+            <AppButton label={submitLabel} onPress={onSave} />
+          </ScrollView>
         </View>
-
-        {draft.brandName ? (
-          <Text selectable style={styles.sheetMeta}>
-            {draft.brandName}
-          </Text>
-        ) : null}
-        <Text selectable style={styles.sheetMeta}>
-          {servingLabel}
-        </Text>
-        <View style={styles.sheetField}>
-          <Text selectable style={styles.sheetLabel}>
-            Quantity
-          </Text>
-          <TextInput
-            accessibilityLabel="Quantity"
-            autoFocus
-            keyboardType="decimal-pad"
-            onChangeText={onChangeQuantity}
-            placeholder="Quantity"
-            placeholderTextColor={colors.textSecondary}
-            style={styles.sheetInput}
-            value={draft.quantity}
-          />
-        </View>
-
-        <View style={styles.sheetTotals}>
-          <Text selectable style={styles.sheetTotalLine}>
-            {macroTotalsLabel}
-          </Text>
-        </View>
-
-        <Text selectable style={styles.sheetHint}>
-          {draft.originalEntryId ? 'Update the selected entry and keep the diary context unchanged.' : 'Add this food to the selected meal without leaving the picker.'}
-        </Text>
-
-        {attributionLabel ? (
-          <Text selectable style={styles.sheetAttribution}>
-            {attributionLabel}
-          </Text>
-        ) : null}
-
-        {draft.originalEntryId ? <AppButton label={deleteLabel} onPress={onDelete} variant="secondary" /> : null}
-
-        <AppButton label={submitLabel} onPress={onSave} />
-      </View>
-    </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
