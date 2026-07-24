@@ -51,6 +51,7 @@ import type { AppState } from '@/types';
 import { applySyncPullResult } from './applySyncPullResult';
 import {
   countSupportedQueueOperations,
+  countUnresolvedSyncConflicts,
   resolveStatus,
   type SyncPullResult,
   type WeightSyncContextValue,
@@ -272,10 +273,11 @@ export function SyncProvider({
       const result = await syncCoordinator.syncNow();
       const pushResult = result.push?.result;
       const pullResult = result.pull?.result;
-      const nextConflictCount =
-        (pushResult?.conflicts?.length ?? 0) +
-        (pullResult?.conflicts?.length ?? 0) +
-        result.conflicts.records.length;
+      const nextConflictCount = countUnresolvedSyncConflicts({
+        localUnresolvedCount: result.conflicts.unresolvedCount,
+        pullConflicts: pullResult?.conflicts,
+        pushConflicts: pushResult?.conflicts,
+      });
       setConflictCount(nextConflictCount);
 
       if (pushResult?.appliedOperations?.length) {
