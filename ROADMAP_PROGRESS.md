@@ -114,6 +114,7 @@ Additional sync hardening completed:
 - [x] `CloudConflictResolver.ts` reduced below 500 lines.
 - [x] `SyncCoordinator.ts` reduced to a compatibility facade with separate operations, state-machine, types, and helper modules below 500 lines.
 - [x] `nutritionCoachViewModel.ts` reduced to a public builder and type re-export surface with separate metric, proposal, and type modules below 500 lines.
+- [x] `addFoodStyles.ts` reduced to a public style factory composed from separate base, scanner, and sheet style modules below 500 lines.
 
 ## Remaining roadmap
 
@@ -157,7 +158,7 @@ Known remaining candidates from the audit and later growth:
 - [x] `src/cloud/SyncCoordinator.ts`;
 - [x] `src/api/coach.ts` — already a 24-line compatibility facade;
 - [x] `src/features/coach/nutritionCoachViewModel.ts`;
-- [ ] `src/features/nutrition/styles/addFoodStyles.ts`;
+- [x] `src/features/nutrition/styles/addFoodStyles.ts`;
 - [ ] `src/cloud/WorkoutTemplateSync.ts` if still above 500 lines;
 - [ ] rerun a repository-wide tracked-file line audit and update this list.
 
@@ -223,12 +224,11 @@ Required:
 
 ## Recommended immediate next actions
 
-1. Split `src/features/nutrition/styles/addFoodStyles.ts` below 500 lines without changing its public contract.
-2. Inspect and split `src/cloud/WorkoutTemplateSync.ts` only if it remains above 500 lines.
-3. Rerun the complete line-count audit and update the oversized-file list.
-4. Continue with staging model-provider activation.
-5. Implement Combined Strategy proposal after provider/staging contracts are stable.
-6. Finish native-build and real-device release validation.
+1. Split `src/cloud/WorkoutTemplateSync.ts` below 500 lines without changing its public contract.
+2. Rerun the complete line-count audit and update the oversized-file list.
+3. Continue with staging model-provider activation.
+4. Implement Combined Strategy proposal after provider/staging contracts are stable.
+5. Finish native-build and real-device release validation.
 
 ## Validation expectations
 
