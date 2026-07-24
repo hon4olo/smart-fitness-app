@@ -116,6 +116,17 @@ export type {
   WorkoutSafetyAcknowledgement,
   WorkoutSafetyAcknowledgementStore,
 } from './WorkoutSafetyAcknowledgementStore';
+export {
+  createSyncConflictSnapshot,
+  createSyncConflictStore,
+  isTerminalSyncConflict,
+  SYNC_CONFLICT_STORAGE_KEY,
+} from './SyncConflictStore';
+export type {
+  SyncConflictSnapshot,
+  SyncConflictSource,
+  SyncConflictStore,
+} from './SyncConflictStore';
 export { createSyncCursorStore, SYNC_CURSOR_STORAGE_KEY } from './SyncCursorStore';
 export type { SyncCursor, SyncCursorStore } from './SyncCursorStore';
 export { getDefaultSyncCursorStore } from './defaultSyncCursorStore';

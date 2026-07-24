@@ -40,10 +40,13 @@ import {
   createMealTemplateSyncMetadataStore,
   createNutritionTargetSyncMetadataStore,
   createSafetyRecoverySyncMetadataStore,
+  createSyncConflictSnapshot,
+  createSyncConflictStore,
   createTrainingProgramSyncMetadataStore,
   createWorkoutSessionSyncMetadataStore,
   createWorkoutTemplateSyncMetadataStore,
   getDefaultSyncCursorStore,
+  type SyncConflictSnapshot,
 } from '@/storage';
 import type { WeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
 import type { AppState } from '@/types';
@@ -87,9 +90,11 @@ export function SyncProvider({
   const [conflictCount, setConflictCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const syncingRef = useRef(false);
+  const conflictStateVersionRef = useRef(0);
   const latestStateRef = useRef(state);
   const cursorStore = useMemo(() => getDefaultSyncCursorStore(), []);
   const syncStorage = useMemo(() => createAsyncStorageAdapter(), []);
+  const conflictStore = useMemo(() => createSyncConflictStore(syncStorage), [syncStorage]);
   const bodyMeasurementMetadataStore = useMemo(
     () => createBodyMeasurementSyncMetadataStore(syncStorage),
     [syncStorage],
@@ -134,6 +139,29 @@ export function SyncProvider({
   useEffect(() => {
     latestStateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    const requestVersion = ++conflictStateVersionRef.current;
+    const userId = session?.user.id;
+    if (!userId) {
+      setConflictCount(0);
+      return;
+    }
+
+    void conflictStore
+      .list(userId)
+      .then((conflicts) => {
+        if (conflictStateVersionRef.current === requestVersion) {
+          setConflictCount(conflicts.length);
+        }
+      })
+      .catch(() => {
+        if (conflictStateVersionRef.current === requestVersion) {
+          setError('Failed to restore sync conflicts');
+          setStatus('error');
+        }
+      });
+  }, [conflictStore, session?.user.id]);
 
   const refreshQueueStats = useCallback(async () => {
     const pending = await queueStore.getPending();
@@ -273,11 +301,32 @@ export function SyncProvider({
       const result = await syncCoordinator.syncNow();
       const pushResult = result.push?.result;
       const pullResult = result.pull?.result;
-      const nextConflictCount = countUnresolvedSyncConflicts({
+      const detectedAt =
+        pushResult?.serverTimestamp ??
+        pullResult?.serverTimestamp ??
+        new Date().toISOString();
+      const activeCycleConflictCount = countUnresolvedSyncConflicts({
         localUnresolvedCount: result.conflicts.unresolvedCount,
         pullConflicts: pullResult?.conflicts,
         pushConflicts: pushResult?.conflicts,
       });
+      const snapshots = [
+        ...result.conflicts.results.map((conflict) =>
+          createSyncConflictSnapshot(conflict.record, 'client', detectedAt),
+        ),
+        ...(pushResult?.conflicts ?? []).map((conflict) =>
+          createSyncConflictSnapshot(conflict, 'push', detectedAt),
+        ),
+        ...(pullResult?.conflicts ?? []).map((conflict) =>
+          createSyncConflictSnapshot(conflict, 'pull', detectedAt),
+        ),
+      ].filter((snapshot): snapshot is SyncConflictSnapshot => Boolean(snapshot));
+      const persistedConflicts = await conflictStore.merge(session.user.id, snapshots);
+      const nextConflictCount = Math.max(
+        activeCycleConflictCount,
+        persistedConflicts.length,
+      );
+      conflictStateVersionRef.current += 1;
       setConflictCount(nextConflictCount);
 
       if (pushResult?.appliedOperations?.length) {
@@ -327,6 +376,7 @@ export function SyncProvider({
     }
   }, [
     bodyMeasurementMetadataStore,
+    conflictStore,
     cursorStore,
     customExerciseMetadataStore,
     ensureBodyMeasurementSync,
