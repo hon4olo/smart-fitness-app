@@ -130,7 +130,7 @@ Required next work:
 - [x] add explicit two-device conflict scenarios for nutrition targets;
 - [x] add explicit two-device conflict scenarios for limitations and recovery records;
 - [x] test update-versus-delete in both directions for mutable entities;
-- [ ] test duplicate remote delivery after conflict resolution;
+- [x] test duplicate remote delivery after conflict resolution;
 - [ ] verify conflict state remains visible and recoverable after restart.
 
 Latest completed sync-hardening slices:
@@ -144,6 +144,7 @@ Latest completed sync-hardening slices:
 - Nutrition-target conflict coverage now verifies duplicate delivery, revision-number ordering, timestamp ordering, and stable revision-ID tie-breaking.
 - Safety/Recovery conflict coverage now explicitly merges independent limitation edits while preserving overlapping limitation edits and divergent recovery records for review.
 - Update/delete normalization now treats tombstones consistently across all mutable policies, including last-write-wins entities, and keeps both directions visible for manual review.
+- Auto-resolved client conflicts no longer block cursor advancement; duplicate remote delivery retains a stable conflict identity and zero unresolved count.
 
 ### Phase B — finish oversized-file decomposition
 
