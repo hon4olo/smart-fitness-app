@@ -10,6 +10,7 @@ import type {
   ParsedCombinedProposalReview,
 } from './combinedCoachProposalContracts';
 import { parseCombinedProposalV2Fields } from './combinedCoachProposalV2Parser';
+import { parseCombinedNutritionReconciliation } from './combinedCoachProposalV3Parser';
 
 const STATUSES = new Set<CombinedProposalStatus>([
   'ready',
@@ -271,7 +272,8 @@ const readActions = (
   policyVersion: ParsedCombinedProposalReview['policyVersion'],
 ): CombinedProposalAction[] | null => {
   if (!Array.isArray(value)) return null;
-  const allowed = policyVersion === 'combined-coach-proposal-v2' ? V2_ACTIONS : V1_ACTIONS;
+  const allowed =
+    policyVersion === 'combined-coach-proposal-v1' ? V1_ACTIONS : V2_ACTIONS;
   const actions = value.filter(
     (action): action is CombinedProposalAction =>
       typeof action === 'string' && allowed.has(action as CombinedProposalAction),
@@ -285,6 +287,7 @@ const finalStatus = (input: {
   strength: CombinedStrengthProposal;
   effectiveStrength: ParsedCombinedProposalReview['effectiveStrength'];
   nutrition: CombinedNutritionProposal;
+  nutritionReconciliation: ParsedCombinedProposalReview['nutritionReconciliation'];
   safety: CombinedSafetyProposal;
 }): CombinedProposalStatus => {
   const statuses = [
@@ -292,7 +295,9 @@ const finalStatus = (input: {
     input.effectiveStrength?.status,
     input.nutrition.status,
     input.safety.status,
-  ].filter((value): value is CombinedProposalStatus => Boolean(value));
+  ];
+  if (input.nutritionReconciliation?.status === 'blocked') statuses.push('blocked');
+  if (input.nutritionReconciliation?.status === 'needs_review') statuses.push('modify');
   if (statuses.includes('blocked')) return 'blocked';
   if (statuses.includes('needs_input')) return 'needs_input';
   if (statuses.includes('modify')) return 'modify';
@@ -306,7 +311,8 @@ export const parseCombinedProposalReview = (
   const policyVersion = value.policyVersion;
   if (
     policyVersion !== 'combined-coach-proposal-v1' &&
-    policyVersion !== 'combined-coach-proposal-v2'
+    policyVersion !== 'combined-coach-proposal-v2' &&
+    policyVersion !== 'combined-coach-proposal-v3'
   ) {
     return null;
   }
@@ -316,13 +322,26 @@ export const parseCombinedProposalReview = (
   const safetyBase = readSafetyBase(value.safety);
   if (!status || !strength || !nutrition || !safetyBase) return null;
 
-  const v2 =
-    policyVersion === 'combined-coach-proposal-v2'
-      ? parseCombinedProposalV2Fields({ review: value, strength, safetyBase })
+  const versioned =
+    policyVersion === 'combined-coach-proposal-v1'
+      ? null
+      : parseCombinedProposalV2Fields({ review: value, strength, safetyBase });
+  if (policyVersion !== 'combined-coach-proposal-v1' && !versioned) return null;
+  const safety = versioned?.safety ?? safetyBase;
+  const effectiveStrength = versioned?.effectiveStrength ?? null;
+  const nutritionReconciliation =
+    policyVersion === 'combined-coach-proposal-v3' && effectiveStrength
+      ? parseCombinedNutritionReconciliation({
+          value: value.nutritionReconciliation,
+          nutrition,
+          effectiveStrength,
+          safety,
+        })
       : null;
-  if (policyVersion === 'combined-coach-proposal-v2' && !v2) return null;
-  const safety = v2?.safety ?? safetyBase;
-  const effectiveStrength = v2?.effectiveStrength ?? null;
+  if (policyVersion === 'combined-coach-proposal-v3' && !nutritionReconciliation) {
+    return null;
+  }
+
   const maximumStrengthLoadMultiplier = readNumber(
     value.maximumStrengthLoadMultiplier,
     0,
@@ -341,7 +360,14 @@ export const parseCombinedProposalReview = (
     !issues ||
     value.requiresExplicitConfirmation !== true ||
     value.automaticApplication !== false ||
-    status !== finalStatus({ strength, effectiveStrength, nutrition, safety })
+    status !==
+      finalStatus({
+        strength,
+        effectiveStrength,
+        nutrition,
+        nutritionReconciliation,
+        safety,
+      })
   ) {
     return null;
   }
@@ -366,12 +392,21 @@ export const parseCombinedProposalReview = (
     }
   }
 
+  if (
+    nutritionReconciliation &&
+    nutritionReconciliation.approvedForConfirmation !==
+      pendingActions.includes('confirm_nutrition_target')
+  ) {
+    return null;
+  }
+
   return {
     policyVersion,
     status,
     strength,
     effectiveStrength,
     nutrition,
+    nutritionReconciliation,
     safety,
     maximumStrengthLoadMultiplier,
     strengthRequiresSafetyAdjustment: expectedSafetyAdjustment,
