@@ -11,6 +11,7 @@ permissions:
 jobs:
   release-gate:
     uses: ./.github/workflows/release-gate.yml
+    secrets: inherit
     with:
       app_ref: a29d823ec83a8c07109754bf79e95f4ecbdb9112
       backend_ref: c8cf3f848e9debacf5e12a105501f5ca8d5cbc96
