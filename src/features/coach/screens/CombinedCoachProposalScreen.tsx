@@ -23,8 +23,11 @@ import { buildCombinedCoachProposalViewModel } from '../combinedCoachProposalVie
 const createRunIdempotencyKey = (): string =>
   `mobile-combined-proposal-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
 
-const createConfirmationIdempotencyKey = (runId: string): string =>
+const createStrengthConfirmationKey = (runId: string): string =>
   `mobile-combined-effective-strength-${runId}`;
+
+const createNutritionConfirmationKey = (runId: string): string =>
+  `mobile-combined-nutrition-${runId}`;
 
 const latestSession = (sessions: WorkoutSession[]): WorkoutSession | null =>
   [...sessions].sort(
@@ -41,7 +44,8 @@ export default function CombinedCoachProposalScreen() {
   const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirmationBusy, setConfirmationBusy] = useState(false);
+  const [strengthConfirmationBusy, setStrengthConfirmationBusy] = useState(false);
+  const [nutritionConfirmationBusy, setNutritionConfirmationBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isAuthenticated = Boolean(session?.tokens.accessToken);
@@ -51,9 +55,14 @@ export default function CombinedCoachProposalScreen() {
     capabilities.combined?.deterministicProposalReview === true &&
     capabilities.combined.proposalRequiresExplicitConfirmation === true &&
     capabilities.combined.automaticApplication === false;
-  const confirmationAvailable =
-    capabilities?.schemaVersion === 8 &&
+  const strengthConfirmationAvailable =
+    capabilities !== null &&
+    capabilities.schemaVersion >= 8 &&
     capabilities.combined?.effectiveStrengthConfirmation === true &&
+    capabilities.combined.automaticApplication === false;
+  const nutritionConfirmationAvailable =
+    capabilities?.schemaVersion === 9 &&
+    capabilities.combined?.nutritionConfirmation === true &&
     capabilities.combined.automaticApplication === false;
   const primarySession = useMemo(
     () => latestSession(app.workoutSessions),
@@ -64,7 +73,7 @@ export default function CombinedCoachProposalScreen() {
     [run],
   );
   const canConfirmEffectiveStrength =
-    confirmationAvailable &&
+    strengthConfirmationAvailable &&
     run !== null &&
     viewModel?.kind === 'review' &&
     !viewModel.rejected &&
@@ -74,6 +83,18 @@ export default function CombinedCoachProposalScreen() {
       viewModel.effectiveStrength.status === 'modify') &&
     viewModel.effectiveStrength.sets.length > 0 &&
     viewModel.effectiveStrength.unresolvedMovementPatterns.length === 0;
+  const canConfirmNutrition =
+    nutritionConfirmationAvailable &&
+    run !== null &&
+    viewModel?.kind === 'review' &&
+    !viewModel.rejected &&
+    viewModel.nutritionApplication === null &&
+    (viewModel.nutrition.status === 'ready' || viewModel.nutrition.status === 'modify') &&
+    viewModel.nutrition.targetId !== null &&
+    viewModel.nutrition.targetRevision !== null &&
+    viewModel.nutrition.changed === true &&
+    viewModel.nutrition.requiresConfirmation === true &&
+    viewModel.nutrition.applied === false;
   const coachApi = useMemo(
     () =>
       createCoachApi({
@@ -138,12 +159,12 @@ export default function CombinedCoachProposalScreen() {
   };
 
   const confirmEffectiveStrength = async () => {
-    if (!canConfirmEffectiveStrength || !run || confirmationBusy) return;
-    setConfirmationBusy(true);
+    if (!canConfirmEffectiveStrength || !run || strengthConfirmationBusy) return;
+    setStrengthConfirmationBusy(true);
     setError(null);
     try {
       const confirmed = await coachApi.confirmCombinedEffectiveStrength(run.run.id, {
-        idempotencyKey: createConfirmationIdempotencyKey(run.run.id),
+        idempotencyKey: createStrengthConfirmationKey(run.run.id),
       });
       setRun(confirmed);
       try {
@@ -158,7 +179,32 @@ export default function CombinedCoachProposalScreen() {
           : 'The effective Strength template could not be created.',
       );
     } finally {
-      setConfirmationBusy(false);
+      setStrengthConfirmationBusy(false);
+    }
+  };
+
+  const confirmNutrition = async () => {
+    if (!canConfirmNutrition || !run || nutritionConfirmationBusy) return;
+    setNutritionConfirmationBusy(true);
+    setError(null);
+    try {
+      const confirmed = await coachApi.confirmCombinedNutrition(run.run.id, {
+        idempotencyKey: createNutritionConfirmationKey(run.run.id),
+      });
+      setRun(confirmed);
+      try {
+        await syncNow();
+      } catch {
+        setError('The Nutrition target was applied, but local synchronization needs to be retried.');
+      }
+    } catch (confirmationError) {
+      setError(
+        confirmationError instanceof Error
+          ? confirmationError.message
+          : 'The Nutrition target could not be applied.',
+      );
+    } finally {
+      setNutritionConfirmationBusy(false);
     }
   };
 
@@ -172,6 +218,21 @@ export default function CombinedCoachProposalScreen() {
         {
           text: 'Create template',
           onPress: () => void confirmEffectiveStrength(),
+        },
+      ],
+    );
+  };
+
+  const requestNutritionConfirmation = () => {
+    if (!canConfirmNutrition) return;
+    Alert.alert(
+      'Apply Nutrition target?',
+      'This applies only the proposed Nutrition target through the revisioned sync path. Strength templates and completed workout history will not be changed.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Apply target',
+          onPress: () => void confirmNutrition(),
         },
       ],
     );
@@ -232,8 +293,11 @@ export default function CombinedCoachProposalScreen() {
           {viewModel ? (
             <CombinedCoachProposalResult
               canConfirmEffectiveStrength={canConfirmEffectiveStrength}
-              confirmationBusy={confirmationBusy}
+              canConfirmNutrition={canConfirmNutrition}
+              effectiveStrengthBusy={strengthConfirmationBusy}
+              nutritionBusy={nutritionConfirmationBusy}
               onConfirmEffectiveStrength={requestEffectiveStrengthConfirmation}
+              onConfirmNutrition={requestNutritionConfirmation}
               viewModel={viewModel}
             />
           ) : null}
