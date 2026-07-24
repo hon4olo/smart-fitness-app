@@ -54,10 +54,14 @@ export const buildSyncBatch = (
   now: string,
 ): SyncBatch => ({
   id: makeSyncCoordinatorBatchId(
-    operations.map(toOfflineSyncQueueSyncOperation),
+    operations.map((operation) =>
+      toOfflineSyncQueueSyncOperation(operation),
+    ),
     now,
   ),
-  operations: operations.map(toOfflineSyncQueueSyncOperation),
+  operations: operations.map((operation) =>
+    toOfflineSyncQueueSyncOperation(operation),
+  ),
   createdAt: now,
   metadata: { source: 'local', lastSyncedAt: now },
 });
