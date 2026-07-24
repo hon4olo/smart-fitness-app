@@ -44,13 +44,12 @@ import {
 } from './syncContextModel';
 
 type ApplySyncPullResultOptions = {
-  bodyMeasurementMetadataStore: ReturnType<
-    typeof createBodyMeasurementSyncMetadataStore
-  >;
+  bodyMeasurementMetadataStore: ReturnType<typeof createBodyMeasurementSyncMetadataStore>;
   cursorStore: ReturnType<typeof getDefaultSyncCursorStore>;
   customExerciseMetadataStore: ReturnType<typeof createCustomExerciseSyncMetadataStore>;
   fitnessProfileMetadataStore: ReturnType<typeof createFitnessProfileSyncMetadataStore>;
   foodEntryMetadataStore: ReturnType<typeof createFoodEntrySyncMetadataStore>;
+  getState(): AppState;
   mealTemplateMetadataStore: ReturnType<typeof createMealTemplateSyncMetadataStore>;
   metadataStore: WeightSyncMetadataStore;
   nextConflictCount: number;
@@ -58,27 +57,18 @@ type ApplySyncPullResultOptions = {
   pullResult: SyncPullResult;
   replaceState(nextState: AppState): void;
   safetyRecoveryMetadataStore: ReturnType<typeof createSafetyRecoverySyncMetadataStore>;
-  session: {
-    device: { id: string };
-    user: { id: string };
-  };
-  state: AppState;
+  session: { device: { id: string }; user: { id: string } };
   trainingProgramMetadataStore: ReturnType<typeof createTrainingProgramSyncMetadataStore>;
   workoutSessionMetadataStore: ReturnType<typeof createWorkoutSessionSyncMetadataStore>;
   workoutTemplateMetadataStore: ReturnType<typeof createWorkoutTemplateSyncMetadataStore>;
 };
 
 const replaceMetadataRecords = async <RecordType>(
-  store: {
-    clear(): Promise<unknown>;
-    set(record: RecordType): Promise<unknown>;
-  },
+  store: { clear(): Promise<unknown>; set(record: RecordType): Promise<unknown> },
   records: RecordType[],
 ): Promise<void> => {
   await store.clear();
-  for (const record of records) {
-    await store.set(record);
-  }
+  for (const record of records) await store.set(record);
 };
 
 export async function applySyncPullResult({
@@ -87,6 +77,7 @@ export async function applySyncPullResult({
   customExerciseMetadataStore,
   fitnessProfileMetadataStore,
   foodEntryMetadataStore,
+  getState,
   mealTemplateMetadataStore,
   metadataStore,
   nextConflictCount,
@@ -95,7 +86,6 @@ export async function applySyncPullResult({
   replaceState,
   safetyRecoveryMetadataStore,
   session,
-  state,
   trainingProgramMetadataStore,
   workoutSessionMetadataStore,
   workoutTemplateMetadataStore,
@@ -107,11 +97,40 @@ export async function applySyncPullResult({
   );
   const deletedEntities = (pullResult.deletedEntities ?? []) as RemoteDeletedEntity[];
 
+  const [
+    weightMetadata,
+    bodyMeasurementMetadata,
+    customExerciseMetadata,
+    workoutSessionMetadata,
+    workoutTemplateMetadata,
+    trainingProgramMetadata,
+    safetyRecoveryMetadata,
+    foodEntryMetadata,
+    mealTemplateMetadata,
+    nutritionTargetMetadata,
+    fitnessProfileMetadata,
+  ] = await Promise.all([
+    metadataStore.load(),
+    bodyMeasurementMetadataStore.load(),
+    customExerciseMetadataStore.load(),
+    workoutSessionMetadataStore.load(),
+    workoutTemplateMetadataStore.load(),
+    trainingProgramMetadataStore.load(),
+    safetyRecoveryMetadataStore.load(),
+    foodEntryMetadataStore.load(),
+    mealTemplateMetadataStore.load(),
+    nutritionTargetMetadataStore.load(),
+    fitnessProfileMetadataStore.load(),
+  ]);
+
+  // Read state only after all asynchronous metadata work. A local mutation that lands while
+  // pull metadata is loading is therefore included instead of being replaced by a stale snapshot.
+  const currentState = getState();
   const weightChanges = applyRemoteWeightHistoryChanges(
-    state,
+    currentState,
     nonDeletedChangedEntities,
     deletedEntities,
-    await metadataStore.load(),
+    weightMetadata,
     syncedAt,
   );
   const bodyMeasurementChanges = applyRemoteBodyMeasurementChanges(
@@ -119,7 +138,7 @@ export async function applySyncPullResult({
     nonDeletedChangedEntities,
     deletedEntities,
     session.user.id,
-    await bodyMeasurementMetadataStore.load(),
+    bodyMeasurementMetadata,
     syncedAt,
   );
   const customExerciseChanges = applyRemoteCustomExerciseChanges(
@@ -127,14 +146,14 @@ export async function applySyncPullResult({
     nonDeletedChangedEntities,
     deletedEntities,
     session.user.id,
-    await customExerciseMetadataStore.load(),
+    customExerciseMetadata,
     syncedAt,
   );
   const workoutSessionChanges = applyRemoteWorkoutSessionChanges(
     customExerciseChanges.nextState,
     nonDeletedChangedEntities,
     deletedEntities,
-    await workoutSessionMetadataStore.load(),
+    workoutSessionMetadata,
     syncedAt,
   );
   const workoutTemplateChanges = applyRemoteWorkoutTemplateChanges(
@@ -142,7 +161,7 @@ export async function applySyncPullResult({
     nonDeletedChangedEntities,
     deletedEntities,
     session.user.id,
-    await workoutTemplateMetadataStore.load(),
+    workoutTemplateMetadata,
     syncedAt,
   );
   const trainingProgramChanges = applyRemoteTrainingProgramChanges(
@@ -150,7 +169,7 @@ export async function applySyncPullResult({
     nonDeletedChangedEntities,
     deletedEntities,
     session.user.id,
-    await trainingProgramMetadataStore.load(),
+    trainingProgramMetadata,
     syncedAt,
   );
   const safetyRecoveryChanges = applyRemoteSafetyRecoveryChanges(
@@ -158,14 +177,14 @@ export async function applySyncPullResult({
     nonDeletedChangedEntities,
     deletedEntities,
     session.user.id,
-    await safetyRecoveryMetadataStore.load(),
+    safetyRecoveryMetadata,
     syncedAt,
   );
   const foodEntryChanges = applyRemoteFoodEntryChanges(
     safetyRecoveryChanges.nextState,
     nonDeletedChangedEntities,
     deletedEntities,
-    await foodEntryMetadataStore.load(),
+    foodEntryMetadata,
     syncedAt,
   );
   const mealTemplateChanges = applyRemoteMealTemplateChanges(
@@ -173,7 +192,7 @@ export async function applySyncPullResult({
     nonDeletedChangedEntities,
     deletedEntities,
     session.user.id,
-    await mealTemplateMetadataStore.load(),
+    mealTemplateMetadata,
     syncedAt,
   );
   const nutritionTargetChanges = applyRemoteNutritionTargetChanges(
@@ -181,7 +200,7 @@ export async function applySyncPullResult({
     nonDeletedChangedEntities,
     deletedEntities,
     session.user.id,
-    await nutritionTargetMetadataStore.load(),
+    nutritionTargetMetadata,
     syncedAt,
   );
   const fitnessProfileChanges = applyRemoteFitnessProfileChanges(
@@ -189,7 +208,7 @@ export async function applySyncPullResult({
     nonDeletedChangedEntities,
     deletedEntities,
     session.user.id,
-    await fitnessProfileMetadataStore.load(),
+    fitnessProfileMetadata,
     syncedAt,
   );
 
@@ -214,29 +233,23 @@ export async function applySyncPullResult({
   await replaceMetadataRecords(nutritionTargetMetadataStore, nutritionTargetChanges.metadata);
   await replaceMetadataRecords(fitnessProfileMetadataStore, fitnessProfileChanges.metadata);
 
-  const handledOperationCount =
-    weightChanges.appliedRecordIds.length +
-    weightChanges.deletedRecordIds.length +
-    bodyMeasurementChanges.appliedRecordIds.length +
-    bodyMeasurementChanges.deletedRecordIds.length +
-    customExerciseChanges.appliedRecordIds.length +
-    customExerciseChanges.deletedRecordIds.length +
-    workoutSessionChanges.appliedRecordIds.length +
-    workoutSessionChanges.deletedRecordIds.length +
-    workoutTemplateChanges.appliedRecordIds.length +
-    workoutTemplateChanges.deletedRecordIds.length +
-    trainingProgramChanges.appliedRecordIds.length +
-    trainingProgramChanges.deletedRecordIds.length +
-    safetyRecoveryChanges.appliedRecordIds.length +
-    safetyRecoveryChanges.deletedRecordIds.length +
-    foodEntryChanges.appliedRecordIds.length +
-    foodEntryChanges.deletedRecordIds.length +
-    mealTemplateChanges.appliedRecordIds.length +
-    mealTemplateChanges.deletedRecordIds.length +
-    nutritionTargetChanges.appliedRecordIds.length +
-    nutritionTargetChanges.deletedRecordIds.length +
-    fitnessProfileChanges.appliedRecordIds.length +
-    fitnessProfileChanges.deletedRecordIds.length;
+  const handledOperationCount = [
+    weightChanges,
+    bodyMeasurementChanges,
+    customExerciseChanges,
+    workoutSessionChanges,
+    workoutTemplateChanges,
+    trainingProgramChanges,
+    safetyRecoveryChanges,
+    foodEntryChanges,
+    mealTemplateChanges,
+    nutritionTargetChanges,
+    fitnessProfileChanges,
+  ].reduce(
+    (total, changes) =>
+      total + changes.appliedRecordIds.length + changes.deletedRecordIds.length,
+    0,
+  );
   const pulledRevision = resolvePulledRevision(pullResult);
 
   if (
