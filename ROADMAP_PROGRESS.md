@@ -28,15 +28,15 @@ Always inspect the latest `main` in both repositories before changing code becau
 - Keep every hand-written source file at or below 500 physical lines.
 - When independent work does not touch the same files, it may run in parallel branches.
 - Do not add Supabase, Firebase, a second backend, direct mobile LLM calls, or provider secrets in the mobile app.
-- Do not perform OTA/EAS publish, native build, device installation, backend deployment, or production feature activation unless explicitly requested.
+- Do not perform OTA/EAS publish, native build, device installation, backend deployment, staging credential activation, or production feature activation unless explicitly requested.
 
 ## Overall completion
 
-Estimated roadmap completion: about 91–94%.
+Estimated roadmap completion: about 92–95%.
 
 The remaining work is concentrated in:
 
-1. configure and validate the model provider in staging;
+1. configure and smoke-test the model provider in the protected staging environment;
 2. complete Combined Strategy proposal composition and explicit application flows;
 3. complete release-device and production-readiness validation.
 
@@ -101,6 +101,7 @@ Additional sync hardening completed:
 - [x] Read-only Combined Coach review.
 - [x] Provider-neutral backend model abstraction and capability gating.
 - [x] Provider-neutral default model with optional Nutrition, Strength, and Combined overrides.
+- [x] Domain guardrail repair/rejection and provider telemetry are explicitly covered.
 
 ### Major file decomposition
 
@@ -135,28 +136,36 @@ Generated files such as `package-lock.json` and `repomix-output.xml` remain excl
 
 ### Phase C — staging model-provider activation
 
-Status: provider-neutral code configuration complete; staging runtime activation not verified.
+Status: source-code configuration and verification complete; protected staging activation remains external.
 
 Required:
 
 - [x] make default Coach model configuration provider-neutral with optional domain overrides;
 - [ ] configure staging-only provider credentials on the backend;
-- [ ] verify Nutrition structured-output retry and guardrail rejection paths;
-- [ ] verify Strength structured-output retry and guardrail rejection paths;
-- [ ] record latency, provider/model identifier, attempts, token usage, and validation failures;
-- [ ] confirm deterministic reviews continue to work with model execution disabled;
-- [ ] confirm capability flags reflect actual runtime availability.
+- [x] verify Nutrition structured-output retry and guardrail rejection paths;
+- [x] verify Strength structured-output retry and guardrail rejection paths;
+- [x] record latency, provider/model identifier, attempts, token usage, and validation failures;
+- [x] confirm deterministic reviews continue to work with model execution disabled;
+- [x] confirm capability flags reflect actual runtime availability.
 
-Completed provider configuration slice:
+Completed provider slices:
 
-- backend PR `#35`, merged as `0618ffc4534f72120ed2861b929fbd5021276294`;
-- `COACH_MODEL_DEFAULT_MODEL` is the provider-neutral fallback;
-- optional `COACH_NUTRITION_MODEL`, `COACH_STRENGTH_MODEL`, and `COACH_COMBINED_MODEL` overrides are routed per structured request;
-- the model feature remains disabled by default;
-- blank disabled configuration values are treated as unconfigured;
-- the staging smoke workflow uses the neutral default model and exposes no credentials or raw provider output.
+- backend PR `#35`, merge `0618ffc4534f72120ed2861b929fbd5021276294`:
+  - `COACH_MODEL_DEFAULT_MODEL` is the provider-neutral fallback;
+  - optional Nutrition, Strength, and Combined overrides are routed per request;
+  - the model feature remains disabled by default;
+  - blank disabled configuration values are treated as unconfigured;
+  - the protected smoke workflow exposes no credentials or raw provider output;
+- backend PR `#36`, merge `1f295d8cc76ca4c3d53308929cc574dccf77fcc3`:
+  - Nutrition and Strength use real agent definitions in bounded repair-success and three-attempt rejection tests;
+  - deterministic guardrail issues are supplied to the next model attempt;
+- backend PR `#37`, merge `a15e751f4032f9dda1f88613523c3643ae56a8ec`:
+  - rejected structured runs retain provider, model, cumulative latency, token usage, attempts, and validation issues;
+  - Nutrition and Strength persist the rejection telemetry in agent-run error details.
 
-The staging credential item requires real protected environment values and cannot be marked complete from source code alone. Never put provider credentials in mobile code or `EXPO_PUBLIC_*` variables.
+Disabled-provider verification is covered by the configured-client factory tests and deterministic orchestrator tests. Capability tests verify that structured Strategy flags are false without a runtime model client and true only when one is actually supplied.
+
+The remaining staging credential item requires real protected environment values and an explicitly authorized smoke run. It cannot be marked complete from source code alone. Never put provider credentials in mobile code or `EXPO_PUBLIC_*` variables.
 
 ### Phase D — Combined Strategy proposal
 
@@ -202,10 +211,10 @@ Required:
 
 ## Recommended immediate next actions
 
-1. Add explicit Nutrition and Strength structured-output retry and deterministic guardrail-rejection tests.
-2. Verify telemetry persistence, disabled-provider behavior, and capability flags.
-3. Configure staging-only provider credentials and run the protected smoke workflow when real values are available and activation is explicitly authorized.
-4. Implement the remaining Combined Strategy application flow after provider contracts are stable.
+1. Continue with the first code-verifiable Phase D item: finalize the versioned Combined Strategy request/response contract.
+2. Compose eligible Nutrition and Strength proposals with deterministic Safety context and final guardrails.
+3. Add strict mobile capability/result parsing and the combined preview/confirmation flow.
+4. Configure protected staging credentials and run the provider smoke workflow only when real values are available and activation is explicitly authorized.
 5. Finish native-build and real-device release validation.
 
 ## Validation expectations
