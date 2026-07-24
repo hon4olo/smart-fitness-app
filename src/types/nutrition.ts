@@ -63,6 +63,7 @@ export type MealTemplate = {
   name: string;
   items: FoodEntry[];
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type NutritionState = {
