@@ -1,10 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import type { AuthService } from '@/auth';
 import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
 import { createWeightHistoryQueueOperation } from '@/cloud/WeightHistorySync';
-import type { AppMutationOutboxRecoveryStore } from '@/storage';
+import { getDefaultAppMutationOutboxRecoveryStore } from '@/storage';
 import type { createAsyncStorageOperationQueueStore } from '@/storage/AsyncStorageOperationQueueStore';
 import type { createWeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
 import type { AppState, WeightEntry } from '@/types';
@@ -21,7 +21,6 @@ type WeightHistoryAction = 'create' | 'update' | 'delete';
 
 type WeightHistoryActionsOptions = {
   authService: AuthService;
-  outboxRecoveryStore: AppMutationOutboxRecoveryStore;
   queueStore: ReturnType<typeof createAsyncStorageOperationQueueStore>;
   scheduleStateMutation: ScheduleAppStateMutation;
   setState: Dispatch<SetStateAction<AppState>>;
@@ -36,12 +35,12 @@ const getRecoveryLabel = (action: WeightHistoryAction): string => {
 
 export function useWeightHistoryActions({
   authService,
-  outboxRecoveryStore,
   queueStore,
   scheduleStateMutation,
   setState,
   weightSyncMetadataStore,
 }: WeightHistoryActionsOptions) {
+  const outboxRecoveryStore = useMemo(getDefaultAppMutationOutboxRecoveryStore, []);
   const buildWeightHistoryOperation = useCallback(
     async (action: WeightHistoryAction, entry: WeightEntry): Promise<OfflineSyncQueueOperation> => {
       const session = await authService.getCurrentSession();
