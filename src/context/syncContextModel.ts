@@ -56,6 +56,29 @@ export type SyncPullResult = {
   revision?: number | { number: number };
 };
 
+type SyncConflictLike = {
+  status?: unknown;
+};
+
+const TERMINAL_SYNC_CONFLICT_STATUSES = new Set(['autoResolved', 'resolved', 'ignored']);
+
+export const isUnresolvedSyncConflict = (conflict: SyncConflictLike): boolean =>
+  typeof conflict.status !== 'string' ||
+  !TERMINAL_SYNC_CONFLICT_STATUSES.has(conflict.status);
+
+export const countUnresolvedSyncConflicts = ({
+  localUnresolvedCount,
+  pullConflicts = [],
+  pushConflicts = [],
+}: {
+  localUnresolvedCount: number;
+  pullConflicts?: SyncConflictLike[];
+  pushConflicts?: SyncConflictLike[];
+}): number =>
+  Math.max(0, Math.floor(localUnresolvedCount)) +
+  pushConflicts.filter(isUnresolvedSyncConflict).length +
+  pullConflicts.filter(isUnresolvedSyncConflict).length;
+
 export const resolveStatus = (
   phase: string,
   hasConflicts: boolean,
