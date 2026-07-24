@@ -17,7 +17,7 @@ export type CoachRequestType =
   | CombinedCoachRequestType;
 
 export type CoachCapabilities = {
-  schemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  schemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
   nutrition: {
     deterministicReview: true;
     deterministicTargetProposal: true;
@@ -42,6 +42,7 @@ export type CoachCapabilities = {
     deterministicReview: true;
     deterministicProposalReview?: true;
     proposalRequiresExplicitConfirmation?: true;
+    effectiveStrengthConfirmation?: boolean;
     automaticApplication: false;
   };
 };
@@ -138,6 +139,10 @@ export type CoachApi = {
   startSafetyRecoveryRun(input?: StartSafetyRecoveryRunInput): Promise<CoachRunEnvelope>;
   startCombinedRun(input?: StartCombinedCoachRunInput): Promise<CoachRunEnvelope>;
   confirmRun(runId: string, input: ConfirmCoachRunInput): Promise<CoachRunEnvelope>;
+  confirmCombinedEffectiveStrength(
+    runId: string,
+    input: ConfirmCoachRunInput,
+  ): Promise<CoachRunEnvelope>;
   getRun(runId: string): Promise<CoachRunEnvelope>;
   waitForTerminalRun(initial: CoachRunEnvelope, options?: WaitForRunOptions): Promise<CoachRunEnvelope>;
 };
