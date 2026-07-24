@@ -1,0 +1,16 @@
+name: Fixed SHA Release Gate Validation
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/fixed-sha-release-gate-validation.yml
+
+permissions:
+  contents: read
+
+jobs:
+  release-gate:
+    uses: ./.github/workflows/release-gate.yml
+    with:
+      app_ref: a29d823ec83a8c07109754bf79e95f4ecbdb9112
+      backend_ref: c8cf3f848e9debacf5e12a105501f5ca8d5cbc96
