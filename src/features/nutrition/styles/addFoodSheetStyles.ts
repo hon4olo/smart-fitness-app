@@ -5,16 +5,8 @@ import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 export const createAddFoodSheetStyles = (colors: typeof Colors.dark) =>
   StyleSheet.create({
     sheet: {
-      backgroundColor: colors.surfacePrimary,
-      borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
-      borderTopLeftRadius: Radii.xlarge,
-      borderTopRightRadius: Radii.xlarge,
-      borderTopWidth: StyleSheet.hairlineWidth,
       gap: Spacing.two,
-      maxWidth: MaxContentWidth,
       padding: Spacing.three,
-      width: '100%',
     },
     sheetAttribution: {
       color: colors.textMuted,
@@ -23,11 +15,7 @@ export const createAddFoodSheetStyles = (colors: typeof Colors.dark) =>
     },
     sheetBackdrop: {
       alignItems: 'center',
-      bottom: 0,
-      left: 0,
-      position: 'absolute',
-      right: 0,
-      top: 0,
+      flex: 1,
       justifyContent: 'flex-end',
     },
     sheetClose: {
@@ -50,11 +38,27 @@ export const createAddFoodSheetStyles = (colors: typeof Colors.dark) =>
     sheetField: {
       gap: Spacing.one,
     },
+    sheetFrame: {
+      backgroundColor: colors.surfacePrimary,
+      borderColor: colors.borderSubtle,
+      borderCurve: 'continuous',
+      borderTopLeftRadius: Radii.xlarge,
+      borderTopRightRadius: Radii.xlarge,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      maxHeight: '88%',
+      maxWidth: MaxContentWidth,
+      overflow: 'hidden',
+      width: '100%',
+    },
     sheetHeader: {
       alignItems: 'flex-start',
       flexDirection: 'row',
       gap: Spacing.two,
       justifyContent: 'space-between',
+    },
+    sheetHeaderCopy: {
+      flex: 1,
+      minWidth: 0,
     },
     sheetHint: {
       color: colors.textSecondary,
@@ -62,7 +66,7 @@ export const createAddFoodSheetStyles = (colors: typeof Colors.dark) =>
       lineHeight: 16,
     },
     sheetScrim: {
-      ...StyleSheet.absoluteFill,
+      ...StyleSheet.absoluteFillObject,
       backgroundColor: 'rgba(0, 0, 0, 0.4)',
     },
     helperText: {
