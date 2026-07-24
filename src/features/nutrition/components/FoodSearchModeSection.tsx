@@ -12,7 +12,6 @@ type FoodSearchModeSectionProps = {
   backendFoodSearchStatus: 'idle' | 'loading' | 'error';
   colors: Record<string, any>;
   favoriteIds: string[];
-  favoriteSeedIds: string[];
   foodSuggestions: string[];
   formatProviderLabel: (provider: FoodItem['source']['provider']) => string;
   getFoodAttributionLabel: (food: Pick<FoodItem, 'attribution' | 'source'>) => string;
@@ -36,7 +35,6 @@ export function FoodSearchModeSection({
   backendFoodSearchStatus,
   colors,
   favoriteIds,
-  favoriteSeedIds,
   foodSuggestions,
   formatProviderLabel,
   getFoodAttributionLabel,
@@ -147,7 +145,7 @@ export function FoodSearchModeSection({
         ) : null}
         {searchResults.length > 0 ? (
           searchResults.map((food) => {
-            const favorite = favoriteIds.includes(food.id) || favoriteSeedIds.includes(food.id);
+            const favorite = favoriteIds.includes(food.id);
             const favoriteAccessibilityLabel = favorite
               ? `Remove ${food.name} from favorites`
               : `Add ${food.name} to favorites`;

@@ -28,6 +28,7 @@ import {
 import { NutritionAddFoodView } from '@/features/nutrition/components/NutritionAddFoodView';
 import { createAddFoodStyles } from '@/features/nutrition/styles/addFoodStyles';
 import { useFoodProviderSearch } from '@/features/nutrition/useFoodProviderSearch';
+import { useNutritionFavoriteFoods } from '@/features/nutrition/useNutritionFavoriteFoods';
 import { formatLocalDate } from '@/lib';
 import {
   buildFoodEntryFromCatalog,
@@ -76,8 +77,7 @@ export default function NutritionAddFoodScreen() {
     () => recentItems.map((item) => item.catalogFood?.id).filter(Boolean) as string[],
     [recentItems],
   );
-  const favoriteSeedIds = useMemo(() => recentCatalogIds.slice(0, 6), [recentCatalogIds]);
-  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const { error: favoritesError, favoriteIds, toggleFavorite } = useNutritionFavoriteFoods();
   const [mode, setMode] = useState<PickerMode>(recentItems.length > 0 ? 'recent' : 'food');
   const [query, setQuery] = useState('');
   const [message, setMessage] = useState('');
@@ -101,15 +101,12 @@ export default function NutritionAddFoodScreen() {
     useFoodProviderSearch(mode, query);
   const editingEntry = useMemo(() => foodEntries.find((entry) => entry.id === entryId), [entryId, foodEntries]);
   const defaultCatalogResults = useMemo(
-    () => searchFoodCatalog(foodCatalog, query, {
-      favoriteIds: favoriteIds.length > 0 ? favoriteIds : favoriteSeedIds,
-      recentIds: recentCatalogIds,
-    }),
-    [favoriteIds, favoriteSeedIds, query, recentCatalogIds],
+    () => searchFoodCatalog(foodCatalog, query, { favoriteIds, recentIds: recentCatalogIds }),
+    [favoriteIds, query, recentCatalogIds],
   );
   const favoriteFoods = useMemo(
-    () => foodCatalog.filter((food) => favoriteIds.includes(food.id) || favoriteSeedIds.includes(food.id)),
-    [favoriteIds, favoriteSeedIds],
+    () => foodCatalog.filter((food) => favoriteIds.includes(food.id)),
+    [favoriteIds],
   );
   const searchResults = useMemo(
     () => (mode === 'food' ? defaultCatalogResults.slice(0, 18) : []),
@@ -141,6 +138,9 @@ export default function NutritionAddFoodScreen() {
   useEffect(() => {
     if (mode === 'recent' && recentItems.length === 0) setMode('food');
   }, [mode, recentItems.length]);
+  useEffect(() => {
+    if (favoritesError) setMessage(favoritesError);
+  }, [favoritesError]);
 
   const returnToDiary = () => router.replace({
     pathname: '/nutrition',
@@ -315,7 +315,6 @@ export default function NutritionAddFoodScreen() {
       customFoodErrors={customFoodErrors}
       favoriteFoods={favoriteFoods}
       favoriteIds={favoriteIds}
-      favoriteSeedIds={favoriteSeedIds}
       foodSuggestions={foodSuggestions}
       macroSummaryLabel={formatCompactMacroTotals(selectedMealTotals)}
       manageMealsOpen={manageMealsOpen}
@@ -347,9 +346,7 @@ export default function NutritionAddFoodScreen() {
       onSelectSuggestion={(suggestion) => { setQuery(suggestion); setFoodSuggestions([]); }}
       onToggleCreateFood={() => { setCreateFoodOpen((current) => !current); setCustomFoodErrors({}); }}
       onToggleCreateMeal={() => setCreateMealOpen((current) => !current)}
-      onToggleFavorite={(foodId) => setFavoriteIds((current) => current.includes(foodId)
-        ? current.filter((item) => item !== foodId)
-        : [foodId, ...current])}
+      onToggleFavorite={toggleFavorite}
       onToggleManageMeals={() => setManageMealsOpen((current) => !current)}
       query={query}
       recentItems={recentItems}

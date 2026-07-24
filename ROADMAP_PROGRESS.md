@@ -33,7 +33,7 @@ Always inspect the latest `main` and open pull requests in both repositories bef
 
 ## Overall completion
 
-The architecture, synchronization, Coach, and repository-CI roadmap remains about 98–99% complete at source-code level. A focused Nutrition UX hardening phase was added after a child-flow audit found concrete date, validation, serving-display, destructive-action, and narrow-device layout defects. This phase does not alter the main Nutrition diary screen.
+The architecture, synchronization, Coach, and repository-CI roadmap remains about 98–99% complete at source-code level. A focused Nutrition UX hardening phase was added after a child-flow audit found concrete date, validation, serving-display, destructive-action, favorites, and narrow-device layout defects. This phase does not alter the main Nutrition diary screen.
 
 The remaining work is concentrated in:
 
@@ -220,7 +220,7 @@ The combined gate remains blocked until the mobile repository receives a read-on
 
 Status: in progress. The main Nutrition diary screen is the visual reference and must remain unchanged.
 
-Completed in the first child-flow slice:
+Completed child-flow slices:
 
 - [x] audit Nutrition routes, components, calculations, forms, empty states, destructive actions, and narrow-device layouts;
 - [x] use a local calendar date instead of UTC fallback when opening Add Food without a date parameter;
@@ -229,16 +229,18 @@ Completed in the first child-flow slice:
 - [x] reject zero, negative, blank, and non-numeric custom-food serving or nutrition values;
 - [x] give custom-food fields persistent labels, stable two-column sizing, and main-screen card treatment;
 - [x] keep the seven-column calendar grid stable on narrow iPhones;
-- [x] require confirmation before deleting a diary entry or saved meal.
+- [x] require confirmation before deleting a diary entry or saved meal;
+- [x] persist explicit local-catalog favorites in an anonymous device scope or a separate signed-in user scope;
+- [x] stop treating recent foods as implicit favorites and allow removal directly from the Favorites tab.
 
 Remaining Nutrition UX work:
 
-- [ ] persist explicit favorites per signed-in user and stop treating recent foods as implicit favorites;
+- [ ] decide whether remote-provider results need reusable favorite snapshots in addition to local-catalog favorites;
 - [ ] add a saved-meal detail/edit/rename flow instead of limiting management to quick add and delete;
 - [ ] make the portion editor scrollable and keyboard-safe on the smallest supported iPhone sizes;
 - [ ] debounce full remote food search, not only autocomplete, and distinguish offline, empty, and provider-error states;
 - [ ] decide whether reusable custom foods require a dedicated library/edit/delete screen;
-- [ ] run release-device smoke tests for date selection, search, provider portions, quick add, custom food, edit/delete, saved meals, barcode lookup, permission denial, and offline fallback.
+- [ ] run release-device smoke tests for date selection, search, provider portions, quick add, favorites across account changes, custom food, edit/delete, saved meals, barcode lookup, permission denial, and offline fallback.
 
 Guardrails:
 
@@ -249,9 +251,9 @@ Guardrails:
 
 ## Recommended immediate next actions
 
-1. Validate and merge the first Nutrition child-flow hardening slice through full mobile CI.
-2. Implement account-scoped persistent favorites without changing the main Nutrition diary screen.
-3. Add saved-meal detail/edit/rename and keyboard-safe portion editing in separate focused PRs.
+1. Validate and merge account-scoped Nutrition favorites through full mobile CI.
+2. Add saved-meal detail/edit/rename and keyboard-safe portion editing in separate focused PRs.
+3. Harden remote-search debounce and offline/error states.
 4. Run the Nutrition device matrix on a matching production-channel iOS build.
 5. Configure read-only `BACKEND_REPOSITORY_TOKEN` and rerun the fixed-SHA release gate.
 6. Complete protected staging, offline-restart, native-build, and second-device validation.

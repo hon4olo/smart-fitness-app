@@ -56,7 +56,6 @@ export type NutritionAddFoodViewProps = {
   customFoodErrors: CustomFoodValidationErrors;
   favoriteFoods: FoodCatalogItem[];
   favoriteIds: string[];
-  favoriteSeedIds: string[];
   foodSuggestions: string[];
   macroSummaryLabel: string;
   manageMealsOpen: boolean;
@@ -120,7 +119,6 @@ export function NutritionAddFoodView({
   customFoodErrors,
   favoriteFoods,
   favoriteIds,
-  favoriteSeedIds,
   foodSuggestions,
   macroSummaryLabel,
   manageMealsOpen,
@@ -173,9 +171,7 @@ export function NutritionAddFoodView({
   topInset,
 }: NutritionAddFoodViewProps) {
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.screen}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -188,20 +184,12 @@ export function NutritionAddFoodView({
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <View style={styles.headerRow}>
-            <Pressable
-              accessibilityLabel="Cancel"
-              hitSlop={10}
-              onPress={onBack}
-              style={styles.backButton}>
+            <Pressable accessibilityLabel="Cancel" hitSlop={10} onPress={onBack} style={styles.backButton}>
               <Text style={styles.backButtonText}>Cancel</Text>
             </Pressable>
             <View style={styles.headerCopy}>
-              <Text selectable style={styles.title}>
-                {selectedMealLabel}
-              </Text>
-              <Text selectable style={styles.subtitle}>
-                {selectedDateLabel}
-              </Text>
+              <Text selectable style={styles.title}>{selectedMealLabel}</Text>
+              <Text selectable style={styles.subtitle}>{selectedDateLabel}</Text>
             </View>
             <View style={styles.headerSpacer} />
           </View>
@@ -220,23 +208,15 @@ export function NutritionAddFoodView({
 
           <View style={styles.summaryPill}>
             <View>
-              <Text selectable style={styles.summaryTitle}>
-                {selectedMealCountLabel}
-              </Text>
-              <Text selectable style={styles.summaryCopy}>
-                {macroSummaryLabel}
-              </Text>
+              <Text selectable style={styles.summaryTitle}>{selectedMealCountLabel}</Text>
+              <Text selectable style={styles.summaryCopy}>{macroSummaryLabel}</Text>
             </View>
-            <Text selectable style={styles.summaryCalories}>
-              {selectedMealCaloriesLabel}
-            </Text>
+            <Text selectable style={styles.summaryCalories}>{selectedMealCaloriesLabel}</Text>
           </View>
 
           {message ? (
             <View style={styles.messageBanner}>
-              <Text selectable style={styles.messageText}>
-                {message}
-              </Text>
+              <Text selectable style={styles.messageText}>{message}</Text>
             </View>
           ) : null}
 
@@ -246,7 +226,6 @@ export function NutritionAddFoodView({
               backendFoodSearchStatus={backendFoodSearchStatus}
               colors={colors}
               favoriteIds={favoriteIds}
-              favoriteSeedIds={favoriteSeedIds}
               formatProviderLabel={(provider) =>
                 provider === 'fatsecret'
                   ? 'FatSecret'
@@ -295,6 +274,7 @@ export function NutritionAddFoodView({
               onOpenFood={onOpenCatalogFood}
               onQuickAdd={onQuickAddCatalogFood}
               onSearchFood={() => onModeChange('food')}
+              onToggleFavorite={onToggleFavorite}
               selectedMealLabel={selectedMealLabel}
               styles={styles}
             />
@@ -319,20 +299,10 @@ export function NutritionAddFoodView({
           ) : null}
 
           <View style={styles.quietActionRow}>
-            <Pressable
-              accessibilityLabel="Create food"
-              hitSlop={10}
-              onPress={onToggleCreateFood}
-              style={styles.quietActionButton}>
-              <Text style={styles.quietActionText}>
-                {createFoodOpen ? 'Hide create food' : 'Create food'}
-              </Text>
+            <Pressable accessibilityLabel="Create food" hitSlop={10} onPress={onToggleCreateFood} style={styles.quietActionButton}>
+              <Text style={styles.quietActionText}>{createFoodOpen ? 'Hide create food' : 'Create food'}</Text>
             </Pressable>
-            <Pressable
-              accessibilityLabel="Go to meals mode"
-              hitSlop={10}
-              onPress={() => onModeChange('meals')}
-              style={styles.quietActionButton}>
+            <Pressable accessibilityLabel="Go to meals mode" hitSlop={10} onPress={() => onModeChange('meals')} style={styles.quietActionButton}>
               <Text style={styles.quietActionText}>Create meal</Text>
             </Pressable>
           </View>
