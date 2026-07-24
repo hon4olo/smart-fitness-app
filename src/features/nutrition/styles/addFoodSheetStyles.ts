@@ -66,7 +66,7 @@ export const createAddFoodSheetStyles = (colors: typeof Colors.dark) =>
       lineHeight: 16,
     },
     sheetScrim: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: 'rgba(0, 0, 0, 0.4)',
     },
     helperText: {
