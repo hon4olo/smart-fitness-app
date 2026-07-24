@@ -124,7 +124,7 @@ Required next work:
 
 - [x] add explicit two-device conflict scenarios for workout templates;
 - [x] add explicit two-device conflict scenarios for training programs;
-- [ ] add explicit two-device conflict scenarios for meal templates;
+- [x] add explicit two-device conflict scenarios for meal templates;
 - [ ] add explicit two-device conflict scenarios for custom exercises;
 - [ ] add explicit two-device conflict scenarios for body measurements;
 - [ ] add explicit two-device conflict scenarios for nutrition targets;
@@ -138,6 +138,7 @@ Latest completed sync-hardening slices:
 - `d5afb4d513c27e026f885efa8b3021033c76b245` — preserve local mutations during remote materialization.
 - Workout-template conflict coverage now includes independent two-device merges, overlapping edits, and update-versus-delete in both directions.
 - Training-program conflict coverage now includes independent metadata, schedule, and progression merges plus overlapping edits and update-versus-delete in both directions.
+- Meal-template conflict coverage now includes independent template, item-list, and nested item merges plus overlapping edits and update-versus-delete in both directions.
 
 ### Phase B — finish oversized-file decomposition
 
