@@ -55,19 +55,13 @@ export default function NutritionAddFoodScreen() {
     updateFoodEntry,
   } = useAppContext();
   const params = useLocalSearchParams<{ date?: string; entryId?: string; meal?: MealType }>();
-  const selectedDate =
-    typeof params.date === 'string' && params.date.length > 0
-      ? params.date
-      : formatLocalDate(new Date());
-  const selectedMeal: MealType =
-    params.meal === 'lunch' || params.meal === 'dinner' || params.meal === 'snack'
-      ? params.meal
-      : 'breakfast';
-  const entryId =
-    typeof params.entryId === 'string' && params.entryId.length > 0
-      ? params.entryId
-      : undefined;
-
+  const selectedDate = typeof params.date === 'string' && params.date.length > 0
+    ? params.date
+    : formatLocalDate(new Date());
+  const selectedMeal: MealType = params.meal === 'lunch' || params.meal === 'dinner' || params.meal === 'snack'
+    ? params.meal
+    : 'breakfast';
+  const entryId = typeof params.entryId === 'string' && params.entryId.length > 0 ? params.entryId : undefined;
   const selectedDateEntries = useMemo(
     () => foodEntries.filter((entry) => entry.date === selectedDate),
     [foodEntries, selectedDate],
@@ -76,10 +70,7 @@ export default function NutritionAddFoodScreen() {
     () => selectedDateEntries.filter((entry) => entry.mealType === selectedMeal),
     [selectedDateEntries, selectedMeal],
   );
-  const selectedMealTotals = useMemo(
-    () => sumNutritionTotals(selectedMealEntries),
-    [selectedMealEntries],
-  );
+  const selectedMealTotals = useMemo(() => sumNutritionTotals(selectedMealEntries), [selectedMealEntries]);
   const recentItems = useMemo(() => buildRecentFoodItems(foodEntries), [foodEntries]);
   const recentCatalogIds = useMemo(
     () => recentItems.map((item) => item.catalogFood?.id).filter(Boolean) as string[],
@@ -106,30 +97,18 @@ export default function NutritionAddFoodScreen() {
   const [foodFats, setFoodFats] = useState('0');
   const [customFoodErrors, setCustomFoodErrors] = useState<CustomFoodValidationErrors>({});
   const [scannerOpen, setScannerOpen] = useState(false);
-  const {
-    backendFoodResults,
-    backendFoodSearchStatus,
-    foodSuggestions,
-    setFoodSuggestions,
-  } = useFoodProviderSearch(mode, query);
-
-  const editingEntry = useMemo(
-    () => foodEntries.find((entry) => entry.id === entryId),
-    [entryId, foodEntries],
-  );
+  const { backendFoodResults, backendFoodSearchStatus, foodSuggestions, setFoodSuggestions } =
+    useFoodProviderSearch(mode, query);
+  const editingEntry = useMemo(() => foodEntries.find((entry) => entry.id === entryId), [entryId, foodEntries]);
   const defaultCatalogResults = useMemo(
-    () =>
-      searchFoodCatalog(foodCatalog, query, {
-        favoriteIds: favoriteIds.length > 0 ? favoriteIds : favoriteSeedIds,
-        recentIds: recentCatalogIds,
-      }),
+    () => searchFoodCatalog(foodCatalog, query, {
+      favoriteIds: favoriteIds.length > 0 ? favoriteIds : favoriteSeedIds,
+      recentIds: recentCatalogIds,
+    }),
     [favoriteIds, favoriteSeedIds, query, recentCatalogIds],
   );
   const favoriteFoods = useMemo(
-    () =>
-      foodCatalog.filter(
-        (food) => favoriteIds.includes(food.id) || favoriteSeedIds.includes(food.id),
-      ),
+    () => foodCatalog.filter((food) => favoriteIds.includes(food.id) || favoriteSeedIds.includes(food.id)),
     [favoriteIds, favoriteSeedIds],
   );
   const searchResults = useMemo(
@@ -138,25 +117,16 @@ export default function NutritionAddFoodScreen() {
   );
   const selectedMealLabel = mealTypeLabels[selectedMeal];
   const selectedDateLabel = formatScreenDate(selectedDate);
-  const selectedMealCountLabel = `${selectedMealEntries.length} item${
-    selectedMealEntries.length === 1 ? '' : 's'
-  }`;
-  const selectedDraftSubmitLabel = selectedDraft?.originalEntryId
-    ? 'Save changes'
-    : `Add to ${selectedMealLabel}`;
+  const selectedMealCountLabel = `${selectedMealEntries.length} item${selectedMealEntries.length === 1 ? '' : 's'}`;
+  const selectedDraftSubmitLabel = selectedDraft?.originalEntryId ? 'Save changes' : `Add to ${selectedMealLabel}`;
   const selectedDraftServingLabel = selectedDraft
-    ? formatFoodServing({
-        servingSize: selectedDraft.servingSize,
-        servingUnit: selectedDraft.servingUnit,
-      })
+    ? formatFoodServing({ servingSize: selectedDraft.servingSize, servingUnit: selectedDraft.servingUnit })
     : '';
-  const selectedDraftAttributionLabel =
-    selectedDraft && (selectedDraft.attribution || selectedDraft.source === 'fatsecret')
-      ? selectedDraft.source === 'fatsecret'
-        ? 'Food data provided by FatSecret'
-        : selectedDraft.attribution?.text ??
-          `Source: ${formatProviderLabel(selectedDraft.source)}`
-      : undefined;
+  const selectedDraftAttributionLabel = selectedDraft && (selectedDraft.attribution || selectedDraft.source === 'fatsecret')
+    ? selectedDraft.source === 'fatsecret'
+      ? 'Food data provided by FatSecret'
+      : selectedDraft.attribution?.text ?? `Source: ${formatProviderLabel(selectedDraft.source)}`
+    : undefined;
 
   useEffect(() => {
     if (editingEntry) {
@@ -168,47 +138,33 @@ export default function NutritionAddFoodScreen() {
       setSelectedDraft(null);
     }
   }, [editingEntry, params.entryId]);
-
   useEffect(() => {
     if (mode === 'recent' && recentItems.length === 0) setMode('food');
   }, [mode, recentItems.length]);
 
-  const returnToDiary = () =>
-    router.replace({
-      pathname: '/nutrition',
-      params: { date: selectedDate, openMeal: selectedMeal },
-    });
-
+  const returnToDiary = () => router.replace({
+    pathname: '/nutrition',
+    params: { date: selectedDate, openMeal: selectedMeal },
+  });
   const openDraftFromCatalog = (food: FoodCatalogItem, quantity = food.servingSize) =>
     setSelectedDraft(createDraftFromCatalogFood(food, quantity));
-
-  const openDraftFromFoodItem = (food: FoodItem) =>
-    setSelectedDraft(createDraftFromFoodItem(food));
-
+  const openDraftFromFoodItem = (food: FoodItem) => setSelectedDraft(createDraftFromFoodItem(food));
   const quickAddFoodItem = (food: FoodItem) => {
     const draft = createDraftFromFoodItem(food);
     const entry = buildFoodEntryFromDraft({
-      createdAt: new Date().toISOString(),
-      date: selectedDate,
-      draft,
-      mealType: selectedMeal,
+      createdAt: new Date().toISOString(), date: selectedDate, draft, mealType: selectedMeal,
     });
     if (!entry) return;
     addFoodEntry({ ...entry, id: `${draft.externalId ?? draft.name}-${Date.now()}` });
     setMessage(`Added ${draft.name} to ${selectedMealLabel}`);
   };
-
   const quickAddCatalogFood = (food: FoodCatalogItem, servings = 1) => {
-    addFoodEntry(
-      buildFoodEntryFromCatalog(food, { date: selectedDate, mealType: selectedMeal, servings }),
-    );
+    addFoodEntry(buildFoodEntryFromCatalog(food, { date: selectedDate, mealType: selectedMeal, servings }));
     setMessage(`Added ${food.name} to ${selectedMealLabel}`);
   };
-
   const quickAddRecent = (item: RecentItem) => {
     if (item.catalogFood) {
-      const servings =
-        (item.entry.quantity ?? item.entry.servingSize ?? item.catalogFood.servingSize) /
+      const servings = (item.entry.quantity ?? item.entry.servingSize ?? item.catalogFood.servingSize) /
         item.catalogFood.servingSize;
       quickAddCatalogFood(item.catalogFood, servings > 0 ? servings : 1);
       return;
@@ -222,29 +178,20 @@ export default function NutritionAddFoodScreen() {
     });
     setMessage(`Added ${item.entry.name} to ${selectedMealLabel}`);
   };
-
-  const openDraftFromRecent = (item: RecentItem) =>
-    item.catalogFood
-      ? openDraftFromCatalog(
-          item.catalogFood,
-          item.entry.quantity ?? item.catalogFood.servingSize,
-        )
-      : setSelectedDraft(createDraftFromFoodEntry(item.entry));
-
+  const openDraftFromRecent = (item: RecentItem) => item.catalogFood
+    ? openDraftFromCatalog(item.catalogFood, item.entry.quantity ?? item.catalogFood.servingSize)
+    : setSelectedDraft(createDraftFromFoodEntry(item.entry));
   const quickAddMealTemplate = (template: MealTemplate) => {
     const createdAt = new Date().toISOString();
-    addFoodEntries(
-      template.items.map((entry, index) => ({
-        ...entry,
-        id: `${entry.id}-${Date.now()}-${index}`,
-        date: selectedDate,
-        mealType: selectedMeal,
-        createdAt,
-      })),
-    );
+    addFoodEntries(template.items.map((entry, index) => ({
+      ...entry,
+      id: `${entry.id}-${Date.now()}-${index}`,
+      date: selectedDate,
+      mealType: selectedMeal,
+      createdAt,
+    })));
     setMessage(`Added ${template.name} to ${selectedMealLabel}`);
   };
-
   const saveDraft = () => {
     if (!selectedDraft) return;
     const nextEntry = buildFoodEntryFromDraft({
@@ -257,7 +204,6 @@ export default function NutritionAddFoodScreen() {
       setMessage('Enter a valid quantity.');
       return;
     }
-
     if (selectedDraft.originalEntryId) {
       updateFoodEntry(selectedDraft.originalEntryId, nextEntry);
       setMessage(`Saved ${selectedDraft.name} to ${selectedMealLabel}`);
@@ -268,33 +214,22 @@ export default function NutritionAddFoodScreen() {
     setSelectedDraft(null);
     returnToDiary();
   };
-
   const deleteSelectedDraft = () => {
     if (!selectedDraft?.originalEntryId) return;
     const entryIdToDelete = selectedDraft.originalEntryId;
-    const entryName = selectedDraft.name;
-
-    Alert.alert('Delete food entry?', `${entryName} will be removed from this meal.`, [
+    Alert.alert('Delete food entry?', `${selectedDraft.name} will be removed from this meal.`, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          deleteFoodEntry(entryIdToDelete);
-          setSelectedDraft(null);
-          returnToDiary();
-        },
-      },
+      { text: 'Delete', style: 'destructive', onPress: () => {
+        deleteFoodEntry(entryIdToDelete);
+        setSelectedDraft(null);
+        returnToDiary();
+      } },
     ]);
   };
-
   const updateCustomFoodField = (setter: (value: string) => void, value: string) => {
     setter(value);
-    if (Object.keys(customFoodErrors).length > 0) {
-      setCustomFoodErrors({});
-    }
+    if (Object.keys(customFoodErrors).length > 0) setCustomFoodErrors({});
   };
-
   const resetCustomFoodForm = () => {
     setFoodName('');
     setFoodBrand('');
@@ -307,7 +242,6 @@ export default function NutritionAddFoodScreen() {
     setFoodFats('0');
     setCustomFoodErrors({});
   };
-
   const saveCustomFood = () => {
     const values: CustomFoodValues = {
       brand: foodBrand,
@@ -320,25 +254,17 @@ export default function NutritionAddFoodScreen() {
       servingSize: foodServingSize,
       servingUnit: foodServingUnit,
     };
-    const errors = validateCustomFoodValues(values);
-    setCustomFoodErrors(errors);
-
-    const entry = buildCustomFoodEntry({
-      date: selectedDate,
-      mealType: selectedMeal,
-      values,
-    });
+    setCustomFoodErrors(validateCustomFoodValues(values));
+    const entry = buildCustomFoodEntry({ date: selectedDate, mealType: selectedMeal, values });
     if (!entry) {
       setMessage('Check the custom food fields.');
       return;
     }
-
     addFoodEntry(entry);
     setMessage(`Added ${entry.name} to ${selectedMealLabel}`);
     setCreateFoodOpen(false);
     resetCustomFoodForm();
   };
-
   const saveMealTemplateFromDiary = () => {
     if (!isMeaningfulFoodText(mealTemplateName)) {
       setMessage('Enter a meal name.');
@@ -358,18 +284,12 @@ export default function NutritionAddFoodScreen() {
     setCreateMealOpen(false);
     setMealTemplateName('');
   };
-
   const confirmDeleteMealTemplate = (templateId: string) => {
     const template = mealTemplates.find((item) => item.id === templateId);
     if (!template) return;
-
     Alert.alert('Delete saved meal?', `${template.name} will no longer be available.`, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => deleteMealTemplate(templateId),
-      },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteMealTemplate(templateId) },
     ]);
   };
 
@@ -382,42 +302,15 @@ export default function NutritionAddFoodScreen() {
       createFoodOpen={createFoodOpen}
       createMealOpen={createMealOpen}
       customFood={{
-        brand: {
-          value: foodBrand,
-          setValue: (value) => updateCustomFoodField(setFoodBrand, value),
-        },
-        calories: {
-          value: foodCalories,
-          setValue: (value) => updateCustomFoodField(setFoodCalories, value),
-        },
-        carbs: {
-          value: foodCarbs,
-          setValue: (value) => updateCustomFoodField(setFoodCarbs, value),
-        },
-        fats: {
-          value: foodFats,
-          setValue: (value) => updateCustomFoodField(setFoodFats, value),
-        },
-        name: {
-          value: foodName,
-          setValue: (value) => updateCustomFoodField(setFoodName, value),
-        },
-        protein: {
-          value: foodProtein,
-          setValue: (value) => updateCustomFoodField(setFoodProtein, value),
-        },
-        quantity: {
-          value: foodQuantity,
-          setValue: (value) => updateCustomFoodField(setFoodQuantity, value),
-        },
-        servingSize: {
-          value: foodServingSize,
-          setValue: (value) => updateCustomFoodField(setFoodServingSize, value),
-        },
-        servingUnit: {
-          value: foodServingUnit,
-          setValue: (value) => updateCustomFoodField(setFoodServingUnit, value),
-        },
+        brand: { value: foodBrand, setValue: (value) => updateCustomFoodField(setFoodBrand, value) },
+        calories: { value: foodCalories, setValue: (value) => updateCustomFoodField(setFoodCalories, value) },
+        carbs: { value: foodCarbs, setValue: (value) => updateCustomFoodField(setFoodCarbs, value) },
+        fats: { value: foodFats, setValue: (value) => updateCustomFoodField(setFoodFats, value) },
+        name: { value: foodName, setValue: (value) => updateCustomFoodField(setFoodName, value) },
+        protein: { value: foodProtein, setValue: (value) => updateCustomFoodField(setFoodProtein, value) },
+        quantity: { value: foodQuantity, setValue: (value) => updateCustomFoodField(setFoodQuantity, value) },
+        servingSize: { value: foodServingSize, setValue: (value) => updateCustomFoodField(setFoodServingSize, value) },
+        servingUnit: { value: foodServingUnit, setValue: (value) => updateCustomFoodField(setFoodServingUnit, value) },
       }}
       customFoodErrors={customFoodErrors}
       favoriteFoods={favoriteFoods}
@@ -431,21 +324,13 @@ export default function NutritionAddFoodScreen() {
       message={message}
       mode={mode}
       onBack={() => router.back()}
-      onChangeDraftQuantity={(value) =>
-        setSelectedDraft((current) => (current ? { ...current, quantity: value } : current))
-      }
-      onClearQuery={() => {
-        setQuery('');
-        setFoodSuggestions([]);
-      }}
+      onChangeDraftQuantity={(value) => setSelectedDraft((current) => current ? { ...current, quantity: value } : current)}
+      onClearQuery={() => { setQuery(''); setFoodSuggestions([]); }}
       onCloseDraft={() => setSelectedDraft(null)}
       onCloseScanner={() => setScannerOpen(false)}
       onDeleteDraft={deleteSelectedDraft}
       onDeleteMealTemplate={confirmDeleteMealTemplate}
-      onFoodFound={(food) => {
-        setScannerOpen(false);
-        setSelectedDraft(createDraftFromFoodItem(food));
-      }}
+      onFoodFound={(food) => { setScannerOpen(false); setSelectedDraft(createDraftFromFoodItem(food)); }}
       onModeChange={setMode}
       onOpenCatalogFood={openDraftFromCatalog}
       onOpenFoodItem={openDraftFromFoodItem}
@@ -458,26 +343,13 @@ export default function NutritionAddFoodScreen() {
       onSaveCustomFood={saveCustomFood}
       onSaveDraft={saveDraft}
       onSaveMealTemplate={saveMealTemplateFromDiary}
-      onSearchByName={() => {
-        setScannerOpen(false);
-        setMode('food');
-      }}
-      onSelectSuggestion={(suggestion) => {
-        setQuery(suggestion);
-        setFoodSuggestions([]);
-      }}
-      onToggleCreateFood={() => {
-        setCreateFoodOpen((current) => !current);
-        setCustomFoodErrors({});
-      }}
+      onSearchByName={() => { setScannerOpen(false); setMode('food'); }}
+      onSelectSuggestion={(suggestion) => { setQuery(suggestion); setFoodSuggestions([]); }}
+      onToggleCreateFood={() => { setCreateFoodOpen((current) => !current); setCustomFoodErrors({}); }}
       onToggleCreateMeal={() => setCreateMealOpen((current) => !current)}
-      onToggleFavorite={(foodId) =>
-        setFavoriteIds((current) =>
-          current.includes(foodId)
-            ? current.filter((item) => item !== foodId)
-            : [foodId, ...current],
-        )
-      }
+      onToggleFavorite={(foodId) => setFavoriteIds((current) => current.includes(foodId)
+        ? current.filter((item) => item !== foodId)
+        : [foodId, ...current])}
       onToggleManageMeals={() => setManageMealsOpen((current) => !current)}
       query={query}
       recentItems={recentItems}
