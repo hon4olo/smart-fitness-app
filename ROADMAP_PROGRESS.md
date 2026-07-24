@@ -122,7 +122,7 @@ Status: in progress.
 
 Required next work:
 
-- [ ] add explicit two-device conflict scenarios for workout templates;
+- [x] add explicit two-device conflict scenarios for workout templates;
 - [ ] add explicit two-device conflict scenarios for training programs;
 - [ ] add explicit two-device conflict scenarios for meal templates;
 - [ ] add explicit two-device conflict scenarios for custom exercises;
@@ -133,9 +133,10 @@ Required next work:
 - [ ] test duplicate remote delivery after conflict resolution;
 - [ ] verify conflict state remains visible and recoverable after restart.
 
-Latest completed sync-hardening slice:
+Latest completed sync-hardening slices:
 
 - `d5afb4d513c27e026f885efa8b3021033c76b245` — preserve local mutations during remote materialization.
+- Workout-template conflict coverage now includes independent two-device merges, overlapping edits, and update-versus-delete in both directions.
 
 ### Phase B — finish oversized-file decomposition
 
