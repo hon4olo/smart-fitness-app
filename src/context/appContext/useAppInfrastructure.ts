@@ -7,10 +7,7 @@ import { createMigratingTokenManager } from '@/auth';
 import { createSyncCoordinator, type SyncCoordinator } from '@/cloud';
 import { createProductionCloudProvider } from '@/cloud/createProductionCloudProvider';
 import { createRepositoryFactory } from '@/repositories';
-import {
-  createAppMutationOutboxRecoveryStore,
-  createAsyncStorageAdapter,
-} from '@/storage';
+import { createAsyncStorageAdapter } from '@/storage';
 import { createAsyncStorageOperationQueueStore } from '@/storage/AsyncStorageOperationQueueStore';
 import { createSecureTokenStorageAdapter } from '@/storage/SecureTokenStorageAdapter';
 import { createWeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
@@ -38,10 +35,6 @@ export function useAppInfrastructure(
   const authService = useMemo(() => repositoryProvider.getAuthService(), [repositoryProvider]);
   const queueStore = useMemo(
     () => createAsyncStorageOperationQueueStore(storageAdapter),
-    [storageAdapter],
-  );
-  const appMutationOutboxRecoveryStore = useMemo(
-    () => createAppMutationOutboxRecoveryStore(storageAdapter),
     [storageAdapter],
   );
   const weightSyncMetadataStore = useMemo(
@@ -74,7 +67,6 @@ export function useAppInfrastructure(
   }, [repository, setIsRestoringState, setState]);
 
   return {
-    appMutationOutboxRecoveryStore,
     authService,
     queueStore,
     repository,
