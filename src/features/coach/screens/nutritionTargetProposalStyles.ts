@@ -1,0 +1,146 @@
+import { StyleSheet } from 'react-native';
+
+import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
+
+export const createNutritionTargetProposalStyles = (colors: typeof Colors.light) =>
+  StyleSheet.create({
+    appliedBox: {
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.accent,
+      borderRadius: Radii.medium,
+      borderWidth: 1,
+      gap: Spacing.one,
+      padding: Spacing.three,
+    },
+    appliedTitle: {
+      color: colors.accent,
+      fontSize: Typography.label.fontSize,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+    },
+    backButton: { alignItems: 'center', height: 42, justifyContent: 'center', width: 42 },
+    backLabel: { color: colors.textPrimary, fontSize: 42, fontWeight: '300', lineHeight: 42 },
+    badge: {
+      backgroundColor: colors.backgroundSelected,
+      borderRadius: Radii.pill,
+      color: colors.accent,
+      fontSize: Typography.caption.fontSize,
+      fontWeight: '800',
+      paddingHorizontal: Spacing.two,
+      paddingVertical: 4,
+    },
+    badgeRow: { alignItems: 'center', flexDirection: 'row', gap: Spacing.two },
+    bodyText: {
+      color: colors.textSecondary,
+      fontSize: Typography.body.fontSize,
+      lineHeight: Typography.body.lineHeight,
+    },
+    cardTitle: {
+      color: colors.textPrimary,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: Typography.cardTitle.fontWeight,
+      lineHeight: Typography.cardTitle.lineHeight,
+    },
+    container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
+    content: {
+      alignItems: 'center',
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.three,
+    },
+    disclaimer: {
+      color: colors.textMuted,
+      fontSize: Typography.caption.fontSize,
+      lineHeight: Typography.caption.lineHeight,
+    },
+    errorCard: { backgroundColor: colors.errorSoft, borderColor: colors.error },
+    errorTitle: {
+      color: colors.error,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: '800',
+    },
+    header: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.one,
+      paddingBottom: Spacing.two,
+      paddingHorizontal: Spacing.two,
+    },
+    issueText: {
+      color: colors.error,
+      fontSize: Typography.body.fontSize,
+      lineHeight: Typography.body.lineHeight,
+    },
+    mathBox: { gap: Spacing.one },
+    metaText: { color: colors.textMuted, fontSize: Typography.caption.fontSize },
+    notAppliedBox: {
+      backgroundColor: colors.backgroundSelected,
+      borderRadius: Radii.medium,
+      gap: Spacing.one,
+      padding: Spacing.three,
+    },
+    periodButton: {
+      alignItems: 'center',
+      borderColor: colors.borderSubtle,
+      borderRadius: Radii.pill,
+      borderWidth: 1,
+      flex: 1,
+      paddingVertical: Spacing.two,
+    },
+    periodButtonSelected: {
+      backgroundColor: colors.backgroundSelected,
+      borderColor: colors.accent,
+    },
+    periodLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.label.fontSize,
+      fontWeight: '700',
+    },
+    periodLabelSelected: { color: colors.accent },
+    periodRow: { flexDirection: 'row', gap: Spacing.two },
+    pressed: { opacity: 0.72 },
+    resultHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    resultStack: { gap: Spacing.four },
+    resultStatus: {
+      color: colors.textMuted,
+      fontSize: Typography.caption.fontSize,
+      fontWeight: '800',
+    },
+    screen: { backgroundColor: colors.background, flex: 1 },
+    sectionTitle: {
+      color: colors.textPrimary,
+      fontSize: Typography.label.fontSize,
+      fontWeight: '800',
+    },
+    subtitle: { color: colors.textMuted, fontSize: Typography.caption.fontSize },
+    targetBox: {
+      borderColor: colors.borderSubtle,
+      borderRadius: Radii.medium,
+      borderWidth: 1,
+      flex: 1,
+      gap: Spacing.one,
+      padding: Spacing.three,
+    },
+    targetCalories: { color: colors.textPrimary, fontSize: 20, fontWeight: '800' },
+    targetsRow: { flexDirection: 'row', gap: Spacing.two },
+    title: {
+      color: colors.textPrimary,
+      fontSize: Typography.screenTitle.fontSize,
+      fontWeight: Typography.screenTitle.fontWeight,
+      lineHeight: Typography.screenTitle.lineHeight,
+    },
+    verdict: {
+      color: colors.accent,
+      fontSize: Typography.label.fontSize,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+    },
+    verdictRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+  });
