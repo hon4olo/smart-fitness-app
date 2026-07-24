@@ -50,6 +50,7 @@ jobs:
           src/auth/createAuthService.session-cache.test.ts
           src/auth/migrating-token-manager.test.ts
           src/context/appContext/AppMutationQueue.test.ts
+          src/context/appContext/AppMutationOutboxRecovery.test.ts
           src/api/coach.test.ts
           src/api/coach.capabilities.v3.test.ts
           src/api/coach.capabilities.v4.test.ts
