@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,8 +10,12 @@ import { useAppTheme } from '@/theme/AppThemeProvider';
 import {
   buildWorkoutHistoryProgramOptions,
   filterWorkoutHistory,
+  formatWorkoutHistoryDateRange,
+  parseWorkoutHistoryRouteFilters,
+  type WorkoutHistoryDateRange,
   type WorkoutHistoryPeriodFilter,
   type WorkoutHistoryProgramFilter,
+  type WorkoutHistoryRouteParams,
   type WorkoutHistorySafetyFilter,
   type WorkoutHistorySafetyTone,
 } from '../workoutHistoryViewModel';
@@ -99,13 +103,26 @@ function FilterRow({
 }
 
 export default function WorkoutHistoryScreen() {
+  const params = useLocalSearchParams<WorkoutHistoryRouteParams>();
+  const routeFilters = useMemo(
+    () => parseWorkoutHistoryRouteFilters(params),
+    [params.from, params.safety, params.to],
+  );
   const { trainingPrograms, workoutSessions } = useAppContext();
   const { colors } = useAppTheme();
   const styles = useMemo(() => createWorkoutHistoryScreenStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [period, setPeriod] = useState<WorkoutHistoryPeriodFilter>('all');
   const [programId, setProgramId] = useState<WorkoutHistoryProgramFilter>('all');
-  const [safety, setSafety] = useState<WorkoutHistorySafetyFilter>('all');
+  const [safety, setSafety] = useState<WorkoutHistorySafetyFilter>(routeFilters.safety);
+  const [dateRange, setDateRange] = useState<WorkoutHistoryDateRange | null>(
+    routeFilters.dateRange,
+  );
+
+  useEffect(() => {
+    setDateRange(routeFilters.dateRange);
+    setSafety(routeFilters.safety);
+  }, [routeFilters.dateRange?.endAt, routeFilters.dateRange?.startAt, routeFilters.safety]);
 
   const programOptions = useMemo(
     () => buildWorkoutHistoryProgramOptions(trainingPrograms),
@@ -117,13 +134,17 @@ export default function WorkoutHistoryScreen() {
         period,
         programId,
         safety,
+        dateRange,
       }),
-    [period, programId, safety, trainingPrograms, workoutSessions],
+    [dateRange, period, programId, safety, trainingPrograms, workoutSessions],
   );
   const reviewedCount = history.filter((item) => item.hasSafetyContext).length;
-  const filtersActive = period !== 'all' || programId !== 'all' || safety !== 'all';
+  const filtersActive =
+    dateRange !== null || period !== 'all' || programId !== 'all' || safety !== 'all';
+  const dateRangeLabel = dateRange ? formatWorkoutHistoryDateRange(dateRange) : null;
 
   const clearFilters = () => {
+    setDateRange(null);
     setPeriod('all');
     setProgramId('all');
     setSafety('all');
@@ -175,7 +196,11 @@ export default function WorkoutHistoryScreen() {
             <View style={styles.filtersHeader}>
               <View style={styles.filtersHeaderCopy}>
                 <Text style={styles.cardTitle}>Filters</Text>
-                <Text style={styles.helperText}>Period, program and recorded Safety status</Text>
+                <Text style={styles.helperText}>
+                  {dateRangeLabel
+                    ? `Selected weekly range · ${dateRangeLabel}`
+                    : 'Period, program and recorded Safety status'}
+                </Text>
               </View>
               {filtersActive ? (
                 <Pressable
@@ -188,12 +213,22 @@ export default function WorkoutHistoryScreen() {
             </View>
 
             <FilterRow label="Period">
+              {dateRangeLabel ? (
+                <FilterChip
+                  label={`Week · ${dateRangeLabel}`}
+                  onPress={() => setDateRange(null)}
+                  selected
+                />
+              ) : null}
               {PERIOD_OPTIONS.map((option) => (
                 <FilterChip
                   key={option.id}
                   label={option.label}
-                  onPress={() => setPeriod(option.id)}
-                  selected={period === option.id}
+                  onPress={() => {
+                    setDateRange(null);
+                    setPeriod(option.id);
+                  }}
+                  selected={!dateRange && period === option.id}
                 />
               ))}
             </FilterRow>

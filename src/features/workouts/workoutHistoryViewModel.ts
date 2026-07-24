@@ -32,6 +32,12 @@ export type WorkoutHistoryFilters = {
   dateRange?: WorkoutHistoryDateRange | null;
 };
 
+export type WorkoutHistoryRouteParams = {
+  from?: string | string[];
+  to?: string | string[];
+  safety?: string | string[];
+};
+
 export type WorkoutHistoryProgramOption = {
   id: WorkoutHistoryProgramFilter;
   label: string;
@@ -64,6 +70,29 @@ const PERIOD_DAYS: Record<Exclude<WorkoutHistoryPeriodFilter, 'all'>, number> = 
   '90d': 90,
 };
 
+const SAFETY_FILTERS = new Set<WorkoutHistorySafetyFilter>([
+  'all',
+  'ready',
+  'modify',
+  'blocked',
+  'needs_input',
+  'missing_or_stale',
+  'no_context',
+]);
+
+const firstParam = (value: string | string[] | undefined): string | undefined =>
+  Array.isArray(value) ? value[0] : value;
+
+const parseRouteTimestamp = (value: string | string[] | undefined): number => {
+  const normalized = firstParam(value)?.trim();
+  if (!normalized) return Number.NaN;
+  if (/^\d+$/.test(normalized)) {
+    const numeric = Number(normalized);
+    return Number.isFinite(numeric) ? numeric : Number.NaN;
+  }
+  return Date.parse(normalized);
+};
+
 const formatDate = (value: string): string => {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return 'Unknown date';
@@ -71,6 +100,43 @@ const formatDate = (value: string): string => {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date);
+};
+
+export const isValidWorkoutHistoryDateRange = (
+  range: WorkoutHistoryDateRange | null | undefined,
+): range is WorkoutHistoryDateRange =>
+  Boolean(
+    range &&
+      Number.isFinite(range.startAt) &&
+      Number.isFinite(range.endAt) &&
+      range.startAt >= 0 &&
+      range.endAt > range.startAt,
+  );
+
+export const parseWorkoutHistoryRouteFilters = (
+  params: WorkoutHistoryRouteParams,
+): { dateRange: WorkoutHistoryDateRange | null; safety: WorkoutHistorySafetyFilter } => {
+  const dateRange = {
+    startAt: parseRouteTimestamp(params.from),
+    endAt: parseRouteTimestamp(params.to),
+  };
+  const safetyParam = firstParam(params.safety)?.trim() as WorkoutHistorySafetyFilter | undefined;
+
+  return {
+    dateRange: isValidWorkoutHistoryDateRange(dateRange) ? dateRange : null,
+    safety: safetyParam && SAFETY_FILTERS.has(safetyParam) ? safetyParam : 'all',
+  };
+};
+
+export const formatWorkoutHistoryDateRange = (range: WorkoutHistoryDateRange): string => {
+  const formatter = new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+  const inclusiveEnd = Math.max(range.startAt, range.endAt - 1);
+  return `${formatter.format(new Date(range.startAt))}–${formatter.format(new Date(inclusiveEnd))}`;
 };
 
 export const getWorkoutDurationMinutes = (session: WorkoutSession): number => {
@@ -160,17 +226,6 @@ export const buildWorkoutHistoryProgramOptions = (
   { id: 'unassigned', label: 'Unassigned' },
 ];
 
-const isValidDateRange = (
-  range: WorkoutHistoryDateRange | null | undefined,
-): range is WorkoutHistoryDateRange =>
-  Boolean(
-    range &&
-      Number.isFinite(range.startAt) &&
-      Number.isFinite(range.endAt) &&
-      range.startAt >= 0 &&
-      range.endAt > range.startAt,
-  );
-
 const matchesPeriod = (
   session: WorkoutSession,
   period: WorkoutHistoryPeriodFilter,
@@ -179,7 +234,7 @@ const matchesPeriod = (
 ): boolean => {
   const timestamp = getWorkoutTimestamp(session);
   if (timestamp <= 0) return false;
-  if (isValidDateRange(dateRange)) {
+  if (isValidWorkoutHistoryDateRange(dateRange)) {
     return timestamp >= dateRange.startAt && timestamp < dateRange.endAt;
   }
   if (period === 'all') return true;

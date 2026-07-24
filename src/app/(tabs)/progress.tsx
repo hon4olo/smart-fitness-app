@@ -168,7 +168,19 @@ export default function ProgressScreen() {
           <AppButton label="Training details" onPress={() => router.push('/weight-details')} variant="secondary" />
         </AppCard>
         <SafetyRecoveryProgressCard onOpenHistory={() => router.push('/workout-history')} sessions={workoutSessions} />
-        <SafetyRecoveryWeeklyTrendCard sessions={workoutSessions} />
+        <SafetyRecoveryWeeklyTrendCard
+          onOpenHistory={({ endAt, safety, startAt }) =>
+            router.push({
+              pathname: '/workout-history',
+              params: {
+                from: startAt,
+                to: endAt,
+                ...(safety ? { safety } : {}),
+              },
+            })
+          }
+          sessions={workoutSessions}
+        />
       </View>
     </ScrollView>
   );

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import type { SafetyRecoveryProgressPeriod } from '@/features/progress/safetyRecoveryProgressAnalytics';
 import {
   buildSafetyRecoveryWeeklyTrend,
@@ -10,8 +10,17 @@ import {
 } from '@/features/progress/safetyRecoveryWeeklyTrend';
 import type { WorkoutSafetyReviewStatus, WorkoutSession } from '@/types';
 
+import { safetyRecoveryWeeklyTrendStyles as styles } from './SafetyRecoveryWeeklyTrendCard.styles';
+
+export type SafetyRecoveryWeeklyHistoryTarget = {
+  startAt: string;
+  endAt: string;
+  safety?: WorkoutSafetyReviewStatus;
+};
+
 type SafetyRecoveryWeeklyTrendCardProps = {
   sessions: WorkoutSession[];
+  onOpenHistory?(target: SafetyRecoveryWeeklyHistoryTarget): void;
 };
 
 const PERIOD_OPTIONS: Array<{ id: SafetyRecoveryProgressPeriod; label: string }> = [
@@ -53,12 +62,48 @@ const buildPointAccessibilityLabel = (point: SafetyRecoveryWeeklyTrendPoint): st
   return `${point.label}: ${reviewCopy}; ${statuses || 'no reviewed statuses'}; ${loadCopy}.`;
 };
 
-function WeeklyColumn({ point }: { point: SafetyRecoveryWeeklyTrendPoint }) {
+const getEndExclusive = (
+  point: SafetyRecoveryWeeklyTrendPoint,
+  index: number,
+  pointCount: number,
+): string => {
+  if (index !== pointCount - 1) return point.endAt;
+  const end = Date.parse(point.endAt);
+  return Number.isFinite(end) ? new Date(end + 1).toISOString() : point.endAt;
+};
+
+const formatSelectedRange = (point: SafetyRecoveryWeeklyTrendPoint): string => {
+  const start = Date.parse(point.startAt);
+  const end = Date.parse(point.endAt);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return point.label;
+  const formatter = new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+  return `${formatter.format(new Date(start))}–${formatter.format(new Date(end))}`;
+};
+
+function WeeklyColumn({
+  onPress,
+  point,
+  selected,
+}: {
+  onPress(): void;
+  point: SafetyRecoveryWeeklyTrendPoint;
+  selected: boolean;
+}) {
   return (
-    <View
-      accessible
-      accessibilityLabel={buildPointAccessibilityLabel(point)}
-      style={styles.weekColumn}>
+    <Pressable
+      accessibilityLabel={`${buildPointAccessibilityLabel(point)} Select this week for history.`}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.weekColumn,
+        selected && styles.weekColumnSelected,
+        pressed && styles.pressed,
+      ]}>
       <Text numberOfLines={1} style={styles.weekCount}>
         {point.reviewedWorkouts}/{point.totalWorkouts}
       </Text>
@@ -104,18 +149,31 @@ function WeeklyColumn({ point }: { point: SafetyRecoveryWeeklyTrendPoint }) {
       <Text numberOfLines={1} style={styles.weekLabel}>
         {point.label}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
 export function SafetyRecoveryWeeklyTrendCard({
+  onOpenHistory,
   sessions,
 }: SafetyRecoveryWeeklyTrendCardProps) {
   const [period, setPeriod] = useState<SafetyRecoveryProgressPeriod>('90d');
+  const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
   const trend = useMemo(
     () => buildSafetyRecoveryWeeklyTrend(sessions, period),
     [period, sessions],
   );
+  const selectedPointIndex = trend.points.findIndex((point) => point.key === selectedPointKey);
+  const selectedPoint = selectedPointIndex >= 0 ? trend.points[selectedPointIndex] : null;
+
+  const openHistory = (safety?: WorkoutSafetyReviewStatus) => {
+    if (!onOpenHistory || !selectedPoint) return;
+    onOpenHistory({
+      startAt: selectedPoint.startAt,
+      endAt: getEndExclusive(selectedPoint, selectedPointIndex, trend.points.length),
+      ...(safety ? { safety } : {}),
+    });
+  };
 
   return (
     <AppCard>
@@ -140,7 +198,10 @@ export function SafetyRecoveryWeeklyTrendCard({
                 key={option.id}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                onPress={() => setPeriod(option.id)}
+                onPress={() => {
+                  setPeriod(option.id);
+                  setSelectedPointKey(null);
+                }}
                 style={({ pressed }) => [
                   styles.periodChip,
                   selected && styles.periodChipSelected,
@@ -178,14 +239,12 @@ export function SafetyRecoveryWeeklyTrendCard({
       </View>
 
       <View style={styles.legend}>
-        {(['ready', 'modify', 'blocked', 'needs_input'] as WorkoutSafetyReviewStatus[]).map(
-          (status) => (
-            <View key={status} style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: getStatusColor(status) }]} />
-              <Text style={styles.legendLabel}>{STATUS_LABELS[status]}</Text>
-            </View>
-          ),
-        )}
+        {STATUS_ORDER.slice().reverse().map((status) => (
+          <View key={status} style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: getStatusColor(status) }]} />
+            <Text style={styles.legendLabel}>{STATUS_LABELS[status]}</Text>
+          </View>
+        ))}
         <View style={styles.legendItem}>
           <View style={styles.loadLegendBar} />
           <Text style={styles.legendLabel}>Load ceiling</Text>
@@ -199,7 +258,12 @@ export function SafetyRecoveryWeeklyTrendCard({
           showsHorizontalScrollIndicator={false}
           style={styles.chartViewport}>
           {trend.points.map((point) => (
-            <WeeklyColumn key={point.key} point={point} />
+            <WeeklyColumn
+              key={point.key}
+              onPress={() => setSelectedPointKey(point.key)}
+              point={point}
+              selected={point.key === selectedPointKey}
+            />
           ))}
         </ScrollView>
       ) : (
@@ -208,203 +272,51 @@ export function SafetyRecoveryWeeklyTrendCard({
         </Text>
       )}
 
+      {selectedPoint ? (
+        <View style={styles.detailCard}>
+          <View style={styles.detailHeader}>
+            <Text selectable style={styles.detailTitle}>
+              {formatSelectedRange(selectedPoint)}
+            </Text>
+            <Text selectable style={styles.detailLabel}>
+              {selectedPoint.reviewedWorkouts} fresh reviewed of {selectedPoint.totalWorkouts} workouts
+              {selectedPoint.latestLoadMultiplier === null
+                ? ''
+                : ` · latest ceiling ${selectedPoint.latestLoadLabel}`}
+            </Text>
+          </View>
+          {onOpenHistory ? (
+            <View style={styles.detailActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => openHistory()}
+                style={({ pressed }) => [styles.historyButton, pressed && styles.pressed]}>
+                <Text style={styles.historyButtonLabel}>All workouts</Text>
+              </Pressable>
+              {STATUS_ORDER.filter((status) => selectedPoint.statusCounts[status] > 0).map(
+                (status) => (
+                  <Pressable
+                    key={status}
+                    accessibilityLabel={`Open ${STATUS_LABELS[status]} workouts for selected week`}
+                    accessibilityRole="button"
+                    onPress={() => openHistory(status)}
+                    style={({ pressed }) => [styles.historyButton, pressed && styles.pressed]}>
+                    <Text style={styles.historyButtonLabel}>
+                      {STATUS_LABELS[status]} · {selectedPoint.statusCounts[status]}
+                    </Text>
+                  </Pressable>
+                ),
+              )}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       <Text selectable style={styles.chartHelp}>
-        The wide stack shows status composition among fresh reviewed workouts. The narrow blue bar
-        shows the latest reviewed load ceiling recorded in that week, not the weight used.
+        Select a week to inspect its counts or open the matching workout history. The wide stack shows
+        status composition among fresh reviewed workouts. The narrow blue bar shows the latest reviewed
+        load ceiling recorded in that week, not the weight used.
       </Text>
     </AppCard>
   );
 }
-
-const styles = StyleSheet.create({
-  chartContent: {
-    alignItems: 'flex-end',
-    gap: Spacing.two,
-    paddingRight: Spacing.one,
-  },
-  chartHelp: {
-    color: Colors.dark.textMuted,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  chartPair: {
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    gap: 4,
-    height: 100,
-  },
-  chartViewport: {
-    marginHorizontal: -Spacing.one,
-    paddingHorizontal: Spacing.one,
-  },
-  emptyText: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  emptyTrackContent: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-  },
-  emptyTrackLabel: {
-    color: Colors.dark.textMuted,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  header: {
-    gap: 2,
-  },
-  legend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  legendDot: {
-    borderRadius: 999,
-    height: 8,
-    width: 8,
-  },
-  legendItem: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 5,
-  },
-  legendLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  loadBar: {
-    backgroundColor: Colors.dark.chartPrimary,
-    borderRadius: Radii.small,
-    width: '100%',
-  },
-  loadLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 14,
-    textAlign: 'center',
-  },
-  loadLegendBar: {
-    backgroundColor: Colors.dark.chartPrimary,
-    borderRadius: 999,
-    height: 9,
-    width: 4,
-  },
-  loadTrack: {
-    backgroundColor: Colors.dark.backgroundSecondary,
-    borderRadius: Radii.small,
-    height: 96,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-    width: 8,
-  },
-  periodChip: {
-    alignItems: 'center',
-    backgroundColor: Colors.dark.surfaceSecondary,
-    borderColor: Colors.dark.borderSubtle,
-    borderRadius: Radii.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    justifyContent: 'center',
-    minHeight: 36,
-    paddingHorizontal: Spacing.three,
-  },
-  periodChipLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 18,
-  },
-  periodChipLabelSelected: {
-    color: Colors.dark.accent,
-  },
-  periodChipSelected: {
-    backgroundColor: Colors.dark.accentSoft,
-    borderColor: Colors.dark.accent,
-  },
-  periodHelp: {
-    color: Colors.dark.textMuted,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  periodLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 18,
-  },
-  periodRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.one,
-  },
-  periodSection: {
-    gap: Spacing.one,
-  },
-  pressed: {
-    opacity: 0.68,
-  },
-  statusSegment: {
-    minHeight: 2,
-    width: '100%',
-  },
-  statusTrack: {
-    backgroundColor: Colors.dark.backgroundSecondary,
-    borderRadius: Radii.small,
-    height: 96,
-    overflow: 'hidden',
-    width: 24,
-  },
-  subtitle: {
-    color: Colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  summaryItem: {
-    flex: 1,
-    gap: 2,
-  },
-  summaryLabel: {
-    color: Colors.dark.textMuted,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: Spacing.three,
-  },
-  summaryValue: {
-    color: Colors.dark.textPrimary,
-    fontSize: 22,
-    fontWeight: '900',
-    lineHeight: 28,
-  },
-  title: {
-    color: Colors.dark.textPrimary,
-    fontSize: 18,
-    fontWeight: '800',
-    lineHeight: 24,
-  },
-  weekColumn: {
-    alignItems: 'center',
-    gap: 3,
-    width: 44,
-  },
-  weekCount: {
-    color: Colors.dark.textPrimary,
-    fontSize: 10,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '800',
-    lineHeight: 14,
-    textAlign: 'center',
-  },
-  weekLabel: {
-    color: Colors.dark.textMuted,
-    fontSize: 10,
-    lineHeight: 14,
-    textAlign: 'center',
-    width: '100%',
-  },
-});
