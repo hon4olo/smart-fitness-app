@@ -72,6 +72,20 @@ const getDeleteConflictReason = (record: ConflictRecord): string => {
   return 'versions differ';
 };
 
+const isDeleteOperationVersion = (
+  value: unknown,
+  operation?: SyncOperation,
+): boolean =>
+  operation?.action === 'delete' ||
+  (isPlainObject(value) &&
+    value.action === 'delete' &&
+    (typeof value.entityType === 'string' || typeof value.entity === 'string'));
+
+const normalizeConflictVersion = (
+  value: unknown,
+  operation?: SyncOperation,
+): unknown => (isDeleteOperationVersion(value, operation) ? null : cloneValue(value));
+
 const isConflictPolicyRegistry = (value: unknown): value is ConflictPolicyRegistry =>
   typeof value === 'object' &&
   value !== null &&
@@ -133,6 +147,13 @@ const chooseByPolicy = (
   const remoteValue = record.remoteVersion;
   const deleteConflict = localValue === null || remoteValue === null;
 
+  if (deleteConflict && policy.allowDeleteStrategy === 'manualReview') {
+    return {
+      outcome: 'needsReview',
+      conflictingFields: ['root'],
+      reason: getDeleteConflictReason(record),
+    };
+  }
   if (policy.strategy === 'manualReview') {
     return {
       outcome: 'needsReview',
@@ -188,13 +209,6 @@ const chooseByPolicy = (
     };
   }
   if (policy.strategy === 'appendUnion') {
-    if (deleteConflict && policy.allowDeleteStrategy === 'manualReview') {
-      return {
-        outcome: 'needsReview',
-        conflictingFields: ['root'],
-        reason: getDeleteConflictReason(record),
-      };
-    }
     const union = unionAppendOnlyValues(localValue, remoteValue);
     if (union.value !== undefined) {
       return {
@@ -211,13 +225,6 @@ const chooseByPolicy = (
     };
   }
   if (policy.strategy === 'mergeFields') {
-    if (deleteConflict && policy.allowDeleteStrategy === 'manualReview') {
-      return {
-        outcome: 'needsReview',
-        conflictingFields: ['root'],
-        reason: getDeleteConflictReason(record),
-      };
-    }
     if (record.baseVersion === undefined) {
       if (isPlainObject(localValue) && isPlainObject(remoteValue)) {
         const merged = mergeThreeWayValue({}, localValue, remoteValue);
@@ -265,14 +272,19 @@ export const createConflictResolver = (
   registry: ConflictPolicyRegistry = createConflictPolicyRegistry(),
 ): ConflictResolver => {
   const detectConflict = (input: ConflictDetectionInput): ConflictRecord | null => {
-    const localVersion = cloneValue(input.localVersion);
-    const remoteVersion = cloneValue(input.remoteVersion);
+    const localVersion = normalizeConflictVersion(input.localVersion, input.localOperation);
+    const remoteVersion = normalizeConflictVersion(input.remoteVersion, input.remoteOperation);
     if (deepEqual(localVersion, remoteVersion)) return null;
 
     const policy = registry.getPolicy(input.entityType);
     const status: ConflictStatus = 'unresolved';
+    const normalizedInput: ConflictDetectionInput = {
+      ...input,
+      localVersion,
+      remoteVersion,
+    };
     return {
-      conflictId: makeConflictId(input),
+      conflictId: makeConflictId(normalizedInput),
       entityType: input.entityType,
       entity: input.entityType,
       entityId: input.entityId,
