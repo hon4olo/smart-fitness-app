@@ -55,18 +55,46 @@ export function useNutritionStateActions({
   const addMealTemplate = useCallback(
     (template: MealTemplate) => {
       setState((currentState) => {
+        const createdAt = template.createdAt ?? new Date().toISOString();
         const nextState = {
           ...currentState,
           mealTemplates: [
             {
               ...template,
-              createdAt: template.createdAt ?? new Date().toISOString(),
+              createdAt,
+              updatedAt: template.updatedAt ?? createdAt,
               items: template.items.map((item) => ({ ...item })),
             },
             ...currentState.mealTemplates,
           ],
         };
         scheduleStateMutation({ label: 'Save meal template', nextState });
+        return nextState;
+      });
+    },
+    [scheduleStateMutation, setState],
+  );
+
+  const updateMealTemplate = useCallback(
+    (templateId: string, patch: Pick<MealTemplate, 'name' | 'items'>) => {
+      setState((currentState) => {
+        const existing = currentState.mealTemplates.find((template) => template.id === templateId);
+        if (!existing) return currentState;
+
+        const nextState = {
+          ...currentState,
+          mealTemplates: currentState.mealTemplates.map((template) =>
+            template.id === templateId
+              ? {
+                  ...template,
+                  name: patch.name.trim(),
+                  items: patch.items.map((item) => ({ ...item })),
+                  updatedAt: new Date().toISOString(),
+                }
+              : template,
+          ),
+        };
+        scheduleStateMutation({ label: 'Update meal template', nextState });
         return nextState;
       });
     },
@@ -143,6 +171,7 @@ export function useNutritionStateActions({
     deleteFoodEntry,
     deleteMealTemplate,
     updateFoodEntry,
+    updateMealTemplate,
     updateNutritionTargets,
   };
 }

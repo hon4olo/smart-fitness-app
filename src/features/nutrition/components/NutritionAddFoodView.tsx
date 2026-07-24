@@ -16,6 +16,7 @@ import type {
   PickerMode,
   RecentItem,
 } from '@/features/nutrition/addFoodModel';
+import type { NutritionLibraryFood } from '@/features/nutrition/nutritionFoodLibrary';
 import type { createAddFoodStyles } from '@/features/nutrition/styles/addFoodStyles';
 import type { FoodProviderSearchStatus } from '@/features/nutrition/useFoodProviderSearch';
 import type { FoodCatalogItem, MealTemplate } from '@/types';
@@ -57,6 +58,7 @@ export type NutritionAddFoodViewProps = {
   favoriteFoods: FoodCatalogItem[];
   favoriteIds: string[];
   foodSuggestions: string[];
+  libraryFoods: NutritionLibraryFood[];
   macroSummaryLabel: string;
   manageMealsOpen: boolean;
   mealTemplateName: string;
@@ -74,12 +76,17 @@ export type NutritionAddFoodViewProps = {
   onModeChange(mode: PickerMode): void;
   onOpenCatalogFood(food: FoodCatalogItem, quantity?: number): void;
   onOpenFoodItem(food: FoodItem): void;
+  onOpenLibraryFood(food: NutritionLibraryFood): void;
   onOpenRecentFood(item: RecentItem): void;
   onOpenScanner(): void;
   onQuickAddCatalogFood(food: FoodCatalogItem, servings?: number): void;
   onQuickAddFoodItem(food: FoodItem): void;
+  onQuickAddLibraryFood(food: NutritionLibraryFood): void;
   onQuickAddMealTemplate(template: MealTemplate): void;
   onQuickAddRecent(item: RecentItem): void;
+  onRemoveLibraryFood(libraryId: string): void;
+  onRenameMealTemplate(templateId: string, name: string): void;
+  onReplaceMealTemplateItems(templateId: string, name: string): void;
   onSaveCustomFood(): void;
   onSaveDraft(): void;
   onSaveMealTemplate(): void;
@@ -89,6 +96,8 @@ export type NutritionAddFoodViewProps = {
   onToggleCreateMeal(): void;
   onToggleFavorite(foodId: string): void;
   onToggleManageMeals(): void;
+  onToggleProviderFavorite(food: FoodItem): void;
+  providerFavoriteIds: string[];
   query: string;
   recentItems: RecentItem[];
   scannerOpen: boolean;
@@ -108,77 +117,84 @@ export type NutritionAddFoodViewProps = {
   topInset: number;
 };
 
-export function NutritionAddFoodView({
-  backendFoodResults,
-  backendFoodSearchStatus,
-  bottomInset,
-  colors,
-  createFoodOpen,
-  createMealOpen,
-  customFood,
-  customFoodErrors,
-  favoriteFoods,
-  favoriteIds,
-  foodSuggestions,
-  macroSummaryLabel,
-  manageMealsOpen,
-  mealTemplateName,
-  mealTemplates,
-  message,
-  mode,
-  onBack,
-  onChangeDraftQuantity,
-  onClearQuery,
-  onCloseDraft,
-  onCloseScanner,
-  onDeleteDraft,
-  onDeleteMealTemplate,
-  onFoodFound,
-  onModeChange,
-  onOpenCatalogFood,
-  onOpenFoodItem,
-  onOpenRecentFood,
-  onOpenScanner,
-  onQuickAddCatalogFood,
-  onQuickAddFoodItem,
-  onQuickAddMealTemplate,
-  onQuickAddRecent,
-  onSaveCustomFood,
-  onSaveDraft,
-  onSaveMealTemplate,
-  onSearchByName,
-  onSelectSuggestion,
-  onToggleCreateFood,
-  onToggleCreateMeal,
-  onToggleFavorite,
-  onToggleManageMeals,
-  query,
-  recentItems,
-  scannerOpen,
-  searchResults,
-  selectedDateLabel,
-  selectedDraft,
-  selectedDraftAttributionLabel,
-  selectedDraftMacroTotalsLabel,
-  selectedDraftServingLabel,
-  selectedDraftSubmitLabel,
-  selectedMealCaloriesLabel,
-  selectedMealCountLabel,
-  selectedMealLabel,
-  setMealTemplateName,
-  setQuery,
-  styles,
-  topInset,
-}: NutritionAddFoodViewProps) {
+export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
+  const {
+    backendFoodResults,
+    backendFoodSearchStatus,
+    bottomInset,
+    colors,
+    createFoodOpen,
+    createMealOpen,
+    customFood,
+    customFoodErrors,
+    favoriteFoods,
+    favoriteIds,
+    foodSuggestions,
+    libraryFoods,
+    macroSummaryLabel,
+    manageMealsOpen,
+    mealTemplateName,
+    mealTemplates,
+    message,
+    mode,
+    onBack,
+    onChangeDraftQuantity,
+    onClearQuery,
+    onCloseDraft,
+    onCloseScanner,
+    onDeleteDraft,
+    onDeleteMealTemplate,
+    onFoodFound,
+    onModeChange,
+    onOpenCatalogFood,
+    onOpenFoodItem,
+    onOpenLibraryFood,
+    onOpenRecentFood,
+    onOpenScanner,
+    onQuickAddCatalogFood,
+    onQuickAddFoodItem,
+    onQuickAddLibraryFood,
+    onQuickAddMealTemplate,
+    onQuickAddRecent,
+    onRemoveLibraryFood,
+    onRenameMealTemplate,
+    onReplaceMealTemplateItems,
+    onSaveCustomFood,
+    onSaveDraft,
+    onSaveMealTemplate,
+    onSearchByName,
+    onSelectSuggestion,
+    onToggleCreateFood,
+    onToggleCreateMeal,
+    onToggleFavorite,
+    onToggleManageMeals,
+    onToggleProviderFavorite,
+    providerFavoriteIds,
+    query,
+    recentItems,
+    scannerOpen,
+    searchResults,
+    selectedDateLabel,
+    selectedDraft,
+    selectedDraftAttributionLabel,
+    selectedDraftMacroTotalsLabel,
+    selectedDraftServingLabel,
+    selectedDraftSubmitLabel,
+    selectedMealCaloriesLabel,
+    selectedMealCountLabel,
+    selectedMealLabel,
+    setMealTemplateName,
+    setQuery,
+    styles,
+    topInset,
+  } = props;
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          {
-            paddingBottom: bottomInset + Spacing.six,
-            paddingTop: topInset + Spacing.three,
-          },
+          { paddingBottom: bottomInset + Spacing.six, paddingTop: topInset + Spacing.three },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
@@ -214,11 +230,7 @@ export function NutritionAddFoodView({
             <Text selectable style={styles.summaryCalories}>{selectedMealCaloriesLabel}</Text>
           </View>
 
-          {message ? (
-            <View style={styles.messageBanner}>
-              <Text selectable style={styles.messageText}>{message}</Text>
-            </View>
-          ) : null}
+          {message ? <View style={styles.messageBanner}><Text selectable style={styles.messageText}>{message}</Text></View> : null}
 
           {mode === 'food' ? (
             <FoodSearchModeSection
@@ -226,21 +238,9 @@ export function NutritionAddFoodView({
               backendFoodSearchStatus={backendFoodSearchStatus}
               colors={colors}
               favoriteIds={favoriteIds}
-              formatProviderLabel={(provider) =>
-                provider === 'fatsecret'
-                  ? 'FatSecret'
-                  : provider === 'openfoodfacts'
-                    ? 'OpenFoodFacts'
-                    : provider === 'custom'
-                      ? 'Custom'
-                      : 'Local'
-              }
               foodSuggestions={foodSuggestions}
-              getFoodAttributionLabel={(food) =>
-                food.source.provider === 'fatsecret'
-                  ? 'Food data provided by FatSecret'
-                  : food.attribution?.text ?? `Source: ${food.source.provider}`
-              }
+              formatProviderLabel={(provider) => provider === 'fatsecret' ? 'FatSecret' : provider === 'openfoodfacts' ? 'OpenFoodFacts' : provider === 'custom' ? 'Custom' : 'Local'}
+              getFoodAttributionLabel={(food) => food.source.provider === 'fatsecret' ? 'Food data provided by FatSecret' : food.attribution?.text ?? `Source: ${food.source.provider}`}
               onClearQuery={onClearQuery}
               onOpenCatalogFood={onOpenCatalogFood}
               onOpenFoodItem={onOpenFoodItem}
@@ -249,6 +249,8 @@ export function NutritionAddFoodView({
               onQuickAddFoodItem={onQuickAddFoodItem}
               onSelectSuggestion={onSelectSuggestion}
               onToggleFavorite={onToggleFavorite}
+              onToggleProviderFavorite={onToggleProviderFavorite}
+              providerFavoriteIds={providerFavoriteIds}
               query={query}
               searchResults={searchResults}
               selectedMealLabel={selectedMealLabel}
@@ -271,8 +273,12 @@ export function NutritionAddFoodView({
           {mode === 'favorites' ? (
             <FavoriteFoodsModeSection
               foods={favoriteFoods}
+              libraryFoods={libraryFoods}
               onOpenFood={onOpenCatalogFood}
+              onOpenLibraryFood={onOpenLibraryFood}
               onQuickAdd={onQuickAddCatalogFood}
+              onQuickAddLibraryFood={onQuickAddLibraryFood}
+              onRemoveLibraryFood={onRemoveLibraryFood}
               onSearchFood={() => onModeChange('food')}
               onToggleFavorite={onToggleFavorite}
               selectedMealLabel={selectedMealLabel}
@@ -289,6 +295,8 @@ export function NutritionAddFoodView({
               mealTemplates={mealTemplates}
               onDeleteMealTemplate={onDeleteMealTemplate}
               onQuickAddMealTemplate={onQuickAddMealTemplate}
+              onRenameMealTemplate={onRenameMealTemplate}
+              onReplaceMealTemplateItems={onReplaceMealTemplateItems}
               onSaveMealTemplate={onSaveMealTemplate}
               onToggleCreateMeal={onToggleCreateMeal}
               onToggleManageMeals={onToggleManageMeals}

@@ -26,9 +26,11 @@ import {
   type RecentItem,
 } from '@/features/nutrition/addFoodModel';
 import { NutritionAddFoodView } from '@/features/nutrition/components/NutritionAddFoodView';
+import type { NutritionLibraryFood } from '@/features/nutrition/nutritionFoodLibrary';
 import { createAddFoodStyles } from '@/features/nutrition/styles/addFoodStyles';
 import { useFoodProviderSearch } from '@/features/nutrition/useFoodProviderSearch';
 import { useNutritionFavoriteFoods } from '@/features/nutrition/useNutritionFavoriteFoods';
+import { useNutritionFoodLibrary } from '@/features/nutrition/useNutritionFoodLibrary';
 import { formatLocalDate } from '@/lib';
 import {
   buildFoodEntryFromCatalog,
@@ -78,6 +80,14 @@ export default function NutritionAddFoodScreen() {
     [recentItems],
   );
   const { error: favoritesError, favoriteIds, toggleFavorite } = useNutritionFavoriteFoods();
+  const {
+    error: libraryError,
+    foods: libraryFoods,
+    providerFavorites,
+    removeFood: removeLibraryFood,
+    saveCustomFood: saveCustomFoodToLibrary,
+    toggleProviderFavorite,
+  } = useNutritionFoodLibrary();
   const [mode, setMode] = useState<PickerMode>(recentItems.length > 0 ? 'recent' : 'food');
   const [query, setQuery] = useState('');
   const [message, setMessage] = useState('');
@@ -139,8 +149,8 @@ export default function NutritionAddFoodScreen() {
     if (mode === 'recent' && recentItems.length === 0) setMode('food');
   }, [mode, recentItems.length]);
   useEffect(() => {
-    if (favoritesError) setMessage(favoritesError);
-  }, [favoritesError]);
+    if (favoritesError || libraryError) setMessage(favoritesError ?? libraryError ?? '');
+  }, [favoritesError, libraryError]);
 
   const returnToDiary = () => router.replace({
     pathname: '/nutrition',
@@ -149,8 +159,9 @@ export default function NutritionAddFoodScreen() {
   const openDraftFromCatalog = (food: FoodCatalogItem, quantity = food.servingSize) =>
     setSelectedDraft(createDraftFromCatalogFood(food, quantity));
   const openDraftFromFoodItem = (food: FoodItem) => setSelectedDraft(createDraftFromFoodItem(food));
-  const quickAddFoodItem = (food: FoodItem) => {
-    const draft = createDraftFromFoodItem(food);
+  const openLibraryFood = (food: NutritionLibraryFood) =>
+    setSelectedDraft({ ...food, originalEntryId: undefined });
+  const quickAddDraft = (draft: DraftItem) => {
     const entry = buildFoodEntryFromDraft({
       createdAt: new Date().toISOString(), date: selectedDate, draft, mealType: selectedMeal,
     });
@@ -158,6 +169,8 @@ export default function NutritionAddFoodScreen() {
     addFoodEntry({ ...entry, id: `${draft.externalId ?? draft.name}-${Date.now()}` });
     setMessage(`Added ${draft.name} to ${selectedMealLabel}`);
   };
+  const quickAddFoodItem = (food: FoodItem) => quickAddDraft(createDraftFromFoodItem(food));
+  const quickAddLibraryFood = (food: NutritionLibraryFood) => quickAddDraft({ ...food, originalEntryId: undefined });
   const quickAddCatalogFood = (food: FoodCatalogItem, servings = 1) => {
     addFoodEntry(buildFoodEntryFromCatalog(food, { date: selectedDate, mealType: selectedMeal, servings }));
     setMessage(`Added ${food.name} to ${selectedMealLabel}`);
@@ -204,13 +217,8 @@ export default function NutritionAddFoodScreen() {
       setMessage('Enter a valid quantity.');
       return;
     }
-    if (selectedDraft.originalEntryId) {
-      updateFoodEntry(selectedDraft.originalEntryId, nextEntry);
-      setMessage(`Saved ${selectedDraft.name} to ${selectedMealLabel}`);
-    } else {
-      addFoodEntry(nextEntry);
-      setMessage(`Added ${selectedDraft.name} to ${selectedMealLabel}`);
-    }
+    if (selectedDraft.originalEntryId) updateFoodEntry(selectedDraft.originalEntryId, nextEntry);
+    else addFoodEntry(nextEntry);
     setSelectedDraft(null);
     returnToDiary();
   };
@@ -231,28 +239,14 @@ export default function NutritionAddFoodScreen() {
     if (Object.keys(customFoodErrors).length > 0) setCustomFoodErrors({});
   };
   const resetCustomFoodForm = () => {
-    setFoodName('');
-    setFoodBrand('');
-    setFoodServingSize('100');
-    setFoodServingUnit('g');
-    setFoodQuantity('100');
-    setFoodCalories('0');
-    setFoodProtein('0');
-    setFoodCarbs('0');
-    setFoodFats('0');
+    setFoodName(''); setFoodBrand(''); setFoodServingSize('100'); setFoodServingUnit('g');
+    setFoodQuantity('100'); setFoodCalories('0'); setFoodProtein('0'); setFoodCarbs('0'); setFoodFats('0');
     setCustomFoodErrors({});
   };
   const saveCustomFood = () => {
     const values: CustomFoodValues = {
-      brand: foodBrand,
-      calories: foodCalories,
-      carbs: foodCarbs,
-      fats: foodFats,
-      name: foodName,
-      protein: foodProtein,
-      quantity: foodQuantity,
-      servingSize: foodServingSize,
-      servingUnit: foodServingUnit,
+      brand: foodBrand, calories: foodCalories, carbs: foodCarbs, fats: foodFats, name: foodName,
+      protein: foodProtein, quantity: foodQuantity, servingSize: foodServingSize, servingUnit: foodServingUnit,
     };
     setCustomFoodErrors(validateCustomFoodValues(values));
     const entry = buildCustomFoodEntry({ date: selectedDate, mealType: selectedMeal, values });
@@ -261,7 +255,8 @@ export default function NutritionAddFoodScreen() {
       return;
     }
     addFoodEntry(entry);
-    setMessage(`Added ${entry.name} to ${selectedMealLabel}`);
+    saveCustomFoodToLibrary({ ...createDraftFromFoodEntry(entry), originalEntryId: undefined });
+    setMessage(`Added ${entry.name} and saved it to My foods`);
     setCreateFoodOpen(false);
     resetCustomFoodForm();
   };
@@ -274,15 +269,18 @@ export default function NutritionAddFoodScreen() {
       setMessage('No food logged in this meal yet.');
       return;
     }
-    addMealTemplate({
-      id: `${mealTemplateName.trim()}-${Date.now()}`,
-      name: mealTemplateName.trim(),
-      items: selectedMealEntries.map((entry) => ({ ...entry })),
-      createdAt: new Date().toISOString(),
-    });
+    const now = new Date().toISOString();
+    addMealTemplate({ id: `${mealTemplateName.trim()}-${Date.now()}`, name: mealTemplateName.trim(), items: selectedMealEntries.map((entry) => ({ ...entry })), createdAt: now, updatedAt: now });
     setMessage(`Saved ${mealTemplateName.trim()}`);
     setCreateMealOpen(false);
     setMealTemplateName('');
+  };
+  const replaceMealTemplate = (templateId: string, name: string, items: MealTemplate['items']) => {
+    const existing = mealTemplates.find((template) => template.id === templateId);
+    if (!existing || !name.trim()) return;
+    deleteMealTemplate(templateId);
+    addMealTemplate({ ...existing, name: name.trim(), items: items.map((item) => ({ ...item })), updatedAt: new Date().toISOString() });
+    setMessage(`Updated ${name.trim()}`);
   };
   const confirmDeleteMealTemplate = (templateId: string) => {
     const template = mealTemplates.find((item) => item.id === templateId);
@@ -316,6 +314,7 @@ export default function NutritionAddFoodScreen() {
       favoriteFoods={favoriteFoods}
       favoriteIds={favoriteIds}
       foodSuggestions={foodSuggestions}
+      libraryFoods={libraryFoods}
       macroSummaryLabel={formatCompactMacroTotals(selectedMealTotals)}
       manageMealsOpen={manageMealsOpen}
       mealTemplateName={mealTemplateName}
@@ -333,12 +332,26 @@ export default function NutritionAddFoodScreen() {
       onModeChange={setMode}
       onOpenCatalogFood={openDraftFromCatalog}
       onOpenFoodItem={openDraftFromFoodItem}
+      onOpenLibraryFood={openLibraryFood}
       onOpenRecentFood={openDraftFromRecent}
       onOpenScanner={() => setScannerOpen(true)}
       onQuickAddCatalogFood={quickAddCatalogFood}
       onQuickAddFoodItem={quickAddFoodItem}
+      onQuickAddLibraryFood={quickAddLibraryFood}
       onQuickAddMealTemplate={quickAddMealTemplate}
       onQuickAddRecent={quickAddRecent}
+      onRemoveLibraryFood={removeLibraryFood}
+      onRenameMealTemplate={(templateId, name) => {
+        const existing = mealTemplates.find((template) => template.id === templateId);
+        if (existing) replaceMealTemplate(templateId, name, existing.items);
+      }}
+      onReplaceMealTemplateItems={(templateId, name) => {
+        if (selectedMealEntries.length === 0) {
+          setMessage(`No food logged in ${selectedMealLabel.toLowerCase()} to replace this meal.`);
+          return;
+        }
+        replaceMealTemplate(templateId, name, selectedMealEntries);
+      }}
       onSaveCustomFood={saveCustomFood}
       onSaveDraft={saveDraft}
       onSaveMealTemplate={saveMealTemplateFromDiary}
@@ -348,6 +361,8 @@ export default function NutritionAddFoodScreen() {
       onToggleCreateMeal={() => setCreateMealOpen((current) => !current)}
       onToggleFavorite={toggleFavorite}
       onToggleManageMeals={() => setManageMealsOpen((current) => !current)}
+      onToggleProviderFavorite={(food) => toggleProviderFavorite(createDraftFromFoodItem(food))}
+      providerFavoriteIds={providerFavorites.map((food) => food.libraryId)}
       query={query}
       recentItems={recentItems}
       scannerOpen={scannerOpen}
