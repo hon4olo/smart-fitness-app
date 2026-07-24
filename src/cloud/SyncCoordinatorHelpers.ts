@@ -1,8 +1,5 @@
 import type { ConflictRecord, SyncOperation } from './CloudSyncTypes';
-import {
-  filterFailedOfflineSyncQueueOperations,
-  toOfflineSyncQueueSyncOperation,
-} from './CloudQueueHelpers';
+import { filterFailedOfflineSyncQueueOperations } from './CloudQueueHelpers';
 import type { OfflineSyncQueueOperation } from './CloudQueueTypes';
 import type { SyncCoordinatorStatistics } from './SyncCoordinatorTypes';
 
@@ -121,8 +118,3 @@ export const estimateSyncCoordinatorDurationMs = (
   statistics.estimatedDownloadCount * 30 +
   statistics.conflictCount * 40 +
   statistics.failedOperations * 10;
-
-export const makeSyncCoordinatorBatchOperations = (
-  operations: OfflineSyncQueueOperation[],
-): SyncOperation[] =>
-  operations.map((operation) => toOfflineSyncQueueSyncOperation(operation));
