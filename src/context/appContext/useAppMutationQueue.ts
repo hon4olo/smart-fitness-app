@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 
-import type { OfflineSyncQueueStore } from '@/cloud/CloudQueueStore';
 import type { AppRepository } from '@/repositories';
-import type { AppMutationOutboxRecoveryStore } from '@/storage';
+import {
+  createAsyncStorageAdapter,
+  createAsyncStorageOperationQueueStore,
+  getDefaultAppMutationOutboxRecoveryStore,
+} from '@/storage';
 import type { AppState } from '@/types';
 
 import { AppMutationQueue, type AppMutationTask } from './AppMutationQueue';
@@ -20,16 +23,13 @@ export type ScheduleAppStateMutation = (input: {
   outbox?: () => Promise<void>;
 }) => void;
 
-export function useAppMutationQueue({
-  outboxRecoveryStore,
-  queueStore,
-  repository,
-}: {
-  outboxRecoveryStore: AppMutationOutboxRecoveryStore;
-  queueStore: Pick<OfflineSyncQueueStore, 'enqueue'>;
-  repository: AppRepository;
-}) {
+export function useAppMutationQueue(repository: AppRepository) {
   const queue = useMemo(() => new AppMutationQueue(), []);
+  const recoveryStore = useMemo(getDefaultAppMutationOutboxRecoveryStore, []);
+  const recoveryQueueStore = useMemo(
+    () => createAsyncStorageOperationQueueStore(createAsyncStorageAdapter()),
+    [],
+  );
   const snapshot = useSyncExternalStore(queue.subscribe, queue.getSnapshot, queue.getSnapshot);
 
   useEffect(() => {
@@ -41,14 +41,14 @@ export function useAppMutationQueue({
             stage: 'outbox',
             run: () =>
               recoverAppMutationOutbox({
-                queueStore,
-                recoveryStore: outboxRecoveryStore,
+                queueStore: recoveryQueueStore,
+                recoveryStore,
               }).then(() => undefined),
           },
         ],
       })
       .catch(() => undefined);
-  }, [outboxRecoveryStore, queue, queueStore]);
+  }, [queue, recoveryQueueStore, recoveryStore]);
 
   const enqueueStateMutation = useCallback<EnqueueAppStateMutation>(
     ({ label, nextState, outbox }) => {
