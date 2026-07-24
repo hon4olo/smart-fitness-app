@@ -3,6 +3,7 @@ export { createAsyncStorageAdapter } from './AsyncStorageAdapter';
 export { createAsyncStorageOperationQueueStore, OFFLINE_SYNC_QUEUE_STORAGE_KEY } from './AsyncStorageOperationQueueStore';
 export {
   createAppMutationOutboxRecoveryStore,
+  getDefaultAppMutationOutboxRecoveryStore,
   APP_MUTATION_OUTBOX_RECOVERY_STORAGE_KEY,
 } from './AppMutationOutboxRecoveryStore';
 export type {
