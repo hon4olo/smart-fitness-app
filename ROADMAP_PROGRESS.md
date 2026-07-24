@@ -115,6 +115,7 @@ Additional sync hardening completed:
 - [x] `SyncCoordinator.ts` reduced to a compatibility facade with separate operations, state-machine, types, and helper modules below 500 lines.
 - [x] `nutritionCoachViewModel.ts` reduced to a public builder and type re-export surface with separate metric, proposal, and type modules below 500 lines.
 - [x] `addFoodStyles.ts` reduced to a public style factory composed from separate base, scanner, and sheet style modules below 500 lines.
+- [x] `WorkoutTemplateSync.ts` reduced to a compatibility facade with separate serialization/queue and remote-apply modules below 500 lines.
 
 ## Remaining roadmap
 
@@ -151,7 +152,7 @@ Latest completed sync-hardening slices:
 
 ### Phase B — finish oversized-file decomposition
 
-Status: in progress; run in parallel with functional work when file sets do not overlap.
+Status: in progress; the final repository-wide tracked-file audit remains.
 
 Known remaining candidates from the audit and later growth:
 
@@ -159,7 +160,7 @@ Known remaining candidates from the audit and later growth:
 - [x] `src/api/coach.ts` — already a 24-line compatibility facade;
 - [x] `src/features/coach/nutritionCoachViewModel.ts`;
 - [x] `src/features/nutrition/styles/addFoodStyles.ts`;
-- [ ] `src/cloud/WorkoutTemplateSync.ts` if still above 500 lines;
+- [x] `src/cloud/WorkoutTemplateSync.ts`;
 - [ ] rerun a repository-wide tracked-file line audit and update this list.
 
 Do not split generated files such as `package-lock.json` or `repomix-output.xml` merely to satisfy the source-file policy.
@@ -224,11 +225,10 @@ Required:
 
 ## Recommended immediate next actions
 
-1. Split `src/cloud/WorkoutTemplateSync.ts` below 500 lines without changing its public contract.
-2. Rerun the complete line-count audit and update the oversized-file list.
-3. Continue with staging model-provider activation.
-4. Implement Combined Strategy proposal after provider/staging contracts are stable.
-5. Finish native-build and real-device release validation.
+1. Rerun the complete line-count audit and update the oversized-file list.
+2. Continue with staging model-provider activation.
+3. Implement Combined Strategy proposal after provider/staging contracts are stable.
+4. Finish native-build and real-device release validation.
 
 ## Validation expectations
 
