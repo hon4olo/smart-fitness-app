@@ -44,6 +44,12 @@ export const DEFAULT_CONFLICT_POLICIES: Record<string, ConflictPolicy> = {
     preserveChildOrdering: true,
     preferStableTieBreak: 'local',
   },
+  recoveryCheckIns: {
+    strategy: 'appendUnion',
+    allowDeleteStrategy: 'manualReview',
+    preserveChildOrdering: true,
+    preferStableTieBreak: 'local',
+  },
   profile: {
     strategy: 'lastWriteWins',
     allowDeleteStrategy: 'manualReview',
@@ -73,6 +79,12 @@ export const DEFAULT_CONFLICT_POLICIES: Record<string, ConflictPolicy> = {
     preferStableTieBreak: 'local',
   },
   customExercises: {
+    strategy: 'mergeFields',
+    allowDeleteStrategy: 'manualReview',
+    preserveChildOrdering: true,
+    preferStableTieBreak: 'local',
+  },
+  userLimitations: {
     strategy: 'mergeFields',
     allowDeleteStrategy: 'manualReview',
     preserveChildOrdering: true,
