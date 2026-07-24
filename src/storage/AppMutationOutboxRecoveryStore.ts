@@ -1,6 +1,7 @@
 import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
 import { normalizeOfflineSyncQueueOperation } from '@/cloud/CloudQueueHelpers';
 
+import { createAsyncStorageAdapter } from './AsyncStorageAdapter';
 import { withOfflineQueueMutationLock } from './OfflineQueueMutationLock';
 import type { StorageAdapter } from './StorageAdapter';
 
@@ -116,4 +117,11 @@ export const createAppMutationOutboxRecoveryStore = (
       });
     },
   };
+};
+
+let defaultStore: AppMutationOutboxRecoveryStore | null = null;
+
+export const getDefaultAppMutationOutboxRecoveryStore = (): AppMutationOutboxRecoveryStore => {
+  defaultStore ??= createAppMutationOutboxRecoveryStore(createAsyncStorageAdapter());
+  return defaultStore;
 };
