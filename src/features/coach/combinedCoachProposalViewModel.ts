@@ -3,6 +3,7 @@ import type { CoachRunEnvelope } from '@/api/coach';
 import type {
   CombinedCoachProposalViewModel,
   CombinedEffectiveStrengthApplication,
+  CombinedNutritionApplication,
   CombinedProposalStatus,
 } from './combinedCoachProposalContracts';
 import { parseCombinedProposalReview } from './combinedCoachProposalParser';
@@ -12,6 +13,7 @@ export type {
   CombinedEffectiveStrengthApplication,
   CombinedEffectiveStrengthPlan,
   CombinedEffectiveStrengthSet,
+  CombinedNutritionApplication,
   CombinedProposalAction,
   CombinedProposalIssue,
   CombinedProposalSet,
@@ -28,17 +30,12 @@ const readString = (record: Record<string, unknown>, key: string): string | null
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 };
 
-const readEffectiveStrengthApplication = (
-  value: unknown,
-): CombinedEffectiveStrengthApplication | null | undefined => {
-  if (value === undefined) return null;
-  if (!isRecord(value)) return undefined;
+const readApplicationCommon = (value: Record<string, unknown>) => {
   const appliedAt = readString(value, 'appliedAt');
   const confirmationIdempotencyKey = readString(
     value,
     'confirmationIdempotencyKey',
   );
-  const templateId = readString(value, 'templateId');
   if (
     value.applied !== true ||
     !appliedAt ||
@@ -46,28 +43,82 @@ const readEffectiveStrengthApplication = (
     typeof value.appliedRevision !== 'number' ||
     !Number.isSafeInteger(value.appliedRevision) ||
     value.appliedRevision < 0 ||
-    !confirmationIdempotencyKey ||
+    !confirmationIdempotencyKey
+  ) {
+    return null;
+  }
+  return {
+    applied: true as const,
+    appliedAt,
+    appliedRevision: value.appliedRevision,
+    confirmationIdempotencyKey,
+  };
+};
+
+const readEffectiveStrengthApplication = (
+  value: unknown,
+): CombinedEffectiveStrengthApplication | null | undefined => {
+  if (value === undefined) return null;
+  if (!isRecord(value)) return undefined;
+  const common = readApplicationCommon(value);
+  const templateId = readString(value, 'templateId');
+  if (
+    !common ||
     !templateId ||
     value.policyVersion !== 'combined-effective-strength-v1'
   ) {
     return undefined;
   }
   return {
-    applied: true,
-    appliedAt,
-    appliedRevision: value.appliedRevision,
-    confirmationIdempotencyKey,
+    ...common,
     templateId,
     policyVersion: 'combined-effective-strength-v1',
   };
 };
 
-const parseEffectiveStrengthApplication = (
+const readNutritionApplication = (
+  value: unknown,
+): CombinedNutritionApplication | null | undefined => {
+  if (value === undefined) return null;
+  if (!isRecord(value)) return undefined;
+  const common = readApplicationCommon(value);
+  const childRunId = readString(value, 'childRunId');
+  const targetId = readString(value, 'targetId');
+  if (
+    !common ||
+    !childRunId ||
+    !targetId ||
+    value.requestType !== 'nutrition_target_proposal'
+  ) {
+    return undefined;
+  }
+  return {
+    ...common,
+    childRunId,
+    targetId,
+    requestType: 'nutrition_target_proposal',
+  };
+};
+
+export const parseCombinedProposalApplications = (
   result: Record<string, unknown>,
-): CombinedEffectiveStrengthApplication | null | undefined => {
-  if (result.applications === undefined) return null;
+):
+  | {
+      effectiveStrength: CombinedEffectiveStrengthApplication | null;
+      nutrition: CombinedNutritionApplication | null;
+    }
+  | undefined => {
+  if (result.applications === undefined) {
+    return { effectiveStrength: null, nutrition: null };
+  }
   if (!isRecord(result.applications)) return undefined;
-  return readEffectiveStrengthApplication(result.applications.effectiveStrength);
+  const effectiveStrength = readEffectiveStrengthApplication(
+    result.applications.effectiveStrength,
+  );
+  const nutrition = readNutritionApplication(result.applications.nutrition);
+  return effectiveStrength === undefined || nutrition === undefined
+    ? undefined
+    : { effectiveStrength, nutrition };
 };
 
 const copyForStatus = (status: CombinedProposalStatus) => {
@@ -136,13 +187,13 @@ export const buildCombinedCoachProposalViewModel = (
   const completed = run.result.kind === 'combined-coach-proposal-review';
   const review = parseCombinedProposalReview(run.result.review);
   const reason = rejected ? readString(run.result, 'reason') : null;
-  const effectiveStrengthApplication = parseEffectiveStrengthApplication(run.result);
+  const applications = parseCombinedProposalApplications(run.result);
   if (
     (!rejected && !completed) ||
     (run.status === 'rejected' && !rejected) ||
     (run.status === 'completed' && !completed) ||
     !review ||
-    effectiveStrengthApplication === undefined ||
+    !applications ||
     readString(run.result.childRunIds, 'strength') !== review.strength.runId ||
     readString(run.result.childRunIds, 'nutrition') !== review.nutrition.runId ||
     readString(run.result.childRunIds, 'safety') !== review.safety.runId ||
@@ -162,7 +213,8 @@ export const buildCombinedCoachProposalViewModel = (
     ...copyForStatus(review.status),
     rejected,
     reason,
-    effectiveStrengthApplication,
+    effectiveStrengthApplication: applications.effectiveStrength,
+    nutritionApplication: applications.nutrition,
     ...review,
   };
 };
