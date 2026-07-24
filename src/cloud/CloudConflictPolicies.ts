@@ -72,6 +72,12 @@ export const DEFAULT_CONFLICT_POLICIES: Record<string, ConflictPolicy> = {
     preserveChildOrdering: true,
     preferStableTieBreak: 'local',
   },
+  customExercises: {
+    strategy: 'mergeFields',
+    allowDeleteStrategy: 'manualReview',
+    preserveChildOrdering: true,
+    preferStableTieBreak: 'local',
+  },
 };
 
 export const createConflictPolicyRegistry = (overrides: Record<string, ConflictPolicy> = {}): ConflictPolicyRegistry => {
