@@ -76,7 +76,7 @@ describe('SyncConflictStore', () => {
         ...pendingConflict,
         status: 'resolved',
         details: {
-          ...pendingConflict.details as Record<string, unknown>,
+          ...(pendingConflict.details as Record<string, unknown>),
           resolvedVersion: { title: 'Resolved' },
         },
       },
