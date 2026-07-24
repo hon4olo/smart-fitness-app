@@ -17,7 +17,7 @@ export type CoachRequestType =
   | CombinedCoachRequestType;
 
 export type CoachCapabilities = {
-  schemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  schemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
   nutrition: {
     deterministicReview: true;
     deterministicTargetProposal: true;
@@ -44,6 +44,7 @@ export type CoachCapabilities = {
     proposalRequiresExplicitConfirmation?: true;
     effectiveStrengthConfirmation?: boolean;
     nutritionConfirmation?: boolean;
+    nutritionReconciliation?: boolean;
     automaticApplication: false;
   };
 };
