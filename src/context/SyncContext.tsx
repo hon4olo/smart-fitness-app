@@ -140,23 +140,11 @@ export function SyncProvider({
   }, [queueStore]);
 
   const ensureNutritionTargetBootstrap = useCallback(async () => {
-    if (
-      !latestStateRef.current.onboardingCompleted ||
-      !session?.user.id ||
-      !session.device.id
-    ) {
-      return;
-    }
+    if (!latestStateRef.current.onboardingCompleted || !session?.user.id || !session.device.id) return;
     const entityId = getNutritionTargetEntityId(session.user.id);
     const metadata = await nutritionTargetMetadataStore.get(entityId);
     const pending = await queueStore.getPending();
-    if (
-      (metadata && !metadata.deletedAt) ||
-      pending.some(isNutritionTargetQueueOperation)
-    ) {
-      return;
-    }
-
+    if ((metadata && !metadata.deletedAt) || pending.some(isNutritionTargetQueueOperation)) return;
     await queueStore.enqueue(
       createNutritionTargetQueueOperation({
         action: 'create',
@@ -170,28 +158,13 @@ export function SyncProvider({
   }, [nutritionTargetMetadataStore, queueStore, session]);
 
   const ensureFitnessProfileSync = useCallback(async () => {
-    if (
-      !latestStateRef.current.onboardingCompleted ||
-      !session?.user.id ||
-      !session.device.id
-    ) {
-      return;
-    }
-
+    if (!latestStateRef.current.onboardingCompleted || !session?.user.id || !session.device.id) return;
     const entityId = getFitnessProfileEntityId(session.user.id);
     const metadata = await fitnessProfileMetadataStore.get(entityId);
     const pending = await queueStore.getPending();
     if (pending.some(isFitnessProfileQueueOperation)) return;
-
     const snapshot = normalizeFitnessProfileForSync(latestStateRef.current.profile);
-    if (
-      metadata &&
-      !metadata.deletedAt &&
-      areFitnessProfileSnapshotsEqual(snapshot, metadata.snapshot)
-    ) {
-      return;
-    }
-
+    if (metadata && !metadata.deletedAt && areFitnessProfileSnapshotsEqual(snapshot, metadata.snapshot)) return;
     await queueStore.enqueue(
       createFitnessProfileQueueOperation({
         action: metadata && !metadata.deletedAt ? 'update' : 'create',
@@ -230,7 +203,6 @@ export function SyncProvider({
 
   const ensureWorkoutTemplateSync = useCallback(async () => {
     if (!session?.user.id || !session.device.id) return;
-
     const operations = planWorkoutTemplateSyncOperations({
       workouts: latestStateRef.current.workouts,
       metadata: await workoutTemplateMetadataStore.load(),
@@ -238,14 +210,11 @@ export function SyncProvider({
       userId: session.user.id,
       deviceId: session.device.id,
     });
-    for (const operation of operations) {
-      await queueStore.enqueue(operation);
-    }
+    for (const operation of operations) await queueStore.enqueue(operation);
   }, [queueStore, session, workoutTemplateMetadataStore]);
 
   const ensureTrainingProgramSync = useCallback(async () => {
     if (!session?.user.id || !session.device.id) return;
-
     const operations = planTrainingProgramSyncOperations({
       programs: latestStateRef.current.trainingPrograms,
       metadata: await trainingProgramMetadataStore.load(),
@@ -253,9 +222,7 @@ export function SyncProvider({
       userId: session.user.id,
       deviceId: session.device.id,
     });
-    for (const operation of operations) {
-      await queueStore.enqueue(operation);
-    }
+    for (const operation of operations) await queueStore.enqueue(operation);
   }, [queueStore, session, trainingProgramMetadataStore]);
 
   const ensureMealTemplateSync = useCallback(async () => {
@@ -272,7 +239,6 @@ export function SyncProvider({
 
   const ensureSafetyRecoverySync = useCallback(async () => {
     if (!session?.user.id || !session.device.id) return;
-
     const operations = planSafetyRecoverySyncOperations({
       userLimitations: latestStateRef.current.userLimitations,
       recoveryCheckIns: latestStateRef.current.recoveryCheckIns,
@@ -281,25 +247,20 @@ export function SyncProvider({
       userId: session.user.id,
       deviceId: session.device.id,
     });
-    for (const operation of operations) {
-      await queueStore.enqueue(operation);
-    }
+    for (const operation of operations) await queueStore.enqueue(operation);
   }, [queueStore, safetyRecoveryMetadataStore, session]);
 
   const syncNow = useCallback(async () => {
     if (syncingRef.current || isRestoringState) return;
-
     syncingRef.current = true;
     setStatus(isAuthenticated ? 'syncing' : 'local-only');
     setError(null);
-
     try {
       if (!session || !isAuthenticated) {
         setStatus('local-only');
         await refreshQueueStats();
         return;
       }
-
       await ensureNutritionTargetBootstrap();
       await ensureFitnessProfileSync();
       await ensureBodyMeasurementSync();
@@ -318,17 +279,13 @@ export function SyncProvider({
       setConflictCount(nextConflictCount);
 
       if (pushResult?.appliedOperations?.length) {
-        const appliedKeys = new Set(
-          pushResult.appliedOperations.map((appliedOperation) => appliedOperation.id),
-        );
+        const appliedKeys = new Set(pushResult.appliedOperations.map((operation) => operation.id));
         const queuedOperations = (await queueStore.loadOperations()) as Array<{
           opId: string;
           idempotencyKey: string;
         }>;
-        for (const queuedOperation of queuedOperations) {
-          if (appliedKeys.has(queuedOperation.idempotencyKey)) {
-            await queueStore.acknowledge(queuedOperation.opId);
-          }
+        for (const operation of queuedOperations) {
+          if (appliedKeys.has(operation.idempotencyKey)) await queueStore.acknowledge(operation.opId);
         }
         await queueStore.removeAcknowledged();
       }
@@ -340,6 +297,7 @@ export function SyncProvider({
           customExerciseMetadataStore,
           fitnessProfileMetadataStore,
           foodEntryMetadataStore,
+          getState: () => latestStateRef.current,
           mealTemplateMetadataStore,
           metadataStore,
           nextConflictCount,
@@ -348,7 +306,6 @@ export function SyncProvider({
           replaceState,
           safetyRecoveryMetadataStore,
           session,
-          state: latestStateRef.current,
           trainingProgramMetadataStore,
           workoutSessionMetadataStore,
           workoutTemplateMetadataStore,
@@ -357,11 +314,7 @@ export function SyncProvider({
 
       const afterPending = await queueStore.getPending();
       setPendingOperations(countSupportedQueueOperations(afterPending));
-      setLastSyncAt(
-        pushResult?.serverTimestamp ??
-          pullResult?.serverTimestamp ??
-          new Date().toISOString(),
-      );
+      setLastSyncAt(pushResult?.serverTimestamp ?? pullResult?.serverTimestamp ?? new Date().toISOString());
       setStatus(resolveStatus(result.status.phase, nextConflictCount > 0, true));
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Sync failed';
@@ -402,51 +355,28 @@ export function SyncProvider({
 
   useEffect(() => {
     if (!ready || isRestoringState) return;
-
-    queueMicrotask(() => {
-      void refreshQueueStats();
-    });
-
-    if (session) {
-      void syncNow();
-    } else {
-      setStatus('local-only');
-    }
+    queueMicrotask(() => void refreshQueueStats());
+    if (session) void syncNow();
+    else setStatus('local-only');
   }, [isRestoringState, ready, refreshQueueStats, session, syncNow]);
 
   useEffect(() => {
     const subscription = ReactNativeAppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active' && session && !isRestoringState) {
-        void syncNow();
-      }
+      if (nextState === 'active' && session && !isRestoringState) void syncNow();
     });
-
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, [isRestoringState, session, syncNow]);
 
   const value = useMemo<WeightSyncContextValue>(
-    () => ({
-      status,
-      lastSyncAt,
-      pendingOperations,
-      conflictCount,
-      error,
-      syncNow,
-    }),
+    () => ({ conflictCount, error, lastSyncAt, pendingOperations, status, syncNow }),
     [conflictCount, error, lastSyncAt, pendingOperations, status, syncNow],
   );
 
-  return (
-    <WeightSyncContext.Provider value={value}>{children}</WeightSyncContext.Provider>
-  );
+  return <WeightSyncContext.Provider value={value}>{children}</WeightSyncContext.Provider>;
 }
 
-export const useWeightSync = (): WeightSyncContextValue => {
+export function useWeightSync(): WeightSyncContextValue {
   const context = useContext(WeightSyncContext);
-  if (!context) {
-    throw new Error('useWeightSync must be used inside SyncProvider');
-  }
+  if (!context) throw new Error('useWeightSync must be used inside SyncProvider');
   return context;
-};
+}
