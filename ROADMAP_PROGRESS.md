@@ -32,14 +32,13 @@ Always inspect the latest `main` in both repositories before changing code becau
 
 ## Overall completion
 
-Estimated roadmap completion: about 88–92%.
+Estimated roadmap completion: about 90–93%.
 
 The remaining work is concentrated in:
 
-1. finish remaining oversized-file decomposition;
-2. activate and validate the model provider in staging;
-3. complete Combined Strategy proposal composition and explicit application flows;
-4. complete release-device and production-readiness validation.
+1. activate and validate the model provider in staging;
+2. complete Combined Strategy proposal composition and explicit application flows;
+3. complete release-device and production-readiness validation.
 
 ## Completed foundation
 
@@ -49,6 +48,7 @@ The remaining work is concentrated in:
 - [x] Mobile and backend agent instructions describe the current architecture.
 - [x] Cross-repository implementation plan exists.
 - [x] Hand-written file limit of 500 lines is enforced for changed files in CI.
+- [x] Repository-wide tracked-file line audit is enforced in blocking CI.
 - [x] Full mobile regression suite is blocking in CI.
 - [x] Cross-repository release-gate workflow exists.
 
@@ -109,6 +109,8 @@ Additional sync hardening completed:
 - [x] `StrengthCoachScreen.tsx` reduced below 500 lines.
 - [x] `SafetyRecoveryCoachScreen.tsx` reduced below 500 lines.
 - [x] `UserLimitationScreen.tsx` reduced below 500 lines.
+- [x] `CombinedCoachScreen.tsx` reduced below 500 lines.
+- [x] `NutritionTargetProposalScreen.tsx` reduced below 500 lines.
 - [x] `add-food.tsx` reduced below 500 lines.
 - [x] `SyncContext.tsx` reduced below 500 lines.
 - [x] `CloudConflictResolver.ts` reduced below 500 lines.
@@ -116,6 +118,7 @@ Additional sync hardening completed:
 - [x] `nutritionCoachViewModel.ts` reduced to a public builder and type re-export surface with separate metric, proposal, and type modules below 500 lines.
 - [x] `addFoodStyles.ts` reduced to a public style factory composed from separate base, scanner, and sheet style modules below 500 lines.
 - [x] `WorkoutTemplateSync.ts` reduced to a compatibility facade with separate serialization/queue and remote-apply modules below 500 lines.
+- [x] `test/intelligence.test.ts` reduced below 500 lines with shared fixture construction extracted.
 
 ## Remaining roadmap
 
@@ -152,18 +155,18 @@ Latest completed sync-hardening slices:
 
 ### Phase B — finish oversized-file decomposition
 
-Status: in progress; the final repository-wide tracked-file audit remains.
+Status: complete.
 
-Known remaining candidates from the audit and later growth:
+Completed candidates from the audit and later growth:
 
 - [x] `src/cloud/SyncCoordinator.ts`;
 - [x] `src/api/coach.ts` — already a 24-line compatibility facade;
 - [x] `src/features/coach/nutritionCoachViewModel.ts`;
 - [x] `src/features/nutrition/styles/addFoodStyles.ts`;
 - [x] `src/cloud/WorkoutTemplateSync.ts`;
-- [ ] rerun a repository-wide tracked-file line audit and update this list.
+- [x] rerun a repository-wide tracked-file line audit and resolve every violation.
 
-Do not split generated files such as `package-lock.json` or `repomix-output.xml` merely to satisfy the source-file policy.
+The permanent blocking audit checks tracked hand-written `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, and `.md` files. Generated files such as `package-lock.json` and `repomix-output.xml` remain excluded.
 
 ### Phase C — staging model-provider activation
 
@@ -225,10 +228,11 @@ Required:
 
 ## Recommended immediate next actions
 
-1. Rerun the complete line-count audit and update the oversized-file list.
-2. Continue with staging model-provider activation.
-3. Implement Combined Strategy proposal after provider/staging contracts are stable.
-4. Finish native-build and real-device release validation.
+1. Make the backend default Coach model configuration provider-neutral with optional domain overrides.
+2. Add and validate staging-only model-provider configuration without exposing credentials to mobile code.
+3. Verify structured-output retry, guardrail rejection, telemetry, disabled-model behavior, and capability flags.
+4. Implement Combined Strategy proposal after provider/staging contracts are stable.
+5. Finish native-build and real-device release validation.
 
 ## Validation expectations
 
