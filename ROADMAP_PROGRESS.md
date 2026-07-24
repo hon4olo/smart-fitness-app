@@ -127,7 +127,7 @@ Required next work:
 - [x] add explicit two-device conflict scenarios for meal templates;
 - [x] add explicit two-device conflict scenarios for custom exercises;
 - [x] add explicit two-device conflict scenarios for body measurements;
-- [ ] add explicit two-device conflict scenarios for nutrition targets;
+- [x] add explicit two-device conflict scenarios for nutrition targets;
 - [ ] add explicit two-device conflict scenarios for limitations and recovery records;
 - [ ] test update-versus-delete in both directions for mutable entities;
 - [ ] test duplicate remote delivery after conflict resolution;
@@ -141,6 +141,7 @@ Latest completed sync-hardening slices:
 - Meal-template conflict coverage now includes independent template, item-list, and nested item merges plus overlapping edits and update-versus-delete in both directions.
 - Custom-exercise conflict coverage now uses an explicit structured merge policy for independent edits while preserving overlapping and update-versus-delete conflicts for manual review.
 - Body-measurement conflict coverage now verifies distinct append records, duplicate delivery, divergent same-record edits, and deterministic append-only union behavior.
+- Nutrition-target conflict coverage now verifies duplicate delivery, revision-number ordering, timestamp ordering, and stable revision-ID tie-breaking.
 
 ### Phase B — finish oversized-file decomposition
 
