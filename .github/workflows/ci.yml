@@ -87,6 +87,7 @@ jobs:
           src/cloud/BodyMeasurementConflict.two-device.test.ts
           src/cloud/NutritionTargetConflict.two-device.test.ts
           src/cloud/SafetyRecoveryConflict.two-device.test.ts
+          src/cloud/SyncCoordinatorDeleteConflict.two-device.test.ts
           src/cloud/BodyMeasurementSync.test.ts
           src/cloud/CustomExerciseSyncPlanner.test.ts
           src/cloud/CustomExerciseRemoteSync.test.ts
