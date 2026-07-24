@@ -32,12 +32,12 @@ Always inspect the latest `main` in both repositories before changing code becau
 
 ## Overall completion
 
-Estimated roadmap completion: about 95–97%.
+Estimated roadmap completion: about 97–98%.
 
 The remaining work is concentrated in:
 
 1. configure and smoke-test the model provider in the protected staging environment;
-2. implement explicit Combined Strategy confirmation/application boundaries and remaining orchestration policy;
+2. finish the remaining Combined Nutrition reconciliation policy;
 3. complete release-device and production-readiness validation.
 
 ## Completed foundation
@@ -99,8 +99,10 @@ Additional sync hardening completed:
 - [x] Deterministic Safety & Recovery review.
 - [x] Pre-workout Safety acknowledgement and immutable completed-workout provenance.
 - [x] Read-only Combined Coach review.
-- [x] Versioned read-only Combined Strategy proposal review.
-- [x] Safety-adjusted read-only effective Strength plan.
+- [x] Versioned Combined Strategy proposal review.
+- [x] Safety-adjusted effective Strength plan.
+- [x] Separate explicit Combined Strength-template and Nutrition-target confirmations.
+- [x] Revision-safe, idempotent Combined mutation application and interrupted-write recovery.
 - [x] Provider-neutral backend model abstraction and capability gating.
 - [x] Provider-neutral default model with optional Nutrition, Strength, and Combined overrides.
 - [x] Domain guardrail repair/rejection and provider telemetry are explicitly covered.
@@ -112,7 +114,7 @@ Additional sync hardening completed:
 - [x] `WorkoutTemplateSync.ts` is a compatibility facade over serialization/queue and remote-apply modules.
 - [x] Coach view models, large screens, Add Food styles, and intelligence fixtures are decomposed below the limit.
 - [x] The backend Combined proposal worker is split into contract, strict summary parser, and evaluator modules below 500 lines.
-- [x] The mobile Combined v2 parser is split into common contracts, common parsing, v2 parsing, and view-model facade modules below 500 lines.
+- [x] The mobile Combined parser and application UI are split into contracts, common parsing, v2 parsing, view-model, result, and screen modules below 500 lines.
 
 ## Remaining roadmap
 
@@ -173,29 +175,29 @@ The remaining staging credential item requires real protected environment values
 
 ### Phase D — Combined Strategy proposal
 
-Status: versioned read-only composition and Safety-adjusted effective Strength planning are complete; confirmed application remains incomplete.
+Status: versioned composition, Safety-adjusted Strength planning, and separate explicit application flows are complete; Nutrition reconciliation remains.
 
 Backend:
 
 - [x] finalize the versioned Combined Strategy request/response contract;
 - [x] compose eligible Nutrition and Strength proposals with Safety context;
-- [x] apply deterministic Safety restrictions and load ceilings to the read-only effective Strength plan;
+- [x] apply deterministic Safety restrictions and load ceilings to the effective Strength plan;
 - [ ] reconcile nutrition targets with recovery state and training demand;
 - [x] add a deterministic final combined guardrail;
-- [x] persist child run IDs, versions, validation reports, and audit metadata;
-- [x] expose a dedicated capability flag;
-- [ ] define explicit partial-failure and retry behavior;
+- [x] persist child run IDs, versions, validation reports, and audit/application metadata;
+- [x] expose dedicated capability flags;
+- [x] define explicit partial-failure and retry behavior;
 - [x] keep automatic application disabled.
 
 Mobile:
 
 - [x] strict capability parsing;
-- [x] strict versioned result parser and view model;
-- [x] one combined preview screen;
+- [x] strict versioned result and application parsers;
+- [x] one combined preview/application screen;
 - [x] display proposed, maximum allowed, and effective Strength loads;
 - [x] clear blocking, input-required, modification, warning, and unresolved-movement states;
-- [ ] separate explicit confirmation for every applying action;
-- [ ] revision-safe and idempotent application of confirmed mutations.
+- [x] separate explicit confirmation for every applying action;
+- [x] revision-safe and idempotent application of confirmed mutations.
 
 Completed Combined slices:
 
@@ -203,9 +205,15 @@ Completed Combined slices:
 - mobile PR `#52` added strict capability v7 parsing, strict proposal parsing/view-model construction, and the read-only Combined proposal preview with pending-action and guardrail states;
 - backend PR `#38`, merge `1c39461d19b22f4953dd05841979ee6e75f9d45c`, decomposed the Combined proposal worker without changing its contract or behavior;
 - backend PR `#39`, merge `a291293faabb97a6766a053482f9e22649fc2e6a`, added contract v2, strict Safety restrictions, deterministic effective Strength weights/tonnage, and fail-closed unresolved movement restrictions;
-- mobile PR `#80`, merge `8b72fa1514611e7e8b8fd27fd46de66e885a8333`, added strict v2 arithmetic/restriction parsing, v1 compatibility, and read-only effective-load rendering.
+- mobile PR `#80`, merge `8b72fa1514611e7e8b8fd27fd46de66e885a8333`, added strict v2 arithmetic/restriction parsing, v1 compatibility, and effective-load rendering;
+- backend PR `#40`, merge `10b4c443321af96f387a24ec0734e46206616f17`, added explicit effective-Strength confirmation with Combined revalidation, revisioned template creation, deterministic identity, and operation recovery;
+- mobile PR `#82`, merge `ed1d866697ac64372897743451b42dbbc95fa61f`, added capability v8, a separate Strength confirmation dialog/control, stable retry identity, sync refresh, and strict application metadata parsing;
+- backend PR `#41`, merge `c2b894a6d7894b4fc16868f8207a5cd15c919042`, advertised effective-Strength confirmation in capability schema v8;
+- backend PR `#42`, merge `e988556b8053277d0e8c349a934240ad22d6ea60`, added explicit Combined Nutrition delegation, stable child idempotency, parent audit metadata, stale-state blocking, and interrupted-parent recovery;
+- mobile PR `#83`, merge `de36fae882c50cbbb45fe863592f8d3c7b4dd181`, added capability v9, a separate Nutrition confirmation dialog/control, and independent Strength/Nutrition application states;
+- backend PR `#43`, merge `3e4737bb5d6f35ed97a522b2aa0e049e4cb2bd79`, advertised both explicit confirmations in capability schema v9.
 
-The current preview now produces and validates a Safety-adjusted effective Strength plan, but it still does not create a workout template or apply a Nutrition target. Nutrition and Strength retain separate confirmation boundaries. The next application slice must define whether Combined delegates to existing child confirmation services or creates a new coordinated confirmation service, while remaining revision-safe, idempotent, and explicit per mutation.
+Combined never offers an aggregate apply operation. Effective Strength and Nutrition have separate routes, confirmation dialogs, idempotency identities, revisioned writes, application metadata, and retry/recovery rules. Completed workout history remains immutable and `automaticApplication` remains false.
 
 ### Phase E — release readiness
 
@@ -226,11 +234,10 @@ Required:
 
 ## Recommended immediate next actions
 
-1. Define the explicit Combined confirmation/application contract for the effective Strength plan without mutating completed workout history.
-2. Reconcile Nutrition targets with recovery state and training demand without allowing Safety or model output to bypass deterministic bounds.
-3. Define Combined partial-failure and retry behavior.
-4. Add separate explicit mobile confirmation and revision-safe/idempotent application for each mutation.
-5. Configure protected staging credentials and complete release validation only when explicitly authorized.
+1. Inspect the approved Nutrition and Combined policies, then define a conservative deterministic reconciliation contract for recovery state and training demand.
+2. Keep reconciliation read-only until strict parsing, final guardrails, and explicit confirmation behavior are defined.
+3. Configure protected staging credentials and run the provider smoke workflow only when explicitly authorized.
+4. Run the fixed-SHA cross-repository release gate and real staging/device validation when deployment and native-build actions are explicitly authorized.
 
 ## Validation expectations
 
