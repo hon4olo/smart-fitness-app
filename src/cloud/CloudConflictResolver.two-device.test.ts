@@ -8,6 +8,24 @@ const revision = (id: string, number: number, createdAt: string) => ({
   createdAt,
 });
 
+const baseWorkoutTemplate = {
+  id: 'workout-template-a',
+  title: 'Push day',
+  description: 'Base template',
+  duration: '45 min',
+  exercises: [
+    {
+      id: 'bench-press',
+      name: 'Bench Press',
+      muscleGroup: 'Chest',
+      isCustom: false,
+      createdAt: '2026-07-24T09:00:00.000Z',
+    },
+  ],
+  isCustom: true,
+  createdAt: '2026-07-24T09:00:00.000Z',
+};
+
 describe('CloudConflictResolver two-device scenarios', () => {
   it('merges non-overlapping workout edits from two devices', () => {
     const resolver = createConflictResolver();
@@ -83,5 +101,149 @@ describe('CloudConflictResolver two-device scenarios', () => {
     expect(result.outcome).toBe('autoResolved');
     expect(result.resolvedValue).toEqual({ id: 'user-a', trainingDaysPerWeek: 5 });
     expect(result.reason).toBe('remote version is newer');
+  });
+
+  describe('workout template conflict matrix', () => {
+    it('merges independent template metadata and exercise-list edits', () => {
+      const resolver = createConflictResolver();
+      const addedExercise = {
+        id: 'incline-dumbbell-press',
+        name: 'Incline Dumbbell Press',
+        muscleGroup: 'Chest',
+        isCustom: false,
+        createdAt: '2026-07-24T09:30:00.000Z',
+      };
+      const record = resolver.detectConflict({
+        entityType: 'workouts',
+        entityId: baseWorkoutTemplate.id,
+        baseVersion: baseWorkoutTemplate,
+        localVersion: {
+          ...baseWorkoutTemplate,
+          title: 'Push day A',
+        },
+        remoteVersion: {
+          ...baseWorkoutTemplate,
+          duration: '55 min',
+          exercises: [...baseWorkoutTemplate.exercises, addedExercise],
+        },
+        localRevision: revision('device-a-rev-2', 2, '2026-07-24T10:00:00.000Z'),
+        remoteRevision: revision('device-b-rev-2', 2, '2026-07-24T10:01:00.000Z'),
+      });
+
+      const result = resolver.resolveConflict(record!);
+
+      expect(result.outcome).toBe('autoResolved');
+      expect(result.requiresManualReview).toBe(false);
+      expect(result.resolvedValue).toEqual({
+        ...baseWorkoutTemplate,
+        title: 'Push day A',
+        duration: '55 min',
+        exercises: [...baseWorkoutTemplate.exercises, addedExercise],
+      });
+    });
+
+    it('requires review when both devices edit the same template field', () => {
+      const resolver = createConflictResolver();
+      const record = resolver.detectConflict({
+        entityType: 'workouts',
+        entityId: baseWorkoutTemplate.id,
+        baseVersion: baseWorkoutTemplate,
+        localVersion: {
+          ...baseWorkoutTemplate,
+          description: 'Device A description',
+        },
+        remoteVersion: {
+          ...baseWorkoutTemplate,
+          description: 'Device B description',
+        },
+        localRevision: revision('device-a-rev-3', 3, '2026-07-24T10:02:00.000Z'),
+        remoteRevision: revision('device-b-rev-3', 3, '2026-07-24T10:03:00.000Z'),
+      });
+
+      const result = resolver.resolveConflict(record!);
+
+      expect(result.outcome).toBe('needsReview');
+      expect(result.requiresManualReview).toBe(true);
+      expect(result.conflictingFields).toContain('description');
+    });
+
+    it('requires review when both devices edit the same exercise field', () => {
+      const resolver = createConflictResolver();
+      const record = resolver.detectConflict({
+        entityType: 'workouts',
+        entityId: baseWorkoutTemplate.id,
+        baseVersion: baseWorkoutTemplate,
+        localVersion: {
+          ...baseWorkoutTemplate,
+          exercises: [
+            {
+              ...baseWorkoutTemplate.exercises[0],
+              name: 'Paused Bench Press',
+            },
+          ],
+        },
+        remoteVersion: {
+          ...baseWorkoutTemplate,
+          exercises: [
+            {
+              ...baseWorkoutTemplate.exercises[0],
+              name: 'Close-Grip Bench Press',
+            },
+          ],
+        },
+        localRevision: revision('device-a-rev-4', 4, '2026-07-24T10:04:00.000Z'),
+        remoteRevision: revision('device-b-rev-4', 4, '2026-07-24T10:05:00.000Z'),
+      });
+
+      const result = resolver.resolveConflict(record!);
+
+      expect(result.outcome).toBe('needsReview');
+      expect(result.requiresManualReview).toBe(true);
+      expect(result.conflictingFields.some((field) => field.endsWith('.name'))).toBe(true);
+    });
+
+    it('keeps a device-A delete versus device-B update visible', () => {
+      const resolver = createConflictResolver();
+      const record = resolver.detectConflict({
+        entityType: 'workouts',
+        entityId: baseWorkoutTemplate.id,
+        baseVersion: baseWorkoutTemplate,
+        localVersion: null,
+        remoteVersion: {
+          ...baseWorkoutTemplate,
+          title: 'Remote update',
+        },
+        localRevision: revision('device-a-delete-5', 5, '2026-07-24T10:06:00.000Z'),
+        remoteRevision: revision('device-b-update-5', 5, '2026-07-24T10:07:00.000Z'),
+      });
+
+      const result = resolver.resolveConflict(record!);
+
+      expect(result.outcome).toBe('needsReview');
+      expect(result.conflictingFields).toEqual(['root']);
+      expect(result.reason).toBe('local delete versus remote update');
+    });
+
+    it('keeps a device-A update versus device-B delete visible', () => {
+      const resolver = createConflictResolver();
+      const record = resolver.detectConflict({
+        entityType: 'workouts',
+        entityId: baseWorkoutTemplate.id,
+        baseVersion: baseWorkoutTemplate,
+        localVersion: {
+          ...baseWorkoutTemplate,
+          title: 'Local update',
+        },
+        remoteVersion: null,
+        localRevision: revision('device-a-update-6', 6, '2026-07-24T10:08:00.000Z'),
+        remoteRevision: revision('device-b-delete-6', 6, '2026-07-24T10:09:00.000Z'),
+      });
+
+      const result = resolver.resolveConflict(record!);
+
+      expect(result.outcome).toBe('needsReview');
+      expect(result.conflictingFields).toEqual(['root']);
+      expect(result.reason).toBe('local update versus remote delete');
+    });
   });
 });
