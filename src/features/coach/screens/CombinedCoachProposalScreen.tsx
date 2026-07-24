@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,188 +11,25 @@ import {
 import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
-import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { WorkoutSession } from '@/types';
-import {
-  buildCombinedCoachProposalViewModel,
-  type CombinedCoachProposalViewModel,
-  type CombinedProposalTargets,
-  type CombinedSafetyRestriction,
-} from '../combinedCoachProposalViewModel';
+import { CombinedCoachProposalResult } from '../components/CombinedCoachProposalResult';
+import { buildCombinedCoachProposalViewModel } from '../combinedCoachProposalViewModel';
 
-const createIdempotencyKey = (): string =>
+const createRunIdempotencyKey = (): string =>
   `mobile-combined-proposal-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
+
+const createConfirmationIdempotencyKey = (runId: string): string =>
+  `mobile-combined-effective-strength-${runId}`;
 
 const latestSession = (sessions: WorkoutSession[]): WorkoutSession | null =>
   [...sessions].sort(
     (left, right) => Date.parse(right.finishedAt) - Date.parse(left.finishedAt),
   )[0] ?? null;
-
-const formatTargets = (targets: CombinedProposalTargets | null): string =>
-  targets
-    ? `${targets.calories} kcal · P ${targets.protein} · C ${targets.carbs} · F ${targets.fats}`
-    : '—';
-
-const formatRestriction = (restriction: CombinedSafetyRestriction): string => {
-  const movementCopy =
-    restriction.movementPatterns.length > 0
-      ? ` · ${restriction.movementPatterns.join(', ')}`
-      : '';
-  return `${restriction.action.replaceAll('_', ' ')} · max ${Math.round(
-    restriction.maximumLoadMultiplier * 100,
-  )}%${movementCopy}`;
-};
-
-const actionCopy: Record<string, string> = {
-  review_strength_proposal: 'Review the Strength proposal separately',
-  apply_safety_load_ceiling: 'Apply the Safety load ceiling before confirming Strength',
-  resolve_movement_restrictions: 'Resolve restricted movement patterns before using Strength',
-  confirm_nutrition_target: 'Confirm the Nutrition target in Nutrition Coach',
-};
-
-function ProposalResult({ viewModel }: { viewModel: CombinedCoachProposalViewModel }) {
-  const { colors } = useAppTheme();
-  if (viewModel.kind !== 'review') {
-    return (
-      <AppCard>
-        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
-          {viewModel.title}
-        </Text>
-        <Text style={[styles.body, { color: colors.textSecondary }]}>
-          {viewModel.message}
-        </Text>
-      </AppCard>
-    );
-  }
-
-  const effective = viewModel.effectiveStrength;
-
-  return (
-    <AppCard>
-      <View style={styles.resultHeader}>
-        <View style={styles.flexCopy}>
-          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
-            {viewModel.title}
-          </Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}>
-            {viewModel.message}
-          </Text>
-        </View>
-        <Text
-          style={[
-            styles.badge,
-            {
-              backgroundColor:
-                viewModel.status === 'ready' ? colors.successSoft : colors.warningSoft,
-              color: viewModel.status === 'ready' ? colors.success : colors.warning,
-            },
-          ]}>
-          {viewModel.status.toUpperCase()}
-        </Text>
-      </View>
-
-      <View style={styles.stack}>
-        <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}>
-          <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Strength proposal</Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}> 
-            {viewModel.strength.sets.length} sets · proposed tonnage{' '}
-            {viewModel.strength.proposedTonnage ?? '—'} kg
-          </Text>
-          {viewModel.strength.sets.slice(0, 4).map((set) => (
-            <Text key={set.sourceSetId} style={[styles.meta, { color: colors.textMuted }]}> 
-              {set.exerciseName}: {set.weight} kg × {set.reps} · RPE {set.targetRpe}
-            </Text>
-          ))}
-
-          {effective ? (
-            <View style={styles.stack}>
-              <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Effective plan</Text>
-              <Text style={[styles.body, { color: colors.textSecondary }]}> 
-                Effective tonnage: {effective.effectiveTonnage ?? 'blocked'} kg · load ceiling{' '}
-                {Math.round(effective.loadMultiplier * 100)}%
-              </Text>
-              {effective.sets.slice(0, 4).map((set) => (
-                <Text key={set.sourceSetId} style={[styles.meta, { color: colors.textMuted }]}> 
-                  {set.exerciseName}: proposed {set.proposedWeight} kg → effective{' '}
-                  {set.effectiveWeight} kg · ceiling {set.maximumAllowedWeight} kg
-                </Text>
-              ))}
-              {effective.unresolvedMovementPatterns.length > 0 ? (
-                <Text style={[styles.body, { color: colors.warning }]}> 
-                  Restricted movements unresolved:{' '}
-                  {effective.unresolvedMovementPatterns.join(', ')}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-        </View>
-
-        <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}> 
-          <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Nutrition target</Text>
-          <Text style={[styles.meta, { color: colors.textMuted }]}>Current</Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}> 
-            {formatTargets(viewModel.nutrition.currentTargets)}
-          </Text>
-          <Text style={[styles.meta, { color: colors.textMuted }]}>Proposed</Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}> 
-            {formatTargets(viewModel.nutrition.proposedTargets)}
-          </Text>
-        </View>
-
-        <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}> 
-          <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Safety ceiling</Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}> 
-            Maximum Strength load: {Math.round(viewModel.maximumStrengthLoadMultiplier * 100)}%
-          </Text>
-          <Text style={[styles.meta, { color: colors.textMuted }]}> 
-            {viewModel.safety.restrictionCount} restrictions · {viewModel.safety.issueCount}{' '}
-            findings
-          </Text>
-          {viewModel.safety.restrictions.slice(0, 4).map((restriction) => (
-            <Text
-              key={restriction.limitationId}
-              style={[styles.meta, { color: colors.textMuted }]}> 
-              • {formatRestriction(restriction)}
-            </Text>
-          ))}
-        </View>
-      </View>
-
-      {viewModel.pendingActions.length > 0 ? (
-        <View style={styles.stack}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Pending actions</Text>
-          {viewModel.pendingActions.map((action) => (
-            <Text key={action} style={[styles.body, { color: colors.textSecondary }]}> 
-              • {actionCopy[action] ?? action}
-            </Text>
-          ))}
-        </View>
-      ) : null}
-
-      {viewModel.issues.length > 0 ? (
-        <View style={styles.stack}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Guardrail findings</Text>
-          {viewModel.issues.map((issue, index) => (
-            <Text key={`${issue.code}:${index}`} style={[styles.body, { color: colors.warning }]}> 
-              • {issue.message}
-            </Text>
-          ))}
-        </View>
-      ) : null}
-
-      <View style={[styles.boundary, { borderColor: colors.borderSubtle }]}> 
-        <Text style={[styles.meta, { color: colors.textMuted }]}> 
-          Combined Coach does not apply anything. Effective Strength loads are a deterministic
-          read-only plan; Strength and Nutrition keep separate explicit confirmation controls.
-        </Text>
-      </View>
-    </AppCard>
-  );
-}
 
 export default function CombinedCoachProposalScreen() {
   const { colors } = useAppTheme();
@@ -204,13 +41,19 @@ export default function CombinedCoachProposalScreen() {
   const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmationBusy, setConfirmationBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isAuthenticated = Boolean(session?.tokens.accessToken);
-  const available =
-    capabilities?.schemaVersion === 7 &&
+  const proposalAvailable =
+    capabilities !== null &&
+    capabilities.schemaVersion >= 7 &&
     capabilities.combined?.deterministicProposalReview === true &&
     capabilities.combined.proposalRequiresExplicitConfirmation === true &&
+    capabilities.combined.automaticApplication === false;
+  const confirmationAvailable =
+    capabilities?.schemaVersion === 8 &&
+    capabilities.combined?.effectiveStrengthConfirmation === true &&
     capabilities.combined.automaticApplication === false;
   const primarySession = useMemo(
     () => latestSession(app.workoutSessions),
@@ -220,6 +63,17 @@ export default function CombinedCoachProposalScreen() {
     () => (run ? buildCombinedCoachProposalViewModel(run) : null),
     [run],
   );
+  const canConfirmEffectiveStrength =
+    confirmationAvailable &&
+    run !== null &&
+    viewModel?.kind === 'review' &&
+    !viewModel.rejected &&
+    viewModel.effectiveStrengthApplication === null &&
+    viewModel.effectiveStrength !== null &&
+    (viewModel.effectiveStrength.status === 'ready' ||
+      viewModel.effectiveStrength.status === 'modify') &&
+    viewModel.effectiveStrength.sets.length > 0 &&
+    viewModel.effectiveStrength.unresolvedMovementPatterns.length === 0;
   const coachApi = useMemo(
     () =>
       createCoachApi({
@@ -251,7 +105,7 @@ export default function CombinedCoachProposalScreen() {
   }, [coachApi, isAuthenticated, ready]);
 
   const runProposal = async () => {
-    if (!available || busy) return;
+    if (!proposalAvailable || busy) return;
     setBusy(true);
     setError(null);
     setRun(null);
@@ -263,7 +117,7 @@ export default function CombinedCoachProposalScreen() {
         strengthHistoryLimit: 8,
         nutritionLookbackDays: 7,
         safetyLookbackDays: 14,
-        idempotencyKey: createIdempotencyKey(),
+        idempotencyKey: createRunIdempotencyKey(),
       });
       setRun(initial);
       setRun(
@@ -283,6 +137,46 @@ export default function CombinedCoachProposalScreen() {
     }
   };
 
+  const confirmEffectiveStrength = async () => {
+    if (!canConfirmEffectiveStrength || !run || confirmationBusy) return;
+    setConfirmationBusy(true);
+    setError(null);
+    try {
+      const confirmed = await coachApi.confirmCombinedEffectiveStrength(run.run.id, {
+        idempotencyKey: createConfirmationIdempotencyKey(run.run.id),
+      });
+      setRun(confirmed);
+      try {
+        await syncNow();
+      } catch {
+        setError('The workout template was created, but local synchronization needs to be retried.');
+      }
+    } catch (confirmationError) {
+      setError(
+        confirmationError instanceof Error
+          ? confirmationError.message
+          : 'The effective Strength template could not be created.',
+      );
+    } finally {
+      setConfirmationBusy(false);
+    }
+  };
+
+  const requestEffectiveStrengthConfirmation = () => {
+    if (!canConfirmEffectiveStrength) return;
+    Alert.alert(
+      'Create workout template?',
+      'This creates a new revisioned template from the effective Strength loads. Completed workout history and Nutrition will not be changed.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Create template',
+          onPress: () => void confirmEffectiveStrength(),
+        },
+      ],
+    );
+  };
+
   return (
     <View style={themed.screen}>
       <View style={[themed.header, { paddingTop: insets.top + Spacing.two }]}> 
@@ -292,7 +186,7 @@ export default function CombinedCoachProposalScreen() {
           style={themed.backButton}> 
           <Text style={themed.backLabel}>‹</Text>
         </Pressable>
-        <View style={styles.flexCopy}>
+        <View style={themed.flexCopy}>
           <Text style={themed.title}>Combined proposal</Text>
           <Text style={themed.subtitle}>Strength · Nutrition · Safety</Text>
         </View>
@@ -303,19 +197,20 @@ export default function CombinedCoachProposalScreen() {
         showsVerticalScrollIndicator={false}> 
         <View style={themed.container}>
           <AppCard>
-            <Text style={themed.cardTitle}>Read-only proposal review</Text>
+            <Text style={themed.cardTitle}>Explicit proposal and application</Text>
             <Text style={themed.body}> 
-              Builds the existing Strength and Nutrition proposals, then derives a deterministic
-              effective Strength plan under the Safety ceiling. Nothing is applied automatically.
+              Builds Strength and Nutrition proposals, derives effective Strength loads under the
+              Safety ceiling, and keeps every mutation as a separate explicit action.
             </Text>
             <Text style={themed.meta}> 
-              Capability: {available ? 'v7 available' : 'not enabled'} · Sync: {syncStatus}
+              Capability: {capabilities ? `v${capabilities.schemaVersion}` : 'not enabled'} · Sync:{' '}
+              {syncStatus}
             </Text>
             {!ready ? null : !isAuthenticated ? (
               <PrimaryButton label="Sign in" onPress={() => router.push('/auth/sign-in')} />
             ) : (
               <PrimaryButton
-                disabled={!available || busy}
+                disabled={!proposalAvailable || busy}
                 label="Build Combined proposal"
                 loading={busy}
                 onPress={() => void runProposal()}
@@ -329,60 +224,24 @@ export default function CombinedCoachProposalScreen() {
 
           {error ? (
             <AppCard style={themed.errorCard}>
-              <Text style={themed.errorTitle}>Combined proposal error</Text>
+              <Text style={themed.errorTitle}>Combined proposal notice</Text>
               <Text style={themed.body}>{error}</Text>
             </AppCard>
           ) : null}
 
-          {viewModel ? <ProposalResult viewModel={viewModel} /> : null}
+          {viewModel ? (
+            <CombinedCoachProposalResult
+              canConfirmEffectiveStrength={canConfirmEffectiveStrength}
+              confirmationBusy={confirmationBusy}
+              onConfirmEffectiveStrength={requestEffectiveStrengthConfirmation}
+              viewModel={viewModel}
+            />
+          ) : null}
         </View>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  badge: {
-    borderRadius: 999,
-    fontSize: 11,
-    fontWeight: '900',
-    overflow: 'hidden',
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 6,
-  },
-  body: {
-    fontSize: Typography.body.fontSize,
-    lineHeight: Typography.body.lineHeight,
-  },
-  boundary: {
-    borderRadius: Radii.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: Spacing.two,
-  },
-  cardTitle: {
-    fontSize: Typography.cardTitle.fontSize,
-    fontWeight: Typography.cardTitle.fontWeight,
-    lineHeight: Typography.cardTitle.lineHeight,
-  },
-  domainCard: {
-    borderRadius: Radii.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 4,
-    padding: Spacing.two,
-  },
-  domainTitle: {
-    fontSize: Typography.label.fontSize,
-    fontWeight: '900',
-  },
-  flexCopy: { flex: 1, minWidth: 0 },
-  meta: {
-    fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
-  },
-  resultHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: Spacing.two },
-  sectionTitle: { fontSize: Typography.label.fontSize, fontWeight: '900' },
-  stack: { gap: Spacing.one },
-});
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
@@ -418,6 +277,7 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: Typography.cardTitle.fontSize,
       fontWeight: '900',
     },
+    flexCopy: { flex: 1, minWidth: 0 },
     header: {
       alignItems: 'center',
       flexDirection: 'row',
