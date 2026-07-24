@@ -11,11 +11,20 @@ type FavoriteFoodsModeSectionProps = {
   onOpenFood: (food: FoodCatalogItem) => void;
   onQuickAdd: (food: FoodCatalogItem) => void;
   onSearchFood: () => void;
+  onToggleFavorite: (foodId: string) => void;
   selectedMealLabel: string;
   styles: Record<string, any>;
 };
 
-export function FavoriteFoodsModeSection({ foods, onOpenFood, onQuickAdd, onSearchFood, selectedMealLabel, styles }: FavoriteFoodsModeSectionProps) {
+export function FavoriteFoodsModeSection({
+  foods,
+  onOpenFood,
+  onQuickAdd,
+  onSearchFood,
+  onToggleFavorite,
+  selectedMealLabel,
+  styles,
+}: FavoriteFoodsModeSectionProps) {
   return (
     <AppCard>
       <View style={styles.sectionHeader}>
@@ -33,9 +42,22 @@ export function FavoriteFoodsModeSection({ foods, onOpenFood, onQuickAdd, onSear
               onPress={() => onOpenFood(food)}
               title={food.name}
               trailing={
-                <Pressable accessibilityLabel={`Quick add ${food.name} to ${selectedMealLabel}`} hitSlop={10} onPress={() => onQuickAdd(food)} style={styles.iconButton}>
-                  <Text style={styles.iconButtonText}>+</Text>
-                </Pressable>
+                <View style={styles.rowActions}>
+                  <Pressable
+                    accessibilityLabel={`Remove ${food.name} from favorites`}
+                    hitSlop={10}
+                    onPress={() => onToggleFavorite(food.id)}
+                    style={styles.iconButton}>
+                    <Text style={styles.iconButtonText}>★</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityLabel={`Quick add ${food.name} to ${selectedMealLabel}`}
+                    hitSlop={10}
+                    onPress={() => onQuickAdd(food)}
+                    style={styles.iconButton}>
+                    <Text style={styles.iconButtonText}>+</Text>
+                  </Pressable>
+                </View>
               }
               value={`${formatNumber(food.calories)} kcal`}
             />
@@ -44,7 +66,7 @@ export function FavoriteFoodsModeSection({ foods, onOpenFood, onQuickAdd, onSear
       ) : (
         <View style={styles.emptyBlock}>
           <Text selectable style={styles.emptyStateText}>
-            No favorites yet.
+            No favorites yet. Add foods with the star button.
           </Text>
           <AppButton label="Search food" onPress={onSearchFood} variant="secondary" />
         </View>
