@@ -9,6 +9,8 @@ import {
   buildRecentFoodItems,
   createDraftFromFoodEntry,
   createDraftFromFoodItem,
+  parseFoodNumber,
+  validateCustomFoodValues,
 } from './addFoodModel';
 
 const entry: FoodEntry = {
@@ -29,6 +31,18 @@ const entry: FoodEntry = {
   servingUnit: 'g',
   quantity: 200,
   createdAt: '2026-07-23T12:00:00.000Z',
+};
+
+const validCustomFoodValues = {
+  brand: '',
+  calories: '100',
+  carbs: '10',
+  fats: '2',
+  name: 'Custom food',
+  protein: '5',
+  quantity: '150',
+  servingSize: '100',
+  servingUnit: 'g',
 };
 
 describe('add food model', () => {
@@ -81,6 +95,10 @@ describe('add food model', () => {
     ).toBeNull();
   });
 
+  it('accepts decimal comma input without truncating it', () => {
+    expect(parseFoodNumber('1,5')).toBe(1.5);
+  });
+
   it('deduplicates recent entries by normalized food identity', () => {
     const duplicate = {
       ...entry,
@@ -98,17 +116,7 @@ describe('add food model', () => {
     const custom = buildCustomFoodEntry({
       date: '2026-07-23',
       mealType: 'dinner',
-      values: {
-        brand: '',
-        calories: '100',
-        carbs: '10',
-        fats: '2',
-        name: 'Custom food',
-        protein: '5',
-        quantity: '150',
-        servingSize: '100',
-        servingUnit: 'g',
-      },
+      values: validCustomFoodValues,
     });
 
     expect(custom).toMatchObject({
@@ -120,5 +128,25 @@ describe('add food model', () => {
       servingSize: 100,
       servingUnit: 'g',
     });
+  });
+
+  it('rejects invalid custom serving and nutrition values', () => {
+    const values = {
+      ...validCustomFoodValues,
+      calories: '-1',
+      quantity: '0',
+      servingSize: '0',
+      servingUnit: '',
+    };
+
+    expect(validateCustomFoodValues(values)).toMatchObject({
+      calories: 'Use 0 or more.',
+      quantity: 'Use a number greater than 0.',
+      servingSize: 'Use a number greater than 0.',
+      servingUnit: 'Enter a serving unit.',
+    });
+    expect(
+      buildCustomFoodEntry({ date: '2026-07-23', mealType: 'dinner', values }),
+    ).toBeNull();
   });
 });
