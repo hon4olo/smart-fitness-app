@@ -38,6 +38,9 @@ export const lengthToCm = (value: number, unit: LengthUnit): number =>
 export const energyFromKcal = (valueKcal: number, unit: EnergyUnit): number =>
   unit === 'kJ' ? valueKcal * KCAL_TO_KJ : valueKcal;
 
+export const energyToKcal = (value: number, unit: EnergyUnit): number =>
+  unit === 'kJ' ? value / KCAL_TO_KJ : value;
+
 export const formatWeightValue = (valueKg: number, unit: WeightUnit): string =>
   `${round(weightFromKg(valueKg, unit))}`;
 
@@ -46,6 +49,9 @@ export const formatLengthValue = (valueCm: number, unit: LengthUnit): string =>
 
 export const formatEnergyValue = (valueKcal: number, unit: EnergyUnit): string =>
   `${Math.round(energyFromKcal(valueKcal, unit))}`;
+
+export const formatEnergyInputValue = (valueKcal: number, unit: EnergyUnit): string =>
+  `${round(energyFromKcal(valueKcal, unit), 1)}`;
 
 export const parseDisplayNumber = (value: string): number =>
   Number(value.trim().replace(',', '.'));
@@ -62,4 +68,11 @@ export const displayLengthInputToCm = (value: string, unit: LengthUnit): string 
   const parsed = parseDisplayNumber(value);
   if (!Number.isFinite(parsed)) return value;
   return `${round(lengthToCm(parsed, unit), 3)}`;
+};
+
+export const displayEnergyInputToKcal = (value: string, unit: EnergyUnit): string => {
+  if (!value.trim()) return '';
+  const parsed = parseDisplayNumber(value);
+  if (!Number.isFinite(parsed)) return value;
+  return `${round(energyToKcal(parsed, unit), 3)}`;
 };

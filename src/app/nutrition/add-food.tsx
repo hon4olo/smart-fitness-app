@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -36,15 +36,21 @@ import {
   buildFoodEntryFromCatalog,
   formatCompactMacroTotals,
   formatFoodServing,
-  formatNumber,
   searchFoodCatalog,
   sumNutritionTotals,
 } from '@/lib/nutrition';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { FoodCatalogItem, MealTemplate, MealType } from '@/types';
+import {
+  displayEnergyInputToKcal,
+  formatEnergyInputValue,
+  formatEnergyValue,
+  useUnitPreferences,
+} from '@/units';
 
 export default function NutritionAddFoodScreen() {
   const { colors } = useAppTheme();
+  const { energy: energyUnit } = useUnitPreferences();
   const styles = useMemo(() => createAddFoodStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const {
@@ -107,6 +113,7 @@ export default function NutritionAddFoodScreen() {
   const [foodFats, setFoodFats] = useState('0');
   const [customFoodErrors, setCustomFoodErrors] = useState<CustomFoodValidationErrors>({});
   const [scannerOpen, setScannerOpen] = useState(false);
+  const previousEnergyUnitRef = useRef(energyUnit);
   const { backendFoodResults, backendFoodSearchStatus, foodSuggestions, setFoodSuggestions } =
     useFoodProviderSearch(mode, query);
   const editingEntry = useMemo(() => foodEntries.find((entry) => entry.id === entryId), [entryId, foodEntries]);
@@ -134,6 +141,21 @@ export default function NutritionAddFoodScreen() {
       ? 'Food data provided by FatSecret'
       : selectedDraft.attribution?.text ?? `Source: ${formatProviderLabel(selectedDraft.source)}`
     : undefined;
+
+  useEffect(() => {
+    const previousEnergyUnit = previousEnergyUnitRef.current;
+    previousEnergyUnitRef.current = energyUnit;
+    if (previousEnergyUnit === energyUnit) return;
+
+    setFoodCalories((current) => {
+      if (!current.trim()) return current;
+      const canonicalCalories = displayEnergyInputToKcal(current, previousEnergyUnit);
+      const parsedCanonicalCalories = Number(canonicalCalories);
+      return Number.isFinite(parsedCanonicalCalories)
+        ? formatEnergyInputValue(parsedCanonicalCalories, energyUnit)
+        : current;
+    });
+  }, [energyUnit]);
 
   useEffect(() => {
     if (editingEntry) {
@@ -244,8 +266,9 @@ export default function NutritionAddFoodScreen() {
     setCustomFoodErrors({});
   };
   const saveCustomFood = () => {
+    const canonicalCalories = displayEnergyInputToKcal(foodCalories, energyUnit);
     const values: CustomFoodValues = {
-      brand: foodBrand, calories: foodCalories, carbs: foodCarbs, fats: foodFats, name: foodName,
+      brand: foodBrand, calories: canonicalCalories, carbs: foodCarbs, fats: foodFats, name: foodName,
       protein: foodProtein, quantity: foodQuantity, servingSize: foodServingSize, servingUnit: foodServingUnit,
     };
     setCustomFoodErrors(validateCustomFoodValues(values));
@@ -373,7 +396,7 @@ export default function NutritionAddFoodScreen() {
       selectedDraftMacroTotalsLabel={buildDraftMacroTotalsLabel(selectedDraft)}
       selectedDraftServingLabel={selectedDraftServingLabel}
       selectedDraftSubmitLabel={selectedDraftSubmitLabel}
-      selectedMealCaloriesLabel={`${formatNumber(selectedMealTotals.calories)} kcal`}
+      selectedMealCaloriesLabel={`${formatEnergyValue(selectedMealTotals.calories, energyUnit)} ${energyUnit}`}
       selectedMealCountLabel={selectedMealCountLabel}
       selectedMealLabel={selectedMealLabel}
       setMealTemplateName={setMealTemplateName}
