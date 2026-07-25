@@ -3,7 +3,11 @@ import { useCallback, useEffect, useMemo } from 'react';
 
 import { getMobileApiBaseUrl } from '@/api';
 import { createApiClient } from '@/api/client';
-import { clearLocalAccountData, createMigratingTokenManager } from '@/auth';
+import {
+  clearLocalAccountData,
+  createMigratingTokenManager,
+  resumePendingLocalAccountCleanup,
+} from '@/auth';
 import { createSyncCoordinator, type SyncCoordinator } from '@/cloud';
 import { createProductionCloudProvider } from '@/cloud/createProductionCloudProvider';
 import { defaultState as defaultAppState } from '@/data/defaults';
@@ -64,16 +68,22 @@ export function useAppInfrastructure(
     let cancelled = false;
 
     const restoreState = async () => {
-      const storedState = await repository.loadState();
-      if (storedState && !cancelled) setState(storedState);
-      if (!cancelled) setIsRestoringState(false);
+      try {
+        await resumePendingLocalAccountCleanup(storageAdapter);
+        const storedState = await repository.loadState();
+        if (storedState && !cancelled) setState(storedState);
+      } catch {
+        if (!cancelled) setState(defaultAppState);
+      } finally {
+        if (!cancelled) setIsRestoringState(false);
+      }
     };
 
     void restoreState();
     return () => {
       cancelled = true;
     };
-  }, [repository, setIsRestoringState, setState]);
+  }, [repository, setIsRestoringState, setState, storageAdapter]);
 
   return {
     authService,
