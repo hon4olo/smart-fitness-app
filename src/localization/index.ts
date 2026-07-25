@@ -14,3 +14,8 @@ export {
   type MessageKey,
   type SupportedLocale,
 } from './messages';
+export {
+  formatPlural,
+  selectPluralForm,
+  type PluralForms,
+} from './pluralization';
