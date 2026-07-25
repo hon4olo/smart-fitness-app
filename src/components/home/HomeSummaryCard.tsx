@@ -4,11 +4,16 @@ import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 
 type HomeSummaryCardProps = {
+  caloriesLabel: string;
   caloriesRemainingLabel: string;
   currentWeightLabel: string;
+  currentWeightTitle: string;
   isCaloriesOverTarget: boolean;
+  kicker: string;
   motivation: string;
   streakLabel?: string;
+  streakTitle: string;
+  title: string;
 };
 
 function MiniStat({ label, value }: { label: string; value: string }) {
@@ -24,35 +29,55 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function HomeSummaryCard({ caloriesRemainingLabel, currentWeightLabel, isCaloriesOverTarget, motivation, streakLabel }: HomeSummaryCardProps) {
+export function HomeSummaryCard({
+  caloriesLabel,
+  caloriesRemainingLabel,
+  currentWeightLabel,
+  currentWeightTitle,
+  isCaloriesOverTarget,
+  kicker,
+  motivation,
+  streakLabel,
+  streakTitle,
+  title,
+}: HomeSummaryCardProps) {
   return (
     <AppCard style={[styles.card, isCaloriesOverTarget && styles.cardWarning]}>
       <View style={styles.hero}>
         <View style={styles.headerCopy}>
           <Text selectable style={styles.kicker}>
-            Today
+            {kicker}
           </Text>
           <Text selectable style={styles.title}>
-            What matters now
+            {title}
           </Text>
           <Text selectable style={styles.subheadline}>
             {motivation}
           </Text>
         </View>
 
-        <View style={[styles.caloriesBadge, isCaloriesOverTarget && styles.caloriesBadgeWarning]}>
+        <View
+          style={[
+            styles.caloriesBadge,
+            isCaloriesOverTarget && styles.caloriesBadgeWarning,
+          ]}>
           <Text selectable style={styles.caloriesBadgeLabel}>
-            Calories
+            {caloriesLabel}
           </Text>
-          <Text selectable style={[styles.caloriesBadgeValue, isCaloriesOverTarget && styles.caloriesBadgeValueWarning]}>
+          <Text
+            selectable
+            style={[
+              styles.caloriesBadgeValue,
+              isCaloriesOverTarget && styles.caloriesBadgeValueWarning,
+            ]}>
             {caloriesRemainingLabel}
           </Text>
         </View>
       </View>
 
       <View style={styles.statsGrid}>
-        <MiniStat label="Current weight" value={currentWeightLabel} />
-        <MiniStat label="Streak" value={streakLabel ?? '—'} />
+        <MiniStat label={currentWeightTitle} value={currentWeightLabel} />
+        <MiniStat label={streakTitle} value={streakLabel ?? '—'} />
       </View>
     </AppCard>
   );
