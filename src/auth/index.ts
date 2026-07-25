@@ -1,6 +1,11 @@
 export { AuthProvider, AuthContext } from './AuthContext';
 export { createAuthService, AUTH_SESSION_STORAGE_KEY } from './createAuthService';
 export {
+  AccountDataCleanupError,
+  clearLocalAccountData,
+  getLocalAccountDataStorageKeys,
+} from './accountDataCleanup';
+export {
   AUTH_DISCLOSURE_COPY,
   buildProfileAuthViewModel,
   getSafeLoginErrorMessage,
@@ -16,6 +21,7 @@ export {
   type RegisterFormValues,
 } from './auth-ui';
 export type {
+  AccountDeletionResult,
   AuthCredentials,
   AuthDevice,
   AuthDeviceInfo,
