@@ -3,9 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ApiError, type ApiClient, type ApiRequestOptions } from '@/api/client';
 import type { StorageAdapter } from '@/storage';
 
-import {
-  PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
-} from './accountDataCleanup';
+import { PENDING_ACCOUNT_CLEANUP_STORAGE_KEY } from './accountDataCleanup';
 import { AUTH_SESSION_STORAGE_KEY, createAuthService } from './createAuthService';
 import { AUTH_TOKENS_STORAGE_KEY, createTokenManager } from './token-manager';
 import type { AuthEnvelope } from './types';
@@ -95,15 +93,23 @@ const createSignedInService = async ({
 } = {}) => {
   const sessionStorage = createMemoryStorage();
   const tokenStorage = createMemoryStorage();
+  const markerStorage = createMemoryStorage();
   const { api, requests } = createApi({ requestError });
   const service = createAuthService({
     apiClient: api,
     sessionStorage,
+    accountCleanupMarkerStorage: markerStorage,
     tokenManager: createTokenManager(tokenStorage),
-    onAccountDeleted,
+    onAccountDeleted: async (userId) => {
+      await markerStorage.write(
+        PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
+        JSON.stringify({ userId, requestedAt: '2026-07-25T00:00:00.000Z' }),
+      );
+      await onAccountDeleted?.(userId);
+    },
   });
   await service.login({ email: envelope.user.email, password: 'StrongPass123!' });
-  return { requests, service, sessionStorage, tokenStorage };
+  return { markerStorage, requests, service, sessionStorage, tokenStorage };
 };
 
 describe('account deletion auth service', () => {
@@ -130,6 +136,7 @@ describe('account deletion auth service', () => {
     expect(deletedUsers).toEqual(['user-1']);
     expect(setup.sessionStorage.values.has(AUTH_SESSION_STORAGE_KEY)).toBe(false);
     expect(setup.tokenStorage.values.has(AUTH_TOKENS_STORAGE_KEY)).toBe(false);
+    expect(setup.markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(false);
   });
 
   it('preserves local auth when the backend rejects deletion', async () => {
@@ -151,9 +158,10 @@ describe('account deletion auth service', () => {
     expect(deletedUsers).toEqual([]);
     expect(setup.sessionStorage.values.has(AUTH_SESSION_STORAGE_KEY)).toBe(true);
     expect(setup.tokenStorage.values.has(AUTH_TOKENS_STORAGE_KEY)).toBe(true);
+    expect(setup.markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(false);
   });
 
-  it('signs out after confirmed deletion even when account-data cleanup must resume', async () => {
+  it('signs out and retains the marker when account-data cleanup must resume', async () => {
     const setup = await createSignedInService({
       onAccountDeleted: async () => {
         throw new Error('cleanup interrupted');
@@ -165,11 +173,12 @@ describe('account deletion auth service', () => {
     });
     expect(setup.sessionStorage.values.has(AUTH_SESSION_STORAGE_KEY)).toBe(false);
     expect(setup.tokenStorage.values.has(AUTH_TOKENS_STORAGE_KEY)).toBe(false);
+    expect(setup.markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(true);
   });
 
   it('never restores a cached session while deletion cleanup is pending', async () => {
     const setup = await createSignedInService();
-    setup.sessionStorage.values.set(
+    setup.markerStorage.values.set(
       PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
       JSON.stringify({ userId: 'user-1', requestedAt: '2026-07-25T00:00:00.000Z' }),
     );
@@ -177,5 +186,6 @@ describe('account deletion auth service', () => {
     await expect(setup.service.loadSession()).resolves.toBeNull();
     expect(setup.sessionStorage.values.has(AUTH_SESSION_STORAGE_KEY)).toBe(false);
     expect(setup.tokenStorage.values.has(AUTH_TOKENS_STORAGE_KEY)).toBe(false);
+    expect(setup.markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(true);
   });
 });
