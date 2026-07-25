@@ -117,6 +117,7 @@ export const createAuthService = ({
   apiClient,
   tokenManager,
   sessionStorage,
+  accountCleanupMarkerStorage = sessionStorage,
   sessionStorageKey = AUTH_SESSION_STORAGE_KEY,
   defaultDevice = getDefaultAuthDeviceInfo(),
   onSessionChange,
@@ -141,7 +142,7 @@ export const createAuthService = ({
   };
 
   const loadSession = async (): Promise<AuthSession | null> => {
-    if (await sessionStorage.read(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)) {
+    if (await accountCleanupMarkerStorage.read(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)) {
       await clearLocalSession();
       return null;
     }
