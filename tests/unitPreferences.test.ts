@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseStoredPreferences } from '@/units/UnitPreferencesProvider';
 import {
   DEFAULT_UNIT_PREFERENCES,
+  displayLengthInputToCm,
   displayWeightInputToKg,
   energyFromKcal,
   formatEnergyValue,
@@ -38,8 +39,10 @@ describe('unit preferences', () => {
     expect(formatEnergyValue(100, 'kJ')).toBe('418');
   });
 
-  it('accepts decimal commas at the display boundary', () => {
+  it('accepts decimal commas at weight and length input boundaries', () => {
     expect(Number(displayWeightInputToKg('220,5', 'lb'))).toBeCloseTo(100.017, 3);
+    expect(Number(displayLengthInputToCm('68,9', 'in'))).toBeCloseTo(175.006, 3);
     expect(displayWeightInputToKg('', 'lb')).toBe('');
+    expect(displayLengthInputToCm('', 'in')).toBe('');
   });
 });
