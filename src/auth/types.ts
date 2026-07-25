@@ -32,6 +32,18 @@ export type AuthSessionRecord = {
   revokedAt: string | null;
 };
 
+export type AuthSessionSummary = {
+  id: string;
+  deviceId: string;
+  deviceName: string;
+  platform: string;
+  appVersion: string;
+  lastSeenAt: string;
+  expiresAt: string;
+  createdAt: string;
+  isCurrent: boolean;
+};
+
 export type AuthTokens = {
   accessToken: string;
   refreshToken: string;
