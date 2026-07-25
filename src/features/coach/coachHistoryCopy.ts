@@ -1,4 +1,9 @@
-import type { CoachDomain, CoachRunStatus } from '@/api/coach';
+import type {
+  CoachDomain,
+  CoachRunStatus,
+  CoachRunTrustState,
+  CoachTrustApplicationState,
+} from '@/api/coach';
 import type {
   CoachAppliedEntityRevision,
   CoachSourceRevision,
@@ -34,6 +39,13 @@ export const getCoachHistoryCopy = (locale: SupportedLocale) => ({
   notice: locale === 'ru' ? 'Историю Coach не удалось загрузить.' : 'Coach history could not be loaded.',
   policies: locale === 'ru' ? 'Версии правил' : 'Policy versions',
   agents: locale === 'ru' ? 'Цепочка агентов' : 'Agent trail',
+  trust: locale === 'ru' ? 'Проверка источников' : 'Source verification',
+  trustValidationFailed: locale === 'ru'
+    ? 'Метаданные состояния источников не прошли проверку. Считайте предложение недоступным до повторного обновления.'
+    : 'Source-status metadata failed validation. Treat this proposal as unavailable until it is refreshed.',
+  proposalRevision: locale === 'ru' ? 'Ревизия предложения' : 'Proposal revision',
+  currentRevision: locale === 'ru' ? 'Текущая ревизия' : 'Current revision',
+  revisionUnavailable: locale === 'ru' ? 'не записана' : 'not recorded',
   provenance: locale === 'ru' ? 'Происхождение применения' : 'Application provenance',
   provenanceUnavailable: locale === 'ru'
     ? 'Метаданные применения не прошли проверку и не отображаются.'
@@ -58,6 +70,32 @@ export const getCoachHistoryCopy = (locale: SupportedLocale) => ({
     if (key === 'nutrition') return locale === 'ru' ? 'Питание' : 'Nutrition';
     if (key === 'effectiveStrength') return locale === 'ru' ? 'Силовой план' : 'Strength plan';
     return locale === 'ru' ? 'Подтверждённое изменение' : 'Confirmed change';
+  },
+  trustState: (state: CoachTrustApplicationState) => {
+    if (locale === 'ru') {
+      if (state === 'current') return 'Актуально';
+      if (state === 'stale') return 'Устарело';
+      if (state === 'applied') return 'Применено';
+      return 'Недоступно';
+    }
+    if (state === 'current') return 'Current';
+    if (state === 'stale') return 'Stale';
+    if (state === 'applied') return 'Applied';
+    return 'Unavailable';
+  },
+  trustSummary: (state: CoachRunTrustState['overallState']) => {
+    if (locale === 'ru') {
+      if (state === 'current') return 'Исходные данные всё ещё соответствуют этому предложению.';
+      if (state === 'stale') return 'Исходные данные изменились после создания предложения. Перед применением создайте новое предложение.';
+      if (state === 'applied') return 'Изменение уже применено из записанной ревизии. Последующие правки источника не переписывают эту историю.';
+      if (state === 'unavailable') return 'Состояние источника не удалось проверить. Не применяйте предложение до повторного обновления.';
+      return '';
+    }
+    if (state === 'current') return 'The source data still matches this proposal.';
+    if (state === 'stale') return 'The source changed after this proposal was created. Create a new proposal before applying.';
+    if (state === 'applied') return 'The change was already applied from the recorded revision. Later source edits do not rewrite this history.';
+    if (state === 'unavailable') return 'The source could not be verified. Do not apply this proposal until it is refreshed.';
+    return '';
   },
   revision: (value: number) => `${locale === 'ru' ? 'ревизия' : 'revision'} ${value}`,
 });
