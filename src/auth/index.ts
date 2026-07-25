@@ -33,6 +33,7 @@ export type {
   AuthSession,
   AuthSessionRecord,
   AuthService,
+  AuthStorage,
   AuthTokens,
   CreateAuthServiceOptions,
   TokenManager,
