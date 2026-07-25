@@ -51,14 +51,16 @@ Completed:
 - immediate application without restart;
 - unavailable settings are hidden instead of shown as inert controls;
 - Account & Security flows exist and are reachable from Profile;
-- Account & Security is surfaced inside the dedicated Settings information architecture using the existing authenticated account card.
+- Account & Security is surfaced inside the dedicated Settings information architecture using the existing authenticated account card;
+- Data & Sync status, recovery, conflict review, and support diagnostics are surfaced;
+- Privacy explains local versus synchronized scope, anonymous isolation, sanitized crash reporting, excluded sensitive content, and that product analytics is not enabled;
+- About shows app version, build, runtime, update/channel/source details and hides legal/support links until verified destinations exist.
 
 Remaining:
 
 - remove the duplicate Account surface from Profile after layout/device validation of the Settings placement;
-- Data & Sync status and recovery;
-- Privacy disclosure and analytics consent when applicable;
-- About: version, build, runtime, update/channel, support diagnostics, and legal links;
+- add analytics consent only when an analytics provider and reviewed event contract are approved;
+- configure verified legal and support destinations before showing links;
 - specified workout preferences only after behavior is defined;
 - implemented notification categories only;
 - account-scoped preference policy and account-switching isolation tests;
