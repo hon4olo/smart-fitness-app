@@ -5,15 +5,31 @@ import { useRouter } from 'expo-router';
 import { AppCard } from '@/components/ui/AppCard';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
+import type { AppearanceMode } from '@/constants/theme';
 import { useLocalization, type LanguagePreference } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
-import type { AppearanceMode } from '@/constants/theme';
+import {
+  getUnitCopy,
+  useUnitPreferences,
+  type EnergyUnit,
+  type LengthUnit,
+  type WeightUnit,
+} from '@/units';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { colors, mode, setMode } = useAppTheme();
-  const { languagePreference, setLanguagePreference, t } = useLocalization();
+  const { languagePreference, locale, setLanguagePreference, t } = useLocalization();
+  const {
+    weight,
+    length,
+    energy,
+    setWeightUnit,
+    setLengthUnit,
+    setEnergyUnit,
+  } = useUnitPreferences();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const unitCopy = getUnitCopy(locale);
 
   const languageOptions: ReadonlyArray<{ label: string; value: LanguagePreference }> = [
     { label: t('common.system'), value: 'system' },
@@ -24,6 +40,18 @@ export default function SettingsScreen() {
     { label: t('common.system'), value: 'system' },
     { label: t('common.light'), value: 'light' },
     { label: t('common.dark'), value: 'dark' },
+  ];
+  const weightOptions: ReadonlyArray<{ label: string; value: WeightUnit }> = [
+    { label: 'kg', value: 'kg' },
+    { label: 'lb', value: 'lb' },
+  ];
+  const lengthOptions: ReadonlyArray<{ label: string; value: LengthUnit }> = [
+    { label: 'cm', value: 'cm' },
+    { label: 'in', value: 'in' },
+  ];
+  const energyOptions: ReadonlyArray<{ label: string; value: EnergyUnit }> = [
+    { label: 'kcal', value: 'kcal' },
+    { label: 'kJ', value: 'kJ' },
   ];
 
   return (
@@ -46,33 +74,66 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('settings.general')}</Text>
           <AppCard>
-            <View style={styles.settingBlock}>
-              <Text style={styles.settingTitle}>{t('settings.language')}</Text>
-              <Text style={styles.settingDescription}>{t('settings.languageDescription')}</Text>
+            <SettingBlock
+              description={t('settings.languageDescription')}
+              title={t('settings.language')}>
               <SegmentedControl
                 accessibilityLabel={t('settings.language')}
                 onChange={setLanguagePreference}
                 options={languageOptions}
                 value={languagePreference}
               />
-            </View>
+            </SettingBlock>
           </AppCard>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('settings.appearance')}</Text>
           <AppCard>
-            <View style={styles.settingBlock}>
-              <Text style={styles.settingTitle}>{t('settings.appearance')}</Text>
-              <Text style={styles.settingDescription}>{t('settings.appearanceDescription')}</Text>
+            <SettingBlock
+              description={t('settings.appearanceDescription')}
+              title={t('settings.appearance')}>
               <SegmentedControl
                 accessibilityLabel={t('settings.appearance')}
                 onChange={setMode}
                 options={appearanceOptions}
                 value={mode}
               />
-            </View>
+            </SettingBlock>
           </AppCard>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{unitCopy.section}</Text>
+          <AppCard>
+            <SettingBlock description={unitCopy.weightDescription} title={unitCopy.weight}>
+              <SegmentedControl
+                accessibilityLabel={unitCopy.weight}
+                onChange={setWeightUnit}
+                options={weightOptions}
+                value={weight}
+              />
+            </SettingBlock>
+            <View style={styles.divider} />
+            <SettingBlock description={unitCopy.lengthDescription} title={unitCopy.length}>
+              <SegmentedControl
+                accessibilityLabel={unitCopy.length}
+                onChange={setLengthUnit}
+                options={lengthOptions}
+                value={length}
+              />
+            </SettingBlock>
+            <View style={styles.divider} />
+            <SettingBlock description={unitCopy.energyDescription} title={unitCopy.energy}>
+              <SegmentedControl
+                accessibilityLabel={unitCopy.energy}
+                onChange={setEnergyUnit}
+                options={energyOptions}
+                value={energy}
+              />
+            </SettingBlock>
+          </AppCard>
+          <Text style={styles.footer}>{unitCopy.footer}</Text>
         </View>
 
         <Text style={styles.footer}>{t('settings.aboutPreferences')}</Text>
@@ -80,6 +141,39 @@ export default function SettingsScreen() {
     </ScrollView>
   );
 }
+
+function SettingBlock({
+  children,
+  description,
+  title,
+}: {
+  children: React.ReactNode;
+  description: string;
+  title: string;
+}) {
+  return (
+    <View style={stylesStatic.settingBlock}>
+      <Text style={stylesStatic.settingTitle}>{title}</Text>
+      <Text style={stylesStatic.settingDescription}>{description}</Text>
+      {children}
+    </View>
+  );
+}
+
+const stylesStatic = StyleSheet.create({
+  settingBlock: { gap: Spacing.two },
+  settingDescription: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.body.fontSize,
+    lineHeight: Typography.body.lineHeight,
+  },
+  settingTitle: {
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.cardTitle.fontSize,
+    fontWeight: Typography.cardTitle.fontWeight,
+    lineHeight: Typography.cardTitle.lineHeight,
+  },
+});
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
@@ -92,64 +186,31 @@ const createStyles = (colors: typeof Colors.light) =>
       justifyContent: 'center',
       width: 44,
     },
-    backLabel: {
-      color: colors.textPrimary,
-      fontSize: 32,
-      lineHeight: 34,
-    },
-    container: {
-      gap: Spacing.four,
-      maxWidth: MaxContentWidth,
-      width: '100%',
-    },
+    backLabel: { color: colors.textPrimary, fontSize: 32, lineHeight: 34 },
+    container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
     content: {
       alignItems: 'center',
       paddingBottom: Spacing.eight,
       paddingHorizontal: Spacing.four,
       paddingTop: Spacing.four,
     },
+    divider: { backgroundColor: colors.borderSubtle, height: StyleSheet.hairlineWidth },
     footer: {
       color: colors.textMuted,
       fontSize: Typography.caption.fontSize,
       lineHeight: Typography.caption.lineHeight,
       paddingHorizontal: Spacing.two,
     },
-    headerCopy: {
-      flex: 1,
-      gap: Spacing.one,
-    },
-    headerRow: {
-      alignItems: 'flex-start',
-      flexDirection: 'row',
-      gap: Spacing.three,
-    },
-    screen: {
-      backgroundColor: colors.background,
-      flex: 1,
-    },
-    section: {
-      gap: Spacing.two,
-    },
+    headerCopy: { flex: 1, gap: Spacing.one },
+    headerRow: { alignItems: 'flex-start', flexDirection: 'row', gap: Spacing.three },
+    screen: { backgroundColor: colors.background, flex: 1 },
+    section: { gap: Spacing.two },
     sectionTitle: {
       color: colors.textSecondary,
       fontSize: Typography.sectionTitle.fontSize,
       fontWeight: Typography.sectionTitle.fontWeight,
       letterSpacing: Typography.sectionTitle.letterSpacing,
       textTransform: Typography.sectionTitle.textTransform,
-    },
-    settingBlock: {
-      gap: Spacing.two,
-    },
-    settingDescription: {
-      color: colors.textSecondary,
-      fontSize: Typography.body.fontSize,
-      lineHeight: Typography.body.lineHeight,
-    },
-    settingTitle: {
-      color: colors.textPrimary,
-      fontSize: Typography.cardTitle.fontSize,
-      fontWeight: Typography.cardTitle.fontWeight,
-      lineHeight: Typography.cardTitle.lineHeight,
     },
     subtitle: {
       color: colors.textSecondary,
