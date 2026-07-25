@@ -1,11 +1,12 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 import { getMobileApiBaseUrl } from '@/api';
 import { createApiClient } from '@/api/client';
-import { createMigratingTokenManager } from '@/auth';
+import { clearLocalAccountData, createMigratingTokenManager } from '@/auth';
 import { createSyncCoordinator, type SyncCoordinator } from '@/cloud';
 import { createProductionCloudProvider } from '@/cloud/createProductionCloudProvider';
+import { defaultState as defaultAppState } from '@/data/defaults';
 import { createRepositoryFactory } from '@/repositories';
 import { createAsyncStorageAdapter } from '@/storage';
 import { createAsyncStorageOperationQueueStore } from '@/storage/AsyncStorageOperationQueueStore';
@@ -27,9 +28,17 @@ export function useAppInfrastructure(
       }),
     [secureTokenStorage, storageAdapter],
   );
+  const onAccountDeleted = useCallback(
+    async (userId: string) => {
+      setState(defaultAppState);
+      setIsRestoringState(false);
+      await clearLocalAccountData(storageAdapter, userId);
+    },
+    [setIsRestoringState, setState, storageAdapter],
+  );
   const repositoryProvider = useMemo(
-    () => createRepositoryFactory(storageAdapter, { tokenManager }),
-    [storageAdapter, tokenManager],
+    () => createRepositoryFactory(storageAdapter, { tokenManager, onAccountDeleted }),
+    [onAccountDeleted, storageAdapter, tokenManager],
   );
   const repository = useMemo(() => repositoryProvider.getRepository(), [repositoryProvider]);
   const authService = useMemo(() => repositoryProvider.getAuthService(), [repositoryProvider]);
