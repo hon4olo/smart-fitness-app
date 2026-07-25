@@ -26,20 +26,22 @@ Remaining:
 
 ## Cross-device Nutrition library sync — P1
 
-Completed foundation:
+Completed:
 
 - local custom foods and provider-favorite snapshots retain stable library IDs and normalized nutrition/provider attribution;
-- records now carry revision, saved/updated timestamps, and deletion tombstones while legacy v1 arrays migrate during parsing;
-- UI selectors hide tombstones while the underlying account-scoped local store preserves them for future cross-device deletion sync;
-- local create, update, favorite toggle, and removal remain immediate and offline-first.
+- records carry revision, saved/updated timestamps, and deletion tombstones while legacy v1 arrays migrate during parsing;
+- UI selectors hide tombstones while the underlying account-scoped local store preserves them for cross-device deletion sync;
+- local create, update, favorite toggle, and removal remain immediate and offline-first;
+- backend PR #51 adds an ownership-safe revisioned `nutrition_library_items` entity, migration, tombstones, sync routing, idempotency, pull history, and account-deletion cascade;
+- signed-in local mutations enqueue idempotent create/update/delete operations through the existing durable offline queue;
+- pull application writes remote upserts and tombstones into the signed-in account library before cursor advancement;
+- anonymous storage remains isolated and is never silently imported into a signed-in account;
+- provider-favorite snapshots remain locally usable without another provider request.
 
 Remaining:
 
-- add backend revisioned entities and mobile queue/pull integration for reusable custom foods and provider-favorite snapshots;
-- add create/update/delete conflict handling and idempotent replay tests across client and backend;
-- decide explicitly whether anonymous data may be imported into an account;
-- keep provider favorites usable while the provider is unavailable;
-- validate the library on a second signed-in device.
+- add focused create/update/delete conflict and idempotent replay coverage across client and backend;
+- validate offline termination/restart and the library on a second signed-in device.
 
 ## Visual regression and release-device matrix — P1
 

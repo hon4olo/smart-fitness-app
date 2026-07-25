@@ -4,6 +4,7 @@ import { isCustomExerciseQueueOperation } from '@/cloud/CustomExerciseSync';
 import { isFitnessProfileQueueOperation } from '@/cloud/FitnessProfileSync';
 import { isFoodEntryQueueOperation } from '@/cloud/FoodEntrySync';
 import { isMealTemplateQueueOperation } from '@/cloud/MealTemplateSync';
+import { isNutritionLibraryQueueOperation } from '@/cloud/NutritionLibrarySync';
 import { isNutritionTargetQueueOperation } from '@/cloud/NutritionTargetSync';
 import { isSafetyRecoveryQueueOperation } from '@/cloud/SafetyRecoverySync';
 import { isTrainingProgramQueueOperation } from '@/cloud/TrainingProgramSync';
@@ -148,6 +149,8 @@ export const hasUnsupportedRemoteEntities = (pullResult: SyncPullResult): boolea
         operation.entity !== 'foodEntries' &&
         operation.entity !== 'mealTemplates' &&
         operation.entity !== 'meal_templates' &&
+        operation.entity !== 'nutritionLibraryItems' &&
+        operation.entity !== 'nutrition_library_items' &&
         operation.entity !== 'nutritionTargets' &&
         operation.entity !== 'fitnessProfiles' &&
         operation.entity !== 'userLimitations' &&
@@ -167,6 +170,7 @@ export const countSupportedQueueOperations = (
   operations.filter(isTrainingProgramQueueOperation).length +
   operations.filter(isFoodEntryQueueOperation).length +
   operations.filter(isMealTemplateQueueOperation).length +
+  operations.filter(isNutritionLibraryQueueOperation).length +
   operations.filter(isNutritionTargetQueueOperation).length +
   operations.filter(isFitnessProfileQueueOperation).length +
   operations.filter(isSafetyRecoveryQueueOperation).length;
