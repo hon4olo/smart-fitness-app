@@ -69,14 +69,21 @@ Remaining:
 
 ## Coach history and trust — P2
 
+Completed:
+
+- backend PR #53 exposes an ownership-safe bounded Coach run history query over existing immutable run records;
+- mobile Coach history provides localized domain/status filters and opens immutable run details;
+- history summaries expose request type, policy versions, status, and timestamps without raw context snapshots or health values;
+- run details expose policy versions and ordered agent stages without rewriting historical records;
+- Settings provides a visible entry point to Coach history and trust information.
+
 Remaining:
 
-- user-visible review/proposal history;
-- inputs used, deterministic rationale, policy version, validation result, and status;
-- before/after values for confirmed changes;
-- stale proposal marking on source revision changes;
-- explicit compensating revert rather than historical mutation;
-- immutable completed-workout and applied-proposal provenance.
+- show bounded, domain-specific inputs used and deterministic rationale without dumping raw snapshots;
+- show before/after values for confirmed changes;
+- mark proposals stale when source revisions change;
+- implement explicit compensating revert rather than historical mutation;
+- preserve immutable completed-workout and applied-proposal provenance.
 
 ## Local-storage scalability — P2, measure first
 
