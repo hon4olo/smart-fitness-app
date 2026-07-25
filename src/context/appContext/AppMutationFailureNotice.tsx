@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { getDataRecoveryCopy } from '@/features/settings/dataRecoveryCopy';
+import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { AppMutationFailure } from '@/types';
 
@@ -20,13 +22,22 @@ export function AppMutationFailureNotice({
   pendingCount,
 }: AppMutationFailureNoticeProps) {
   const { colors } = useAppTheme();
+  const { locale } = useLocalization();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const copy = getDataRecoveryCopy(locale);
 
   if (!failure) return null;
 
-  const stageLabel =
-    failure.stage === 'outbox' ? 'Cloud queue update failed' : 'Local save failed';
+  const isOutboxFailure = failure.stage === 'outbox';
+  const title = isOutboxFailure
+    ? locale === 'ru'
+      ? 'Ошибка облачной очереди'
+      : 'Cloud queue update failed'
+    : locale === 'ru'
+      ? 'Ошибка локального сохранения'
+      : 'Local save failed';
+  const safeMessage = isOutboxFailure ? copy.outboxFailure : copy.localFailure;
 
   return (
     <View
@@ -34,9 +45,9 @@ export function AppMutationFailureNotice({
       style={[styles.notice, { top: insets.top + Spacing.two }]}
       testID="app-mutation-failure-notice">
       <View style={styles.copy}>
-        <Text style={styles.title}>{stageLabel}</Text>
+        <Text style={styles.title}>{title}</Text>
         <Text style={styles.label}>{failure.label}</Text>
-        <Text style={styles.message}>{failure.message}</Text>
+        <Text style={styles.message}>{safeMessage}</Text>
       </View>
       <View style={styles.actions}>
         <Pressable
@@ -49,13 +60,15 @@ export function AppMutationFailureNotice({
             pendingCount > 0 && styles.disabled,
             pressed && pendingCount === 0 && styles.pressed,
           ]}>
-          <Text style={styles.retryLabel}>{pendingCount > 0 ? 'Waiting…' : 'Retry'}</Text>
+          <Text style={styles.retryLabel}>
+            {pendingCount > 0 ? copy.waiting : copy.retrySave}
+          </Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
           onPress={onDismiss}
           style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
-          <Text style={styles.dismissLabel}>Dismiss</Text>
+          <Text style={styles.dismissLabel}>{locale === 'ru' ? 'Закрыть' : 'Dismiss'}</Text>
         </Pressable>
       </View>
     </View>

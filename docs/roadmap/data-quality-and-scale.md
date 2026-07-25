@@ -11,11 +11,13 @@ Completed:
 - last successful sync, pending mutation count, and unresolved conflict count are visible;
 - manual sync and retry actions use the existing SyncProvider contract;
 - raw internal sync error text is not displayed to users;
-- local-only and account-synchronized behavior are explained in English and Russian.
+- local-only and account-synchronized behavior are explained in English and Russian;
+- failed local persistence exposes a safe retry action without displaying the raw exception;
+- durable outbox recovery records are counted and can be replayed manually without deleting records after a failed replay;
+- the existing startup replay and in-session retry contracts from mobile PR #57 remain the recovery source of truth.
 
 Remaining:
 
-- expose safe recovery actions for failed local persistence and durable outbox writes;
 - provide a deterministic user-visible conflict-resolution path;
 - test offline edit, termination, restart, refresh, reconnect, and eventual synchronization on devices;
 - include runtime/update details in support diagnostics.

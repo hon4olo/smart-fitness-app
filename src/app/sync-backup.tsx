@@ -6,6 +6,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useWeightSync } from '@/context/SyncContext';
+import { DataRecoveryCard } from '@/features/settings/DataRecoveryCard';
 import { getSyncStatusCopy, getSyncStatusExplanation } from '@/features/settings/syncStatusCopy';
 import { useLocalization } from '@/localization';
 
@@ -24,7 +25,11 @@ export default function SyncBackupScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const copy = getSyncStatusCopy(locale);
   const isBusy = status === 'syncing';
-  const actionLabel = isBusy ? copy.syncing : status === 'error' || status === 'offline' ? copy.retry : copy.syncNow;
+  const actionLabel = isBusy
+    ? copy.syncing
+    : status === 'error' || status === 'offline'
+      ? copy.retry
+      : copy.syncNow;
 
   return (
     <ScrollView
@@ -39,7 +44,10 @@ export default function SyncBackupScreen() {
           <Text style={styles.value}>{copy.statusLabels[status]}</Text>
           <Text style={styles.detail}>{getSyncStatusExplanation(copy, status)}</Text>
           <Text style={styles.detail}>
-            {copy.lastSync}: {lastSyncAt ? formatDate(lastSyncAt, { dateStyle: 'medium', timeStyle: 'short' }) : copy.never}
+            {copy.lastSync}:{' '}
+            {lastSyncAt
+              ? formatDate(lastSyncAt, { dateStyle: 'medium', timeStyle: 'short' })
+              : copy.never}
           </Text>
         </AppCard>
 
@@ -47,8 +55,15 @@ export default function SyncBackupScreen() {
           <Text style={styles.title}>{copy.queue}</Text>
           <DetailRow label={copy.pendingOperations} value={`${pendingOperations}`} />
           <DetailRow label={copy.conflicts} value={`${conflictCount}`} />
-          <AppButton disabled={isBusy} label={actionLabel} loading={isBusy} onPress={() => void syncNow()} />
+          <AppButton
+            disabled={isBusy}
+            label={actionLabel}
+            loading={isBusy}
+            onPress={() => void syncNow()}
+          />
         </AppCard>
+
+        <DataRecoveryCard />
       </View>
     </ScrollView>
   );
