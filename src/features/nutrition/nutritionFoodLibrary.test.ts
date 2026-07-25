@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { DraftItem } from './addFoodModel';
 import {
+  getActiveNutritionLibraryFoods,
   getNutritionFoodLibraryStorageKey,
   parseNutritionFoodLibrary,
-  removeNutritionLibraryFood,
   serializeNutritionFoodLibrary,
+  tombstoneNutritionLibraryFood,
   upsertNutritionLibraryFood,
 } from './nutritionFoodLibrary';
 
@@ -22,27 +23,65 @@ const draft: DraftItem = {
   source: 'fatsecret',
 };
 
+const firstTimestamp = '2026-07-25T00:00:00.000Z';
+const secondTimestamp = '2026-07-25T01:00:00.000Z';
+
 describe('nutrition food library', () => {
   it('scopes storage by account with an anonymous fallback', () => {
     expect(getNutritionFoodLibraryStorageKey('user-1')).toContain('user-1');
     expect(getNutritionFoodLibraryStorageKey(null)).toContain('anonymous');
   });
 
-  it('round-trips provider favorite snapshots', () => {
-    const items = upsertNutritionLibraryFood([], draft, 'provider-favorite', '2026-07-25T00:00:00.000Z');
+  it('round-trips revision-ready provider favorite snapshots', () => {
+    const items = upsertNutritionLibraryFood([], draft, 'provider-favorite', firstTimestamp);
+    expect(items[0]).toMatchObject({
+      revision: 1,
+      savedAt: firstTimestamp,
+      updatedAt: firstTimestamp,
+      deletedAt: null,
+    });
     expect(parseNutritionFoodLibrary(serializeNutritionFoodLibrary(items))).toEqual(items);
   });
 
-  it('upserts a snapshot instead of duplicating it', () => {
-    const first = upsertNutritionLibraryFood([], draft, 'provider-favorite', '2026-07-25T00:00:00.000Z');
-    const second = upsertNutritionLibraryFood(first, { ...draft, calories: 125 }, 'provider-favorite', '2026-07-25T01:00:00.000Z');
-    expect(second).toHaveLength(1);
-    expect(second[0].calories).toBe(125);
+  it('migrates legacy records without revision metadata', () => {
+    const legacy = {
+      ...draft,
+      libraryId: 'fatsecret:provider-1',
+      kind: 'provider-favorite',
+      savedAt: firstTimestamp,
+    };
+    expect(parseNutritionFoodLibrary(JSON.stringify([legacy]))[0]).toMatchObject({
+      revision: 0,
+      updatedAt: firstTimestamp,
+      deletedAt: null,
+    });
   });
 
-  it('fails closed on malformed storage and removes by stable id', () => {
+  it('increments revision when updating the same stable record', () => {
+    const first = upsertNutritionLibraryFood([], draft, 'provider-favorite', firstTimestamp);
+    const second = upsertNutritionLibraryFood(
+      first,
+      { ...draft, calories: 125 },
+      'provider-favorite',
+      secondTimestamp,
+    );
+    expect(second).toHaveLength(1);
+    expect(second[0]).toMatchObject({ calories: 125, revision: 2, updatedAt: secondTimestamp });
+    expect(second[0].savedAt).toBe(firstTimestamp);
+  });
+
+  it('uses tombstones so deletions can synchronize across devices', () => {
+    const items = upsertNutritionLibraryFood([], draft, 'provider-favorite', firstTimestamp);
+    const deleted = tombstoneNutritionLibraryFood(items, items[0].libraryId, secondTimestamp);
+    expect(deleted[0]).toMatchObject({
+      revision: 2,
+      updatedAt: secondTimestamp,
+      deletedAt: secondTimestamp,
+    });
+    expect(getActiveNutritionLibraryFoods(deleted)).toEqual([]);
+  });
+
+  it('fails closed on malformed storage', () => {
     expect(parseNutritionFoodLibrary('{broken')).toEqual([]);
-    const items = upsertNutritionLibraryFood([], draft, 'provider-favorite', '2026-07-25T00:00:00.000Z');
-    expect(removeNutritionLibraryFood(items, items[0].libraryId)).toEqual([]);
   });
 });

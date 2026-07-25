@@ -26,12 +26,17 @@ Remaining:
 
 ## Cross-device Nutrition library sync — P1
 
+Completed foundation:
+
+- local custom foods and provider-favorite snapshots retain stable library IDs and normalized nutrition/provider attribution;
+- records now carry revision, saved/updated timestamps, and deletion tombstones while legacy v1 arrays migrate during parsing;
+- UI selectors hide tombstones while the underlying account-scoped local store preserves them for future cross-device deletion sync;
+- local create, update, favorite toggle, and removal remain immediate and offline-first.
+
 Remaining:
 
-- add revisioned sync entities for reusable custom foods and provider-favorite snapshots;
-- preserve stable IDs, normalized nutrition snapshot, attribution, provider IDs, revision, timestamps, and tombstones;
-- preserve immediate offline-first local use;
-- add create/update/delete conflicts and idempotent replay tests;
+- add backend revisioned entities and mobile queue/pull integration for reusable custom foods and provider-favorite snapshots;
+- add create/update/delete conflict handling and idempotent replay tests across client and backend;
 - decide explicitly whether anonymous data may be imported into an account;
 - keep provider favorites usable while the provider is unavailable;
 - validate the library on a second signed-in device.
