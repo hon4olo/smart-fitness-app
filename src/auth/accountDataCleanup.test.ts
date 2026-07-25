@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import type { StorageAdapter } from '@/storage';
 
 import {
-  AccountDataCleanupError,
   PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
   clearLocalAccountData,
   getLocalAccountDataStorageKeys,
@@ -51,9 +50,7 @@ describe('local account data cleanup', () => {
     const failedKey = getLocalAccountDataStorageKeys(userId)[0] as string;
     const storage = createMemoryStorage({ [failedKey]: 'private' }, failedKey);
 
-    await expect(clearLocalAccountData(storage, userId)).rejects.toMatchObject<
-      Partial<AccountDataCleanupError>
-    >({
+    await expect(clearLocalAccountData(storage, userId)).rejects.toMatchObject({
       name: 'AccountDataCleanupError',
       failedKeys: [failedKey],
     });
