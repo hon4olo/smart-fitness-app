@@ -5,7 +5,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import {
   BODY_MEASUREMENT_METRICS,
-  BODY_MEASUREMENT_UNITS,
+  getBodyMeasurementUnits,
   type BodyMeasurementDraft,
 } from '@/features/progress/bodyMeasurementModel';
 import type { BodyMeasurementMetric, BodyMeasurementUnit } from '@/types';
@@ -31,6 +31,8 @@ export function AddBodyMeasurementCard({
   onChangeValue,
   onSave,
 }: Props) {
+  const availableUnits = getBodyMeasurementUnits(draft.metric);
+
   return (
     <AppCard>
       <Text style={styles.sectionTitle}>Add measurement</Text>
@@ -70,7 +72,7 @@ export function AddBodyMeasurementCard({
           <TextInput
             keyboardType="decimal-pad"
             onChangeText={onChangeValue}
-            placeholder="84"
+            placeholder={draft.unit === 'in' ? '33.1' : draft.unit === 'percent' ? '15' : '84'}
             placeholderTextColor={Colors.dark.textSecondary}
             style={styles.input}
             value={draft.value}
@@ -79,7 +81,7 @@ export function AddBodyMeasurementCard({
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Unit</Text>
           <View style={styles.unitRow}>
-            {BODY_MEASUREMENT_UNITS.map((unit) => {
+            {availableUnits.map((unit) => {
               const selected = draft.unit === unit;
               return (
                 <Pressable
