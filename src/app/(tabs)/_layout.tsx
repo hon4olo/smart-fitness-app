@@ -3,26 +3,42 @@ import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/theme';
+import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
-const TAB_ICONS: Record<'Home' | 'Workouts' | 'Nutrition' | 'Progress' | 'Profile', string> = {
-  Home: '🏠',
-  Workouts: '🏋️',
-  Nutrition: '🥗',
-  Progress: '📈',
-  Profile: '👤',
-};
+const TAB_ICONS = {
+  home: '🏠',
+  workouts: '🏋️',
+  nutrition: '🥗',
+  progress: '📈',
+  profile: '👤',
+} as const;
 
-function TabIcon({ focused, label, tabColors }: { focused: boolean; label: keyof typeof TAB_ICONS; tabColors: typeof Colors.light }) {
+type TabIconName = keyof typeof TAB_ICONS;
+
+function TabIcon({
+  focused,
+  name,
+  tabColors,
+}: {
+  focused: boolean;
+  name: TabIconName;
+  tabColors: typeof Colors.light;
+}) {
   return (
-    <View style={[styles.iconWrap, { backgroundColor: focused ? tabColors.accentSoft : tabColors.backgroundSelected }]}>
-      <Text style={styles.icon}>{TAB_ICONS[label]}</Text>
+    <View
+      style={[
+        styles.iconWrap,
+        { backgroundColor: focused ? tabColors.accentSoft : tabColors.backgroundSelected },
+      ]}>
+      <Text style={styles.icon}>{TAB_ICONS[name]}</Text>
     </View>
   );
 }
 
 export default function TabsLayout() {
   const { colors } = useAppTheme();
+  const { t } = useLocalization();
   const insets = useSafeAreaInsets();
   const tabBarHeight = 56 + insets.bottom;
   const tabColors = colors;
@@ -60,36 +76,46 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Home" tabColors={tabColors} />,
+          title: t('tabs.home'),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} name="home" tabColors={tabColors} />
+          ),
         }}
       />
       <Tabs.Screen
         name="workouts"
         options={{
-          title: 'Workouts',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Workouts" tabColors={tabColors} />,
+          title: t('tabs.workouts'),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} name="workouts" tabColors={tabColors} />
+          ),
         }}
       />
       <Tabs.Screen
         name="nutrition"
         options={{
-          title: 'Nutrition',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Nutrition" tabColors={tabColors} />,
+          title: t('tabs.nutrition'),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} name="nutrition" tabColors={tabColors} />
+          ),
         }}
       />
       <Tabs.Screen
         name="progress"
         options={{
-          title: 'Progress',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Progress" tabColors={tabColors} />,
+          title: t('tabs.progress'),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} name="progress" tabColors={tabColors} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Profile" tabColors={tabColors} />,
+          title: t('tabs.profile'),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} name="profile" tabColors={tabColors} />
+          ),
         }}
       />
       <Tabs.Screen name="coach" options={{ href: null }} />
