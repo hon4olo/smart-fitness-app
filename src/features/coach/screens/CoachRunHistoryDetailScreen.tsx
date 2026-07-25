@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { createCoachApi, type CoachRunEnvelope } from '@/api/coach';
+import { parseCoachApplicationProvenance } from '@/api/coach/applicationProvenance';
 import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
@@ -33,6 +34,18 @@ export default function CoachRunHistoryDetailScreen() {
       }),
     [refresh, session?.tokens.accessToken],
   );
+
+  const provenanceState = useMemo(() => {
+    if (!run) return { invalid: false, items: [] };
+    try {
+      return {
+        invalid: false,
+        items: parseCoachApplicationProvenance(run.run.result),
+      };
+    } catch {
+      return { invalid: true, items: [] };
+    }
+  }, [run]);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,7 +87,7 @@ export default function CoachRunHistoryDetailScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}> 
+      <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
@@ -83,7 +96,7 @@ export default function CoachRunHistoryDetailScreen() {
           <Text style={styles.subtitle}>{copy.immutable}</Text>
         </View>
       </View>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.eight }]}> 
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.eight }]}>
         <View style={styles.container}>
           {loading ? <Text style={styles.body}>{copy.loading}</Text> : null}
           {error ? (
@@ -109,6 +122,36 @@ export default function CoachRunHistoryDetailScreen() {
                   />
                 ) : null}
               </AppCard>
+
+              {provenanceState.invalid || provenanceState.items.length > 0 ? (
+                <AppCard>
+                  <Text style={styles.cardTitle}>{copy.provenance}</Text>
+                  {provenanceState.invalid ? (
+                    <Text style={styles.body}>{copy.provenanceUnavailable}</Text>
+                  ) : (
+                    provenanceState.items.map((item) => (
+                      <View
+                        key={`${item.applicationKey}:${item.sourceFingerprint}`}
+                        style={styles.provenanceBlock}
+                      >
+                        <Text style={styles.agentName}>{copy.application(item.applicationKey)}</Text>
+                        {item.sources.map((source) => (
+                          <Row
+                            key={`${source.entityType}:${source.entityId}`}
+                            label={copy.sourceRevision}
+                            value={`${copy.entity(source.entityType)} · ${copy.revision(source.revision)}`}
+                          />
+                        ))}
+                        <Row
+                          label={copy.appliedRevision}
+                          value={`${copy.entity(item.appliedEntity.entityType)} · ${copy.revision(item.appliedEntity.revision)}`}
+                        />
+                        <Text style={styles.provenanceNote}>{copy.fingerprintRecorded}</Text>
+                      </View>
+                    ))
+                  )}
+                </AppCard>
+              ) : null}
 
               <AppCard>
                 <Text style={styles.cardTitle}>{copy.policies}</Text>
@@ -169,6 +212,8 @@ const createStyles = (colors: typeof Colors.light) => StyleSheet.create({
   content: { paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
   header: { alignItems: 'center', flexDirection: 'row', gap: Spacing.three, paddingBottom: Spacing.two, paddingHorizontal: Spacing.three },
   headerCopy: { flex: 1, gap: Spacing.one },
+  provenanceBlock: { borderTopColor: colors.borderSubtle, borderTopWidth: StyleSheet.hairlineWidth, gap: Spacing.one, paddingTop: Spacing.two },
+  provenanceNote: { color: colors.textSecondary, fontSize: Typography.caption.fontSize, lineHeight: Typography.caption.lineHeight },
   screen: { backgroundColor: colors.background, flex: 1 },
   subtitle: { color: colors.textSecondary, fontSize: Typography.caption.fontSize },
   title: { color: colors.textPrimary, fontSize: Typography.screenTitle.fontSize, fontWeight: Typography.screenTitle.fontWeight },
