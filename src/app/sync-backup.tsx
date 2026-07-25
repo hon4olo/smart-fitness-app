@@ -6,16 +6,8 @@ import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useWeightSync } from '@/context/SyncContext';
-import { formatShortDateTime } from '@/lib';
-
-const STATUS_LABELS: Record<string, string> = {
-  'local-only': 'Local only',
-  syncing: 'Syncing',
-  synced: 'Synced',
-  offline: 'Offline',
-  conflict: 'Conflict',
-  error: 'Error',
-};
+import { getSyncStatusCopy, getSyncStatusExplanation } from '@/features/settings/syncStatusCopy';
+import { useLocalization } from '@/localization';
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -27,27 +19,35 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function SyncBackupScreen() {
-  const { conflictCount, error, lastSyncAt, pendingOperations, status, syncNow } = useWeightSync();
+  const { conflictCount, lastSyncAt, pendingOperations, status, syncNow } = useWeightSync();
+  const { formatDate, locale } = useLocalization();
   const safeAreaInsets = useSafeAreaInsets();
-  const label = STATUS_LABELS[status] ?? 'Error';
+  const copy = getSyncStatusCopy(locale);
+  const isBusy = status === 'syncing';
+  const actionLabel = isBusy ? copy.syncing : status === 'error' || status === 'offline' ? copy.retry : copy.syncNow;
 
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} style={styles.screen}>
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]}
+      style={styles.screen}>
       <View style={styles.container}>
-        <SectionHeader title="Sync & Backup" />
+        <SectionHeader title={copy.section} subtitle={copy.description} />
 
         <AppCard>
-          <Text style={styles.title}>Current status</Text>
-          <Text style={styles.value}>{label}</Text>
-          <Text style={styles.detail}>Last sync: {lastSyncAt ? formatShortDateTime(lastSyncAt) : 'Never'}</Text>
+          <Text style={styles.title}>{copy.currentStatus}</Text>
+          <Text style={styles.value}>{copy.statusLabels[status]}</Text>
+          <Text style={styles.detail}>{getSyncStatusExplanation(copy, status)}</Text>
+          <Text style={styles.detail}>
+            {copy.lastSync}: {lastSyncAt ? formatDate(lastSyncAt, { dateStyle: 'medium', timeStyle: 'short' }) : copy.never}
+          </Text>
         </AppCard>
 
         <AppCard>
-          <Text style={styles.title}>Queue</Text>
-          <DetailRow label="Pending operations" value={`${pendingOperations}`} />
-          <DetailRow label="Conflicts" value={`${conflictCount}`} />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <AppButton disabled={status === 'syncing'} label="Sync now" loading={status === 'syncing'} onPress={() => void syncNow()} />
+          <Text style={styles.title}>{copy.queue}</Text>
+          <DetailRow label={copy.pendingOperations} value={`${pendingOperations}`} />
+          <DetailRow label={copy.conflicts} value={`${conflictCount}`} />
+          <AppButton disabled={isBusy} label={actionLabel} loading={isBusy} onPress={() => void syncNow()} />
         </AppCard>
       </View>
     </ScrollView>
@@ -70,12 +70,6 @@ const styles = StyleSheet.create({
     lineHeight: Typography.caption.lineHeight,
     marginTop: Spacing.one,
   },
-  error: {
-    color: Colors.dark.error,
-    fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
-    marginBottom: Spacing.two,
-  },
   row: {
     borderColor: Colors.dark.borderSubtle,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -92,6 +86,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.bodyEmphasized.fontSize,
     fontWeight: Typography.bodyEmphasized.fontWeight,
     lineHeight: Typography.bodyEmphasized.lineHeight,
+    marginBottom: Spacing.two,
     marginTop: 2,
   },
   screen: {

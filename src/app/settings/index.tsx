@@ -7,6 +7,8 @@ import { AppCard } from '@/components/ui/AppCard';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import type { AppearanceMode } from '@/constants/theme';
+import { SyncSettingsCard } from '@/features/settings/SyncSettingsCard';
+import { getSyncStatusCopy } from '@/features/settings/syncStatusCopy';
 import { useLocalization, type LanguagePreference } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import {
@@ -25,6 +27,7 @@ export default function SettingsScreen() {
     useUnitPreferences();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const unitCopy = getUnitCopy(locale);
+  const syncCopy = getSyncStatusCopy(locale);
 
   const languageOptions: ReadonlyArray<{ label: string; value: LanguagePreference }> = [
     { label: t('common.system'), value: 'system' },
@@ -68,6 +71,10 @@ export default function SettingsScreen() {
 
         <SettingsSection title={t('account.title')}>
           <AuthGateCard />
+        </SettingsSection>
+
+        <SettingsSection title={syncCopy.section}>
+          <SyncSettingsCard />
         </SettingsSection>
 
         <SettingsSection title={t('settings.general')}>

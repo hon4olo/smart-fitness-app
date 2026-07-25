@@ -4,14 +4,20 @@ Updated: 2026-07-25
 
 ## User-visible sync status and recovery — P1
 
+Completed:
+
+- Settings contains a localized Data & Sync status card;
+- the detail screen shows local-only, syncing, synced, offline, failed, and conflict states without internal IDs;
+- last successful sync, pending mutation count, and unresolved conflict count are visible;
+- manual sync and retry actions use the existing SyncProvider contract;
+- raw internal sync error text is not displayed to users;
+- local-only and account-synchronized behavior are explained in English and Russian.
+
 Remaining:
 
-- show synced, pending, offline, failed, and conflict states;
-- show last successful sync and pending mutation count without internal IDs;
-- expose safe manual retry and recovery actions;
-- distinguish local-only from account-synchronized entities;
-- provide a deterministic conflict-resolution path;
-- test offline edit, termination, restart, refresh, reconnect, and eventual synchronization;
+- expose safe recovery actions for failed local persistence and durable outbox writes;
+- provide a deterministic user-visible conflict-resolution path;
+- test offline edit, termination, restart, refresh, reconnect, and eventual synchronization on devices;
 - include runtime/update details in support diagnostics.
 
 ## Cross-device Nutrition library sync — P1
