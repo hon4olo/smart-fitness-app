@@ -9,17 +9,21 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { createUuid, formatShortDate } from '@/lib';
+import { displayWeightInputToKg, parseDisplayNumber } from '@/units';
+import { useUnitPreferences } from '@/units';
 
 export default function WeightEntryScreen() {
   const { addWeightEntry } = useAppContext();
+  const { preferences } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
   const [weight, setWeight] = useState('');
   const [error, setError] = useState('');
 
   const saveWeight = () => {
-    const parsedWeight = Number(weight);
+    const parsedDisplayWeight = parseDisplayNumber(weight);
+    const parsedWeightKg = Number(displayWeightInputToKg(weight, preferences.weight));
 
-    if (!Number.isFinite(parsedWeight) || parsedWeight <= 0) {
+    if (!Number.isFinite(parsedDisplayWeight) || parsedDisplayWeight <= 0 || !Number.isFinite(parsedWeightKg)) {
       setError('Enter a valid weight.');
       return;
     }
@@ -28,7 +32,7 @@ export default function WeightEntryScreen() {
     addWeightEntry({
       id: createUuid(),
       date: formatShortDate(now.toISOString()),
-      weight: parsedWeight,
+      weight: parsedWeightKg,
       createdAt: now.toISOString(),
     });
 
@@ -45,21 +49,20 @@ export default function WeightEntryScreen() {
         { paddingBottom: safeAreaInsets.bottom + 120 },
       ]}
       keyboardShouldPersistTaps="handled"
-      style={styles.screen}
-    >
+      style={styles.screen}>
       <View style={styles.container}>
         <SectionHeader title="Add weight" />
 
         <AppCard>
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Weight</Text>
+            <Text style={styles.label}>Weight ({preferences.weight})</Text>
             <TextInput
               keyboardType="decimal-pad"
               onChangeText={(value) => {
                 setWeight(value);
                 if (error) setError('');
               }}
-              placeholder="0"
+              placeholder={preferences.weight === 'lb' ? '182.3' : '82.7'}
               placeholderTextColor={Colors.dark.textSecondary}
               style={styles.input}
               value={weight}
