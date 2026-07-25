@@ -1,13 +1,9 @@
-import { LANGUAGE_PREFERENCE_STORAGE_KEY } from '@/localization/LocalizationProvider';
-import { APPEARANCE_STORAGE_KEY } from '@/theme/appearance';
-import { UNIT_PREFERENCES_STORAGE_KEY } from '@/units/UnitPreferencesProvider';
-
 export type PreferenceScope = 'device' | 'account';
 
 export const DEVICE_SCOPED_PREFERENCE_KEYS = [
-  LANGUAGE_PREFERENCE_STORAGE_KEY,
-  APPEARANCE_STORAGE_KEY,
-  UNIT_PREFERENCES_STORAGE_KEY,
+  '@smart_fitness_language_preference',
+  'smart-fitness-app.appearance-mode',
+  '@smart_fitness_unit_preferences',
 ] as const;
 
 export const getPreferenceScope = (storageKey: string): PreferenceScope =>
