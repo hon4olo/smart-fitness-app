@@ -22,6 +22,7 @@ export type RepositoryFactoryOptions = {
   apiClient?: ApiClient;
   tokenManager?: TokenManager;
   authService?: AuthService & { profileRepository: RemoteProfileRepository };
+  accountCleanupMarkerStorage?: StorageAdapter;
   onAccountDeleted?: (userId: string) => Promise<void>;
 };
 
@@ -90,6 +91,7 @@ export const createRepositoryFactory = (
           apiClient,
           tokenManager,
           sessionStorage: storage,
+          accountCleanupMarkerStorage: options.accountCleanupMarkerStorage,
           defaultDevice: getDefaultAuthDeviceInfo(),
           onAccountDeleted: options.onAccountDeleted,
         })
