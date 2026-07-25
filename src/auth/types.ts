@@ -47,7 +47,10 @@ export type AuthEnvelope = {
   tokenType: 'Bearer';
 };
 
-export type AuthProfile = Pick<AuthUser, 'id' | 'email' | 'displayName' | 'avatarUrl' | 'createdAt' | 'updatedAt'>;
+export type AuthProfile = Pick<
+  AuthUser,
+  'id' | 'email' | 'displayName' | 'avatarUrl' | 'createdAt' | 'updatedAt'
+>;
 
 export type AuthProfileUpdate = {
   displayName?: string | null;
@@ -85,6 +88,7 @@ export type AuthService = {
   login(credentials: AuthCredentials): Promise<AuthSession>;
   refresh(): Promise<AuthSession | null>;
   logout(): Promise<void>;
+  deleteAccount(password: string): Promise<void>;
   fetchProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: AuthProfileUpdate): Promise<AuthProfile | null>;
   getAccessToken(): Promise<string | null>;
@@ -103,4 +107,5 @@ export type CreateAuthServiceOptions = {
   sessionStorageKey?: string;
   defaultDevice?: AuthDeviceInfo;
   onSessionChange?: (session: AuthSession | null) => void;
+  onAccountDeleted?: (userId: string) => Promise<void>;
 };
