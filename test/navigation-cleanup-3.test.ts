@@ -65,23 +65,29 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(source).toContain('Add weight');
   });
 
-  test('profile links to dedicated functional settings and keeps developer tools quiet', () => {
+  test('profile stays user-focused while Settings owns technical controls', () => {
     const screen = readSource('src/app/(tabs)/profile.tsx');
     const preferences = readSource('src/components/profile/ProfilePreferencesCard.tsx');
     const settings = readSource('src/app/settings/index.tsx');
     const sync = readSource('src/components/profile/ProfileSyncStatusCard.tsx');
     const developer = readSource('src/components/profile/ProfileActionsCard.tsx');
 
-    expect(screen).toContain('Account');
-    expect(screen).toContain('Goals');
-    expect(screen).toContain('Preferences');
-    expect(screen).toContain('Sync & Backup');
-    expect(screen).toContain('Developer settings');
+    expect(screen).toContain("t('profile.accountSection')");
+    expect(screen).toContain('ProfileGoalsCard');
+    expect(screen).toContain('ProfileCoachCard');
+    expect(screen).toContain('ProfilePreferencesCard');
     expect(screen).toContain("router.push('/settings')");
+    expect(screen).not.toContain('ProfileSyncStatusCard');
+    expect(screen).not.toContain('ProfileRuntimeInfoCard');
+    expect(screen).not.toContain('ProfileActionsCard');
     expect(preferences).not.toContain('SegmentedControl');
     expect(settings).toContain('settings.appearance');
     expect(settings).toContain('settings.language');
     expect(settings).toContain('SegmentedControl');
+    expect(settings).toContain('<SyncSettingsCard />');
+    expect(settings).toContain('<ProfileActionsCard');
+    expect(settings).toContain('<ProfileRuntimeInfoCard');
+    expect(settings).toContain('developerExpanded');
     expect(sync).toContain("router.push('/sync-backup')");
     expect(sync).toContain('Last sync');
     expect(developer).not.toContain('owner-only');
@@ -94,6 +100,7 @@ describe('navigation repair and UX cleanup 3.0', () => {
     const program = readSource('src/features/workouts/screens/ProgramDetailScreen.tsx');
     const progress = readSource('src/app/(tabs)/progress.tsx');
     const profile = readSource('src/app/(tabs)/profile.tsx');
+    const settings = readSource('src/app/settings/index.tsx');
     const syncBackup = readSource('src/app/sync-backup.tsx');
     const weightEntry = readSource('src/app/weight-entry.tsx');
 
@@ -101,8 +108,8 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(template).toContain('Start Workout');
     expect(program).toContain('Add routine to program');
     expect(progress).toContain("router.push('/weight-entry')");
-    expect(profile).toContain('ProfileSyncStatusCard');
     expect(profile).toContain("router.push('/settings')");
+    expect(settings).toContain('<SyncSettingsCard />');
     expect(syncBackup).toContain('syncNow()');
     expect(weightEntry).toContain('addWeightEntry({');
   });
