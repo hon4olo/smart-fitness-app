@@ -8,6 +8,7 @@ import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { WorkoutSafetyMetadata } from '@/types';
+import { formatWeightValue, weightFromKg, useUnitPreferences } from '@/units';
 import {
   buildWorkoutHistoryItemView,
   formatWorkoutSafetyGate,
@@ -47,6 +48,7 @@ export default function WorkoutHistoryDetailScreen() {
   const params = useLocalSearchParams<{ sessionId?: string | string[] }>();
   const sessionId = Array.isArray(params.sessionId) ? params.sessionId[0] : params.sessionId;
   const { workoutSessions } = useAppContext();
+  const { weight: weightUnit } = useUnitPreferences();
   const { colors } = useAppTheme();
   const styles = useMemo(() => createWorkoutHistoryDetailStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -62,6 +64,8 @@ export default function WorkoutHistoryDetailScreen() {
     () => (session ? groupWorkoutSessionSets(session) : []),
     [session],
   );
+  const formatVolume = (volumeKg: number) =>
+    `${Math.round(weightFromKg(volumeKg, weightUnit)).toLocaleString()} ${weightUnit}`;
 
   return (
     <View style={styles.screen}>
@@ -105,7 +109,7 @@ export default function WorkoutHistoryDetailScreen() {
                   <Metric label="Duration" value={summary.durationLabel} styles={styles} />
                   <Metric label="Sets" value={`${summary.setCount}`} styles={styles} />
                   <Metric label="Exercises" value={`${summary.exerciseCount}`} styles={styles} />
-                  <Metric label="Volume" value={summary.volumeLabel} styles={styles} />
+                  <Metric label="Volume" value={formatVolume(summary.volume)} styles={styles} />
                 </View>
                 {session.notes ? (
                   <View style={styles.notesBlock}>
@@ -126,20 +130,20 @@ export default function WorkoutHistoryDetailScreen() {
                       <View style={styles.exerciseCopy}>
                         <Text style={styles.sectionTitle}>{group.exerciseName}</Text>
                         <Text style={styles.metaText}>
-                          {group.completedSetCount} sets · {Math.round(group.volume).toLocaleString()} kg
+                          {group.completedSetCount} sets · {formatVolume(group.volume)}
                         </Text>
                       </View>
                     </View>
                     <View style={styles.setTableHeader}>
                       <Text style={[styles.tableHeaderLabel, styles.setColumn]}>SET</Text>
-                      <Text style={styles.tableHeaderLabel}>KG</Text>
+                      <Text style={styles.tableHeaderLabel}>{weightUnit.toUpperCase()}</Text>
                       <Text style={styles.tableHeaderLabel}>REPS</Text>
                       <Text style={styles.tableHeaderLabel}>RPE</Text>
                     </View>
                     {group.sets.map((set, index) => (
                       <View key={set.id} style={styles.setRow}>
                         <Text style={[styles.setValue, styles.setColumn]}>{index + 1}</Text>
-                        <Text style={styles.setValue}>{set.weight}</Text>
+                        <Text style={styles.setValue}>{formatWeightValue(set.weight, weightUnit)}</Text>
                         <Text style={styles.setValue}>{set.reps}</Text>
                         <Text style={styles.setValue}>{set.actualRpe ?? '—'}</Text>
                       </View>
