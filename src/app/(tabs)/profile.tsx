@@ -8,8 +8,10 @@ import { ProfileCoachCard } from '@/components/profile/ProfileCoachCard';
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
 import { ProfilePreferencesCard } from '@/components/profile/ProfilePreferencesCard';
 import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
+import { AppCard } from '@/components/ui/AppCard';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { SecondaryButton } from '@/components/ui/SecondaryButton';
+import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import {
   validateCoachProfileForm,
@@ -64,6 +66,8 @@ export default function ProfileScreen() {
   const { weight: weightUnit, length: lengthUnit } = useUnitPreferences();
   const { profile, updateProfileGoals, replaceState } = app;
   const safeAreaInsets = useSafeAreaInsets();
+  const [goalsExpanded, setGoalsExpanded] = useState(false);
+  const [coachExpanded, setCoachExpanded] = useState(false);
   const [targetWeight, setTargetWeight] = useState(() =>
     formatWeightValue(profile.targetWeight, weightUnit),
   );
@@ -141,6 +145,7 @@ export default function ProfileScreen() {
       weeklyWeightChangeGoal: canonicalWeeklyWeightChangeGoal,
       trainingDaysPerWeek: parsedTrainingDaysPerWeek,
     });
+    setGoalsExpanded(false);
     Alert.alert(
       locale === 'ru' ? 'Цель сохранена' : 'Goals saved',
       locale === 'ru'
@@ -167,6 +172,7 @@ export default function ProfileScreen() {
       profile: { ...app.profile, ...coachProfileValidation.value },
       onboardingCompleted: app.onboardingCompleted,
     });
+    setCoachExpanded(false);
     Alert.alert(
       locale === 'ru' ? 'Профиль Coach сохранён' : 'Coach profile saved',
       locale === 'ru'
@@ -192,54 +198,102 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {locale === 'ru' ? 'Моя цель' : 'My goal'}
-          </Text>
-          <ProfileGoalsCard
-            goalType={goalType}
-            isSaveDisabled={isSaveDisabled}
-            onGoalTypeChange={setGoalType}
-            onSaveGoals={handleSaveGoals}
-            onTargetWeightChange={setTargetWeight}
-            onTrainingDaysPerWeekChange={setTrainingDaysPerWeek}
-            onWeeklyWeightChangeGoalChange={setWeeklyWeightChangeGoal}
-            targetWeight={targetWeight}
-            trainingDaysPerWeek={trainingDaysPerWeek}
-            weeklyWeightChangeGoal={weeklyWeightChangeGoal}
-            weightUnit={weightUnit}
+          <DisclosureHeader
+            actionLabel={
+              goalsExpanded
+                ? locale === 'ru'
+                  ? 'Скрыть'
+                  : 'Hide'
+                : locale === 'ru'
+                  ? 'Изменить'
+                  : 'Edit'
+            }
+            onPress={() => setGoalsExpanded((current) => !current)}
+            title={locale === 'ru' ? 'Моя цель' : 'My goal'}
           />
+          {goalsExpanded ? (
+            <ProfileGoalsCard
+              goalType={goalType}
+              isSaveDisabled={isSaveDisabled}
+              onGoalTypeChange={setGoalType}
+              onSaveGoals={handleSaveGoals}
+              onTargetWeightChange={setTargetWeight}
+              onTrainingDaysPerWeekChange={setTrainingDaysPerWeek}
+              onWeeklyWeightChangeGoalChange={setWeeklyWeightChangeGoal}
+              targetWeight={targetWeight}
+              trainingDaysPerWeek={trainingDaysPerWeek}
+              weeklyWeightChangeGoal={weeklyWeightChangeGoal}
+              weightUnit={weightUnit}
+            />
+          ) : (
+            <DisclosureSummary
+              primary={goalTypeLabel(profile.goalType, locale)}
+              secondary={
+                locale === 'ru'
+                  ? `Цель: ${formatWeightValue(profile.targetWeight, weightUnit)} ${weightUnit} · ${profile.trainingDaysPerWeek} трен./нед.`
+                  : `Target: ${formatWeightValue(profile.targetWeight, weightUnit)} ${weightUnit} · ${profile.trainingDaysPerWeek} days/week`
+              }
+            />
+          )}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {locale === 'ru' ? 'Профиль Coach' : 'Coach profile'}
-          </Text>
-          <ProfileCoachCard
-            activityLevel={coachActivityLevel}
-            calculationSex={coachCalculationSex}
-            dateOfBirth={coachDateOfBirth}
-            errors={coachProfileValidation.valid ? {} : coachProfileValidation.errors}
-            heightCm={coachHeight}
-            isSaveDisabled={!coachProfileValidation.valid}
-            lengthUnit={lengthUnit}
-            onActivityLevelChange={setCoachActivityLevel}
-            onCalculationSexChange={setCoachCalculationSex}
-            onDateOfBirthChange={setCoachDateOfBirth}
-            onHeightCmChange={setCoachHeight}
-            onSave={handleSaveCoachProfile}
-            onTrainingExperienceChange={setCoachTrainingExperience}
-            trainingExperience={coachTrainingExperience}
+          <DisclosureHeader
+            actionLabel={
+              coachExpanded
+                ? locale === 'ru'
+                  ? 'Скрыть'
+                  : 'Hide'
+                : locale === 'ru'
+                  ? 'Изменить'
+                  : 'Edit'
+            }
+            onPress={() => setCoachExpanded((current) => !current)}
+            title={locale === 'ru' ? 'Профиль Coach' : 'Coach profile'}
           />
+          {coachExpanded ? (
+            <ProfileCoachCard
+              activityLevel={coachActivityLevel}
+              calculationSex={coachCalculationSex}
+              dateOfBirth={coachDateOfBirth}
+              errors={coachProfileValidation.valid ? {} : coachProfileValidation.errors}
+              heightCm={coachHeight}
+              isSaveDisabled={!coachProfileValidation.valid}
+              lengthUnit={lengthUnit}
+              onActivityLevelChange={setCoachActivityLevel}
+              onCalculationSexChange={setCoachCalculationSex}
+              onDateOfBirthChange={setCoachDateOfBirth}
+              onHeightCmChange={setCoachHeight}
+              onSave={handleSaveCoachProfile}
+              onTrainingExperienceChange={setCoachTrainingExperience}
+              trainingExperience={coachTrainingExperience}
+            />
+          ) : (
+            <DisclosureSummary
+              primary={
+                profile.dateOfBirth && profile.calculationSex
+                  ? locale === 'ru'
+                    ? 'Основные данные заполнены'
+                    : 'Core details complete'
+                  : locale === 'ru'
+                    ? 'Нужно заполнить данные'
+                    : 'Details need attention'
+              }
+              secondary={
+                locale === 'ru'
+                  ? 'Рост, дата рождения, активность и тренировочный опыт.'
+                  : 'Height, date of birth, activity, and training experience.'
+              }
+            />
+          )}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {locale === 'ru' ? 'Кратко' : 'Summary'}
-          </Text>
+          <Text style={styles.sectionTitle}>{locale === 'ru' ? 'Кратко' : 'Summary'}</Text>
           <ProfilePreferencesCard
             activityLevel={profile.activityLevel}
             goalType={goalTypeLabel(profile.goalType, locale)}
-            trainingDaysPerWeek={trainingDaysPerWeek}
+            trainingDaysPerWeek={`${profile.trainingDaysPerWeek}`}
           />
         </View>
 
@@ -260,10 +314,51 @@ export default function ProfileScreen() {
   );
 }
 
+function DisclosureHeader({
+  actionLabel,
+  onPress,
+  title,
+}: {
+  actionLabel: string;
+  onPress(): void;
+  title: string;
+}) {
+  return (
+    <View style={styles.disclosureHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <SecondaryButton label={actionLabel} onPress={onPress} />
+    </View>
+  );
+}
+
+function DisclosureSummary({ primary, secondary }: { primary: string; secondary: string }) {
+  return (
+    <AppCard>
+      <Text style={styles.summaryPrimary}>{primary}</Text>
+      <Text style={styles.summarySecondary}>{secondary}</Text>
+    </AppCard>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
   content: { alignItems: 'center', padding: Spacing.three },
+  disclosureHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
   screen: { backgroundColor: Colors.dark.background, flex: 1 },
   section: { gap: Spacing.two },
   sectionTitle: { color: Colors.dark.textPrimary, fontSize: 18, fontWeight: '800' },
+  summaryPrimary: {
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.bodyEmphasized.fontSize,
+    fontWeight: Typography.bodyEmphasized.fontWeight,
+  },
+  summarySecondary: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
+  },
 });
