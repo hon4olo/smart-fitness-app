@@ -108,12 +108,33 @@ export const clearLocalAccountData = async (
   userId: string,
   markerStorage: StorageAdapter = storage,
 ): Promise<void> => {
-  await markerStorage.write(
-    PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
-    JSON.stringify({ userId, requestedAt: new Date().toISOString() }),
-  );
-  await removeAccountDataKeys(storage, userId);
-  await markerStorage.remove(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY);
+  let markerWritten = false;
+  try {
+    await markerStorage.write(
+      PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
+      JSON.stringify({ userId, requestedAt: new Date().toISOString() }),
+    );
+    markerWritten = true;
+  } catch {
+    // Continue deleting the actual account data even if the recovery marker cannot be written.
+  }
+
+  try {
+    await removeAccountDataKeys(storage, userId);
+  } catch (error) {
+    if (markerWritten) throw error;
+    if (error instanceof AccountDataCleanupError) {
+      throw new AccountDataCleanupError([
+        PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
+        ...error.failedKeys,
+      ]);
+    }
+    throw error;
+  }
+
+  if (markerWritten) {
+    await markerStorage.remove(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY);
+  }
 };
 
 export const resumePendingLocalAccountCleanup = async (
