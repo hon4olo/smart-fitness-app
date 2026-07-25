@@ -86,7 +86,7 @@ export function AuthGateCard() {
             </Text>
           </View>
           <Text style={styles.note}>
-            Changing your password signs out every device. Account deletion permanently removes synchronized cloud data and clears account data stored on this device.
+            Review signed-in devices, change your password, or permanently delete your account and synchronized cloud data.
           </Text>
         </View>
       ) : null}
@@ -98,6 +98,10 @@ export function AuthGateCard() {
             label={busyAction === 'refresh' ? 'Refreshing…' : 'Refresh profile'}
             loading={busyAction === 'refresh'}
             onPress={handleRefreshProfile}
+          />
+          <SecondaryButton
+            label="Devices & sessions"
+            onPress={() => router.push('/account/sessions')}
           />
           <SecondaryButton
             label="Change password"
