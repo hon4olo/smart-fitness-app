@@ -4,6 +4,7 @@ export {
   AccountDataCleanupError,
   PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
   clearLocalAccountData,
+  completeLocalAccountCleanup,
   getLocalAccountDataStorageKeys,
   resumePendingLocalAccountCleanup,
 } from './accountDataCleanup';
