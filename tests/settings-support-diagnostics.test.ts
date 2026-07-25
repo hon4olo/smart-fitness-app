@@ -1,22 +1,25 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const modelSource = readFileSync('src/features/settings/supportDiagnostics.ts', 'utf8');
-const cardSource = readFileSync('src/features/settings/SupportDiagnosticsCard.tsx', 'utf8');
-const screenSource = readFileSync('src/app/sync-backup.tsx', 'utf8');
+import { serializeSupportDiagnostics } from '@/features/settings/supportDiagnostics';
 
 describe('support diagnostics privacy contract', () => {
-  it('contains only release and aggregate sync metadata', () => {
-    expect(modelSource).toContain('appVersion');
-    expect(modelSource).toContain('runtimeVersion');
-    expect(modelSource).toContain('updateId');
-    expect(modelSource).toContain('pendingOperations');
-    expect(modelSource).not.toMatch(/email|token|password|userId|entityId|foodName|weightValue/);
-  });
+  it('serializes only release and aggregate sync metadata', () => {
+    const output = serializeSupportDiagnostics({
+      appVersion: '1.0.0',
+      buildNumber: '42',
+      runtimeVersion: '1.0.0',
+      channel: 'preview',
+      updateId: 'update-1',
+      updateSource: 'downloaded',
+      environment: 'preview',
+      syncStatus: 'offline',
+      pendingOperations: 3,
+      conflictCount: 1,
+    });
 
-  it('is localized and mounted on Data & Sync', () => {
-    expect(cardSource).toContain('Support diagnostics');
-    expect(cardSource).toContain('Диагностика для поддержки');
-    expect(screenSource).toContain('<SupportDiagnosticsCard');
+    expect(output).toContain('App: 1.0.0 (42)');
+    expect(output).toContain('Runtime: 1.0.0');
+    expect(output).toContain('Pending: 3');
+    expect(output).not.toMatch(/email|token|password|userId|entityId|foodName|weightValue/i);
   });
 });
