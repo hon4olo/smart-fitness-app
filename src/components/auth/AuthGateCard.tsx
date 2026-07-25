@@ -12,11 +12,13 @@ import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/useAuthSession';
 
+import { ChangePasswordModal } from './ChangePasswordModal';
 import { DeleteAccountModal } from './DeleteAccountModal';
 
 export function AuthGateCard() {
   const router = useRouter();
   const {
+    changePassword,
     deleteAccount,
     error,
     fetchProfile,
@@ -28,15 +30,14 @@ export function AuthGateCard() {
   } = useAuthSession();
   const viewModel = buildProfileAuthViewModel({ ready, session, profile, error });
   const [busyAction, setBusyAction] = useState<'refresh' | 'logout' | null>(null);
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const goToSignIn = () => router.push('/auth/sign-in');
   const goToRegister = () => router.push('/auth/register');
 
   const handleRefreshProfile = async () => {
-    if (busyAction) {
-      return;
-    }
+    if (busyAction) return;
 
     setBusyAction('refresh');
     try {
@@ -48,9 +49,7 @@ export function AuthGateCard() {
   };
 
   const handleLogout = async () => {
-    if (busyAction) {
-      return;
-    }
+    if (busyAction) return;
 
     setBusyAction('logout');
     try {
@@ -87,7 +86,7 @@ export function AuthGateCard() {
             </Text>
           </View>
           <Text style={styles.note}>
-            Account deletion permanently removes synchronized cloud data and clears account data stored on this device.
+            Changing your password signs out every device. Account deletion permanently removes synchronized cloud data and clears account data stored on this device.
           </Text>
         </View>
       ) : null}
@@ -99,6 +98,10 @@ export function AuthGateCard() {
             label={busyAction === 'refresh' ? 'Refreshing…' : 'Refresh profile'}
             loading={busyAction === 'refresh'}
             onPress={handleRefreshProfile}
+          />
+          <SecondaryButton
+            label="Change password"
+            onPress={() => setChangePasswordModalOpen(true)}
           />
           <SecondaryButton
             disabled={busyAction === 'logout'}
@@ -120,6 +123,25 @@ export function AuthGateCard() {
           <SecondaryButton label="Create account" onPress={goToRegister} />
         </>
       ) : null}
+
+      <ChangePasswordModal
+        onChangePassword={changePassword}
+        onChanged={() => {
+          setChangePasswordModalOpen(false);
+          Alert.alert(
+            'Password changed',
+            'All devices were signed out. Sign in again with your new password.',
+            [
+              {
+                text: 'Sign in',
+                onPress: () => router.replace('/auth/sign-in'),
+              },
+            ],
+          );
+        }}
+        onClose={() => setChangePasswordModalOpen(false)}
+        visible={changePasswordModalOpen}
+      />
 
       <DeleteAccountModal
         onClose={() => setDeleteModalOpen(false)}
@@ -146,18 +168,9 @@ export function AuthGateCard() {
 }
 
 const resolveDescription = (status: string) => {
-  if (status === 'restoring') {
-    return 'Checking your saved sign-in before you continue.';
-  }
-
-  if (status === 'signed_in') {
-    return 'Your account is ready.';
-  }
-
-  if (status === 'auth_error') {
-    return 'Try signing in again or create a new account.';
-  }
-
+  if (status === 'restoring') return 'Checking your saved sign-in before you continue.';
+  if (status === 'signed_in') return 'Your account is ready.';
+  if (status === 'auth_error') return 'Try signing in again or create a new account.';
   return 'Sign in to keep sync and backup ready.';
 };
 

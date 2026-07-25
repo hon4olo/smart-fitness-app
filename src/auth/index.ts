@@ -36,6 +36,7 @@ export type {
   AuthService,
   AuthStorage,
   AuthTokens,
+  ChangePasswordInput,
   CreateAuthServiceOptions,
   TokenManager,
 } from './types';

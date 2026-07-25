@@ -7,6 +7,7 @@ import type {
   AuthProfileUpdate,
   AuthSession,
   AuthService,
+  ChangePasswordInput,
 } from './types';
 import { resolveAuthGateStatus, type AuthGateStatus } from './auth-ui';
 
@@ -22,6 +23,7 @@ export type AuthContextValue = {
   login(credentials: AuthCredentials): Promise<AuthSession>;
   refresh(): Promise<AuthSession | null>;
   logout(): Promise<void>;
+  changePassword(input: ChangePasswordInput): Promise<void>;
   deleteAccount(password: string): Promise<AccountDeletionResult>;
   fetchProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: AuthProfileUpdate): Promise<AuthProfile | null>;
@@ -131,6 +133,12 @@ export function AuthProvider({ children, service }: AuthProviderProps) {
       },
       logout: async () => {
         await service.logout();
+        setSession(null);
+        setProfile(null);
+        setError(null);
+      },
+      changePassword: async (input) => {
+        await service.changePassword(input);
         setSession(null);
         setProfile(null);
         setError(null);
