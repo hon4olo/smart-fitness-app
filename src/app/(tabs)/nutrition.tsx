@@ -16,9 +16,11 @@ import { NutritionSummaryGrid } from '@/features/nutrition/components/NutritionS
 import { NutritionWeekStrip } from '@/features/nutrition/components/NutritionWeekStrip';
 import type { FoodEntry, MealType } from '@/types';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { formatEnergyValue, useUnitPreferences } from '@/units';
 
 export default function NutritionScreen() {
   const { colors } = useAppTheme();
+  const { energy } = useUnitPreferences();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { foodEntries, nutritionTargets } = useAppContext();
@@ -77,9 +79,7 @@ export default function NutritionScreen() {
       style={styles.screen}>
       <View style={styles.container}>
         <View style={styles.headerRow}>
-          <Text selectable style={styles.title}>
-            Nutrition
-          </Text>
+          <Text selectable style={styles.title}>Nutrition</Text>
           <Pressable accessibilityLabel={`Open calendar for ${selectedDateLabel}`} hitSlop={10} onPress={openCalendar} style={styles.calendarButton}>
             <Text style={styles.calendarButtonText}>🗓</Text>
           </Pressable>
@@ -88,11 +88,8 @@ export default function NutritionScreen() {
         <View style={styles.metaRow}>
           <View style={styles.streakChip}>
             <Text style={styles.streakEmoji}>🔥</Text>
-            <Text selectable style={styles.streakText}>
-              {nutritionStreak} day streak
-            </Text>
+            <Text selectable style={styles.streakText}>{nutritionStreak} day streak</Text>
           </View>
-
           <Pressable
             accessibilityLabel={isToday(selectedDate) ? 'Today selected' : 'Jump to today'}
             accessibilityState={{ disabled: isToday(selectedDate) }}
@@ -120,22 +117,18 @@ export default function NutritionScreen() {
               carbs: `${formatNumber(nutritionSummary.consumed.carbs)} g`,
               protein: `${formatNumber(nutritionSummary.consumed.protein)} g`,
               target: targetPercentLabel,
-              calories: `${formatNumber(nutritionSummary.consumed.calories)} kcal`,
+              calories: `${formatEnergyValue(nutritionSummary.consumed.calories, energy)} ${energy}`,
             }}
           />
         </View>
 
         <View style={styles.mealSectionList}>
           <View style={styles.sectionHeader}>
-            <Text selectable style={styles.sectionTitle}>
-              Meal diary
-            </Text>
+            <Text selectable style={styles.sectionTitle}>Meal diary</Text>
           </View>
-
           <View style={styles.mealList}>
             {meals.map(({ entries, mealType, subtotal }) => {
               const expanded = expandedMeals.includes(mealType);
-
               return (
                 <MealGroup
                   key={mealType}
