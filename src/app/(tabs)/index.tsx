@@ -19,7 +19,6 @@ import {
 import {
   getMotivationInsight,
   getNutritionAdvisor,
-  getProgramAdvisor,
   getRecoveryAdvisor,
   getTrainingAdvisor,
 } from '@/lib/intelligence';
@@ -31,7 +30,15 @@ import {
   getWorkoutPrograms,
   hydrateActiveWorkoutSessionDraft,
 } from '@/lib/workouts';
+import { useLocalization } from '@/localization';
 import { formatEnergyValue, formatWeightValue, useUnitPreferences } from '@/units';
+
+const getRussianRecoveryStatus = (status: string): string => {
+  if (status === 'Overloaded') return 'Нужен отдых';
+  if (status === 'Ready') return 'Готов';
+  if (status === 'Recovering') return 'Восстановление';
+  return 'Без критичных сигналов';
+};
 
 export default function HomeScreen() {
   const {
@@ -45,6 +52,7 @@ export default function HomeScreen() {
     workoutSessions,
     workouts,
   } = useAppContext();
+  const { locale, t } = useLocalization();
   const { energy: energyUnit, weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
   const todayKey = formatLocalDate(new Date());
@@ -109,10 +117,6 @@ export default function HomeScreen() {
       }),
     [currentProgram, exercises, workoutSessions, workouts],
   );
-  const programAdvisor = useMemo(
-    () => getProgramAdvisor({ exercises, program: currentProgram, workouts }),
-    [currentProgram, exercises, workouts],
-  );
   const nutritionAdvisor = useMemo(
     () =>
       getNutritionAdvisor({
@@ -122,7 +126,7 @@ export default function HomeScreen() {
       }),
     [nutritionTargets, profile.goalType, todaysFoodEntries],
   );
-  const motivation = getMotivationInsight({
+  const englishMotivation = getMotivationInsight({
     nutrition: nutritionAdvisor,
     recovery: recoveryAdvisor,
     training: trainingAdvisor,
@@ -134,6 +138,14 @@ export default function HomeScreen() {
         : null,
     weeklyWorkoutCount: workoutsThisWeek,
   });
+  const motivation =
+    locale === 'ru'
+      ? recoveryAdvisor.status === 'Overloaded'
+        ? 'Сегодня лучше снизить нагрузку и дать организму восстановиться.'
+        : workoutsThisWeek >= profile.trainingDaysPerWeek
+          ? 'Недельный план тренировок выполнен. Сосредоточьтесь на восстановлении.'
+          : 'Выберите одно следующее действие и продолжайте двигаться по плану.'
+      : englishMotivation;
 
   const latestWeightEntry = progressAnalytics.weight.currentWeightEntry;
   const currentWeightLabel = latestWeightEntry
@@ -147,9 +159,13 @@ export default function HomeScreen() {
     energyUnit,
   );
   const caloriesRemainingLabel =
-    caloriesRemaining < 0
-      ? `Over by ${caloriesRemainingDisplay} ${energyUnit}`
-      : `${caloriesRemainingDisplay} ${energyUnit} left`;
+    locale === 'ru'
+      ? caloriesRemaining < 0
+        ? `Превышение на ${caloriesRemainingDisplay} ${energyUnit}`
+        : `Осталось ${caloriesRemainingDisplay} ${energyUnit}`
+      : caloriesRemaining < 0
+        ? `Over by ${caloriesRemainingDisplay} ${energyUnit}`
+        : `${caloriesRemainingDisplay} ${energyUnit} left`;
 
   const activeWorkoutDraft = activeDraftReady ? getActiveWorkoutSessionDraft() : null;
   const activeWorkout = useMemo(() => activeWorkoutDraft, [activeWorkoutDraft]);
@@ -159,22 +175,49 @@ export default function HomeScreen() {
         params: { workoutId: activeWorkout.workoutId },
       }
     : '/track';
+  const primaryWorkoutLabel =
+    locale === 'ru'
+      ? activeWorkout
+        ? 'Продолжить тренировку'
+        : 'Начать тренировку'
+      : getHomePrimaryWorkoutActionLabel(activeWorkout);
+  const volumePercent =
+    weeklyVolumeTrend.previousVolume > 0
+      ? Math.round(
+          ((weeklyVolumeTrend.currentVolume - weeklyVolumeTrend.previousVolume) /
+            weeklyVolumeTrend.previousVolume) *
+            100,
+        )
+      : null;
 
   const snapshotItems = useMemo<HomeSnapshotItem[]>(
     () => [
       {
         id: 'workouts-this-week',
-        label: 'Workouts this week',
+        label: locale === 'ru' ? 'Тренировки за неделю' : 'Workouts this week',
         value: `${workoutsThisWeek}`,
-        detail: `Goal ${profile.trainingDaysPerWeek}`,
+        detail:
+          locale === 'ru'
+            ? `Цель: ${profile.trainingDaysPerWeek}`
+            : `Goal ${profile.trainingDaysPerWeek}`,
         tone:
           workoutsThisWeek >= profile.trainingDaysPerWeek ? 'positive' : 'neutral',
       },
       {
         id: 'training-volume',
-        label: 'Training volume',
-        value: weeklyVolumeTrend.label,
-        detail: weeklyVolumeTrend.detail,
+        label: locale === 'ru' ? 'Тренировочный объём' : 'Training volume',
+        value:
+          locale === 'ru'
+            ? volumePercent === null
+              ? '—'
+              : `${volumePercent > 0 ? '+' : ''}${volumePercent}%`
+            : weeklyVolumeTrend.label,
+        detail:
+          locale === 'ru'
+            ? volumePercent === null
+              ? 'Недостаточно данных для сравнения'
+              : 'По сравнению с прошлой неделей'
+            : weeklyVolumeTrend.detail,
         tone:
           weeklyVolumeTrend.previousVolume > 0 &&
           weeklyVolumeTrend.currentVolume >= weeklyVolumeTrend.previousVolume
@@ -183,16 +226,26 @@ export default function HomeScreen() {
       },
       {
         id: 'recovery-status',
-        label: 'Recovery',
-        value: recoveryAdvisor.status,
-        detail: recoveryAdvisor.recoveryExplanation,
+        label: locale === 'ru' ? 'Восстановление' : 'Recovery',
+        value:
+          locale === 'ru'
+            ? getRussianRecoveryStatus(recoveryAdvisor.status)
+            : recoveryAdvisor.status,
+        detail:
+          locale === 'ru'
+            ? recoveryAdvisor.status === 'Overloaded'
+              ? 'Снизьте нагрузку перед следующей тяжёлой тренировкой'
+              : 'Критичных ограничений на сегодня нет'
+            : recoveryAdvisor.recoveryExplanation,
         tone: recoveryAdvisor.status === 'Overloaded' ? 'warning' : 'neutral',
       },
     ],
     [
+      locale,
       profile.trainingDaysPerWeek,
       recoveryAdvisor.recoveryExplanation,
       recoveryAdvisor.status,
+      volumePercent,
       weeklyVolumeTrend.currentVolume,
       weeklyVolumeTrend.detail,
       weeklyVolumeTrend.label,
@@ -213,30 +266,51 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
       style={styles.screen}>
       <View style={styles.container}>
-        <SectionHeader title="Home" />
+        <SectionHeader title={t('tabs.home')} />
         <HomeSummaryCard
+          caloriesLabel={locale === 'ru' ? 'Калории' : 'Calories'}
           caloriesRemainingLabel={caloriesRemainingLabel}
           currentWeightLabel={currentWeightLabel}
+          currentWeightTitle={locale === 'ru' ? 'Текущий вес' : 'Current weight'}
           isCaloriesOverTarget={caloriesRemaining < 0}
+          kicker={locale === 'ru' ? 'Сегодня' : 'Today'}
           motivation={motivation}
           streakLabel={
             currentWorkoutStreak
-              ? `${currentWorkoutStreak.days}-day streak`
+              ? locale === 'ru'
+                ? `${currentWorkoutStreak.days} дн.`
+                : `${currentWorkoutStreak.days}-day streak`
               : undefined
           }
+          streakTitle={locale === 'ru' ? 'Серия' : 'Streak'}
+          title={locale === 'ru' ? 'Что важно сейчас' : 'What matters now'}
         />
         <QuickActionsCard
           primaryAction={{
-            label: getHomePrimaryWorkoutActionLabel(activeWorkout),
+            label: primaryWorkoutLabel,
             onPress: () => router.push(primaryWorkoutRoute),
           }}
           secondaryActions={[
-            { label: 'Add food', onPress: () => router.push('/track') },
-            { label: 'Log weight', onPress: () => router.push('/weight-entry') },
+            {
+              label: locale === 'ru' ? 'Добавить еду' : 'Add food',
+              onPress: () => router.push('/track'),
+            },
+            {
+              label: locale === 'ru' ? 'Записать вес' : 'Log weight',
+              onPress: () => router.push('/weight-entry'),
+            },
           ]}
-          title="Next action"
+          title={locale === 'ru' ? 'Следующее действие' : 'Next action'}
         />
-        <HomeSnapshotCard items={snapshotItems} />
+        <HomeSnapshotCard
+          items={snapshotItems}
+          subtitle={
+            locale === 'ru'
+              ? 'Тренировки, объём и восстановление.'
+              : 'Workouts, training volume, and recovery.'
+          }
+          title={locale === 'ru' ? 'Сводка за неделю' : 'Weekly snapshot'}
+        />
       </View>
     </ScrollView>
   );
