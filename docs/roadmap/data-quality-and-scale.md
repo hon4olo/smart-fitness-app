@@ -88,13 +88,15 @@ Completed:
 - backend PR #56 applies the same ownership-scoped source-revision, legacy exact-set fallback, immutable provenance, and idempotent recovery guarantees to Combined effective Strength applications;
 - Nutrition, standalone Strength, and Combined effective Strength confirmations now fail closed when their proposal-time source revision no longer matches the current revision;
 - mobile PR #126 parses provenance fail-closed and displays only localized entity types and revisions, without raw entity IDs, fingerprint hashes, context snapshots, result payloads, health values, or agent input/output;
-- idempotent application recovery preserves immutable provenance without repeating the underlying revisioned mutation.
+- backend PR #57 derives ownership-safe `current`, `stale`, `unavailable`, and `applied` trust states when an immutable run detail is read, while keeping the bounded history list free of per-row source queries;
+- mobile PR #129 parses derived trust metadata fail-closed, preserves the run detail when metadata is malformed, and displays localized source status plus proposal/current revisions without source IDs;
+- applied history is not retroactively marked stale after later source changes, and idempotent recovery preserves immutable provenance without repeating the underlying revisioned mutation.
 
 Remaining:
 
 - show bounded, domain-specific inputs used and deterministic rationale without dumping raw snapshots;
 - show before/after values for confirmed changes;
-- surface a derived stale state in Coach history before confirmation and extend revision checks/provenance to any remaining confirmable proposal paths;
+- extend revision checks/provenance to any remaining confirmable proposal paths found by code audit;
 - implement explicit compensating revert as a new revisioned mutation rather than rewriting historical records;
 - complete immutable provenance coverage for every applied Coach proposal path.
 
