@@ -19,7 +19,9 @@ const FOOD_SOURCES: readonly NutritionLibraryFood['source'][] = [
 ];
 
 const getSyncedRevision = (item: NutritionLibraryFood): number =>
-  Math.max(0, Math.floor(item.syncedRevision ?? 0));
+  typeof item.syncedRevision === 'number' && Number.isFinite(item.syncedRevision)
+    ? Math.max(0, Math.floor(item.syncedRevision))
+    : Math.max(0, Math.floor(item.revision) - 1);
 
 export const isNutritionLibraryEntity = (entityType: string): boolean =>
   entityType === 'nutritionLibraryItems' || entityType === 'nutrition_library_items';
