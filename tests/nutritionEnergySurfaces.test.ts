@@ -30,4 +30,17 @@ describe('nutrition energy display boundaries', () => {
     expect(source).toContain('formatEnergyValue');
     expect(source).toContain('displayTotalsLabel');
   });
+
+  it('converts custom-food energy input to canonical kcal before validation and save', () => {
+    const screen = readSource('src/app/nutrition/add-food.tsx');
+    const form = readSource('src/features/nutrition/components/CreateFoodInlineForm.tsx');
+
+    expect(screen).toContain('displayEnergyInputToKcal(foodCalories, energyUnit)');
+    expect(screen).toContain('formatEnergyInputValue');
+    expect(screen).toContain('previousEnergyUnitRef');
+    expect(screen).toContain('formatEnergyValue(selectedMealTotals.calories, energyUnit)');
+    expect(form).toContain('useUnitPreferences');
+    expect(form).toContain('Energy, {energy}');
+    expect(form).not.toContain('>Calories<');
+  });
 });
