@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { getMobileApiBaseUrl } from '@/api';
 import { createApiClient } from '@/api/client';
 import {
+  AUTH_SESSION_STORAGE_KEY,
   clearLocalAccountData,
+  completeLocalAccountCleanup,
   createMigratingTokenManager,
   resumePendingLocalAccountCleanup,
 } from '@/auth';
@@ -74,7 +76,21 @@ export function useAppInfrastructure(
 
     const restoreState = async () => {
       try {
-        await resumePendingLocalAccountCleanup(storageAdapter, secureTokenStorage);
+        const cleanupResumed = await resumePendingLocalAccountCleanup(
+          storageAdapter,
+          secureTokenStorage,
+        );
+        if (cleanupResumed) {
+          const authCleanupResults = await Promise.allSettled([
+            tokenManager.clearTokens(),
+            storageAdapter.remove(AUTH_SESSION_STORAGE_KEY),
+          ]);
+          if (authCleanupResults.some((result) => result.status === 'rejected')) {
+            throw new Error('Pending account auth cleanup failed');
+          }
+          await completeLocalAccountCleanup(secureTokenStorage);
+        }
+
         const storedState = await repository.loadState();
         if (storedState && !cancelled) setState(storedState);
       } catch {
@@ -88,7 +104,14 @@ export function useAppInfrastructure(
     return () => {
       cancelled = true;
     };
-  }, [repository, secureTokenStorage, setIsRestoringState, setState, storageAdapter]);
+  }, [
+    repository,
+    secureTokenStorage,
+    setIsRestoringState,
+    setState,
+    storageAdapter,
+    tokenManager,
+  ]);
 
   return {
     authService,
