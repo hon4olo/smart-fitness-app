@@ -17,6 +17,7 @@ import {
 } from '@/observability/crashReporting';
 import { RootErrorFallback } from '@/observability/RootErrorFallback';
 import { AppThemeProvider, useAppTheme } from '@/theme/AppThemeProvider';
+import { UnitPreferencesProvider } from '@/units';
 
 initializeCrashReporting();
 
@@ -29,15 +30,11 @@ function RootNavigator() {
   const { t } = useLocalization();
 
   useEffect(() => {
-    if (typeof document === 'undefined') {
-      return;
-    }
-
+    if (typeof document === 'undefined') return;
     const previousBody = document.body.style.backgroundColor;
     const previousHtml = document.documentElement.style.backgroundColor;
     document.body.style.backgroundColor = colors.background;
     document.documentElement.style.backgroundColor = colors.background;
-
     return () => {
       document.body.style.backgroundColor = previousBody;
       document.documentElement.style.backgroundColor = previousHtml;
@@ -98,7 +95,9 @@ function RootLayout() {
   return (
     <AppThemeProvider>
       <LocalizationProvider>
-        <RootNavigator />
+        <UnitPreferencesProvider>
+          <RootNavigator />
+        </UnitPreferencesProvider>
       </LocalizationProvider>
     </AppThemeProvider>
   );
