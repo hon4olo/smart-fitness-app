@@ -36,13 +36,18 @@ export function useAppInfrastructure(
     async (userId: string) => {
       setState(defaultAppState);
       setIsRestoringState(false);
-      await clearLocalAccountData(storageAdapter, userId);
+      await clearLocalAccountData(storageAdapter, userId, secureTokenStorage);
     },
-    [setIsRestoringState, setState, storageAdapter],
+    [secureTokenStorage, setIsRestoringState, setState, storageAdapter],
   );
   const repositoryProvider = useMemo(
-    () => createRepositoryFactory(storageAdapter, { tokenManager, onAccountDeleted }),
-    [onAccountDeleted, storageAdapter, tokenManager],
+    () =>
+      createRepositoryFactory(storageAdapter, {
+        tokenManager,
+        accountCleanupMarkerStorage: secureTokenStorage,
+        onAccountDeleted,
+      }),
+    [onAccountDeleted, secureTokenStorage, storageAdapter, tokenManager],
   );
   const repository = useMemo(() => repositoryProvider.getRepository(), [repositoryProvider]);
   const authService = useMemo(() => repositoryProvider.getAuthService(), [repositoryProvider]);
@@ -69,7 +74,7 @@ export function useAppInfrastructure(
 
     const restoreState = async () => {
       try {
-        await resumePendingLocalAccountCleanup(storageAdapter);
+        await resumePendingLocalAccountCleanup(storageAdapter, secureTokenStorage);
         const storedState = await repository.loadState();
         if (storedState && !cancelled) setState(storedState);
       } catch {
@@ -83,7 +88,7 @@ export function useAppInfrastructure(
     return () => {
       cancelled = true;
     };
-  }, [repository, setIsRestoringState, setState, storageAdapter]);
+  }, [repository, secureTokenStorage, setIsRestoringState, setState, storageAdapter]);
 
   return {
     authService,
