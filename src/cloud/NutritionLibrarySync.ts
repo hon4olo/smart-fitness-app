@@ -9,6 +9,15 @@ import {
   type NutritionLibraryFood,
 } from '@/features/nutrition/nutritionFoodLibrary';
 
+const FOOD_SOURCES: readonly NutritionLibraryFood['source'][] = [
+  'local',
+  'fatsecret',
+  'openfoodfacts',
+  'custom',
+  'manual',
+  'usda',
+];
+
 export const isNutritionLibraryEntity = (entityType: string): boolean =>
   entityType === 'nutritionLibraryItems' || entityType === 'nutrition_library_items';
 
@@ -107,6 +116,9 @@ export const planNutritionLibrarySyncOperations = (input: {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const isFoodSource = (value: unknown): value is NutritionLibraryFood['source'] =>
+  typeof value === 'string' && FOOD_SOURCES.includes(value as NutritionLibraryFood['source']);
+
 const parseRemoteItem = (entity: {
   payload?: Record<string, unknown> | null;
   entityId?: string | null;
@@ -125,7 +137,7 @@ const parseRemoteItem = (entity: {
   if (
     typeof payload.servingUnit !== 'string' ||
     typeof payload.quantity !== 'string' ||
-    typeof payload.source !== 'string' ||
+    !isFoodSource(payload.source) ||
     typeof payload.savedAt !== 'string' ||
     typeof payload.updatedAt !== 'string'
   ) return null;
