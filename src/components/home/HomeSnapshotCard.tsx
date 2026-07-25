@@ -6,11 +6,18 @@ import type { HomeSnapshotItem } from '@/lib/home';
 
 type HomeSnapshotCardProps = {
   items: HomeSnapshotItem[];
+  subtitle: string;
+  title: string;
 };
 
 function SnapshotTile({ detail, label, tone = 'neutral', value }: HomeSnapshotItem) {
   return (
-    <View style={[styles.tile, tone === 'positive' && styles.tilePositive, tone === 'warning' && styles.tileWarning]}>
+    <View
+      style={[
+        styles.tile,
+        tone === 'positive' && styles.tilePositive,
+        tone === 'warning' && styles.tileWarning,
+      ]}>
       <Text selectable style={styles.tileLabel}>
         {label}
       </Text>
@@ -24,15 +31,15 @@ function SnapshotTile({ detail, label, tone = 'neutral', value }: HomeSnapshotIt
   );
 }
 
-export function HomeSnapshotCard({ items }: HomeSnapshotCardProps) {
+export function HomeSnapshotCard({ items, subtitle, title }: HomeSnapshotCardProps) {
   return (
     <AppCard>
       <View style={styles.header}>
         <Text selectable style={styles.title}>
-          Weekly snapshot
+          {title}
         </Text>
         <Text selectable style={styles.subtitle}>
-          Workouts, calories, weight, and training volume.
+          {subtitle}
         </Text>
       </View>
 
@@ -46,15 +53,8 @@ export function HomeSnapshotCard({ items }: HomeSnapshotCardProps) {
 }
 
 const styles = StyleSheet.create({
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  header: {
-    gap: 4,
-    marginBottom: Spacing.two,
-  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  header: { gap: 4, marginBottom: Spacing.two },
   subtitle: {
     color: Colors.dark.textSecondary,
     fontSize: Typography.callout.fontSize,
@@ -82,20 +82,14 @@ const styles = StyleSheet.create({
     fontWeight: Typography.label.fontWeight,
     textTransform: 'uppercase',
   },
-  tilePositive: {
-    backgroundColor: Colors.dark.successSoft,
-    borderColor: Colors.dark.success,
-  },
+  tilePositive: { backgroundColor: Colors.dark.successSoft, borderColor: Colors.dark.success },
   tileValue: {
     color: Colors.dark.textPrimary,
     fontSize: Typography.bodyEmphasized.fontSize,
     fontWeight: Typography.bodyEmphasized.fontWeight,
     lineHeight: Typography.bodyEmphasized.lineHeight,
   },
-  tileWarning: {
-    backgroundColor: Colors.dark.warningSoft,
-    borderColor: Colors.dark.warning,
-  },
+  tileWarning: { backgroundColor: Colors.dark.warningSoft, borderColor: Colors.dark.warning },
   title: {
     color: Colors.dark.textPrimary,
     fontSize: Typography.cardTitle.fontSize,
