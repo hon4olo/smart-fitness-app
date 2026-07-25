@@ -1,0 +1,291 @@
+import { useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+
+import {
+  getSafeSessionManagementError,
+  listAuthSessions,
+  revokeAuthSession,
+  revokeOtherAuthSessions,
+} from '@/auth/sessionManagement';
+import type { AuthSessionSummary } from '@/auth/types';
+import { AppCard } from '@/components/ui/AppCard';
+import { InlineError } from '@/components/ui/InlineError';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { SecondaryButton } from '@/components/ui/SecondaryButton';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useAuthSession } from '@/hooks/useAuthSession';
+
+export default function SessionsScreen() {
+  const router = useRouter();
+  const { session } = useAuthSession();
+  const accessToken = session?.tokens.accessToken ?? null;
+  const [sessions, setSessions] = useState<AuthSessionSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(
+    async (mode: 'initial' | 'refresh' = 'initial') => {
+      if (!accessToken) {
+        setLoading(false);
+        setSessions([]);
+        setError('Sign in to manage your devices.');
+        return;
+      }
+
+      if (mode === 'refresh') setRefreshing(true);
+      else setLoading(true);
+      setError(null);
+      try {
+        setSessions(await listAuthSessions(accessToken));
+      } catch (nextError) {
+        setError(getSafeSessionManagementError(nextError));
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [accessToken],
+  );
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const confirmRevoke = (target: AuthSessionSummary) => {
+    Alert.alert(
+      'Sign out this device?',
+      `${target.deviceName} will need to sign in again.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign out',
+          style: 'destructive',
+          onPress: () => {
+            if (!accessToken) return;
+            setBusyId(target.id);
+            void revokeAuthSession(accessToken, target.id)
+              .then(() => setSessions((current) => current.filter((item) => item.id !== target.id)))
+              .catch((nextError) => setError(getSafeSessionManagementError(nextError)))
+              .finally(() => setBusyId(null));
+          },
+        },
+      ],
+    );
+  };
+
+  const confirmRevokeOthers = () => {
+    const otherCount = sessions.filter((item) => !item.isCurrent).length;
+    if (otherCount === 0) return;
+    Alert.alert(
+      'Sign out other devices?',
+      `${otherCount} other ${otherCount === 1 ? 'device' : 'devices'} will need to sign in again. This device stays signed in.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign out others',
+          style: 'destructive',
+          onPress: () => {
+            if (!accessToken) return;
+            setBusyId('others');
+            void revokeOtherAuthSessions(accessToken)
+              .then(() => setSessions((current) => current.filter((item) => item.isCurrent)))
+              .catch((nextError) => setError(getSafeSessionManagementError(nextError)))
+              .finally(() => setBusyId(null));
+          },
+        },
+      ],
+    );
+  };
+
+  const otherCount = sessions.filter((item) => !item.isCurrent).length;
+
+  return (
+    <ScrollView
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load('refresh')} />}
+      style={styles.screen}>
+      <View style={styles.headerRow}>
+        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backLabel}>‹</Text>
+        </Pressable>
+        <View style={styles.headerCopy}>
+          <Text style={styles.eyebrow}>ACCOUNT & SECURITY</Text>
+          <Text style={styles.title}>Devices & sessions</Text>
+          <Text style={styles.subtitle}>Review where your account is signed in and remove access you do not recognize.</Text>
+        </View>
+      </View>
+
+      {loading ? <LoadingState label="Loading signed-in devices…" /> : null}
+      {error ? <InlineError message={error} /> : null}
+
+      {!loading && sessions.length === 0 ? (
+        <AppCard>
+          <Text style={styles.emptyTitle}>No active sessions found</Text>
+          <Text style={styles.subtitle}>Refresh the page or sign in again.</Text>
+        </AppCard>
+      ) : null}
+
+      {sessions.map((item) => (
+        <AppCard key={item.id}>
+          <View style={styles.sessionHeader}>
+            <View style={styles.sessionTitleGroup}>
+              <Text style={styles.sessionTitle}>{item.deviceName}</Text>
+              <Text style={styles.sessionMeta}>{formatPlatform(item.platform)} · App {item.appVersion}</Text>
+            </View>
+            {item.isCurrent ? <Text style={styles.currentBadge}>THIS DEVICE</Text> : null}
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Last active</Text>
+            <Text style={styles.detailValue}>{formatDate(item.lastSeenAt)}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Signed in</Text>
+            <Text style={styles.detailValue}>{formatDate(item.createdAt)}</Text>
+          </View>
+          {!item.isCurrent ? (
+            <SecondaryButton
+              disabled={busyId !== null}
+              label={busyId === item.id ? 'Signing out…' : 'Sign out device'}
+              loading={busyId === item.id}
+              onPress={() => confirmRevoke(item)}
+            />
+          ) : (
+            <Text style={styles.currentNote}>Use Logout on the Profile screen to end this session.</Text>
+          )}
+        </AppCard>
+      ))}
+
+      {otherCount > 0 ? (
+        <SecondaryButton
+          disabled={busyId !== null}
+          label={busyId === 'others' ? 'Signing out other devices…' : 'Sign out all other devices'}
+          loading={busyId === 'others'}
+          onPress={confirmRevokeOthers}
+        />
+      ) : null}
+    </ScrollView>
+  );
+}
+
+const formatPlatform = (platform: string) =>
+  platform ? platform.charAt(0).toUpperCase() + platform.slice(1) : 'Unknown platform';
+
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? 'Unknown'
+    : new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+};
+
+const styles = StyleSheet.create({
+  backButton: {
+    alignItems: 'center',
+    borderColor: Colors.dark.border,
+    borderRadius: Radii.large,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  backLabel: {
+    color: Colors.dark.text,
+    fontSize: 32,
+    lineHeight: 34,
+  },
+  content: {
+    gap: Spacing.three,
+    paddingBottom: Spacing.eight,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.four,
+  },
+  currentBadge: {
+    color: Colors.dark.accent,
+    fontSize: Typography.metricSmall.fontSize,
+    fontWeight: '800',
+    letterSpacing: 0.7,
+  },
+  currentNote: {
+    color: Colors.dark.textMuted,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
+  },
+  detailLabel: {
+    color: Colors.dark.textMuted,
+    fontSize: Typography.caption.fontSize,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  detailValue: {
+    color: Colors.dark.textSecondary,
+    flexShrink: 1,
+    fontSize: Typography.caption.fontSize,
+    textAlign: 'right',
+  },
+  emptyTitle: {
+    color: Colors.dark.text,
+    fontSize: Typography.bodyStrong.fontSize,
+    fontWeight: Typography.bodyStrong.fontWeight,
+  },
+  eyebrow: {
+    color: Colors.dark.textMuted,
+    fontSize: Typography.metricSmall.fontSize,
+    fontWeight: Typography.metricSmall.fontWeight,
+    letterSpacing: 0.8,
+  },
+  headerCopy: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  headerRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: Spacing.three,
+  },
+  screen: {
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+  },
+  sessionHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+  },
+  sessionMeta: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.caption.fontSize,
+  },
+  sessionTitle: {
+    color: Colors.dark.text,
+    fontSize: Typography.bodyStrong.fontSize,
+    fontWeight: Typography.bodyStrong.fontWeight,
+  },
+  sessionTitleGroup: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  subtitle: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.body.fontSize,
+    lineHeight: Typography.body.lineHeight,
+  },
+  title: {
+    color: Colors.dark.text,
+    fontSize: 28,
+    fontWeight: '800',
+    lineHeight: 34,
+  },
+});
