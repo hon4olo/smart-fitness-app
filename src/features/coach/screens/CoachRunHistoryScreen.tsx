@@ -97,20 +97,20 @@ export default function CoachRunHistoryScreen() {
           ) : null}
           {ready && isAuthenticated ? (
             <>
-              <FilterRow
+              <FilterRow<CoachDomain | 'all'>
                 labels={DOMAIN_FILTERS.map((value) => ({
                   label: value === 'all' ? copy.all : copy.domain(value),
                   value,
                 }))}
-                onChange={setDomain}
+                onChange={(value) => setDomain(value)}
                 value={domain}
               />
-              <FilterRow
+              <FilterRow<CoachRunStatus | 'all'>
                 labels={STATUS_FILTERS.map((value) => ({
                   label: value === 'all' ? copy.all : copy.status(value),
                   value,
                 }))}
-                onChange={setStatus}
+                onChange={(value) => setStatus(value)}
                 value={status}
               />
               {loading ? <Text style={styles.body}>{copy.loading}</Text> : null}
