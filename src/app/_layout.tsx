@@ -1,9 +1,27 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider,
+  type ErrorBoundaryProps,
+} from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
 
 import { AppProvider } from '@/context/AppContext';
+import { CrashReportContextBridge } from '@/observability/CrashReportContextBridge';
+import {
+  initializeCrashReporting,
+  wrapRootComponent,
+} from '@/observability/crashReporting';
+import { RootErrorFallback } from '@/observability/RootErrorFallback';
 import { AppThemeProvider, useAppTheme } from '@/theme/AppThemeProvider';
+
+initializeCrashReporting();
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return <RootErrorFallback error={error} retry={retry} />;
+}
 
 function RootNavigator() {
   const { colors, resolvedAppearance } = useAppTheme();
@@ -37,12 +55,13 @@ function RootNavigator() {
         notification: colors.error,
       },
     }),
-    [colors, resolvedAppearance]
+    [colors, resolvedAppearance],
   );
 
   return (
     <ThemeProvider value={navigationTheme}>
       <AppProvider>
+        <CrashReportContextBridge />
         <StatusBar style={resolvedAppearance === 'dark' ? 'light' : 'dark'} />
         <Stack
           screenOptions={{
@@ -71,10 +90,12 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <AppThemeProvider>
       <RootNavigator />
     </AppThemeProvider>
   );
 }
+
+export default wrapRootComponent(RootLayout);
