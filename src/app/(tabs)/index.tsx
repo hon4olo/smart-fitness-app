@@ -31,6 +31,7 @@ import {
   getWorkoutPrograms,
   hydrateActiveWorkoutSessionDraft,
 } from '@/lib/workouts';
+import { useLocalization } from '@/localization';
 import { formatEnergyValue, formatWeightValue, useUnitPreferences } from '@/units';
 
 export default function HomeScreen() {
@@ -45,10 +46,12 @@ export default function HomeScreen() {
     workoutSessions,
     workouts,
   } = useAppContext();
+  const { locale, t } = useLocalization();
   const { energy: energyUnit, weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
   const todayKey = formatLocalDate(new Date());
   const [activeDraftReady, setActiveDraftReady] = useState(false);
+  const isRussian = locale === 'ru';
 
   useEffect(() => {
     if (!onboardingCompleted) router.replace('/onboarding');
@@ -148,8 +151,12 @@ export default function HomeScreen() {
   );
   const caloriesRemainingLabel =
     caloriesRemaining < 0
-      ? `Over by ${caloriesRemainingDisplay} ${energyUnit}`
-      : `${caloriesRemainingDisplay} ${energyUnit} left`;
+      ? isRussian
+        ? `Превышение: ${caloriesRemainingDisplay} ${energyUnit}`
+        : `Over by ${caloriesRemainingDisplay} ${energyUnit}`
+      : isRussian
+        ? `Осталось ${caloriesRemainingDisplay} ${energyUnit}`
+        : `${caloriesRemainingDisplay} ${energyUnit} left`;
 
   const activeWorkoutDraft = activeDraftReady ? getActiveWorkoutSessionDraft() : null;
   const activeWorkout = useMemo(() => activeWorkoutDraft, [activeWorkoutDraft]);
@@ -159,22 +166,28 @@ export default function HomeScreen() {
         params: { workoutId: activeWorkout.workoutId },
       }
     : '/track';
+  const primaryWorkoutLabel = isRussian
+    ? activeWorkout
+      ? 'Продолжить тренировку'
+      : 'Начать тренировку'
+    : getHomePrimaryWorkoutActionLabel(activeWorkout);
 
   const snapshotItems = useMemo<HomeSnapshotItem[]>(
     () => [
       {
         id: 'workouts-this-week',
-        label: 'Workouts this week',
+        label: isRussian ? 'Тренировки за неделю' : 'Workouts this week',
         value: `${workoutsThisWeek}`,
-        detail: `Goal ${profile.trainingDaysPerWeek}`,
-        tone:
-          workoutsThisWeek >= profile.trainingDaysPerWeek ? 'positive' : 'neutral',
+        detail: isRussian
+          ? `Цель: ${profile.trainingDaysPerWeek}`
+          : `Goal ${profile.trainingDaysPerWeek}`,
+        tone: workoutsThisWeek >= profile.trainingDaysPerWeek ? 'positive' : 'neutral',
       },
       {
         id: 'training-volume',
-        label: 'Training volume',
+        label: isRussian ? 'Объём тренинга' : 'Training volume',
         value: weeklyVolumeTrend.label,
-        detail: weeklyVolumeTrend.detail,
+        detail: isRussian ? 'Сравнение с прошлой неделей' : weeklyVolumeTrend.detail,
         tone:
           weeklyVolumeTrend.previousVolume > 0 &&
           weeklyVolumeTrend.currentVolume >= weeklyVolumeTrend.previousVolume
@@ -183,13 +196,18 @@ export default function HomeScreen() {
       },
       {
         id: 'recovery-status',
-        label: 'Recovery',
-        value: recoveryAdvisor.status,
-        detail: recoveryAdvisor.recoveryExplanation,
+        label: isRussian ? 'Восстановление' : 'Recovery',
+        value: isRussian
+          ? recoveryAdvisor.status === 'Overloaded'
+            ? 'Перегрузка'
+            : 'Готов'
+          : recoveryAdvisor.status,
+        detail: isRussian ? 'По последним тренировкам' : recoveryAdvisor.recoveryExplanation,
         tone: recoveryAdvisor.status === 'Overloaded' ? 'warning' : 'neutral',
       },
     ],
     [
+      isRussian,
       profile.trainingDaysPerWeek,
       recoveryAdvisor.recoveryExplanation,
       recoveryAdvisor.status,
@@ -213,30 +231,53 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
       style={styles.screen}>
       <View style={styles.container}>
-        <SectionHeader title="Home" />
+        <SectionHeader title={t('tabs.home')} />
         <HomeSummaryCard
+          caloriesLabel={isRussian ? 'Калории' : 'Calories'}
           caloriesRemainingLabel={caloriesRemainingLabel}
           currentWeightLabel={currentWeightLabel}
+          currentWeightTitle={isRussian ? 'Текущий вес' : 'Current weight'}
           isCaloriesOverTarget={caloriesRemaining < 0}
-          motivation={motivation}
+          motivation={
+            isRussian ? 'Выберите одно действие и продолжайте по плану.' : motivation
+          }
           streakLabel={
             currentWorkoutStreak
-              ? `${currentWorkoutStreak.days}-day streak`
+              ? isRussian
+                ? `${currentWorkoutStreak.days} дн.`
+                : `${currentWorkoutStreak.days}-day streak`
               : undefined
           }
+          streakTitle={isRussian ? 'Серия' : 'Streak'}
+          title={isRussian ? 'Главное на сегодня' : 'What matters now'}
+          todayLabel={isRussian ? 'Сегодня' : 'Today'}
         />
         <QuickActionsCard
           primaryAction={{
-            label: getHomePrimaryWorkoutActionLabel(activeWorkout),
+            label: primaryWorkoutLabel,
             onPress: () => router.push(primaryWorkoutRoute),
           }}
           secondaryActions={[
-            { label: 'Add food', onPress: () => router.push('/track') },
-            { label: 'Log weight', onPress: () => router.push('/weight-entry') },
+            {
+              label: isRussian ? 'Добавить еду' : 'Add food',
+              onPress: () => router.push('/track'),
+            },
+            {
+              label: isRussian ? 'Записать вес' : 'Log weight',
+              onPress: () => router.push('/weight-entry'),
+            },
           ]}
-          title="Next action"
+          title={isRussian ? 'Следующее действие' : 'Next action'}
         />
-        <HomeSnapshotCard items={snapshotItems} />
+        <HomeSnapshotCard
+          items={snapshotItems}
+          subtitle={
+            isRussian
+              ? 'Тренировки, восстановление и недельный объём.'
+              : 'Workouts, recovery, and weekly volume.'
+          }
+          title={isRussian ? 'Сводка за неделю' : 'Weekly snapshot'}
+        />
       </View>
     </ScrollView>
   );
