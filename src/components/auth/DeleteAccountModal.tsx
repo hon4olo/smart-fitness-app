@@ -4,6 +4,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -87,55 +88,62 @@ export function DeleteAccountModal({
           style={styles.scrim}
         />
         <View accessibilityViewIsModal style={styles.sheet}>
-          <Text selectable style={styles.eyebrow}>ACCOUNT & SECURITY</Text>
-          <Text selectable style={styles.title}>Delete account permanently?</Text>
-          <Text selectable style={styles.body}>
-            This permanently deletes your account and synchronized cloud data. Account data stored on this device will also be removed. This action cannot be undone.
-          </Text>
-
-          <View style={styles.warningBox}>
-            <Text selectable style={styles.warningTitle}>Before continuing</Text>
-            <Text selectable style={styles.warningText}>
-              Connect to the internet and enter your current password. The app will not delete local data unless the server confirms account deletion.
+          <ScrollView
+            contentContainerStyle={styles.sheetContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            <Text selectable style={styles.eyebrow}>
+              ACCOUNT & SECURITY
             </Text>
-          </View>
+            <Text selectable style={styles.title}>
+              Delete account permanently?
+            </Text>
+            <Text selectable style={styles.body}>
+              This permanently deletes your account and synchronized cloud data. Account data stored on this device will also be removed. This action cannot be undone.
+            </Text>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Current password</Text>
-            <TextInput
-              accessibilityLabel="Current password for account deletion"
-              autoCapitalize="none"
-              autoComplete="current-password"
-              autoCorrect={false}
-              editable={!busy}
-              onChangeText={(value) => {
-                setPassword(value);
-                if (error) setError(null);
-              }}
-              onSubmitEditing={() => void submit()}
-              placeholder="Enter current password"
-              placeholderTextColor={Colors.dark.textMuted}
-              returnKeyType="done"
-              secureTextEntry
-              style={styles.input}
-              value={password}
+            <View style={styles.warningBox}>
+              <Text selectable style={styles.warningTitle}>
+                Before continuing
+              </Text>
+              <Text selectable style={styles.warningText}>
+                Connect to the internet and enter your current password. The app will not delete local data unless the server confirms account deletion.
+              </Text>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Current password</Text>
+              <TextInput
+                accessibilityLabel="Current password for account deletion"
+                autoCapitalize="none"
+                autoComplete="current-password"
+                autoCorrect={false}
+                editable={!busy}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  if (error) setError(null);
+                }}
+                onSubmitEditing={() => void submit()}
+                placeholder="Enter current password"
+                placeholderTextColor={Colors.dark.textMuted}
+                returnKeyType="done"
+                secureTextEntry
+                style={styles.input}
+                value={password}
+              />
+            </View>
+
+            {error ? <InlineError message={error} /> : null}
+
+            <DestructiveButton
+              accessibilityHint="Permanently deletes the signed-in account and synchronized data"
+              disabled={busy}
+              label={busy ? 'Deleting account' : 'Delete account permanently'}
+              loading={busy}
+              onPress={() => void submit()}
             />
-          </View>
-
-          {error ? <InlineError message={error} /> : null}
-
-          <DestructiveButton
-            accessibilityHint="Permanently deletes the signed-in account and synchronized data"
-            disabled={busy}
-            label={busy ? 'Deleting account' : 'Delete account permanently'}
-            loading={busy}
-            onPress={() => void submit()}
-          />
-          <SecondaryButton
-            disabled={busy}
-            label="Cancel"
-            onPress={close}
-          />
+            <SecondaryButton disabled={busy} label="Cancel" onPress={close} />
+          </ScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -148,8 +156,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   sheet: {
     backgroundColor: Colors.dark.surface,
@@ -157,6 +169,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Radii.xlarge,
     borderTopRightRadius: Radii.xlarge,
     borderWidth: StyleSheet.hairlineWidth,
+    maxHeight: '92%',
+  },
+  sheetContent: {
     gap: Spacing.three,
     paddingBottom: Spacing.six,
     paddingHorizontal: Spacing.four,
