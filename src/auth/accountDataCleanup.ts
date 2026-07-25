@@ -131,10 +131,12 @@ export const clearLocalAccountData = async (
     }
     throw error;
   }
+};
 
-  if (markerWritten) {
-    await markerStorage.remove(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY);
-  }
+export const completeLocalAccountCleanup = async (
+  markerStorage: StorageAdapter,
+): Promise<void> => {
+  await markerStorage.remove(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY);
 };
 
 export const resumePendingLocalAccountCleanup = async (
@@ -151,6 +153,5 @@ export const resumePendingLocalAccountCleanup = async (
   }
 
   await removeAccountDataKeys(storage, pending.userId);
-  await markerStorage.remove(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY);
   return true;
 };
