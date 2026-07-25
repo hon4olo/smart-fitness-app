@@ -155,6 +155,7 @@ describe('product simplification 2.0', () => {
     const nutrition = readSource('src/app/(tabs)/nutrition.tsx');
     const nutritionPicker = readSource('src/app/nutrition/add-food.tsx');
     const profile = readSource('src/app/(tabs)/profile.tsx');
+    const settings = readSource('src/app/settings/index.tsx');
     const sessionTable = readSource('src/features/workouts/components/session/SessionSetTable.tsx');
     const exerciseSection = readSource('src/features/workouts/components/session/SessionExerciseSection.tsx');
     const builder = readSource('src/features/workouts/screens/WorkoutBuilderScreen.tsx');
@@ -172,7 +173,9 @@ describe('product simplification 2.0', () => {
     expect(program).not.toContain('styles.startChip');
     expect(nutrition).toContain("router.push({ pathname: '/nutrition/add-food'");
     expect(nutritionPicker).toContain('addFoodEntries');
-    expect(profile).toContain('Appearance');
+    expect(profile).toContain("router.push('/settings')");
+    expect(settings).toContain('settings.appearance');
+    expect(settings).toContain('settings.language');
     expect(sessionTable).toContain('Set');
     expect(sessionTable).toContain('Previous');
     expect(sessionTable).toContain('kg');
