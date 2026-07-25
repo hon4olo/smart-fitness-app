@@ -47,7 +47,10 @@ export type AuthEnvelope = {
   tokenType: 'Bearer';
 };
 
-export type AuthProfile = Pick<AuthUser, 'id' | 'email' | 'displayName' | 'avatarUrl' | 'createdAt' | 'updatedAt'>;
+export type AuthProfile = Pick<
+  AuthUser,
+  'id' | 'email' | 'displayName' | 'avatarUrl' | 'createdAt' | 'updatedAt'
+>;
 
 export type AuthProfileUpdate = {
   displayName?: string | null;
@@ -69,6 +72,16 @@ export type AuthSession = {
   tokens: AuthTokens;
 };
 
+export type AccountDeletionResult = {
+  localCleanupComplete: boolean;
+};
+
+export type AuthStorage = {
+  read(key: string): Promise<string | null>;
+  write(key: string, value: string): Promise<void>;
+  remove(key: string): Promise<void>;
+};
+
 export type TokenManager = {
   loadTokens(): Promise<AuthTokens | null>;
   saveTokens(tokens: AuthTokens, now?: string): Promise<AuthTokens>;
@@ -85,6 +98,7 @@ export type AuthService = {
   login(credentials: AuthCredentials): Promise<AuthSession>;
   refresh(): Promise<AuthSession | null>;
   logout(): Promise<void>;
+  deleteAccount(password: string): Promise<AccountDeletionResult>;
   fetchProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: AuthProfileUpdate): Promise<AuthProfile | null>;
   getAccessToken(): Promise<string | null>;
@@ -95,12 +109,10 @@ export type AuthService = {
 export type CreateAuthServiceOptions = {
   apiClient: ApiClient;
   tokenManager: TokenManager;
-  sessionStorage: {
-    read(key: string): Promise<string | null>;
-    write(key: string, value: string): Promise<void>;
-    remove(key: string): Promise<void>;
-  };
+  sessionStorage: AuthStorage;
+  accountCleanupMarkerStorage?: AuthStorage;
   sessionStorageKey?: string;
   defaultDevice?: AuthDeviceInfo;
   onSessionChange?: (session: AuthSession | null) => void;
+  onAccountDeleted?: (userId: string) => Promise<void>;
 };

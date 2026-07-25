@@ -294,13 +294,17 @@ Status: crash-reporting source foundation complete in mobile PR `#96`; external 
 
 Priority: P0 for account deletion; remaining items are P1.
 
+Status: account-deletion source implementation complete in backend PR `#48` (merge `cf3a249b307a7493c68d5f6485e241a9af3b0272`) and mobile PR `#97`; production backend deployment and real-device validation remain external.
+
 - [ ] add forgot-password and reset-password backend/mobile flows;
 - [ ] add authenticated password change with session re-verification;
 - [ ] add a sessions/devices screen with last-seen metadata;
 - [ ] allow revoking one session and all other sessions;
-- [ ] add in-app account deletion with explicit confirmation and re-authentication;
-- [ ] cascade account deletion through user data, sessions, sync operations, Coach runs, templates, measurements, workouts, nutrition data, and custom entities;
-- [ ] clear account-scoped local caches, tokens, pending queues, favorites, and custom-food libraries after deletion;
+- [x] add in-app account deletion with explicit confirmation and current-password re-authentication;
+- [x] cascade account deletion through user data, sessions, sync operations, Coach runs, templates, measurements, workouts, nutrition data, and custom entities;
+- [x] clear account-scoped local caches, SecureStore tokens, cached sessions, pending queues, sync/conflict/recovery metadata, favorites, and custom-food libraries after server confirmation;
+- [x] prevent interrupted cleanup from restoring stale data by persisting and resuming a local cleanup marker before AppState/session restoration;
+- [ ] deploy the backend endpoint and validate wrong-password, offline, successful deletion, token invalidation, cleanup retry, and email re-registration on a real device;
 - [ ] add a privacy explanation for local data, synchronized data, telemetry, and model execution;
 - [ ] add privacy-safe product analytics using action events only, never health values or content payloads;
 - [ ] add analytics consent/opt-out where required by the chosen provider and release jurisdictions.
@@ -434,14 +438,14 @@ Do not begin these until P0 release work and the core P1 quality phases are comp
 ## Recommended immediate next actions
 
 1. Configure the Sentry project and EAS environment values, select a new app/runtime version, then verify native-build and EAS Update source maps on preview devices.
-2. Implement in-app account deletion, then password reset and session management.
-3. Define the localization architecture and Settings information architecture before adding more hardcoded copy.
-4. Create matching native iOS and Android builds and run the production-channel device matrix.
-5. Rehearse preview OTA application and rollback.
-6. Complete auth-refresh and API failure-category instrumentation without raw payloads.
-7. Configure read-only `BACKEND_REPOSITORY_TOKEN` and rerun the fixed-SHA cross-repository release gate.
-8. Add cross-device Nutrition library sync after local device validation passes.
-9. Add screenshot regression coverage and privacy-safe analytics after the privacy contract is documented.
+2. Deploy the account-deletion backend endpoint and run the destructive device matrix before release activation.
+3. Implement password reset, authenticated password change, and session/device management.
+4. Define the localization architecture and Settings information architecture before adding more hardcoded copy.
+5. Create matching native iOS and Android builds and run the production-channel device matrix.
+6. Rehearse preview OTA application and rollback.
+7. Complete auth-refresh and API failure-category instrumentation without raw payloads.
+8. Configure read-only `BACKEND_REPOSITORY_TOKEN` and rerun the fixed-SHA cross-repository release gate.
+9. Add cross-device Nutrition library sync, screenshot regression coverage, and privacy-safe analytics after their prerequisites pass.
 
 ## Validation expectations
 

@@ -6,9 +6,14 @@ import {
   type RemoteProfileRepository,
 } from '@/repositories/RemoteProfileRepository';
 
+import {
+  completeLocalAccountCleanup,
+  PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
+} from './accountDataCleanup';
 import { getDefaultAuthDeviceInfo } from './device';
 import { createTokenManager } from './token-manager';
 import type {
+  AccountDeletionResult,
   AuthCredentials,
   AuthEnvelope,
   AuthProfileUpdate,
@@ -115,9 +120,11 @@ export const createAuthService = ({
   apiClient,
   tokenManager,
   sessionStorage,
+  accountCleanupMarkerStorage = sessionStorage,
   sessionStorageKey = AUTH_SESSION_STORAGE_KEY,
   defaultDevice = getDefaultAuthDeviceInfo(),
   onSessionChange,
+  onAccountDeleted,
 }: CreateAuthServiceOptions): AuthService & { profileRepository: RemoteProfileRepository } => {
   const profileRepository = createRemoteProfileRepository(apiClient, tokenManager);
 
@@ -128,7 +135,21 @@ export const createAuthService = ({
     return session;
   };
 
+  const clearLocalSession = async (): Promise<boolean> => {
+    const results = await Promise.allSettled([
+      tokenManager.clearTokens(),
+      sessionStorage.remove(sessionStorageKey),
+    ]);
+    onSessionChange?.(null);
+    return results.every((result) => result.status === 'fulfilled');
+  };
+
   const loadSession = async (): Promise<AuthSession | null> => {
+    if (await accountCleanupMarkerStorage.read(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)) {
+      await clearLocalSession();
+      return null;
+    }
+
     const parsed = parseSessionMetadata(await sessionStorage.read(sessionStorageKey));
     if (!parsed) return null;
 
@@ -184,9 +205,7 @@ export const createAuthService = ({
       return await saveSession(toSession(response));
     } catch (error) {
       if (isApiError(error) && error.status === 401) {
-        await tokenManager.clearTokens();
-        await sessionStorage.remove(sessionStorageKey);
-        onSessionChange?.(null);
+        await clearLocalSession();
       }
       return null;
     }
@@ -220,10 +239,46 @@ export const createAuthService = ({
       } catch {
         // Offline fallback: always clear local session.
       } finally {
-        await tokenManager.clearTokens();
-        await sessionStorage.remove(sessionStorageKey);
-        onSessionChange?.(null);
+        await clearLocalSession();
       }
+    },
+    deleteAccount: async (password: string): Promise<AccountDeletionResult> => {
+      const currentSession = await loadSession();
+      const accessToken = await getAccessToken();
+      if (!currentSession || !accessToken) {
+        throw new Error('Authentication is required to delete the account.');
+      }
+
+      await apiClient.request<{ success: true }, { password: string }>({
+        method: 'DELETE',
+        path: '/v1/auth/account',
+        body: { password },
+        headers: authHeader(accessToken),
+        retry: false,
+      });
+
+      let accountDataCleanupComplete = true;
+      try {
+        await onAccountDeleted?.(currentSession.user.id);
+      } catch {
+        accountDataCleanupComplete = false;
+      }
+
+      const authCleanupComplete = await clearLocalSession();
+      let markerCleanupComplete = false;
+      if (accountDataCleanupComplete && authCleanupComplete) {
+        try {
+          await completeLocalAccountCleanup(accountCleanupMarkerStorage);
+          markerCleanupComplete = true;
+        } catch {
+          markerCleanupComplete = false;
+        }
+      }
+
+      return {
+        localCleanupComplete:
+          accountDataCleanupComplete && authCleanupComplete && markerCleanupComplete,
+      };
     },
     fetchProfile: async () => {
       const accessToken = await getAccessToken();

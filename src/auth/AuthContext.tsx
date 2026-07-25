@@ -1,6 +1,13 @@
 import { createContext, PropsWithChildren, useEffect, useMemo, useState } from 'react';
 
-import type { AuthCredentials, AuthProfile, AuthProfileUpdate, AuthSession, AuthService } from './types';
+import type {
+  AccountDeletionResult,
+  AuthCredentials,
+  AuthProfile,
+  AuthProfileUpdate,
+  AuthSession,
+  AuthService,
+} from './types';
 import { resolveAuthGateStatus, type AuthGateStatus } from './auth-ui';
 
 export type AuthContextValue = {
@@ -15,6 +22,7 @@ export type AuthContextValue = {
   login(credentials: AuthCredentials): Promise<AuthSession>;
   refresh(): Promise<AuthSession | null>;
   logout(): Promise<void>;
+  deleteAccount(password: string): Promise<AccountDeletionResult>;
   fetchProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: AuthProfileUpdate): Promise<AuthProfile | null>;
 };
@@ -127,6 +135,13 @@ export function AuthProvider({ children, service }: AuthProviderProps) {
         setProfile(null);
         setError(null);
       },
+      deleteAccount: async (password) => {
+        const result = await service.deleteAccount(password);
+        setSession(null);
+        setProfile(null);
+        setError(null);
+        return result;
+      },
       fetchProfile: async () => {
         const nextProfile = await service.fetchProfile();
         if (nextProfile) {
@@ -150,7 +165,7 @@ export function AuthProvider({ children, service }: AuthProviderProps) {
         return null;
       },
     }),
-    [error, profile, ready, service, session]
+    [error, profile, ready, service, session],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

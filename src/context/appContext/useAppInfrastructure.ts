@@ -1,11 +1,18 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 import { getMobileApiBaseUrl } from '@/api';
 import { createApiClient } from '@/api/client';
-import { createMigratingTokenManager } from '@/auth';
+import {
+  AUTH_SESSION_STORAGE_KEY,
+  clearLocalAccountData,
+  completeLocalAccountCleanup,
+  createMigratingTokenManager,
+  resumePendingLocalAccountCleanup,
+} from '@/auth';
 import { createSyncCoordinator, type SyncCoordinator } from '@/cloud';
 import { createProductionCloudProvider } from '@/cloud/createProductionCloudProvider';
+import { defaultState as defaultAppState } from '@/data/defaults';
 import { createRepositoryFactory } from '@/repositories';
 import { createAsyncStorageAdapter } from '@/storage';
 import { createAsyncStorageOperationQueueStore } from '@/storage/AsyncStorageOperationQueueStore';
@@ -27,9 +34,22 @@ export function useAppInfrastructure(
       }),
     [secureTokenStorage, storageAdapter],
   );
+  const onAccountDeleted = useCallback(
+    async (userId: string) => {
+      setState(defaultAppState);
+      setIsRestoringState(false);
+      await clearLocalAccountData(storageAdapter, userId, secureTokenStorage);
+    },
+    [secureTokenStorage, setIsRestoringState, setState, storageAdapter],
+  );
   const repositoryProvider = useMemo(
-    () => createRepositoryFactory(storageAdapter, { tokenManager }),
-    [storageAdapter, tokenManager],
+    () =>
+      createRepositoryFactory(storageAdapter, {
+        tokenManager,
+        accountCleanupMarkerStorage: secureTokenStorage,
+        onAccountDeleted,
+      }),
+    [onAccountDeleted, secureTokenStorage, storageAdapter, tokenManager],
   );
   const repository = useMemo(() => repositoryProvider.getRepository(), [repositoryProvider]);
   const authService = useMemo(() => repositoryProvider.getAuthService(), [repositoryProvider]);
@@ -55,16 +75,43 @@ export function useAppInfrastructure(
     let cancelled = false;
 
     const restoreState = async () => {
-      const storedState = await repository.loadState();
-      if (storedState && !cancelled) setState(storedState);
-      if (!cancelled) setIsRestoringState(false);
+      try {
+        const cleanupResumed = await resumePendingLocalAccountCleanup(
+          storageAdapter,
+          secureTokenStorage,
+        );
+        if (cleanupResumed) {
+          const authCleanupResults = await Promise.allSettled([
+            tokenManager.clearTokens(),
+            storageAdapter.remove(AUTH_SESSION_STORAGE_KEY),
+          ]);
+          if (authCleanupResults.some((result) => result.status === 'rejected')) {
+            throw new Error('Pending account auth cleanup failed');
+          }
+          await completeLocalAccountCleanup(secureTokenStorage);
+        }
+
+        const storedState = await repository.loadState();
+        if (storedState && !cancelled) setState(storedState);
+      } catch {
+        if (!cancelled) setState(defaultAppState);
+      } finally {
+        if (!cancelled) setIsRestoringState(false);
+      }
     };
 
     void restoreState();
     return () => {
       cancelled = true;
     };
-  }, [repository, setIsRestoringState, setState]);
+  }, [
+    repository,
+    secureTokenStorage,
+    setIsRestoringState,
+    setState,
+    storageAdapter,
+    tokenManager,
+  ]);
 
   return {
     authService,

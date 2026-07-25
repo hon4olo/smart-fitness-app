@@ -9,13 +9,21 @@ import { createFoodEntrySyncMetadataStore } from '@/storage/FoodEntrySyncMetadat
 import { createNutritionTargetSyncMetadataStore } from '@/storage/NutritionTargetSyncMetadataStore';
 import { createApiClient, type ApiClient } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api';
-import { createAuthService, createTokenManager, getDefaultAuthDeviceInfo, type AuthService, type TokenManager } from '@/auth';
+import {
+  createAuthService,
+  createTokenManager,
+  getDefaultAuthDeviceInfo,
+  type AuthService,
+  type TokenManager,
+} from '@/auth';
 
 export type RepositoryFactoryOptions = {
   apiBaseUrl?: string;
   apiClient?: ApiClient;
   tokenManager?: TokenManager;
   authService?: AuthService & { profileRepository: RemoteProfileRepository };
+  accountCleanupMarkerStorage?: StorageAdapter;
+  onAccountDeleted?: (userId: string) => Promise<void>;
 };
 
 export type RepositoryProvider = {
@@ -47,6 +55,9 @@ const createNoopAuthService = (): AuthService & { profileRepository: RemoteProfi
   async logout() {
     return undefined;
   },
+  async deleteAccount() {
+    throw new Error('Auth service is unavailable');
+  },
   async fetchProfile() {
     return null;
   },
@@ -64,11 +75,15 @@ const createNoopAuthService = (): AuthService & { profileRepository: RemoteProfi
   },
 });
 
-export const createRepositoryFactory = (storage: StorageAdapter, options: RepositoryFactoryOptions = {}): RepositoryProvider => {
+export const createRepositoryFactory = (
+  storage: StorageAdapter,
+  options: RepositoryFactoryOptions = {},
+): RepositoryProvider => {
   const localRepository = createLocalAppRepository(storage);
   const tokenManager = options.tokenManager ?? createTokenManager(storage);
   const apiBaseUrl = options.apiBaseUrl ?? getMobileApiBaseUrl();
-  const apiClient = options.apiClient ?? (apiBaseUrl ? createApiClient({ baseUrl: apiBaseUrl }) : undefined);
+  const apiClient =
+    options.apiClient ?? (apiBaseUrl ? createApiClient({ baseUrl: apiBaseUrl }) : undefined);
   const authService =
     options.authService ??
     (apiClient
@@ -76,7 +91,9 @@ export const createRepositoryFactory = (storage: StorageAdapter, options: Reposi
           apiClient,
           tokenManager,
           sessionStorage: storage,
+          accountCleanupMarkerStorage: options.accountCleanupMarkerStorage,
           defaultDevice: getDefaultAuthDeviceInfo(),
+          onAccountDeleted: options.onAccountDeleted,
         })
       : createNoopAuthService());
   const queueStore = createAsyncStorageOperationQueueStore(storage);
