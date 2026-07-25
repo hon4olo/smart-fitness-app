@@ -26,7 +26,7 @@ export type LocalAppRepositoryOptions = {
   cloudProvider?: CloudProvider;
 };
 
-const APP_STATE_KEY = '@smart_fitness_mvp_state';
+export const APP_STATE_STORAGE_KEY = '@smart_fitness_mvp_state';
 const DEFAULT_WORKOUT_TEMPLATE_IDS = DEFAULT_WORKOUT_TEMPLATE_IDS_FROM_DATA;
 const defaultState: AppState = defaultAppState;
 
@@ -81,7 +81,7 @@ export const createLocalAppRepository = (
   return {
     async loadState() {
       try {
-        const storedState = await storage.read(APP_STATE_KEY);
+        const storedState = await storage.read(APP_STATE_STORAGE_KEY);
 
         if (!storedState) {
           return null;
@@ -92,7 +92,7 @@ export const createLocalAppRepository = (
         );
         const normalizedJson = JSON.stringify(normalizedState);
         if (normalizedJson !== storedState) {
-          await storage.write(APP_STATE_KEY, normalizedJson);
+          await storage.write(APP_STATE_STORAGE_KEY, normalizedJson);
         }
 
         return normalizedState;
@@ -103,14 +103,14 @@ export const createLocalAppRepository = (
     },
     async saveState(state) {
       try {
-        await storage.write(APP_STATE_KEY, JSON.stringify(state));
+        await storage.write(APP_STATE_STORAGE_KEY, JSON.stringify(state));
       } catch (error) {
         console.warn('Failed to persist MVP app state', error);
       }
     },
     async clearState() {
       try {
-        await storage.remove(APP_STATE_KEY);
+        await storage.remove(APP_STATE_STORAGE_KEY);
       } catch (error) {
         console.warn('Failed to clear MVP app state', error);
       }
