@@ -85,7 +85,8 @@ Completed:
 - Settings provides a visible entry point to Coach history and trust information;
 - backend PR #54 defines a bounded versioned application-provenance contract with deterministic source-revision fingerprints and records Combined Nutrition source-to-applied revision metadata, including interrupted-parent retry recovery;
 - backend PR #55 carries ownership-scoped workout-session revisions into new Strength proposals, rejects changed or unavailable sources before a sync write, preserves legacy proposal safety through exact source-set comparison, and records source-session to workout-template provenance;
-- Nutrition and standalone Strength confirmations now fail closed when their proposal-time source revision no longer matches the current revision;
+- backend PR #56 applies the same ownership-scoped source-revision, legacy exact-set fallback, immutable provenance, and idempotent recovery guarantees to Combined effective Strength applications;
+- Nutrition, standalone Strength, and Combined effective Strength confirmations now fail closed when their proposal-time source revision no longer matches the current revision;
 - mobile PR #126 parses provenance fail-closed and displays only localized entity types and revisions, without raw entity IDs, fingerprint hashes, context snapshots, result payloads, health values, or agent input/output;
 - idempotent application recovery preserves immutable provenance without repeating the underlying revisioned mutation.
 
@@ -93,7 +94,7 @@ Remaining:
 
 - show bounded, domain-specific inputs used and deterministic rationale without dumping raw snapshots;
 - show before/after values for confirmed changes;
-- surface a derived stale state in Coach history before confirmation and extend revision checks/provenance to Combined effective Strength and remaining confirmable proposal paths;
+- surface a derived stale state in Coach history before confirmation and extend revision checks/provenance to any remaining confirmable proposal paths;
 - implement explicit compensating revert as a new revisioned mutation rather than rewriting historical records;
 - complete immutable provenance coverage for every applied Coach proposal path.
 
