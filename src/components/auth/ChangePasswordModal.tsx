@@ -20,6 +20,8 @@ import { InlineError } from '@/components/ui/InlineError';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import { localizeChangePasswordMessage } from '@/localization/authCopy';
 
 type ChangePasswordModalProps = {
   visible: boolean;
@@ -34,6 +36,7 @@ export function ChangePasswordModal({
   onChangePassword,
   onChanged,
 }: ChangePasswordModalProps) {
+  const { t } = useLocalization();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -103,7 +106,7 @@ export function ChangePasswordModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.screen}>
         <Pressable
-          accessibilityLabel="Close change password"
+          accessibilityLabel={t('changePassword.close')}
           disabled={busy}
           onPress={close}
           style={styles.scrim}
@@ -113,41 +116,47 @@ export function ChangePasswordModal({
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <Text selectable style={styles.eyebrow}>ACCOUNT & SECURITY</Text>
-            <Text selectable style={styles.title}>Change password</Text>
+            <Text selectable style={styles.eyebrow}>
+              {t('changePassword.eyebrow')}
+            </Text>
+            <Text selectable style={styles.title}>
+              {t('changePassword.title')}
+            </Text>
             <Text selectable style={styles.body}>
-              After your password is changed, every signed-in device will be logged out. Sign in again with the new password.
+              {t('changePassword.body')}
             </Text>
 
             <PasswordField
-              error={errors.currentPassword}
-              label="Current password"
+              error={localizeChangePasswordMessage(errors.currentPassword, t)}
+              label={t('changePassword.current')}
               onChangeText={(value) => updateField('currentPassword', value)}
               value={currentPassword}
             />
             <PasswordField
-              error={errors.newPassword}
-              label="New password"
+              error={localizeChangePasswordMessage(errors.newPassword, t)}
+              label={t('changePassword.new')}
               onChangeText={(value) => updateField('newPassword', value)}
               value={newPassword}
             />
             <PasswordField
-              error={errors.confirmPassword}
-              label="Confirm new password"
+              error={localizeChangePasswordMessage(errors.confirmPassword, t)}
+              label={t('changePassword.confirm')}
               onChangeText={(value) => updateField('confirmPassword', value)}
               onSubmitEditing={() => void submit()}
               value={confirmPassword}
             />
 
-            {formError ? <InlineError message={formError} /> : null}
+            {formError ? (
+              <InlineError message={localizeChangePasswordMessage(formError, t)} />
+            ) : null}
 
             <PrimaryButton
               disabled={busy}
-              label={busy ? 'Changing password…' : 'Change password'}
+              label={busy ? t('changePassword.busy') : t('changePassword.action')}
               loading={busy}
               onPress={() => void submit()}
             />
-            <SecondaryButton disabled={busy} label="Cancel" onPress={close} />
+            <SecondaryButton disabled={busy} label={t('common.cancel')} onPress={close} />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
