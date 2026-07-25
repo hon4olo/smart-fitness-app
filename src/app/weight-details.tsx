@@ -9,13 +9,15 @@ import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { formatProgressDelta, getProgressAnalytics } from '@/lib/progress';
 import { formatShortDate } from '@/lib';
+import { getProgressAnalytics } from '@/lib/progress';
+import { formatWeightValue, weightFromKg, useUnitPreferences } from '@/units';
 
 const toDateLabel = (value: string) => formatShortDate(value);
 
 export default function WeightDetailsScreen() {
   const { bodyMeasurements, exercises, weightHistory, workoutSessions } = useAppContext();
+  const { weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
 
   const analytics = useMemo(
@@ -34,14 +36,25 @@ export default function WeightDetailsScreen() {
       analytics.weight.recentEntries.map((entry) => ({
         key: entry.id,
         label: toDateLabel(entry.createdAt),
-        value: entry.weight,
-        displayValue: entry.weight.toFixed(1),
+        value: weightFromKg(entry.weight, weightUnit),
+        displayValue: formatWeightValue(entry.weight, weightUnit),
       })),
+    [analytics.weight.recentEntries, weightUnit],
+  );
+  const recentEntries = useMemo(
+    () => [...analytics.weight.recentEntries].reverse().slice(0, 10),
     [analytics.weight.recentEntries],
   );
 
-  const latestWeight = analytics.weight.currentWeight !== null ? `${analytics.weight.currentWeight.toFixed(1)} kg` : '—';
-  const trend = analytics.weight.delta30Days !== null ? formatProgressDelta(analytics.weight.delta30Days, 'kg') : 'No 30-day comparison yet';
+  const latestWeight = analytics.weight.currentWeight !== null
+    ? `${formatWeightValue(analytics.weight.currentWeight, weightUnit)} ${weightUnit}`
+    : '—';
+  const convertedDelta30Days = analytics.weight.delta30Days !== null
+    ? weightFromKg(analytics.weight.delta30Days, weightUnit)
+    : null;
+  const trend = convertedDelta30Days !== null
+    ? `${convertedDelta30Days > 0 ? '+' : ''}${convertedDelta30Days.toFixed(1)} ${weightUnit} over 30 days`
+    : 'No 30-day comparison yet';
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} style={styles.screen}>
@@ -67,13 +80,37 @@ export default function WeightDetailsScreen() {
           {points.length > 1 ? (
             <ProgressTrendChart
               emptyLabel="Add a few weigh-ins to see the trend."
-              maxLabel={points.reduce((max, point) => Math.max(max, point.value), points[0]?.value ?? 0).toFixed(1) + ' kg'}
-              minLabel={points.reduce((min, point) => Math.min(min, point.value), points[0]?.value ?? 0).toFixed(1) + ' kg'}
+              maxLabel={`${Math.max(...points.map((point) => point.value)).toFixed(1)} ${weightUnit}`}
+              minLabel={`${Math.min(...points.map((point) => point.value)).toFixed(1)} ${weightUnit}`}
               points={points}
             />
           ) : (
             <Text selectable style={styles.detail}>
               Add another weigh-in to reveal the chart.
+            </Text>
+          )}
+        </AppCard>
+
+        <AppCard>
+          <Text selectable style={styles.title}>
+            Recent weigh-ins
+          </Text>
+          {recentEntries.length > 0 ? (
+            <View style={styles.historyList}>
+              {recentEntries.map((entry, index) => (
+                <View key={entry.id} style={[styles.historyRow, index > 0 && styles.historyRowWithBorder]}>
+                  <Text selectable style={styles.historyDate}>
+                    {toDateLabel(entry.createdAt)}
+                  </Text>
+                  <Text selectable style={styles.historyValue}>
+                    {formatWeightValue(entry.weight, weightUnit)} {weightUnit}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text selectable style={styles.detail}>
+              No weigh-ins recorded yet.
             </Text>
           )}
         </AppCard>
@@ -108,6 +145,30 @@ const styles = StyleSheet.create({
     color: Colors.dark.textSecondary,
     fontSize: 13,
     lineHeight: 19,
+  },
+  historyDate: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  historyList: {
+    marginTop: Spacing.one,
+  },
+  historyRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 44,
+    paddingVertical: Spacing.one,
+  },
+  historyRowWithBorder: {
+    borderColor: Colors.dark.divider,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  historyValue: {
+    color: Colors.dark.textPrimary,
+    fontSize: 15,
+    fontWeight: '800',
   },
   screen: {
     backgroundColor: Colors.dark.background,
