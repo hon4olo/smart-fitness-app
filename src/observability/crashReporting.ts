@@ -8,6 +8,7 @@ import {
   createSupportIdentifier,
   normalizeRouteForTelemetry,
   sanitizeCrashEvent,
+  type CrashEventLike,
   type OperationalFailureCategory,
   type TelemetryOnlineState,
 } from './crashReportingModel';
@@ -37,7 +38,8 @@ export const initializeCrashReporting = (): void => {
 
   Sentry.init({
     beforeBreadcrumb: () => null,
-    beforeSend: (event) => sanitizeCrashEvent(event),
+    beforeSend: (event) =>
+      sanitizeCrashEvent(event as unknown as CrashEventLike) as unknown as typeof event,
     dsn: sentryDsn,
     enabled: reportingEnabled,
     enableAutoSessionTracking: false,
