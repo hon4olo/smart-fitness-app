@@ -32,22 +32,28 @@ export function AppMutationFailureNotice({
   const isOutboxFailure = failure.stage === 'outbox';
   const title = isOutboxFailure
     ? locale === 'ru'
-      ? 'Ошибка облачной очереди'
-      : 'Cloud queue update failed'
+      ? 'Синхронизация ожидает повтора'
+      : 'Sync pending'
     : locale === 'ru'
-      ? 'Ошибка локального сохранения'
+      ? 'Не удалось сохранить локально'
       : 'Local save failed';
   const safeMessage = isOutboxFailure ? copy.outboxFailure : copy.localFailure;
+  const retryLabel = isOutboxFailure ? copy.retrySync : copy.retrySave;
 
   return (
     <View
-      accessibilityLiveRegion="assertive"
-      style={[styles.notice, { top: insets.top + Spacing.two }]}
+      accessibilityLiveRegion="polite"
+      style={[
+        styles.notice,
+        isOutboxFailure ? styles.syncNotice : styles.localFailureNotice,
+        { top: insets.top + Spacing.one },
+      ]}
       testID="app-mutation-failure-notice">
       <View style={styles.copy}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.label}>{failure.label}</Text>
-        <Text style={styles.message}>{safeMessage}</Text>
+        <Text style={[styles.title, isOutboxFailure && styles.syncTitle]}>{title}</Text>
+        <Text numberOfLines={2} style={styles.message}>
+          {safeMessage}
+        </Text>
       </View>
       <View style={styles.actions}>
         <Pressable
@@ -56,19 +62,19 @@ export function AppMutationFailureNotice({
           onPress={onRetry}
           style={({ pressed }) => [
             styles.action,
-            styles.retryAction,
+            isOutboxFailure ? styles.syncAction : styles.retryAction,
             pendingCount > 0 && styles.disabled,
             pressed && pendingCount === 0 && styles.pressed,
           ]}>
           <Text style={styles.retryLabel}>
-            {pendingCount > 0 ? copy.waiting : copy.retrySave}
+            {pendingCount > 0 ? copy.waiting : retryLabel}
           </Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
           onPress={onDismiss}
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
-          <Text style={styles.dismissLabel}>{locale === 'ru' ? 'Закрыть' : 'Dismiss'}</Text>
+          style={({ pressed }) => [styles.dismissAction, pressed && styles.pressed]}>
+          <Text style={styles.dismissLabel}>{locale === 'ru' ? 'Скрыть' : 'Dismiss'}</Text>
         </Pressable>
       </View>
     </View>
@@ -82,7 +88,7 @@ const createStyles = (colors: typeof Colors.light) =>
       borderRadius: Radii.medium,
       justifyContent: 'center',
       minHeight: 36,
-      paddingHorizontal: Spacing.three,
+      paddingHorizontal: Spacing.two,
     },
     actions: {
       alignItems: 'center',
@@ -97,15 +103,20 @@ const createStyles = (colors: typeof Colors.light) =>
     disabled: {
       opacity: 0.55,
     },
+    dismissAction: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 36,
+      paddingHorizontal: Spacing.one,
+    },
     dismissLabel: {
       color: colors.textSecondary,
-      fontSize: Typography.label.fontSize,
+      fontSize: Typography.caption.fontSize,
       fontWeight: Typography.label.fontWeight,
     },
-    label: {
-      color: colors.textPrimary,
-      fontSize: Typography.label.fontSize,
-      fontWeight: Typography.label.fontWeight,
+    localFailureNotice: {
+      backgroundColor: colors.errorSoft,
+      borderColor: colors.error,
     },
     message: {
       color: colors.textSecondary,
@@ -114,21 +125,20 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     notice: {
       alignItems: 'center',
-      backgroundColor: colors.errorSoft,
-      borderColor: colors.error,
-      borderRadius: Radii.large,
+      borderRadius: Radii.medium,
       borderWidth: StyleSheet.hairlineWidth,
-      elevation: 8,
+      elevation: 6,
       flexDirection: 'row',
       gap: Spacing.two,
       left: Spacing.three,
-      padding: Spacing.three,
+      paddingHorizontal: Spacing.two,
+      paddingVertical: Spacing.two,
       position: 'absolute',
       right: Spacing.three,
       shadowColor: '#000000',
-      shadowOffset: { height: 4, width: 0 },
-      shadowOpacity: 0.3,
-      shadowRadius: 10,
+      shadowOffset: { height: 3, width: 0 },
+      shadowOpacity: 0.22,
+      shadowRadius: 8,
       zIndex: 1000,
     },
     pressed: {
@@ -139,13 +149,22 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     retryLabel: {
       color: colors.textOnAccent,
-      fontSize: Typography.label.fontSize,
+      fontSize: Typography.caption.fontSize,
       fontWeight: Typography.label.fontWeight,
+    },
+    syncAction: {
+      backgroundColor: colors.accent,
+    },
+    syncNotice: {
+      backgroundColor: colors.surfaceElevated,
+      borderColor: colors.borderSubtle,
+    },
+    syncTitle: {
+      color: colors.textPrimary,
     },
     title: {
       color: colors.error,
       fontSize: Typography.caption.fontSize,
       fontWeight: '800',
-      textTransform: 'uppercase',
     },
   });
