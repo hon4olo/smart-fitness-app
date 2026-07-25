@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
+import { AuthGateCard } from '@/components/auth';
 import { AppCard } from '@/components/ui/AppCard';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
@@ -20,14 +21,8 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { colors, mode, setMode } = useAppTheme();
   const { languagePreference, locale, setLanguagePreference, t } = useLocalization();
-  const {
-    weight,
-    length,
-    energy,
-    setWeightUnit,
-    setLengthUnit,
-    setEnergyUnit,
-  } = useUnitPreferences();
+  const { weight, length, energy, setWeightUnit, setLengthUnit, setEnergyUnit } =
+    useUnitPreferences();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const unitCopy = getUnitCopy(locale);
 
@@ -71,8 +66,11 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.general')}</Text>
+        <SettingsSection title={t('account.title')}>
+          <AuthGateCard />
+        </SettingsSection>
+
+        <SettingsSection title={t('settings.general')}>
           <AppCard>
             <SettingBlock
               description={t('settings.languageDescription')}
@@ -85,10 +83,9 @@ export default function SettingsScreen() {
               />
             </SettingBlock>
           </AppCard>
-        </View>
+        </SettingsSection>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.appearance')}</Text>
+        <SettingsSection title={t('settings.appearance')}>
           <AppCard>
             <SettingBlock
               description={t('settings.appearanceDescription')}
@@ -101,10 +98,9 @@ export default function SettingsScreen() {
               />
             </SettingBlock>
           </AppCard>
-        </View>
+        </SettingsSection>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{unitCopy.section}</Text>
+        <SettingsSection title={unitCopy.section}>
           <AppCard>
             <SettingBlock description={unitCopy.weightDescription} title={unitCopy.weight}>
               <SegmentedControl
@@ -134,11 +130,20 @@ export default function SettingsScreen() {
             </SettingBlock>
           </AppCard>
           <Text style={styles.footer}>{unitCopy.footer}</Text>
-        </View>
+        </SettingsSection>
 
         <Text style={styles.footer}>{t('settings.aboutPreferences')}</Text>
       </View>
     </ScrollView>
+  );
+}
+
+function SettingsSection({ children, title }: { children: React.ReactNode; title: string }) {
+  return (
+    <View style={stylesStatic.section}>
+      <Text style={stylesStatic.sectionTitle}>{title}</Text>
+      {children}
+    </View>
   );
 }
 
@@ -161,6 +166,14 @@ function SettingBlock({
 }
 
 const stylesStatic = StyleSheet.create({
+  section: { gap: Spacing.two },
+  sectionTitle: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.sectionTitle.fontSize,
+    fontWeight: Typography.sectionTitle.fontWeight,
+    letterSpacing: Typography.sectionTitle.letterSpacing,
+    textTransform: Typography.sectionTitle.textTransform,
+  },
   settingBlock: { gap: Spacing.two },
   settingDescription: {
     color: Colors.dark.textSecondary,
@@ -204,14 +217,6 @@ const createStyles = (colors: typeof Colors.light) =>
     headerCopy: { flex: 1, gap: Spacing.one },
     headerRow: { alignItems: 'flex-start', flexDirection: 'row', gap: Spacing.three },
     screen: { backgroundColor: colors.background, flex: 1 },
-    section: { gap: Spacing.two },
-    sectionTitle: {
-      color: colors.textSecondary,
-      fontSize: Typography.sectionTitle.fontSize,
-      fontWeight: Typography.sectionTitle.fontWeight,
-      letterSpacing: Typography.sectionTitle.letterSpacing,
-      textTransform: Typography.sectionTitle.textTransform,
-    },
     subtitle: {
       color: colors.textSecondary,
       fontSize: Typography.body.fontSize,
