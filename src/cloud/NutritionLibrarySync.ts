@@ -18,6 +18,9 @@ const FOOD_SOURCES: readonly NutritionLibraryFood['source'][] = [
   'usda',
 ];
 
+const getSyncedRevision = (item: NutritionLibraryFood): number =>
+  Math.max(0, Math.floor(item.syncedRevision ?? 0));
+
 export const isNutritionLibraryEntity = (entityType: string): boolean =>
   entityType === 'nutritionLibraryItems' || entityType === 'nutrition_library_items';
 
@@ -51,11 +54,11 @@ export const createNutritionLibraryQueueOperation = (input: {
   userId: string;
   deviceId: string;
 }): OfflineSyncQueueOperation => {
-  const action = input.item.deletedAt ? 'delete' : input.item.syncedRevision === 0 ? 'create' : 'update';
-  const baseRevisionNumber = input.item.syncedRevision;
+  const syncedRevision = getSyncedRevision(input.item);
+  const action = input.item.deletedAt ? 'delete' : syncedRevision === 0 ? 'create' : 'update';
   const baseRevision = {
-    id: `rev-${baseRevisionNumber}`,
-    number: baseRevisionNumber,
+    id: `rev-${syncedRevision}`,
+    number: syncedRevision,
     createdAt: input.item.updatedAt,
   };
   const payload = action === 'delete'
@@ -106,8 +109,7 @@ export const planNutritionLibrarySyncOperations = (input: {
   );
   return input.records
     .filter(
-      (record) =>
-        record.revision > record.syncedRevision && !pendingIds.has(record.libraryId),
+      (record) => record.revision > getSyncedRevision(record) && !pendingIds.has(record.libraryId),
     )
     .map((record) => createNutritionLibraryQueueOperation({
       item: record,
@@ -201,7 +203,8 @@ export const acknowledgeNutritionLibraryOperations = async (input: {
   let changed = false;
   const next = current.map((item) => {
     const revision = revisions.get(item.libraryId);
-    if (revision === undefined || revision <= item.syncedRevision) return item;
+    const syncedRevision = getSyncedRevision(item);
+    if (revision === undefined || revision <= syncedRevision) return item;
     changed = true;
     return {
       ...item,
@@ -255,7 +258,7 @@ export const applyRemoteNutritionLibraryChanges = async (input: {
       records.set(libraryId, {
         ...previous,
         revision: Math.max(previous.revision, remoteRevision),
-        syncedRevision: Math.max(previous.syncedRevision, remoteRevision),
+        syncedRevision: Math.max(getSyncedRevision(previous), remoteRevision),
         updatedAt: entity.appliedAt ?? previous.updatedAt,
         deletedAt: entity.appliedAt ?? new Date().toISOString(),
       });
