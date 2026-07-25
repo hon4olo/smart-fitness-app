@@ -56,3 +56,10 @@ export const displayWeightInputToKg = (value: string, unit: WeightUnit): string 
   if (!Number.isFinite(parsed)) return value;
   return `${round(weightToKg(parsed, unit), 3)}`;
 };
+
+export const displayLengthInputToCm = (value: string, unit: LengthUnit): string => {
+  if (!value.trim()) return '';
+  const parsed = parseDisplayNumber(value);
+  if (!Number.isFinite(parsed)) return value;
+  return `${round(lengthToCm(parsed, unit), 3)}`;
+};

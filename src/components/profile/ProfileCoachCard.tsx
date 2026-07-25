@@ -15,12 +15,9 @@ import type {
   ProfileCalculationSex,
   ProfileTrainingExperience,
 } from '@/types';
+import type { LengthUnit } from '@/units';
 
-type Option<Value extends string> = {
-  label: string;
-  value: Value;
-};
-
+type Option<Value extends string> = { label: string; value: Value };
 type ChoiceGridProps<Value extends string> = {
   accessibilityLabel: string;
   columns?: number;
@@ -33,7 +30,6 @@ const calculationSexOptions = [
   { label: 'Male formula', value: 'male' as const },
   { label: 'Female formula', value: 'female' as const },
 ];
-
 const activityOptions = [
   { label: 'Sedentary', value: 'sedentary' as const },
   { label: 'Light', value: 'light' as const },
@@ -41,7 +37,6 @@ const activityOptions = [
   { label: 'High', value: 'high' as const },
   { label: 'Very high', value: 'very_high' as const },
 ];
-
 const experienceOptions = [
   { label: 'Beginner', value: 'beginner' as const },
   { label: 'Intermediate', value: 'intermediate' as const },
@@ -88,6 +83,7 @@ type ProfileCoachCardProps = {
   errors: CoachProfileFormErrors;
   heightCm: string;
   isSaveDisabled: boolean;
+  lengthUnit: LengthUnit;
   onActivityLevelChange: (value: CoachActivityLevel) => void;
   onCalculationSexChange: (value: ProfileCalculationSex) => void;
   onDateOfBirthChange: (value: string) => void;
@@ -104,6 +100,7 @@ export function ProfileCoachCard({
   errors,
   heightCm,
   isSaveDisabled,
+  lengthUnit,
   onActivityLevelChange,
   onCalculationSexChange,
   onDateOfBirthChange,
@@ -116,10 +113,8 @@ export function ProfileCoachCard({
     <AppCard>
       <Text style={styles.title}>Coach profile</Text>
       <Text style={styles.helpText}>
-        These fields are required for deterministic energy calculations. They are synchronized as a
-        revisioned profile and are never inferred by the model.
+        These fields are required for deterministic energy calculations. They are synchronized as a revisioned profile and are never inferred by the model.
       </Text>
-
       <FormField
         autoCapitalize="none"
         autoCorrect={false}
@@ -137,80 +132,34 @@ export function ProfileCoachCard({
         errorMessage={errors.heightCm}
         helperText="Used by deterministic BMR formulas"
         keyboardType="decimal-pad"
-        label="Height (cm)"
+        label={`Height (${lengthUnit})`}
         onChangeText={onHeightCmChange}
-        placeholder="175"
+        placeholder={lengthUnit === 'in' ? '69' : '175'}
         textContentType="none"
         value={heightCm}
       />
-
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Calculation formula</Text>
-        <Text style={styles.fieldHelp}>
-          Formula input only; this is separate from identity and display settings.
-        </Text>
-        <ChoiceGrid
-          accessibilityLabel="Calculation formula"
-          onChange={onCalculationSexChange}
-          options={calculationSexOptions}
-          value={calculationSex}
-        />
+        <Text style={styles.fieldHelp}>Formula input only; this is separate from identity and display settings.</Text>
+        <ChoiceGrid accessibilityLabel="Calculation formula" onChange={onCalculationSexChange} options={calculationSexOptions} value={calculationSex} />
         <InlineError message={errors.calculationSex} />
       </View>
-
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Activity level</Text>
-        <ChoiceGrid
-          accessibilityLabel="Activity level"
-          onChange={onActivityLevelChange}
-          options={activityOptions}
-          value={activityLevel}
-        />
+        <ChoiceGrid accessibilityLabel="Activity level" onChange={onActivityLevelChange} options={activityOptions} value={activityLevel} />
         <InlineError message={errors.activityLevel} />
       </View>
-
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Training experience</Text>
-        <ChoiceGrid
-          accessibilityLabel="Training experience"
-          columns={3}
-          onChange={onTrainingExperienceChange}
-          options={experienceOptions}
-          value={trainingExperience}
-        />
+        <ChoiceGrid accessibilityLabel="Training experience" columns={3} onChange={onTrainingExperienceChange} options={experienceOptions} value={trainingExperience} />
         <InlineError message={errors.trainingExperience} />
       </View>
-
-      <PrimaryButton
-        disabled={isSaveDisabled}
-        label="Save coach profile"
-        onPress={onSave}
-      />
-      <SecondaryButton
-        accessibilityHint="Opens the self-reported recovery check-in form"
-        label="Add recovery check-in"
-        onPress={() => router.push('/profile/recovery-check-in')}
-      />
-      <SecondaryButton
-        accessibilityHint="Opens the self-reported training limitation manager"
-        label="Manage training limitations"
-        onPress={() => router.push('/profile/limitations')}
-      />
-      <SecondaryButton
-        accessibilityHint="Opens the deterministic limitations and recovery readiness review"
-        label="Open Safety & Recovery"
-        onPress={() => router.push('/profile/safety-recovery')}
-      />
-      <SecondaryButton
-        accessibilityHint="Opens the deterministic Strength, Nutrition, and Safety combined review"
-        label="Open Combined Coach"
-        onPress={() => router.push('/profile/combined-review')}
-      />
-      <SecondaryButton
-        accessibilityHint="Builds read-only Strength and Nutrition proposals under the Safety ceiling"
-        label="Open Combined proposal"
-        onPress={() => router.push('/profile/combined-proposal')}
-      />
+      <PrimaryButton disabled={isSaveDisabled} label="Save coach profile" onPress={onSave} />
+      <SecondaryButton accessibilityHint="Opens the self-reported recovery check-in form" label="Add recovery check-in" onPress={() => router.push('/profile/recovery-check-in')} />
+      <SecondaryButton accessibilityHint="Opens the self-reported training limitation manager" label="Manage training limitations" onPress={() => router.push('/profile/limitations')} />
+      <SecondaryButton accessibilityHint="Opens the deterministic limitations and recovery readiness review" label="Open Safety & Recovery" onPress={() => router.push('/profile/safety-recovery')} />
+      <SecondaryButton accessibilityHint="Opens the deterministic Strength, Nutrition, and Safety combined review" label="Open Combined Coach" onPress={() => router.push('/profile/combined-review')} />
+      <SecondaryButton accessibilityHint="Builds read-only Strength and Nutrition proposals under the Safety ceiling" label="Open Combined proposal" onPress={() => router.push('/profile/combined-proposal')} />
     </AppCard>
   );
 }
@@ -229,52 +178,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.one,
   },
-  choiceGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.one,
-  },
-  choiceLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: Typography.label.fontSize,
-    fontWeight: Typography.label.fontWeight,
-    lineHeight: Typography.label.lineHeight,
-    textAlign: 'center',
-  },
-  choiceLabelSelected: {
-    color: Colors.dark.textPrimary,
-  },
-  choicePressed: {
-    opacity: 0.72,
-  },
-  choiceSelected: {
-    backgroundColor: Colors.dark.backgroundSelected,
-    borderColor: Colors.dark.accent,
-  },
-  fieldGroup: {
-    gap: Spacing.one,
-  },
-  fieldHelp: {
-    color: Colors.dark.textMuted,
-    fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
-  },
-  helpText: {
-    color: Colors.dark.textSecondary,
-    fontSize: Typography.body.fontSize,
-    lineHeight: Typography.body.lineHeight,
-    marginBottom: Spacing.two,
-  },
-  label: {
-    color: Colors.dark.textSecondary,
-    fontSize: Typography.label.fontSize,
-    fontWeight: Typography.label.fontWeight,
-    lineHeight: Typography.label.lineHeight,
-  },
-  title: {
-    color: Colors.dark.textPrimary,
-    fontSize: Typography.cardTitle.fontSize,
-    fontWeight: Typography.cardTitle.fontWeight,
-    lineHeight: Typography.cardTitle.lineHeight,
-  },
+  choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
+  choiceLabel: { color: Colors.dark.textSecondary, fontSize: Typography.label.fontSize, fontWeight: Typography.label.fontWeight, lineHeight: Typography.label.lineHeight, textAlign: 'center' },
+  choiceLabelSelected: { color: Colors.dark.textPrimary },
+  choicePressed: { opacity: 0.72 },
+  choiceSelected: { backgroundColor: Colors.dark.backgroundSelected, borderColor: Colors.dark.accent },
+  fieldGroup: { gap: Spacing.one },
+  fieldHelp: { color: Colors.dark.textMuted, fontSize: Typography.caption.fontSize, lineHeight: Typography.caption.lineHeight },
+  helpText: { color: Colors.dark.textSecondary, fontSize: Typography.body.fontSize, lineHeight: Typography.body.lineHeight, marginBottom: Spacing.two },
+  label: { color: Colors.dark.textSecondary, fontSize: Typography.label.fontSize, fontWeight: Typography.label.fontWeight, lineHeight: Typography.label.lineHeight },
+  title: { color: Colors.dark.textPrimary, fontSize: Typography.cardTitle.fontSize, fontWeight: Typography.cardTitle.fontWeight, lineHeight: Typography.cardTitle.lineHeight },
 });
