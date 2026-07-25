@@ -29,15 +29,18 @@ Remaining:
 Completed:
 
 - local custom foods and provider-favorite snapshots retain stable library IDs and normalized nutrition/provider attribution;
-- records carry revision, saved/updated timestamps, and deletion tombstones while legacy v1 arrays migrate during parsing;
+- records carry revision, saved/updated timestamps, deletion tombstones, and a backward-compatible synchronized-revision marker while legacy v1 arrays migrate during parsing;
 - UI selectors hide tombstones while the underlying account-scoped local store preserves them for cross-device deletion sync;
 - local create, update, favorite toggle, and removal remain immediate and offline-first;
 - backend PR #51 adds an ownership-safe revisioned `nutrition_library_items` entity, migration, tombstones, sync routing, idempotency, pull history, and account-deletion cascade;
 - signed-in local mutations enqueue idempotent create/update/delete operations through the existing durable offline queue;
-- pull application writes remote upserts and tombstones into the signed-in account library before cursor advancement;
+- planning compares local revision with the last acknowledged server revision, so clean records are not re-enqueued indefinitely;
+- pull application writes remote upserts and tombstones into the signed-in account library before cursor advancement and marks the received revision synchronized;
+- stale remote revisions cannot overwrite a newer local mutation;
 - anonymous storage remains isolated and is never silently imported into a signed-in account;
 - provider-favorite snapshots remain locally usable without another provider request;
-- automated mobile coverage now includes deterministic create/update/delete identities, recovered-pending deduplication, duplicate remote delivery, repeated tombstones, malformed remote snapshots, anonymous/account isolation, offline provider-snapshot restoration, and tombstone resurrection.
+- automated mobile coverage includes deterministic create/update/delete identities, recovered-pending deduplication, server acknowledgement, partial acknowledgement with a newer local edit, duplicate remote delivery, repeated tombstones, stale remote delivery, malformed remote snapshots, anonymous/account isolation, offline provider-snapshot restoration, and tombstone resurrection;
+- backend dispatcher coverage validates entity aliases, ownership-scoped writes, strict snapshots, stable-ID matching, tombstones, and replay inputs.
 
 Remaining:
 
