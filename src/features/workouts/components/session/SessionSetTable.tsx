@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { WorkoutSet } from '@/context/AppContext';
 import { Colors } from '@/constants/theme';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { displayWeightInputToKg, formatWeightValue, useUnitPreferences } from '@/units';
 
 import { SessionEmptySets } from './SessionEmptySets';
 import { SessionSetRow } from './SessionSetRow';
@@ -42,12 +43,15 @@ export const SessionSetTable = memo(function SessionSetTable({
   targetSetCount,
 }: SessionSetTableProps) {
   const { colors } = useAppTheme();
+  const { weight: weightUnit } = useUnitPreferences();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const rowCount = Math.max(sets.length, targetSetCount);
+  const previousLabel = (index: number) =>
+    previousSets[index]
+      ? `${formatWeightValue(previousSets[index].weight, weightUnit)}${weightUnit} x ${previousSets[index].reps}`
+      : '-';
 
-  if (rowCount === 0) {
-    return <SessionEmptySets />;
-  }
+  if (rowCount === 0) return <SessionEmptySets />;
 
   return (
     <View style={styles.table}>
@@ -59,7 +63,7 @@ export const SessionSetTable = memo(function SessionSetTable({
           <Text style={styles.headerText}>Previous</Text>
         </View>
         <View style={[styles.headerCell, styles.colWeight, styles.headerCellWeight]}>
-          <Text style={styles.headerText}>kg</Text>
+          <Text style={styles.headerText}>{weightUnit}</Text>
         </View>
         <View style={[styles.headerCell, styles.colReps, styles.headerCellReps]}>
           <Text style={styles.headerText}>Reps</Text>
@@ -72,7 +76,6 @@ export const SessionSetTable = memo(function SessionSetTable({
       <View style={styles.tableBody}>
         {Array.from({ length: rowCount }, (_, index) => {
           const set = sets[index];
-
           if (!set) {
             return (
               <SessionSetRow
@@ -84,17 +87,26 @@ export const SessionSetTable = memo(function SessionSetTable({
                 onLongPress={() => undefined}
                 onRepsChange={(value) => onPlannedRepsChange(index, value)}
                 onToggle={() => onPlannedToggleSetCompletion(index)}
-                onWeightChange={(value) => onPlannedWeightChange(index, value)}
-                previousLabel={previousSets[index] ? `${previousSets[index].weight}kg x ${previousSets[index].reps}` : '-'}
+                onWeightChange={(value) => onPlannedWeightChange(index, displayWeightInputToKg(value, weightUnit))}
+                previousLabel={previousLabel(index)}
               />
             );
           }
+
+          const canonicalDraft = draftInputs[set.id] ?? { reps: `${set.reps}`, weight: `${set.weight}` };
+          const numericWeight = Number(canonicalDraft.weight);
+          const displayDraft = {
+            reps: canonicalDraft.reps,
+            weight: Number.isFinite(numericWeight)
+              ? formatWeightValue(numericWeight, weightUnit)
+              : canonicalDraft.weight,
+          };
 
           return (
             <SessionSetRow
               key={set.id}
               completed={set.completed !== false}
-              draftValue={draftInputs[set.id] ?? { reps: `${set.reps}`, weight: `${set.weight}` }}
+              draftValue={displayDraft}
               index={index}
               actualRpe={set.actualRpe}
               onCommit={() => onCommitRowInputs(set.id)}
@@ -102,8 +114,8 @@ export const SessionSetTable = memo(function SessionSetTable({
               onLongPress={() => onLongPressRow(set.id)}
               onRepsChange={(value) => onRepsChange(set.id, value)}
               onToggle={() => onToggleSetCompletion(set.id)}
-              onWeightChange={(value) => onWeightChange(set.id, value)}
-              previousLabel={previousSets[index] ? `${previousSets[index].weight}kg x ${previousSets[index].reps}` : '-'}
+              onWeightChange={(value) => onWeightChange(set.id, displayWeightInputToKg(value, weightUnit))}
+              previousLabel={previousLabel(index)}
             />
           );
         })}
@@ -114,25 +126,12 @@ export const SessionSetTable = memo(function SessionSetTable({
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
-    colCompletion: {
-      width: SESSION_TABLE_COLUMNS.completion,
-    },
-    colPrevious: {
-      alignItems: 'flex-start',
-      width: SESSION_TABLE_COLUMNS.previous,
-    },
-    colReps: {
-      width: SESSION_TABLE_COLUMNS.reps,
-    },
-    colSet: {
-      width: SESSION_TABLE_COLUMNS.set,
-    },
-    colWeight: {
-      width: SESSION_TABLE_COLUMNS.weight,
-    },
-    headerCell: {
-      alignItems: 'center',
-    },
+    colCompletion: { width: SESSION_TABLE_COLUMNS.completion },
+    colPrevious: { alignItems: 'flex-start', width: SESSION_TABLE_COLUMNS.previous },
+    colReps: { width: SESSION_TABLE_COLUMNS.reps },
+    colSet: { width: SESSION_TABLE_COLUMNS.set },
+    colWeight: { width: SESSION_TABLE_COLUMNS.weight },
+    headerCell: { alignItems: 'center' },
     headerText: {
       color: colors.textMuted,
       fontSize: 13,
@@ -140,14 +139,8 @@ const createStyles = (colors: typeof Colors.light) =>
       lineHeight: 18,
       textAlign: 'center',
     },
-    table: {
-      alignSelf: 'center',
-      gap: 8,
-      width: SESSION_TABLE_TOTAL_WIDTH,
-    },
-    tableBody: {
-      gap: 0,
-    },
+    table: { alignSelf: 'center', gap: 8, width: SESSION_TABLE_TOTAL_WIDTH },
+    tableBody: { gap: 0 },
     tableHeader: {
       alignItems: 'center',
       flexDirection: 'row',
@@ -155,16 +148,8 @@ const createStyles = (colors: typeof Colors.light) =>
       minHeight: 22,
       width: '100%',
     },
-    headerCellPrevious: {
-      marginLeft: SESSION_TABLE_GAPS.setToPrevious,
-    },
-    headerCellWeight: {
-      marginLeft: SESSION_TABLE_GAPS.previousToWeight,
-    },
-    headerCellReps: {
-      marginLeft: SESSION_TABLE_GAPS.weightToReps,
-    },
-    headerCellCompletion: {
-      marginLeft: SESSION_TABLE_GAPS.repsToCompletion,
-    },
+    headerCellPrevious: { marginLeft: SESSION_TABLE_GAPS.setToPrevious },
+    headerCellWeight: { marginLeft: SESSION_TABLE_GAPS.previousToWeight },
+    headerCellReps: { marginLeft: SESSION_TABLE_GAPS.weightToReps },
+    headerCellCompletion: { marginLeft: SESSION_TABLE_GAPS.repsToCompletion },
   });
