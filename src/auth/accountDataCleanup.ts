@@ -22,6 +22,9 @@ import {
   type StorageAdapter,
 } from '@/storage';
 
+export const PENDING_ACCOUNT_CLEANUP_STORAGE_KEY =
+  '@smart_fitness_pending_account_cleanup';
+
 const STATIC_ACCOUNT_DATA_KEYS = [
   APP_STATE_STORAGE_KEY,
   APP_MUTATION_OUTBOX_RECOVERY_STORAGE_KEY,
@@ -43,6 +46,11 @@ const STATIC_ACCOUNT_DATA_KEYS = [
   WORKOUT_TEMPLATE_SYNC_METADATA_STORAGE_KEY,
 ] as const;
 
+type PendingAccountCleanup = {
+  userId: string;
+  requestedAt: string;
+};
+
 export const getLocalAccountDataStorageKeys = (userId: string): string[] =>
   Array.from(
     new Set([
@@ -62,7 +70,25 @@ export class AccountDataCleanupError extends Error {
   }
 }
 
-export const clearLocalAccountData = async (
+const parsePendingCleanup = (raw: string | null): PendingAccountCleanup | null => {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<PendingAccountCleanup>;
+    return typeof parsed.userId === 'string' && parsed.userId.trim()
+      ? {
+          userId: parsed.userId.trim(),
+          requestedAt:
+            typeof parsed.requestedAt === 'string'
+              ? parsed.requestedAt
+              : new Date(0).toISOString(),
+        }
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const removeAccountDataKeys = async (
   storage: StorageAdapter,
   userId: string,
 ): Promise<void> => {
@@ -75,4 +101,33 @@ export const clearLocalAccountData = async (
   if (failedKeys.length > 0) {
     throw new AccountDataCleanupError(failedKeys);
   }
+};
+
+export const clearLocalAccountData = async (
+  storage: StorageAdapter,
+  userId: string,
+): Promise<void> => {
+  await storage.write(
+    PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
+    JSON.stringify({ userId, requestedAt: new Date().toISOString() }),
+  );
+  await removeAccountDataKeys(storage, userId);
+  await storage.remove(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY);
+};
+
+export const resumePendingLocalAccountCleanup = async (
+  storage: StorageAdapter,
+): Promise<boolean> => {
+  const raw = await storage.read(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY);
+  if (!raw) return false;
+
+  const pending = parsePendingCleanup(raw);
+  if (!pending) {
+    await storage.remove(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY);
+    return false;
+  }
+
+  await removeAccountDataKeys(storage, pending.userId);
+  await storage.remove(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY);
+  return true;
 };
