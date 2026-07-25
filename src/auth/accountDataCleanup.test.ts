@@ -5,6 +5,7 @@ import type { StorageAdapter } from '@/storage';
 import {
   PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
   clearLocalAccountData,
+  completeLocalAccountCleanup,
   getLocalAccountDataStorageKeys,
   resumePendingLocalAccountCleanup,
 } from './accountDataCleanup';
@@ -42,10 +43,13 @@ describe('local account data cleanup', () => {
 
     for (const key of accountKeys) expect(storage.values.has(key), key).toBe(false);
     expect(storage.values.get('@smart_fitness_theme_mode')).toBe('dark');
+    expect(storage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(true);
+
+    await completeLocalAccountCleanup(storage);
     expect(storage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(false);
   });
 
-  it('uses a separate secure marker store and clears it after success', async () => {
+  it('uses a separate secure marker store and clears it only after completion', async () => {
     const userId = 'user-secure';
     const keys = getLocalAccountDataStorageKeys(userId);
     const dataStorage = createMemoryStorage(
@@ -56,6 +60,9 @@ describe('local account data cleanup', () => {
     await clearLocalAccountData(dataStorage, userId, markerStorage);
 
     for (const key of keys) expect(dataStorage.values.has(key), key).toBe(false);
+    expect(markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(true);
+
+    await completeLocalAccountCleanup(markerStorage);
     expect(markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(false);
   });
 
@@ -94,7 +101,7 @@ describe('local account data cleanup', () => {
     expect(storage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(true);
   });
 
-  it('resumes pending cleanup before allowing state restoration', async () => {
+  it('resumes pending cleanup but retains the marker until auth cleanup finishes', async () => {
     const userId = 'user-3';
     const keys = getLocalAccountDataStorageKeys(userId);
     const dataStorage = createMemoryStorage(
@@ -109,6 +116,9 @@ describe('local account data cleanup', () => {
 
     expect(await resumePendingLocalAccountCleanup(dataStorage, markerStorage)).toBe(true);
     for (const key of keys) expect(dataStorage.values.has(key), key).toBe(false);
+    expect(markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(true);
+
+    await completeLocalAccountCleanup(markerStorage);
     expect(markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(false);
   });
 });
