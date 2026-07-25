@@ -1,8 +1,8 @@
 import { usePathname } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
+import { useAppContext } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
-import type { AppMutationFailure } from '@/types';
 
 import {
   captureOperationalFailure,
@@ -11,8 +11,10 @@ import {
 
 export function CrashReportContextBridge() {
   const pathname = usePathname();
+  const { mutationFailure } = useAppContext();
   const { error, status } = useWeightSync();
   const lastCapturedSyncErrorRef = useRef<string | null>(null);
+  const lastCapturedMutationFailureRef = useRef<string | null>(null);
 
   useEffect(() => {
     setCrashReportRuntimeContext({ pathname, syncStatus: status });
@@ -26,23 +28,15 @@ export function CrashReportContextBridge() {
     captureOperationalFailure('sync', safeError);
   }, [error, status]);
 
-  return null;
-}
-
-export function MutationFailureTelemetry({
-  failure,
-}: {
-  failure: AppMutationFailure | null;
-}) {
-  const lastCapturedFailureRef = useRef<string | null>(null);
-
   useEffect(() => {
-    if (!failure || lastCapturedFailureRef.current === failure.id) return;
-    lastCapturedFailureRef.current = failure.id;
+    if (!mutationFailure || lastCapturedMutationFailureRef.current === mutationFailure.id) return;
+    lastCapturedMutationFailureRef.current = mutationFailure.id;
     const safeError = new Error('Application data mutation failed');
-    safeError.name = failure.stage === 'outbox' ? 'OutboxMutationFailure' : 'LocalPersistenceFailure';
+    safeError.name = mutationFailure.stage === 'outbox'
+      ? 'OutboxMutationFailure'
+      : 'LocalPersistenceFailure';
     captureOperationalFailure('persistence', safeError);
-  }, [failure]);
+  }, [mutationFailure]);
 
   return null;
 }
