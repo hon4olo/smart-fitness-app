@@ -15,7 +15,6 @@ describe('product simplification 2.0', () => {
     const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
     const startNowBlock = source.slice(source.indexOf("activeTab === 'start-now'"), source.indexOf('<View style={styles.programList}>'));
     const programsBlock = source.slice(source.indexOf('<View style={styles.programList}>'), source.indexOf('</View>', source.indexOf('<View style={styles.programList}>')));
-
     expect(startNowBlock).toContain('suggested.map');
     expect(startNowBlock).toContain('Recently Added');
     expect(programsBlock).not.toContain('title="Programs"');
@@ -29,7 +28,6 @@ describe('product simplification 2.0', () => {
 
   test('workouts screen uses a consistent card and program metadata model', () => {
     const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
-
     expect(source).toContain('summary.subtitle || `${summary.exerciseCount} exercises`');
     expect(source).toContain('summary.workout.title');
     expect(source).toContain('RoutineCard');
@@ -45,7 +43,6 @@ describe('product simplification 2.0', () => {
 
   test('progress screen keeps one weight summary and hides duplicate analytics blocks', () => {
     const source = readSource('src/app/(tabs)/progress.tsx');
-
     expect(source).toContain('Current weight');
     expect(source).not.toContain('7-day');
     expect(source).not.toContain('30-day');
@@ -55,7 +52,6 @@ describe('product simplification 2.0', () => {
 
   test('home screen stays within three primary content sections', () => {
     const source = readSource('src/app/(tabs)/index.tsx');
-
     expect(source).toContain('HomeSummaryCard');
     expect(source).toContain('QuickActionsCard');
     expect(source).toContain('HomeSnapshotCard');
@@ -71,7 +67,6 @@ describe('product simplification 2.0', () => {
     const weekStrip = readSource('src/features/nutrition/components/NutritionWeekStrip.tsx');
     const detailsSection = readSource('src/features/nutrition/components/NutritionDetailsSection.tsx');
     const nutritionUi = [source, summaryGrid, mealGroup, foodEntryRow, weekStrip, detailsSection].join('\n');
-
     expect(source).toContain('Nutrition');
     expect(source).toContain('calendarButton');
     expect(source).toContain('summarySection');
@@ -101,11 +96,7 @@ describe('product simplification 2.0', () => {
   });
 
   test('nutrition picker route keeps the meal-aware modes and quiet edit/delete path', () => {
-    const source = [
-      readSource('src/app/nutrition/add-food.tsx'),
-      readSource('src/features/nutrition/components/NutritionAddFoodView.tsx'),
-    ].join('\n');
-
+    const source = [readSource('src/app/nutrition/add-food.tsx'), readSource('src/features/nutrition/components/NutritionAddFoodView.tsx')].join('\n');
     expect(source).toContain("label: 'Food'");
     expect(source).toContain("label: 'Recent'");
     expect(source).toContain("label: 'Favorites'");
@@ -120,7 +111,6 @@ describe('product simplification 2.0', () => {
 
   test('profile screen does not render a duplicated account snapshot', () => {
     const source = readSource('src/app/(tabs)/profile.tsx');
-
     expect(source).not.toContain('ProfileHeaderCard');
     expect(source).not.toContain('Account Snapshot');
     expect(source).toContain('ProfileGoalsCard');
@@ -129,7 +119,6 @@ describe('product simplification 2.0', () => {
 
   test('tab bar is compact and conventional', () => {
     const source = readSource('src/app/(tabs)/_layout.tsx');
-
     expect(source).toContain('Tabs');
     expect(source).not.toContain('NativeTabs');
     expect(source).toContain('tabBarHeight');
@@ -140,7 +129,6 @@ describe('product simplification 2.0', () => {
 
   test('theme tokens remain valid', () => {
     const themeSource = readSource('src/constants/theme.ts');
-
     expect(themeSource).toContain("'system'");
     expect(themeSource).toContain("'light'");
     expect(themeSource).toContain("'dark'");
@@ -162,7 +150,6 @@ describe('product simplification 2.0', () => {
     const picker = readSource('src/components/workouts/ProgramWorkoutPickerModal.tsx');
     const editor = readSource('src/components/workouts/ProgramWorkoutEditorModal.tsx');
     const workoutBuilderCard = readSource('src/components/workouts/WorkoutBuilderCard.tsx');
-
     expect(workouts).toContain('Start Now');
     expect(workouts).toContain('Programs');
     expect(workouts).not.toContain('Start empty workout');
@@ -176,9 +163,10 @@ describe('product simplification 2.0', () => {
     expect(profile).toContain("router.push('/settings')");
     expect(settings).toContain('settings.appearance');
     expect(settings).toContain('settings.language');
+    expect(settings).toContain('setWeightUnit');
     expect(sessionTable).toContain('Set');
     expect(sessionTable).toContain('Previous');
-    expect(sessionTable).toContain('kg');
+    expect(sessionTable).toContain('weightUnit');
     expect(sessionTable).toContain('Reps');
     expect(sessionTable).toContain('✓');
     expect(sessionTable).not.toContain('colOverflow');
