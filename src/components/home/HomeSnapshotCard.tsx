@@ -6,11 +6,18 @@ import type { HomeSnapshotItem } from '@/lib/home';
 
 type HomeSnapshotCardProps = {
   items: HomeSnapshotItem[];
+  subtitle: string;
+  title: string;
 };
 
 function SnapshotTile({ detail, label, tone = 'neutral', value }: HomeSnapshotItem) {
   return (
-    <View style={[styles.tile, tone === 'positive' && styles.tilePositive, tone === 'warning' && styles.tileWarning]}>
+    <View
+      style={[
+        styles.tile,
+        tone === 'positive' && styles.tilePositive,
+        tone === 'warning' && styles.tileWarning,
+      ]}>
       <Text selectable style={styles.tileLabel}>
         {label}
       </Text>
@@ -24,15 +31,15 @@ function SnapshotTile({ detail, label, tone = 'neutral', value }: HomeSnapshotIt
   );
 }
 
-export function HomeSnapshotCard({ items }: HomeSnapshotCardProps) {
+export function HomeSnapshotCard({ items, subtitle, title }: HomeSnapshotCardProps) {
   return (
     <AppCard>
       <View style={styles.header}>
         <Text selectable style={styles.title}>
-          Weekly snapshot
+          {title}
         </Text>
         <Text selectable style={styles.subtitle}>
-          Workouts, calories, weight, and training volume.
+          {subtitle}
         </Text>
       </View>
 
