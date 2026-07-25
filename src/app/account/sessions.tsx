@@ -23,9 +23,12 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useLocalization } from '@/localization';
+import { localizeSessionManagementMessage } from '@/localization/authCopy';
 
 export default function SessionsScreen() {
   const router = useRouter();
+  const { formatDate, t } = useLocalization();
   const { session } = useAuthSession();
   const accessToken = session?.tokens.accessToken ?? null;
   const [sessions, setSessions] = useState<AuthSessionSummary[]>([]);
@@ -39,7 +42,7 @@ export default function SessionsScreen() {
       if (!accessToken) {
         setLoading(false);
         setSessions([]);
-        setError('Sign in to manage your devices.');
+        setError(null);
         return;
       }
 
@@ -64,18 +67,20 @@ export default function SessionsScreen() {
 
   const confirmRevoke = (target: AuthSessionSummary) => {
     Alert.alert(
-      'Sign out this device?',
-      `${target.deviceName} will need to sign in again.`,
+      t('sessions.confirmOneTitle'),
+      t('sessions.confirmOneBody', { device: target.deviceName }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Sign out',
+          text: t('sessions.signOut'),
           style: 'destructive',
           onPress: () => {
             if (!accessToken) return;
             setBusyId(target.id);
             void revokeAuthSession(accessToken, target.id)
-              .then(() => setSessions((current) => current.filter((item) => item.id !== target.id)))
+              .then(() =>
+                setSessions((current) => current.filter((item) => item.id !== target.id)),
+              )
               .catch((nextError) => setError(getSafeSessionManagementError(nextError)))
               .finally(() => setBusyId(null));
           },
@@ -88,12 +93,14 @@ export default function SessionsScreen() {
     const otherCount = sessions.filter((item) => !item.isCurrent).length;
     if (otherCount === 0) return;
     Alert.alert(
-      'Sign out other devices?',
-      `${otherCount} other ${otherCount === 1 ? 'device' : 'devices'} will need to sign in again. This device stays signed in.`,
+      t('sessions.confirmOthersTitle'),
+      otherCount === 1
+        ? t('sessions.confirmOthersBodyOne')
+        : t('sessions.confirmOthersBodyMany', { count: otherCount }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Sign out others',
+          text: t('sessions.signOutOthers'),
           style: 'destructive',
           onPress: () => {
             if (!accessToken) return;
@@ -109,30 +116,49 @@ export default function SessionsScreen() {
   };
 
   const otherCount = sessions.filter((item) => !item.isCurrent).length;
+  const formatSessionDate = (value: string) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? t('sessions.unknownDate')
+      : formatDate(date, { dateStyle: 'medium', timeStyle: 'short' });
+  };
+  const formatPlatform = (platform: string) =>
+    platform
+      ? platform.charAt(0).toUpperCase() + platform.slice(1)
+      : t('sessions.unknownPlatform');
 
   return (
     <ScrollView
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load('refresh')} />}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={() => void load('refresh')} />
+      }
       style={styles.screen}>
       <View style={styles.headerRow}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
+        <Pressable
+          accessibilityLabel={t('common.back')}
+          accessibilityRole="button"
+          onPress={() => router.back()}
+          style={styles.backButton}>
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.headerCopy}>
-          <Text style={styles.eyebrow}>ACCOUNT & SECURITY</Text>
-          <Text style={styles.title}>Devices & sessions</Text>
-          <Text style={styles.subtitle}>Review where your account is signed in and remove access you do not recognize.</Text>
+          <Text style={styles.eyebrow}>{t('sessions.eyebrow')}</Text>
+          <Text style={styles.title}>{t('sessions.title')}</Text>
+          <Text style={styles.subtitle}>{t('sessions.subtitle')}</Text>
         </View>
       </View>
 
-      {loading ? <LoadingState label="Loading signed-in devices…" /> : null}
-      {error ? <InlineError message={error} /> : null}
+      {!accessToken && !loading ? <InlineError message={t('sessions.signInRequired')} /> : null}
+      {loading ? <LoadingState label={t('sessions.loading')} /> : null}
+      {error ? (
+        <InlineError message={localizeSessionManagementMessage(error, t)} />
+      ) : null}
 
-      {!loading && sessions.length === 0 ? (
+      {accessToken && !loading && sessions.length === 0 ? (
         <AppCard>
-          <Text style={styles.emptyTitle}>No active sessions found</Text>
-          <Text style={styles.subtitle}>Refresh the page or sign in again.</Text>
+          <Text style={styles.emptyTitle}>{t('sessions.emptyTitle')}</Text>
+          <Text style={styles.subtitle}>{t('sessions.emptyBody')}</Text>
         </AppCard>
       ) : null}
 
@@ -141,27 +167,33 @@ export default function SessionsScreen() {
           <View style={styles.sessionHeader}>
             <View style={styles.sessionTitleGroup}>
               <Text style={styles.sessionTitle}>{item.deviceName}</Text>
-              <Text style={styles.sessionMeta}>{formatPlatform(item.platform)} · App {item.appVersion}</Text>
+              <Text style={styles.sessionMeta}>
+                {formatPlatform(item.platform)} · App {item.appVersion}
+              </Text>
             </View>
-            {item.isCurrent ? <Text style={styles.currentBadge}>THIS DEVICE</Text> : null}
+            {item.isCurrent ? (
+              <Text style={styles.currentBadge}>{t('sessions.currentBadge')}</Text>
+            ) : null}
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Last active</Text>
-            <Text style={styles.detailValue}>{formatDate(item.lastSeenAt)}</Text>
+            <Text style={styles.detailLabel}>{t('sessions.lastActive')}</Text>
+            <Text style={styles.detailValue}>{formatSessionDate(item.lastSeenAt)}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Signed in</Text>
-            <Text style={styles.detailValue}>{formatDate(item.createdAt)}</Text>
+            <Text style={styles.detailLabel}>{t('sessions.signedIn')}</Text>
+            <Text style={styles.detailValue}>{formatSessionDate(item.createdAt)}</Text>
           </View>
           {!item.isCurrent ? (
             <SecondaryButton
               disabled={busyId !== null}
-              label={busyId === item.id ? 'Signing out…' : 'Sign out device'}
+              label={
+                busyId === item.id ? t('sessions.signingOut') : t('sessions.signOutDevice')
+              }
               loading={busyId === item.id}
               onPress={() => confirmRevoke(item)}
             />
           ) : (
-            <Text style={styles.currentNote}>Use Logout on the Profile screen to end this session.</Text>
+            <Text style={styles.currentNote}>{t('sessions.currentNote')}</Text>
           )}
         </AppCard>
       ))}
@@ -169,7 +201,11 @@ export default function SessionsScreen() {
       {otherCount > 0 ? (
         <SecondaryButton
           disabled={busyId !== null}
-          label={busyId === 'others' ? 'Signing out other devices…' : 'Sign out all other devices'}
+          label={
+            busyId === 'others'
+              ? t('sessions.signingOutOthers')
+              : t('sessions.signOutAllOthers')
+          }
           loading={busyId === 'others'}
           onPress={confirmRevokeOthers}
         />
@@ -177,16 +213,6 @@ export default function SessionsScreen() {
     </ScrollView>
   );
 }
-
-const formatPlatform = (platform: string) =>
-  platform ? platform.charAt(0).toUpperCase() + platform.slice(1) : 'Unknown platform';
-
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? 'Unknown'
-    : new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
-};
 
 const styles = StyleSheet.create({
   backButton: {
