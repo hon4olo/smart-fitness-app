@@ -1,0 +1,43 @@
+name: One-time production OTA
+
+on:
+  push:
+    branches:
+      - ota/visual-ux-20260726
+
+jobs:
+  publish:
+    name: Publish production update
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+    steps:
+      - name: Check Expo token
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "EXPO_TOKEN repository secret is required for EAS Update."
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish production OTA
+        run: eas update --channel production --environment production --message "Visual UX: Profile, Settings, onboarding, sync notice, and Russian Home" --non-interactive
