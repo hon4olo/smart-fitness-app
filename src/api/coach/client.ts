@@ -35,7 +35,11 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const parseCoachRunDetailEnvelope = (value: unknown): CoachRunEnvelope => {
   const envelope = parseCoachRunEnvelope(value);
   if (!isRecord(value) || value.trust === undefined) return envelope;
-  return { ...envelope, trust: parseCoachRunTrustState(value.trust) };
+  try {
+    return { ...envelope, trust: parseCoachRunTrustState(value.trust) };
+  } catch {
+    return { ...envelope, trustValidationFailed: true };
+  }
 };
 
 const sleep = (ms: number, signal?: AbortSignal): Promise<void> =>
