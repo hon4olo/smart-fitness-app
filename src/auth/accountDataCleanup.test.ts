@@ -45,6 +45,43 @@ describe('local account data cleanup', () => {
     expect(storage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(false);
   });
 
+  it('uses a separate secure marker store and clears it after success', async () => {
+    const userId = 'user-secure';
+    const keys = getLocalAccountDataStorageKeys(userId);
+    const dataStorage = createMemoryStorage(
+      Object.fromEntries(keys.map((key) => [key, 'private'])),
+    );
+    const markerStorage = createMemoryStorage();
+
+    await clearLocalAccountData(dataStorage, userId, markerStorage);
+
+    for (const key of keys) expect(dataStorage.values.has(key), key).toBe(false);
+    expect(markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(false);
+  });
+
+  it('continues removing account data when the secure marker cannot be written', async () => {
+    const userId = 'user-marker-failure';
+    const keys = getLocalAccountDataStorageKeys(userId);
+    const dataStorage = createMemoryStorage(
+      Object.fromEntries(keys.map((key) => [key, 'private'])),
+    );
+    const markerStorage: StorageAdapter = {
+      async read() {
+        return null;
+      },
+      async write() {
+        throw new Error('secure storage unavailable');
+      },
+      async remove() {
+        return undefined;
+      },
+    };
+
+    await clearLocalAccountData(dataStorage, userId, markerStorage);
+
+    for (const key of keys) expect(dataStorage.values.has(key), key).toBe(false);
+  });
+
   it('retains a durable marker when cleanup is interrupted', async () => {
     const userId = 'user-2';
     const failedKey = getLocalAccountDataStorageKeys(userId)[0] as string;
@@ -60,16 +97,18 @@ describe('local account data cleanup', () => {
   it('resumes pending cleanup before allowing state restoration', async () => {
     const userId = 'user-3';
     const keys = getLocalAccountDataStorageKeys(userId);
-    const storage = createMemoryStorage({
-      ...Object.fromEntries(keys.map((key) => [key, 'private'])),
+    const dataStorage = createMemoryStorage(
+      Object.fromEntries(keys.map((key) => [key, 'private'])),
+    );
+    const markerStorage = createMemoryStorage({
       [PENDING_ACCOUNT_CLEANUP_STORAGE_KEY]: JSON.stringify({
         userId,
         requestedAt: '2026-07-25T00:00:00.000Z',
       }),
     });
 
-    expect(await resumePendingLocalAccountCleanup(storage)).toBe(true);
-    for (const key of keys) expect(storage.values.has(key), key).toBe(false);
-    expect(storage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(false);
+    expect(await resumePendingLocalAccountCleanup(dataStorage, markerStorage)).toBe(true);
+    for (const key of keys) expect(dataStorage.values.has(key), key).toBe(false);
+    expect(markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(false);
   });
 });
