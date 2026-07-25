@@ -7,6 +7,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useWeightSync } from '@/context/SyncContext';
 import { DataRecoveryCard } from '@/features/settings/DataRecoveryCard';
+import { SupportDiagnosticsCard } from '@/features/settings/SupportDiagnosticsCard';
 import { SyncConflictReviewCard } from '@/features/settings/SyncConflictReviewCard';
 import { getSyncStatusCopy, getSyncStatusExplanation } from '@/features/settings/syncStatusCopy';
 import { useLocalization } from '@/localization';
@@ -66,6 +67,11 @@ export default function SyncBackupScreen() {
 
         <DataRecoveryCard />
         <SyncConflictReviewCard />
+        <SupportDiagnosticsCard
+          conflictCount={conflictCount}
+          pendingOperations={pendingOperations}
+          syncStatus={status}
+        />
       </View>
     </ScrollView>
   );
