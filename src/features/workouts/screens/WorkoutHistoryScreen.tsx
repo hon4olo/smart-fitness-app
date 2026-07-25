@@ -7,6 +7,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { weightFromKg, useUnitPreferences } from '@/units';
 import {
   buildWorkoutHistoryProgramOptions,
   filterWorkoutHistory,
@@ -109,6 +110,7 @@ export default function WorkoutHistoryScreen() {
     [params.from, params.safety, params.to],
   );
   const { trainingPrograms, workoutSessions } = useAppContext();
+  const { weight: weightUnit } = useUnitPreferences();
   const { colors } = useAppTheme();
   const styles = useMemo(() => createWorkoutHistoryScreenStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -149,6 +151,9 @@ export default function WorkoutHistoryScreen() {
     setProgramId('all');
     setSafety('all');
   };
+
+  const formatVolume = (volumeKg: number) =>
+    `${Math.round(weightFromKg(volumeKg, weightUnit)).toLocaleString()} ${weightUnit}`;
 
   return (
     <View style={styles.screen}>
@@ -321,7 +326,7 @@ export default function WorkoutHistoryScreen() {
                         <Text style={styles.metricLabel}>Exercises</Text>
                       </View>
                       <View style={styles.metricCell}>
-                        <Text style={styles.metricValue}>{item.volumeLabel}</Text>
+                        <Text style={styles.metricValue}>{formatVolume(item.volume)}</Text>
                         <Text style={styles.metricLabel}>Volume</Text>
                       </View>
                     </View>
