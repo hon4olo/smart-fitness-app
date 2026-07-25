@@ -5,6 +5,7 @@ import { FormField } from '@/components/ui/FormField';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing, Typography } from '@/constants/theme';
+import type { WeightUnit } from '@/units';
 
 type ProfileGoalsCardProps = {
   goalType: 'lose_fat' | 'maintain' | 'gain_muscle';
@@ -17,6 +18,7 @@ type ProfileGoalsCardProps = {
   targetWeight: string;
   trainingDaysPerWeek: string;
   weeklyWeightChangeGoal: string;
+  weightUnit: WeightUnit;
 };
 
 const goalOptions = [
@@ -36,18 +38,37 @@ export function ProfileGoalsCard({
   targetWeight,
   trainingDaysPerWeek,
   weeklyWeightChangeGoal,
+  weightUnit,
 }: ProfileGoalsCardProps) {
   return (
     <AppCard>
       <Text style={styles.sectionTitle}>Goals</Text>
-
-      <FormField keyboardType="decimal-pad" label="Target weight (kg)" onChangeText={onTargetWeightChange} placeholder="75" textContentType="none" value={targetWeight} />
-      <FormField keyboardType="decimal-pad" label="Weekly weight change goal (kg/week)" onChangeText={onWeeklyWeightChangeGoalChange} placeholder="0.25" textContentType="none" value={weeklyWeightChangeGoal} />
-      <FormField keyboardType="number-pad" label="Training days per week" onChangeText={onTrainingDaysPerWeekChange} placeholder="3" textContentType="none" value={trainingDaysPerWeek} />
-
+      <FormField
+        keyboardType="decimal-pad"
+        label={`Target weight (${weightUnit})`}
+        onChangeText={onTargetWeightChange}
+        placeholder={weightUnit === 'lb' ? '165' : '75'}
+        textContentType="none"
+        value={targetWeight}
+      />
+      <FormField
+        keyboardType="decimal-pad"
+        label={`Weekly weight change goal (${weightUnit}/week)`}
+        onChangeText={onWeeklyWeightChangeGoalChange}
+        placeholder={weightUnit === 'lb' ? '0.5' : '0.25'}
+        textContentType="none"
+        value={weeklyWeightChangeGoal}
+      />
+      <FormField
+        keyboardType="number-pad"
+        label="Training days per week"
+        onChangeText={onTrainingDaysPerWeekChange}
+        placeholder="3"
+        textContentType="none"
+        value={trainingDaysPerWeek}
+      />
       <Text style={styles.goalLabel}>Primary goal</Text>
       <SegmentedControl accessibilityLabel="Primary goal" onChange={onGoalTypeChange} options={goalOptions} value={goalType} />
-
       <PrimaryButton disabled={isSaveDisabled} label="Save goals" onPress={onSaveGoals} />
     </AppCard>
   );
