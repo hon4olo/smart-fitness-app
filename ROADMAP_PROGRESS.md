@@ -9,6 +9,7 @@ Read this file together with:
 - `AGENTS.md`;
 - `PROJECT_LEARNINGS.md`;
 - `docs/implementation-plan.md`;
+- `docs/nutrition-roadmap.md`;
 - `docs/release/validation-record-2026-07-24.md`;
 - `docs/release/rollout-and-rollback.md`;
 - backend `hon4olo/smart-fitness-backend/AGENTS.md` when backend changes are required.
@@ -30,16 +31,20 @@ Always inspect the latest `main` and open pull requests in both repositories bef
 - Keep every hand-written source file at or below 500 physical lines.
 - Do not add Supabase, Firebase, a second backend, direct mobile model calls, or provider secrets in the mobile app.
 - Do not perform OTA/EAS publish, native builds, device installation, backend deployment, staging credential activation, or production feature activation unless explicitly requested.
+- New user-facing copy must use the localization layer after Phase I starts; do not continue expanding hardcoded screen copy.
+- Privacy-sensitive health, nutrition, workout, limitation, authentication, or Coach content must not be added to analytics or crash telemetry.
 
 ## Overall completion
 
-The architecture, synchronization, Coach, and repository-CI roadmap remains about 98–99% complete at source-code level. A focused Nutrition UX hardening phase was added after a child-flow audit found concrete date, validation, serving-display, destructive-action, favorites, keyboard, and narrow-device layout defects. This phase does not alter the main Nutrition diary screen.
+The core architecture, synchronization, Coach contracts, production backend, and repository CI are substantially complete at source-code level. The project is not yet considered release-complete because production observability, account lifecycle, localization, application settings, staged OTA validation, native builds, real-device testing, and second-device verification remain.
 
 The remaining work is concentrated in:
 
-1. Nutrition child-flow hardening and release-device validation;
-2. protected cross-repository and staging validation;
-3. native-build, offline-restart, and second-device validation.
+1. release validation, crash observability, and safe OTA rollout;
+2. account lifecycle, privacy-safe analytics, and user-visible sync status;
+3. localization, units, accessibility, and a dedicated Settings experience;
+4. cross-device Nutrition library synchronization;
+5. visual regression coverage and long-term local-storage scalability.
 
 ## Completed foundation
 
@@ -190,7 +195,7 @@ Combined never offers an aggregate apply operation. Effective Strength and Nutri
 
 ### Phase E — release readiness
 
-Status: repository-local gates and release procedures are complete; combined private-repository, staging, native, and device validation remain.
+Status: production backend smoke passed; cross-repository, staging, native, OTA, offline-restart, and multi-device validation remain.
 
 Required:
 
@@ -212,13 +217,13 @@ Completed Phase E source/CI slices:
 - backend PR `#46`, merge `c8cf3f848e9debacf5e12a105501f5ca8d5cbc96`: PostgreSQL 16, production config, initial/repeated migrations, migrated-schema integration, and full tests;
 - backend PR `#47`, merge `bb9129ac6a4a3654f5c0d478a547d33fe5272b9a`: compiled production startup and `/health` gate;
 - mobile PR `#88`, merge `92749354b5812fe95ba8b698f2f78c67231d6bb7`: optional `BACKEND_REPOSITORY_TOKEN` support for private backend checkout;
-- validation attempt run `30099396214`: mobile exact-SHA job passed; backend job stopped at private cross-repository checkout before code execution.
+- production smoke: health, registration, auth, refresh, user profile, sync push/pull with `weightHistory`, idempotent replay, Coach capabilities, logout, and post-logout revocation passed without HTTP 5xx, backend exceptions, or PostgreSQL errors.
 
 The combined gate remains blocked until the mobile repository receives a read-only Actions secret named `BACKEND_REPOSITORY_TOKEN` with access to `hon4olo/smart-fitness-backend`. This is an external repository-access configuration item. See `docs/release/validation-record-2026-07-24.md`.
 
 ### Phase F — Nutrition UX hardening
 
-Status: in progress. The main Nutrition diary screen is the visual reference and must remain unchanged.
+Status: source-code work complete; release-device and second-device validation remain. The main Nutrition diary screen remains unchanged.
 
 Completed child-flow slices:
 
@@ -232,32 +237,204 @@ Completed child-flow slices:
 - [x] require confirmation before deleting a diary entry or saved meal;
 - [x] persist explicit local-catalog favorites in an anonymous device scope or a separate signed-in user scope;
 - [x] stop treating recent foods as implicit favorites and allow removal directly from the Favorites tab;
-- [x] render the portion editor in an accessible modal with bounded height, scrolling, keyboard avoidance, and safe-area padding.
+- [x] render the portion editor in an accessible modal with bounded height, scrolling, keyboard avoidance, and safe-area padding;
+- [x] add saved-meal detail, rename, and replace-from-current-diary actions;
+- [x] debounce full provider search and autocomplete in one request cycle;
+- [x] distinguish waiting, loading, empty, provider-error, and local-fallback states;
+- [x] persist reusable custom foods in an account-scoped offline library;
+- [x] persist provider-favorite snapshots for reuse without another provider lookup;
+- [x] expose local favorites, provider favorites, and custom foods through one Favorites & My foods surface.
 
-Remaining Nutrition UX work:
+Latest Nutrition slices:
 
-- [ ] decide whether remote-provider results need reusable favorite snapshots in addition to local-catalog favorites;
-- [ ] add a saved-meal detail/edit/rename flow instead of limiting management to quick add and delete;
-- [ ] debounce full remote food search, not only autocomplete, and distinguish offline, empty, and provider-error states;
-- [ ] decide whether reusable custom foods require a dedicated library/edit/delete screen;
-- [ ] run release-device smoke tests for date selection, search, provider portions, quick add, favorites across account changes, custom food, edit/delete, saved meals, barcode lookup, permission denial, keyboard handling, and offline fallback.
+- mobile PR `#91`, merge `d1f4dd5c801c371b07da930623b6bcf86cbdcc7f`: child-flow bug and layout hardening;
+- mobile PR `#92`, merge `b183daaba66a361d66e8f4822a27c43f8f0cdd60`: persistent account-scoped local favorites;
+- mobile PR `#93`, merge `290face80038e33a35070b50618749877659e23e`: keyboard-safe portion editor;
+- mobile PR `#94`, merge `9f4aab6a705f133055e63244515d546bbc2d80df`: saved-meal management, debounced search states, custom-food library, and provider-favorite snapshots.
+
+Remaining validation:
+
+- [ ] run the full Nutrition flow on a matching production-channel iPhone build;
+- [ ] verify keyboard behavior on the smallest supported iPhone viewport;
+- [ ] verify provider search during airplane mode, timeout, empty result, and recovery;
+- [ ] verify anonymous-to-account and account-to-account library isolation;
+- [ ] verify saved-meal rename/replacement synchronization on a second device;
+- [ ] verify barcode permission denial, lookup failure, manual creation, and repeat scan.
 
 Guardrails:
 
 - do not modify `src/app/(tabs)/nutrition.tsx` or its diary presentation solely to complete Phase F;
 - preserve offline-first food-entry and meal-template mutations;
-- do not add a new backend, provider secret, native dependency, or direct provider call from the mobile app;
-- keep all Phase F changes OTA-safe unless a later explicitly approved scanner/native requirement proves otherwise.
+- keep provider credentials and provider-specific authentication on the backend;
+- keep Phase F source changes OTA-safe unless a later explicitly approved native requirement proves otherwise.
+
+### Phase G — production observability and safe rollout
+
+Priority: P0, required before a broad public beta.
+
+- [ ] add privacy-safe crash reporting for JS exceptions and native crashes;
+- [ ] upload source maps for native builds and EAS Updates;
+- [ ] attach app version, runtime version, Git commit, EAS update ID, route, online state, and non-sensitive failure category to reports;
+- [ ] record sync, persistence, auth-refresh, and API failure categories without request bodies, tokens, email, health values, Coach prompts, or Coach responses;
+- [ ] add a production error boundary with a recover/restart path and a stable support identifier;
+- [ ] define preview, internal-production, staged-production, and rollback release lanes;
+- [ ] rehearse one preview OTA publish, device application, rollback, and post-rollback verification;
+- [ ] document release promotion evidence: commit SHA, runtime, channel, update group, smoke results, rollout percentage, and rollback target;
+- [ ] add a blocking release checklist for incompatible runtime/native changes;
+- [ ] complete real-device smoke on a small iPhone, a standard iPhone, and an Android device before broad rollout.
+
+### Phase H — account lifecycle, privacy, and data control
+
+Priority: P0 for account deletion; remaining items are P1.
+
+- [ ] add forgot-password and reset-password backend/mobile flows;
+- [ ] add authenticated password change with session re-verification;
+- [ ] add a sessions/devices screen with last-seen metadata;
+- [ ] allow revoking one session and all other sessions;
+- [ ] add in-app account deletion with explicit confirmation and re-authentication;
+- [ ] cascade account deletion through user data, sessions, sync operations, Coach runs, templates, measurements, workouts, nutrition data, and custom entities;
+- [ ] clear account-scoped local caches, tokens, pending queues, favorites, and custom-food libraries after deletion;
+- [ ] add a privacy explanation for local data, synchronized data, telemetry, and model execution;
+- [ ] add privacy-safe product analytics using action events only, never health values or content payloads;
+- [ ] add analytics consent/opt-out where required by the chosen provider and release jurisdictions.
+
+Data export is intentionally deferred and is not part of the current implementation roadmap.
+
+### Phase I — localization, regional formats, units, and accessibility
+
+Priority: P1, begin before hardcoded copy expands further.
+
+- [ ] introduce a typed localization layer with stable message keys and namespace ownership by feature;
+- [ ] make English the fallback locale and ship complete Russian and English translations first;
+- [ ] add device-language detection and an explicit in-app language override;
+- [ ] localize navigation labels, forms, validation, errors, empty states, destructive confirmations, Coach explanations, and release/update copy;
+- [ ] format dates, times, decimal separators, plural forms, and number grouping through the selected locale;
+- [ ] add metric/imperial unit preferences for kg/lb and cm/in with one canonical storage unit internally;
+- [ ] evaluate kcal/kJ display as a separate nutrition preference while keeping canonical calorie calculations unchanged;
+- [ ] prevent translated strings from being used as persisted identifiers, enum values, route parameters, or sync contract fields;
+- [ ] add tests for missing keys, fallback behavior, interpolation, pluralization, and unsupported locales;
+- [ ] add screenshot checks for Russian and English on narrow and wide devices;
+- [ ] audit Dynamic Type, VoiceOver/TalkBack labels, contrast, Reduce Motion, focus order, and minimum touch targets;
+- [ ] verify long translations do not clip workout tables, Nutrition rows, Coach cards, settings rows, or modal actions.
+
+### Phase J — dedicated application Settings
+
+Priority: P1.
+
+Create a dedicated Settings surface rather than continuing to overload Profile.
+
+Required sections:
+
+- [ ] General: language, appearance, and regional/unit preferences;
+- [ ] Appearance: System, Light, and Dark modes using the existing theme provider;
+- [ ] Units: weight, body measurements, and optional energy display;
+- [ ] Workout preferences: rest-timer sound, haptics, keep-screen-awake behavior, and default increments only after each behavior is explicitly specified;
+- [ ] Notifications: show only implemented notification categories; do not expose inert toggles;
+- [ ] Data & Sync: online/offline state, last successful sync, pending changes, failed mutation retry, and manual sync;
+- [ ] Account & Security: profile, password, sessions/devices, logout, and account deletion;
+- [ ] Privacy: analytics consent, crash-reporting disclosure, and local-versus-synced data explanation;
+- [ ] About: app version, runtime version, update ID/channel, build number, legal links, and support diagnostics;
+- [ ] Developer diagnostics must be hidden from ordinary users unless explicitly enabled in a non-production or support mode.
+
+Settings implementation requirements:
+
+- [ ] persist preferences account-scoped where they should follow the user and device-scoped where they are device behavior;
+- [ ] define migration/default behavior for existing installs;
+- [ ] apply setting changes immediately without requiring restart where technically safe;
+- [ ] test logout/login account switching so preferences do not leak between accounts;
+- [ ] keep unavailable settings out of the UI instead of showing disabled placeholders.
+
+### Phase K — user-visible sync status and recovery
+
+Priority: P1.
+
+- [ ] add a clear data-status card showing synced, pending, offline, failed, and conflict states;
+- [ ] show last successful sync and pending mutation count without exposing internal IDs;
+- [ ] add manual retry and recovery actions for failed local persistence and outbox writes;
+- [ ] distinguish local-only entities from entities synchronized to the account;
+- [ ] surface unresolved conflicts with a safe explanation and deterministic resolution path;
+- [ ] test offline edits, app termination, restart, token refresh, reconnect, and eventual synchronization;
+- [ ] include runtime/update information in support diagnostics.
+
+### Phase L — cross-device Nutrition library sync
+
+Priority: P1 after current local library passes device smoke.
+
+- [ ] add a revisioned sync entity for reusable custom foods and provider-favorite snapshots;
+- [ ] preserve stable IDs, kind, normalized nutrition snapshot, attribution, provider/external IDs, revision, timestamps, and tombstones;
+- [ ] keep local use immediate and offline-first;
+- [ ] add create/update/delete conflict tests and idempotent replay;
+- [ ] verify anonymous data does not silently merge into an account without an explicit product decision;
+- [ ] verify provider favorites remain usable when the provider is unavailable;
+- [ ] verify the library on a second signed-in device.
+
+### Phase M — visual regression and release-device UX matrix
+
+Priority: P1.
+
+- [ ] establish reference screenshots for Home, Workouts hub, active workout, exercise picker, Nutrition diary, Add Food, portion editor, calendar, Progress, Profile, auth, Coach, and Settings;
+- [ ] cover smallest supported iPhone, standard iPhone, large iPhone, and representative Android viewports;
+- [ ] cover Light, Dark, English, Russian, large text, keyboard-open, loading, empty, error, and offline states;
+- [ ] compare layout anchors, clipping, touch targets, column alignment, safe areas, and bottom navigation;
+- [ ] keep screenshot review focused on meaningful diffs rather than brittle pixel noise;
+- [ ] add a manual release-device checklist for camera permission, barcode failure, force-close recovery, OTA apply, and rollback.
+
+### Phase N — privacy-safe product analytics
+
+Priority: P1 after privacy choices are documented.
+
+- [ ] define a minimal event taxonomy for onboarding completion, first workout, first food log, sync failure/recovery, Coach review, proposal confirmation, and OTA application;
+- [ ] never include weight, measurements, calories, macros, limitations, exercise values, food names, email, tokens, or free-text Coach content;
+- [ ] separate analytics identity from authentication tokens;
+- [ ] support consent and account-deletion cleanup;
+- [ ] create retention and funnel dashboards only after event contracts are reviewed;
+- [ ] document event ownership, schema versioning, and removal policy.
+
+### Phase O — Coach history and trust
+
+Priority: P2.
+
+- [ ] add a user-visible history of Coach reviews and proposals;
+- [ ] show inputs used, deterministic rationale, policy version, validation result, and proposal status;
+- [ ] show before/after values for confirmed changes;
+- [ ] mark proposals stale when source revisions change;
+- [ ] support an explicit compensating action to revert an applied change rather than mutating historical records;
+- [ ] preserve immutable completed-workout and applied-proposal provenance.
+
+### Phase P — local-storage scalability
+
+Priority: P2; measure before migrating.
+
+- [ ] instrument local state size, restore duration, save duration, entity counts, and failure rate without recording user content;
+- [ ] define migration thresholds based on measured startup and write performance;
+- [ ] keep the existing repository and sync contracts stable while storage evolves;
+- [ ] migrate high-volume domains incrementally to SQLite only when measurements justify it;
+- [ ] prefer food entries and workout sessions/sets as the first candidates;
+- [ ] add migration, rollback, corruption-recovery, and interrupted-write tests.
+
+### Deferred major scope
+
+Do not begin these until P0 release work and the core P1 quality phases are complete:
+
+- social feed and public profiles;
+- trainer marketplace and paid coaching;
+- subscriptions and payments;
+- user-to-user chat;
+- additional large AI product areas;
+- broad redesigns of already stable primary screens;
+- user data export.
 
 ## Recommended immediate next actions
 
-1. Validate and merge the keyboard-safe portion editor through full mobile CI.
-2. Add saved-meal detail/edit/rename in a focused PR.
-3. Harden remote-search debounce and offline/error states.
-4. Run the Nutrition device matrix on a matching production-channel iOS build.
-5. Configure read-only `BACKEND_REPOSITORY_TOKEN` and rerun the fixed-SHA release gate.
-6. Complete protected staging, offline-restart, native-build, and second-device validation.
-7. Publish OTA only when explicitly requested and only after runtime compatibility is confirmed.
+1. Merge this roadmap correction and use it as the only canonical completion source.
+2. Add privacy-safe crash reporting and source-map upload.
+3. Implement in-app account deletion, then password reset and session management.
+4. Define the localization architecture and Settings information architecture before adding more hardcoded copy.
+5. Create a matching native iOS build and run the full production-channel device matrix.
+6. Rehearse preview OTA application and rollback.
+7. Configure read-only `BACKEND_REPOSITORY_TOKEN` and rerun the fixed-SHA cross-repository release gate.
+8. Add cross-device Nutrition library sync after local device validation passes.
+9. Add screenshot regression coverage and privacy-safe analytics after the privacy contract is documented.
 
 ## Validation expectations
 
@@ -276,8 +453,12 @@ npx expo-doctor
 
 For backend changes, run the repository's blocking lint, build, test, production-configuration, migration, schema, startup, and health checks.
 
+For localization changes, also run missing-key, fallback, interpolation, pluralization, and layout-screenshot checks.
+
+For Settings changes, also test existing-install defaults, account switching, persistence scope, and immediate application.
+
 Do not claim completion when CI is failing or when an external environment action has not actually been performed.
 
 ## New-chat starter prompt
 
-> Continue the Smart Fitness roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, and the release documents first. Inspect latest `main` and open PRs in both `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`. Continue from the first unchecked code-verifiable item in `ROADMAP_PROGRESS.md`; note external credential, repository-access, deployment, native-build, device, and OTA blockers without inventing completion. Work in small focused PRs, run full blocking CI, merge only exact green heads, preserve existing behavior, and keep every hand-written source file at or below 500 lines. Do not perform OTA/EAS publish, native builds, device installation, backend deployment, staging credential activation, or production feature activation unless explicitly requested. After finishing a slice, update `ROADMAP_PROGRESS.md` and continue.
+> Continue the Smart Fitness roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/nutrition-roadmap.md`, and the release documents first. Inspect latest `main` and open PRs in both `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`. Continue from the first unchecked code-verifiable item in `ROADMAP_PROGRESS.md`; note external credential, repository-access, deployment, native-build, device, and OTA blockers without inventing completion. Work in small focused PRs, run full blocking CI, merge only exact green heads, preserve existing behavior, and keep every hand-written source file at or below 500 lines. Do not perform OTA/EAS publish, native builds, device installation, backend deployment, staging credential activation, or production feature activation unless explicitly requested. After finishing a slice, update `ROADMAP_PROGRESS.md` and continue.
