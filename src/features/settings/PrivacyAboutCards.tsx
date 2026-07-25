@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 
 import { AppCard } from '@/components/ui/AppCard';
 import { Spacing, Typography } from '@/constants/theme';
@@ -20,6 +21,8 @@ const COPY = {
     analyticsBody:
       'Product analytics is not currently enabled. A separate consent and event contract is required before action-only analytics can be activated.',
     aboutTitle: 'About',
+    coachHistory: 'Coach history & trust',
+    coachHistoryBody: 'Review immutable Coach runs, policy versions, statuses, and agent stages.',
     version: 'App version',
     build: 'Build',
     runtime: 'Runtime',
@@ -42,6 +45,8 @@ const COPY = {
     analyticsBody:
       'Продуктовая аналитика сейчас не включена. До её активации требуется отдельный контракт согласия и событий только по действиям.',
     aboutTitle: 'О приложении',
+    coachHistory: 'История и доверие Coach',
+    coachHistoryBody: 'Просмотр неизменяемых запусков Coach, версий правил, статусов и этапов агентов.',
     version: 'Версия приложения',
     build: 'Сборка',
     runtime: 'Runtime',
@@ -97,6 +102,16 @@ export function AboutSettingsCard() {
   });
   return (
     <AppCard>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/profile/coach-history')}
+        style={[styles.historyLink, { borderColor: colors.borderSubtle }]}>
+        <View style={styles.historyCopy}>
+          <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>{copy.coachHistory}</Text>
+          <Text style={[styles.body, { color: colors.textSecondary }]}>{copy.coachHistoryBody}</Text>
+        </View>
+        <Text style={[styles.chevron, { color: colors.textMuted }]}>›</Text>
+      </Pressable>
       <Row label={copy.version} value={diagnostics.appVersion} />
       <Row label={copy.build} value={diagnostics.buildNumber} />
       <Row label={copy.runtime} value={diagnostics.runtimeVersion} />
@@ -118,7 +133,10 @@ export const getPrivacyAboutSectionTitles = (locale: 'en' | 'ru') =>
 
 const styles = StyleSheet.create({
   body: { fontSize: Typography.body.fontSize, lineHeight: Typography.body.lineHeight },
+  chevron: { fontSize: 28, lineHeight: 30 },
   disclosure: { borderTopWidth: StyleSheet.hairlineWidth, gap: Spacing.one, paddingVertical: Spacing.two },
+  historyCopy: { flex: 1, gap: Spacing.one },
+  historyLink: { alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: Spacing.two, paddingBottom: Spacing.three },
   itemTitle: { fontSize: Typography.cardTitle.fontSize, fontWeight: Typography.cardTitle.fontWeight, lineHeight: Typography.cardTitle.lineHeight },
   label: { flex: 1, fontSize: Typography.caption.fontSize, lineHeight: Typography.caption.lineHeight },
   legal: { fontSize: Typography.caption.fontSize, lineHeight: Typography.caption.lineHeight, marginTop: Spacing.two },
