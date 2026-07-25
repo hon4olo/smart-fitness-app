@@ -18,6 +18,11 @@ const FOOD_SOURCES: readonly NutritionLibraryFood['source'][] = [
   'usda',
 ];
 
+const getSyncedRevision = (item: NutritionLibraryFood): number =>
+  typeof item.syncedRevision === 'number' && Number.isFinite(item.syncedRevision)
+    ? Math.max(0, Math.floor(item.syncedRevision))
+    : Math.max(0, Math.floor(item.revision) - 1);
+
 export const isNutritionLibraryEntity = (entityType: string): boolean =>
   entityType === 'nutritionLibraryItems' || entityType === 'nutrition_library_items';
 
@@ -51,11 +56,11 @@ export const createNutritionLibraryQueueOperation = (input: {
   userId: string;
   deviceId: string;
 }): OfflineSyncQueueOperation => {
-  const action = input.item.deletedAt ? 'delete' : input.item.revision <= 1 ? 'create' : 'update';
-  const baseRevisionNumber = Math.max(0, input.item.revision - 1);
+  const syncedRevision = getSyncedRevision(input.item);
+  const action = input.item.deletedAt ? 'delete' : syncedRevision === 0 ? 'create' : 'update';
   const baseRevision = {
-    id: `rev-${baseRevisionNumber}`,
-    number: baseRevisionNumber,
+    id: `rev-${syncedRevision}`,
+    number: syncedRevision,
     createdAt: input.item.updatedAt,
   };
   const payload = action === 'delete'
@@ -105,7 +110,9 @@ export const planNutritionLibrarySyncOperations = (input: {
       .map((operation) => operation.entityId),
   );
   return input.records
-    .filter((record) => record.revision > 0 && !pendingIds.has(record.libraryId))
+    .filter(
+      (record) => record.revision > getSyncedRevision(record) && !pendingIds.has(record.libraryId),
+    )
     .map((record) => createNutritionLibraryQueueOperation({
       item: record,
       userId: input.userId,
@@ -142,6 +149,7 @@ const parseRemoteItem = (entity: {
     typeof payload.updatedAt !== 'string'
   ) return null;
 
+  const revision = Math.max(0, Math.floor(entity.revision ?? Number(payload.revision) ?? 0));
   return {
     libraryId,
     kind: payload.kind,
@@ -159,7 +167,8 @@ const parseRemoteItem = (entity: {
     ...(isRecord(payload.attribution) ? { attribution: payload.attribution as NutritionLibraryFood['attribution'] } : {}),
     savedAt: payload.savedAt,
     updatedAt: payload.updatedAt,
-    revision: Math.max(0, Math.floor(entity.revision ?? Number(payload.revision) ?? 0)),
+    revision,
+    syncedRevision: revision,
     deletedAt: null,
   };
 };
@@ -171,6 +180,45 @@ export const subscribeNutritionLibrarySync = (listener: (userId: string) => void
 };
 
 const notify = (userId: string) => listeners.forEach((listener) => listener(userId));
+
+export const acknowledgeNutritionLibraryOperations = async (input: {
+  userId: string;
+  appliedOperations: Array<{
+    entityId: string;
+    entityType: string;
+    revision?: number;
+  }>;
+}): Promise<string[]> => {
+  const acknowledged = input.appliedOperations.filter((operation) =>
+    isNutritionLibraryEntity(operation.entityType),
+  );
+  if (!acknowledged.length) return [];
+
+  const key = getNutritionFoodLibraryStorageKey(input.userId);
+  const current = parseNutritionFoodLibrary(await AsyncStorage.getItem(key));
+  const revisions = new Map(
+    acknowledged.map((operation) => [
+      operation.entityId,
+      Math.max(0, Math.floor(operation.revision ?? 0)),
+    ]),
+  );
+  let changed = false;
+  const next = current.map((item) => {
+    const revision = revisions.get(item.libraryId);
+    const syncedRevision = getSyncedRevision(item);
+    if (revision === undefined || revision <= syncedRevision) return item;
+    changed = true;
+    return {
+      ...item,
+      syncedRevision: Math.min(item.revision, revision),
+    };
+  });
+  if (changed) {
+    await AsyncStorage.setItem(key, serializeNutritionFoodLibrary(next));
+    notify(input.userId);
+  }
+  return [...revisions.keys()];
+};
 
 export const applyRemoteNutritionLibraryChanges = async (input: {
   userId: string;
@@ -197,6 +245,8 @@ export const applyRemoteNutritionLibraryChanges = async (input: {
   for (const entity of input.changedEntities.filter((item) => isNutritionLibraryEntity(item.entityType))) {
     const item = parseRemoteItem(entity);
     if (!item) continue;
+    const previous = records.get(item.libraryId);
+    if (previous && previous.revision > item.revision) continue;
     records.set(item.libraryId, item);
     appliedRecordIds.push(item.libraryId);
   }
@@ -204,10 +254,13 @@ export const applyRemoteNutritionLibraryChanges = async (input: {
     const libraryId = entity.entityId?.trim();
     if (!libraryId) continue;
     const previous = records.get(libraryId);
+    const remoteRevision = Math.max(0, Math.floor(entity.revision ?? 0));
+    if (previous && previous.revision > remoteRevision) continue;
     if (previous) {
       records.set(libraryId, {
         ...previous,
-        revision: Math.max(previous.revision, entity.revision ?? previous.revision),
+        revision: Math.max(previous.revision, remoteRevision),
+        syncedRevision: Math.max(getSyncedRevision(previous), remoteRevision),
         updatedAt: entity.appliedAt ?? previous.updatedAt,
         deletedAt: entity.appliedAt ?? new Date().toISOString(),
       });

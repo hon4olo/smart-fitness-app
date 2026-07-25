@@ -54,7 +54,9 @@ Completed:
 - Account & Security is surfaced inside the dedicated Settings information architecture using the existing authenticated account card;
 - Data & Sync status, recovery, conflict review, and support diagnostics are surfaced;
 - Privacy explains local versus synchronized scope, anonymous isolation, sanitized crash reporting, excluded sensitive content, and that product analytics is not enabled;
-- About shows app version, build, runtime, update/channel/source details and hides legal/support links until verified destinations exist.
+- About shows app version, build, runtime, update/channel/source details and hides legal/support links until verified destinations exist;
+- the preference-scope policy is explicit: language, appearance, and units are device-scoped, while Nutrition library, sync metadata, and account data are account-scoped;
+- account-switch isolation tests verify distinct anonymous/account storage keys and prevent device preferences from being misclassified as account data.
 
 Remaining:
 
@@ -63,5 +65,4 @@ Remaining:
 - configure verified legal and support destinations before showing links;
 - specified workout preferences only after behavior is defined;
 - implemented notification categories only;
-- account-scoped preference policy and account-switching isolation tests;
 - hide developer diagnostics from production users unless explicitly enabled by support mode.

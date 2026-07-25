@@ -6,6 +6,7 @@ export type NutritionLibraryFood = DraftItem & {
   savedAt: string;
   updatedAt: string;
   revision: number;
+  syncedRevision?: number;
   deletedAt: string | null;
 };
 
@@ -37,13 +38,20 @@ const normalizeLibraryFood = (value: unknown): NutritionLibraryFood | null => {
     return null;
   }
 
+  const revision =
+    typeof item.revision === 'number' && Number.isFinite(item.revision)
+      ? Math.max(0, Math.floor(item.revision))
+      : 0;
+  const syncedRevision =
+    typeof item.syncedRevision === 'number' && Number.isFinite(item.syncedRevision)
+      ? Math.min(revision, Math.max(0, Math.floor(item.syncedRevision)))
+      : 0;
+
   return {
     ...(item as NutritionLibraryFood),
     updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : item.savedAt,
-    revision:
-      typeof item.revision === 'number' && Number.isFinite(item.revision)
-        ? Math.max(0, Math.floor(item.revision))
-        : 0,
+    revision,
+    syncedRevision,
     deletedAt: typeof item.deletedAt === 'string' ? item.deletedAt : null,
   };
 };
@@ -94,6 +102,7 @@ export const upsertNutritionLibraryFood = (
     savedAt: previous?.savedAt ?? updatedAt,
     updatedAt,
     revision: (previous?.revision ?? 0) + 1,
+    syncedRevision: previous?.syncedRevision ?? 0,
     deletedAt: null,
   };
   return [next, ...items.filter((item) => item.libraryId !== libraryId)].slice(0, 200);
