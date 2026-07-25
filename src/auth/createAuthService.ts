@@ -6,6 +6,7 @@ import {
   type RemoteProfileRepository,
 } from '@/repositories/RemoteProfileRepository';
 
+import { PENDING_ACCOUNT_CLEANUP_STORAGE_KEY } from './accountDataCleanup';
 import { getDefaultAuthDeviceInfo } from './device';
 import { createTokenManager } from './token-manager';
 import type {
@@ -140,6 +141,11 @@ export const createAuthService = ({
   };
 
   const loadSession = async (): Promise<AuthSession | null> => {
+    if (await sessionStorage.read(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)) {
+      await clearLocalSession();
+      return null;
+    }
+
     const parsed = parseSessionMetadata(await sessionStorage.read(sessionStorageKey));
     if (!parsed) return null;
 
