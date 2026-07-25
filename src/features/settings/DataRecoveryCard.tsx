@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { createAsyncStorageOperationQueueStore } from '@/storage/AsyncStorageOperationQueueStore';
-import { createAsyncStorageAdapter } from '@/storage/StorageAdapter';
-import { getDefaultAppMutationOutboxRecoveryStore } from '@/storage/AppMutationOutboxRecoveryStore';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { recoverAppMutationOutbox } from '@/context/appContext/AppMutationOutboxRecovery';
 import { useLocalization } from '@/localization';
+import {
+  createAsyncStorageAdapter,
+  createAsyncStorageOperationQueueStore,
+  getDefaultAppMutationOutboxRecoveryStore,
+} from '@/storage';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { getDataRecoveryCopy } from './dataRecoveryCopy';
@@ -19,11 +21,7 @@ type RecoveryState = 'idle' | 'loading' | 'recovering' | 'recovered' | 'error';
 export function DataRecoveryCard() {
   const { colors } = useAppTheme();
   const { locale } = useLocalization();
-  const {
-    mutationFailure,
-    pendingMutationCount,
-    retryFailedMutation,
-  } = useAppContext();
+  const { mutationFailure, pendingMutationCount, retryFailedMutation } = useAppContext();
   const copy = getDataRecoveryCopy(locale);
   const recoveryStore = useMemo(getDefaultAppMutationOutboxRecoveryStore, []);
   const recoveryQueueStore = useMemo(
@@ -62,16 +60,11 @@ export function DataRecoveryCard() {
     }
   };
 
-  const retryActiveFailure = () => {
-    retryFailedMutation();
-  };
-
   const hasActiveFailure = Boolean(mutationFailure);
   const hasProtectedChanges = journalCount > 0;
   const isBusy = pendingMutationCount > 0 || state === 'recovering';
-  const stageDescription = mutationFailure?.stage === 'outbox'
-    ? copy.outboxFailure
-    : copy.localFailure;
+  const stageDescription =
+    mutationFailure?.stage === 'outbox' ? copy.outboxFailure : copy.localFailure;
 
   return (
     <AppCard>
@@ -97,7 +90,7 @@ export function DataRecoveryCard() {
             disabled={isBusy}
             label={isBusy ? copy.waiting : copy.retrySave}
             loading={pendingMutationCount > 0}
-            onPress={retryActiveFailure}
+            onPress={retryFailedMutation}
           />
         </View>
       ) : null}
