@@ -2,8 +2,10 @@ export { AuthProvider, AuthContext } from './AuthContext';
 export { createAuthService, AUTH_SESSION_STORAGE_KEY } from './createAuthService';
 export {
   AccountDataCleanupError,
+  PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
   clearLocalAccountData,
   getLocalAccountDataStorageKeys,
+  resumePendingLocalAccountCleanup,
 } from './accountDataCleanup';
 export {
   AUTH_DISCLOSURE_COPY,
