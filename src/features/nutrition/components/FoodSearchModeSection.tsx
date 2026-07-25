@@ -7,6 +7,7 @@ import { createDraftFromFoodItem } from '@/features/nutrition/addFoodModel';
 import type { FoodProviderSearchStatus } from '@/features/nutrition/useFoodProviderSearch';
 import { formatFoodMacros, formatFoodServing, formatNumber } from '@/lib/nutrition';
 import type { FoodCatalogItem } from '@/types';
+import { formatEnergyValue, useUnitPreferences } from '@/units';
 
 type FoodSearchModeSectionProps = {
   backendFoodResults: FoodItem[];
@@ -57,6 +58,7 @@ export function FoodSearchModeSection({
   setQuery,
   styles,
 }: FoodSearchModeSectionProps) {
+  const { energy } = useUnitPreferences();
   const fatSecretAttributionFood = backendFoodResults.find((food) => food.source.provider === 'fatsecret');
 
   return (
@@ -122,7 +124,7 @@ export function FoodSearchModeSection({
                   </Pressable>
                 </View>
               }
-              value={`${formatNumber(draft.calories)} kcal`}
+              value={`${formatEnergyValue(draft.calories, energy)} ${energy}`}
             />
           );
         })}
@@ -148,7 +150,7 @@ export function FoodSearchModeSection({
                   </Pressable>
                 </View>
               }
-              value={`${formatNumber(food.calories)} kcal`}
+              value={`${formatEnergyValue(food.calories, energy)} ${energy}`}
             />
           );
         })}
