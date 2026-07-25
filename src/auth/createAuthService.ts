@@ -9,6 +9,7 @@ import {
 import { getDefaultAuthDeviceInfo } from './device';
 import { createTokenManager } from './token-manager';
 import type {
+  AccountDeletionResult,
   AuthCredentials,
   AuthEnvelope,
   AuthProfileUpdate,
@@ -118,6 +119,7 @@ export const createAuthService = ({
   sessionStorageKey = AUTH_SESSION_STORAGE_KEY,
   defaultDevice = getDefaultAuthDeviceInfo(),
   onSessionChange,
+  onAccountDeleted,
 }: CreateAuthServiceOptions): AuthService & { profileRepository: RemoteProfileRepository } => {
   const profileRepository = createRemoteProfileRepository(apiClient, tokenManager);
 
@@ -126,6 +128,15 @@ export const createAuthService = ({
     await persistSessionMetadata(sessionStorage, sessionStorageKey, session);
     onSessionChange?.(session);
     return session;
+  };
+
+  const clearLocalSession = async (): Promise<boolean> => {
+    const results = await Promise.allSettled([
+      tokenManager.clearTokens(),
+      sessionStorage.remove(sessionStorageKey),
+    ]);
+    onSessionChange?.(null);
+    return results.every((result) => result.status === 'fulfilled');
   };
 
   const loadSession = async (): Promise<AuthSession | null> => {
@@ -184,9 +195,7 @@ export const createAuthService = ({
       return await saveSession(toSession(response));
     } catch (error) {
       if (isApiError(error) && error.status === 401) {
-        await tokenManager.clearTokens();
-        await sessionStorage.remove(sessionStorageKey);
-        onSessionChange?.(null);
+        await clearLocalSession();
       }
       return null;
     }
@@ -220,10 +229,34 @@ export const createAuthService = ({
       } catch {
         // Offline fallback: always clear local session.
       } finally {
-        await tokenManager.clearTokens();
-        await sessionStorage.remove(sessionStorageKey);
-        onSessionChange?.(null);
+        await clearLocalSession();
       }
+    },
+    deleteAccount: async (password: string): Promise<AccountDeletionResult> => {
+      const currentSession = await loadSession();
+      const accessToken = await getAccessToken();
+      if (!currentSession || !accessToken) {
+        throw new Error('Authentication is required to delete the account.');
+      }
+
+      await apiClient.request<{ success: true }, { password: string }>({
+        method: 'DELETE',
+        path: '/v1/auth/account',
+        body: { password },
+        headers: authHeader(accessToken),
+        retry: false,
+      });
+
+      const cleanupResults = await Promise.allSettled([
+        onAccountDeleted?.(currentSession.user.id) ?? Promise.resolve(),
+        clearLocalSession(),
+      ]);
+
+      return {
+        localCleanupComplete: cleanupResults.every(
+          (result) => result.status === 'fulfilled' && result.value !== false,
+        ),
+      };
     },
     fetchProfile: async () => {
       const accessToken = await getAccessToken();
