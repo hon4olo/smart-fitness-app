@@ -20,6 +20,7 @@ import type {
   AuthService,
   AuthSession,
   AuthTokens,
+  ChangePasswordInput,
   CreateAuthServiceOptions,
 } from './types';
 
@@ -241,6 +242,21 @@ export const createAuthService = ({
       } finally {
         await clearLocalSession();
       }
+    },
+    changePassword: async (input: ChangePasswordInput): Promise<void> => {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        throw new Error('Authentication is required to change the password.');
+      }
+
+      await apiClient.post<
+        { success: true; requiresReauthentication: true },
+        ChangePasswordInput
+      >('/v1/auth/change-password', input, {
+        headers: authHeader(accessToken),
+        retry: false,
+      });
+      await clearLocalSession();
     },
     deleteAccount: async (password: string): Promise<AccountDeletionResult> => {
       const currentSession = await loadSession();
