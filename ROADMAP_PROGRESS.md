@@ -12,6 +12,7 @@ Read this file together with:
 - `docs/nutrition-roadmap.md`;
 - `docs/release/validation-record-2026-07-24.md`;
 - `docs/release/rollout-and-rollback.md`;
+- `docs/release/crash-reporting.md`;
 - backend `hon4olo/smart-fitness-backend/AGENTS.md` when backend changes are required.
 
 ## Repositories
@@ -272,11 +273,17 @@ Guardrails:
 
 Priority: P0, required before a broad public beta.
 
-- [ ] add privacy-safe crash reporting for JS exceptions and native crashes;
-- [ ] upload source maps for native builds and EAS Updates;
-- [ ] attach app version, runtime version, Git commit, EAS update ID, route, online state, and non-sensitive failure category to reports;
-- [ ] record sync, persistence, auth-refresh, and API failure categories without request bodies, tokens, email, health values, Coach prompts, or Coach responses;
-- [ ] add a production error boundary with a recover/restart path and a stable support identifier;
+Status: crash-reporting source foundation complete in mobile PR `#96`; external Sentry configuration, a new compatible native runtime, source-map verification, staged rollout, rollback rehearsal, and device validation remain.
+
+- [x] add privacy-safe Sentry crash reporting for JS exceptions and native crashes, disabled in development and when no DSN is configured;
+- [x] wire source maps for native builds and EAS Updates through the Sentry Expo plugin, Sentry Metro config, and an explicit update upload command;
+- [x] attach app version, build number, runtime version, optional Git commit, EAS update ID/channel, masked route, sync status, inferred online state, and non-sensitive failure category;
+- [ ] complete auth-refresh and API failure-category instrumentation; sync and persistence failures already report fixed safe categories without raw messages;
+- [x] add a production Expo Router error boundary with retry, restart, and a stable support identifier;
+- [x] define the crash-event privacy contract and native/update source-map verification procedure in `docs/release/crash-reporting.md`;
+- [x] add blocking Expo Doctor validation for dependency and native-config changes;
+- [ ] configure the Sentry project and EAS environment values, then inspect a sanitized test payload against the privacy contract;
+- [ ] choose a new app/runtime version and create matching iOS and Android native builds before enabling Sentry-dependent JavaScript;
 - [ ] define preview, internal-production, staged-production, and rollback release lanes;
 - [ ] rehearse one preview OTA publish, device application, rollback, and post-rollback verification;
 - [ ] document release promotion evidence: commit SHA, runtime, channel, update group, smoke results, rollout percentage, and rollback target;
@@ -426,12 +433,12 @@ Do not begin these until P0 release work and the core P1 quality phases are comp
 
 ## Recommended immediate next actions
 
-1. Merge this roadmap correction and use it as the only canonical completion source.
-2. Add privacy-safe crash reporting and source-map upload.
-3. Implement in-app account deletion, then password reset and session management.
-4. Define the localization architecture and Settings information architecture before adding more hardcoded copy.
-5. Create a matching native iOS build and run the full production-channel device matrix.
-6. Rehearse preview OTA application and rollback.
+1. Configure the Sentry project and EAS environment values, select a new app/runtime version, then verify native-build and EAS Update source maps on preview devices.
+2. Implement in-app account deletion, then password reset and session management.
+3. Define the localization architecture and Settings information architecture before adding more hardcoded copy.
+4. Create matching native iOS and Android builds and run the production-channel device matrix.
+5. Rehearse preview OTA application and rollback.
+6. Complete auth-refresh and API failure-category instrumentation without raw payloads.
 7. Configure read-only `BACKEND_REPOSITORY_TOKEN` and rerun the fixed-SHA cross-repository release gate.
 8. Add cross-device Nutrition library sync after local device validation passes.
 9. Add screenshot regression coverage and privacy-safe analytics after the privacy contract is documented.
