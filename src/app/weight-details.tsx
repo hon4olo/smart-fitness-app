@@ -9,15 +9,14 @@ import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { formatShortDate } from '@/lib';
+import { useLocalization } from '@/localization';
 import { getProgressAnalytics } from '@/lib/progress';
-import { formatWeightValue, weightFromKg, useUnitPreferences } from '@/units';
-
-const toDateLabel = (value: string) => formatShortDate(value);
+import { useUnitPreferences, weightFromKg } from '@/units';
 
 export default function WeightDetailsScreen() {
   const { bodyMeasurements, exercises, weightHistory, workoutSessions } = useAppContext();
-  const { weight: weightUnit } = useUnitPreferences();
+  const { formatDate, formatNumber } = useLocalization();
+  const { formatWeightValue, weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
 
   const analytics = useMemo(
@@ -31,15 +30,17 @@ export default function WeightDetailsScreen() {
     [bodyMeasurements, exercises, weightHistory, workoutSessions],
   );
 
+  const toDateLabel = (value: string) =>
+    formatDate(value, { day: 'numeric', month: 'short' });
   const points = useMemo<ProgressTrendPoint[]>(
     () =>
       analytics.weight.recentEntries.map((entry) => ({
         key: entry.id,
         label: toDateLabel(entry.createdAt),
         value: weightFromKg(entry.weight, weightUnit),
-        displayValue: formatWeightValue(entry.weight, weightUnit),
+        displayValue: formatWeightValue(entry.weight),
       })),
-    [analytics.weight.recentEntries, weightUnit],
+    [analytics.weight.recentEntries, formatDate, formatWeightValue, weightUnit],
   );
   const recentEntries = useMemo(
     () => [...analytics.weight.recentEntries].reverse().slice(0, 10),
@@ -47,14 +48,15 @@ export default function WeightDetailsScreen() {
   );
 
   const latestWeight = analytics.weight.currentWeight !== null
-    ? `${formatWeightValue(analytics.weight.currentWeight, weightUnit)} ${weightUnit}`
+    ? `${formatWeightValue(analytics.weight.currentWeight)} ${weightUnit}`
     : '—';
   const convertedDelta30Days = analytics.weight.delta30Days !== null
     ? weightFromKg(analytics.weight.delta30Days, weightUnit)
     : null;
   const trend = convertedDelta30Days !== null
-    ? `${convertedDelta30Days > 0 ? '+' : ''}${convertedDelta30Days.toFixed(1)} ${weightUnit} over 30 days`
+    ? `${convertedDelta30Days > 0 ? '+' : ''}${formatNumber(convertedDelta30Days, { maximumFractionDigits: 1 })} ${weightUnit} over 30 days`
     : 'No 30-day comparison yet';
+  const chartValues = points.map((point) => point.value);
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} style={styles.screen}>
@@ -80,8 +82,8 @@ export default function WeightDetailsScreen() {
           {points.length > 1 ? (
             <ProgressTrendChart
               emptyLabel="Add a few weigh-ins to see the trend."
-              maxLabel={`${Math.max(...points.map((point) => point.value)).toFixed(1)} ${weightUnit}`}
-              minLabel={`${Math.min(...points.map((point) => point.value)).toFixed(1)} ${weightUnit}`}
+              maxLabel={`${formatNumber(Math.max(...chartValues), { maximumFractionDigits: 1 })} ${weightUnit}`}
+              minLabel={`${formatNumber(Math.min(...chartValues), { maximumFractionDigits: 1 })} ${weightUnit}`}
               points={points}
             />
           ) : (
@@ -103,7 +105,7 @@ export default function WeightDetailsScreen() {
                     {toDateLabel(entry.createdAt)}
                   </Text>
                   <Text selectable style={styles.historyValue}>
-                    {formatWeightValue(entry.weight, weightUnit)} {weightUnit}
+                    {formatWeightValue(entry.weight)} {weightUnit}
                   </Text>
                 </View>
               ))}

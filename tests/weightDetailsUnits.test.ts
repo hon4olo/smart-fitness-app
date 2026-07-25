@@ -17,10 +17,10 @@ describe('weight details unit boundary', () => {
 
     expect(source).toContain('useUnitPreferences');
     expect(source).toContain('weightFromKg(entry.weight, weightUnit)');
-    expect(source).toContain('formatWeightValue(entry.weight, weightUnit)');
+    expect(source).toContain('formatWeightValue(entry.weight)');
     expect(source).toContain('Recent weigh-ins');
-    expect(source).toContain("${weightUnit}");
-    expect(source).not.toContain("entry.weight.toFixed(1)} kg");
+    expect(source).toContain('${weightUnit}');
+    expect(source).not.toContain('entry.weight.toFixed(1)} kg');
     expect(source).not.toContain("delta30Days, 'kg'");
   });
 });
