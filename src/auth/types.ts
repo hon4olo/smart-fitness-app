@@ -76,6 +76,11 @@ export type AccountDeletionResult = {
   localCleanupComplete: boolean;
 };
 
+export type ChangePasswordInput = {
+  currentPassword: string;
+  newPassword: string;
+};
+
 export type AuthStorage = {
   read(key: string): Promise<string | null>;
   write(key: string, value: string): Promise<void>;
@@ -98,6 +103,7 @@ export type AuthService = {
   login(credentials: AuthCredentials): Promise<AuthSession>;
   refresh(): Promise<AuthSession | null>;
   logout(): Promise<void>;
+  changePassword(input: ChangePasswordInput): Promise<void>;
   deleteAccount(password: string): Promise<AccountDeletionResult>;
   fetchProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: AuthProfileUpdate): Promise<AuthProfile | null>;
