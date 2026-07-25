@@ -1,21 +1,34 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { useAuthSession } from '@/hooks/useAuthSession';
+import { buildProfileAuthViewModel } from '@/auth/auth-ui';
 import { AppCard } from '@/components/ui/AppCard';
+import { DestructiveButton } from '@/components/ui/DestructiveButton';
 import { InlineError } from '@/components/ui/InlineError';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, Spacing, Typography } from '@/constants/theme';
-import { buildProfileAuthViewModel } from '@/auth/auth-ui';
+import { useAuthSession } from '@/hooks/useAuthSession';
+
+import { DeleteAccountModal } from './DeleteAccountModal';
 
 export function AuthGateCard() {
   const router = useRouter();
-  const { error, fetchProfile, logout, profile, ready, refresh, session } = useAuthSession();
+  const {
+    deleteAccount,
+    error,
+    fetchProfile,
+    logout,
+    profile,
+    ready,
+    refresh,
+    session,
+  } = useAuthSession();
   const viewModel = buildProfileAuthViewModel({ ready, session, profile, error });
   const [busyAction, setBusyAction] = useState<'refresh' | 'logout' | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const goToSignIn = () => router.push('/auth/sign-in');
   const goToRegister = () => router.push('/auth/register');
@@ -52,8 +65,12 @@ export function AuthGateCard() {
       <Text style={styles.title}>Account</Text>
       <Text style={styles.helpText}>{resolveDescription(viewModel.status)}</Text>
 
-      {viewModel.status === 'restoring' ? <LoadingState label="Checking your saved sign-in…" /> : null}
-      {viewModel.status === 'auth_error' ? <InlineError message="We could not restore your account right now." /> : null}
+      {viewModel.status === 'restoring' ? (
+        <LoadingState label="Checking your saved sign-in…" />
+      ) : null}
+      {viewModel.status === 'auth_error' ? (
+        <InlineError message="We could not restore your account right now." />
+      ) : null}
 
       {viewModel.status === 'signed_in' ? (
         <View style={styles.metaStack}>
@@ -69,14 +86,31 @@ export function AuthGateCard() {
               {viewModel.displayNameLabel}
             </Text>
           </View>
-          <Text style={styles.note}>Local data stays on this device. Sync and backup are limited to weight history for now.</Text>
+          <Text style={styles.note}>
+            Account deletion permanently removes synchronized cloud data and clears account data stored on this device.
+          </Text>
         </View>
       ) : null}
 
       {viewModel.status === 'signed_in' ? (
         <>
-          <PrimaryButton disabled={busyAction === 'refresh'} label={busyAction === 'refresh' ? 'Refreshing…' : 'Refresh profile'} loading={busyAction === 'refresh'} onPress={handleRefreshProfile} />
-          <SecondaryButton disabled={busyAction === 'logout'} label={busyAction === 'logout' ? 'Logging out…' : 'Logout'} loading={busyAction === 'logout'} onPress={handleLogout} />
+          <PrimaryButton
+            disabled={busyAction === 'refresh'}
+            label={busyAction === 'refresh' ? 'Refreshing…' : 'Refresh profile'}
+            loading={busyAction === 'refresh'}
+            onPress={handleRefreshProfile}
+          />
+          <SecondaryButton
+            disabled={busyAction === 'logout'}
+            label={busyAction === 'logout' ? 'Logging out…' : 'Logout'}
+            loading={busyAction === 'logout'}
+            onPress={handleLogout}
+          />
+          <DestructiveButton
+            accessibilityHint="Opens permanent account deletion confirmation"
+            label="Delete account"
+            onPress={() => setDeleteModalOpen(true)}
+          />
         </>
       ) : null}
 
@@ -86,6 +120,27 @@ export function AuthGateCard() {
           <SecondaryButton label="Create account" onPress={goToRegister} />
         </>
       ) : null}
+
+      <DeleteAccountModal
+        onClose={() => setDeleteModalOpen(false)}
+        onDelete={deleteAccount}
+        onDeleted={(result) => {
+          setDeleteModalOpen(false);
+          Alert.alert(
+            'Account deleted',
+            result.localCleanupComplete
+              ? 'Your account and synchronized data were permanently deleted.'
+              : 'Your account was deleted. Some local cleanup will be retried before data can be restored on the next launch.',
+            [
+              {
+                text: 'Continue',
+                onPress: () => router.replace('/auth/sign-in'),
+              },
+            ],
+          );
+        }}
+        visible={deleteModalOpen}
+      />
     </AppCard>
   );
 }
