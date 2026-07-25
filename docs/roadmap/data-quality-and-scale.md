@@ -82,15 +82,20 @@ Completed:
 - mobile Coach history provides localized domain/status filters and opens immutable run details;
 - history summaries expose request type, policy versions, status, and timestamps without raw context snapshots or health values;
 - run details expose policy versions and ordered agent stages without rewriting historical records;
-- Settings provides a visible entry point to Coach history and trust information.
+- Settings provides a visible entry point to Coach history and trust information;
+- backend PR #54 defines a bounded versioned application-provenance contract with deterministic source-revision fingerprints and records Combined Nutrition source-to-applied revision metadata, including interrupted-parent retry recovery;
+- backend PR #55 carries ownership-scoped workout-session revisions into new Strength proposals, rejects changed or unavailable sources before a sync write, preserves legacy proposal safety through exact source-set comparison, and records source-session to workout-template provenance;
+- Nutrition and standalone Strength confirmations now fail closed when their proposal-time source revision no longer matches the current revision;
+- mobile PR #126 parses provenance fail-closed and displays only localized entity types and revisions, without raw entity IDs, fingerprint hashes, context snapshots, result payloads, health values, or agent input/output;
+- idempotent application recovery preserves immutable provenance without repeating the underlying revisioned mutation.
 
 Remaining:
 
 - show bounded, domain-specific inputs used and deterministic rationale without dumping raw snapshots;
 - show before/after values for confirmed changes;
-- mark proposals stale when source revisions change;
-- implement explicit compensating revert rather than historical mutation;
-- preserve immutable completed-workout and applied-proposal provenance.
+- surface a derived stale state in Coach history before confirmation and extend revision checks/provenance to Combined effective Strength and remaining confirmable proposal paths;
+- implement explicit compensating revert as a new revisioned mutation rather than rewriting historical records;
+- complete immutable provenance coverage for every applied Coach proposal path.
 
 ## Local-storage scalability — P2, measure first
 
