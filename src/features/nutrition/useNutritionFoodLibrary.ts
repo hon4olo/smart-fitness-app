@@ -5,10 +5,11 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 
 import type { DraftItem } from './addFoodModel';
 import {
+  getActiveNutritionLibraryFoods,
   getNutritionFoodLibraryStorageKey,
   parseNutritionFoodLibrary,
-  removeNutritionLibraryFood,
   serializeNutritionFoodLibrary,
+  tombstoneNutritionLibraryFood,
   upsertNutritionLibraryFood,
   type NutritionLibraryFood,
 } from './nutritionFoodLibrary';
@@ -23,32 +24,32 @@ export function useNutritionFoodLibrary() {
     () => (ownerId === undefined ? null : getNutritionFoodLibraryStorageKey(ownerId)),
     [ownerId],
   );
-  const [foods, setFoods] = useState<NutritionLibraryFood[]>([]);
+  const [records, setRecords] = useState<NutritionLibraryFood[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!storageKey) {
-      setFoods([]);
+      setRecords([]);
       setHydrated(false);
       setError(null);
       return;
     }
 
     let active = true;
-    setFoods([]);
+    setRecords([]);
     setHydrated(false);
     setError(null);
 
     AsyncStorage.getItem(storageKey)
       .then((raw) => {
         if (!active) return;
-        setFoods(parseNutritionFoodLibrary(raw));
+        setRecords(parseNutritionFoodLibrary(raw));
         setHydrated(true);
       })
       .catch(() => {
         if (!active) return;
-        setFoods([]);
+        setRecords([]);
         setHydrated(true);
         setError(LOAD_ERROR);
       });
@@ -61,7 +62,7 @@ export function useNutritionFoodLibrary() {
   const persist = useCallback(
     (updater: (current: NutritionLibraryFood[]) => NutritionLibraryFood[]) => {
       if (!storageKey || !hydrated) return;
-      setFoods((current) => {
+      setRecords((current) => {
         const next = updater(current);
         void AsyncStorage.setItem(storageKey, serializeNutritionFoodLibrary(next)).catch(() => {
           setError(SAVE_ERROR);
@@ -73,7 +74,10 @@ export function useNutritionFoodLibrary() {
   );
 
   const saveCustomFood = useCallback(
-    (draft: DraftItem) => persist((current) => upsertNutritionLibraryFood(current, draft, 'custom', new Date().toISOString())),
+    (draft: DraftItem) =>
+      persist((current) =>
+        upsertNutritionLibraryFood(current, draft, 'custom', new Date().toISOString()),
+      ),
     [persist],
   );
 
@@ -81,18 +85,29 @@ export function useNutritionFoodLibrary() {
     (draft: DraftItem) => {
       persist((current) => {
         const libraryId = draft.externalId ? `${draft.source}:${draft.externalId}` : '';
-        return libraryId && current.some((item) => item.libraryId === libraryId)
-          ? removeNutritionLibraryFood(current, libraryId)
-          : upsertNutritionLibraryFood(current, draft, 'provider-favorite', new Date().toISOString());
+        const activeFoods = getActiveNutritionLibraryFoods(current);
+        return libraryId && activeFoods.some((item) => item.libraryId === libraryId)
+          ? tombstoneNutritionLibraryFood(current, libraryId, new Date().toISOString())
+          : upsertNutritionLibraryFood(
+              current,
+              draft,
+              'provider-favorite',
+              new Date().toISOString(),
+            );
       });
     },
     [persist],
   );
 
   const removeFood = useCallback(
-    (libraryId: string) => persist((current) => removeNutritionLibraryFood(current, libraryId)),
+    (libraryId: string) =>
+      persist((current) =>
+        tombstoneNutritionLibraryFood(current, libraryId, new Date().toISOString()),
+      ),
     [persist],
   );
+
+  const foods = useMemo(() => getActiveNutritionLibraryFoods(records), [records]);
 
   return {
     customFoods: foods.filter((food) => food.kind === 'custom'),
@@ -102,6 +117,7 @@ export function useNutritionFoodLibrary() {
     providerFavorites: foods.filter((food) => food.kind === 'provider-favorite'),
     removeFood,
     saveCustomFood,
+    syncRecords: records,
     toggleProviderFavorite,
   };
 }
