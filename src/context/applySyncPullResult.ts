@@ -9,6 +9,7 @@ import {
   runWithoutFoodEntryOutbox,
 } from '@/cloud/FoodEntrySync';
 import { applyRemoteMealTemplateChanges } from '@/cloud/MealTemplateRemoteSync';
+import { applyRemoteNutritionLibraryChanges } from '@/cloud/NutritionLibrarySync';
 import {
   applyRemoteNutritionTargetChanges,
   runWithoutNutritionTargetOutbox,
@@ -211,6 +212,11 @@ export async function applySyncPullResult({
     fitnessProfileMetadata,
     syncedAt,
   );
+  const nutritionLibraryChanges = await applyRemoteNutritionLibraryChanges({
+    userId: session.user.id,
+    changedEntities: nonDeletedChangedEntities,
+    deletedEntities,
+  });
 
   runWithoutFoodEntryOutbox(() =>
     runWithoutNutritionTargetOutbox(() =>
@@ -245,6 +251,7 @@ export async function applySyncPullResult({
     mealTemplateChanges,
     nutritionTargetChanges,
     fitnessProfileChanges,
+    nutritionLibraryChanges,
   ].reduce(
     (total, changes) =>
       total + changes.appliedRecordIds.length + changes.deletedRecordIds.length,
