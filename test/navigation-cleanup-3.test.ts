@@ -15,17 +15,17 @@ describe('navigation repair and UX cleanup 3.0', () => {
     const source = readSource('src/app/(tabs)/_layout.tsx');
 
     expect(count(source, '<Tabs.Screen')).toBe(9);
-    expect(count(source, 'tabBarIcon: ({ focused }) => <TabIcon focused={focused}')).toBe(5);
+    expect(count(source, '<TabIcon focused={focused} name=')).toBe(5);
     expect(count(source, 'href: null')).toBe(4);
-    expect(source).toContain("title: 'Home'");
-    expect(source).toContain("title: 'Workouts'");
-    expect(source).toContain("title: 'Nutrition'");
-    expect(source).toContain("title: 'Progress'");
-    expect(source).toContain("title: 'Profile'");
-    expect(source).toContain("name=\"coach\"");
-    expect(source).toContain("name=\"labs\"");
-    expect(source).toContain("name=\"track\"");
-    expect(source).toContain("name=\"eat\"");
+    expect(source).toContain("title: t('tabs.home')");
+    expect(source).toContain("title: t('tabs.workouts')");
+    expect(source).toContain("title: t('tabs.nutrition')");
+    expect(source).toContain("title: t('tabs.progress')");
+    expect(source).toContain("title: t('tabs.profile')");
+    expect(source).toContain('name="coach"');
+    expect(source).toContain('name="labs"');
+    expect(source).toContain('name="track"');
+    expect(source).toContain('name="eat"');
   });
 
   test('home keeps a single current-weight display and no dashboard duplicate cards', () => {
@@ -65,9 +65,10 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(source).toContain('Add weight');
   });
 
-  test('profile renders compact appearance and quiet developer settings', () => {
+  test('profile links to dedicated functional settings and keeps developer tools quiet', () => {
     const screen = readSource('src/app/(tabs)/profile.tsx');
     const preferences = readSource('src/components/profile/ProfilePreferencesCard.tsx');
+    const settings = readSource('src/app/settings/index.tsx');
     const sync = readSource('src/components/profile/ProfileSyncStatusCard.tsx');
     const developer = readSource('src/components/profile/ProfileActionsCard.tsx');
 
@@ -76,8 +77,11 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(screen).toContain('Preferences');
     expect(screen).toContain('Sync & Backup');
     expect(screen).toContain('Developer settings');
-    expect(preferences).toContain('Appearance');
-    expect(preferences).toContain('SegmentedControl');
+    expect(screen).toContain("router.push('/settings')");
+    expect(preferences).not.toContain('SegmentedControl');
+    expect(settings).toContain('settings.appearance');
+    expect(settings).toContain('settings.language');
+    expect(settings).toContain('SegmentedControl');
     expect(sync).toContain("router.push('/sync-backup')");
     expect(sync).toContain('Last sync');
     expect(developer).not.toContain('owner-only');
@@ -98,7 +102,8 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(program).toContain('Add routine to program');
     expect(progress).toContain("router.push('/weight-entry')");
     expect(profile).toContain('ProfileSyncStatusCard');
-    expect(syncBackup).toContain("syncNow()");
-    expect(weightEntry).toContain("addWeightEntry({");
+    expect(profile).toContain("router.push('/settings')");
+    expect(syncBackup).toContain('syncNow()');
+    expect(weightEntry).toContain('addWeightEntry({');
   });
 });
