@@ -13,12 +13,14 @@ import {
   type TelemetryOnlineState,
 } from './crashReportingModel';
 
-const readPublicEnvironmentValue = (name: string): string | undefined => {
-  const value = process.env[name]?.trim();
-  return value || undefined;
+const normalizePublicEnvironmentValue = (value: string | undefined): string | undefined => {
+  const normalized = value?.trim();
+  return normalized || undefined;
 };
 
-const sentryDsn = readPublicEnvironmentValue('EXPO_PUBLIC_SENTRY_DSN');
+const sentryDsn = normalizePublicEnvironmentValue(process.env.EXPO_PUBLIC_SENTRY_DSN);
+const appEnvironment = normalizePublicEnvironmentValue(process.env.EXPO_PUBLIC_APP_ENV);
+const gitCommit = normalizePublicEnvironmentValue(process.env.EXPO_PUBLIC_GIT_COMMIT_SHA);
 const reportingEnabled = Boolean(sentryDsn) && !__DEV__;
 let initialized = false;
 
@@ -26,7 +28,7 @@ const readReleaseMetadata = () => ({
   appVersion: Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? 'unknown',
   buildNumber: Constants.nativeBuildVersion ?? 'unknown',
   channel: Updates.channel ?? 'unknown',
-  gitCommit: readPublicEnvironmentValue('EXPO_PUBLIC_GIT_COMMIT_SHA') ?? 'unknown',
+  gitCommit: gitCommit ?? 'unknown',
   isEmbeddedUpdate: Updates.isEmbeddedLaunch ? 'true' : 'false',
   runtimeVersion: Updates.runtimeVersion ?? 'unknown',
   updateId: Updates.updateId ?? 'embedded',
@@ -43,7 +45,7 @@ export const initializeCrashReporting = (): void => {
     dsn: sentryDsn,
     enabled: reportingEnabled,
     enableAutoSessionTracking: false,
-    environment: readPublicEnvironmentValue('EXPO_PUBLIC_APP_ENV') ?? (__DEV__ ? 'development' : 'production'),
+    environment: appEnvironment ?? (__DEV__ ? 'development' : 'production'),
     sendDefaultPii: false,
     tracesSampleRate: 0,
   });
