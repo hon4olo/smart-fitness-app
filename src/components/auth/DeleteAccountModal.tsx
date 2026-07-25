@@ -16,11 +16,12 @@ import {
   validateAccountDeletionPassword,
 } from '@/auth/accountDeletionModel';
 import type { AccountDeletionResult } from '@/auth/types';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-
 import { DestructiveButton } from '@/components/ui/DestructiveButton';
 import { InlineError } from '@/components/ui/InlineError';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import { localizeAccountDeletionMessage } from '@/localization/authCopy';
 
 type DeleteAccountModalProps = {
   visible: boolean;
@@ -35,6 +36,7 @@ export function DeleteAccountModal({
   onDelete,
   onDeleted,
 }: DeleteAccountModalProps) {
+  const { t } = useLocalization();
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -82,7 +84,7 @@ export function DeleteAccountModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.screen}>
         <Pressable
-          accessibilityLabel="Close account deletion"
+          accessibilityLabel={t('deleteAccount.close')}
           disabled={busy}
           onPress={close}
           style={styles.scrim}
@@ -93,28 +95,28 @@ export function DeleteAccountModal({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
             <Text selectable style={styles.eyebrow}>
-              ACCOUNT & SECURITY
+              {t('deleteAccount.eyebrow')}
             </Text>
             <Text selectable style={styles.title}>
-              Delete account permanently?
+              {t('deleteAccount.title')}
             </Text>
             <Text selectable style={styles.body}>
-              This permanently deletes your account and synchronized cloud data. Account data stored on this device will also be removed. This action cannot be undone.
+              {t('deleteAccount.body')}
             </Text>
 
             <View style={styles.warningBox}>
               <Text selectable style={styles.warningTitle}>
-                Before continuing
+                {t('deleteAccount.warningTitle')}
               </Text>
               <Text selectable style={styles.warningText}>
-                Connect to the internet and enter your current password. The app will not delete local data unless the server confirms account deletion.
+                {t('deleteAccount.warningBody')}
               </Text>
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Current password</Text>
+              <Text style={styles.label}>{t('deleteAccount.currentPassword')}</Text>
               <TextInput
-                accessibilityLabel="Current password for account deletion"
+                accessibilityLabel={t('deleteAccount.currentPasswordAccessibility')}
                 autoCapitalize="none"
                 autoComplete="current-password"
                 autoCorrect={false}
@@ -124,7 +126,7 @@ export function DeleteAccountModal({
                   if (error) setError(null);
                 }}
                 onSubmitEditing={() => void submit()}
-                placeholder="Enter current password"
+                placeholder={t('deleteAccount.placeholder')}
                 placeholderTextColor={Colors.dark.textMuted}
                 returnKeyType="done"
                 secureTextEntry
@@ -133,16 +135,18 @@ export function DeleteAccountModal({
               />
             </View>
 
-            {error ? <InlineError message={error} /> : null}
+            {error ? (
+              <InlineError message={localizeAccountDeletionMessage(error, t)} />
+            ) : null}
 
             <DestructiveButton
-              accessibilityHint="Permanently deletes the signed-in account and synchronized data"
+              accessibilityHint={t('deleteAccount.hint')}
               disabled={busy}
-              label={busy ? 'Deleting account' : 'Delete account permanently'}
+              label={busy ? t('deleteAccount.busy') : t('deleteAccount.action')}
               loading={busy}
               onPress={() => void submit()}
             />
-            <SecondaryButton disabled={busy} label="Cancel" onPress={close} />
+            <SecondaryButton disabled={busy} label={t('common.cancel')} onPress={close} />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
