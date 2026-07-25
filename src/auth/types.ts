@@ -72,6 +72,10 @@ export type AuthSession = {
   tokens: AuthTokens;
 };
 
+export type AccountDeletionResult = {
+  localCleanupComplete: boolean;
+};
+
 export type TokenManager = {
   loadTokens(): Promise<AuthTokens | null>;
   saveTokens(tokens: AuthTokens, now?: string): Promise<AuthTokens>;
@@ -88,7 +92,7 @@ export type AuthService = {
   login(credentials: AuthCredentials): Promise<AuthSession>;
   refresh(): Promise<AuthSession | null>;
   logout(): Promise<void>;
-  deleteAccount(password: string): Promise<void>;
+  deleteAccount(password: string): Promise<AccountDeletionResult>;
   fetchProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: AuthProfileUpdate): Promise<AuthProfile | null>;
   getAccessToken(): Promise<string | null>;
