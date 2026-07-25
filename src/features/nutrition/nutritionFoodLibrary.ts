@@ -6,7 +6,7 @@ export type NutritionLibraryFood = DraftItem & {
   savedAt: string;
   updatedAt: string;
   revision: number;
-  syncedRevision: number;
+  syncedRevision?: number;
   deletedAt: string | null;
 };
 
