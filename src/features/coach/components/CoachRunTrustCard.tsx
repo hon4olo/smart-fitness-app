@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { CoachRunEnvelope } from '@/api/coach';
 import { AppCard } from '@/components/ui/AppCard';
-import { Spacing, Typography } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import type { SupportedLocale } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { getCoachHistoryCopy } from '../coachHistoryCopy';
@@ -45,11 +45,13 @@ export function CoachRunTrustCard({ run, locale }: Props) {
                 ? copy.revisionUnavailable
                 : copy.revision(application.proposalRevision)
             }
+            styles={styles}
           />
           {application.currentRevision === null ? null : (
             <RevisionRow
               label={copy.currentRevision}
               value={copy.revision(application.currentRevision)}
+              styles={styles}
             />
           )}
         </View>
@@ -58,31 +60,24 @@ export function CoachRunTrustCard({ run, locale }: Props) {
   );
 }
 
-function RevisionRow({ label, value }: { label: string; value: string }) {
+function RevisionRow({
+  label,
+  value,
+  styles,
+}: {
+  label: string;
+  value: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
-    <View style={stylesStatic.row}>
-      <Text style={stylesStatic.label}>{label}</Text>
-      <Text style={stylesStatic.value}>{value}</Text>
+    <View style={styles.row}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.value}>{value}</Text>
     </View>
   );
 }
 
-const stylesStatic = StyleSheet.create({
-  label: { flex: 1, fontSize: Typography.caption.fontSize },
-  row: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'space-between',
-  },
-  value: {
-    flex: 1,
-    fontSize: Typography.caption.fontSize,
-    textAlign: 'right',
-  },
-});
-
-const createStyles = (colors: ReturnType<typeof useAppTheme>['colors']) =>
+const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     applicationBlock: {
       borderTopColor: colors.borderSubtle,
@@ -104,5 +99,22 @@ const createStyles = (colors: ReturnType<typeof useAppTheme>['colors']) =>
       color: colors.textPrimary,
       fontSize: Typography.cardTitle.fontSize,
       fontWeight: Typography.cardTitle.fontWeight,
+    },
+    label: {
+      color: colors.textSecondary,
+      flex: 1,
+      fontSize: Typography.caption.fontSize,
+    },
+    row: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      justifyContent: 'space-between',
+    },
+    value: {
+      color: colors.textPrimary,
+      flex: 1,
+      fontSize: Typography.caption.fontSize,
+      textAlign: 'right',
     },
   });
