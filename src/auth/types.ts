@@ -76,6 +76,12 @@ export type AccountDeletionResult = {
   localCleanupComplete: boolean;
 };
 
+export type AuthStorage = {
+  read(key: string): Promise<string | null>;
+  write(key: string, value: string): Promise<void>;
+  remove(key: string): Promise<void>;
+};
+
 export type TokenManager = {
   loadTokens(): Promise<AuthTokens | null>;
   saveTokens(tokens: AuthTokens, now?: string): Promise<AuthTokens>;
@@ -103,11 +109,8 @@ export type AuthService = {
 export type CreateAuthServiceOptions = {
   apiClient: ApiClient;
   tokenManager: TokenManager;
-  sessionStorage: {
-    read(key: string): Promise<string | null>;
-    write(key: string, value: string): Promise<void>;
-    remove(key: string): Promise<void>;
-  };
+  sessionStorage: AuthStorage;
+  accountCleanupMarkerStorage?: AuthStorage;
   sessionStorageKey?: string;
   defaultDevice?: AuthDeviceInfo;
   onSessionChange?: (session: AuthSession | null) => void;
