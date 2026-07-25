@@ -7,6 +7,11 @@ import { AppCard } from '@/components/ui/AppCard';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import type { AppearanceMode } from '@/constants/theme';
+import {
+  AboutSettingsCard,
+  getPrivacyAboutSectionTitles,
+  PrivacySettingsCard,
+} from '@/features/settings/PrivacyAboutCards';
 import { SyncSettingsCard } from '@/features/settings/SyncSettingsCard';
 import { getSyncStatusCopy } from '@/features/settings/syncStatusCopy';
 import { useLocalization, type LanguagePreference } from '@/localization';
@@ -28,6 +33,7 @@ export default function SettingsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const unitCopy = getUnitCopy(locale);
   const syncCopy = getSyncStatusCopy(locale);
+  const privacyAboutTitles = getPrivacyAboutSectionTitles(locale);
 
   const languageOptions: ReadonlyArray<{ label: string; value: LanguagePreference }> = [
     { label: t('common.system'), value: 'system' },
@@ -137,6 +143,14 @@ export default function SettingsScreen() {
             </SettingBlock>
           </AppCard>
           <Text style={styles.footer}>{unitCopy.footer}</Text>
+        </SettingsSection>
+
+        <SettingsSection title={privacyAboutTitles.privacy}>
+          <PrivacySettingsCard />
+        </SettingsSection>
+
+        <SettingsSection title={privacyAboutTitles.about}>
+          <AboutSettingsCard />
         </SettingsSection>
 
         <Text style={styles.footer}>{t('settings.aboutPreferences')}</Text>
