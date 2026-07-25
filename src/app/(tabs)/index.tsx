@@ -14,7 +14,7 @@ import { useAppContext } from '@/context/AppContext';
 import { getCurrentWorkoutStreak, getHomePrimaryWorkoutActionLabel, getWeeklyWorkoutCount, getWeeklyWorkoutVolumeTrend, type HomeSnapshotItem } from '@/lib/home';
 import { getMotivationInsight, getNutritionAdvisor, getProgramAdvisor, getRecoveryAdvisor, getTrainingAdvisor } from '@/lib/intelligence';
 import { formatLocalDate } from '@/lib';
-import { getClampedProgress, sumNutritionTotals } from '@/lib/nutrition';
+import { sumNutritionTotals } from '@/lib/nutrition';
 import { getProgressAnalytics } from '@/lib/progress';
 import { getActiveWorkoutSessionDraft, getWorkoutPrograms, hydrateActiveWorkoutSessionDraft } from '@/lib/workouts';
 import { displayWeightInputToKg, formatEnergyValue, formatWeightValue, parseDisplayNumber, useUnitPreferences } from '@/units';
@@ -33,7 +33,7 @@ export default function HomeScreen() {
     workoutSessions,
     workouts,
   } = useAppContext();
-  const { preferences } = useUnitPreferences();
+  const { energy: energyUnit, weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
   const todayKey = formatLocalDate(new Date());
 
@@ -58,25 +58,25 @@ export default function HomeScreen() {
 
   const latestWeightEntry = progressAnalytics.weight.currentWeightEntry;
   const currentWeightLabel = latestWeightEntry
-    ? `${formatWeightValue(latestWeightEntry.weight, preferences.weight)} ${preferences.weight}`
+    ? `${formatWeightValue(latestWeightEntry.weight, weightUnit)} ${weightUnit}`
     : profile.weight
-      ? `${formatWeightValue(Number(profile.weight), preferences.weight)} ${preferences.weight}`
+      ? `${formatWeightValue(Number(profile.weight), weightUnit)} ${weightUnit}`
       : '—';
   const caloriesRemaining = nutritionTargets.calories - todaysNutrition.calories;
-  const caloriesRemainingDisplay = formatEnergyValue(Math.abs(caloriesRemaining), preferences.energy);
+  const caloriesRemainingDisplay = formatEnergyValue(Math.abs(caloriesRemaining), energyUnit);
   const caloriesRemainingLabel = caloriesRemaining < 0
-    ? `Over by ${caloriesRemainingDisplay} ${preferences.energy}`
-    : `${caloriesRemainingDisplay} ${preferences.energy} left`;
+    ? `Over by ${caloriesRemainingDisplay} ${energyUnit}`
+    : `${caloriesRemainingDisplay} ${energyUnit} left`;
 
   const [currentWeightInput, setCurrentWeightInput] = useState('');
-  const [targetWeightInput, setTargetWeightInput] = useState(() => formatWeightValue(profile.targetWeight, preferences.weight));
+  const [targetWeightInput, setTargetWeightInput] = useState(() => formatWeightValue(profile.targetWeight, weightUnit));
   const [goalType, setGoalType] = useState(profile.goalType);
   const [trainingDaysPerWeekInput, setTrainingDaysPerWeekInput] = useState(`${profile.trainingDaysPerWeek}`);
   const [activeDraftReady, setActiveDraftReady] = useState(false);
 
   useEffect(() => {
-    setTargetWeightInput(formatWeightValue(profile.targetWeight, preferences.weight));
-  }, [preferences.weight, profile.targetWeight]);
+    setTargetWeightInput(formatWeightValue(profile.targetWeight, weightUnit));
+  }, [profile.targetWeight, weightUnit]);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,8 +96,8 @@ export default function HomeScreen() {
 
   const parsedCurrentWeightDisplay = parseDisplayNumber(currentWeightInput);
   const parsedTargetWeightDisplay = parseDisplayNumber(targetWeightInput);
-  const parsedCurrentWeight = Number(displayWeightInputToKg(currentWeightInput, preferences.weight));
-  const parsedTargetWeight = Number(displayWeightInputToKg(targetWeightInput, preferences.weight));
+  const parsedCurrentWeight = Number(displayWeightInputToKg(currentWeightInput, weightUnit));
+  const parsedTargetWeight = Number(displayWeightInputToKg(targetWeightInput, weightUnit));
   const parsedTrainingDaysPerWeek = Number(trainingDaysPerWeekInput);
   const isSetupValid = Number.isFinite(parsedCurrentWeightDisplay) && parsedCurrentWeightDisplay > 0 && Number.isFinite(parsedTargetWeightDisplay) && parsedTargetWeightDisplay > 0 && Number.isFinite(parsedTrainingDaysPerWeek) && parsedTrainingDaysPerWeek >= 1 && parsedTrainingDaysPerWeek <= 7;
 
@@ -141,12 +141,12 @@ export default function HomeScreen() {
             <Text selectable style={styles.sectionTitle}>Welcome</Text>
             <Text selectable style={styles.setupHelp}>Set a baseline once and the app will personalize the essentials.</Text>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Starting weight ({preferences.weight})</Text>
-              <TextInput keyboardType="decimal-pad" onChangeText={setCurrentWeightInput} placeholder={preferences.weight === 'lb' ? '182.3' : '82.7'} placeholderTextColor={Colors.dark.textSecondary} style={styles.input} value={currentWeightInput} />
+              <Text style={styles.inputLabel}>Starting weight ({weightUnit})</Text>
+              <TextInput keyboardType="decimal-pad" onChangeText={setCurrentWeightInput} placeholder={weightUnit === 'lb' ? '182.3' : '82.7'} placeholderTextColor={Colors.dark.textSecondary} style={styles.input} value={currentWeightInput} />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Target weight ({preferences.weight})</Text>
-              <TextInput keyboardType="decimal-pad" onChangeText={setTargetWeightInput} placeholder={preferences.weight === 'lb' ? '165' : '75'} placeholderTextColor={Colors.dark.textSecondary} style={styles.input} value={targetWeightInput} />
+              <Text style={styles.inputLabel}>Target weight ({weightUnit})</Text>
+              <TextInput keyboardType="decimal-pad" onChangeText={setTargetWeightInput} placeholder={weightUnit === 'lb' ? '165' : '75'} placeholderTextColor={Colors.dark.textSecondary} style={styles.input} value={targetWeightInput} />
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Training days per week</Text>
