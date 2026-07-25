@@ -4,6 +4,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { ListRow } from '@/components/ui/ListRow';
 import type { FoodCatalogItem, FoodEntry } from '@/types';
+import { formatEnergyValue, useUnitPreferences } from '@/units';
 
 type RecentItem = {
   entry: FoodEntry;
@@ -24,6 +25,8 @@ type RecentFoodsModeSectionProps = {
 };
 
 export function RecentFoodsModeSection({ items, onOpenFood, onQuickAdd, onSearchFood, selectedMealLabel, styles }: RecentFoodsModeSectionProps) {
+  const { energy } = useUnitPreferences();
+
   return (
     <AppCard>
       <View style={styles.sectionHeader}>
@@ -45,7 +48,7 @@ export function RecentFoodsModeSection({ items, onOpenFood, onQuickAdd, onSearch
                   <Text style={styles.iconButtonText}>+</Text>
                 </Pressable>
               }
-              value={item.caloriesLabel}
+              value={`${formatEnergyValue(item.entry.calories, energy)} ${energy}`}
             />
           ))}
         </View>

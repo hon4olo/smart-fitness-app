@@ -6,6 +6,7 @@ import { ListRow } from '@/components/ui/ListRow';
 import type { NutritionLibraryFood } from '@/features/nutrition/nutritionFoodLibrary';
 import { formatFoodMacros, formatFoodServing, formatNumber } from '@/lib/nutrition';
 import type { FoodCatalogItem } from '@/types';
+import { formatEnergyValue, useUnitPreferences } from '@/units';
 
 type FavoriteFoodsModeSectionProps = {
   foods: FoodCatalogItem[];
@@ -34,6 +35,7 @@ export function FavoriteFoodsModeSection({
   selectedMealLabel,
   styles,
 }: FavoriteFoodsModeSectionProps) {
+  const { energy } = useUnitPreferences();
   const hasFoods = foods.length > 0 || libraryFoods.length > 0;
 
   return (
@@ -69,7 +71,7 @@ export function FavoriteFoodsModeSection({
                   </Pressable>
                 </View>
               }
-              value={`${formatNumber(food.calories)} kcal`}
+              value={`${formatEnergyValue(food.calories, energy)} ${energy}`}
             />
           ))}
 
@@ -98,7 +100,7 @@ export function FavoriteFoodsModeSection({
                   </Pressable>
                 </View>
               }
-              value={`${formatNumber(food.calories)} kcal`}
+              value={`${formatEnergyValue(food.calories, energy)} ${energy}`}
             />
           ))}
         </View>

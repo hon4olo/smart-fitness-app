@@ -12,10 +12,12 @@ import {
 import { AppButton } from '@/components/ui/AppButton';
 import { Spacing } from '@/constants/theme';
 import type { FoodAttribution, FoodEntry } from '@/types';
+import { formatEnergyValue, parseDisplayNumber, useUnitPreferences } from '@/units';
 
 type PortionDraft = {
   attribution?: FoodAttribution;
   brandName?: string;
+  calories: number;
   name: string;
   originalEntryId?: string;
   quantity: string;
@@ -59,6 +61,15 @@ export function FoodPortionSheet({
   servingLabel,
   styles,
 }: FoodPortionSheetProps) {
+  const { energy } = useUnitPreferences();
+  const parsedQuantity = parseDisplayNumber(draft.quantity);
+  const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0
+    ? parsedQuantity
+    : draft.servingSize;
+  const multiplier = draft.servingSize > 0 ? quantity / draft.servingSize : 1;
+  const energyLabel = `${formatEnergyValue(draft.calories * multiplier, energy)} ${energy}`;
+  const displayTotalsLabel = macroTotalsLabel.replace(/^[^·]+/, energyLabel);
+
   return (
     <Modal
       animationType="slide"
@@ -127,7 +138,7 @@ export function FoodPortionSheet({
 
             <View style={styles.sheetTotals}>
               <Text selectable style={styles.sheetTotalLine}>
-                {macroTotalsLabel}
+                {displayTotalsLabel}
               </Text>
             </View>
 
