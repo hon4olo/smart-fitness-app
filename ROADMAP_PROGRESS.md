@@ -294,16 +294,21 @@ Status: crash-reporting source foundation complete in mobile PR `#96`; external 
 
 Priority: P0 for account deletion; remaining items are P1.
 
-Status: account-deletion source implementation complete in backend PR `#48` (merge `cf3a249b307a7493c68d5f6485e241a9af3b0272`) and mobile PR `#97`; production backend deployment and real-device validation remain external.
+Status: account deletion, authenticated password change, and session/device management are complete at source-code level. Production backend deployment, reset-password delivery infrastructure, and real-device validation remain external.
 
 - [ ] add forgot-password and reset-password backend/mobile flows;
-- [ ] add authenticated password change with session re-verification;
-- [ ] add a sessions/devices screen with last-seen metadata;
-- [ ] allow revoking one session and all other sessions;
+- [x] add authenticated password change with session re-verification;
+- [x] add a sessions/devices screen with last-seen metadata;
+- [x] allow revoking one session and all other sessions;
 - [x] add in-app account deletion with explicit confirmation and current-password re-authentication;
 - [x] cascade account deletion through user data, sessions, sync operations, Coach runs, templates, measurements, workouts, nutrition data, and custom entities;
 - [x] clear account-scoped local caches, SecureStore tokens, cached sessions, pending queues, sync/conflict/recovery metadata, favorites, and custom-food libraries after server confirmation;
 - [x] prevent interrupted cleanup from restoring stale data by persisting and resuming a local cleanup marker before AppState/session restoration;
+- [x] rotate a password only after current-password verification and revoke all existing sessions;
+- [x] list active devices with current-session and last-seen metadata;
+- [x] revoke one owned non-current session or all other sessions while preserving the current session;
+- backend PR `#49`, merge `dba333ab652e1f055fd954cb91040b19071fdd0c`, and mobile PR `#98`, merge `e5a2b8d378f37cec1f6968c349d0b504d2760219`: authenticated password change;
+- backend PR `#50`, merge `88df103237caf67052770c32c77d9ba092df3065`, and mobile PR `#99`, merge `aa2a55bfe9cf006a27de087de398d01941fa1a05`: devices and sessions management;
 - [ ] deploy the backend endpoint and validate wrong-password, offline, successful deletion, token invalidation, cleanup retry, and email re-registration on a real device;
 - [ ] add a privacy explanation for local data, synchronized data, telemetry, and model execution;
 - [ ] add privacy-safe product analytics using action events only, never health values or content payloads;
@@ -315,14 +320,16 @@ Data export is intentionally deferred and is not part of the current implementat
 
 Priority: P1, begin before hardcoded copy expands further.
 
-- [ ] introduce a typed localization layer with stable message keys and namespace ownership by feature;
+Status: typed English/Russian foundation, English fallback, device detection, persisted override, and localized root/tab/settings navigation are complete in mobile PR `#100`; full-screen translation, units, pluralization, accessibility, and screenshot validation remain.
+
+- [x] introduce a typed localization layer with stable message keys and namespace ownership by feature;
 - [ ] make English the fallback locale and ship complete Russian and English translations first;
-- [ ] add device-language detection and an explicit in-app language override;
+- [x] add device-language detection and an explicit in-app language override;
 - [ ] localize navigation labels, forms, validation, errors, empty states, destructive confirmations, Coach explanations, and release/update copy;
 - [ ] format dates, times, decimal separators, plural forms, and number grouping through the selected locale;
 - [ ] add metric/imperial unit preferences for kg/lb and cm/in with one canonical storage unit internally;
 - [ ] evaluate kcal/kJ display as a separate nutrition preference while keeping canonical calorie calculations unchanged;
-- [ ] prevent translated strings from being used as persisted identifiers, enum values, route parameters, or sync contract fields;
+- [x] prevent translated strings from being used as persisted identifiers, enum values, route parameters, or sync contract fields;
 - [ ] add tests for missing keys, fallback behavior, interpolation, pluralization, and unsupported locales;
 - [ ] add screenshot checks for Russian and English on narrow and wide devices;
 - [ ] audit Dynamic Type, VoiceOver/TalkBack labels, contrast, Reduce Motion, focus order, and minimum touch targets;
@@ -332,12 +339,12 @@ Priority: P1, begin before hardcoded copy expands further.
 
 Priority: P1.
 
-Create a dedicated Settings surface rather than continuing to overload Profile.
+Create a dedicated Settings surface rather than continuing to overload Profile. The initial functional surface is complete in mobile PR `#100`; remaining sections are intentionally hidden until implemented.
 
 Required sections:
 
-- [ ] General: language, appearance, and regional/unit preferences;
-- [ ] Appearance: System, Light, and Dark modes using the existing theme provider;
+- [ ] General: language and appearance are complete; regional and unit preferences remain;
+- [x] Appearance: System, Light, and Dark modes using the existing theme provider;
 - [ ] Units: weight, body measurements, and optional energy display;
 - [ ] Workout preferences: rest-timer sound, haptics, keep-screen-awake behavior, and default increments only after each behavior is explicitly specified;
 - [ ] Notifications: show only implemented notification categories; do not expose inert toggles;
@@ -349,11 +356,11 @@ Required sections:
 
 Settings implementation requirements:
 
-- [ ] persist preferences account-scoped where they should follow the user and device-scoped where they are device behavior;
-- [ ] define migration/default behavior for existing installs;
-- [ ] apply setting changes immediately without requiring restart where technically safe;
+- [ ] persist account-scoped preferences where they should follow the user; language and appearance are already device-scoped;
+- [x] define safe system-language and system-appearance defaults for existing installs;
+- [x] apply language and appearance changes immediately without requiring restart;
 - [ ] test logout/login account switching so preferences do not leak between accounts;
-- [ ] keep unavailable settings out of the UI instead of showing disabled placeholders.
+- [x] keep unavailable settings out of the UI instead of showing disabled placeholders.
 
 ### Phase K — user-visible sync status and recovery
 
