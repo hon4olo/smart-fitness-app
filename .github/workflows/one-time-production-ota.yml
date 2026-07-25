@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      issues: write
     env:
       SENTRY_DISABLE_AUTO_UPLOAD: 'true'
     steps:
@@ -40,4 +41,16 @@ jobs:
         run: npm ci
 
       - name: Publish production OTA
+        id: publish
         run: eas update --channel production --environment production --message "Visual UX: Profile, Settings, onboarding, sync notice, and Russian Home" --non-interactive
+
+      - name: Report result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          gh issue create \
+            --title "OTA production result: ${PUBLISH_OUTCOME}" \
+            --body "One-time production OTA workflow finished with outcome: **${PUBLISH_OUTCOME}**.\n\nCommit: \`${COMMIT_SHA}\`\nChannel: \`production\`\nSentry source-map auto-upload: disabled for this workflow only."
