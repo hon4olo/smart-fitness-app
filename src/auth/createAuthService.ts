@@ -6,7 +6,10 @@ import {
   type RemoteProfileRepository,
 } from '@/repositories/RemoteProfileRepository';
 
-import { PENDING_ACCOUNT_CLEANUP_STORAGE_KEY } from './accountDataCleanup';
+import {
+  completeLocalAccountCleanup,
+  PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
+} from './accountDataCleanup';
 import { getDefaultAuthDeviceInfo } from './device';
 import { createTokenManager } from './token-manager';
 import type {
@@ -254,15 +257,27 @@ export const createAuthService = ({
         retry: false,
       });
 
-      const cleanupResults = await Promise.allSettled([
-        onAccountDeleted?.(currentSession.user.id) ?? Promise.resolve(),
-        clearLocalSession(),
-      ]);
+      let accountDataCleanupComplete = true;
+      try {
+        await onAccountDeleted?.(currentSession.user.id);
+      } catch {
+        accountDataCleanupComplete = false;
+      }
+
+      const authCleanupComplete = await clearLocalSession();
+      let markerCleanupComplete = false;
+      if (accountDataCleanupComplete && authCleanupComplete) {
+        try {
+          await completeLocalAccountCleanup(accountCleanupMarkerStorage);
+          markerCleanupComplete = true;
+        } catch {
+          markerCleanupComplete = false;
+        }
+      }
 
       return {
-        localCleanupComplete: cleanupResults.every(
-          (result) => result.status === 'fulfilled' && result.value !== false,
-        ),
+        localCleanupComplete:
+          accountDataCleanupComplete && authCleanupComplete && markerCleanupComplete,
       };
     },
     fetchProfile: async () => {
