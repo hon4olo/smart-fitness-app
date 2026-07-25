@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { getNutritionFoodLibraryStorageKey } from '@/features/nutrition/nutritionFoodLibrary';
-import { LANGUAGE_PREFERENCE_STORAGE_KEY } from '@/localization/LocalizationProvider';
-import { APPEARANCE_STORAGE_KEY } from '@/theme/appearance';
-import { UNIT_PREFERENCES_STORAGE_KEY } from '@/units/UnitPreferencesProvider';
 
 import {
   DEVICE_SCOPED_PREFERENCE_KEYS,
@@ -14,9 +11,9 @@ import {
 describe('Settings preference scope policy', () => {
   it('keeps language, appearance, and units device-scoped across account switches', () => {
     expect(DEVICE_SCOPED_PREFERENCE_KEYS).toEqual([
-      LANGUAGE_PREFERENCE_STORAGE_KEY,
-      APPEARANCE_STORAGE_KEY,
-      UNIT_PREFERENCES_STORAGE_KEY,
+      '@smart_fitness_language_preference',
+      'smart-fitness-app.appearance-mode',
+      '@smart_fitness_unit_preferences',
     ]);
     expect(DEVICE_SCOPED_PREFERENCE_KEYS.every((key) => getPreferenceScope(key) === 'device')).toBe(
       true,
