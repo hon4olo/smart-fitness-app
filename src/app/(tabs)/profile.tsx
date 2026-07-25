@@ -2,19 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-// @ts-ignore - expo-updates types are not available in this workspace, but the runtime module exists on device.
-import * as Updates from 'expo-updates';
 
 import { AuthGateCard } from '@/components/auth';
-import { ProfileActionsCard } from '@/components/profile/ProfileActionsCard';
 import { ProfileCoachCard } from '@/components/profile/ProfileCoachCard';
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
 import { ProfilePreferencesCard } from '@/components/profile/ProfilePreferencesCard';
-import { ProfileRuntimeInfoCard } from '@/components/profile/ProfileRuntimeInfoCard';
 import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
-import { ProfileSyncStatusCard } from '@/components/profile/ProfileSyncStatusCard';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import {
@@ -36,9 +30,12 @@ import {
   weightToKg,
 } from '@/units';
 
-type OtaValueSource = Record<string, unknown>;
-
-const goalTypeLabel = (value: ProfileGoalType) => {
+const goalTypeLabel = (value: ProfileGoalType, locale: 'en' | 'ru') => {
+  if (locale === 'ru') {
+    if (value === 'lose_fat') return 'Сушка';
+    if (value === 'maintain') return 'Поддержание';
+    return 'Набор массы';
+  }
   if (value === 'lose_fat') return 'Lose fat';
   if (value === 'maintain') return 'Maintain';
   return 'Gain muscle';
@@ -60,23 +57,12 @@ const normalizeCoachActivity = (value: string): CoachActivityLevel | null => {
   return aliases[normalized] ?? null;
 };
 
-const formatOtaValue = (value: unknown) => {
-  if (value === null || value === undefined || value === '') return 'Not available';
-  if (value instanceof Date) {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(value);
-  }
-  return String(value);
-};
-
 export default function ProfileScreen() {
   const router = useRouter();
   const app = useAppContext();
-  const { t } = useLocalization();
+  const { locale, t } = useLocalization();
   const { weight: weightUnit, length: lengthUnit } = useUnitPreferences();
-  const { profile, resetOnboarding, updateProfileGoals, replaceState } = app;
+  const { profile, updateProfileGoals, replaceState } = app;
   const safeAreaInsets = useSafeAreaInsets();
   const [targetWeight, setTargetWeight] = useState(() =>
     formatWeightValue(profile.targetWeight, weightUnit),
@@ -85,15 +71,20 @@ export default function ProfileScreen() {
   const [weeklyWeightChangeGoal, setWeeklyWeightChangeGoal] = useState(() =>
     formatWeightValue(profile.weeklyWeightChangeGoal, weightUnit),
   );
-  const [trainingDaysPerWeek, setTrainingDaysPerWeek] = useState(`${profile.trainingDaysPerWeek}`);
+  const [trainingDaysPerWeek, setTrainingDaysPerWeek] = useState(
+    `${profile.trainingDaysPerWeek}`,
+  );
   const [coachDateOfBirth, setCoachDateOfBirth] = useState(profile.dateOfBirth ?? '');
   const [coachHeight, setCoachHeight] = useState(() =>
     formatLengthValue(Number(profile.height), lengthUnit),
   );
-  const [coachCalculationSex, setCoachCalculationSex] = useState<ProfileCalculationSex | null>(profile.calculationSex);
-  const [coachActivityLevel, setCoachActivityLevel] = useState<CoachActivityLevel | null>(normalizeCoachActivity(profile.activityLevel));
-  const [coachTrainingExperience, setCoachTrainingExperience] = useState<ProfileTrainingExperience | null>(profile.trainingExperience);
-  const [developerExpanded, setDeveloperExpanded] = useState(false);
+  const [coachCalculationSex, setCoachCalculationSex] =
+    useState<ProfileCalculationSex | null>(profile.calculationSex);
+  const [coachActivityLevel, setCoachActivityLevel] = useState<CoachActivityLevel | null>(
+    normalizeCoachActivity(profile.activityLevel),
+  );
+  const [coachTrainingExperience, setCoachTrainingExperience] =
+    useState<ProfileTrainingExperience | null>(profile.trainingExperience);
 
   useEffect(() => {
     setTargetWeight(formatWeightValue(profile.targetWeight, weightUnit));
@@ -111,7 +102,10 @@ export default function ProfileScreen() {
   const parsedWeeklyWeightDisplay = parseDisplayNumber(weeklyWeightChangeGoal);
   const parsedTrainingDaysPerWeek = Number(trainingDaysPerWeek);
   const canonicalTargetWeight = weightToKg(parsedTargetWeightDisplay, weightUnit);
-  const canonicalWeeklyWeightChangeGoal = weightToKg(parsedWeeklyWeightDisplay, weightUnit);
+  const canonicalWeeklyWeightChangeGoal = weightToKg(
+    parsedWeeklyWeightDisplay,
+    weightUnit,
+  );
   const canonicalHeightCm = displayLengthInputToCm(coachHeight, lengthUnit);
   const isSaveDisabled =
     !Number.isFinite(canonicalTargetWeight) ||
@@ -147,7 +141,12 @@ export default function ProfileScreen() {
       weeklyWeightChangeGoal: canonicalWeeklyWeightChangeGoal,
       trainingDaysPerWeek: parsedTrainingDaysPerWeek,
     });
-    Alert.alert('Goals saved', 'Your fitness goals have been updated.');
+    Alert.alert(
+      locale === 'ru' ? 'Цель сохранена' : 'Goals saved',
+      locale === 'ru'
+        ? 'Параметры цели обновлены.'
+        : 'Your fitness goals have been updated.',
+    );
   };
 
   const handleSaveCoachProfile = () => {
@@ -169,60 +168,33 @@ export default function ProfileScreen() {
       onboardingCompleted: app.onboardingCompleted,
     });
     Alert.alert(
-      'Coach profile saved',
-      `Deterministic profile inputs are ready. Calculated age: ${coachProfileValidation.ageYears}.`,
+      locale === 'ru' ? 'Профиль Coach сохранён' : 'Coach profile saved',
+      locale === 'ru'
+        ? `Данные сохранены. Расчётный возраст: ${coachProfileValidation.ageYears}.`
+        : `Deterministic profile inputs are ready. Calculated age: ${coachProfileValidation.ageYears}.`,
     );
-  };
-
-  const handleResetOnboarding = () => {
-    Alert.alert('Reset onboarding?', 'This will show Quick Setup again on this device.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Reset', style: 'destructive', onPress: () => resetOnboarding() },
-    ]);
-  };
-
-  const otaRuntimeVersion = formatOtaValue((Updates as OtaValueSource).runtimeVersion);
-  const otaUpdateId = formatOtaValue((Updates as OtaValueSource).updateId);
-  const otaCreatedAt = formatOtaValue((Updates as OtaValueSource).createdAt);
-  const otaChannel = formatOtaValue((Updates as OtaValueSource).channel);
-
-  const handleCheckForOtaUpdate = async () => {
-    try {
-      const update = await Updates.checkForUpdateAsync();
-      if (!update.isAvailable) {
-        Alert.alert('No update available');
-        return;
-      }
-      await Updates.fetchUpdateAsync();
-      Alert.alert('Update downloaded. Restarting app.');
-      await Updates.reloadAsync();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('OTA update error', message);
-    }
   };
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: safeAreaInsets.bottom + 120 },
+      ]}
       style={styles.screen}>
       <View style={styles.container}>
         <ScreenHeader title={t('profile.title')} />
+
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={styles.sectionTitle}>{t('profile.accountSection')}</Text>
           <AuthGateCard />
         </View>
+
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('profile.settingsSection')}</Text>
-          <ProfileSettingsCard
-            actionLabel={t('profile.settingsAction')}
-            description={t('profile.settingsDescription')}
-            onOpen={() => router.push('/settings')}
-          />
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Goals</Text>
+          <Text style={styles.sectionTitle}>
+            {locale === 'ru' ? 'Моя цель' : 'My goal'}
+          </Text>
           <ProfileGoalsCard
             goalType={goalType}
             isSaveDisabled={isSaveDisabled}
@@ -237,8 +209,11 @@ export default function ProfileScreen() {
             weightUnit={weightUnit}
           />
         </View>
+
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>AI Coach</Text>
+          <Text style={styles.sectionTitle}>
+            {locale === 'ru' ? 'Профиль Coach' : 'Coach profile'}
+          </Text>
           <ProfileCoachCard
             activityLevel={coachActivityLevel}
             calculationSex={coachCalculationSex}
@@ -256,25 +231,29 @@ export default function ProfileScreen() {
             trainingExperience={coachTrainingExperience}
           />
         </View>
+
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          <ProfilePreferencesCard activityLevel={profile.activityLevel} goalType={goalTypeLabel(profile.goalType)} trainingDaysPerWeek={trainingDaysPerWeek} />
+          <Text style={styles.sectionTitle}>
+            {locale === 'ru' ? 'Кратко' : 'Summary'}
+          </Text>
+          <ProfilePreferencesCard
+            activityLevel={profile.activityLevel}
+            goalType={goalTypeLabel(profile.goalType, locale)}
+            trainingDaysPerWeek={trainingDaysPerWeek}
+          />
         </View>
+
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sync & Backup</Text>
-          <ProfileSyncStatusCard />
-        </View>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Developer settings</Text>
-            <SecondaryButton label={developerExpanded ? 'Hide tools' : 'Show tools'} onPress={() => setDeveloperExpanded((current) => !current)} />
-          </View>
-          {developerExpanded ? (
-            <View style={styles.sectionStack}>
-              <ProfileActionsCard onResetOnboarding={handleResetOnboarding} />
-              <ProfileRuntimeInfoCard channel={otaChannel} createdAt={otaCreatedAt} onCheckForOtaUpdate={handleCheckForOtaUpdate} runtimeVersion={otaRuntimeVersion} updateId={otaUpdateId} />
-            </View>
-          ) : null}
+          <Text style={styles.sectionTitle}>{t('profile.settingsSection')}</Text>
+          <ProfileSettingsCard
+            actionLabel={t('profile.settingsAction')}
+            description={
+              locale === 'ru'
+                ? 'Язык, оформление, единицы, синхронизация, приватность и техническая информация.'
+                : 'Language, appearance, units, sync, privacy, and technical information.'
+            }
+            onOpen={() => router.push('/settings')}
+          />
         </View>
       </View>
     </ScrollView>
@@ -286,7 +265,5 @@ const styles = StyleSheet.create({
   content: { alignItems: 'center', padding: Spacing.three },
   screen: { backgroundColor: Colors.dark.background, flex: 1 },
   section: { gap: Spacing.two },
-  sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  sectionStack: { gap: Spacing.two },
   sectionTitle: { color: Colors.dark.textPrimary, fontSize: 18, fontWeight: '800' },
 });
