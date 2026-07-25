@@ -60,12 +60,14 @@ export const getMeasurementInsights = (
       const previousResolved = previous
         ? resolveBodyMeasurementStructuredValue(previous)
         : null;
-      const comparable =
+      const comparable = Boolean(
         latestResolved?.unit &&
-        latestResolved.canonicalNumericValue !== null &&
-        latestResolved.canonicalUnit &&
-        previousResolved?.canonicalNumericValue !== null &&
-        previousResolved?.canonicalUnit === latestResolved.canonicalUnit;
+          latestResolved.canonicalNumericValue !== null &&
+          latestResolved.canonicalUnit &&
+          previousResolved &&
+          previousResolved.canonicalNumericValue !== null &&
+          previousResolved.canonicalUnit === latestResolved.canonicalUnit,
+      );
       const previousInLatestUnit = comparable
         ? convertCanonicalToUnit(
             previousResolved!.canonicalNumericValue!,
