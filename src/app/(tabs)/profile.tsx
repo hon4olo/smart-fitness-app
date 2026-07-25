@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,7 +9,7 @@ import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
 import { ProfilePreferencesCard } from '@/components/profile/ProfilePreferencesCard';
 import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import {
   validateCoachProfileForm,
@@ -57,6 +57,37 @@ const normalizeCoachActivity = (value: string): CoachActivityLevel | null => {
   return aliases[normalized] ?? null;
 };
 
+function CollapsibleSection({
+  children,
+  expanded,
+  onToggle,
+  subtitle,
+  title,
+}: {
+  children: React.ReactNode;
+  expanded: boolean;
+  onToggle(): void;
+  subtitle: string;
+  title: string;
+}) {
+  return (
+    <View style={styles.section}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        onPress={onToggle}
+        style={({ pressed }) => [styles.disclosure, pressed && styles.disclosurePressed]}>
+        <View style={styles.disclosureCopy}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          <Text style={styles.sectionSubtitle}>{subtitle}</Text>
+        </View>
+        <Text style={styles.chevron}>{expanded ? '−' : '+'}</Text>
+      </Pressable>
+      {expanded ? children : null}
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
   const router = useRouter();
   const app = useAppContext();
@@ -64,6 +95,8 @@ export default function ProfileScreen() {
   const { weight: weightUnit, length: lengthUnit } = useUnitPreferences();
   const { profile, updateProfileGoals, replaceState } = app;
   const safeAreaInsets = useSafeAreaInsets();
+  const [goalsExpanded, setGoalsExpanded] = useState(false);
+  const [coachExpanded, setCoachExpanded] = useState(false);
   const [targetWeight, setTargetWeight] = useState(() =>
     formatWeightValue(profile.targetWeight, weightUnit),
   );
@@ -141,6 +174,7 @@ export default function ProfileScreen() {
       weeklyWeightChangeGoal: canonicalWeeklyWeightChangeGoal,
       trainingDaysPerWeek: parsedTrainingDaysPerWeek,
     });
+    setGoalsExpanded(false);
     Alert.alert(
       locale === 'ru' ? 'Цель сохранена' : 'Goals saved',
       locale === 'ru'
@@ -167,6 +201,7 @@ export default function ProfileScreen() {
       profile: { ...app.profile, ...coachProfileValidation.value },
       onboardingCompleted: app.onboardingCompleted,
     });
+    setCoachExpanded(false);
     Alert.alert(
       locale === 'ru' ? 'Профиль Coach сохранён' : 'Coach profile saved',
       locale === 'ru'
@@ -192,9 +227,23 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {locale === 'ru' ? 'Моя цель' : 'My goal'}
-          </Text>
+          <Text style={styles.sectionTitle}>{locale === 'ru' ? 'Кратко' : 'Summary'}</Text>
+          <ProfilePreferencesCard
+            activityLevel={profile.activityLevel}
+            goalType={goalTypeLabel(profile.goalType, locale)}
+            trainingDaysPerWeek={trainingDaysPerWeek}
+          />
+        </View>
+
+        <CollapsibleSection
+          expanded={goalsExpanded}
+          onToggle={() => setGoalsExpanded((current) => !current)}
+          subtitle={
+            locale === 'ru'
+              ? `${goalTypeLabel(profile.goalType, locale)} · цель ${formatWeightValue(profile.targetWeight, weightUnit)} ${weightUnit}`
+              : `${goalTypeLabel(profile.goalType, locale)} · target ${formatWeightValue(profile.targetWeight, weightUnit)} ${weightUnit}`
+          }
+          title={locale === 'ru' ? 'Моя цель' : 'My goal'}>
           <ProfileGoalsCard
             goalType={goalType}
             isSaveDisabled={isSaveDisabled}
@@ -208,12 +257,17 @@ export default function ProfileScreen() {
             weeklyWeightChangeGoal={weeklyWeightChangeGoal}
             weightUnit={weightUnit}
           />
-        </View>
+        </CollapsibleSection>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {locale === 'ru' ? 'Профиль Coach' : 'Coach profile'}
-          </Text>
+        <CollapsibleSection
+          expanded={coachExpanded}
+          onToggle={() => setCoachExpanded((current) => !current)}
+          subtitle={
+            locale === 'ru'
+              ? 'Дата рождения, рост, активность и опыт'
+              : 'Date of birth, height, activity, and experience'
+          }
+          title={locale === 'ru' ? 'Профиль Coach' : 'Coach profile'}>
           <ProfileCoachCard
             activityLevel={coachActivityLevel}
             calculationSex={coachCalculationSex}
@@ -230,18 +284,7 @@ export default function ProfileScreen() {
             onTrainingExperienceChange={setCoachTrainingExperience}
             trainingExperience={coachTrainingExperience}
           />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {locale === 'ru' ? 'Кратко' : 'Summary'}
-          </Text>
-          <ProfilePreferencesCard
-            activityLevel={profile.activityLevel}
-            goalType={goalTypeLabel(profile.goalType, locale)}
-            trainingDaysPerWeek={trainingDaysPerWeek}
-          />
-        </View>
+        </CollapsibleSection>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('profile.settingsSection')}</Text>
@@ -261,9 +304,30 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  chevron: {
+    color: Colors.dark.textPrimary,
+    fontSize: 24,
+    fontWeight: '600',
+    lineHeight: 26,
+  },
   container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
   content: { alignItems: 'center', padding: Spacing.three },
+  disclosure: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.surfacePrimary,
+    borderColor: Colors.dark.borderSubtle,
+    borderRadius: Radii.large,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+    minHeight: 68,
+    padding: Spacing.three,
+  },
+  disclosureCopy: { flex: 1, gap: 4 },
+  disclosurePressed: { opacity: 0.78 },
   screen: { backgroundColor: Colors.dark.background, flex: 1 },
   section: { gap: Spacing.two },
+  sectionSubtitle: { color: Colors.dark.textSecondary, fontSize: 13, lineHeight: 18 },
   sectionTitle: { color: Colors.dark.textPrimary, fontSize: 18, fontWeight: '800' },
 });
