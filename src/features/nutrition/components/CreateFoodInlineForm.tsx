@@ -3,6 +3,7 @@ import { Text, TextInput, View } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import type { CustomFoodValidationErrors } from '@/features/nutrition/addFoodModel';
+import { useUnitPreferences } from '@/units';
 
 type CreateFoodInlineFormProps = {
   colors: Record<string, any>;
@@ -53,6 +54,8 @@ export function CreateFoodInlineForm({
   setFoodServingUnit,
   styles,
 }: CreateFoodInlineFormProps) {
+  const { energy } = useUnitPreferences();
+
   return (
     <AppCard style={styles.customFoodCard}>
       <View style={styles.sectionHeader}>
@@ -151,10 +154,10 @@ export function CreateFoodInlineForm({
       <View style={styles.grid}>
         <View style={styles.gridField}>
           <Text selectable style={styles.fieldLabel}>
-            Calories
+            Energy, {energy}
           </Text>
           <TextInput
-            accessibilityLabel="Calories"
+            accessibilityLabel={`Energy (${energy})`}
             keyboardType="decimal-pad"
             onChangeText={setFoodCalories}
             placeholder="0"
