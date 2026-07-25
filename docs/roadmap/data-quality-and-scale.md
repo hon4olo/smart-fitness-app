@@ -36,11 +36,12 @@ Completed:
 - signed-in local mutations enqueue idempotent create/update/delete operations through the existing durable offline queue;
 - pull application writes remote upserts and tombstones into the signed-in account library before cursor advancement;
 - anonymous storage remains isolated and is never silently imported into a signed-in account;
-- provider-favorite snapshots remain locally usable without another provider request.
+- provider-favorite snapshots remain locally usable without another provider request;
+- automated mobile coverage now includes deterministic create/update/delete identities, recovered-pending deduplication, duplicate remote delivery, repeated tombstones, malformed remote snapshots, anonymous/account isolation, offline provider-snapshot restoration, and tombstone resurrection.
 
 Remaining:
 
-- add focused create/update/delete conflict and idempotent replay coverage across client and backend;
+- add backend-specific concurrent create/update/delete conflict coverage against PostgreSQL;
 - validate offline termination/restart and the library on a second signed-in device.
 
 ## Visual regression and release-device matrix — P1
