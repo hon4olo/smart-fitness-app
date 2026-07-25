@@ -49,8 +49,15 @@ Remaining:
 
 ## Visual regression and release-device matrix — P1
 
+Completed:
+
+- a regenerated native iOS project and Pods installed and launched the application successfully from the Xcode workspace on one physical iPhone;
+- local Xcode source-map upload was disabled with the Scheme-only `SENTRY_DISABLE_AUTO_UPLOAD=true` setting, without adding production Sentry credentials or disabling the SDK in application code.
+
 Remaining:
 
+- complete the on-device smoke checks for local-data preservation, all primary tabs, Settings, Coach history safe failure, Nutrition library, active workout, force-close recovery, and Sentry runtime stability;
+- verify launch without Metro rather than inferring it from a successful Xcode install;
 - reference screenshots for primary screens and critical child flows;
 - smallest, standard, and large iPhones plus representative Android sizes;
 - Light, Dark, English, Russian, large text, keyboard-open, loading, empty, error, and offline states;
