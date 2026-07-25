@@ -10,6 +10,7 @@ import type {
   StartSafetyRecoveryRunInput,
 } from './contracts';
 import { parseCoachCapabilities, parseCoachRunEnvelope } from './parsers';
+import { parseCoachRunTrustState } from './trust';
 
 type CoachApiAuth = {
   getAccessToken(): Promise<string | null>;
@@ -27,6 +28,19 @@ const TERMINAL_STATUSES = new Set<CoachRunStatus>([
   'rejected',
   'failed',
 ]);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const parseCoachRunDetailEnvelope = (value: unknown): CoachRunEnvelope => {
+  const envelope = parseCoachRunEnvelope(value);
+  if (!isRecord(value) || value.trust === undefined) return envelope;
+  try {
+    return { ...envelope, trust: parseCoachRunTrustState(value.trust) };
+  } catch {
+    return { ...envelope, trustValidationFailed: true };
+  }
+};
 
 const sleep = (ms: number, signal?: AbortSignal): Promise<void> =>
   new Promise((resolve, reject) => {
@@ -68,7 +82,7 @@ export const createCoachApi = (
 
   const getRun = async (runId: string): Promise<CoachRunEnvelope> =>
     requestWithAuth(async (accessToken) =>
-      parseCoachRunEnvelope(
+      parseCoachRunDetailEnvelope(
         await apiClient.get<unknown>(
           `/v1/coach/runs/${encodeURIComponent(runId)}`,
           { headers: { authorization: `Bearer ${accessToken}` } },

@@ -12,6 +12,7 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { getCoachHistoryCopy } from '../coachHistoryCopy';
+import { CoachRunTrustCard } from '../components/CoachRunTrustCard';
 
 export default function CoachRunHistoryDetailScreen() {
   const params = useLocalSearchParams<{ runId?: string }>();
@@ -122,6 +123,8 @@ export default function CoachRunHistoryDetailScreen() {
                   />
                 ) : null}
               </AppCard>
+
+              <CoachRunTrustCard run={run} locale={locale} />
 
               {provenanceState.invalid || provenanceState.items.length > 0 ? (
                 <AppCard>

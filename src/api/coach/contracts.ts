@@ -91,9 +91,40 @@ export type CoachAgentRunRecord = {
   updatedAt: string;
 };
 
+export type CoachTrustApplicationKey =
+  | 'proposal'
+  | 'nutrition'
+  | 'effectiveStrength';
+export type CoachTrustApplicationState =
+  | 'current'
+  | 'stale'
+  | 'unavailable'
+  | 'applied';
+export type CoachTrustSourceEntityType =
+  | 'nutrition_target'
+  | 'workout_session';
+
+export type CoachTrustApplication = {
+  key: CoachTrustApplicationKey;
+  state: CoachTrustApplicationState;
+  sourceEntityType: CoachTrustSourceEntityType;
+  proposalRevision: number | null;
+  currentRevision: number | null;
+};
+
+export type CoachRunTrustState = {
+  schemaVersion: 1;
+  overallState:
+    | 'not_applicable'
+    | CoachTrustApplicationState;
+  applications: CoachTrustApplication[];
+};
+
 export type CoachRunEnvelope = {
   run: CoachRunRecord;
   agentRuns: CoachAgentRunRecord[];
+  trust?: CoachRunTrustState;
+  trustValidationFailed?: true;
 };
 
 export type StartStrengthCoachRunInput = {
