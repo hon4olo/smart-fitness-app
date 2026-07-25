@@ -6,6 +6,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { ListRow } from '@/components/ui/ListRow';
 import { formatCompactMacroTotals, formatNumber, sumNutritionTotals } from '@/lib/nutrition';
 import type { MealTemplate } from '@/types';
+import { formatEnergyValue, useUnitPreferences } from '@/units';
 
 type SavedMealsModeSectionProps = {
   colors: Record<string, any>;
@@ -42,6 +43,7 @@ export function SavedMealsModeSection({
   setMealTemplateName,
   styles,
 }: SavedMealsModeSectionProps) {
+  const { energy } = useUnitPreferences();
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
 
@@ -112,7 +114,7 @@ export function SavedMealsModeSection({
                       ) : null}
                     </View>
                   }
-                  value={`${formatNumber(templateTotals.calories)} kcal`}
+                  value={`${formatEnergyValue(templateTotals.calories, energy)} ${energy}`}
                 />
 
                 {expanded ? (
@@ -134,7 +136,7 @@ export function SavedMealsModeSection({
                             {formatNumber(item.quantity ?? item.servingSize ?? 1)} {item.servingUnit ?? 'unit'} · {formatCompactMacroTotals(item)}
                           </Text>
                         </View>
-                        <Text selectable style={styles.nutrientValue}>{formatNumber(item.calories)} kcal</Text>
+                        <Text selectable style={styles.nutrientValue}>{formatEnergyValue(item.calories, energy)} {energy}</Text>
                       </View>
                     ))}
                     <AppButton
