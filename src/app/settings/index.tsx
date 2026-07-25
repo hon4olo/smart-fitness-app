@@ -1,12 +1,18 @@
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+// @ts-ignore - expo-updates types are not available in this workspace, but the runtime module exists on device.
+import * as Updates from 'expo-updates';
 
 import { AuthGateCard } from '@/components/auth';
+import { ProfileActionsCard } from '@/components/profile/ProfileActionsCard';
+import { ProfileRuntimeInfoCard } from '@/components/profile/ProfileRuntimeInfoCard';
 import { AppCard } from '@/components/ui/AppCard';
+import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import type { AppearanceMode } from '@/constants/theme';
+import { useAppContext } from '@/context/AppContext';
 import {
   AboutSettingsCard,
   getPrivacyAboutSectionTitles,
@@ -24,12 +30,27 @@ import {
   type WeightUnit,
 } from '@/units';
 
+type OtaValueSource = Record<string, unknown>;
+
+const formatOtaValue = (value: unknown) => {
+  if (value === null || value === undefined || value === '') return 'Not available';
+  if (value instanceof Date) {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(value);
+  }
+  return String(value);
+};
+
 export default function SettingsScreen() {
   const router = useRouter();
+  const app = useAppContext();
   const { colors, mode, setMode } = useAppTheme();
   const { languagePreference, locale, setLanguagePreference, t } = useLocalization();
   const { weight, length, energy, setWeightUnit, setLengthUnit, setEnergyUnit } =
     useUnitPreferences();
+  const [developerExpanded, setDeveloperExpanded] = useState(false);
   const styles = useMemo(() => createStyles(colors), [colors]);
   const unitCopy = getUnitCopy(locale);
   const syncCopy = getSyncStatusCopy(locale);
@@ -58,6 +79,48 @@ export default function SettingsScreen() {
     { label: 'kJ', value: 'kJ' },
   ];
 
+  const otaRuntimeVersion = formatOtaValue((Updates as OtaValueSource).runtimeVersion);
+  const otaUpdateId = formatOtaValue((Updates as OtaValueSource).updateId);
+  const otaCreatedAt = formatOtaValue((Updates as OtaValueSource).createdAt);
+  const otaChannel = formatOtaValue((Updates as OtaValueSource).channel);
+
+  const handleResetOnboarding = () => {
+    Alert.alert(
+      locale === 'ru' ? 'Сбросить первоначальную настройку?' : 'Reset onboarding?',
+      locale === 'ru'
+        ? 'На этом устройстве снова откроется первоначальная настройка.'
+        : 'This will show Quick Setup again on this device.',
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: locale === 'ru' ? 'Сбросить' : 'Reset',
+          style: 'destructive',
+          onPress: () => app.resetOnboarding(),
+        },
+      ],
+    );
+  };
+
+  const handleCheckForOtaUpdate = async () => {
+    try {
+      const update = await Updates.checkForUpdateAsync();
+      if (!update.isAvailable) {
+        Alert.alert(locale === 'ru' ? 'Обновлений нет' : 'No update available');
+        return;
+      }
+      await Updates.fetchUpdateAsync();
+      Alert.alert(
+        locale === 'ru'
+          ? 'Обновление загружено. Приложение перезапустится.'
+          : 'Update downloaded. Restarting app.',
+      );
+      await Updates.reloadAsync();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert(locale === 'ru' ? 'Ошибка OTA-обновления' : 'OTA update error', message);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.content} style={styles.screen}>
       <View style={styles.container}>
@@ -71,16 +134,16 @@ export default function SettingsScreen() {
           </Pressable>
           <View style={styles.headerCopy}>
             <Text style={styles.title}>{t('settings.title')}</Text>
-            <Text style={styles.subtitle}>{t('settings.subtitle')}</Text>
+            <Text style={styles.subtitle}>
+              {locale === 'ru'
+                ? 'Аккаунт, язык, оформление, единицы, синхронизация и приватность.'
+                : 'Account, language, appearance, units, sync, and privacy.'}
+            </Text>
           </View>
         </View>
 
         <SettingsSection title={t('account.title')}>
           <AuthGateCard />
-        </SettingsSection>
-
-        <SettingsSection title={syncCopy.section}>
-          <SyncSettingsCard />
         </SettingsSection>
 
         <SettingsSection title={t('settings.general')}>
@@ -145,6 +208,10 @@ export default function SettingsScreen() {
           <Text style={styles.footer}>{unitCopy.footer}</Text>
         </SettingsSection>
 
+        <SettingsSection title={syncCopy.section}>
+          <SyncSettingsCard />
+        </SettingsSection>
+
         <SettingsSection title={privacyAboutTitles.privacy}>
           <PrivacySettingsCard />
         </SettingsSection>
@@ -152,6 +219,45 @@ export default function SettingsScreen() {
         <SettingsSection title={privacyAboutTitles.about}>
           <AboutSettingsCard />
         </SettingsSection>
+
+        <View style={styles.section}>
+          <View style={styles.developerHeader}>
+            <View style={styles.developerCopy}>
+              <Text style={styles.sectionTitle}>
+                {locale === 'ru' ? 'Инструменты разработчика' : 'Developer tools'}
+              </Text>
+              <Text style={styles.footer}>
+                {locale === 'ru'
+                  ? 'Технические функции, диагностика сборки и тестовые экраны.'
+                  : 'Technical actions, build diagnostics, and preview screens.'}
+              </Text>
+            </View>
+            <SecondaryButton
+              label={
+                developerExpanded
+                  ? locale === 'ru'
+                    ? 'Скрыть'
+                    : 'Hide'
+                  : locale === 'ru'
+                    ? 'Показать'
+                    : 'Show'
+              }
+              onPress={() => setDeveloperExpanded((current) => !current)}
+            />
+          </View>
+          {developerExpanded ? (
+            <View style={styles.developerStack}>
+              <ProfileActionsCard onResetOnboarding={handleResetOnboarding} />
+              <ProfileRuntimeInfoCard
+                channel={otaChannel}
+                createdAt={otaCreatedAt}
+                onCheckForOtaUpdate={handleCheckForOtaUpdate}
+                runtimeVersion={otaRuntimeVersion}
+                updateId={otaUpdateId}
+              />
+            </View>
+          ) : null}
+        </View>
 
         <Text style={styles.footer}>{t('settings.aboutPreferences')}</Text>
       </View>
@@ -228,6 +334,14 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingHorizontal: Spacing.four,
       paddingTop: Spacing.four,
     },
+    developerCopy: { flex: 1, gap: Spacing.one },
+    developerHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.two,
+      justifyContent: 'space-between',
+    },
+    developerStack: { gap: Spacing.two },
     divider: { backgroundColor: colors.borderSubtle, height: StyleSheet.hairlineWidth },
     footer: {
       color: colors.textMuted,
@@ -238,6 +352,14 @@ const createStyles = (colors: typeof Colors.light) =>
     headerCopy: { flex: 1, gap: Spacing.one },
     headerRow: { alignItems: 'flex-start', flexDirection: 'row', gap: Spacing.three },
     screen: { backgroundColor: colors.background, flex: 1 },
+    section: { gap: Spacing.two },
+    sectionTitle: {
+      color: colors.textSecondary,
+      fontSize: Typography.sectionTitle.fontSize,
+      fontWeight: Typography.sectionTitle.fontWeight,
+      letterSpacing: Typography.sectionTitle.letterSpacing,
+      textTransform: Typography.sectionTitle.textTransform,
+    },
     subtitle: {
       color: colors.textSecondary,
       fontSize: Typography.body.fontSize,
