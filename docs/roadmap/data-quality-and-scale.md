@@ -14,11 +14,13 @@ Completed:
 - local-only and account-synchronized behavior are explained in English and Russian;
 - failed local persistence exposes a safe retry action without displaying the raw exception;
 - durable outbox recovery records are counted and can be replayed manually without deleting records after a failed replay;
-- the existing startup replay and in-session retry contracts from mobile PR #57 remain the recovery source of truth.
+- the existing startup replay and in-session retry contracts from mobile PR #57 remain the recovery source of truth;
+- unresolved conflict snapshots are listed by localized domain, detection time, and sync stage without internal IDs or payload values;
+- users can retry the existing deterministic conflict resolver through the ordinary synchronization contract without deleting either version.
 
 Remaining:
 
-- provide a deterministic user-visible conflict-resolution path;
+- define and implement a safe explicit local-versus-account choice contract for conflicts that remain unresolved after deterministic retry;
 - test offline edit, termination, restart, refresh, reconnect, and eventual synchronization on devices;
 - include runtime/update details in support diagnostics.
 
