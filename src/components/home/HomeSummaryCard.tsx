@@ -4,11 +4,16 @@ import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 
 type HomeSummaryCardProps = {
+  caloriesLabel: string;
   caloriesRemainingLabel: string;
   currentWeightLabel: string;
+  currentWeightTitle: string;
   isCaloriesOverTarget: boolean;
   motivation: string;
   streakLabel?: string;
+  streakTitle: string;
+  title: string;
+  todayLabel: string;
 };
 
 function MiniStat({ label, value }: { label: string; value: string }) {
@@ -24,16 +29,27 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function HomeSummaryCard({ caloriesRemainingLabel, currentWeightLabel, isCaloriesOverTarget, motivation, streakLabel }: HomeSummaryCardProps) {
+export function HomeSummaryCard({
+  caloriesLabel,
+  caloriesRemainingLabel,
+  currentWeightLabel,
+  currentWeightTitle,
+  isCaloriesOverTarget,
+  motivation,
+  streakLabel,
+  streakTitle,
+  title,
+  todayLabel,
+}: HomeSummaryCardProps) {
   return (
     <AppCard style={[styles.card, isCaloriesOverTarget && styles.cardWarning]}>
       <View style={styles.hero}>
         <View style={styles.headerCopy}>
           <Text selectable style={styles.kicker}>
-            Today
+            {todayLabel}
           </Text>
           <Text selectable style={styles.title}>
-            What matters now
+            {title}
           </Text>
           <Text selectable style={styles.subheadline}>
             {motivation}
@@ -42,29 +58,30 @@ export function HomeSummaryCard({ caloriesRemainingLabel, currentWeightLabel, is
 
         <View style={[styles.caloriesBadge, isCaloriesOverTarget && styles.caloriesBadgeWarning]}>
           <Text selectable style={styles.caloriesBadgeLabel}>
-            Calories
+            {caloriesLabel}
           </Text>
-          <Text selectable style={[styles.caloriesBadgeValue, isCaloriesOverTarget && styles.caloriesBadgeValueWarning]}>
+          <Text
+            selectable
+            style={[
+              styles.caloriesBadgeValue,
+              isCaloriesOverTarget && styles.caloriesBadgeValueWarning,
+            ]}>
             {caloriesRemainingLabel}
           </Text>
         </View>
       </View>
 
       <View style={styles.statsGrid}>
-        <MiniStat label="Current weight" value={currentWeightLabel} />
-        <MiniStat label="Streak" value={streakLabel ?? '—'} />
+        <MiniStat label={currentWeightTitle} value={currentWeightLabel} />
+        <MiniStat label={streakTitle} value={streakLabel ?? '—'} />
       </View>
     </AppCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.dark.surfaceAccent,
-  },
-  cardWarning: {
-    backgroundColor: Colors.dark.warningSoft,
-  },
+  card: { backgroundColor: Colors.dark.surfaceAccent },
+  cardWarning: { backgroundColor: Colors.dark.warningSoft },
   caloriesBadge: {
     alignItems: 'flex-end',
     backgroundColor: Colors.dark.surfacePrimary,
@@ -87,18 +104,12 @@ const styles = StyleSheet.create({
     fontWeight: Typography.heroMetric.fontWeight,
     lineHeight: Typography.cardTitle.lineHeight,
   },
-  caloriesBadgeValueWarning: {
-    color: Colors.dark.warning,
-  },
+  caloriesBadgeValueWarning: { color: Colors.dark.warning },
   caloriesBadgeWarning: {
     backgroundColor: Colors.dark.surfacePrimary,
     borderColor: Colors.dark.warningSoft,
   },
-  headerCopy: {
-    flex: 1,
-    gap: 4,
-    minWidth: 0,
-  },
+  headerCopy: { flex: 1, gap: 4, minWidth: 0 },
   hero: {
     alignItems: 'flex-start',
     flexDirection: 'row',
@@ -131,11 +142,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.bodyEmphasized.fontWeight,
     lineHeight: Typography.bodyEmphasized.lineHeight,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   subheadline: {
     color: Colors.dark.textSecondary,
     fontSize: Typography.callout.fontSize,
