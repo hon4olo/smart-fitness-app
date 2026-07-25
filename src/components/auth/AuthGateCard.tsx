@@ -11,12 +11,14 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useLocalization } from '@/localization';
 
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { DeleteAccountModal } from './DeleteAccountModal';
 
 export function AuthGateCard() {
   const router = useRouter();
+  const { t } = useLocalization();
   const {
     changePassword,
     deleteAccount,
@@ -59,35 +61,44 @@ export function AuthGateCard() {
     }
   };
 
+  const description =
+    viewModel.status === 'restoring'
+      ? t('account.description.restoring')
+      : viewModel.status === 'signed_in'
+        ? t('account.description.signedIn')
+        : viewModel.status === 'auth_error'
+          ? t('account.description.authError')
+          : t('account.description.signedOut');
+  const emailLabel =
+    viewModel.emailLabel === 'Not available' ? t('common.notAvailable') : viewModel.emailLabel;
+  const displayNameLabel =
+    viewModel.displayNameLabel === 'Not set' ? t('common.notSet') : viewModel.displayNameLabel;
+
   return (
     <AppCard>
-      <Text style={styles.title}>Account</Text>
-      <Text style={styles.helpText}>{resolveDescription(viewModel.status)}</Text>
+      <Text style={styles.title}>{t('account.title')}</Text>
+      <Text style={styles.helpText}>{description}</Text>
 
-      {viewModel.status === 'restoring' ? (
-        <LoadingState label="Checking your saved sign-in…" />
-      ) : null}
+      {viewModel.status === 'restoring' ? <LoadingState label={t('account.loading')} /> : null}
       {viewModel.status === 'auth_error' ? (
-        <InlineError message="We could not restore your account right now." />
+        <InlineError message={t('account.restoreError')} />
       ) : null}
 
       {viewModel.status === 'signed_in' ? (
         <View style={styles.metaStack}>
           <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Email</Text>
+            <Text style={styles.metaLabel}>{t('account.emailLabel')}</Text>
             <Text selectable style={styles.metaValue}>
-              {viewModel.emailLabel}
+              {emailLabel}
             </Text>
           </View>
           <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Display name</Text>
+            <Text style={styles.metaLabel}>{t('account.displayNameLabel')}</Text>
             <Text selectable style={styles.metaValue}>
-              {viewModel.displayNameLabel}
+              {displayNameLabel}
             </Text>
           </View>
-          <Text style={styles.note}>
-            Review signed-in devices, change your password, or permanently delete your account and synchronized cloud data.
-          </Text>
+          <Text style={styles.note}>{t('account.note')}</Text>
         </View>
       ) : null}
 
@@ -95,27 +106,29 @@ export function AuthGateCard() {
         <>
           <PrimaryButton
             disabled={busyAction === 'refresh'}
-            label={busyAction === 'refresh' ? 'Refreshing…' : 'Refresh profile'}
+            label={
+              busyAction === 'refresh' ? t('account.refreshing') : t('account.refreshProfile')
+            }
             loading={busyAction === 'refresh'}
             onPress={handleRefreshProfile}
           />
           <SecondaryButton
-            label="Devices & sessions"
+            label={t('account.devices')}
             onPress={() => router.push('/account/sessions')}
           />
           <SecondaryButton
-            label="Change password"
+            label={t('account.changePassword')}
             onPress={() => setChangePasswordModalOpen(true)}
           />
           <SecondaryButton
             disabled={busyAction === 'logout'}
-            label={busyAction === 'logout' ? 'Logging out…' : 'Logout'}
+            label={busyAction === 'logout' ? t('account.loggingOut') : t('account.logout')}
             loading={busyAction === 'logout'}
             onPress={handleLogout}
           />
           <DestructiveButton
-            accessibilityHint="Opens permanent account deletion confirmation"
-            label="Delete account"
+            accessibilityHint={t('account.deleteHint')}
+            label={t('account.delete')}
             onPress={() => setDeleteModalOpen(true)}
           />
         </>
@@ -123,8 +136,8 @@ export function AuthGateCard() {
 
       {viewModel.status !== 'signed_in' ? (
         <>
-          <PrimaryButton label="Sign in" onPress={goToSignIn} />
-          <SecondaryButton label="Create account" onPress={goToRegister} />
+          <PrimaryButton label={t('common.signIn')} onPress={goToSignIn} />
+          <SecondaryButton label={t('common.createAccount')} onPress={goToRegister} />
         </>
       ) : null}
 
@@ -132,16 +145,12 @@ export function AuthGateCard() {
         onChangePassword={changePassword}
         onChanged={() => {
           setChangePasswordModalOpen(false);
-          Alert.alert(
-            'Password changed',
-            'All devices were signed out. Sign in again with your new password.',
-            [
-              {
-                text: 'Sign in',
-                onPress: () => router.replace('/auth/sign-in'),
-              },
-            ],
-          );
+          Alert.alert(t('account.passwordChangedTitle'), t('account.passwordChangedBody'), [
+            {
+              text: t('common.signIn'),
+              onPress: () => router.replace('/auth/sign-in'),
+            },
+          ]);
         }}
         onClose={() => setChangePasswordModalOpen(false)}
         visible={changePasswordModalOpen}
@@ -153,13 +162,13 @@ export function AuthGateCard() {
         onDeleted={(result) => {
           setDeleteModalOpen(false);
           Alert.alert(
-            'Account deleted',
+            t('account.deletedTitle'),
             result.localCleanupComplete
-              ? 'Your account and synchronized data were permanently deleted.'
-              : 'Your account was deleted. Some local cleanup will be retried before data can be restored on the next launch.',
+              ? t('account.deletedComplete')
+              : t('account.deletedPending'),
             [
               {
-                text: 'Continue',
+                text: t('common.continue'),
                 onPress: () => router.replace('/auth/sign-in'),
               },
             ],
@@ -170,13 +179,6 @@ export function AuthGateCard() {
     </AppCard>
   );
 }
-
-const resolveDescription = (status: string) => {
-  if (status === 'restoring') return 'Checking your saved sign-in before you continue.';
-  if (status === 'signed_in') return 'Your account is ready.';
-  if (status === 'auth_error') return 'Try signing in again or create a new account.';
-  return 'Sign in to keep sync and backup ready.';
-};
 
 const styles = {
   helpText: {
