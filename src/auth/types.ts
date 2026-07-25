@@ -116,9 +116,6 @@ export type AuthService = {
   refresh(): Promise<AuthSession | null>;
   logout(): Promise<void>;
   changePassword(input: ChangePasswordInput): Promise<void>;
-  listSessions(): Promise<AuthSessionSummary[]>;
-  revokeSession(sessionId: string): Promise<void>;
-  revokeOtherSessions(): Promise<number>;
   deleteAccount(password: string): Promise<AccountDeletionResult>;
   fetchProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: AuthProfileUpdate): Promise<AuthProfile | null>;
