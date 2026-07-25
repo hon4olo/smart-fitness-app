@@ -1,4 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('expo-constants', () => ({
+  default: {
+    expoConfig: { version: '1.0.0' },
+    nativeAppVersion: '1.0.0',
+    nativeBuildVersion: '42',
+  },
+}));
+
+vi.mock('expo-updates', () => ({
+  channel: 'preview',
+  isEmbeddedLaunch: false,
+  runtimeVersion: '1.0.0',
+  updateId: 'update-1',
+}));
 
 import { serializeSupportDiagnostics } from '@/features/settings/supportDiagnostics';
 
