@@ -32,6 +32,18 @@ export type AuthSessionRecord = {
   revokedAt: string | null;
 };
 
+export type AuthSessionSummary = {
+  id: string;
+  deviceId: string;
+  deviceName: string;
+  platform: string;
+  appVersion: string;
+  lastSeenAt: string;
+  expiresAt: string;
+  createdAt: string;
+  isCurrent: boolean;
+};
+
 export type AuthTokens = {
   accessToken: string;
   refreshToken: string;
@@ -104,6 +116,9 @@ export type AuthService = {
   refresh(): Promise<AuthSession | null>;
   logout(): Promise<void>;
   changePassword(input: ChangePasswordInput): Promise<void>;
+  listSessions(): Promise<AuthSessionSummary[]>;
+  revokeSession(sessionId: string): Promise<void>;
+  revokeOtherSessions(): Promise<number>;
   deleteAccount(password: string): Promise<AccountDeletionResult>;
   fetchProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: AuthProfileUpdate): Promise<AuthProfile | null>;
