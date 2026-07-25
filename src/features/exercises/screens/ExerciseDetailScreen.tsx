@@ -3,19 +3,20 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ProgressTrendChart } from '@/components/progress/ProgressTrendChart';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { ProgressTrendChart } from '@/components/progress/ProgressTrendChart';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { formatWeightValue, useUnitPreferences, weightFromKg } from '@/units';
 
-import { MuscleMap } from '../components/MuscleMap';
 import { ExerciseMediaPreview } from '../components/ExerciseMediaPreview';
+import { MuscleMap } from '../components/MuscleMap';
 import { loadFavoriteExerciseIds, saveFavoriteExerciseIds } from '../favoritesRepository';
 import { selectCompletedSetsByExerciseId } from '../history';
 import { getExerciseMediaUri } from '../media';
@@ -56,6 +57,7 @@ export default function ExerciseDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
+  const { weight: weightUnit } = useUnitPreferences();
   const { workoutSessions } = useAppContext();
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,26 +85,18 @@ export default function ExerciseDetailScreen() {
           loadFavoriteExerciseIds(),
         ]);
 
-        if (cancelled) {
-          return;
-        }
-
+        if (cancelled) return;
         setExercise(nextExercise);
         setFavoriteIds(nextFavoriteIds);
         setError(nextExercise ? null : 'Exercise not found.');
       } catch {
-        if (!cancelled) {
-          setError('Could not load exercise details.');
-        }
+        if (!cancelled) setError('Could not load exercise details.');
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     };
 
     void loadExercise();
-
     return () => {
       cancelled = true;
     };
@@ -115,50 +109,50 @@ export default function ExerciseDetailScreen() {
 
   const historyGroups = useMemo(
     () => (exercise ? selectCompletedSetsByExerciseId(workoutSessions, exercise.id) : []),
-    [exercise, workoutSessions]
+    [exercise, workoutSessions],
   );
   const progressMetrics = useMemo(() => calculateExerciseProgressMetrics(historyGroups), [historyGroups]);
+  const displayVolumeTrend = useMemo(
+    () =>
+      progressMetrics.volumeTrend.map((point) => {
+        const value = weightFromKg(point.value, weightUnit);
+        return { ...point, value, displayValue: Math.round(value).toLocaleString() };
+      }),
+    [progressMetrics.volumeTrend, weightUnit],
+  );
   const highlights = useMemo(
     () => (exercise ? buildMuscleHighlights(exercise.primaryMuscles, exercise.secondaryMuscles) : {}),
-    [exercise]
+    [exercise],
   );
   const isFavorite = Boolean(exercise && favoriteIds.has(exercise.id));
   const hasAnimation = Boolean(exercise?.media.animationUrl ?? exercise?.media.gifUri);
   const resolvedMediaUri = exercise ? getExerciseMediaUri(exercise, { playing }) : undefined;
+  const formatWeight = (valueKg: number) => `${formatWeightValue(valueKg, weightUnit)} ${weightUnit}`;
+  const formatVolume = (valueKg: number) =>
+    `${Math.round(weightFromKg(valueKg, weightUnit)).toLocaleString()} ${weightUnit}`;
 
   useEffect(() => {
     setMediaStatus(resolvedMediaUri ? 'loading' : 'missing');
   }, [resolvedMediaUri]);
 
   const toggleFavorite = () => {
-    if (!exercise) {
-      return;
-    }
-
+    if (!exercise) return;
     const nextFavoriteIds = new Set(favoriteIds);
-    if (nextFavoriteIds.has(exercise.id)) {
-      nextFavoriteIds.delete(exercise.id);
-    } else {
-      nextFavoriteIds.add(exercise.id);
-    }
+    if (nextFavoriteIds.has(exercise.id)) nextFavoriteIds.delete(exercise.id);
+    else nextFavoriteIds.add(exercise.id);
     setFavoriteIds(nextFavoriteIds);
     void saveFavoriteExerciseIds(nextFavoriteIds);
   };
 
   const shareExercise = () => {
-    if (!exercise) {
-      return;
-    }
-
+    if (!exercise) return;
     void Share.share({
       message: `${exercise.name}\nEquipment: ${exercise.equipment.join(', ') || 'None'}\nPrimary: ${exercise.primaryMuscles.join(', ') || 'Not specified'}`,
       title: exercise.name,
     });
   };
 
-  if (loading) {
-    return <LoadingState label="Loading exercise" />;
-  }
+  if (loading) return <LoadingState label="Loading exercise" />;
 
   if (error || !exercise) {
     return (
@@ -200,9 +194,7 @@ export default function ExerciseDetailScreen() {
               setMediaStatus('loaded');
               setNativeImageError(null);
             }}
-            onMediaDisplay={() => {
-              setMediaStatus('loaded');
-            }}
+            onMediaDisplay={() => setMediaStatus('loaded')}
             onMediaLoadStart={() => {
               setMediaStatus('loading');
               setNativeImageError(null);
@@ -278,7 +270,7 @@ export default function ExerciseDetailScreen() {
                   <Text style={styles.secondaryText}>{formatDate(group.finishedAt)}</Text>
                   {group.sets.map((set) => (
                     <View key={set.id} style={styles.setRow}>
-                      <Text style={styles.bodyText}>{set.weight} kg x {set.reps}</Text>
+                      <Text style={styles.bodyText}>{formatWeight(set.weight)} x {set.reps}</Text>
                       {set.actualRpe ? <Text style={styles.secondaryText}>RPE {set.actualRpe}</Text> : null}
                     </View>
                   ))}
@@ -295,18 +287,18 @@ export default function ExerciseDetailScreen() {
             ) : (
               <>
                 <View style={styles.metricsGrid}>
-                  <MetricCard label="Best weight" value={`${progressMetrics.bestWeight} kg`} />
+                  <MetricCard label="Best weight" value={formatWeight(progressMetrics.bestWeight)} />
                   <MetricCard label="Best reps" value={`${progressMetrics.bestReps}`} />
-                  <MetricCard label="Volume" value={`${Math.round(progressMetrics.totalVolume).toLocaleString()} kg`} />
-                  <MetricCard label="Est. 1RM" value={`${Math.round(progressMetrics.estimatedOneRepMax)} kg`} />
+                  <MetricCard label="Volume" value={formatVolume(progressMetrics.totalVolume)} />
+                  <MetricCard label="Est. 1RM" value={formatWeight(progressMetrics.estimatedOneRepMax)} />
                 </View>
                 <AppCard>
                   <Text style={styles.cardTitle}>Volume trend</Text>
                   <ProgressTrendChart
                     emptyLabel="Log this exercise in at least two workouts to show a trend."
-                    maxLabel="High"
-                    minLabel="Low"
-                    points={progressMetrics.volumeTrend}
+                    maxLabel={`High · ${weightUnit}`}
+                    minLabel={`Low · ${weightUnit}`}
+                    points={displayVolumeTrend}
                   />
                 </AppCard>
               </>
@@ -319,133 +311,28 @@ export default function ExerciseDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  actionButton: {
-    flex: 1,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: Spacing.three,
-  },
-  bodyText: {
-    color: Colors.dark.textPrimary,
-    fontSize: Typography.body.fontSize,
-    lineHeight: Typography.body.lineHeight,
-  },
-  attribution: {
-    color: Colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
-    lineHeight: 16,
-    textAlign: 'center',
-  },
-  cardTitle: {
-    color: Colors.dark.textPrimary,
-    fontSize: Typography.cardTitle.fontSize,
-    fontWeight: Typography.cardTitle.fontWeight,
-    lineHeight: Typography.cardTitle.lineHeight,
-    marginBottom: Spacing.two,
-  },
-  centeredState: {
-    flex: 1,
-    gap: Spacing.four,
-    justifyContent: 'center',
-    padding: Spacing.four,
-  },
-  container: {
-    alignSelf: 'center',
-    gap: Spacing.four,
-    maxWidth: MaxContentWidth,
-    width: '100%',
-  },
-  content: {
-    paddingHorizontal: Spacing.four,
-  },
-  diagnosticText: {
-    color: Colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
-    lineHeight: 16,
-  },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: Spacing.three,
-  },
-  headerControl: {
-    alignItems: 'center',
-    borderColor: Colors.dark.borderSubtle,
-    borderRadius: Radii.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    justifyContent: 'center',
-    minHeight: 40,
-    minWidth: 64,
-    paddingHorizontal: Spacing.three,
-  },
-  headerControlText: {
-    color: Colors.dark.textPrimary,
-    fontSize: Typography.label.fontSize,
-    fontWeight: Typography.label.fontWeight,
-  },
-  list: {
-    gap: Spacing.two,
-    marginBottom: Spacing.three,
-  },
-  media: {
-    aspectRatio: 1.35,
-    backgroundColor: Colors.dark.surfaceSecondary,
-    borderRadius: Radii.medium,
-    width: '100%',
-  },
-  mediaCard: {
-    padding: Spacing.two,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.three,
-  },
-  muscleMaps: {
-    flexDirection: 'row',
-    gap: Spacing.three,
-  },
-  playButton: {
-    alignSelf: 'center',
-    backgroundColor: Colors.dark.accent,
-    borderRadius: Radii.pill,
-    marginTop: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-  },
-  playButtonText: {
-    color: Colors.dark.textOnAccent,
-    fontSize: Typography.label.fontSize,
-    fontWeight: Typography.label.fontWeight,
-  },
-  screen: {
-    flex: 1,
-  },
-  secondaryText: {
-    color: Colors.dark.textSecondary,
-    fontSize: Typography.callout.fontSize,
-    lineHeight: Typography.callout.lineHeight,
-  },
-  setRow: {
-    alignItems: 'center',
-    borderTopColor: Colors.dark.divider,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.two,
-  },
-  stack: {
-    gap: Spacing.four,
-  },
-  title: {
-    color: Colors.dark.textPrimary,
-    flex: 1,
-    fontSize: Typography.screenTitle.fontSize,
-    fontWeight: Typography.screenTitle.fontWeight,
-    lineHeight: Typography.screenTitle.lineHeight,
-    textAlign: 'center',
-  },
+  actionButton: { flex: 1 },
+  actionRow: { flexDirection: 'row', gap: Spacing.three },
+  attribution: { color: Colors.dark.textSecondary, fontSize: 11, fontWeight: '700', lineHeight: 16, textAlign: 'center' },
+  bodyText: { color: Colors.dark.textPrimary, fontSize: Typography.body.fontSize, lineHeight: Typography.body.lineHeight },
+  cardTitle: { color: Colors.dark.textPrimary, fontSize: Typography.cardTitle.fontSize, fontWeight: Typography.cardTitle.fontWeight, lineHeight: Typography.cardTitle.lineHeight, marginBottom: Spacing.two },
+  centeredState: { flex: 1, gap: Spacing.four, justifyContent: 'center', padding: Spacing.four },
+  container: { alignSelf: 'center', gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
+  content: { paddingHorizontal: Spacing.four },
+  diagnosticText: { color: Colors.dark.textSecondary, fontSize: 11, fontWeight: '700', lineHeight: 16 },
+  header: { alignItems: 'center', flexDirection: 'row', gap: Spacing.three },
+  headerControl: { alignItems: 'center', borderColor: Colors.dark.borderSubtle, borderRadius: Radii.pill, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', minHeight: 40, minWidth: 64, paddingHorizontal: Spacing.three },
+  headerControlText: { color: Colors.dark.textPrimary, fontSize: Typography.label.fontSize, fontWeight: Typography.label.fontWeight },
+  list: { gap: Spacing.two, marginBottom: Spacing.three },
+  media: { aspectRatio: 1.35, backgroundColor: Colors.dark.surfaceSecondary, borderRadius: Radii.medium, width: '100%' },
+  mediaCard: { padding: Spacing.two },
+  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.three },
+  muscleMaps: { flexDirection: 'row', gap: Spacing.three },
+  playButton: { alignSelf: 'center', backgroundColor: Colors.dark.accent, borderRadius: Radii.pill, marginTop: Spacing.three, paddingHorizontal: Spacing.four, paddingVertical: Spacing.two },
+  playButtonText: { color: Colors.dark.textOnAccent, fontSize: Typography.label.fontSize, fontWeight: Typography.label.fontWeight },
+  screen: { flex: 1 },
+  secondaryText: { color: Colors.dark.textSecondary, fontSize: Typography.callout.fontSize, lineHeight: Typography.callout.lineHeight },
+  setRow: { alignItems: 'center', borderTopColor: Colors.dark.divider, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Spacing.two },
+  stack: { gap: Spacing.four },
+  title: { color: Colors.dark.textPrimary, flex: 1, fontSize: Typography.screenTitle.fontSize, fontWeight: Typography.screenTitle.fontWeight, lineHeight: Typography.screenTitle.lineHeight, textAlign: 'center' },
 });
