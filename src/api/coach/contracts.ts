@@ -124,6 +124,7 @@ export type CoachRunEnvelope = {
   run: CoachRunRecord;
   agentRuns: CoachAgentRunRecord[];
   trust?: CoachRunTrustState;
+  trustValidationFailed?: true;
 };
 
 export type StartStrengthCoachRunInput = {
