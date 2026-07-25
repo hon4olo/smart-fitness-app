@@ -51,6 +51,7 @@ export const parseDisplayNumber = (value: string): number =>
   Number(value.trim().replace(',', '.'));
 
 export const displayWeightInputToKg = (value: string, unit: WeightUnit): string => {
+  if (!value.trim()) return '';
   const parsed = parseDisplayNumber(value);
   if (!Number.isFinite(parsed)) return value;
   return `${round(weightToKg(parsed, unit), 3)}`;
