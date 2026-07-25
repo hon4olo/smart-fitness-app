@@ -18,10 +18,11 @@ import {
   buildBodyMeasurement,
   createBodyMeasurementDraft,
 } from '@/features/progress/bodyMeasurementModel';
-import { createUuid } from '@/lib/ids';
 import { formatShortDate } from '@/lib';
-import { formatProgressDelta, getProgressAnalytics } from '@/lib/progress';
+import { createUuid } from '@/lib/ids';
+import { getProgressAnalytics } from '@/lib/progress';
 import type { BodyMeasurementMetric, BodyMeasurementUnit } from '@/types';
+import { formatWeightValue, weightFromKg, useUnitPreferences } from '@/units';
 
 const toDateLabel = (value: string) => formatShortDate(value);
 
@@ -39,6 +40,7 @@ const SectionRow = memo(function SectionRow({ label, value, detail }: { detail?:
 
 export default function ProgressScreen() {
   const { addBodyMeasurement, bodyMeasurements, exercises, weightHistory, workoutSessions } = useAppContext();
+  const { weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
   const [measurementDraft, setMeasurementDraft] = useState(createBodyMeasurementDraft);
   const [measurementError, setMeasurementError] = useState<string | null>(null);
@@ -54,26 +56,27 @@ export default function ProgressScreen() {
     () => analytics.weight.recentEntries.map((entry) => ({
       key: entry.id,
       label: toDateLabel(entry.createdAt),
-      value: entry.weight,
-      displayValue: entry.weight.toFixed(1),
+      value: weightFromKg(entry.weight, weightUnit),
+      displayValue: formatWeightValue(entry.weight, weightUnit),
     })),
-    [analytics.weight.recentEntries],
+    [analytics.weight.recentEntries, weightUnit],
   );
   const latestVolumePoint = analytics.workoutVolumeTrend.at(-1) ?? null;
   const previousVolumePoint = analytics.workoutVolumeTrend.at(-2) ?? null;
-  const weightSummaryLabel = latestWeight !== null ? `${latestWeight.toFixed(1)} kg` : '—';
-  const weightTrendLabel = weightChange7d !== null ? `${formatProgressDelta(weightChange7d, 'kg')} this week` : 'No recent trend yet';
-  const weightDetailLabel = analytics.weight.currentWeightEntry ? `Latest check-in · ${toDateLabel(analytics.weight.currentWeightEntry.createdAt)}` : 'Add a weight check-in to start tracking';
+  const weightSummaryLabel = latestWeight !== null ? `${formatWeightValue(latestWeight, weightUnit)} ${weightUnit}` : '—';
+  const convertedWeightDelta = weightChange7d !== null ? weightFromKg(weightChange7d, weightUnit) : null;
+  const weightTrendLabel = convertedWeightDelta !== null
+    ? `${convertedWeightDelta > 0 ? '+' : ''}${convertedWeightDelta.toFixed(1)} ${weightUnit} this week`
+    : 'No recent trend yet';
+  const weightDetailLabel = analytics.weight.currentWeightEntry
+    ? `Latest check-in · ${toDateLabel(analytics.weight.currentWeightEntry.createdAt)}`
+    : 'Add a weight check-in to start tracking';
   const isMeasurementDisabled = measurementDraft.value.trim().length === 0 ||
     (measurementDraft.metric === 'custom' && measurementDraft.customLabel.trim().length === 0);
 
   const changeMeasurementMetric = (metric: BodyMeasurementMetric) => {
     const option = BODY_MEASUREMENT_METRICS.find((item) => item.metric === metric);
-    setMeasurementDraft((current) => ({
-      ...current,
-      metric,
-      unit: option?.defaultUnit ?? current.unit,
-    }));
+    setMeasurementDraft((current) => ({ ...current, metric, unit: option?.defaultUnit ?? current.unit }));
     setMeasurementError(null);
   };
 
@@ -83,11 +86,7 @@ export default function ProgressScreen() {
   };
 
   const saveMeasurement = () => {
-    const result = buildBodyMeasurement({
-      draft: measurementDraft,
-      id: createUuid(),
-      now: new Date().toISOString(),
-    });
+    const result = buildBodyMeasurement({ draft: measurementDraft, id: createUuid(), now: new Date().toISOString() });
     if (!result.ok) {
       setMeasurementError(result.message);
       return;
@@ -120,8 +119,8 @@ export default function ProgressScreen() {
             <View style={styles.chartWrap}>
               <ProgressTrendChart
                 emptyLabel="Add at least two weigh-ins to see a chart."
-                maxLabel={weightTrendPoints.reduce((max, point) => Math.max(max, point.value), weightTrendPoints[0]?.value ?? 0).toFixed(1) + ' kg'}
-                minLabel={weightTrendPoints.reduce((min, point) => Math.min(min, point.value), weightTrendPoints[0]?.value ?? 0).toFixed(1) + ' kg'}
+                maxLabel={`${Math.max(...weightTrendPoints.map((point) => point.value)).toFixed(1)} ${weightUnit}`}
+                minLabel={`${Math.min(...weightTrendPoints.map((point) => point.value)).toFixed(1)} ${weightUnit}`}
                 points={weightTrendPoints}
               />
             </View>
@@ -169,16 +168,7 @@ export default function ProgressScreen() {
         </AppCard>
         <SafetyRecoveryProgressCard onOpenHistory={() => router.push('/workout-history')} sessions={workoutSessions} />
         <SafetyRecoveryWeeklyTrendCard
-          onOpenHistory={({ endAt, safety, startAt }) =>
-            router.push({
-              pathname: '/workout-history',
-              params: {
-                from: startAt,
-                to: endAt,
-                ...(safety ? { safety } : {}),
-              },
-            })
-          }
+          onOpenHistory={({ endAt, safety, startAt }) => router.push({ pathname: '/workout-history', params: { from: startAt, to: endAt, ...(safety ? { safety } : {}) } })}
           sessions={workoutSessions}
         />
       </View>
