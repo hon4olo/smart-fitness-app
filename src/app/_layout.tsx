@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
 
 import { AppProvider } from '@/context/AppContext';
+import { LocalizationProvider, useLocalization } from '@/localization';
 import { CrashReportContextBridge } from '@/observability/CrashReportContextBridge';
 import {
   initializeCrashReporting,
@@ -25,6 +26,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 
 function RootNavigator() {
   const { colors, resolvedAppearance } = useAppTheme();
+  const { t } = useLocalization();
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -66,7 +68,7 @@ function RootNavigator() {
         <Stack
           screenOptions={{
             contentStyle: { backgroundColor: colors.background },
-            headerBackTitle: 'Back',
+            headerBackTitle: t('common.back'),
             headerShadowVisible: false,
             headerStyle: { backgroundColor: colors.surfacePrimary },
             headerTintColor: colors.textPrimary,
@@ -74,6 +76,8 @@ function RootNavigator() {
           }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="auth" options={{ headerShown: false }} />
+          <Stack.Screen name="account/sessions" options={{ headerShown: false }} />
+          <Stack.Screen name="settings/index" options={{ headerShown: false }} />
           <Stack.Screen name="exercises/[exerciseId]" options={{ headerShown: false }} />
           <Stack.Screen name="nutrition/add-food" options={{ headerShown: false }} />
           <Stack.Screen name="nutrition/date-picker" options={{ headerShown: false }} />
@@ -93,7 +97,9 @@ function RootNavigator() {
 function RootLayout() {
   return (
     <AppThemeProvider>
-      <RootNavigator />
+      <LocalizationProvider>
+        <RootNavigator />
+      </LocalizationProvider>
     </AppThemeProvider>
   );
 }

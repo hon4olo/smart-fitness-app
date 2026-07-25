@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore - expo-updates types are not available in this workspace, but the runtime module exists on device.
 import * as Updates from 'expo-updates';
@@ -10,6 +11,7 @@ import { ProfileCoachCard } from '@/components/profile/ProfileCoachCard';
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
 import { ProfilePreferencesCard } from '@/components/profile/ProfilePreferencesCard';
 import { ProfileRuntimeInfoCard } from '@/components/profile/ProfileRuntimeInfoCard';
+import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
 import { ProfileSyncStatusCard } from '@/components/profile/ProfileSyncStatusCard';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
@@ -19,12 +21,12 @@ import {
   validateCoachProfileForm,
   type CoachActivityLevel,
 } from '@/features/profile/coachProfileForm';
+import { useLocalization } from '@/localization';
 import type {
   ProfileCalculationSex,
   ProfileGoalType,
   ProfileTrainingExperience,
 } from '@/types';
-import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type OtaValueSource = Record<string, unknown>;
 
@@ -66,9 +68,10 @@ const formatOtaValue = (value: unknown) => {
 };
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const app = useAppContext();
+  const { t } = useLocalization();
   const { profile, resetOnboarding, updateProfileGoals, replaceState } = app;
-  const { mode, setMode } = useAppTheme();
   const safeAreaInsets = useSafeAreaInsets();
   const [targetWeight, setTargetWeight] = useState(`${profile.targetWeight}`);
   const [goalType, setGoalType] = useState(profile.goalType);
@@ -213,11 +216,20 @@ export default function ProfileScreen() {
       ]}
       style={styles.screen}>
       <View style={styles.container}>
-        <ScreenHeader title="Profile" />
+        <ScreenHeader title={t('profile.title')} />
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
           <AuthGateCard />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('profile.settingsSection')}</Text>
+          <ProfileSettingsCard
+            actionLabel={t('profile.settingsAction')}
+            description={t('profile.settingsDescription')}
+            onOpen={() => router.push('/settings')}
+          />
         </View>
 
         <View style={styles.section}>
@@ -259,9 +271,7 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Preferences</Text>
           <ProfilePreferencesCard
             activityLevel={profile.activityLevel}
-            appearanceMode={mode}
             goalType={goalTypeLabel(profile.goalType)}
-            onAppearanceModeChange={setMode}
             trainingDaysPerWeek={trainingDaysPerWeek}
           />
         </View>
