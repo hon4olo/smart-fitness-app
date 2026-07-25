@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,15 +14,15 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import {
-  BODY_MEASUREMENT_METRICS,
   buildBodyMeasurement,
   createBodyMeasurementDraft,
+  getDefaultBodyMeasurementUnit,
 } from '@/features/progress/bodyMeasurementModel';
 import { formatShortDate } from '@/lib';
 import { createUuid } from '@/lib/ids';
 import { getProgressAnalytics } from '@/lib/progress';
 import type { BodyMeasurementMetric, BodyMeasurementUnit } from '@/types';
-import { formatWeightValue, weightFromKg, useUnitPreferences } from '@/units';
+import { formatLengthValue, formatWeightValue, weightFromKg, useUnitPreferences } from '@/units';
 
 const toDateLabel = (value: string) => formatShortDate(value);
 
@@ -40,10 +40,17 @@ const SectionRow = memo(function SectionRow({ label, value, detail }: { detail?:
 
 export default function ProgressScreen() {
   const { addBodyMeasurement, bodyMeasurements, exercises, weightHistory, workoutSessions } = useAppContext();
-  const { weight: weightUnit } = useUnitPreferences();
+  const { length: lengthUnit, weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
-  const [measurementDraft, setMeasurementDraft] = useState(createBodyMeasurementDraft);
+  const [measurementDraft, setMeasurementDraft] = useState(() => createBodyMeasurementDraft(lengthUnit));
   const [measurementError, setMeasurementError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMeasurementDraft((current) => {
+      if (current.value.trim().length > 0 || current.unit === 'percent') return current;
+      return { ...current, unit: lengthUnit };
+    });
+  }, [lengthUnit]);
 
   const analytics = useMemo(
     () => getProgressAnalytics({ bodyMeasurements, exercises, weightHistory, workoutSessions }),
@@ -75,8 +82,11 @@ export default function ProgressScreen() {
     (measurementDraft.metric === 'custom' && measurementDraft.customLabel.trim().length === 0);
 
   const changeMeasurementMetric = (metric: BodyMeasurementMetric) => {
-    const option = BODY_MEASUREMENT_METRICS.find((item) => item.metric === metric);
-    setMeasurementDraft((current) => ({ ...current, metric, unit: option?.defaultUnit ?? current.unit }));
+    setMeasurementDraft((current) => ({
+      ...current,
+      metric,
+      unit: getDefaultBodyMeasurementUnit(metric, lengthUnit),
+    }));
     setMeasurementError(null);
   };
 
@@ -92,11 +102,20 @@ export default function ProgressScreen() {
       return;
     }
     addBodyMeasurement(result.measurement);
-    setMeasurementDraft(createBodyMeasurementDraft());
+    setMeasurementDraft(createBodyMeasurementDraft(lengthUnit));
     setMeasurementError(null);
   };
 
   const bodyMeasurementPreview = analytics.measurements.slice(0, 3);
+  const formatMeasurementValue = (measurement: (typeof bodyMeasurementPreview)[number]) => {
+    if (measurement.canonicalUnit === 'cm' && measurement.canonicalNumericValue !== null) {
+      return `${formatLengthValue(measurement.canonicalNumericValue, lengthUnit)} ${lengthUnit}`;
+    }
+    if (measurement.latestUnit === 'percent' && measurement.latestNumericValue !== null) {
+      return `${measurement.latestNumericValue.toFixed(Number.isInteger(measurement.latestNumericValue) ? 0 : 1)}%`;
+    }
+    return measurement.latestValue;
+  };
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.screen}>
@@ -137,7 +156,7 @@ export default function ProgressScreen() {
           {bodyMeasurementPreview.length > 0 ? (
             <View style={styles.stack}>
               {bodyMeasurementPreview.map((measurement) => (
-                <SectionRow key={measurement.id} detail={toDateLabel(measurement.createdAt)} label={measurement.label} value={measurement.latestValue} />
+                <SectionRow key={measurement.id} detail={toDateLabel(measurement.createdAt)} label={measurement.label} value={formatMeasurementValue(measurement)} />
               ))}
             </View>
           ) : (
