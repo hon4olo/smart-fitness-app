@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { createNutritionLibraryQueueOperation, subscribeNutritionLibrarySync } from '@/cloud/NutritionLibrarySync';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { createAsyncStorageAdapter, createAsyncStorageOperationQueueStore } from '@/storage';
 
 import type { DraftItem } from './addFoodModel';
 import {
@@ -18,15 +20,25 @@ const LOAD_ERROR = 'Could not load your food library.';
 const SAVE_ERROR = 'Could not save your food library.';
 
 export function useNutritionFoodLibrary() {
-  const { ready: authReady, user } = useAuthSession();
+  const { ready: authReady, session, user } = useAuthSession();
   const ownerId = authReady ? user?.id ?? null : undefined;
   const storageKey = useMemo(
     () => (ownerId === undefined ? null : getNutritionFoodLibraryStorageKey(ownerId)),
     [ownerId],
   );
+  const queueStore = useMemo(
+    () => createAsyncStorageOperationQueueStore(createAsyncStorageAdapter()),
+    [],
+  );
   const [records, setRecords] = useState<NutritionLibraryFood[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const loadRecords = useCallback(async () => {
+    if (!storageKey) return;
+    const raw = await AsyncStorage.getItem(storageKey);
+    setRecords(parseNutritionFoodLibrary(raw));
+  }, [storageKey]);
 
   useEffect(() => {
     if (!storageKey) {
@@ -59,18 +71,42 @@ export function useNutritionFoodLibrary() {
     };
   }, [storageKey]);
 
+  useEffect(() => {
+    if (!ownerId) return;
+    return subscribeNutritionLibrarySync((updatedOwnerId) => {
+      if (updatedOwnerId === ownerId) void loadRecords().catch(() => setError(LOAD_ERROR));
+    });
+  }, [loadRecords, ownerId]);
+
   const persist = useCallback(
     (updater: (current: NutritionLibraryFood[]) => NutritionLibraryFood[]) => {
       if (!storageKey || !hydrated) return;
       setRecords((current) => {
         const next = updater(current);
-        void AsyncStorage.setItem(storageKey, serializeNutritionFoodLibrary(next)).catch(() => {
-          setError(SAVE_ERROR);
+        const changed = next.filter((record) => {
+          const previous = current.find((item) => item.libraryId === record.libraryId);
+          return !previous || previous.revision !== record.revision;
         });
+        void AsyncStorage.setItem(storageKey, serializeNutritionFoodLibrary(next))
+          .then(async () => {
+            if (!ownerId || !session?.device.id) return;
+            for (const item of changed) {
+              await queueStore.enqueue(
+                createNutritionLibraryQueueOperation({
+                  item,
+                  userId: ownerId,
+                  deviceId: session.device.id,
+                }),
+              );
+            }
+          })
+          .catch(() => {
+            setError(SAVE_ERROR);
+          });
         return next;
       });
     },
-    [hydrated, storageKey],
+    [hydrated, ownerId, queueStore, session?.device.id, storageKey],
   );
 
   const saveCustomFood = useCallback(
