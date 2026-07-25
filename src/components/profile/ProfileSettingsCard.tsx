@@ -2,7 +2,7 @@ import { StyleSheet, Text } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 export function ProfileSettingsCard({
