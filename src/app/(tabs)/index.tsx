@@ -12,7 +12,6 @@ import {
   getHomeMotivationLabel,
   getHomeRecoveryStatusLabel,
 } from '@/features/home/homeLocalization';
-import { useAuthSession } from '@/hooks/useAuthSession';
 import {
   getCurrentWorkoutStreak,
   getWeeklyWorkoutCount,
@@ -54,7 +53,6 @@ export default function HomeScreen() {
     workoutSessions,
     workouts,
   } = useAppContext();
-  const { isAuthenticated, ready: authReady } = useAuthSession();
   const { formatNumber, locale, t } = useLocalization();
   const { energy: energyUnit, weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
@@ -62,13 +60,9 @@ export default function HomeScreen() {
   const [activeDraftReady, setActiveDraftReady] = useState(false);
 
   useEffect(() => {
-    if (!authReady || isRestoringState) return;
-    if (!isAuthenticated) {
-      router.replace('/auth');
-      return;
-    }
-    if (!onboardingCompleted) router.replace('/onboarding');
-  }, [authReady, isAuthenticated, isRestoringState, onboardingCompleted]);
+    if (isRestoringState) return;
+    if (!onboardingCompleted) router.replace('/auth');
+  }, [isRestoringState, onboardingCompleted]);
 
   useEffect(() => {
     let cancelled = false;
@@ -251,7 +245,7 @@ export default function HomeScreen() {
     ],
   );
 
-  if (!authReady || isRestoringState || !isAuthenticated || !onboardingCompleted) {
+  if (isRestoringState || !onboardingCompleted) {
     return <View style={styles.screen} />;
   }
 
