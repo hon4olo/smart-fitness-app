@@ -1,0 +1,82 @@
+name: Verify production auth OTA
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.head_ref == 'release/verify-production-auth-ota'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Read production updates
+        env:
+          CI: '1'
+        run: |
+          eas update:list --branch production --limit 10 --json --non-interactive > production-updates.json
+          cat production-updates.json
+
+      - name: Verify auth-routing update
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const payload = JSON.parse(fs.readFileSync('production-updates.json', 'utf8'));
+          const expectedMessage = '[ota] Publish production auth routing fix';
+          const seen = [];
+          const walk = (value) => {
+            if (!value || typeof value !== 'object') return;
+            if (Array.isArray(value)) {
+              value.forEach(walk);
+              return;
+            }
+            if (typeof value.message === 'string') {
+              seen.push({
+                message: value.message,
+                id: value.id ?? value.updateId ?? null,
+                group: value.group ?? value.groupId ?? null,
+                runtimeVersion: value.runtimeVersion ?? null,
+                platform: value.platform ?? null,
+                createdAt: value.createdAt ?? null,
+              });
+            }
+            Object.values(value).forEach(walk);
+          };
+          walk(payload);
+          const match = seen.find((item) => item.message === expectedMessage);
+          if (!match) {
+            console.error('Recent update messages:', seen.map((item) => item.message));
+            throw new Error('Production auth-routing OTA was not found.');
+          }
+          if (match.runtimeVersion && match.runtimeVersion !== '1.0.2') {
+            throw new Error(`Unexpected runtime: ${match.runtimeVersion}`);
+          }
+          fs.writeFileSync('verified-auth-ota.json', JSON.stringify(match, null, 2));
+          console.log('Verified production auth OTA:', match);
+          NODE
+
+      - name: Upload verification metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-production-auth-ota
+          path: |
+            production-updates.json
+            verified-auth-ota.json
+          if-no-files-found: error
+          retention-days: 3
