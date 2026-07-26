@@ -50,6 +50,7 @@ describe('product simplification 2.0', () => {
     expect(source).not.toContain('30-day');
     expect(source).not.toContain('weekly average');
     expect(source).toContain("t('progress.weightDetails')");
+    expect(source).not.toContain('ProgressPlanningSections');
   });
 
   test('home screen stays within three primary content sections', () => {
@@ -111,18 +112,22 @@ describe('product simplification 2.0', () => {
     expect(source).toContain('Add to ${selectedMealLabel}');
   });
 
-  test('profile screen stays summary-only without account or planning editors', () => {
+  test('Profile owns the plan, Coach owns Coach tools, and Progress stays analytical', () => {
     const profile = readSource('src/app/(tabs)/profile.tsx');
-    const progressPlanning = readSource('src/features/progress/ProgressPlanningSections.tsx');
+    const profileGoals = readSource('src/features/profile/ProfileGoalsSection.tsx');
+    const coach = readSource('src/app/(tabs)/coach.tsx');
+    const progress = readSource('src/app/(tabs)/progress.tsx');
     const settings = readSource('src/app/settings/index.tsx');
     expect(profile).not.toContain('ProfileHeaderCard');
     expect(profile).not.toContain('Account Snapshot');
     expect(profile).not.toContain('AuthGateCard');
-    expect(profile).not.toContain('ProfileGoalsCard');
     expect(profile).not.toContain('ProfileCoachCard');
     expect(profile).toContain('ProfilePreferencesCard');
-    expect(progressPlanning).toContain('ProfileGoalsCard');
-    expect(progressPlanning).toContain('ProfileCoachCard');
+    expect(profile).toContain('ProfileGoalsSection');
+    expect(profileGoals).toContain('ProfileGoalsCard');
+    expect(coach).toContain('/profile/recovery-check-in');
+    expect(coach).toContain('/profile/combined-proposal');
+    expect(progress).not.toContain('ProgressPlanningSections');
     expect(settings).toContain('<AuthGateCard />');
   });
 
@@ -134,6 +139,8 @@ describe('product simplification 2.0', () => {
     expect(source).toContain('borderTopWidth: 0.5');
     expect(source).toContain('paddingBottom: Math.max(insets.bottom, 6)');
     expect(source).not.toContain('capsule');
+    expect(source).toContain("title: t('tabs.coach')");
+    expect(source).toContain('name="profile" options={{ href: null }}');
   });
 
   test('theme tokens remain valid', () => {
@@ -152,6 +159,7 @@ describe('product simplification 2.0', () => {
     const nutrition = readSource('src/app/(tabs)/nutrition.tsx');
     const nutritionPicker = readSource('src/app/nutrition/add-food.tsx');
     const profile = readSource('src/app/(tabs)/profile.tsx');
+    const coach = readSource('src/app/(tabs)/coach.tsx');
     const settings = readSource('src/app/settings/index.tsx');
     const sessionTable = readSource('src/features/workouts/components/session/SessionSetTable.tsx');
     const exerciseSection = readSource('src/features/workouts/components/session/SessionExerciseSection.tsx');
@@ -170,6 +178,7 @@ describe('product simplification 2.0', () => {
     expect(nutrition).toContain("router.push({ pathname: '/nutrition/add-food'");
     expect(nutritionPicker).toContain('addFoodEntries');
     expect(profile).toContain("router.push('/settings')");
+    expect(coach).toContain('/profile/limitations');
     expect(settings).toContain('settings.appearance');
     expect(settings).toContain('settings.language');
     expect(settings).toContain('setWeightUnit');
