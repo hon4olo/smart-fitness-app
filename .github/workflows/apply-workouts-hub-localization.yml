@@ -20,7 +20,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Apply validated patch
         run: |
-          cat .localization/workouts-hub-*.b64 | tr -d '\\n\\r ' | base64 --decode | gzip --decompress > /tmp/workouts-hub.patch
+          cat .localization/workouts-hub-*.b64 | tr -d '\n\r ' | base64 --decode | gzip --decompress > /tmp/workouts-hub.patch
           test "$(sha256sum /tmp/workouts-hub.patch | cut -d' ' -f1)" = "94ae70666b925aeb591e540cc67e6a3786d73fedda455b3cdbd0543838c20e10"
           git apply --check /tmp/workouts-hub.patch
           git apply /tmp/workouts-hub.patch
