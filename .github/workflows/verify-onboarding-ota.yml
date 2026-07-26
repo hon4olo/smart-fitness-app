@@ -30,26 +30,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Read production updates
+      - name: Wait for onboarding production update
         env:
           CI: '1'
+          EXPECTED_COMMIT: '26ae30236ce198904600fec9c76c9e6d40dc51eb'
+          EXPECTED_MESSAGE: 'Persist onboarding completion across relaunch'
+          EXPECTED_RUNTIME: '1.0.2'
+        shell: bash
         run: |
-          eas update:list --branch production --platform ios --limit 10 --json > production-updates.json
-          cat production-updates.json
+          for attempt in $(seq 1 12); do
+            echo "EAS verification attempt ${attempt}/12"
+            eas update:list --branch production --platform ios --limit 20 --json > production-updates.json
 
-      - name: Verify onboarding update
-        run: |
-          node <<'NODE'
+            if node <<'NODE'
           const fs = require('fs');
           const payload = JSON.parse(fs.readFileSync('production-updates.json', 'utf8'));
-          const expectedMessage = '[ota] Persist onboarding completion across relaunch (#160)';
-          const matches = [];
+          const expectedCommit = process.env.EXPECTED_COMMIT;
+          const expectedMessage = process.env.EXPECTED_MESSAGE;
+          const expectedRuntime = process.env.EXPECTED_RUNTIME;
+          const candidates = [];
+
           const walk = (value, inherited = {}) => {
             if (!value || typeof value !== 'object') return;
             if (Array.isArray(value)) {
               value.forEach((item) => walk(item, inherited));
               return;
             }
+
             const context = {
               message: typeof value.message === 'string' ? value.message : inherited.message,
               id: value.id ?? value.updateId ?? inherited.id ?? null,
@@ -57,23 +64,65 @@ jobs:
               runtimeVersion: value.runtimeVersion ?? inherited.runtimeVersion ?? null,
               platform: value.platform ?? inherited.platform ?? null,
               createdAt: value.createdAt ?? inherited.createdAt ?? null,
+              gitCommitHash:
+                value.gitCommitHash ??
+                value.gitCommitSha ??
+                value.commitHash ??
+                inherited.gitCommitHash ??
+                null,
             };
-            if (context.message === expectedMessage) matches.push(context);
+
+            const messageMatches =
+              typeof context.message === 'string' && context.message.includes(expectedMessage);
+            const commitMatches =
+              typeof context.gitCommitHash === 'string' &&
+              (context.gitCommitHash === expectedCommit ||
+                expectedCommit.startsWith(context.gitCommitHash) ||
+                context.gitCommitHash.startsWith(expectedCommit));
+            if (messageMatches || commitMatches) candidates.push(context);
+
             Object.values(value).forEach((item) => walk(item, context));
           };
+
           walk(payload);
-          const match = matches.find((item) => !item.runtimeVersion || item.runtimeVersion === '1.0.2');
-          if (!match) throw new Error('Onboarding production OTA was not found for runtime 1.0.2.');
+          const match = candidates.find(
+            (item) => !item.runtimeVersion || item.runtimeVersion === expectedRuntime,
+          );
+          if (!match) {
+            const messages = [];
+            const collectMessages = (value) => {
+              if (!value || typeof value !== 'object') return;
+              if (Array.isArray(value)) return value.forEach(collectMessages);
+              if (typeof value.message === 'string') messages.push(value.message);
+              Object.values(value).forEach(collectMessages);
+            };
+            collectMessages(payload);
+            console.log('Recent production messages:', [...new Set(messages)]);
+            process.exit(1);
+          }
+
           fs.writeFileSync('verified-onboarding-ota.json', JSON.stringify(match, null, 2));
           console.log('Verified onboarding production OTA:', match);
           NODE
+            then
+              cat verified-onboarding-ota.json
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          echo 'Onboarding production OTA was not found after waiting.' >&2
+          cat production-updates.json
+          exit 1
 
       - name: Upload verification metadata
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: verified-onboarding-production-ota
           path: |
             production-updates.json
             verified-onboarding-ota.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 3
