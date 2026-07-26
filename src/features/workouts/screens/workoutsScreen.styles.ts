@@ -145,6 +145,12 @@ export const createModalStyles = (colors: typeof Colors.light) =>
     disabledButton: {
       opacity: 0.45,
     },
+    modalHelperText: {
+      color: colors.textMuted,
+      fontSize: 14,
+      fontWeight: '700',
+      lineHeight: 19,
+    },
     input: {
       backgroundColor: colors.backgroundSecondary,
       borderColor: colors.borderSubtle,

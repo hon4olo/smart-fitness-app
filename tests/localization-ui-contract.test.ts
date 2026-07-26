@@ -57,6 +57,10 @@ describe('localized Settings and account UI contract', () => {
         readSource('src/localization/homeOnboardingMessages.ts'),
         'export const enHomeOnboardingMessages = {',
       ),
+      ...extractMessageKeys(
+        readSource('src/localization/workoutsMessages.ts'),
+        'export const enWorkoutsMessages = {',
+      ),
     ];
 
     expect(new Set(keys).size).toBe(keys.length);

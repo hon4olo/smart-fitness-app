@@ -16,10 +16,10 @@ describe('product simplification 2.0', () => {
     const startNowBlock = source.slice(source.indexOf("activeTab === 'start-now'"), source.indexOf('<View style={styles.programList}>'));
     const programsBlock = source.slice(source.indexOf('<View style={styles.programList}>'), source.indexOf('</View>', source.indexOf('<View style={styles.programList}>')));
     expect(startNowBlock).toContain('suggested.map');
-    expect(startNowBlock).toContain('Recently Added');
+    expect(startNowBlock).toContain("t('workouts.recentlyAdded')");
     expect(programsBlock).not.toContain('title="Programs"');
-    expect(programsBlock).toContain('Add new program');
-    expect(programsBlock.indexOf('Add new program')).toBeLessThan(programsBlock.indexOf('visibleProgramSummaries.map'));
+    expect(programsBlock).toContain("t('workouts.addProgram')");
+    expect(programsBlock.indexOf("t('workouts.addProgram')")).toBeLessThan(programsBlock.indexOf('visibleProgramSummaries.map'));
     expect(programsBlock).toContain('icon="add"');
     expect(source).toContain('CreateProgramModal');
     expect(source).toContain('ProgramRow');
@@ -28,8 +28,10 @@ describe('product simplification 2.0', () => {
 
   test('workouts screen uses a consistent card and program metadata model', () => {
     const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
-    expect(source).toContain('summary.subtitle || `${summary.exerciseCount} exercises`');
-    expect(source).toContain('summary.workout.title');
+    expect(source).toContain('displaySubtitle');
+    expect(source).toContain('getWorkoutsHubWorkoutTitle');
+    expect(source).toContain('getWorkoutsHubProgramTitle');
+    expect(source).toContain('formatPlural');
     expect(source).toContain('RoutineCard');
     expect(source).toContain('coverLabel');
     expect(source).toContain('ProgramRow');
@@ -157,8 +159,8 @@ describe('product simplification 2.0', () => {
     const picker = readSource('src/components/workouts/ProgramWorkoutPickerModal.tsx');
     const editor = readSource('src/components/workouts/ProgramWorkoutEditorModal.tsx');
     const workoutBuilderCard = readSource('src/components/workouts/WorkoutBuilderCard.tsx');
-    expect(workouts).toContain('Start Now');
-    expect(workouts).toContain('Programs');
+    expect(workouts).toContain("messageKey: 'workouts.tabs.startNow'");
+    expect(workouts).toContain("messageKey: 'workouts.tabs.programs'");
     expect(workouts).not.toContain('Start empty workout');
     expect(template).toContain('Start Workout');
     expect(template).toContain('Favorite / unfavorite');

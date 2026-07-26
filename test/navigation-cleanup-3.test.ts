@@ -43,9 +43,9 @@ describe('navigation repair and UX cleanup 3.0', () => {
   test('workouts keeps one start-now action and one program creation action', () => {
     const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
 
-    expect(source).toContain('Start Now');
-    expect(source).toContain('Programs');
-    expect(source).toContain('Add new program');
+    expect(source).toContain("messageKey: 'workouts.tabs.startNow'");
+    expect(source).toContain("messageKey: 'workouts.tabs.programs'");
+    expect(source).toContain("t('workouts.addProgram')");
     expect(source).toContain('icon="add"');
     expect(source).toContain('CreateProgramModal');
     expect(source).not.toContain('addProgramActionLabel');
@@ -111,7 +111,7 @@ describe('navigation repair and UX cleanup 3.0', () => {
     const syncBackup = readSource('src/app/sync-backup.tsx');
     const weightEntry = readSource('src/app/weight-entry.tsx');
 
-    expect(workouts).toContain('Add new program');
+    expect(workouts).toContain("t('workouts.addProgram')");
     expect(template).toContain('Start Workout');
     expect(program).toContain('Add routine to program');
     expect(progress).toContain("router.push('/weight-entry')");

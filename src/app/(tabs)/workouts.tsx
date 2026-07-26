@@ -5,10 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import WorkoutsScreen from '@/features/workouts/screens/WorkoutsScreen';
+import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 export default function WorkoutsRoute() {
   const { colors } = useAppTheme();
+  const { t } = useLocalization();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
 
@@ -16,8 +18,8 @@ export default function WorkoutsRoute() {
     <View style={styles.screen}>
       <WorkoutsScreen />
       <Pressable
-        accessibilityHint="Opens completed workout history and filters"
-        accessibilityLabel="Workout history"
+        accessibilityHint={t('workouts.historyHint')}
+        accessibilityLabel={t('workouts.historyAccessibility')}
         accessibilityRole="button"
         onPress={() => router.push('/workout-history')}
         style={({ pressed }) => [
@@ -26,7 +28,7 @@ export default function WorkoutsRoute() {
           pressed && styles.pressed,
         ]}>
         <Text style={styles.historyIcon}>↺</Text>
-        <Text style={styles.historyLabel}>History</Text>
+        <Text style={styles.historyLabel}>{t('workouts.history')}</Text>
       </Pressable>
     </View>
   );

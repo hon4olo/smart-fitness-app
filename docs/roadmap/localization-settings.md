@@ -64,9 +64,23 @@ Third slice implemented in PR #149:
 - completed-scope tests prevent inline locale branches, raw Home analytics strings, direct English high-risk props, and direct English Alert copy;
 - direct locale branches are reduced from 11 files / 117 branches at audit baseline to 2 advanced-Coach files / 33 branches.
 
+Fourth slice implemented in PR #150:
+
+- localized the Workouts tab history control, Start Now / Programs tabs, exercise-search accessibility, loading, Recently Added, empty-template, favorites, and footer CTA states;
+- localized program-creation title, input, validation explanation, disabled state, actions, and accessibility copy;
+- applied English/Russian pluralization to exercise and workout counts;
+- mapped built-in workout-template and default-program names to localized display copy by stable ID without changing persisted titles or user-created names;
+- a separate typed Workouts catalog contains 39 English and 39 Russian keys with exact parity and no duplicates;
+- completed-scope tests prevent locale branches, direct English high-risk props, audited fixed English hub copy, missing disabled-action explanation, and seed-title leakage from returning.
+
+Remaining Workouts groups after PR #150:
+
+- active workout session, set table/actions, RPE and previous-result copy, session empty/loading/missing states, cancellation, finish flow, summary, and alerts;
+- exercise library/detail, workout history/detail, programs, routines, templates, builder, safety gate, preview tools, and integration/coming-soon states.
+
 Remaining screen groups after PR #149:
 
-1. **Workouts** — Workouts hub, active session, finish flow, set table/actions, exercise library/detail, workout history/detail, programs, routines, templates, builder, safety gate, preview tools, and integration/coming-soon states.
+1. **Workouts** — active session and finish flow first, then exercise library/detail, workout history/detail, programs, routines, templates, builder, safety gate, preview tools, and integration/coming-soon states.
 2. **Nutrition** — Nutrition tab, food browser/search, Add Food, custom-food form, barcode scanner, serving editor, favorites/recent foods, meal templates, targets, empty/error states, and Nutrition Coach proposal surfaces.
 3. **Progress detail flows** — weight entry/details, measurement detail/charts/forms, exercise detail analytics, and any remaining secondary progress routes.
 4. **Advanced Coach** — Coach history/trust/detail, recovery check-in, training limitations, Safety & Recovery preflight/review, Combined Coach, Strength Coach, Nutrition Coach, proposals, provenance/trust statuses, and raw validation/result copy.
@@ -90,6 +104,7 @@ Completed:
 - centralized Settings/Account/Privacy/About/Sync copy with no component-level locale branches in the completed slice;
 - centralized Profile/Progress/Goals/AI Coach overview copy with no component-level locale branches in the completed slice;
 - centralized Home/onboarding copy with bounded deterministic-status localization and no component-level locale branches in the completed slice;
+- centralized Workouts hub navigation, loading/empty/disabled states, counts, built-in seed titles, and accessibility copy in the completed slice;
 - locale-aware dates on account/session and Weight details surfaces;
 - stable untranslated persisted identifiers, enums, routes, and sync fields;
 - metric/imperial preferences with canonical internal storage;
@@ -109,7 +124,7 @@ Relevant mobile PRs:
 
 Remaining:
 
-- complete Russian/English translation for Workouts, Nutrition, Progress detail flows, and advanced Coach copy;
+- complete Russian/English translation for the active workout/finish flow, remaining Workouts routes, Nutrition, Progress detail flows, and advanced Coach copy;
 - migrate remaining direct `Intl` and `toLocaleString` usage to the localization/unit formatting boundary;
 - adopt pluralization helpers in real count-dependent user-facing messages;
 - extend the hard-coded English guard from the completed Settings/Account slice to each subsequent screen group;
