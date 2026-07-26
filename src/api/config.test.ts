@@ -9,7 +9,10 @@ import {
 const originalApiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
 const originalFoodApiBaseUrl = process.env.EXPO_PUBLIC_FOOD_API_BASE_URL;
 
-const restoreEnv = (key: 'EXPO_PUBLIC_API_BASE_URL' | 'EXPO_PUBLIC_FOOD_API_BASE_URL', value: string | undefined) => {
+const restoreEnv = (
+  key: 'EXPO_PUBLIC_API_BASE_URL' | 'EXPO_PUBLIC_FOOD_API_BASE_URL',
+  value: string | undefined,
+) => {
   if (value === undefined) {
     delete process.env[key];
     return;
@@ -38,11 +41,11 @@ describe('mobile API configuration', () => {
     expect(getMobileApiBaseUrl()).toBe('https://staging-api.peptonio.com');
   });
 
-  it('keeps the legacy food override as a temporary fallback', () => {
+  it('ignores the legacy food override when the shared API override is absent', () => {
     delete process.env.EXPO_PUBLIC_API_BASE_URL;
     process.env.EXPO_PUBLIC_FOOD_API_BASE_URL = 'https://legacy.peptonio.com/';
 
-    expect(getMobileApiBaseUrl()).toBe('https://legacy.peptonio.com');
+    expect(getMobileApiBaseUrl()).toBe(PRODUCTION_API_BASE_URL);
   });
 
   it('rejects non-HTTPS API URLs', () => {

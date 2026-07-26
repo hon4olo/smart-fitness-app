@@ -1,9 +1,7 @@
 export const PRODUCTION_API_BASE_URL = 'https://api.peptonio.com';
 
 const readConfiguredBaseUrl = (): string | undefined =>
-  process.env.EXPO_PUBLIC_API_BASE_URL?.trim() ||
-  process.env.EXPO_PUBLIC_FOOD_API_BASE_URL?.trim() ||
-  undefined;
+  process.env.EXPO_PUBLIC_API_BASE_URL?.trim() || undefined;
 
 const stripTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
 

@@ -146,3 +146,9 @@ jobs:
           path: regression-tests.log
           if-no-files-found: error
           retention-days: 3
+
+      - name: Expo export
+        run: npx expo export --clear
+
+      - name: Expo Doctor
+        run: npx expo-doctor
