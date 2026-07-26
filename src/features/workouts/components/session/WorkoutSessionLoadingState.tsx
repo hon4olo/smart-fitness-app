@@ -9,8 +9,13 @@ type WorkoutSessionLoadingStateProps = {
   styles: ReturnType<typeof createStyles>;
 };
 
-export function WorkoutSessionLoadingState({ accentColor, backgroundColor, styles }: WorkoutSessionLoadingStateProps) {
+export function WorkoutSessionLoadingState({
+  accentColor,
+  backgroundColor,
+  styles,
+}: WorkoutSessionLoadingStateProps) {
   const { t } = useLocalization();
+
   return (
     <View style={[styles.screen, { backgroundColor }]}>
       <View style={styles.loadingState}>
