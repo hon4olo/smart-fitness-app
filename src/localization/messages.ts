@@ -1,4 +1,6 @@
-export const enMessages = {
+import { enSettingsMessages, ruSettingsMessages } from './settingsMessages';
+
+const enCoreMessages = {
   'common.back': 'Back',
   'common.cancel': 'Cancel',
   'common.continue': 'Continue',
@@ -25,7 +27,7 @@ export const enMessages = {
   'profile.settingsAction': 'Open app settings',
   'profile.settingsDescription': 'Language, appearance, and other device preferences.',
   'settings.title': 'Settings',
-  'settings.subtitle': 'Choose how the app looks and which language it uses on this device.',
+  'settings.subtitle': 'Manage your account, personal details, language, appearance, synchronization, and privacy.',
   'settings.general': 'General',
   'settings.language': 'Language',
   'settings.languageDescription': 'Use the device language or choose a language manually.',
@@ -142,11 +144,18 @@ export const enMessages = {
   'sessions.error.generic': 'Unable to update your signed-in devices right now.',
 } as const;
 
+export const enMessages = {
+  ...enCoreMessages,
+  ...enSettingsMessages,
+} as const;
+
 export type MessageKey = keyof typeof enMessages;
 export type SupportedLocale = 'en' | 'ru';
 export type LanguagePreference = 'system' | SupportedLocale;
+export type TranslationValues = Record<string, string | number>;
+export type Translate = (key: MessageKey, values?: TranslationValues) => string;
 
-export const ruMessages: Record<MessageKey, string> = {
+const ruCoreMessages: Record<keyof typeof enCoreMessages, string> = {
   'common.back': 'Назад',
   'common.cancel': 'Отмена',
   'common.continue': 'Продолжить',
@@ -173,7 +182,7 @@ export const ruMessages: Record<MessageKey, string> = {
   'profile.settingsAction': 'Открыть настройки приложения',
   'profile.settingsDescription': 'Язык, оформление и другие настройки устройства.',
   'settings.title': 'Настройки',
-  'settings.subtitle': 'Выберите оформление приложения и язык интерфейса на этом устройстве.',
+  'settings.subtitle': 'Управляйте аккаунтом, личными данными, языком, оформлением, синхронизацией и конфиденциальностью.',
   'settings.general': 'Основные',
   'settings.language': 'Язык',
   'settings.languageDescription': 'Используйте язык устройства или выберите язык вручную.',
@@ -288,6 +297,11 @@ export const ruMessages: Record<MessageKey, string> = {
   'sessions.error.expired': 'Срок сессии истёк. Войдите снова.',
   'sessions.error.rateLimit': 'Слишком много запросов. Подождите и повторите позже.',
   'sessions.error.generic': 'Не удалось обновить список устройств.',
+};
+
+export const ruMessages: Record<MessageKey, string> = {
+  ...ruCoreMessages,
+  ...ruSettingsMessages,
 };
 
 export const MESSAGE_CATALOGS: Record<SupportedLocale, Record<MessageKey, string>> = {

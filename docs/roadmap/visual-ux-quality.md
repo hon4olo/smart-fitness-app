@@ -37,7 +37,8 @@ Updated: 2026-07-26
 
 ## P1 — localization
 
-- Complete Russian localization for Progress, Coach, Profile summary, Settings validation, alerts, empty states, and sync recovery.
+- [x] Centralize and complete Settings, Account, Privacy, About, sync validation, alerts, diagnostics, and recovery copy in PR #147.
+- Complete Russian localization for Profile summary, Progress planning/details, Home/onboarding, Workouts, Nutrition, and advanced Coach.
 - Remove mixed-language headings from Progress and Coach secondary routes.
 - Keep terminology consistent across tabs: goal, target weight, training days, synchronization, recovery, and Coach.
 
@@ -78,7 +79,7 @@ Updated: 2026-07-26
 
 1. Physical-iPhone validation of the new Profile / Settings / Progress structure.
 2. Verify Coach and personal-details persistence after force-close and relaunch.
-3. Complete Russian localization for Progress and Coach.
+3. Continue localization with Profile + Progress + Goals + Coach profile, then Home/onboarding.
 4. Add explicit saved/loading/failure feedback for profile mutations.
 5. Continue the transparent/disabled control audit across all tabs.
 6. Complete the remaining visual-density pass and update this roadmap with device evidence.

@@ -1,5 +1,5 @@
-import type { SupportedLocale } from '@/localization';
 import type { WeightSyncStatus } from '@/context/SyncContext';
+import type { Translate } from '@/localization';
 
 export type SyncStatusCopy = {
   section: string;
@@ -23,66 +23,34 @@ export type SyncStatusCopy = {
   statusLabels: Record<WeightSyncStatus, string>;
 };
 
-const COPY: Record<SupportedLocale, SyncStatusCopy> = {
-  en: {
-    section: 'Data & Sync',
-    title: 'Sync status',
-    description: 'Review account synchronization, pending changes, and recovery actions.',
-    open: 'Open sync details',
-    currentStatus: 'Current status',
-    lastSync: 'Last successful sync',
-    never: 'Never',
-    queue: 'Pending data',
-    pendingOperations: 'Pending changes',
-    conflicts: 'Unresolved conflicts',
-    syncNow: 'Sync now',
-    syncing: 'Syncing…',
-    retry: 'Retry sync',
-    localOnlyExplanation: 'Data is stored on this device until you sign in.',
-    accountSyncedExplanation: 'Supported account data is synchronized through your signed-in account.',
-    errorExplanation: 'Synchronization did not finish. Your local data remains available; retry when the connection is stable.',
-    conflictExplanation: 'Some changes need deterministic conflict resolution before synchronization can finish.',
-    offlineExplanation: 'The device appears offline. Pending changes remain queued for the next connection.',
-    statusLabels: {
-      'local-only': 'Local only',
-      syncing: 'Syncing',
-      synced: 'Synced',
-      offline: 'Offline',
-      conflict: 'Needs review',
-      error: 'Retry needed',
-    },
+export const getSyncStatusCopy = (t: Translate): SyncStatusCopy => ({
+  section: t('sync.section'),
+  title: t('sync.title'),
+  description: t('sync.description'),
+  open: t('sync.open'),
+  currentStatus: t('sync.currentStatus'),
+  lastSync: t('sync.lastSync'),
+  never: t('sync.never'),
+  queue: t('sync.queue'),
+  pendingOperations: t('sync.pendingOperations'),
+  conflicts: t('sync.conflicts'),
+  syncNow: t('sync.syncNow'),
+  syncing: t('sync.syncing'),
+  retry: t('sync.retry'),
+  localOnlyExplanation: t('sync.explanation.localOnly'),
+  accountSyncedExplanation: t('sync.explanation.synced'),
+  errorExplanation: t('sync.explanation.error'),
+  conflictExplanation: t('sync.explanation.conflict'),
+  offlineExplanation: t('sync.explanation.offline'),
+  statusLabels: {
+    'local-only': t('sync.status.localOnly'),
+    syncing: t('sync.status.syncing'),
+    synced: t('sync.status.synced'),
+    offline: t('sync.status.offline'),
+    conflict: t('sync.status.conflict'),
+    error: t('sync.status.error'),
   },
-  ru: {
-    section: 'Данные и синхронизация',
-    title: 'Состояние синхронизации',
-    description: 'Проверьте синхронизацию аккаунта, ожидающие изменения и действия восстановления.',
-    open: 'Открыть сведения о синхронизации',
-    currentStatus: 'Текущее состояние',
-    lastSync: 'Последняя успешная синхронизация',
-    never: 'Никогда',
-    queue: 'Ожидающие данные',
-    pendingOperations: 'Ожидающие изменения',
-    conflicts: 'Неразрешённые конфликты',
-    syncNow: 'Синхронизировать',
-    syncing: 'Синхронизация…',
-    retry: 'Повторить синхронизацию',
-    localOnlyExplanation: 'Данные хранятся только на этом устройстве, пока вы не войдёте в аккаунт.',
-    accountSyncedExplanation: 'Поддерживаемые данные аккаунта синхронизируются через выполненный вход.',
-    errorExplanation: 'Синхронизация не завершилась. Локальные данные доступны; повторите попытку при стабильном соединении.',
-    conflictExplanation: 'Некоторые изменения требуют разрешения конфликта перед завершением синхронизации.',
-    offlineExplanation: 'Устройство не в сети. Изменения остаются в очереди до следующего подключения.',
-    statusLabels: {
-      'local-only': 'Только на устройстве',
-      syncing: 'Синхронизация',
-      synced: 'Синхронизировано',
-      offline: 'Нет сети',
-      conflict: 'Требует проверки',
-      error: 'Нужен повтор',
-    },
-  },
-};
-
-export const getSyncStatusCopy = (locale: SupportedLocale): SyncStatusCopy => COPY[locale];
+});
 
 export const getSyncStatusExplanation = (
   copy: SyncStatusCopy,

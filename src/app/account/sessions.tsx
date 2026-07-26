@@ -122,10 +122,13 @@ export default function SessionsScreen() {
       ? t('sessions.unknownDate')
       : formatDate(date, { dateStyle: 'medium', timeStyle: 'short' });
   };
-  const formatPlatform = (platform: string) =>
-    platform
-      ? platform.charAt(0).toUpperCase() + platform.slice(1)
-      : t('sessions.unknownPlatform');
+  const formatPlatform = (platform: string) => {
+    const normalized = platform.trim().toLowerCase();
+    if (normalized === 'ios') return t('sessions.platform.ios');
+    if (normalized === 'android') return t('sessions.platform.android');
+    if (normalized === 'web') return t('sessions.platform.web');
+    return t('sessions.unknownPlatform');
+  };
 
   return (
     <ScrollView
@@ -168,7 +171,7 @@ export default function SessionsScreen() {
             <View style={styles.sessionTitleGroup}>
               <Text style={styles.sessionTitle}>{item.deviceName}</Text>
               <Text style={styles.sessionMeta}>
-                {formatPlatform(item.platform)} · App {item.appVersion}
+                {formatPlatform(item.platform)} · {t('sessions.appVersion', { version: item.appVersion })}
               </Text>
             </View>
             {item.isCurrent ? (

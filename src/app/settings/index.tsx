@@ -13,11 +13,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import type { AppearanceMode } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import {
-  AboutSettingsCard,
-  getPrivacyAboutSectionTitles,
-  PrivacySettingsCard,
-} from '@/features/settings/PrivacyAboutCards';
+import { AboutSettingsCard, PrivacySettingsCard } from '@/features/settings/PrivacyAboutCards';
 import { PersonalDetailsSettingsCard } from '@/features/settings/PersonalDetailsSettingsCard';
 import { SyncSettingsCard } from '@/features/settings/SyncSettingsCard';
 import { getSyncStatusCopy } from '@/features/settings/syncStatusCopy';
@@ -33,29 +29,17 @@ import {
 
 type OtaValueSource = Record<string, unknown>;
 
-const formatOtaValue = (value: unknown) => {
-  if (value === null || value === undefined || value === '') return 'Not available';
-  if (value instanceof Date) {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(value);
-  }
-  return String(value);
-};
-
 export default function SettingsScreen() {
   const router = useRouter();
   const app = useAppContext();
   const { colors, mode, setMode } = useAppTheme();
-  const { languagePreference, locale, setLanguagePreference, t } = useLocalization();
+  const { formatDate, languagePreference, locale, setLanguagePreference, t } = useLocalization();
   const { weight, length, energy, setWeightUnit, setLengthUnit, setEnergyUnit } =
     useUnitPreferences();
   const [developerExpanded, setDeveloperExpanded] = useState(false);
   const styles = useMemo(() => createStyles(colors), [colors]);
   const unitCopy = getUnitCopy(locale);
-  const syncCopy = getSyncStatusCopy(locale);
-  const privacyAboutTitles = getPrivacyAboutSectionTitles(locale);
+  const syncCopy = getSyncStatusCopy(t);
 
   const languageOptions: ReadonlyArray<{ label: string; value: LanguagePreference }> = [
     { label: t('common.system'), value: 'system' },
@@ -80,6 +64,13 @@ export default function SettingsScreen() {
     { label: 'kJ', value: 'kJ' },
   ];
 
+  const formatOtaValue = (value: unknown) => {
+    if (value === null || value === undefined || value === '') return t('common.notAvailable');
+    if (value instanceof Date) {
+      return formatDate(value, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+    return String(value);
+  };
   const otaRuntimeVersion = formatOtaValue((Updates as OtaValueSource).runtimeVersion);
   const otaUpdateId = formatOtaValue((Updates as OtaValueSource).updateId);
   const otaCreatedAt = formatOtaValue((Updates as OtaValueSource).createdAt);
@@ -87,14 +78,12 @@ export default function SettingsScreen() {
 
   const handleResetOnboarding = () => {
     Alert.alert(
-      locale === 'ru' ? 'Сбросить первоначальную настройку?' : 'Reset onboarding?',
-      locale === 'ru'
-        ? 'На этом устройстве снова откроется первоначальная настройка.'
-        : 'This will show Quick Setup again on this device.',
+      t('settings.resetOnboardingTitle'),
+      t('settings.resetOnboardingBody'),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: locale === 'ru' ? 'Сбросить' : 'Reset',
+          text: t('common.reset'),
           style: 'destructive',
           onPress: () => app.resetOnboarding(),
         },
@@ -106,19 +95,14 @@ export default function SettingsScreen() {
     try {
       const update = await Updates.checkForUpdateAsync();
       if (!update.isAvailable) {
-        Alert.alert(locale === 'ru' ? 'Обновлений нет' : 'No update available');
+        Alert.alert(t('settings.noUpdateAvailable'));
         return;
       }
       await Updates.fetchUpdateAsync();
-      Alert.alert(
-        locale === 'ru'
-          ? 'Обновление загружено. Приложение перезапустится.'
-          : 'Update downloaded. Restarting app.',
-      );
+      Alert.alert(t('settings.updateDownloaded'));
       await Updates.reloadAsync();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert(locale === 'ru' ? 'Ошибка OTA-обновления' : 'OTA update error', message);
+    } catch {
+      Alert.alert(t('settings.otaUpdateErrorTitle'), t('settings.otaUpdateErrorBody'));
     }
   };
 
@@ -135,11 +119,7 @@ export default function SettingsScreen() {
           </Pressable>
           <View style={styles.headerCopy}>
             <Text style={styles.title}>{t('settings.title')}</Text>
-            <Text style={styles.subtitle}>
-              {locale === 'ru'
-                ? 'Аккаунт, личные данные, язык, оформление, синхронизация и приватность.'
-                : 'Account, personal details, language, appearance, sync, and privacy.'}
-            </Text>
+            <Text style={styles.subtitle}>{t('settings.subtitle')}</Text>
           </View>
         </View>
 
@@ -147,7 +127,7 @@ export default function SettingsScreen() {
           <AuthGateCard />
         </SettingsSection>
 
-        <SettingsSection title={locale === 'ru' ? 'Личные данные' : 'Personal details'}>
+        <SettingsSection title={t('settings.personalDetails')}>
           <PersonalDetailsSettingsCard />
         </SettingsSection>
 
@@ -217,36 +197,22 @@ export default function SettingsScreen() {
           <SyncSettingsCard />
         </SettingsSection>
 
-        <SettingsSection title={privacyAboutTitles.privacy}>
+        <SettingsSection title={t('privacy.section')}>
           <PrivacySettingsCard />
         </SettingsSection>
 
-        <SettingsSection title={privacyAboutTitles.about}>
+        <SettingsSection title={t('about.section')}>
           <AboutSettingsCard />
         </SettingsSection>
 
         <View style={styles.section}>
           <View style={styles.developerHeader}>
             <View style={styles.developerCopy}>
-              <Text style={styles.sectionTitle}>
-                {locale === 'ru' ? 'Инструменты разработчика' : 'Developer tools'}
-              </Text>
-              <Text style={styles.footer}>
-                {locale === 'ru'
-                  ? 'Технические функции, диагностика сборки и тестовые экраны.'
-                  : 'Technical actions, build diagnostics, and preview screens.'}
-              </Text>
+              <Text style={styles.sectionTitle}>{t('settings.developerTools')}</Text>
+              <Text style={styles.footer}>{t('settings.developerToolsDescription')}</Text>
             </View>
             <SecondaryButton
-              label={
-                developerExpanded
-                  ? locale === 'ru'
-                    ? 'Скрыть'
-                    : 'Hide'
-                  : locale === 'ru'
-                    ? 'Показать'
-                    : 'Show'
-              }
+              label={developerExpanded ? t('common.hide') : t('common.show')}
               onPress={() => setDeveloperExpanded((current) => !current)}
             />
           </View>

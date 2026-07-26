@@ -23,9 +23,9 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 export default function SyncBackupScreen() {
   const { conflictCount, lastSyncAt, pendingOperations, status, syncNow } = useWeightSync();
-  const { formatDate, locale } = useLocalization();
+  const { formatDate, t } = useLocalization();
   const safeAreaInsets = useSafeAreaInsets();
-  const copy = getSyncStatusCopy(locale);
+  const copy = getSyncStatusCopy(t);
   const isBusy = status === 'syncing';
   const actionLabel = isBusy
     ? copy.syncing
