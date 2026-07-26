@@ -7,6 +7,7 @@ import type {
   NutritionTargets,
   ProfileGoalType,
   ProfileState,
+  ProfileTrainingExperience,
   RecoveryCheckIn,
   TrainingProgram,
   UserLimitation,
@@ -82,6 +83,10 @@ export type AppContextType = AppState & {
     weeklyWeightChangeGoal: number;
     trainingDaysPerWeek: number;
   }) => void;
+  updateRegistrationProfile: (profile: {
+    height: string;
+    trainingExperience: ProfileTrainingExperience;
+  }) => void;
   updateFoodEntry: (entryId: string, updatedEntry: FoodEntry) => void;
   deleteFoodEntry: (entryId: string) => void;
   deleteMealTemplate: (templateId: string) => void;
@@ -99,8 +104,9 @@ export type AppContextType = AppState & {
   retryFailedMutation: () => void;
   getLastWorkoutSession: () => WorkoutSession | null;
   completeOnboarding: (setup: {
+    age: number;
+    activityLevel: 'sedentary' | 'light' | 'moderate' | 'high' | 'very_high';
     currentWeight: number;
-    targetWeight: number;
     goalType: ProfileGoalType;
     trainingDaysPerWeek: number;
   }) => void;
