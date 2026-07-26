@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -10,17 +11,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import {
-  calculateNutritionTargets,
-  type ProfileActivityLevel,
-} from '@/features/profile/profilePlan';
+import type { ProfileActivityLevel } from '@/features/profile/profilePlan';
 import { useLocalization } from '@/localization';
 import type { ProfileGoalType } from '@/types';
 import {
@@ -41,9 +38,10 @@ export default function OnboardingClientScreen() {
   const {
     completeOnboarding,
     isRestoringState,
+    mutationFailure,
     onboardingCompleted,
+    pendingMutationCount,
     profile,
-    updateNutritionTargets,
   } = useAppContext();
   const { t } = useLocalization();
   const { weight: weightUnit } = useUnitPreferences();
@@ -55,11 +53,41 @@ export default function OnboardingClientScreen() {
   const [trainingDaysInput, setTrainingDaysInput] = useState(
     `${profile.trainingDaysPerWeek}`,
   );
+  const [completionRequested, setCompletionRequested] = useState(false);
+  const [completionAlertShown, setCompletionAlertShown] = useState(false);
 
   useEffect(() => {
-    if (isRestoringState) return;
+    if (isRestoringState || completionRequested) return;
     if (onboardingCompleted) router.replace('/');
-  }, [isRestoringState, onboardingCompleted]);
+  }, [completionRequested, isRestoringState, onboardingCompleted]);
+
+  useEffect(() => {
+    if (
+      !completionRequested ||
+      completionAlertShown ||
+      !onboardingCompleted ||
+      pendingMutationCount > 0
+    ) {
+      return;
+    }
+
+    const localPersistenceFailed =
+      mutationFailure?.label === 'Complete onboarding' &&
+      mutationFailure.stage === 'local_persistence';
+    if (localPersistenceFailed) return;
+
+    setCompletionAlertShown(true);
+    Alert.alert(t('onboarding.successTitle'), t('onboarding.successBody'), [
+      { text: t('onboarding.successAction'), onPress: () => router.replace('/') },
+    ]);
+  }, [
+    completionAlertShown,
+    completionRequested,
+    mutationFailure,
+    onboardingCompleted,
+    pendingMutationCount,
+    t,
+  ]);
 
   const age = Number(ageInput);
   const parsedCurrentWeightDisplay = parseDisplayNumber(currentWeightInput);
@@ -83,8 +111,9 @@ export default function OnboardingClientScreen() {
   }, [activityLevel, age, parsedCurrentWeightDisplay, t, trainingDays]);
 
   const handleComplete = () => {
-    if (validationMessage || !activityLevel) return;
+    if (validationMessage || !activityLevel || completionRequested) return;
 
+    setCompletionRequested(true);
     completeOnboarding({
       age,
       activityLevel,
@@ -92,15 +121,9 @@ export default function OnboardingClientScreen() {
       goalType,
       trainingDaysPerWeek: trainingDays,
     });
-    updateNutritionTargets(
-      calculateNutritionTargets({ activityLevel, goalType, weightKg: currentWeightKg }),
-    );
-    Alert.alert(t('onboarding.successTitle'), t('onboarding.successBody'), [
-      { text: t('onboarding.successAction'), onPress: () => router.replace('/') },
-    ]);
   };
 
-  if (isRestoringState || onboardingCompleted) {
+  if (isRestoringState || (onboardingCompleted && !completionRequested)) {
     return <View style={styles.screen} />;
   }
 
@@ -155,6 +178,7 @@ export default function OnboardingClientScreen() {
                       key={level}
                       accessibilityRole="radio"
                       accessibilityState={{ checked: selected }}
+                      disabled={completionRequested}
                       onPress={() => setActivityLevel(level)}
                       style={({ pressed }) => [
                         styles.choice,
@@ -179,16 +203,19 @@ export default function OnboardingClientScreen() {
               <Text style={styles.label}>{t('onboarding.goal')}</Text>
               <View style={styles.goalRow}>
                 <AppButton
+                  disabled={completionRequested}
                   label={t('profile.goal.loseFat')}
                   onPress={() => setGoalType('lose_fat')}
                   variant={goalType === 'lose_fat' ? 'primary' : 'secondary'}
                 />
                 <AppButton
+                  disabled={completionRequested}
                   label={t('profile.goal.maintain')}
                   onPress={() => setGoalType('maintain')}
                   variant={goalType === 'maintain' ? 'primary' : 'secondary'}
                 />
                 <AppButton
+                  disabled={completionRequested}
                   label={t('profile.goal.gainMuscle')}
                   onPress={() => setGoalType('gain_muscle')}
                   variant={goalType === 'gain_muscle' ? 'primary' : 'secondary'}
@@ -202,7 +229,7 @@ export default function OnboardingClientScreen() {
               </Text>
             ) : null}
             <AppButton
-              disabled={Boolean(validationMessage)}
+              disabled={Boolean(validationMessage) || completionRequested}
               label={t('onboarding.complete')}
               onPress={handleComplete}
             />
