@@ -58,7 +58,7 @@ The existing Combined Coach aggregates deterministic reviews. Full Combined Stra
 ## API and authentication
 
 - Use `EXPO_PUBLIC_API_BASE_URL` for environment-specific API hosts.
-- `EXPO_PUBLIC_FOOD_API_BASE_URL` is only a backwards-compatible fallback.
+- `EXPO_PUBLIC_FOOD_API_BASE_URL` must not route shared mobile API traffic; legacy food-only overrides are ignored.
 - Feature modules must not hardcode backend hosts.
 - Food-provider and AI-provider credentials remain backend-only.
 - Ordinary auth-session storage contains only user, device, and session metadata; it must never contain access or refresh tokens.
@@ -78,7 +78,7 @@ The existing Combined Coach aggregates deterministic reviews. Full Combined Stra
 - Advance the cursor only when every returned operation is supported and safely materialized.
 - Critical mutations use the ordered application mutation queue and expose persistence or outbox failures with retry controls.
 - Keep authenticated user/device identity in the sync request envelope or operation metadata, not inside strict entity payloads. When an outbound payload contract changes, normalize persisted queue entries and regenerate their idempotency keys before retrying.
-- A validation failure in one queued operation must not block valid siblings. Isolate HTTP 400/422 operations, acknowledge successful partitions, keep the rejected local operation, and surface its entity, status, and backend request ID.
+- A validation failure in one queued operation must not block valid siblings. Isolate HTTP 400/422 operations, acknowledge successful partitions, keep the rejected local operation, and surface a sanitized diagnostic with its entity, status, validation details, and backend request ID; never display tokens, email, or raw account payloads.
 - Queue mutation locking and deduplication protect the queue itself, but do not make application-state persistence and outbox enqueue one atomic storage transaction.
 - The save-succeeded/enqueue-failed path must remain recoverable after application restart and must never be hidden from the user.
 
