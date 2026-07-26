@@ -50,7 +50,7 @@ jobs:
           if (!match) process.exit(1);
           fs.writeFileSync('verified-sync-isolation-ota.json', JSON.stringify({
             message: match.message,
-            id: data.id,
+            branchId: data.id,
             group: match.group,
             runtimeVersion: match.runtimeVersion,
             platforms: match.platforms,
@@ -67,11 +67,15 @@ jobs:
           cat production-updates.json >&2 || true
           exit 1
 
+      - name: Capture exact update IDs
+        run: eas update:list --branch production --limit 20 --json --non-interactive > production-update-list.json
+
       - name: Upload verification metadata
         uses: actions/upload-artifact@v4
         with:
           name: verified-sync-isolation-production-ota
           path: |
             production-updates.json
+            production-update-list.json
             verified-sync-isolation-ota.json
           retention-days: 3
