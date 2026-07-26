@@ -299,6 +299,12 @@ export function SyncProvider({
       await ensureMealTemplateSync();
       await ensureSafetyRecoverySync();
       const result = await syncCoordinator.syncNow();
+      if (result.status.phase === 'Failed') {
+        const cause = result.error?.cause;
+        throw cause instanceof Error
+          ? cause
+          : new Error(result.error?.message ?? 'Sync failed');
+      }
       const pushResult = result.push?.result;
       const pullResult = result.pull?.result;
       const detectedAt =
@@ -365,7 +371,8 @@ export function SyncProvider({
 
       const afterPending = await queueStore.getPending();
       setPendingOperations(countSupportedQueueOperations(afterPending));
-      setLastSyncAt(pushResult?.serverTimestamp ?? pullResult?.serverTimestamp ?? new Date().toISOString());
+      const successfulSyncAt = pushResult?.serverTimestamp ?? pullResult?.serverTimestamp;
+      if (successfulSyncAt) setLastSyncAt(successfulSyncAt);
       setStatus(resolveStatus(result.status.phase, nextConflictCount > 0, true));
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Sync failed';
