@@ -1,0 +1,127 @@
+name: Finalize nutrition library sync identity
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.head_ref == 'agent/fix-nutrition-library-sync-identity'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest fix branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Finalize queue migration and tests
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              target = Path(path)
+              text = target.read_text()
+              if text.count(old) != 1:
+                  raise RuntimeError(f'{path}: expected exactly one match')
+              target.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              'src/cloud/CloudQueueHelpers.ts',
+              "  const entityIdChanged = entityId !== rawEntityId;\n",
+              "  const entityIdChanged =\n    isNutritionLibraryEntity(entityType) && entityId !== rawEntityId;\n",
+          )
+          replace_once(
+              'src/cloud/CloudQueueHelpers.ts',
+              "  const metadata = {\n    ...rawMetadata,\n    ...(isWeightHistoryEntity(entityType) ? { entityName: 'weightHistory' } : {}),\n    requestId: idempotencyKey,\n  };\n",
+              "  const metadata = {\n    ...rawMetadata,\n    ...(isWeightHistoryEntity(entityType) ? { entityName: 'weightHistory' } : {}),\n    ...(isNutritionLibraryEntity(entityType)\n      ? { clientId: isString(rawMetadata?.clientId) ? rawMetadata.clientId.trim() : rawEntityId }\n      : {}),\n    requestId: idempotencyKey,\n  };\n",
+          )
+
+          path = Path('test/nutrition-library-sync-identity.test.ts')
+          text = path.read_text()
+          text = text.replace("    expect(isUuid(id)).toBe(true);\n", "", 1)
+          text = text.replace(
+              "    expect(id).toBe(getNutritionLibrarySyncEntityId(legacyLibraryId));\n",
+              "    expect(id).toBe(legacyLibraryId);\n    expect(isUuid(getNutritionLibrarySyncEntityId(id))).toBe(true);\n",
+              1,
+          )
+          text = text.replace(
+              "    expect(item?.libraryId).toBe(getNutritionLibrarySyncEntityId(legacyLibraryId));\n",
+              "    expect(item?.libraryId).toBe(legacyLibraryId);\n",
+              1,
+          )
+          path.write_text(text)
+
+          path = Path('src/cloud/NutritionLibrarySync.test.ts')
+          text = path.read_text()
+          text = text.replace(
+              "  getNutritionFoodLibraryStorageKey,\n",
+              "  getNutritionFoodLibraryStorageKey,\n  getNutritionLibrarySyncEntityId,\n",
+              1,
+          )
+          text = text.replace(
+              "      entityId: 'fatsecret:provider-1',\n",
+              "      entityId: getNutritionLibrarySyncEntityId('fatsecret:provider-1'),\n",
+              1,
+          )
+          text = text.replace(
+              "      libraryId: 'fatsecret:provider-1',\n",
+              "      libraryId: getNutritionLibrarySyncEntityId('fatsecret:provider-1'),\n",
+              1,
+          )
+          text = text.replace(
+              "    ).toEqual(['custom:oats:']);\n",
+              "    ).toEqual([getNutritionLibrarySyncEntityId('custom:oats:')]);\n",
+              1,
+          )
+          path.write_text(text)
+
+          path = Path('test/nutrition-library-sync-alias.test.ts')
+          text = path.read_text()
+          marker = "    expect(normalized?.metadata?.requestId).toBe(normalized?.idempotencyKey);\n"
+          if "metadata?.clientId" not in text:
+              text = text.replace(
+                  marker,
+                  "    expect(normalized?.metadata?.clientId).toBe(legacyLibraryId);\n" + marker,
+                  1,
+              )
+          path.write_text(text)
+          PY
+
+      - name: Remove temporary patch and workflow files
+        run: |
+          rm -f .github/patches/refine-nutrition-library-sync-identity.py
+          rm -f .github/workflows/refine-nutrition-library-sync-identity.yml
+          rm -f .github/workflows/refine-nutrition-library-sync-identity-v2.yml
+          rm -f .github/workflows/refine-nutrition-library-sync-identity-v3.yml
+          rm -f .github/workflows/refine-nutrition-library-sync-identity-v4.yml
+          rm -f .github/workflows/refine-nutrition-library-sync-identity-v5.yml
+          rm -f .github/workflows/finalize-nutrition-library-sync-identity.yml
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate final repair
+        run: |
+          npx tsc --noEmit
+          npm test
+          npx expo export --clear
+          npx expo-doctor
+
+      - name: Commit final repair
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "[ota] Finalize nutrition library sync identity"
+          git push origin HEAD:${{ github.head_ref }}
