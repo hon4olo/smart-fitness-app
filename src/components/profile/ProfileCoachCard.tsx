@@ -11,10 +11,8 @@ import type {
   CoachActivityLevel,
   CoachProfileFormErrors,
 } from '@/features/profile/coachProfileForm';
-import type {
-  ProfileCalculationSex,
-  ProfileTrainingExperience,
-} from '@/types';
+import { useLocalization } from '@/localization';
+import type { ProfileTrainingExperience } from '@/types';
 import type { LengthUnit } from '@/units';
 
 type Option<Value extends string> = { label: string; value: Value };
@@ -25,23 +23,6 @@ type ChoiceGridProps<Value extends string> = {
   options: readonly Option<Value>[];
   value: Value | null;
 };
-
-const calculationSexOptions = [
-  { label: 'Male formula', value: 'male' as const },
-  { label: 'Female formula', value: 'female' as const },
-];
-const activityOptions = [
-  { label: 'Sedentary', value: 'sedentary' as const },
-  { label: 'Light', value: 'light' as const },
-  { label: 'Moderate', value: 'moderate' as const },
-  { label: 'High', value: 'high' as const },
-  { label: 'Very high', value: 'very_high' as const },
-];
-const experienceOptions = [
-  { label: 'Beginner', value: 'beginner' as const },
-  { label: 'Intermediate', value: 'intermediate' as const },
-  { label: 'Advanced', value: 'advanced' as const },
-];
 
 function ChoiceGrid<Value extends string>({
   accessibilityLabel,
@@ -78,88 +59,138 @@ function ChoiceGrid<Value extends string>({
 
 type ProfileCoachCardProps = {
   activityLevel: CoachActivityLevel | null;
-  calculationSex: ProfileCalculationSex | null;
-  dateOfBirth: string;
   errors: CoachProfileFormErrors;
   heightCm: string;
   isSaveDisabled: boolean;
   lengthUnit: LengthUnit;
   onActivityLevelChange: (value: CoachActivityLevel) => void;
-  onCalculationSexChange: (value: ProfileCalculationSex) => void;
-  onDateOfBirthChange: (value: string) => void;
   onHeightCmChange: (value: string) => void;
+  onOpenPersonalDetails: () => void;
   onSave: () => void;
   onTrainingExperienceChange: (value: ProfileTrainingExperience) => void;
+  personalDetailsReady: boolean;
   trainingExperience: ProfileTrainingExperience | null;
 };
 
 export function ProfileCoachCard({
   activityLevel,
-  calculationSex,
-  dateOfBirth,
   errors,
   heightCm,
   isSaveDisabled,
   lengthUnit,
   onActivityLevelChange,
-  onCalculationSexChange,
-  onDateOfBirthChange,
   onHeightCmChange,
+  onOpenPersonalDetails,
   onSave,
   onTrainingExperienceChange,
+  personalDetailsReady,
   trainingExperience,
 }: ProfileCoachCardProps) {
+  const { locale } = useLocalization();
+  const activityOptions = [
+    { label: locale === 'ru' ? 'Низкая' : 'Sedentary', value: 'sedentary' as const },
+    { label: locale === 'ru' ? 'Лёгкая' : 'Light', value: 'light' as const },
+    { label: locale === 'ru' ? 'Средняя' : 'Moderate', value: 'moderate' as const },
+    { label: locale === 'ru' ? 'Высокая' : 'High', value: 'high' as const },
+    { label: locale === 'ru' ? 'Очень высокая' : 'Very high', value: 'very_high' as const },
+  ];
+  const experienceOptions = [
+    { label: locale === 'ru' ? 'Новичок' : 'Beginner', value: 'beginner' as const },
+    { label: locale === 'ru' ? 'Средний' : 'Intermediate', value: 'intermediate' as const },
+    { label: locale === 'ru' ? 'Продвинутый' : 'Advanced', value: 'advanced' as const },
+  ];
+
   return (
     <AppCard>
-      <Text style={styles.title}>Coach profile</Text>
+      <Text style={styles.title}>{locale === 'ru' ? 'Профиль Coach' : 'Coach profile'}</Text>
       <Text style={styles.helpText}>
-        These fields are required for deterministic energy calculations. They are synchronized as a revisioned profile and are never inferred by the model.
+        {locale === 'ru'
+          ? 'Здесь остаются только параметры тренировок. Дата рождения и формула расчёта берутся из Настроек.'
+          : 'Only training inputs live here. Date of birth and calculation formula come from Settings.'}
       </Text>
-      <FormField
-        autoCapitalize="none"
-        autoCorrect={false}
-        errorMessage={errors.dateOfBirth}
-        helperText="YYYY-MM-DD · supported age 18–100"
-        keyboardType="numbers-and-punctuation"
-        label="Date of birth"
-        maxLength={10}
-        onChangeText={onDateOfBirthChange}
-        placeholder="2000-05-12"
-        textContentType="none"
-        value={dateOfBirth}
-      />
+      {!personalDetailsReady ? (
+        <View style={styles.personalDetailsNotice}>
+          <Text style={styles.noticeTitle}>
+            {locale === 'ru' ? 'Заполните личные данные' : 'Complete personal details'}
+          </Text>
+          <Text style={styles.fieldHelp}>
+            {locale === 'ru'
+              ? 'Укажите дату рождения и формулу расчёта в Настройках, чтобы сохранить профиль Coach.'
+              : 'Set date of birth and calculation formula in Settings before saving Coach.'}
+          </Text>
+          <SecondaryButton
+            label={locale === 'ru' ? 'Открыть настройки' : 'Open Settings'}
+            onPress={onOpenPersonalDetails}
+          />
+        </View>
+      ) : null}
       <FormField
         errorMessage={errors.heightCm}
-        helperText="Used by deterministic BMR formulas"
+        helperText={
+          locale === 'ru'
+            ? 'Используется в детерминированных формулах энергозатрат'
+            : 'Used by deterministic energy formulas'
+        }
         keyboardType="decimal-pad"
-        label={`Height (${lengthUnit})`}
+        label={locale === 'ru' ? `Рост (${lengthUnit})` : `Height (${lengthUnit})`}
         onChangeText={onHeightCmChange}
         placeholder={lengthUnit === 'in' ? '69' : '175'}
         textContentType="none"
         value={heightCm}
       />
       <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Calculation formula</Text>
-        <Text style={styles.fieldHelp}>Formula input only; this is separate from identity and display settings.</Text>
-        <ChoiceGrid accessibilityLabel="Calculation formula" onChange={onCalculationSexChange} options={calculationSexOptions} value={calculationSex} />
-        <InlineError message={errors.calculationSex} />
-      </View>
-      <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Activity level</Text>
-        <ChoiceGrid accessibilityLabel="Activity level" onChange={onActivityLevelChange} options={activityOptions} value={activityLevel} />
+        <Text style={styles.label}>{locale === 'ru' ? 'Уровень активности' : 'Activity level'}</Text>
+        <ChoiceGrid
+          accessibilityLabel={locale === 'ru' ? 'Уровень активности' : 'Activity level'}
+          onChange={onActivityLevelChange}
+          options={activityOptions}
+          value={activityLevel}
+        />
         <InlineError message={errors.activityLevel} />
       </View>
       <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Training experience</Text>
-        <ChoiceGrid accessibilityLabel="Training experience" columns={3} onChange={onTrainingExperienceChange} options={experienceOptions} value={trainingExperience} />
+        <Text style={styles.label}>
+          {locale === 'ru' ? 'Тренировочный опыт' : 'Training experience'}
+        </Text>
+        <ChoiceGrid
+          accessibilityLabel={locale === 'ru' ? 'Тренировочный опыт' : 'Training experience'}
+          columns={3}
+          onChange={onTrainingExperienceChange}
+          options={experienceOptions}
+          value={trainingExperience}
+        />
         <InlineError message={errors.trainingExperience} />
       </View>
-      <PrimaryButton disabled={isSaveDisabled} label="Save coach profile" onPress={onSave} />
-      <SecondaryButton accessibilityHint="Opens the self-reported recovery check-in form" label="Add recovery check-in" onPress={() => router.push('/profile/recovery-check-in')} />
-      <SecondaryButton accessibilityHint="Opens the self-reported training limitation manager" label="Manage training limitations" onPress={() => router.push('/profile/limitations')} />
-      <SecondaryButton accessibilityHint="Opens the deterministic limitations and recovery readiness review" label="Open Safety & Recovery" onPress={() => router.push('/profile/safety-recovery')} />
-      <SecondaryButton accessibilityHint="Opens the deterministic Strength, Nutrition, and Safety combined review" label="Open Combined Coach" onPress={() => router.push('/profile/combined-review')} />
-      <SecondaryButton accessibilityHint="Builds read-only Strength and Nutrition proposals under the Safety ceiling" label="Open Combined proposal" onPress={() => router.push('/profile/combined-proposal')} />
+      <PrimaryButton
+        disabled={isSaveDisabled}
+        label={locale === 'ru' ? 'Сохранить профиль Coach' : 'Save coach profile'}
+        onPress={onSave}
+      />
+      <SecondaryButton
+        accessibilityHint="Opens the self-reported recovery check-in form"
+        label={locale === 'ru' ? 'Добавить оценку восстановления' : 'Add recovery check-in'}
+        onPress={() => router.push('/profile/recovery-check-in')}
+      />
+      <SecondaryButton
+        accessibilityHint="Opens the self-reported training limitation manager"
+        label={locale === 'ru' ? 'Ограничения тренировок' : 'Manage training limitations'}
+        onPress={() => router.push('/profile/limitations')}
+      />
+      <SecondaryButton
+        accessibilityHint="Opens the deterministic limitations and recovery readiness review"
+        label={locale === 'ru' ? 'Безопасность и восстановление' : 'Open Safety & Recovery'}
+        onPress={() => router.push('/profile/safety-recovery')}
+      />
+      <SecondaryButton
+        accessibilityHint="Opens the deterministic Strength, Nutrition, and Safety combined review"
+        label={locale === 'ru' ? 'Общий обзор Coach' : 'Open Combined Coach'}
+        onPress={() => router.push('/profile/combined-review')}
+      />
+      <SecondaryButton
+        accessibilityHint="Builds read-only Strength and Nutrition proposals under the Safety ceiling"
+        label={locale === 'ru' ? 'Общее предложение Coach' : 'Open Combined proposal'}
+        onPress={() => router.push('/profile/combined-proposal')}
+      />
     </AppCard>
   );
 }
@@ -187,5 +218,7 @@ const styles = StyleSheet.create({
   fieldHelp: { color: Colors.dark.textMuted, fontSize: Typography.caption.fontSize, lineHeight: Typography.caption.lineHeight },
   helpText: { color: Colors.dark.textSecondary, fontSize: Typography.body.fontSize, lineHeight: Typography.body.lineHeight, marginBottom: Spacing.two },
   label: { color: Colors.dark.textSecondary, fontSize: Typography.label.fontSize, fontWeight: Typography.label.fontWeight, lineHeight: Typography.label.lineHeight },
+  noticeTitle: { color: Colors.dark.textPrimary, fontSize: Typography.label.fontSize, fontWeight: '800' },
+  personalDetailsNotice: { backgroundColor: Colors.dark.surfaceSecondary, borderRadius: Radii.medium, gap: Spacing.one, padding: Spacing.two },
   title: { color: Colors.dark.textPrimary, fontSize: Typography.cardTitle.fontSize, fontWeight: Typography.cardTitle.fontWeight, lineHeight: Typography.cardTitle.lineHeight },
 });
