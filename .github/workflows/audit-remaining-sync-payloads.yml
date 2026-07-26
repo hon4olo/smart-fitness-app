@@ -1,0 +1,38 @@
+name: Audit remaining sync payloads
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: github.head_ref == 'diagnostic/audit-remaining-sync-payloads'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan sync payload identity fields
+        run: |
+          {
+            echo 'Client sync payload identity field references:'
+            grep -RInE 'deviceId: input\.deviceId|userId: input\.userId|ownerId:|accountId:' src/cloud || true
+          } | tee sync-payload-identity-scan.txt
+
+      - name: Exercise strict production contracts
+        env:
+          API_BASE_URL: https://api.peptonio.com
+        run: node .github/diagnostics/audit-remaining-sync-payloads.mjs
+
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remaining-sync-payload-audit
+          path: |
+            remaining-sync-payload-audit.json
+            sync-payload-identity-scan.txt
+          retention-days: 3
