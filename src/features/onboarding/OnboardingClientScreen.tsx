@@ -21,7 +21,6 @@ import {
   calculateNutritionTargets,
   type ProfileActivityLevel,
 } from '@/features/profile/profilePlan';
-import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import type { ProfileGoalType } from '@/types';
 import {
@@ -46,7 +45,6 @@ export default function OnboardingClientScreen() {
     profile,
     updateNutritionTargets,
   } = useAppContext();
-  const { isAuthenticated, ready: authReady } = useAuthSession();
   const { t } = useLocalization();
   const { weight: weightUnit } = useUnitPreferences();
   const insets = useSafeAreaInsets();
@@ -59,13 +57,9 @@ export default function OnboardingClientScreen() {
   );
 
   useEffect(() => {
-    if (!authReady || isRestoringState) return;
-    if (!isAuthenticated) {
-      router.replace('/auth');
-      return;
-    }
+    if (isRestoringState) return;
     if (onboardingCompleted) router.replace('/');
-  }, [authReady, isAuthenticated, isRestoringState, onboardingCompleted]);
+  }, [isRestoringState, onboardingCompleted]);
 
   const age = Number(ageInput);
   const parsedCurrentWeightDisplay = parseDisplayNumber(currentWeightInput);
@@ -106,7 +100,7 @@ export default function OnboardingClientScreen() {
     ]);
   };
 
-  if (!authReady || isRestoringState || !isAuthenticated || onboardingCompleted) {
+  if (isRestoringState || onboardingCompleted) {
     return <View style={styles.screen} />;
   }
 
