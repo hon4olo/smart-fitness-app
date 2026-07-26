@@ -3,8 +3,9 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ProfilePreferencesCard } from '@/components/profile/ProfilePreferencesCard';
-import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import { ProfileGoalsSection } from '@/features/profile/ProfileGoalsSection';
 import {
   getGoalTypeLabel,
   getStoredActivityLevelLabel,
@@ -46,10 +47,7 @@ export default function ProfileScreen() {
           />
         </View>
 
-        <View style={styles.note}>
-          <Text style={styles.noteTitle}>{t('profile.planMovedTitle')}</Text>
-          <Text style={styles.noteText}>{t('profile.planMovedBody')}</Text>
-        </View>
+        <ProfileGoalsSection />
       </View>
     </ScrollView>
   );
@@ -63,20 +61,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  note: {
-    backgroundColor: Colors.dark.surfacePrimary,
-    borderColor: Colors.dark.borderSubtle,
-    borderRadius: Radii.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: Spacing.one,
-    padding: Spacing.three,
-  },
-  noteText: {
-    color: Colors.dark.textSecondary,
-    fontSize: Typography.body.fontSize,
-    lineHeight: Typography.body.lineHeight,
-  },
-  noteTitle: { color: Colors.dark.textPrimary, fontSize: 17, fontWeight: '800' },
   pressed: { opacity: 0.72 },
   screen: { backgroundColor: Colors.dark.background, flex: 1 },
   section: { gap: Spacing.two },

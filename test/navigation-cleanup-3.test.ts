@@ -21,14 +21,15 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(source).toContain("title: t('tabs.workouts')");
     expect(source).toContain("title: t('tabs.nutrition')");
     expect(source).toContain("title: t('tabs.progress')");
-    expect(source).toContain("title: t('tabs.profile')");
+    expect(source).toContain("title: t('tabs.coach')");
+    expect(source).toContain('name="profile" options={{ href: null }}');
     expect(source).toContain('name="coach"');
     expect(source).toContain('name="labs"');
     expect(source).toContain('name="track"');
     expect(source).toContain('name="eat"');
   });
 
-  test('home keeps a single current-weight display and no dashboard duplicate cards', () => {
+  test('home keeps a single current-weight display and owns the Profile shortcut', () => {
     const source = readSource('src/app/(tabs)/index.tsx');
 
     expect(source).not.toContain('latestWorkoutLabel');
@@ -38,6 +39,8 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(source).toContain('HomeSummaryCard');
     expect(source).toContain('QuickActionsCard');
     expect(source).toContain('HomeSnapshotCard');
+    expect(source).toContain("router.push('/(tabs)/profile')");
+    expect(source).toContain("router.replace('/auth')");
   });
 
   test('workouts keeps one start-now action and one program creation action', () => {
@@ -63,28 +66,30 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(count(source, "t('progress.weightDetails')")).toBe(1);
     expect(source).not.toContain('latest readings only');
     expect(source).toContain("t('progress.addWeight')");
+    expect(source).not.toContain('ProgressPlanningSections');
   });
 
-  test('Profile stays concise while Settings and Progress own editing', () => {
-    const screen = readSource('src/app/(tabs)/profile.tsx');
+  test('Profile owns goal planning while Coach owns Coach actions', () => {
+    const profile = readSource('src/app/(tabs)/profile.tsx');
+    const profileGoals = readSource('src/features/profile/ProfileGoalsSection.tsx');
     const progress = readSource('src/app/(tabs)/progress.tsx');
-    const planning = readSource('src/features/progress/ProgressPlanningSections.tsx');
+    const coach = readSource('src/app/(tabs)/coach.tsx');
     const preferences = readSource('src/components/profile/ProfilePreferencesCard.tsx');
     const settings = readSource('src/app/settings/index.tsx');
     const sync = readSource('src/components/profile/ProfileSyncStatusCard.tsx');
     const developer = readSource('src/components/profile/ProfileActionsCard.tsx');
 
-    expect(screen).toContain('ProfilePreferencesCard');
-    expect(screen).toContain("router.push('/settings')");
-    expect(screen).not.toContain('AuthGateCard');
-    expect(screen).not.toContain('ProfileGoalsCard');
-    expect(screen).not.toContain('ProfileCoachCard');
-    expect(screen).not.toContain('ProfileSyncStatusCard');
-    expect(screen).not.toContain('ProfileRuntimeInfoCard');
-    expect(screen).not.toContain('ProfileActionsCard');
-    expect(progress).toContain('<ProgressPlanningSections />');
-    expect(planning).toContain('ProfileGoalsCard');
-    expect(planning).toContain('ProfileCoachCard');
+    expect(profile).toContain('ProfilePreferencesCard');
+    expect(profile).toContain('ProfileGoalsSection');
+    expect(profile).toContain("router.push('/settings')");
+    expect(profile).not.toContain('ProfileCoachCard');
+    expect(profile).not.toContain('profile.planMovedTitle');
+    expect(progress).not.toContain('ProgressPlanningSections');
+    expect(profileGoals).toContain('ProfileGoalsCard');
+    expect(profileGoals).toContain("t('goals.recalculateBody')");
+    expect(coach).toContain("router.push(action.route)");
+    expect(coach).toContain('/profile/combined-review');
+    expect(coach).toContain('/profile/combined-proposal');
     expect(preferences).not.toContain('SegmentedControl');
     expect(settings).toContain('<AuthGateCard />');
     expect(settings).toContain('<PersonalDetailsSettingsCard />');
@@ -107,6 +112,7 @@ describe('navigation repair and UX cleanup 3.0', () => {
     const program = readSource('src/features/workouts/screens/ProgramDetailScreen.tsx');
     const progress = readSource('src/app/(tabs)/progress.tsx');
     const profile = readSource('src/app/(tabs)/profile.tsx');
+    const coach = readSource('src/app/(tabs)/coach.tsx');
     const settings = readSource('src/app/settings/index.tsx');
     const syncBackup = readSource('src/app/sync-backup.tsx');
     const weightEntry = readSource('src/app/weight-entry.tsx');
@@ -116,6 +122,7 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(program).toContain('Add routine to program');
     expect(progress).toContain("router.push('/weight-entry')");
     expect(profile).toContain("router.push('/settings')");
+    expect(coach).toContain('/profile/recovery-check-in');
     expect(settings).toContain('<SyncSettingsCard />');
     expect(syncBackup).toContain('syncNow()');
     expect(weightEntry).toContain('addWeightEntry({');

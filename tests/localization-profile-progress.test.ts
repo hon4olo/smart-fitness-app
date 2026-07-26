@@ -15,6 +15,7 @@ const readSource = (path: string) => readFileSync(resolve(projectRoot, path), 'u
 const SECOND_SLICE_FILES = [
   'src/app/(tabs)/profile.tsx',
   'src/app/(tabs)/progress.tsx',
+  'src/app/(tabs)/coach.tsx',
   'src/components/profile/ProfileCoachCard.tsx',
   'src/components/profile/ProfileGoalsCard.tsx',
   'src/components/profile/ProfilePreferencesCard.tsx',
@@ -22,6 +23,7 @@ const SECOND_SLICE_FILES = [
   'src/components/progress/ProgressTrendChart.tsx',
   'src/components/progress/SafetyRecoveryProgressCard.tsx',
   'src/components/progress/SafetyRecoveryWeeklyTrendCard.tsx',
+  'src/features/profile/ProfileGoalsSection.tsx',
   'src/features/progress/ProgressPlanningSections.tsx',
 ] as const;
 
@@ -30,7 +32,8 @@ describe('localized Profile and Progress contract', () => {
     const keys = [
       'profile.summary',
       'goals.targetWeight',
-      'coach.trainingExperience',
+      'goals.recalculateBody',
+      'coach.toolsTitle',
       'progress.currentWeight',
       'measurement.metric.bodyFat',
       'safety.weeklyTitle',

@@ -1,10 +1,19 @@
 import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   validateLoginForm,
   validateRegisterForm,
+  type AuthFieldErrors,
   type LoginFormValues,
   type RegisterFormValues,
 } from '@/auth/auth-ui';
@@ -14,9 +23,11 @@ import { InlineError } from '@/components/ui/InlineError';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { localizeAuthSubmission, localizeAuthValidation } from '@/localization/authCopy';
 import { useLocalization } from '@/localization';
+import type { ProfileTrainingExperience } from '@/types';
+import { displayLengthInputToCm, useUnitPreferences } from '@/units';
 
 import { resolveAuthSubmissionErrorMessage } from './auth-presentation';
 
@@ -29,9 +40,16 @@ export type AuthFormScreenProps = {
   onSwitchMode: () => void;
 };
 
+const EXPERIENCE_VALUES: ProfileTrainingExperience[] = [
+  'beginner',
+  'intermediate',
+  'advanced',
+];
+
 export function AuthFormScreen({ mode, onBack, onSubmit, onSwitchMode }: AuthFormScreenProps) {
   const safeAreaInsets = useSafeAreaInsets();
   const { t } = useLocalization();
+  const { length: lengthUnit } = useUnitPreferences();
   const copy =
     mode === 'login'
       ? {
@@ -50,15 +68,23 @@ export function AuthFormScreen({ mode, onBack, onSubmit, onSwitchMode }: AuthFor
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<'email' | 'password' | 'confirmPassword' | 'displayName', string>>
-  >({});
+  const [heightInput, setHeightInput] = useState('');
+  const [trainingExperience, setTrainingExperience] =
+    useState<ProfileTrainingExperience | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const registerPayload = useMemo<RegisterFormValues>(
-    () => ({ email, password, confirmPassword, displayName }),
-    [confirmPassword, displayName, email, password],
+    () => ({
+      email,
+      password,
+      confirmPassword,
+      displayName,
+      heightCm: Number(displayLengthInputToCm(heightInput, lengthUnit)),
+      trainingExperience,
+    }),
+    [confirmPassword, displayName, email, heightInput, lengthUnit, password, trainingExperience],
   );
 
   const loginPayload = useMemo<LoginFormValues>(() => ({ email, password }), [email, password]);
@@ -68,6 +94,8 @@ export function AuthFormScreen({ mode, onBack, onSubmit, onSwitchMode }: AuthFor
     setPassword('');
     setConfirmPassword('');
     setDisplayName('');
+    setHeightInput('');
+    setTrainingExperience(null);
     setFieldErrors({});
     setFormError(null);
   };
@@ -123,9 +151,7 @@ export function AuthFormScreen({ mode, onBack, onSubmit, onSwitchMode }: AuthFor
               label={t('common.email')}
               onChangeText={(value) => {
                 setEmail(value);
-                if (fieldErrors.email) {
-                  setFieldErrors((current) => ({ ...current, email: undefined }));
-                }
+                if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: undefined }));
               }}
               placeholder={t('auth.emailPlaceholder')}
               textContentType="emailAddress"
@@ -139,9 +165,7 @@ export function AuthFormScreen({ mode, onBack, onSubmit, onSwitchMode }: AuthFor
               label={t('common.password')}
               onChangeText={(value) => {
                 setPassword(value);
-                if (fieldErrors.password) {
-                  setFieldErrors((current) => ({ ...current, password: undefined }));
-                }
+                if (fieldErrors.password) setFieldErrors((current) => ({ ...current, password: undefined }));
               }}
               placeholder="••••••••"
               secureTextEntry
@@ -158,9 +182,7 @@ export function AuthFormScreen({ mode, onBack, onSubmit, onSwitchMode }: AuthFor
                   label={t('auth.confirmPassword')}
                   onChangeText={(value) => {
                     setConfirmPassword(value);
-                    if (fieldErrors.confirmPassword) {
-                      setFieldErrors((current) => ({ ...current, confirmPassword: undefined }));
-                    }
+                    if (fieldErrors.confirmPassword) setFieldErrors((current) => ({ ...current, confirmPassword: undefined }));
                   }}
                   placeholder="••••••••"
                   secureTextEntry
@@ -176,14 +198,54 @@ export function AuthFormScreen({ mode, onBack, onSubmit, onSwitchMode }: AuthFor
                   label={t('auth.displayName')}
                   onChangeText={(value) => {
                     setDisplayName(value);
-                    if (fieldErrors.displayName) {
-                      setFieldErrors((current) => ({ ...current, displayName: undefined }));
-                    }
+                    if (fieldErrors.displayName) setFieldErrors((current) => ({ ...current, displayName: undefined }));
                   }}
                   placeholder={t('auth.displayNamePlaceholder')}
                   textContentType="name"
                   value={displayName}
                 />
+
+                <FormField
+                  errorMessage={localizeAuthValidation(fieldErrors.heightCm, t)}
+                  keyboardType="decimal-pad"
+                  label={t('auth.height', { unit: lengthUnit })}
+                  onChangeText={(value) => {
+                    setHeightInput(value);
+                    if (fieldErrors.heightCm) setFieldErrors((current) => ({ ...current, heightCm: undefined }));
+                  }}
+                  placeholder={lengthUnit === 'in' ? '69' : '175'}
+                  textContentType="none"
+                  value={heightInput}
+                />
+
+                <View style={styles.experienceField}>
+                  <Text style={styles.fieldLabel}>{t('auth.trainingExperience')}</Text>
+                  <View style={styles.experienceRow}>
+                    {EXPERIENCE_VALUES.map((experience) => {
+                      const selected = trainingExperience === experience;
+                      return (
+                        <Pressable
+                          key={experience}
+                          accessibilityRole="radio"
+                          accessibilityState={{ checked: selected }}
+                          onPress={() => {
+                            setTrainingExperience(experience);
+                            if (fieldErrors.trainingExperience) setFieldErrors((current) => ({ ...current, trainingExperience: undefined }));
+                          }}
+                          style={({ pressed }) => [
+                            styles.experienceChoice,
+                            selected && styles.experienceChoiceSelected,
+                            pressed && styles.pressed,
+                          ]}>
+                          <Text style={[styles.experienceLabel, selected && styles.experienceLabelSelected]}>
+                            {t(`profile.experience.${experience}`)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  <InlineError message={localizeAuthValidation(fieldErrors.trainingExperience, t)} />
+                </View>
               </>
             ) : null}
 
@@ -206,9 +268,39 @@ const styles = StyleSheet.create({
     maxWidth: MaxContentWidth,
     width: '100%',
   },
+  experienceChoice: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
+    borderRadius: Radii.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: Spacing.one,
+  },
+  experienceChoiceSelected: {
+    backgroundColor: Colors.dark.backgroundSelected,
+    borderColor: Colors.dark.accent,
+  },
+  experienceField: { gap: Spacing.one },
+  experienceLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.label.fontSize,
+    fontWeight: Typography.label.fontWeight,
+    textAlign: 'center',
+  },
+  experienceLabelSelected: { color: Colors.dark.textPrimary },
+  experienceRow: { flexDirection: 'row', gap: Spacing.one },
+  fieldLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.label.fontSize,
+    fontWeight: Typography.label.fontWeight,
+  },
   keyboardRoot: {
     flex: 1,
   },
+  pressed: { opacity: 0.72 },
   screen: {
     backgroundColor: Colors.dark.background,
     flex: 1,

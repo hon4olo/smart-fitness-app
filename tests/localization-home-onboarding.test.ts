@@ -19,6 +19,8 @@ const readSource = (path: string) => readFileSync(resolve(projectRoot, path), 'u
 
 const THIRD_SLICE_FILES = [
   'src/app/(tabs)/index.tsx',
+  'src/app/auth/index.tsx',
+  'src/components/auth/AuthFormScreen.tsx',
   'src/features/onboarding/OnboardingClientScreen.tsx',
   'src/features/home/homeLocalization.ts',
 ] as const;
@@ -26,12 +28,16 @@ const THIRD_SLICE_FILES = [
 const ruTranslate: Translate = (key, values) => translate('ru', key, values);
 
 describe('localized Home and onboarding contract', () => {
-  it('keeps representative Home and onboarding keys in both catalogs', () => {
+  it('keeps representative Home, auth, and onboarding keys in both catalogs', () => {
     const keys = [
       'home.mattersNow',
+      'home.openProfile',
       'home.volumeChange',
       'home.recovery.overloaded',
-      'onboarding.currentWeight',
+      'auth.landingTitle',
+      'auth.trainingExperience',
+      'onboarding.age',
+      'onboarding.activityHelp',
       'onboarding.validation.trainingDays',
       'onboarding.successAction',
     ] as const;

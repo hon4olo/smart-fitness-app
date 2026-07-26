@@ -16,6 +16,7 @@ import type {
   NutritionTargets,
   ProfileGoalType,
   ProfileState,
+  ProfileTrainingExperience,
   TrainingProgram,
   WeightEntry,
   Workout,
@@ -32,6 +33,7 @@ import {
   deleteBodyMeasurementFromState,
   resetOnboardingInState,
   updateProfileGoalsInState,
+  updateRegistrationProfileInState,
 } from './appContext/progressActions';
 import { useAppInfrastructure } from './appContext/useAppInfrastructure';
 import { useAppMutationQueue } from './appContext/useAppMutationQueue';
@@ -251,6 +253,17 @@ export function AppProvider({ children }: PropsWithChildren) {
     [scheduleStateMutation],
   );
 
+  const updateRegistrationProfile = useCallback(
+    (profile: { height: string; trainingExperience: ProfileTrainingExperience }) => {
+      setState((currentState) => {
+        const nextState = updateRegistrationProfileInState(currentState, profile);
+        scheduleStateMutation({ label: 'Save registration profile', nextState });
+        return nextState;
+      });
+    },
+    [scheduleStateMutation],
+  );
+
   const addBodyMeasurement = useCallback(
     (entry: BodyMeasurement) => {
       setState((currentState) => {
@@ -289,8 +302,9 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const completeOnboarding = useCallback(
     (setup: {
+      age: number;
+      activityLevel: 'sedentary' | 'light' | 'moderate' | 'high' | 'very_high';
       currentWeight: number;
-      targetWeight: number;
       goalType: ProfileGoalType;
       trainingDaysPerWeek: number;
     }) => {
@@ -398,6 +412,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       updateFoodEntry,
       updateNutritionTargets,
       updateProfileGoals,
+      updateRegistrationProfile,
       updateWeightEntry,
       updateWorkoutSession,
       updateWorkoutTemplate,
@@ -434,6 +449,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       updateFoodEntry,
       updateNutritionTargets,
       updateProfileGoals,
+      updateRegistrationProfile,
       updateWeightEntry,
       updateWorkoutSession,
       updateWorkoutTemplate,

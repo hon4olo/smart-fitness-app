@@ -1,3 +1,5 @@
+import type { ProfileTrainingExperience } from '@/types';
+
 import type { AuthProfile, AuthSession } from './types';
 
 export type AuthGateStatus = 'restoring' | 'signed_out' | 'signed_in' | 'auth_error';
@@ -7,6 +9,8 @@ export type AuthFieldErrors = {
   password?: string;
   confirmPassword?: string;
   displayName?: string;
+  heightCm?: string;
+  trainingExperience?: string;
   form?: string;
 };
 
@@ -20,6 +24,8 @@ export type RegisterFormValues = {
   password: string;
   confirmPassword: string;
   displayName?: string;
+  heightCm: number;
+  trainingExperience: ProfileTrainingExperience | null;
 };
 
 export type AuthDisclosureCopy = {
@@ -75,7 +81,14 @@ export const validateLoginForm = ({ email, password }: LoginFormValues): AuthFie
   return errors;
 };
 
-export const validateRegisterForm = ({ email, password, confirmPassword, displayName }: RegisterFormValues): AuthFieldErrors => {
+export const validateRegisterForm = ({
+  email,
+  password,
+  confirmPassword,
+  displayName,
+  heightCm,
+  trainingExperience,
+}: RegisterFormValues): AuthFieldErrors => {
   const errors = validateLoginForm({ email, password });
 
   if (!normalizeText(confirmPassword)) {
@@ -86,6 +99,14 @@ export const validateRegisterForm = ({ email, password, confirmPassword, display
 
   if (displayName && normalizeText(displayName).length > 40) {
     errors.displayName = 'Display name must be 40 characters or less.';
+  }
+
+  if (!Number.isFinite(heightCm) || heightCm < 50 || heightCm > 300) {
+    errors.heightCm = 'Enter a height from 50 to 300 cm.';
+  }
+
+  if (!trainingExperience) {
+    errors.trainingExperience = 'Select training experience.';
   }
 
   return errors;

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildProfileAuthViewModel, getSafeLoginErrorMessage, getSafeRegisterErrorMessage, resolveAuthGateStatus, validateLoginForm, validateRegisterForm } from '@/auth';
+import {
+  buildProfileAuthViewModel,
+  getSafeLoginErrorMessage,
+  getSafeRegisterErrorMessage,
+  resolveAuthGateStatus,
+  validateLoginForm,
+  validateRegisterForm,
+  type RegisterFormValues,
+} from '@/auth';
 import type { AuthSession } from '@/auth';
 
 const makeSession = (): AuthSession => ({
@@ -34,41 +42,82 @@ const makeSession = (): AuthSession => ({
   },
 });
 
+const makeRegisterValues = (
+  overrides: Partial<RegisterFormValues> = {},
+): RegisterFormValues => ({
+  email: 'alice@example.com',
+  password: 'StrongPass123!',
+  confirmPassword: 'StrongPass123!',
+  displayName: 'Alice',
+  heightCm: 175,
+  trainingExperience: 'intermediate',
+  ...overrides,
+});
+
 describe('auth ui helpers', () => {
   it('requires an email for login', () => {
-    expect(validateLoginForm({ email: '', password: 'StrongPass123!' }).email).toBe('Email is required.');
+    expect(validateLoginForm({ email: '', password: 'StrongPass123!' }).email).toBe(
+      'Email is required.',
+    );
   });
 
   it('rejects invalid login email format', () => {
-    expect(validateLoginForm({ email: 'alice', password: 'StrongPass123!' }).email).toBe('Enter a valid email address.');
+    expect(validateLoginForm({ email: 'alice', password: 'StrongPass123!' }).email).toBe(
+      'Enter a valid email address.',
+    );
   });
 
   it('requires a login password', () => {
-    expect(validateLoginForm({ email: 'alice@example.com', password: '' }).password).toBe('Password is required.');
+    expect(validateLoginForm({ email: 'alice@example.com', password: '' }).password).toBe(
+      'Password is required.',
+    );
   });
 
   it('requires a minimum password length for login', () => {
-    expect(validateLoginForm({ email: 'alice@example.com', password: 'short' }).password).toBe('Password must be at least 8 characters.');
+    expect(validateLoginForm({ email: 'alice@example.com', password: 'short' }).password).toBe(
+      'Password must be at least 8 characters.',
+    );
   });
 
   it('accepts a valid login payload', () => {
-    expect(validateLoginForm({ email: 'alice@example.com', password: 'StrongPass123!' })).toEqual({});
+    expect(validateLoginForm({ email: 'alice@example.com', password: 'StrongPass123!' })).toEqual(
+      {},
+    );
   });
 
   it('requires password confirmation for registration', () => {
-    expect(validateRegisterForm({ email: 'alice@example.com', password: 'StrongPass123!', confirmPassword: '' }).confirmPassword).toBe('Confirm your password.');
+    expect(validateRegisterForm(makeRegisterValues({ confirmPassword: '' })).confirmPassword).toBe(
+      'Confirm your password.',
+    );
   });
 
   it('rejects mismatched registration passwords', () => {
-    expect(validateRegisterForm({ email: 'alice@example.com', password: 'StrongPass123!', confirmPassword: 'Different123!' }).confirmPassword).toBe('Passwords do not match.');
+    expect(
+      validateRegisterForm(makeRegisterValues({ confirmPassword: 'Different123!' }))
+        .confirmPassword,
+    ).toBe('Passwords do not match.');
   });
 
   it('flags an overly long optional display name', () => {
-    expect(validateRegisterForm({ email: 'alice@example.com', password: 'StrongPass123!', confirmPassword: 'StrongPass123!', displayName: 'x'.repeat(41) }).displayName).toBe('Display name must be 40 characters or less.');
+    expect(
+      validateRegisterForm(makeRegisterValues({ displayName: 'x'.repeat(41) })).displayName,
+    ).toBe('Display name must be 40 characters or less.');
+  });
+
+  it('requires a bounded registration height', () => {
+    expect(validateRegisterForm(makeRegisterValues({ heightCm: 0 })).heightCm).toBe(
+      'Enter a height from 50 to 300 cm.',
+    );
+  });
+
+  it('requires training experience during registration', () => {
+    expect(
+      validateRegisterForm(makeRegisterValues({ trainingExperience: null })).trainingExperience,
+    ).toBe('Select training experience.');
   });
 
   it('accepts a valid registration payload with an optional display name', () => {
-    expect(validateRegisterForm({ email: 'alice@example.com', password: 'StrongPass123!', confirmPassword: 'StrongPass123!', displayName: 'Alice' })).toEqual({});
+    expect(validateRegisterForm(makeRegisterValues())).toEqual({});
   });
 
   it('shows restoring while the auth provider is bootstrapping', () => {
@@ -80,7 +129,9 @@ describe('auth ui helpers', () => {
   });
 
   it('shows signed in when a session exists', () => {
-    expect(resolveAuthGateStatus({ ready: true, session: makeSession(), error: null })).toBe('signed_in');
+    expect(resolveAuthGateStatus({ ready: true, session: makeSession(), error: null })).toBe(
+      'signed_in',
+    );
   });
 
   it('shows auth error when restore fails unexpectedly', () => {
@@ -88,7 +139,12 @@ describe('auth ui helpers', () => {
   });
 
   it('builds a signed out profile view model with cloud disclosure copy', () => {
-    const viewModel = buildProfileAuthViewModel({ ready: true, session: null, profile: null, error: null });
+    const viewModel = buildProfileAuthViewModel({
+      ready: true,
+      session: null,
+      profile: null,
+      error: null,
+    });
 
     expect(viewModel.status).toBe('signed_out');
     expect(viewModel.title).toBe('Sign in to sync');
@@ -100,7 +156,12 @@ describe('auth ui helpers', () => {
 
   it('builds an authenticated profile view model with account details', () => {
     const session = makeSession();
-    const viewModel = buildProfileAuthViewModel({ ready: true, session, profile: { ...session.user, displayName: 'Alice Sync' }, error: null });
+    const viewModel = buildProfileAuthViewModel({
+      ready: true,
+      session,
+      profile: { ...session.user, displayName: 'Alice Sync' },
+      error: null,
+    });
 
     expect(viewModel.status).toBe('signed_in');
     expect(viewModel.emailLabel).toBe('alice@example.com');
@@ -111,21 +172,36 @@ describe('auth ui helpers', () => {
 
   it('falls back to session user values when profile data is missing', () => {
     const session = makeSession();
-    const viewModel = buildProfileAuthViewModel({ ready: true, session, profile: null, error: null });
+    const viewModel = buildProfileAuthViewModel({
+      ready: true,
+      session,
+      profile: null,
+      error: null,
+    });
 
     expect(viewModel.emailLabel).toBe('alice@example.com');
     expect(viewModel.displayNameLabel).toBe('Alice');
   });
 
   it('builds a restoring profile model', () => {
-    const viewModel = buildProfileAuthViewModel({ ready: false, session: null, profile: null, error: null });
+    const viewModel = buildProfileAuthViewModel({
+      ready: false,
+      session: null,
+      profile: null,
+      error: null,
+    });
 
     expect(viewModel.status).toBe('restoring');
     expect(viewModel.title).toBe('Restoring account');
   });
 
   it('builds an auth error model with safe copy', () => {
-    const viewModel = buildProfileAuthViewModel({ ready: true, session: null, profile: null, error: 'failed to restore' });
+    const viewModel = buildProfileAuthViewModel({
+      ready: true,
+      session: null,
+      profile: null,
+      error: 'failed to restore',
+    });
 
     expect(viewModel.status).toBe('auth_error');
     expect(viewModel.description).toContain('Local data stays on this device');

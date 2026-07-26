@@ -1,18 +1,18 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HomeSnapshotCard } from '@/components/home/HomeSnapshotCard';
 import { HomeSummaryCard } from '@/components/home/HomeSummaryCard';
 import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
-import { SectionHeader } from '@/components/ui/SectionHeader';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import {
   getHomeMotivationLabel,
   getHomeRecoveryStatusLabel,
 } from '@/features/home/homeLocalization';
+import { useAuthSession } from '@/hooks/useAuthSession';
 import {
   getCurrentWorkoutStreak,
   getWeeklyWorkoutCount,
@@ -46,6 +46,7 @@ export default function HomeScreen() {
     bodyMeasurements,
     exercises,
     foodEntries,
+    isRestoringState,
     nutritionTargets,
     onboardingCompleted,
     profile,
@@ -53,6 +54,7 @@ export default function HomeScreen() {
     workoutSessions,
     workouts,
   } = useAppContext();
+  const { isAuthenticated, ready: authReady } = useAuthSession();
   const { formatNumber, locale, t } = useLocalization();
   const { energy: energyUnit, weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
@@ -60,8 +62,13 @@ export default function HomeScreen() {
   const [activeDraftReady, setActiveDraftReady] = useState(false);
 
   useEffect(() => {
+    if (!authReady || isRestoringState) return;
+    if (!isAuthenticated) {
+      router.replace('/auth');
+      return;
+    }
     if (!onboardingCompleted) router.replace('/onboarding');
-  }, [onboardingCompleted]);
+  }, [authReady, isAuthenticated, isRestoringState, onboardingCompleted]);
 
   useEffect(() => {
     let cancelled = false;
@@ -240,12 +247,13 @@ export default function HomeScreen() {
       trainingVolumeValue,
       weeklyVolumeTrend.currentVolume,
       weeklyVolumeTrend.previousVolume,
-      weightUnit,
       workoutsThisWeek,
     ],
   );
 
-  if (!onboardingCompleted) return <View style={styles.screen} />;
+  if (!authReady || isRestoringState || !isAuthenticated || !onboardingCompleted) {
+    return <View style={styles.screen} />;
+  }
 
   return (
     <ScrollView
@@ -257,7 +265,16 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
       style={styles.screen}>
       <View style={styles.container}>
-        <SectionHeader title={t('tabs.home')} />
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>{t('tabs.home')}</Text>
+          <Pressable
+            accessibilityLabel={t('home.openProfile')}
+            accessibilityRole="button"
+            onPress={() => router.push('/(tabs)/profile')}
+            style={({ pressed }) => [styles.profileButton, pressed && styles.pressed]}>
+            <Text style={styles.profileIcon}>👤</Text>
+          </Pressable>
+        </View>
         <HomeSummaryCard
           caloriesLabel={t('home.calories')}
           caloriesRemainingLabel={caloriesRemainingLabel}
@@ -309,5 +326,28 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   content: { alignItems: 'center', padding: Spacing.three },
   container: { gap: Spacing.three, maxWidth: MaxContentWidth, width: '100%' },
+  headerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.screenTitle.fontSize,
+    fontWeight: Typography.screenTitle.fontWeight,
+    lineHeight: Typography.screenTitle.lineHeight,
+  },
+  pressed: { opacity: 0.72 },
+  profileButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.surfacePrimary,
+    borderColor: Colors.dark.borderSubtle,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  profileIcon: { fontSize: 22, lineHeight: 26 },
   screen: { backgroundColor: Colors.dark.background, flex: 1 },
 });

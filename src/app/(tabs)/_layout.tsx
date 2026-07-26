@@ -11,7 +11,7 @@ const TAB_ICONS = {
   workouts: '🏋️',
   nutrition: '🥗',
   progress: '📈',
-  profile: '👤',
+  coach: '🧠',
 } as const;
 
 type TabIconName = keyof typeof TAB_ICONS;
@@ -110,15 +110,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="coach"
         options={{
-          title: t('tabs.profile'),
+          title: t('tabs.coach'),
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} name="profile" tabColors={tabColors} />
+            <TabIcon focused={focused} name="coach" tabColors={tabColors} />
           ),
         }}
       />
-      <Tabs.Screen name="coach" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="labs" options={{ href: null }} />
       <Tabs.Screen name="track" options={{ href: null }} />
       <Tabs.Screen name="eat" options={{ href: null }} />
