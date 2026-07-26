@@ -50,6 +50,22 @@ describe('fitness profile sync payload compatibility', () => {
     expect(normalized?.metadata?.requestId).toBe(normalized?.idempotencyKey);
   });
 
+  it('repairs the legacy snake-case fitness profile entity alias', () => {
+    const operation = createProfileOperation();
+    const legacyIdempotencyKey =
+      `queue:fitness_profiles:${operation.entityId}:create:legacy`;
+    const normalized = normalizeOfflineSyncQueueOperation({
+      ...operation,
+      entityType: 'fitness_profiles',
+      idempotencyKey: legacyIdempotencyKey,
+      metadata: { ...operation.metadata, requestId: legacyIdempotencyKey },
+      payload: { ...operation.payload, deviceId },
+    });
+
+    expect(normalized?.payload).not.toHaveProperty('deviceId');
+    expect(normalized?.idempotencyKey).not.toBe(legacyIdempotencyKey);
+  });
+
   it('does not strip deviceId from unrelated persisted entity payloads', () => {
     const legacyIdempotencyKey =
       'queue:nutritionTargets:33333333-3333-4333-8333-333333333333:create:legacy';
