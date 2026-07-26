@@ -16,7 +16,7 @@ jobs:
       - name: Checkout exact release commit
         uses: actions/checkout@v4
         with:
-          ref: 264180cb68cbaa59a3f8056ec87f084c546fd06b
+          ref: 3b42111aa1680cdfa05b0088f1f8e572c8935d35
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -27,7 +27,9 @@ jobs:
       - name: Verify release identity
         shell: bash
         run: |
-          test "$(git rev-parse HEAD)" = "264180cb68cbaa59a3f8056ec87f084c546fd06b"
+          test "$(git rev-parse HEAD)" = "3b42111aa1680cdfa05b0088f1f8e572c8935d35"
+          test ! -f src/app/settings.tsx
+          test -f src/app/settings/index.tsx
           node - <<'NODE'
           const expo = require('./app.json').expo;
           if (expo.version !== '1.0.2') throw new Error(`Unexpected app version: ${expo.version}`);
@@ -47,15 +49,13 @@ jobs:
         run: npm ci
 
       - name: Publish production OTA
-        id: publish
-        continue-on-error: true
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           CI: '1'
         shell: bash
         run: |
           set -o pipefail
-          npx --yes eas-cli@latest update --channel production --environment production --message "Localize active workout and finish flow (264180c)" --non-interactive 2>&1 | tee ota-publish.log
+          npx --yes eas-cli@latest update --channel production --environment production --message "Localize active workout and finish flow; fix duplicate settings route (3b42111)" --non-interactive 2>&1 | tee ota-publish.log
 
       - name: Upload OTA publish log
         if: always()
@@ -64,7 +64,3 @@ jobs:
           name: ota-publish-log
           path: ota-publish.log
           if-no-files-found: error
-
-      - name: Fail when publish failed
-        if: steps.publish.outcome != 'success'
-        run: exit 1
