@@ -18,6 +18,7 @@ import {
   getPrivacyAboutSectionTitles,
   PrivacySettingsCard,
 } from '@/features/settings/PrivacyAboutCards';
+import { PersonalDetailsSettingsCard } from '@/features/settings/PersonalDetailsSettingsCard';
 import { SyncSettingsCard } from '@/features/settings/SyncSettingsCard';
 import { getSyncStatusCopy } from '@/features/settings/syncStatusCopy';
 import { useLocalization, type LanguagePreference } from '@/localization';
@@ -136,14 +137,18 @@ export default function SettingsScreen() {
             <Text style={styles.title}>{t('settings.title')}</Text>
             <Text style={styles.subtitle}>
               {locale === 'ru'
-                ? 'Аккаунт, язык, оформление, единицы, синхронизация и приватность.'
-                : 'Account, language, appearance, units, sync, and privacy.'}
+                ? 'Аккаунт, личные данные, язык, оформление, синхронизация и приватность.'
+                : 'Account, personal details, language, appearance, sync, and privacy.'}
             </Text>
           </View>
         </View>
 
         <SettingsSection title={t('account.title')}>
           <AuthGateCard />
+        </SettingsSection>
+
+        <SettingsSection title={locale === 'ru' ? 'Личные данные' : 'Personal details'}>
+          <PersonalDetailsSettingsCard />
         </SettingsSection>
 
         <SettingsSection title={t('settings.general')}>

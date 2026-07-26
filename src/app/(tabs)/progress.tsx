@@ -18,6 +18,7 @@ import {
   createBodyMeasurementDraft,
   getDefaultBodyMeasurementUnit,
 } from '@/features/progress/bodyMeasurementModel';
+import { ProgressPlanningSections } from '@/features/progress/ProgressPlanningSections';
 import { formatShortDate } from '@/lib';
 import { createUuid } from '@/lib/ids';
 import { getProgressAnalytics } from '@/lib/progress';
@@ -121,6 +122,7 @@ export default function ProgressScreen() {
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.screen}>
       <View style={styles.container}>
         <SectionHeader title="Progress" subtitle="Keep the useful trends, hide the noise." />
+        <ProgressPlanningSections />
         <AppCard>
           <View style={styles.sectionHeader}>
             <Text selectable style={styles.sectionTitle}>Weight</Text>

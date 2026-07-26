@@ -109,12 +109,19 @@ describe('product simplification 2.0', () => {
     expect(source).toContain('Add to ${selectedMealLabel}');
   });
 
-  test('profile screen does not render a duplicated account snapshot', () => {
-    const source = readSource('src/app/(tabs)/profile.tsx');
-    expect(source).not.toContain('ProfileHeaderCard');
-    expect(source).not.toContain('Account Snapshot');
-    expect(source).toContain('ProfileGoalsCard');
-    expect(source).toContain('ProfilePreferencesCard');
+  test('profile screen stays summary-only without account or planning editors', () => {
+    const profile = readSource('src/app/(tabs)/profile.tsx');
+    const progressPlanning = readSource('src/features/progress/ProgressPlanningSections.tsx');
+    const settings = readSource('src/app/settings/index.tsx');
+    expect(profile).not.toContain('ProfileHeaderCard');
+    expect(profile).not.toContain('Account Snapshot');
+    expect(profile).not.toContain('AuthGateCard');
+    expect(profile).not.toContain('ProfileGoalsCard');
+    expect(profile).not.toContain('ProfileCoachCard');
+    expect(profile).toContain('ProfilePreferencesCard');
+    expect(progressPlanning).toContain('ProfileGoalsCard');
+    expect(progressPlanning).toContain('ProfileCoachCard');
+    expect(settings).toContain('<AuthGateCard />');
   });
 
   test('tab bar is compact and conventional', () => {

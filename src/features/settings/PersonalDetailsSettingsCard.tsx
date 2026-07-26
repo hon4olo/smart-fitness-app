@@ -1,0 +1,212 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { AppCard } from '@/components/ui/AppCard';
+import { FormField } from '@/components/ui/FormField';
+import { InlineError } from '@/components/ui/InlineError';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useAppContext } from '@/context/AppContext';
+import { useLocalization } from '@/localization';
+import type { ProfileCalculationSex } from '@/types';
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const validateDateOfBirth = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!DATE_PATTERN.test(trimmed)) return 'format';
+  const date = new Date(`${trimmed}T00:00:00.000Z`);
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== trimmed) {
+    return 'format';
+  }
+  const now = new Date();
+  let age = now.getUTCFullYear() - date.getUTCFullYear();
+  const beforeBirthday =
+    now.getUTCMonth() < date.getUTCMonth() ||
+    (now.getUTCMonth() === date.getUTCMonth() && now.getUTCDate() < date.getUTCDate());
+  if (beforeBirthday) age -= 1;
+  if (date > now) return 'future';
+  if (age < 18 || age > 100) return 'age';
+  return null;
+};
+
+export function PersonalDetailsSettingsCard() {
+  const app = useAppContext();
+  const { locale } = useLocalization();
+  const [dateOfBirth, setDateOfBirth] = useState(app.profile.dateOfBirth ?? '');
+  const [calculationSex, setCalculationSex] = useState<ProfileCalculationSex | null>(
+    app.profile.calculationSex,
+  );
+
+  useEffect(() => {
+    setDateOfBirth(app.profile.dateOfBirth ?? '');
+    setCalculationSex(app.profile.calculationSex);
+  }, [app.profile.calculationSex, app.profile.dateOfBirth]);
+
+  const dateErrorKey = useMemo(() => validateDateOfBirth(dateOfBirth), [dateOfBirth]);
+  const dateError = dateErrorKey
+    ? locale === 'ru'
+      ? dateErrorKey === 'future'
+        ? 'Дата рождения не может быть в будущем.'
+        : dateErrorKey === 'age'
+          ? 'Поддерживается возраст от 18 до 100 лет.'
+          : 'Используйте формат ГГГГ-ММ-ДД.'
+      : dateErrorKey === 'future'
+        ? 'Date of birth cannot be in the future.'
+        : dateErrorKey === 'age'
+          ? 'Supported age is 18–100.'
+          : 'Use YYYY-MM-DD.'
+    : undefined;
+  const formulaError = calculationSex
+    ? undefined
+    : locale === 'ru'
+      ? 'Выберите формулу расчёта.'
+      : 'Select the calculation formula.';
+  const isDisabled = Boolean(dateError || formulaError);
+
+  const save = () => {
+    if (isDisabled || !calculationSex) return;
+    const nextState = {
+      workouts: app.workouts,
+      trainingPrograms: app.trainingPrograms,
+      exercises: app.exercises,
+      workoutSessions: app.workoutSessions,
+      foodEntries: app.foodEntries,
+      mealTemplates: app.mealTemplates,
+      nutrition: app.nutrition,
+      nutritionTargets: app.nutritionTargets,
+      weightHistory: app.weightHistory,
+      bodyMeasurements: app.bodyMeasurements,
+      userLimitations: app.userLimitations,
+      recoveryCheckIns: app.recoveryCheckIns,
+      profile: {
+        ...app.profile,
+        dateOfBirth: dateOfBirth.trim(),
+        calculationSex,
+      },
+      onboardingCompleted: app.onboardingCompleted,
+    };
+    app.replaceState(nextState);
+    Alert.alert(
+      locale === 'ru' ? 'Личные данные сохранены' : 'Personal details saved',
+      locale === 'ru'
+        ? 'Coach будет использовать эти значения автоматически.'
+        : 'Coach will use these values automatically.',
+    );
+  };
+
+  return (
+    <AppCard>
+      <Text style={styles.title}>{locale === 'ru' ? 'Личные данные' : 'Personal details'}</Text>
+      <Text style={styles.help}>
+        {locale === 'ru'
+          ? 'Дата рождения и формула расчёта задаются один раз в настройках и не дублируются в Coach.'
+          : 'Date of birth and calculation formula are set once in Settings and are not repeated in Coach.'}
+      </Text>
+      <FormField
+        autoCapitalize="none"
+        autoCorrect={false}
+        errorMessage={dateError}
+        helperText={locale === 'ru' ? 'Формат: ГГГГ-ММ-ДД' : 'Format: YYYY-MM-DD'}
+        keyboardType="numbers-and-punctuation"
+        label={locale === 'ru' ? 'Дата рождения' : 'Date of birth'}
+        maxLength={10}
+        onChangeText={setDateOfBirth}
+        placeholder="2000-05-12"
+        textContentType="none"
+        value={dateOfBirth}
+      />
+      <View style={styles.group}>
+        <Text style={styles.label}>
+          {locale === 'ru' ? 'Формула расчёта' : 'Calculation formula'}
+        </Text>
+        <Text style={styles.help}>
+          {locale === 'ru'
+            ? 'Используется только в детерминированных формулах энергозатрат.'
+            : 'Used only by deterministic energy formulas.'}
+        </Text>
+        <View style={styles.row}>
+          <FormulaOption
+            label={locale === 'ru' ? 'Мужская' : 'Male'}
+            onPress={() => setCalculationSex('male')}
+            selected={calculationSex === 'male'}
+          />
+          <FormulaOption
+            label={locale === 'ru' ? 'Женская' : 'Female'}
+            onPress={() => setCalculationSex('female')}
+            selected={calculationSex === 'female'}
+          />
+        </View>
+        <InlineError message={formulaError} />
+      </View>
+      <PrimaryButton
+        disabled={isDisabled}
+        label={locale === 'ru' ? 'Сохранить личные данные' : 'Save personal details'}
+        onPress={save}
+      />
+    </AppCard>
+  );
+}
+
+function FormulaOption({
+  label,
+  onPress,
+  selected,
+}: {
+  label: string;
+  onPress(): void;
+  selected: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.option,
+        selected && styles.optionSelected,
+        pressed && styles.pressed,
+      ]}>
+      <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  group: { gap: Spacing.one },
+  help: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
+  },
+  label: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.label.fontSize,
+    fontWeight: Typography.label.fontWeight,
+  },
+  option: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
+    borderRadius: Radii.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    flex: 1,
+    minHeight: 46,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.two,
+  },
+  optionLabel: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.label.fontSize,
+    fontWeight: Typography.label.fontWeight,
+  },
+  optionLabelSelected: { color: Colors.dark.textPrimary },
+  optionSelected: { backgroundColor: Colors.dark.backgroundSelected, borderColor: Colors.dark.accent },
+  pressed: { opacity: 0.76 },
+  row: { flexDirection: 'row', gap: Spacing.two },
+  title: {
+    color: Colors.dark.textPrimary,
+    fontSize: Typography.cardTitle.fontSize,
+    fontWeight: Typography.cardTitle.fontWeight,
+  },
+});
