@@ -62,7 +62,7 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(source).toContain("router.push('/weight-entry')");
     expect(count(source, "t('progress.weightDetails')")).toBe(1);
     expect(source).not.toContain('latest readings only');
-    expect(source).toContain('Add weight');
+    expect(source).toContain("t('progress.addWeight')");
   });
 
   test('Profile stays concise while Settings and Progress own editing', () => {
