@@ -30,20 +30,18 @@ const request = async (path, options = {}) => {
   return { response, body };
 };
 
-const record = (label, result, details) => {
-  report.stages.push({
-    label,
-    status: result.response.status,
-    ok: result.response.ok,
-    body: details ?? sanitize(result.body),
-  });
+const appendStage = (label, result, body = sanitize(result.body)) => {
+  report.stages.push({ label, status: result.response.status, ok: result.response.ok, body });
+};
+
+const requireOk = (label, result, details) => {
+  appendStage(label, result, details ?? sanitize(result.body));
   if (!result.response.ok) throw new Error(`${label} failed with HTTP ${result.response.status}`);
   return result.body;
 };
 
 try {
-  const healthResult = await request('/health');
-  record('health', healthResult);
+  requireOk('health', await request('/health'));
 
   const registerResult = await request('/v1/auth/register', {
     method: 'POST',
@@ -57,7 +55,7 @@ try {
       appVersion: '1.0.2',
     }),
   });
-  const register = record('register', registerResult, {
+  const register = requireOk('register', registerResult, {
     userId: registerResult.body?.user?.id ?? null,
     deviceId: registerResult.body?.device?.id ?? null,
     hasAccessToken: Boolean(registerResult.body?.accessToken),
@@ -73,45 +71,67 @@ try {
     'content-type': 'application/json',
     accept: 'application/json',
   };
-
-  const statusResult = await request('/v1/sync/status', {
+  requireOk('sync status', await request('/v1/sync/status', {
     headers: { authorization: authHeaders.authorization, accept: 'application/json' },
-  });
-  record('sync status', statusResult);
+  }));
 
   const entityId = crypto.randomUUID();
   const now = new Date().toISOString();
-  const idempotencyKey = `sync-smoke:${entityId}:${now}`;
-  const pushResult = await request('/v1/sync/push', {
+  const basePayload = {
+    schemaVersion: 1,
+    id: entityId,
+    dateOfBirth: '2008-01-01',
+    calculationSex: null,
+    heightCm: null,
+    goal: 'muscle_gain',
+    activityLevel: 'moderate',
+    trainingExperience: null,
+    trainingDaysPerWeek: 3,
+    targetWeightKg: 82.7,
+    targetWeeklyWeightChangeKg: 0.25,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const pushProfile = (label, payload, suffix) => request('/v1/sync/push', {
     method: 'POST',
     headers: authHeaders,
     body: JSON.stringify({
       deviceId,
       clientRevision: 0,
       operations: [{
-        entityType: 'weightHistory',
+        entityType: 'fitnessProfiles',
         entityId,
         operationType: 'upsert',
         baseRevision: 0,
-        idempotencyKey,
-        payload: {
-          id: entityId,
-          weight: 82.7,
-          recordedAt: now,
-          createdAt: now,
-          updatedAt: now,
-        },
+        idempotencyKey: `sync-smoke:fitness-profile:${entityId}:${suffix}`,
+        payload,
       }],
     }),
-  });
-  record('sync push', pushResult);
+  }).then((result) => ({ label, result }));
+
+  const withDevice = await pushProfile(
+    'fitness profile with payload.deviceId',
+    { ...basePayload, deviceId },
+    'with-device',
+  );
+  appendStage(withDevice.label, withDevice.result);
+  if (withDevice.result.response.ok) {
+    throw new Error('fitness profile payload with deviceId unexpectedly succeeded');
+  }
+
+  const withoutDevice = await pushProfile(
+    'fitness profile without payload.deviceId',
+    basePayload,
+    'without-device',
+  );
+  requireOk(withoutDevice.label, withoutDevice.result);
 
   const pullResult = await request('/v1/sync/pull', {
     method: 'POST',
     headers: authHeaders,
     body: JSON.stringify({ deviceId, clientRevision: 0 }),
   });
-  record('sync pull', pullResult, {
+  requireOk('sync pull', pullResult, {
     revision: pullResult.body?.revision ?? pullResult.body?.serverRevision ?? null,
     changedCount: Array.isArray(pullResult.body?.changedEntities) ? pullResult.body.changedEntities.length : null,
     deletedCount: Array.isArray(pullResult.body?.deletedEntities) ? pullResult.body.deletedEntities.length : null,
