@@ -19,6 +19,7 @@ import {
 } from './NutritionLibrarySync';
 import {
   getNutritionFoodLibraryStorageKey,
+  getNutritionLibrarySyncEntityId,
   parseNutritionFoodLibrary,
   serializeNutritionFoodLibrary,
   type NutritionLibraryFood,
@@ -58,14 +59,14 @@ describe('Nutrition library synchronization', () => {
 
     expect(operation).toMatchObject({
       entityType: 'nutritionLibraryItems',
-      entityId: 'fatsecret:provider-1',
+      entityId: getNutritionLibrarySyncEntityId('fatsecret:provider-1'),
       action: 'update',
       actorId: 'user-1',
       baseRevision: { number: 3 },
     });
     expect(operation.payload).toMatchObject({
       schemaVersion: 1,
-      libraryId: 'fatsecret:provider-1',
+      libraryId: getNutritionLibrarySyncEntityId('fatsecret:provider-1'),
       kind: 'provider-favorite',
     });
   });
@@ -87,7 +88,7 @@ describe('Nutrition library synchronization', () => {
         userId: 'user-1',
         deviceId: 'device-1',
       }).map((operation) => operation.entityId),
-    ).toEqual(['custom:oats:']);
+    ).toEqual([getNutritionLibrarySyncEntityId('custom:oats:')]);
   });
 
   it('records a server acknowledgement so the same local revision is not planned again', async () => {

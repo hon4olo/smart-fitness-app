@@ -269,7 +269,8 @@ export const normalizeOfflineSyncQueueOperation = (
     : isNutritionLibraryEntity(entityType)
       ? getNutritionLibrarySyncEntityId(rawEntityId)
       : rawEntityId;
-  const entityIdChanged = entityId !== rawEntityId;
+  const entityIdChanged =
+    isNutritionLibraryEntity(entityType) && entityId !== rawEntityId;
   const clientTimestamp = normalizeTimestamp(
     operation.clientTimestamp ?? operation.createdAt ?? operation.timestamp,
     now,
@@ -316,6 +317,9 @@ export const normalizeOfflineSyncQueueOperation = (
   const metadata = {
     ...rawMetadata,
     ...(isWeightHistoryEntity(entityType) ? { entityName: 'weightHistory' } : {}),
+    ...(isNutritionLibraryEntity(entityType)
+      ? { clientId: isString(rawMetadata?.clientId) ? rawMetadata.clientId.trim() : rawEntityId }
+      : {}),
     requestId: idempotencyKey,
   };
 

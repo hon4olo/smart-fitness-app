@@ -42,6 +42,7 @@ describe('nutrition library sync aliases', () => {
     expect(normalized?.entityId).toBe(expectedId);
     expect(normalized?.payload?.libraryId).toBe(expectedId);
     expect(normalized?.idempotencyKey).not.toBe(legacyKey);
+    expect(normalized?.metadata?.clientId).toBe(legacyLibraryId);
     expect(normalized?.metadata?.requestId).toBe(normalized?.idempotencyKey);
   });
 });

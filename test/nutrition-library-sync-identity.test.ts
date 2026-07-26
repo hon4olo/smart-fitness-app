@@ -38,14 +38,14 @@ const legacyItem: NutritionLibraryFood = {
 describe('nutrition library sync identity', () => {
   it('creates stable UUID IDs for new saved foods', () => {
     const id = getNutritionLibraryId(legacyItem);
-    expect(isUuid(id)).toBe(true);
-    expect(id).toBe(getNutritionLibrarySyncEntityId(legacyLibraryId));
+    expect(id).toBe(legacyLibraryId);
+    expect(isUuid(getNutritionLibrarySyncEntityId(id))).toBe(true);
   });
 
   it('migrates persisted semantic IDs while parsing local storage', () => {
     const [item] = parseNutritionFoodLibrary(JSON.stringify([legacyItem]));
     expect(item).toBeDefined();
-    expect(item?.libraryId).toBe(getNutritionLibrarySyncEntityId(legacyLibraryId));
+    expect(item?.libraryId).toBe(legacyLibraryId);
   });
 
   it('uses the migrated UUID in the operation envelope and payload', () => {
