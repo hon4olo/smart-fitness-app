@@ -3,18 +3,20 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
+import { useLocalization } from '@/localization';
 
 export type SessionEmptySetsProps = {
   label?: string;
 };
 
-export const SessionEmptySets = memo(function SessionEmptySets({ label = 'No exercises added' }: SessionEmptySetsProps) {
+export const SessionEmptySets = memo(function SessionEmptySets({ label }: SessionEmptySetsProps) {
   const { colors } = useWorkoutTheme();
+  const { t } = useLocalization();
   const styles = createStyles(colors);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{label}</Text>
+      <Text style={styles.title}>{label ?? t('workouts.session.noExercises')}</Text>
       <Text style={styles.subtitle}>{t('workouts.session.noSetsDescription')}</Text>
     </View>
   );
