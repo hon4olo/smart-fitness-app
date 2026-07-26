@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useLocalization } from '@/localization';
 
 export type ProgressTrendPoint = {
   key: string;
@@ -25,6 +26,7 @@ export const ProgressTrendChart = memo(function ProgressTrendChart({
   minLabel,
   points,
 }: ProgressTrendChartProps) {
+  const { t } = useLocalization();
   const chartMetrics = useMemo(() => {
     if (points.length < 2) {
       return null;
@@ -55,8 +57,8 @@ export const ProgressTrendChart = memo(function ProgressTrendChart({
   return (
     <View
       accessible
-      accessibilityHint="A compact bar chart showing recent trend values."
-      accessibilityLabel={`Progress trend chart. ${maxLabel} is the highest value and ${minLabel} is the lowest value.`}
+      accessibilityHint={t('progress.chartHint')}
+      accessibilityLabel={t('progress.chartLabel', { max: maxLabel, min: minLabel })}
       style={styles.chartShell}>
       <View style={styles.chartRangeRow}>
         <Text style={styles.chartRangeLabel}>{maxLabel}</Text>

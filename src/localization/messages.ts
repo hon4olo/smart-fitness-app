@@ -1,3 +1,4 @@
+import { enProgressMessages, ruProgressMessages } from './progressMessages';
 import { enSettingsMessages, ruSettingsMessages } from './settingsMessages';
 
 const enCoreMessages = {
@@ -147,6 +148,7 @@ const enCoreMessages = {
 export const enMessages = {
   ...enCoreMessages,
   ...enSettingsMessages,
+  ...enProgressMessages,
 } as const;
 
 export type MessageKey = keyof typeof enMessages;
@@ -302,6 +304,7 @@ const ruCoreMessages: Record<keyof typeof enCoreMessages, string> = {
 export const ruMessages: Record<MessageKey, string> = {
   ...ruCoreMessages,
   ...ruSettingsMessages,
+  ...ruProgressMessages,
 };
 
 export const MESSAGE_CATALOGS: Record<SupportedLocale, Record<MessageKey, string>> = {

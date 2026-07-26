@@ -5,9 +5,16 @@ import { AppCard } from '@/components/ui/AppCard';
 import { Colors } from '@/constants/theme';
 import type { SafetyRecoveryProgressPeriod } from '@/features/progress/safetyRecoveryProgressAnalytics';
 import {
+  getSafetyPeriodLabel,
+  getSafetyStatusLabel,
+  getSafetyWindowLabel,
+} from '@/features/progress/progressLocalization';
+import {
   buildSafetyRecoveryWeeklyTrend,
   type SafetyRecoveryWeeklyTrendPoint,
 } from '@/features/progress/safetyRecoveryWeeklyTrend';
+import { useLocalization } from '@/localization';
+import type { Translate } from '@/localization';
 import type { WorkoutSafetyReviewStatus, WorkoutSession } from '@/types';
 
 import { safetyRecoveryWeeklyTrendStyles as styles } from './SafetyRecoveryWeeklyTrendCard.styles';
@@ -23,11 +30,7 @@ type SafetyRecoveryWeeklyTrendCardProps = {
   onOpenHistory?(target: SafetyRecoveryWeeklyHistoryTarget): void;
 };
 
-const PERIOD_OPTIONS: Array<{ id: SafetyRecoveryProgressPeriod; label: string }> = [
-  { id: '30d', label: '30 days' },
-  { id: '90d', label: '90 days' },
-  { id: 'all', label: '12 weeks' },
-];
+const PERIOD_IDS: SafetyRecoveryProgressPeriod[] = ['30d', '90d', 'all'];
 
 const STATUS_ORDER: WorkoutSafetyReviewStatus[] = [
   'blocked',
@@ -36,13 +39,6 @@ const STATUS_ORDER: WorkoutSafetyReviewStatus[] = [
   'ready',
 ];
 
-const STATUS_LABELS: Record<WorkoutSafetyReviewStatus, string> = {
-  ready: 'Ready',
-  modify: 'Modify',
-  blocked: 'Blocked',
-  needs_input: 'Needs input',
-};
-
 const getStatusColor = (status: WorkoutSafetyReviewStatus): string => {
   if (status === 'ready') return Colors.dark.success;
   if (status === 'modify') return Colors.dark.warning;
@@ -50,16 +46,22 @@ const getStatusColor = (status: WorkoutSafetyReviewStatus): string => {
   return Colors.dark.accent;
 };
 
-const buildPointAccessibilityLabel = (point: SafetyRecoveryWeeklyTrendPoint): string => {
+const buildPointAccessibilityLabel = (
+  point: SafetyRecoveryWeeklyTrendPoint,
+  label: string,
+  t: Translate,
+): string => {
   const statuses = STATUS_ORDER.filter((status) => point.statusCounts[status] > 0)
-    .map((status) => `${STATUS_LABELS[status]} ${point.statusCounts[status]}`)
+    .map((status) => `${getSafetyStatusLabel(t, status)} ${point.statusCounts[status]}`)
     .join(', ');
-  const reviewCopy = `${point.reviewedWorkouts} fresh reviewed of ${point.totalWorkouts} workouts`;
-  const loadCopy =
-    point.latestLoadMultiplier === null
-      ? 'no reviewed load ceiling'
-      : `latest reviewed load ceiling ${point.latestLoadLabel}`;
-  return `${point.label}: ${reviewCopy}; ${statuses || 'no reviewed statuses'}; ${loadCopy}.`;
+  const reviewCopy = t('safety.selectedSummary', {
+    reviewed: point.reviewedWorkouts,
+    total: point.totalWorkouts,
+  });
+  const loadCopy = point.latestLoadMultiplier === null
+    ? t('safety.pointNoCeiling')
+    : t('safety.pointLatestCeiling', { value: point.latestLoadLabel });
+  return `${label}: ${reviewCopy}; ${statuses || t('safety.pointNoStatuses')}; ${loadCopy}.`;
 };
 
 const getEndExclusive = (
@@ -72,18 +74,6 @@ const getEndExclusive = (
   return Number.isFinite(end) ? new Date(end + 1).toISOString() : point.endAt;
 };
 
-const formatSelectedRange = (point: SafetyRecoveryWeeklyTrendPoint): string => {
-  const start = Date.parse(point.startAt);
-  const end = Date.parse(point.endAt);
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return point.label;
-  const formatter = new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-  });
-  return `${formatter.format(new Date(start))}–${formatter.format(new Date(end))}`;
-};
-
 function WeeklyColumn({
   onPress,
   point,
@@ -93,9 +83,16 @@ function WeeklyColumn({
   point: SafetyRecoveryWeeklyTrendPoint;
   selected: boolean;
 }) {
+  const { formatDate, t } = useLocalization();
+  const pointLabel = formatDate(point.startAt, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+
   return (
     <Pressable
-      accessibilityLabel={`${buildPointAccessibilityLabel(point)} Select this week for history.`}
+      accessibilityLabel={`${buildPointAccessibilityLabel(point, pointLabel, t)} ${t('safety.selectWeekHint')}`}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
@@ -143,12 +140,8 @@ function WeeklyColumn({
         </View>
       </View>
 
-      <Text numberOfLines={1} style={styles.loadLabel}>
-        {point.latestLoadLabel}
-      </Text>
-      <Text numberOfLines={1} style={styles.weekLabel}>
-        {point.label}
-      </Text>
+      <Text numberOfLines={1} style={styles.loadLabel}>{point.latestLoadLabel}</Text>
+      <Text numberOfLines={1} style={styles.weekLabel}>{pointLabel}</Text>
     </Pressable>
   );
 }
@@ -157,6 +150,7 @@ export function SafetyRecoveryWeeklyTrendCard({
   onOpenHistory,
   sessions,
 }: SafetyRecoveryWeeklyTrendCardProps) {
+  const { formatDate, formatNumber, t } = useLocalization();
   const [period, setPeriod] = useState<SafetyRecoveryProgressPeriod>('90d');
   const [selectedPointKey, setSelectedPointKey] = useState<string | null>(null);
   const trend = useMemo(
@@ -165,6 +159,7 @@ export function SafetyRecoveryWeeklyTrendCard({
   );
   const selectedPointIndex = trend.points.findIndex((point) => point.key === selectedPointKey);
   const selectedPoint = selectedPointIndex >= 0 ? trend.points[selectedPointIndex] : null;
+  const windowLabel = getSafetyWindowLabel(t, period, true);
 
   const openHistory = (safety?: WorkoutSafetyReviewStatus) => {
     if (!onOpenHistory || !selectedPoint) return;
@@ -175,31 +170,40 @@ export function SafetyRecoveryWeeklyTrendCard({
     });
   };
 
+  const selectedRange = selectedPoint
+    ? `${formatDate(selectedPoint.startAt, {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      })}–${formatDate(selectedPoint.endAt, {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      })}`
+    : '';
+
   return (
     <AppCard>
       <View style={styles.header}>
-        <Text selectable style={styles.title}>
-          Safety & Recovery weekly trend
-        </Text>
-        <Text selectable style={styles.subtitle}>
-          Weekly fresh-review status mix and the latest reviewed load ceiling. Historical data only.
-        </Text>
+        <Text selectable style={styles.title}>{t('safety.weeklyTitle')}</Text>
+        <Text selectable style={styles.subtitle}>{t('safety.weeklySubtitle')}</Text>
       </View>
 
       <View style={styles.periodSection}>
-        <Text selectable style={styles.periodLabel}>
-          Trend window
-        </Text>
+        <Text selectable style={styles.periodLabel}>{t('safety.trendWindow')}</Text>
         <View style={styles.periodRow}>
-          {PERIOD_OPTIONS.map((option) => {
-            const selected = period === option.id;
+          {PERIOD_IDS.map((option) => {
+            const selected = period === option;
+            const optionLabel = option === 'all'
+              ? t('safety.period.12w')
+              : getSafetyPeriodLabel(t, option);
             return (
               <Pressable
-                key={option.id}
+                key={option}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 onPress={() => {
-                  setPeriod(option.id);
+                  setPeriod(option);
                   setSelectedPointKey(null);
                 }}
                 style={({ pressed }) => [
@@ -208,33 +212,29 @@ export function SafetyRecoveryWeeklyTrendCard({
                   pressed && styles.pressed,
                 ]}>
                 <Text style={[styles.periodChipLabel, selected && styles.periodChipLabelSelected]}>
-                  {option.label}
+                  {optionLabel}
                 </Text>
               </Pressable>
             );
           })}
         </View>
         <Text selectable style={styles.periodHelp}>
-          Showing {trend.windowLabel.toLowerCase()} in rolling seven-day buckets.
+          {t('safety.showingBuckets', { period: windowLabel })}
         </Text>
       </View>
 
       <View style={styles.summaryRow}>
         <View style={styles.summaryItem}>
           <Text selectable style={styles.summaryValue}>
-            {trend.reviewedWorkoutCount}
+            {formatNumber(trend.reviewedWorkoutCount)}
           </Text>
-          <Text selectable style={styles.summaryLabel}>
-            Fresh reviewed workouts
-          </Text>
+          <Text selectable style={styles.summaryLabel}>{t('safety.freshReviewedWorkouts')}</Text>
         </View>
         <View style={styles.summaryItem}>
           <Text selectable style={styles.summaryValue}>
-            {trend.loadCeilingPointCount}
+            {formatNumber(trend.loadCeilingPointCount)}
           </Text>
-          <Text selectable style={styles.summaryLabel}>
-            Weeks with a load ceiling
-          </Text>
+          <Text selectable style={styles.summaryLabel}>{t('safety.weeksWithCeiling')}</Text>
         </View>
       </View>
 
@@ -242,12 +242,12 @@ export function SafetyRecoveryWeeklyTrendCard({
         {STATUS_ORDER.slice().reverse().map((status) => (
           <View key={status} style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: getStatusColor(status) }]} />
-            <Text style={styles.legendLabel}>{STATUS_LABELS[status]}</Text>
+            <Text style={styles.legendLabel}>{getSafetyStatusLabel(t, status)}</Text>
           </View>
         ))}
         <View style={styles.legendItem}>
           <View style={styles.loadLegendBar} />
-          <Text style={styles.legendLabel}>Load ceiling</Text>
+          <Text style={styles.legendLabel}>{t('safety.loadCeiling')}</Text>
         </View>
       </View>
 
@@ -267,22 +267,21 @@ export function SafetyRecoveryWeeklyTrendCard({
           ))}
         </ScrollView>
       ) : (
-        <Text selectable style={styles.emptyText}>
-          No fresh reviewed workouts are available in this trend window.
-        </Text>
+        <Text selectable style={styles.emptyText}>{t('safety.weeklyEmpty')}</Text>
       )}
 
       {selectedPoint ? (
         <View style={styles.detailCard}>
           <View style={styles.detailHeader}>
-            <Text selectable style={styles.detailTitle}>
-              {formatSelectedRange(selectedPoint)}
-            </Text>
+            <Text selectable style={styles.detailTitle}>{selectedRange}</Text>
             <Text selectable style={styles.detailLabel}>
-              {selectedPoint.reviewedWorkouts} fresh reviewed of {selectedPoint.totalWorkouts} workouts
+              {t('safety.selectedSummary', {
+                reviewed: selectedPoint.reviewedWorkouts,
+                total: selectedPoint.totalWorkouts,
+              })}
               {selectedPoint.latestLoadMultiplier === null
                 ? ''
-                : ` · latest ceiling ${selectedPoint.latestLoadLabel}`}
+                : ` · ${t('safety.latestCeiling', { value: selectedPoint.latestLoadLabel })}`}
             </Text>
           </View>
           {onOpenHistory ? (
@@ -291,32 +290,31 @@ export function SafetyRecoveryWeeklyTrendCard({
                 accessibilityRole="button"
                 onPress={() => openHistory()}
                 style={({ pressed }) => [styles.historyButton, pressed && styles.pressed]}>
-                <Text style={styles.historyButtonLabel}>All workouts</Text>
+                <Text style={styles.historyButtonLabel}>{t('safety.allWorkouts')}</Text>
               </Pressable>
               {STATUS_ORDER.filter((status) => selectedPoint.statusCounts[status] > 0).map(
-                (status) => (
-                  <Pressable
-                    key={status}
-                    accessibilityLabel={`Open ${STATUS_LABELS[status]} workouts for selected week`}
-                    accessibilityRole="button"
-                    onPress={() => openHistory(status)}
-                    style={({ pressed }) => [styles.historyButton, pressed && styles.pressed]}>
-                    <Text style={styles.historyButtonLabel}>
-                      {STATUS_LABELS[status]} · {selectedPoint.statusCounts[status]}
-                    </Text>
-                  </Pressable>
-                ),
+                (status) => {
+                  const statusLabel = getSafetyStatusLabel(t, status);
+                  return (
+                    <Pressable
+                      key={status}
+                      accessibilityLabel={t('safety.openStatusWorkouts', { status: statusLabel })}
+                      accessibilityRole="button"
+                      onPress={() => openHistory(status)}
+                      style={({ pressed }) => [styles.historyButton, pressed && styles.pressed]}>
+                      <Text style={styles.historyButtonLabel}>
+                        {statusLabel} · {formatNumber(selectedPoint.statusCounts[status])}
+                      </Text>
+                    </Pressable>
+                  );
+                },
               )}
             </View>
           ) : null}
         </View>
       ) : null}
 
-      <Text selectable style={styles.chartHelp}>
-        Select a week to inspect its counts or open the matching workout history. The wide stack shows
-        status composition among fresh reviewed workouts. The narrow blue bar shows the latest reviewed
-        load ceiling recorded in that week, not the weight used.
-      </Text>
+      <Text selectable style={styles.chartHelp}>{t('safety.chartHelp')}</Text>
     </AppCard>
   );
 }

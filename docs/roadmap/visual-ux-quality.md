@@ -38,7 +38,8 @@ Updated: 2026-07-26
 ## P1 — localization
 
 - [x] Centralize and complete Settings, Account, Privacy, About, sync validation, alerts, diagnostics, and recovery copy in PR #147.
-- Complete Russian localization for Profile summary, Progress planning/details, Home/onboarding, Workouts, Nutrition, and advanced Coach.
+- [x] Complete Profile summary, Progress overview/planning, Goals, AI Coach profile, body-measurement entry, charts, and Safety & Recovery card localization in PR #148.
+- Complete Russian localization for Home/onboarding, Workouts, Nutrition, Progress detail routes, and advanced Coach.
 - Remove mixed-language headings from Progress and Coach secondary routes.
 - Keep terminology consistent across tabs: goal, target weight, training days, synchronization, recovery, and Coach.
 
@@ -55,7 +56,7 @@ Updated: 2026-07-26
 - Keep Goal and AI Coach sections collapsed by default.
 - Present planning controls before historical charts without allowing them to dominate the screen.
 - Split Progress into focused components before the route approaches the 500-line limit.
-- Localize weight, body-measurement, and training-progress cards.
+- [x] Localize weight, body-measurement, training-progress, and Safety & Recovery overview cards in PR #148.
 
 ## P2 — screen density and hierarchy
 
@@ -79,7 +80,7 @@ Updated: 2026-07-26
 
 1. Physical-iPhone validation of the new Profile / Settings / Progress structure.
 2. Verify Coach and personal-details persistence after force-close and relaunch.
-3. Continue localization with Profile + Progress + Goals + Coach profile, then Home/onboarding.
+3. Continue localization with Home/onboarding, then Workouts and Nutrition.
 4. Add explicit saved/loading/failure feedback for profile mutations.
 5. Continue the transparent/disabled control audit across all tabs.
 6. Complete the remaining visual-density pass and update this roadmap with device evidence.

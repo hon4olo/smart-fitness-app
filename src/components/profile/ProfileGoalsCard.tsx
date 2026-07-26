@@ -1,16 +1,20 @@
 import { Text } from 'react-native';
 
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { AppCard } from '@/components/ui/AppCard';
 import { FormField } from '@/components/ui/FormField';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
-import { AppCard } from '@/components/ui/AppCard';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, Spacing, Typography } from '@/constants/theme';
+import { getGoalTypeLabel } from '@/features/progress/progressLocalization';
+import { useLocalization } from '@/localization';
 import type { WeightUnit } from '@/units';
 
+type GoalType = 'lose_fat' | 'maintain' | 'gain_muscle';
+
 type ProfileGoalsCardProps = {
-  goalType: 'lose_fat' | 'maintain' | 'gain_muscle';
+  goalType: GoalType;
   isSaveDisabled: boolean;
-  onGoalTypeChange: (goalType: 'lose_fat' | 'maintain' | 'gain_muscle') => void;
+  onGoalTypeChange: (goalType: GoalType) => void;
   onSaveGoals: () => void;
   onTargetWeightChange: (value: string) => void;
   onTrainingDaysPerWeekChange: (value: string) => void;
@@ -20,12 +24,6 @@ type ProfileGoalsCardProps = {
   weeklyWeightChangeGoal: string;
   weightUnit: WeightUnit;
 };
-
-const goalOptions = [
-  { label: 'Lose fat', value: 'lose_fat' as const },
-  { label: 'Maintain', value: 'maintain' as const },
-  { label: 'Gain muscle', value: 'gain_muscle' as const },
-];
 
 export function ProfileGoalsCard({
   goalType,
@@ -40,12 +38,19 @@ export function ProfileGoalsCard({
   weeklyWeightChangeGoal,
   weightUnit,
 }: ProfileGoalsCardProps) {
+  const { t } = useLocalization();
+  const goalOptions = [
+    { label: getGoalTypeLabel(t, 'lose_fat'), value: 'lose_fat' as const },
+    { label: getGoalTypeLabel(t, 'maintain'), value: 'maintain' as const },
+    { label: getGoalTypeLabel(t, 'gain_muscle'), value: 'gain_muscle' as const },
+  ];
+
   return (
     <AppCard>
-      <Text style={styles.sectionTitle}>Goals</Text>
+      <Text style={styles.sectionTitle}>{t('goals.cardTitle')}</Text>
       <FormField
         keyboardType="decimal-pad"
-        label={`Target weight (${weightUnit})`}
+        label={t('goals.targetWeight', { unit: weightUnit })}
         onChangeText={onTargetWeightChange}
         placeholder={weightUnit === 'lb' ? '165' : '75'}
         textContentType="none"
@@ -53,7 +58,7 @@ export function ProfileGoalsCard({
       />
       <FormField
         keyboardType="decimal-pad"
-        label={`Weekly weight change goal (${weightUnit}/week)`}
+        label={t('goals.weeklyWeightChange', { unit: weightUnit })}
         onChangeText={onWeeklyWeightChangeGoalChange}
         placeholder={weightUnit === 'lb' ? '0.5' : '0.25'}
         textContentType="none"
@@ -61,15 +66,20 @@ export function ProfileGoalsCard({
       />
       <FormField
         keyboardType="number-pad"
-        label="Training days per week"
+        label={t('goals.trainingDays')}
         onChangeText={onTrainingDaysPerWeekChange}
         placeholder="3"
         textContentType="none"
         value={trainingDaysPerWeek}
       />
-      <Text style={styles.goalLabel}>Primary goal</Text>
-      <SegmentedControl accessibilityLabel="Primary goal" onChange={onGoalTypeChange} options={goalOptions} value={goalType} />
-      <PrimaryButton disabled={isSaveDisabled} label="Save goals" onPress={onSaveGoals} />
+      <Text style={styles.goalLabel}>{t('goals.primaryGoal')}</Text>
+      <SegmentedControl
+        accessibilityLabel={t('goals.primaryGoal')}
+        onChange={onGoalTypeChange}
+        options={goalOptions}
+        value={goalType}
+      />
+      <PrimaryButton disabled={isSaveDisabled} label={t('goals.save')} onPress={onSaveGoals} />
     </AppCard>
   );
 }

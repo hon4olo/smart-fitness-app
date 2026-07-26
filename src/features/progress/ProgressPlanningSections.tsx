@@ -10,6 +10,7 @@ import {
   validateCoachProfileForm,
   type CoachActivityLevel,
 } from '@/features/profile/coachProfileForm';
+import { getGoalTypeLabel } from '@/features/progress/progressLocalization';
 import { useLocalization } from '@/localization';
 import type { ProfileGoalType, ProfileTrainingExperience } from '@/types';
 import {
@@ -20,17 +21,6 @@ import {
   useUnitPreferences,
   weightToKg,
 } from '@/units';
-
-const goalTypeLabel = (value: ProfileGoalType, locale: 'en' | 'ru') => {
-  if (locale === 'ru') {
-    if (value === 'lose_fat') return 'Сушка';
-    if (value === 'maintain') return 'Поддержание';
-    return 'Набор массы';
-  }
-  if (value === 'lose_fat') return 'Lose fat';
-  if (value === 'maintain') return 'Maintain';
-  return 'Gain muscle';
-};
 
 const normalizeCoachActivity = (value: string): CoachActivityLevel | null => {
   const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
@@ -50,7 +40,7 @@ const normalizeCoachActivity = (value: string): CoachActivityLevel | null => {
 
 export function ProgressPlanningSections() {
   const app = useAppContext();
-  const { locale } = useLocalization();
+  const { t } = useLocalization();
   const { weight: weightUnit, length: lengthUnit } = useUnitPreferences();
   const { profile, updateProfileGoals } = app;
   const [goalsExpanded, setGoalsExpanded] = useState(false);
@@ -129,10 +119,7 @@ export function ProgressPlanningSections() {
       trainingDaysPerWeek: parsedTrainingDaysPerWeek,
     });
     setGoalsExpanded(false);
-    Alert.alert(
-      locale === 'ru' ? 'Цель сохранена' : 'Goals saved',
-      locale === 'ru' ? 'Параметры цели обновлены.' : 'Your fitness goals have been updated.',
-    );
+    Alert.alert(t('goals.savedTitle'), t('goals.savedBody'));
   };
 
   const handleSaveCoachProfile = () => {
@@ -154,12 +141,7 @@ export function ProgressPlanningSections() {
       onboardingCompleted: app.onboardingCompleted,
     });
     setCoachExpanded(false);
-    Alert.alert(
-      locale === 'ru' ? 'Профиль Coach сохранён' : 'Coach profile saved',
-      locale === 'ru'
-        ? 'Рост, активность и тренировочный опыт сохранены.'
-        : 'Height, activity, and training experience were saved.',
-    );
+    Alert.alert(t('coach.savedTitle'), t('coach.savedBody'));
   };
 
   return (
@@ -167,12 +149,12 @@ export function ProgressPlanningSections() {
       <CollapsibleSection
         expanded={goalsExpanded}
         onToggle={() => setGoalsExpanded((current) => !current)}
-        subtitle={
-          locale === 'ru'
-            ? `${goalTypeLabel(profile.goalType, locale)} · цель ${formatWeightValue(profile.targetWeight, weightUnit)} ${weightUnit}`
-            : `${goalTypeLabel(profile.goalType, locale)} · target ${formatWeightValue(profile.targetWeight, weightUnit)} ${weightUnit}`
-        }
-        title={locale === 'ru' ? 'Цель и план' : 'Goal and plan'}>
+        subtitle={t('goals.sectionSubtitle', {
+          goal: getGoalTypeLabel(t, profile.goalType),
+          weight: formatWeightValue(profile.targetWeight, weightUnit),
+          unit: weightUnit,
+        })}
+        title={t('goals.sectionTitle')}>
         <ProfileGoalsCard
           goalType={goalType}
           isSaveDisabled={isGoalSaveDisabled}
@@ -191,12 +173,8 @@ export function ProgressPlanningSections() {
       <CollapsibleSection
         expanded={coachExpanded}
         onToggle={() => setCoachExpanded((current) => !current)}
-        subtitle={
-          locale === 'ru'
-            ? 'Рост, активность, опыт и инструменты Coach'
-            : 'Height, activity, experience, and Coach tools'
-        }
-        title="AI Coach">
+        subtitle={t('coach.sectionSubtitle')}
+        title={t('coach.sectionTitle')}>
         <ProfileCoachCard
           activityLevel={coachActivityLevel}
           errors={coachProfileValidation.valid ? {} : coachProfileValidation.errors}

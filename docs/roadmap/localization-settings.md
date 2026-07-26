@@ -40,6 +40,28 @@ First slice implemented in PR #147:
 - real Russian pluralization applied to protected recovery-change counts;
 - targeted source-contract tests added to prevent inline locale branches, local Settings dictionaries, direct English alert text, and direct English high-risk UI props from returning in this slice.
 
+
+Second slice implemented in PR #148:
+
+- Profile summary, preferences, Settings entry accessibility, and localized account/goal/Coach status rows;
+- Progress overview headings, current-weight and trend summaries, measurement/training cards, locale-aware dates, and validation states;
+- Goal editor labels, segmented options, target-weight/training-day inputs, save states, and accessibility copy;
+- AI Coach profile labels, activity/experience options, height input, validation, helper text, save state, and disclosure copy;
+- body-measurement entry labels and validation plus chart accessibility descriptions;
+- Safety & Recovery history and weekly-trend cards, including status, period, movement-pattern, training-load, empty, unavailable, and accessibility states;
+- a separate typed Profile/Progress catalog with 189 English and 189 Russian keys, exact key parity, and no duplicate keys;
+- completed-scope source contracts preventing component-level locale branches, direct English high-risk props/alerts, and raw analytics/internal status codes from being rendered;
+- global direct locale branches reduced from 11 files / 117 branches at audit baseline to 4 files / 50 branches.
+
+Remaining screen groups after PR #148:
+
+1. **Home and onboarding** — remaining Home status/action copy and onboarding validation, labels, segmented options, success alerts, and accessibility copy.
+2. **Workouts** — Workouts hub, active session, finish flow, set table/actions, exercise library/detail, workout history/detail, programs, routines, templates, builder, safety gate, preview tools, and integration/coming-soon states.
+3. **Nutrition** — Nutrition tab, food browser/search, Add Food, custom-food form, barcode scanner, serving editor, favorites/recent foods, meal templates, targets, empty/error states, and Nutrition Coach proposal surfaces.
+4. **Progress detail flows** — weight entry/details, measurement detail/charts/forms, exercise detail analytics, and any remaining secondary progress routes.
+5. **Advanced Coach** — Coach history/trust/detail, recovery check-in, training limitations, Safety & Recovery preflight/review, Combined Coach, Strength Coach, Nutrition Coach, proposals, provenance/trust statuses, and raw validation/result copy.
+6. **Final global pass** — remaining direct `Intl`/`toLocaleString`, visible enum formatting, count-dependent copy, accessibility labels/hints, dialogs, alerts, stale/offline/retry states, and the repository-wide hard-coded English baseline.
+
 Validation boundary:
 
 - code and automated checks can verify catalog parity, source-contract rules, TypeScript, and regression behavior;
@@ -56,6 +78,7 @@ Completed:
 - device-language detection and persisted System/English/Russian override;
 - localized root navigation, tabs, Settings, auth, Account & Security, destructive confirmations, validation, and safe errors;
 - centralized Settings/Account/Privacy/About/Sync copy with no component-level locale branches in the completed slice;
+- centralized Profile/Progress/Goals/AI Coach overview copy with no component-level locale branches in the completed slice;
 - locale-aware dates on account/session and Weight details surfaces;
 - stable untranslated persisted identifiers, enums, routes, and sync fields;
 - metric/imperial preferences with canonical internal storage;
@@ -75,7 +98,7 @@ Relevant mobile PRs:
 
 Remaining:
 
-- complete Russian/English translation for Home/onboarding, Workouts, Nutrition, Progress detail, Profile planning, and advanced Coach copy;
+- complete Russian/English translation for Home/onboarding, Workouts, Nutrition, Progress detail flows, and advanced Coach copy;
 - migrate remaining direct `Intl` and `toLocaleString` usage to the localization/unit formatting boundary;
 - adopt pluralization helpers in real count-dependent user-facing messages;
 - extend the hard-coded English guard from the completed Settings/Account slice to each subsequent screen group;

@@ -60,7 +60,7 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(source).not.toContain('AddWeightEntryCard');
     expect(source).not.toContain('isWeightDisabled');
     expect(source).toContain("router.push('/weight-entry')");
-    expect(count(source, 'Weight details')).toBe(1);
+    expect(count(source, "t('progress.weightDetails')")).toBe(1);
     expect(source).not.toContain('latest readings only');
     expect(source).toContain('Add weight');
   });

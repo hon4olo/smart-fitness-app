@@ -49,6 +49,10 @@ describe('localized Settings and account UI contract', () => {
         readSource('src/localization/settingsMessages.ts'),
         'export const enSettingsMessages = {',
       ),
+      ...extractMessageKeys(
+        readSource('src/localization/progressMessages.ts'),
+        'export const enProgressMessages = {',
+      ),
     ];
 
     expect(new Set(keys).size).toBe(keys.length);
