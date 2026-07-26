@@ -1,3 +1,4 @@
+import { calculateNutritionTargets } from '@/features/profile/profilePlan';
 import { ensureUuid } from '@/lib/ids';
 import type {
   AppState,
@@ -166,6 +167,11 @@ export function completeOnboardingInState(
     nextState: {
       ...currentState,
       onboardingCompleted: true,
+      nutritionTargets: calculateNutritionTargets({
+        activityLevel: setup.activityLevel,
+        goalType: setup.goalType,
+        weightKg: setup.currentWeight,
+      }),
       profile: {
         ...currentState.profile,
         activityLevel: setup.activityLevel,
