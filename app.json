@@ -2,7 +2,7 @@
   "expo": {
     "name": "smart-fitness-app",
     "slug": "smart-fitness-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "smartfitnessapp",
@@ -64,6 +64,9 @@
       "policy": "appVersion"
     },
     "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
       "url": "https://u.expo.dev/0f2acce2-b968-4b48-87de-5622ccdec60c",
       "requestHeaders": {
         "expo-channel-name": "production"
