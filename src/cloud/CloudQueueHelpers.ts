@@ -1,3 +1,4 @@
+import { getNutritionLibrarySyncEntityId } from '@/features/nutrition/nutritionFoodLibrary';
 import { ensureUuid } from '@/lib/ids';
 
 import type { CloudError } from './CloudErrors';
@@ -27,6 +28,8 @@ const includesString = <T extends string>(
   typeof value === 'string' && (values as readonly string[]).includes(value);
 const isWeightHistoryEntity = (value: string): boolean =>
   value === 'weightHistory' || value === 'weight_history';
+const isNutritionLibraryEntity = (value: string): boolean =>
+  value === 'nutritionLibraryItems' || value === 'nutrition_library_items';
 const SERVER_STRICT_IDENTITY_PAYLOAD_ENTITIES = new Set([
   'fitnessProfiles',
   'fitness_profiles',
@@ -71,19 +74,29 @@ const normalizePayload = (
 
 const normalizePayloadForServer = (
   entityType: string,
+  entityId: string,
   payload: Record<string, unknown> | undefined,
 ): { payload: Record<string, unknown> | undefined; changed: boolean } => {
-  if (
-    !payload ||
-    !isServerStrictIdentityPayloadEntity(entityType) ||
-    !Object.prototype.hasOwnProperty.call(payload, 'deviceId')
-  ) {
-    return { payload, changed: false };
-  }
+  if (!payload) return { payload, changed: false };
 
-  const compatiblePayload = { ...payload };
-  delete compatiblePayload.deviceId;
-  return { payload: compatiblePayload, changed: true };
+  let compatiblePayload = payload;
+  let changed = false;
+  if (
+    isServerStrictIdentityPayloadEntity(entityType) &&
+    Object.prototype.hasOwnProperty.call(compatiblePayload, 'deviceId')
+  ) {
+    compatiblePayload = { ...compatiblePayload };
+    delete compatiblePayload.deviceId;
+    changed = true;
+  }
+  if (
+    isNutritionLibraryEntity(entityType) &&
+    compatiblePayload.libraryId !== entityId
+  ) {
+    compatiblePayload = { ...compatiblePayload, libraryId: entityId };
+    changed = true;
+  }
+  return { payload: compatiblePayload, changed };
 };
 
 const normalizeRevision = (value: unknown): SyncRevision | undefined => {
@@ -253,7 +266,11 @@ export const normalizeOfflineSyncQueueOperation = (
   );
   const entityId = isWeightHistoryEntity(entityType)
     ? ensureUuid(rawEntityId)
-    : rawEntityId;
+    : isNutritionLibraryEntity(entityType)
+      ? getNutritionLibrarySyncEntityId(rawEntityId)
+      : rawEntityId;
+  const entityIdChanged =
+    isNutritionLibraryEntity(entityType) && entityId !== rawEntityId;
   const clientTimestamp = normalizeTimestamp(
     operation.clientTimestamp ?? operation.createdAt ?? operation.timestamp,
     now,
@@ -271,7 +288,11 @@ export const normalizeOfflineSyncQueueOperation = (
           id: ensureUuid(rawPayload.id ?? rawEntityId),
         }
       : rawPayload;
-  const payloadCompatibility = normalizePayloadForServer(entityType, normalizedPayload);
+  const payloadCompatibility = normalizePayloadForServer(
+    entityType,
+    entityId,
+    normalizedPayload,
+  );
   const payload = payloadCompatibility.payload;
   const baseRevision = normalizeRevision(operation.baseRevision ?? operation.revision);
   const lastError = normalizeCloudError(operation.lastError ?? operation.error);
@@ -279,6 +300,7 @@ export const normalizeOfflineSyncQueueOperation = (
   const status = normalizeStatus(operation.status ?? operation.state);
   const actorId = isString(operation.actorId) ? operation.actorId.trim() : undefined;
   const idempotencyKey =
+    !entityIdChanged &&
     !payloadCompatibility.changed &&
     isOfflineSyncQueueIdempotencyKey(operation.idempotencyKey)
       ? operation.idempotencyKey
@@ -295,6 +317,9 @@ export const normalizeOfflineSyncQueueOperation = (
   const metadata = {
     ...rawMetadata,
     ...(isWeightHistoryEntity(entityType) ? { entityName: 'weightHistory' } : {}),
+    ...(isNutritionLibraryEntity(entityType)
+      ? { clientId: isString(rawMetadata?.clientId) ? rawMetadata.clientId.trim() : rawEntityId }
+      : {}),
     requestId: idempotencyKey,
   };
 

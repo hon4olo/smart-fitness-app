@@ -4,6 +4,8 @@ import { createOfflineSyncQueueIdempotencyKey } from './CloudQueueHelpers';
 import type { OfflineSyncQueueOperation } from './CloudQueueTypes';
 import {
   getNutritionFoodLibraryStorageKey,
+  getNutritionLibraryId,
+  getNutritionLibrarySyncEntityId,
   parseNutritionFoodLibrary,
   serializeNutritionFoodLibrary,
   type NutritionLibraryFood,
@@ -30,9 +32,12 @@ export const isNutritionLibraryQueueOperation = (
   operation: OfflineSyncQueueOperation,
 ): boolean => isNutritionLibraryEntity(operation.entityType);
 
-const toPayload = (item: NutritionLibraryFood): Record<string, unknown> => ({
+const toPayload = (
+  item: NutritionLibraryFood,
+  syncEntityId: string,
+): Record<string, unknown> => ({
   schemaVersion: 1,
-  libraryId: item.libraryId,
+  libraryId: syncEntityId,
   kind: item.kind,
   name: item.name,
   ...(item.brandName?.trim() ? { brandName: item.brandName.trim() } : {}),
@@ -57,6 +62,7 @@ export const createNutritionLibraryQueueOperation = (input: {
   deviceId: string;
 }): OfflineSyncQueueOperation => {
   const syncedRevision = getSyncedRevision(input.item);
+  const syncEntityId = getNutritionLibrarySyncEntityId(input.item.libraryId);
   const action = input.item.deletedAt ? 'delete' : syncedRevision === 0 ? 'create' : 'update';
   const baseRevision = {
     id: `rev-${syncedRevision}`,
@@ -64,11 +70,11 @@ export const createNutritionLibraryQueueOperation = (input: {
     createdAt: input.item.updatedAt,
   };
   const payload = action === 'delete'
-    ? { libraryId: input.item.libraryId, deletedAt: input.item.deletedAt }
-    : toPayload(input.item);
+    ? { libraryId: syncEntityId, deletedAt: input.item.deletedAt }
+    : toPayload(input.item, syncEntityId);
   const idempotencyKey = createOfflineSyncQueueIdempotencyKey({
     entityType: 'nutritionLibraryItems',
-    entityId: input.item.libraryId,
+    entityId: syncEntityId,
     action,
     clientTimestamp: input.item.updatedAt,
     actorId: input.userId,
@@ -77,9 +83,9 @@ export const createNutritionLibraryQueueOperation = (input: {
   });
 
   return {
-    opId: `nutritionLibraryItems:${input.item.libraryId}`,
+    opId: `nutritionLibraryItems:${syncEntityId}`,
     entityType: 'nutritionLibraryItems',
-    entityId: input.item.libraryId,
+    entityId: syncEntityId,
     action,
     payload,
     baseRevision,
@@ -90,6 +96,7 @@ export const createNutritionLibraryQueueOperation = (input: {
     status: 'pending',
     metadata: {
       entityName: 'nutritionLibraryItems',
+      clientId: input.item.libraryId,
       deviceId: input.deviceId,
       source: 'local',
       userId: input.userId,
@@ -107,7 +114,7 @@ export const planNutritionLibrarySyncOperations = (input: {
   const pendingIds = new Set(
     input.pendingOperations
       .filter(isNutritionLibraryQueueOperation)
-      .map((operation) => operation.entityId),
+      .map((operation) => operation.metadata?.clientId ?? operation.entityId),
   );
   return input.records
     .filter(
@@ -133,9 +140,7 @@ const parseRemoteItem = (entity: {
   appliedAt?: string | null;
 }): NutritionLibraryFood | null => {
   const payload = isRecord(entity.payload) ? entity.payload : null;
-  if (!payload || payload.schemaVersion !== 1) return null;
-  const libraryId = typeof payload.libraryId === 'string' ? payload.libraryId : entity.entityId;
-  if (!libraryId || typeof payload.name !== 'string') return null;
+  if (!payload || payload.schemaVersion !== 1 || typeof payload.name !== 'string') return null;
   if (payload.kind !== 'custom' && payload.kind !== 'provider-favorite') return null;
   const numericFields = ['calories', 'protein', 'carbs', 'fats', 'servingSize'] as const;
   if (numericFields.some((field) => typeof payload[field] !== 'number' || !Number.isFinite(payload[field]))) {
@@ -150,6 +155,22 @@ const parseRemoteItem = (entity: {
   ) return null;
 
   const revision = Math.max(0, Math.floor(entity.revision ?? Number(payload.revision) ?? 0));
+  const libraryId = getNutritionLibraryId({
+    name: payload.name,
+    ...(typeof payload.brandName === 'string' ? { brandName: payload.brandName } : {}),
+    calories: payload.calories as number,
+    protein: payload.protein as number,
+    carbs: payload.carbs as number,
+    fats: payload.fats as number,
+    servingSize: payload.servingSize as number,
+    servingUnit: payload.servingUnit,
+    quantity: payload.quantity,
+    source: payload.source,
+    ...(typeof payload.externalId === 'string' ? { externalId: payload.externalId } : {}),
+    ...(isRecord(payload.attribution)
+      ? { attribution: payload.attribution as NutritionLibraryFood['attribution'] }
+      : {}),
+  });
   return {
     libraryId,
     kind: payload.kind,
@@ -204,7 +225,9 @@ export const acknowledgeNutritionLibraryOperations = async (input: {
   );
   let changed = false;
   const next = current.map((item) => {
-    const revision = revisions.get(item.libraryId);
+    const revision =
+      revisions.get(item.libraryId) ??
+      revisions.get(getNutritionLibrarySyncEntityId(item.libraryId));
     const syncedRevision = getSyncedRevision(item);
     if (revision === undefined || revision <= syncedRevision) return item;
     changed = true;
@@ -218,6 +241,17 @@ export const acknowledgeNutritionLibraryOperations = async (input: {
     notify(input.userId);
   }
   return [...revisions.keys()];
+};
+
+const resolveExistingLibraryId = (
+  records: Map<string, NutritionLibraryFood>,
+  remoteEntityId: string | undefined,
+): string | undefined => {
+  if (!remoteEntityId) return undefined;
+  if (records.has(remoteEntityId)) return remoteEntityId;
+  return [...records.keys()].find(
+    (candidate) => getNutritionLibrarySyncEntityId(candidate) === remoteEntityId,
+  );
 };
 
 export const applyRemoteNutritionLibraryChanges = async (input: {
@@ -243,15 +277,19 @@ export const applyRemoteNutritionLibraryChanges = async (input: {
   const deletedRecordIds: string[] = [];
 
   for (const entity of input.changedEntities.filter((item) => isNutritionLibraryEntity(item.entityType))) {
-    const item = parseRemoteItem(entity);
-    if (!item) continue;
+    const parsedItem = parseRemoteItem(entity);
+    if (!parsedItem) continue;
+    const existingLibraryId = resolveExistingLibraryId(records, entity.entityId?.trim());
+    const item = existingLibraryId
+      ? { ...parsedItem, libraryId: existingLibraryId }
+      : parsedItem;
     const previous = records.get(item.libraryId);
     if (previous && previous.revision > item.revision) continue;
     records.set(item.libraryId, item);
     appliedRecordIds.push(item.libraryId);
   }
   for (const entity of input.deletedEntities.filter((item) => isNutritionLibraryEntity(item.entityType))) {
-    const libraryId = entity.entityId?.trim();
+    const libraryId = resolveExistingLibraryId(records, entity.entityId?.trim());
     if (!libraryId) continue;
     const previous = records.get(libraryId);
     const remoteRevision = Math.max(0, Math.floor(entity.revision ?? 0));

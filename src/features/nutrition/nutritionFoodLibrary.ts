@@ -1,3 +1,5 @@
+import { createDeterministicUuid, isUuid } from '@/lib/ids';
+
 import type { DraftItem } from './addFoodModel';
 
 export type NutritionLibraryFood = DraftItem & {
@@ -11,6 +13,14 @@ export type NutritionLibraryFood = DraftItem & {
 };
 
 const STORAGE_PREFIX = 'smart-fitness:nutrition-food-library:v1';
+const SYNC_ENTITY_NAMESPACE = 'nutritionLibraryItems';
+
+export const getNutritionLibrarySyncEntityId = (libraryId: string): string => {
+  const normalized = libraryId.trim();
+  return isUuid(normalized)
+    ? normalized.toLowerCase()
+    : createDeterministicUuid(`${SYNC_ENTITY_NAMESPACE}:${normalized}`);
+};
 
 export const getNutritionFoodLibraryStorageKey = (ownerId: string | null): string =>
   `${STORAGE_PREFIX}:${ownerId ?? 'anonymous'}`;
@@ -23,6 +33,7 @@ const normalizeLibraryFood = (value: unknown): NutritionLibraryFood | null => {
   const item = value as Partial<NutritionLibraryFood>;
   if (
     typeof item.libraryId !== 'string' ||
+    !item.libraryId.trim() ||
     (item.kind !== 'custom' && item.kind !== 'provider-favorite') ||
     typeof item.savedAt !== 'string' ||
     typeof item.name !== 'string' ||
