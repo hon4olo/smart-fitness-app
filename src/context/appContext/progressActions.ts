@@ -8,6 +8,13 @@ import type {
   WeightEntry,
 } from '@/types';
 
+export type ProfileActivityLevel =
+  | 'sedentary'
+  | 'light'
+  | 'moderate'
+  | 'high'
+  | 'very_high';
+
 export type ProfileGoalsUpdate = {
   targetWeight: number;
   goalType: ProfileGoalType;
@@ -15,17 +22,23 @@ export type ProfileGoalsUpdate = {
   trainingDaysPerWeek: number;
 };
 
+export type RegistrationProfileUpdate = {
+  height: string;
+  trainingExperience: ProfileTrainingExperience;
+};
+
 export type CoachProfileUpdate = {
   dateOfBirth: string;
   calculationSex: ProfileCalculationSex;
   height: string;
-  activityLevel: 'sedentary' | 'light' | 'moderate' | 'high' | 'very_high';
+  activityLevel: ProfileActivityLevel;
   trainingExperience: ProfileTrainingExperience;
 };
 
 export type OnboardingSetup = {
+  age: number;
+  activityLevel: ProfileActivityLevel;
   currentWeight: number;
-  targetWeight: number;
   goalType: ProfileGoalType;
   trainingDaysPerWeek: number;
 };
@@ -45,6 +58,19 @@ export function updateProfileGoalsInState(
     profile: {
       ...currentState.profile,
       ...goals,
+    },
+  };
+}
+
+export function updateRegistrationProfileInState(
+  currentState: AppState,
+  profile: RegistrationProfileUpdate,
+): AppState {
+  return {
+    ...currentState,
+    profile: {
+      ...currentState.profile,
+      ...profile,
     },
   };
 }
@@ -133,6 +159,7 @@ export function completeOnboardingInState(
     weight: setup.currentWeight,
     createdAt: initialWeightInput.createdAt,
   };
+  const referenceYear = new Date(initialWeightInput.createdAt).getUTCFullYear();
 
   return {
     initialWeightEntry,
@@ -141,7 +168,9 @@ export function completeOnboardingInState(
       onboardingCompleted: true,
       profile: {
         ...currentState.profile,
-        targetWeight: setup.targetWeight,
+        activityLevel: setup.activityLevel,
+        dateOfBirth: `${referenceYear - setup.age}-01-01`,
+        targetWeight: setup.currentWeight,
         goalType: setup.goalType,
         weeklyWeightChangeGoal: currentState.profile.weeklyWeightChangeGoal,
         trainingDaysPerWeek: setup.trainingDaysPerWeek,
