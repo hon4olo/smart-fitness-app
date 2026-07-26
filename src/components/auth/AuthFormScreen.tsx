@@ -81,7 +81,7 @@ export function AuthFormScreen({ mode, onBack, onSubmit, onSwitchMode }: AuthFor
       password,
       confirmPassword,
       displayName,
-      heightCm: displayLengthInputToCm(heightInput, lengthUnit),
+      heightCm: Number(displayLengthInputToCm(heightInput, lengthUnit)),
       trainingExperience,
     }),
     [confirmPassword, displayName, email, heightInput, lengthUnit, password, trainingExperience],
