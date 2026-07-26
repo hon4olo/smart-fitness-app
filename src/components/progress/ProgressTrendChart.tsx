@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useLocalization } from '@/localization';
 
 export type ProgressTrendPoint = {
@@ -19,6 +19,9 @@ type ProgressTrendChartProps = {
   points: ProgressTrendPoint[];
 };
 
+const PLOT_HEIGHT = 168;
+const MIN_BAR_HEIGHT = 18;
+
 export const ProgressTrendChart = memo(function ProgressTrendChart({
   barColor = Colors.dark.chartPrimary,
   emptyLabel,
@@ -28,27 +31,27 @@ export const ProgressTrendChart = memo(function ProgressTrendChart({
 }: ProgressTrendChartProps) {
   const { t } = useLocalization();
   const chartMetrics = useMemo(() => {
-    if (points.length < 2) {
-      return null;
-    }
+    if (points.length < 2) return null;
 
-    const minValue = points.reduce((min, point) => Math.min(min, point.value), points[0].value);
-    const maxValue = points.reduce((max, point) => Math.max(max, point.value), points[0].value);
-    const range = maxValue - minValue;
-    const scaleRange = Math.max(range, Math.max(Math.abs(maxValue), 1) * 0.12);
+    const minValue = Math.min(...points.map((point) => point.value));
+    const maxValue = Math.max(...points.map((point) => point.value));
+    const visibleRange = Math.max(maxValue - minValue, Math.max(Math.abs(maxValue), 1) * 0.08);
+    const axisMinimum = minValue - visibleRange * 0.18;
+    const axisMaximum = maxValue + visibleRange * 0.08;
+    const axisRange = Math.max(axisMaximum - axisMinimum, 1);
+    const midpoint = axisMinimum + axisRange / 2;
 
     return {
-      bars: points.map((point) => {
-        const normalized = range === 0 ? 0.5 : (point.value - minValue) / scaleRange;
-        const height = 24 + Math.min(1, Math.max(0, normalized)) * 76;
-
-        return {
-          ...point,
-          height,
-        };
-      }),
+      axisLabels: [maxLabel, midpoint.toFixed(1), minLabel],
+      bars: points.map((point) => ({
+        ...point,
+        height: Math.max(
+          MIN_BAR_HEIGHT,
+          ((point.value - axisMinimum) / axisRange) * (PLOT_HEIGHT - 8),
+        ),
+      })),
     };
-  }, [points]);
+  }, [maxLabel, minLabel, points]);
 
   if (!chartMetrics) {
     return <Text style={styles.emptyText}>{emptyLabel}</Text>;
@@ -60,99 +63,143 @@ export const ProgressTrendChart = memo(function ProgressTrendChart({
       accessibilityHint={t('progress.chartHint')}
       accessibilityLabel={t('progress.chartLabel', { max: maxLabel, min: minLabel })}
       style={styles.chartShell}>
-      <View style={styles.chartRangeRow}>
-        <Text style={styles.chartRangeLabel}>{maxLabel}</Text>
-        <Text style={styles.chartRangeLabel}>{minLabel}</Text>
-      </View>
-
-      <View style={styles.chartContent}>
-        <View style={styles.chartBaseline} />
-        <View style={styles.chartBars}>
-          {chartMetrics.bars.map((point) => (
-            <View key={point.key} style={styles.chartBarColumn}>
-              <Text numberOfLines={1} style={styles.chartValueLabel}>
-                {point.displayValue}
-              </Text>
-              <View style={styles.chartBarTrack}>
-                <View style={[styles.chartBar, { backgroundColor: barColor, height: point.height }]} />
+      <View style={styles.plotRow}>
+        <View style={styles.plot}>
+          <View style={[styles.horizontalGrid, styles.gridTop]} />
+          <View style={[styles.horizontalGrid, styles.gridMiddle]} />
+          <View style={[styles.horizontalGrid, styles.gridBottom]} />
+          <View style={styles.barsRow}>
+            {chartMetrics.bars.map((point, index) => (
+              <View key={point.key} style={styles.column}>
+                {index > 0 ? <View style={styles.verticalGrid} /> : null}
+                <View style={styles.barTrack}>
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        backgroundColor: barColor,
+                        height: point.height,
+                        opacity: index === chartMetrics.bars.length - 1 ? 1 : 0.72,
+                      },
+                    ]}
+                  />
+                </View>
               </View>
-              <Text numberOfLines={1} style={styles.chartBarLabel}>
-                {point.label}
-              </Text>
-            </View>
+            ))}
+          </View>
+        </View>
+        <View style={styles.axis}>
+          {chartMetrics.axisLabels.map((label) => (
+            <Text key={label} numberOfLines={1} style={styles.axisLabel}>
+              {label}
+            </Text>
           ))}
         </View>
       </View>
+      <View style={styles.labelsRow}>
+        {chartMetrics.bars.map((point) => (
+          <Text key={point.key} numberOfLines={1} style={styles.xLabel}>
+            {point.label}
+          </Text>
+        ))}
+        <View style={styles.axisSpacer} />
+      </View>
+      <Text numberOfLines={1} style={styles.latestValue}>
+        {chartMetrics.bars.at(-1)?.displayValue}
+      </Text>
     </View>
   );
 });
 
 const styles = StyleSheet.create({
-  chartBar: {
-    borderRadius: 999,
-    minHeight: 24,
-    width: '100%',
+  axis: {
+    height: PLOT_HEIGHT,
+    justifyContent: 'space-between',
+    paddingLeft: Spacing.two,
+    width: 58,
   },
-  chartBarColumn: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 4,
-    minWidth: 0,
-  },
-  chartBarLabel: {
-    color: Colors.dark.textSecondary,
-    fontSize: Typography.caption.fontSize,
-    textAlign: 'center',
-  },
-  chartBarTrack: {
-    backgroundColor: Colors.dark.backgroundSecondary,
-    borderRadius: Radii.medium,
-    height: 96,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-    padding: 2,
-    width: '100%',
-  },
-  chartBars: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  chartBaseline: {
-    backgroundColor: Colors.dark.divider,
-    bottom: 34,
-    height: 1,
-    left: 0,
-    opacity: 0.7,
-    position: 'absolute',
-    right: 0,
-  },
-  chartContent: {
-    flex: 1,
-    position: 'relative',
-  },
-  chartRangeLabel: {
-    color: Colors.dark.textSecondary,
+  axisLabel: {
+    color: Colors.dark.textMuted,
     fontSize: Typography.caption.fontSize,
     fontVariant: ['tabular-nums'],
-    fontWeight: Typography.label.fontWeight,
+    textAlign: 'right',
   },
-  chartRangeRow: {
+  axisSpacer: { width: 58 },
+  bar: {
+    borderRadius: 4,
+    minHeight: MIN_BAR_HEIGHT,
+    width: 18,
+  },
+  barTrack: {
+    alignItems: 'center',
+    height: PLOT_HEIGHT,
+    justifyContent: 'flex-end',
+    width: '100%',
+  },
+  barsRow: {
+    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
   },
   chartShell: {
-    marginTop: Spacing.one,
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: Spacing.one,
+    overflow: 'hidden',
+    padding: Spacing.three,
   },
-  chartValueLabel: {
-    color: Colors.dark.textPrimary,
-    fontSize: Typography.caption.fontSize,
-    fontVariant: ['tabular-nums'],
-    fontWeight: Typography.button.fontWeight,
+  column: {
+    flex: 1,
+    position: 'relative',
   },
   emptyText: {
     color: Colors.dark.textSecondary,
     fontSize: Typography.callout.fontSize,
     lineHeight: Typography.callout.lineHeight,
+  },
+  gridBottom: { bottom: 0 },
+  gridMiddle: { top: PLOT_HEIGHT / 2 },
+  gridTop: { top: 0 },
+  horizontalGrid: {
+    backgroundColor: Colors.dark.textMuted,
+    height: StyleSheet.hairlineWidth,
+    left: 0,
+    opacity: 0.42,
+    position: 'absolute',
+    right: 0,
+  },
+  labelsRow: {
+    flexDirection: 'row',
+  },
+  latestValue: {
+    color: Colors.dark.textSecondary,
+    fontSize: Typography.caption.fontSize,
+    fontVariant: ['tabular-nums'],
+    fontWeight: Typography.label.fontWeight,
+    textAlign: 'right',
+  },
+  plot: {
+    flex: 1,
+    height: PLOT_HEIGHT,
+    position: 'relative',
+  },
+  plotRow: {
+    flexDirection: 'row',
+  },
+  verticalGrid: {
+    borderLeftColor: Colors.dark.textMuted,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    bottom: 0,
+    left: 0,
+    opacity: 0.32,
+    position: 'absolute',
+    top: 0,
+  },
+  xLabel: {
+    color: Colors.dark.textSecondary,
+    flex: 1,
+    fontSize: Typography.caption.fontSize,
+    textAlign: 'center',
   },
 });
