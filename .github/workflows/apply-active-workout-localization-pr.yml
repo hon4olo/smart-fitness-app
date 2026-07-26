@@ -19,7 +19,7 @@ jobs:
       - name: Install verified files
         shell: bash
         run: |
-          base64 --decode .localization/active-files.tar.gz.b64 > /tmp/active-files.tar.gz
+          cat .localization/chunks/00 .localization/chunks/01 .localization/chunks/02 .localization/chunks/03 .localization/chunks/04 .localization/chunks/05 | base64 --decode > /tmp/active-files.tar.gz
           printf '%s  %s\n' 'cbc56e48dd101a71055c4f2e9100e7c2c063c58efe6bac8fe078287969e77f57' '/tmp/active-files.tar.gz' | sha256sum --check
           tar -xzf /tmp/active-files.tar.gz
           rm -rf .localization
