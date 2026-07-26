@@ -1,0 +1,77 @@
+name: Verify sync isolation production OTA
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.head_ref == 'release/verify-sync-isolation-ota'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for production update
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            eas branch:view production --json --non-interactive > production-updates.json
+            if node - <<'NODE'
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('production-updates.json', 'utf8'));
+          const updates = Array.isArray(data.currentPage) ? data.currentPage : [];
+          const match = updates.find((update) =>
+            typeof update.message === 'string' &&
+            update.message.includes('[ota] Isolate sync validation failures (#172)') &&
+            update.runtimeVersion === '1.0.2' &&
+            String(update.platforms ?? '').includes('ios')
+          );
+          if (!match) process.exit(1);
+          fs.writeFileSync('verified-sync-isolation-ota.json', JSON.stringify({
+            message: match.message,
+            id: data.id,
+            group: match.group,
+            runtimeVersion: match.runtimeVersion,
+            platforms: match.platforms,
+          }, null, 2));
+          NODE
+            then
+              cat verified-sync-isolation-ota.json
+              exit 0
+            fi
+            echo "Production OTA not visible yet (attempt ${attempt}/18)"
+            sleep 20
+          done
+          echo "Expected production OTA was not found" >&2
+          cat production-updates.json >&2 || true
+          exit 1
+
+      - name: Upload verification metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-sync-isolation-production-ota
+          path: |
+            production-updates.json
+            verified-sync-isolation-ota.json
+          retention-days: 3
