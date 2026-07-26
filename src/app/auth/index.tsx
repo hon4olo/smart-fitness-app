@@ -48,6 +48,11 @@ export default function AuthLandingScreen() {
             onPress={() => router.push('/auth/sign-in')}
             variant="secondary"
           />
+          <AppButton
+            label={t('common.continue')}
+            onPress={() => router.replace(onboardingCompleted ? '/' : '/onboarding')}
+            variant="secondary"
+          />
         </AppCard>
       </View>
     </ScrollView>
