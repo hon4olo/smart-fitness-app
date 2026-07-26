@@ -1,4 +1,4 @@
-import type { BodyMeasurement, BodyMeasurementUnit } from '@/types';
+import type { BodyMeasurement, BodyMeasurementMetric, BodyMeasurementUnit } from '@/types';
 
 import { resolveBodyMeasurementStructuredValue } from '@/features/progress/bodyMeasurementModel';
 import {
@@ -9,6 +9,7 @@ import {
 
 export type MeasurementInsight = {
   id: string;
+  metric?: BodyMeasurementMetric;
   label: string;
   latestValue: string;
   previousValue?: string;
@@ -82,6 +83,7 @@ export const getMeasurementInsights = (
 
       return {
         id: latest.id,
+        metric: latest.metric,
         label: latest.label,
         latestValue: latest.value,
         previousValue: previous?.value,
