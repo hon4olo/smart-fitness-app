@@ -66,6 +66,8 @@ The existing Combined Coach aggregates deterministic reviews. Full Combined Stra
 - Web and non-native test runtimes intentionally use volatile in-memory token storage instead of silently downgrading secrets to ordinary persistent storage.
 - `expo-secure-store` is a native runtime dependency. A matching native build is required before releasing JavaScript that imports it.
 - A backend model provider is optional and capability-gated. Deterministic reviews must remain available when it is disabled.
+- Onboarding completion must commit the completion flag, profile inputs, initial weight, and derived nutrition targets in one application-state mutation. Do not navigate away until local persistence has completed.
+- Local repository write failures must reject so the observable mutation queue can surface and retry them; logging and resolving creates false-success navigation.
 
 ## Synchronization
 
