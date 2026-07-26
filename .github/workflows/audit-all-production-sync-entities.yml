@@ -1,0 +1,28 @@
+name: Audit all production sync entities
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: github.head_ref == 'diagnostic/audit-all-production-sync-entities-v2'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run production entity audit
+        run: node .github/diagnostics/audit-all-production-sync-entities.mjs
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-production-sync-entity-audit
+          path: full-production-sync-audit.json
+          if-no-files-found: error
+          retention-days: 3
