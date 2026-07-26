@@ -27,13 +27,22 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Read production updates
+        id: read-updates
+        continue-on-error: true
         env:
           CI: '1'
+        shell: bash
         run: |
-          eas update:list --branch production --limit 10 --json > production-updates.json
-          cat production-updates.json
+          set +e
+          eas update:list --branch production --limit 10 --json > production-updates.json 2> eas-read.log
+          status=$?
+          cat eas-read.log
+          test ! -s production-updates.json || cat production-updates.json
+          printf 'exit_code=%s\n' "$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
 
       - name: Verify auth-routing update
+        if: steps.read-updates.outcome == 'success'
         run: |
           node <<'NODE'
           const fs = require('fs');
@@ -72,11 +81,17 @@ jobs:
           NODE
 
       - name: Upload verification metadata
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: verified-production-auth-ota
           path: |
             production-updates.json
+            eas-read.log
             verified-auth-ota.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 3
+
+      - name: Fail if EAS metadata could not be read
+        if: steps.read-updates.outcome != 'success'
+        run: exit 1
