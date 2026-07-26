@@ -27,6 +27,8 @@ const includesString = <T extends string>(
   typeof value === 'string' && (values as readonly string[]).includes(value);
 const isWeightHistoryEntity = (value: string): boolean =>
   value === 'weightHistory' || value === 'weight_history';
+const isFitnessProfileEntity = (value: string): boolean =>
+  value === 'fitnessProfiles' || value === 'fitness_profiles';
 
 const stableStringify = (value: unknown): string => {
   if (value === null || typeof value !== 'object') {
@@ -58,6 +60,23 @@ const normalizeString = (value: unknown, fallback: string): string =>
 const normalizePayload = (
   value: unknown,
 ): Record<string, unknown> | undefined => (isRecord(value) ? value : undefined);
+
+const normalizePayloadForServer = (
+  entityType: string,
+  payload: Record<string, unknown> | undefined,
+): { payload: Record<string, unknown> | undefined; changed: boolean } => {
+  if (
+    !payload ||
+    !isFitnessProfileEntity(entityType) ||
+    !Object.prototype.hasOwnProperty.call(payload, 'deviceId')
+  ) {
+    return { payload, changed: false };
+  }
+
+  const compatiblePayload = { ...payload };
+  delete compatiblePayload.deviceId;
+  return { payload: compatiblePayload, changed: true };
+};
 
 const normalizeRevision = (value: unknown): SyncRevision | undefined => {
   if (!isRecord(value)) {
@@ -237,29 +256,33 @@ export const normalizeOfflineSyncQueueOperation = (
   );
   const action = normalizeAction(operation.action ?? operation.type);
   const rawPayload = normalizePayload(operation.payload ?? operation.data);
-  const payload =
+  const normalizedPayload =
     rawPayload && isWeightHistoryEntity(entityType)
       ? {
           ...rawPayload,
           id: ensureUuid(rawPayload.id ?? rawEntityId),
         }
       : rawPayload;
+  const payloadCompatibility = normalizePayloadForServer(entityType, normalizedPayload);
+  const payload = payloadCompatibility.payload;
   const baseRevision = normalizeRevision(operation.baseRevision ?? operation.revision);
   const lastError = normalizeCloudError(operation.lastError ?? operation.error);
   const retryCount = clampRetryCount(operation.retryCount);
   const status = normalizeStatus(operation.status ?? operation.state);
   const actorId = isString(operation.actorId) ? operation.actorId.trim() : undefined;
-  const idempotencyKey = isOfflineSyncQueueIdempotencyKey(operation.idempotencyKey)
-    ? operation.idempotencyKey
-    : createOfflineSyncQueueIdempotencyKey({
+  const idempotencyKey =
+    !payloadCompatibility.changed &&
+    isOfflineSyncQueueIdempotencyKey(operation.idempotencyKey)
+      ? operation.idempotencyKey
+      : createOfflineSyncQueueIdempotencyKey({
         entityType,
         entityId,
         action,
         clientTimestamp,
         actorId,
-        baseRevision,
-        payload,
-      });
+          baseRevision,
+          payload,
+        });
   const rawMetadata = isRecord(operation.metadata) ? operation.metadata : undefined;
   const metadata = {
     ...rawMetadata,

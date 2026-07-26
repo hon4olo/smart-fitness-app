@@ -148,14 +148,13 @@ export const createFitnessProfileQueueOperation = (input: {
     createdAt: input.previous?.syncedAt ?? now,
   };
   const payload = input.action === 'delete'
-    ? { id: entityId, deletedAt: now, deviceId: input.deviceId }
+    ? { id: entityId, deletedAt: now }
     : {
         schemaVersion: 1,
         id: entityId,
         ...snapshot,
         createdAt: input.previous?.syncedAt ?? now,
         updatedAt: now,
-        deviceId: input.deviceId,
       };
   const idempotencyKey = createOfflineSyncQueueIdempotencyKey({
     entityType: 'fitnessProfiles',

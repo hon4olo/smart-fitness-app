@@ -77,6 +77,7 @@ The existing Combined Coach aggregates deterministic reviews. Full Combined Stra
 - Add one entity at a time with round-trip, offline queue, duplicate delivery, conflict, malformed payload, deletion, and restart-recovery tests.
 - Advance the cursor only when every returned operation is supported and safely materialized.
 - Critical mutations use the ordered application mutation queue and expose persistence or outbox failures with retry controls.
+- Keep authenticated user/device identity in the sync request envelope or operation metadata, not inside strict entity payloads. When an outbound payload contract changes, normalize persisted queue entries and regenerate their idempotency keys before retrying.
 - Queue mutation locking and deduplication protect the queue itself, but do not make application-state persistence and outbox enqueue one atomic storage transaction.
 - The save-succeeded/enqueue-failed path must remain recoverable after application restart and must never be hidden from the user.
 
