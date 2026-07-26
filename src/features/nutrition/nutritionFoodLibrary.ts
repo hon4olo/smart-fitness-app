@@ -57,11 +57,9 @@ const normalizeLibraryFood = (value: unknown): NutritionLibraryFood | null => {
     typeof item.syncedRevision === 'number' && Number.isFinite(item.syncedRevision)
       ? Math.min(revision, Math.max(0, Math.floor(item.syncedRevision)))
       : 0;
-  const libraryId = getNutritionLibrarySyncEntityId(item.libraryId);
 
   return {
     ...(item as NutritionLibraryFood),
-    libraryId,
     updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : item.savedAt,
     revision,
     syncedRevision,
@@ -91,12 +89,10 @@ export const parseNutritionFoodLibrary = (raw: string | null): NutritionLibraryF
 export const serializeNutritionFoodLibrary = (items: NutritionLibraryFood[]): string =>
   JSON.stringify(items);
 
-export const getNutritionLibraryId = (draft: DraftItem): string => {
-  const sourceId = draft.externalId
+export const getNutritionLibraryId = (draft: DraftItem): string =>
+  draft.externalId
     ? `${draft.source}:${draft.externalId}`
     : `custom:${draft.name.trim().toLowerCase()}:${draft.brandName?.trim().toLowerCase() ?? ''}`;
-  return getNutritionLibrarySyncEntityId(sourceId);
-};
 
 export const getActiveNutritionLibraryFoods = (
   items: NutritionLibraryFood[],
