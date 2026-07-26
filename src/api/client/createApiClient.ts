@@ -33,19 +33,18 @@ const createRequestId = (): string => {
 };
 
 const buildUrl = (baseUrl: string, path: string, query?: ApiRequestOptions['query']): string => {
-  const url = new URL(path, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+  const normalizedBase = baseUrl.replace(/\/+$/, '');
+  const normalizedPath = path.replace(/^\/+/, '');
+  const baseWithPath = `${normalizedBase}/${normalizedPath}`;
 
-  if (query) {
-    for (const [key, value] of Object.entries(query)) {
-      if (value === undefined || value === null) {
-        continue;
-      }
+  if (!query) return baseWithPath;
 
-      url.searchParams.set(key, String(value));
-    }
-  }
+  const search = Object.entries(query)
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join('&');
 
-  return url.toString();
+  return search ? `${baseWithPath}?${search}` : baseWithPath;
 };
 
 const inferMessage = (status: number, body: unknown): string => {
@@ -149,7 +148,9 @@ const parseResponseBody = async (response: Response): Promise<unknown> => {
 };
 
 const isAbortError = (error: unknown): boolean =>
-  error instanceof DOMException ? error.name === 'AbortError' : error instanceof Error && error.name === 'AbortError';
+  typeof DOMException !== 'undefined' && error instanceof DOMException
+    ? error.name === 'AbortError'
+    : error instanceof Error && error.name === 'AbortError';
 
 const mapNetworkError = (error: unknown): ApiError => {
   if (isAbortError(error)) {
@@ -169,6 +170,11 @@ const mapNetworkError = (error: unknown): ApiError => {
   });
 };
 
+const isInstanceOfGlobal = (value: unknown, constructorName: 'FormData' | 'Blob' | 'URLSearchParams'): boolean => {
+  const constructorValue = globalThis[constructorName];
+  return typeof constructorValue === 'function' && value instanceof constructorValue;
+};
+
 const createRequestInit = <TBody>(options: ApiRequestOptions<TBody>, requestId: string, timeoutMs: number, defaultHeaders: Record<string, string> | undefined) => {
   const headers = new Headers({
     Accept: 'application/json',
@@ -179,7 +185,12 @@ const createRequestInit = <TBody>(options: ApiRequestOptions<TBody>, requestId: 
 
   let body: BodyInit | undefined;
   if (options.body !== undefined) {
-    if (typeof options.body === 'string' || options.body instanceof FormData || options.body instanceof Blob || options.body instanceof URLSearchParams) {
+    if (
+      typeof options.body === 'string' ||
+      isInstanceOfGlobal(options.body, 'FormData') ||
+      isInstanceOfGlobal(options.body, 'Blob') ||
+      isInstanceOfGlobal(options.body, 'URLSearchParams')
+    ) {
       body = options.body as BodyInit;
     } else {
       headers.set('content-type', 'application/json');
@@ -206,7 +217,12 @@ const createRequestInit = <TBody>(options: ApiRequestOptions<TBody>, requestId: 
   }
 
   if (timeoutMs > 0) {
-    timeoutHandle = setTimeout(() => controller.abort(new DOMException('Request timed out', 'AbortError')), timeoutMs);
+    timeoutHandle = setTimeout(() => {
+      const timeoutError = typeof DOMException !== 'undefined'
+        ? new DOMException('Request timed out', 'AbortError')
+        : Object.assign(new Error('Request timed out'), { name: 'AbortError' });
+      controller.abort(timeoutError);
+    }, timeoutMs);
   }
 
   return { init: { method: options.method, headers, body, signal: controller.signal } as RequestInit, cleanup };
@@ -221,14 +237,16 @@ export const createApiClient = (options: ApiClientOptions): ApiClient => {
     const safeMethod = SAFE_RETRY_METHODS.includes(requestOptions.method);
     const maxAttempts = safeMethod && retryConfig ? retryConfig.attempts + 1 : 1;
     const requestId = options.requestIdFactory?.() ?? createRequestId();
-    const url = buildUrl(options.baseUrl, requestOptions.path, requestOptions.query);
 
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      const { init, cleanup } = createRequestInit(requestOptions, requestId, timeoutMs, options.defaultHeaders);
+      let cleanup = () => undefined;
       try {
-        const response = await fetchImpl(url, init);
+        const url = buildUrl(options.baseUrl, requestOptions.path, requestOptions.query);
+        const requestInit = createRequestInit(requestOptions, requestId, timeoutMs, options.defaultHeaders);
+        cleanup = requestInit.cleanup;
+        const response = await fetchImpl(url, requestInit.init);
         const body = await parseResponseBody(response);
 
         if (!response.ok) {
