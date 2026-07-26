@@ -13,6 +13,8 @@ export {
   type LanguagePreference,
   type MessageKey,
   type SupportedLocale,
+  type Translate,
+  type TranslationValues,
 } from './messages';
 export {
   formatPlural,

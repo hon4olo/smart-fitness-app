@@ -1,6 +1,49 @@
 # Localization and Settings roadmap
 
-Updated: 2026-07-25
+Updated: 2026-07-26
+
+
+## Full mobile UI localization audit — 2026-07-26
+
+Audit scope and method:
+
+- inspected the current `main` source tree under `src/app`, `src/features`, and `src/components`;
+- scanned 328 handwritten TypeScript/TSX files after excluding tests, specs, and fixture directories;
+- reviewed routes, screen components, alerts, placeholders, accessibility copy, loading/empty/error states, status labels, and local copy helpers;
+- treated email addresses, UUIDs, API routes, `runtimeVersion`, `updateId`, and non-visible internal codes as technical data rather than translation copy.
+
+Verified baseline findings before the first slice:
+
+- the central English and Russian catalogs each contained 141 unique keys with exact key parity and no duplicate keys;
+- 11 user-source files contained 117 direct locale branches (`locale === 'ru'` or equivalent);
+- Settings used the central catalog alongside five separate local bilingual copy contracts (Privacy/About, support diagnostics, sync status, recovery, and conflict review) plus inline locale branches in the Settings shell and personal-details editor;
+- the same user flow could therefore render central translations, local translations, raw status codes, and hard-coded English on one screen;
+- confirmed mixed-language examples included `resolver`, `support`, raw sync/environment status codes, developer controls, OTA alerts/fallbacks, session `App` metadata, and account-form placeholders.
+
+Screen groups with incomplete or mixed localization after this first slice:
+
+1. **Profile, Progress, goals, and Coach profile** — Profile summary, goal/planning sections, Coach profile controls, progress overview cards, charts, body measurements, muscle analytics, Safety & Recovery history, weight entry, and weight details.
+2. **Home and onboarding** — remaining Home status/action copy and the dedicated onboarding validation, labels, segmented options, success alerts, and accessibility copy.
+3. **Workouts** — Workouts hub, active session, finish flow, set table/actions, exercise library/detail, workout history/detail, programs, routines, templates, builder, safety gate, preview tools, and integration/coming-soon states.
+4. **Nutrition** — Nutrition tab, food browser/search, Add Food, custom-food form, barcode scanner, serving editor, favorites/recent foods, meal templates, targets, empty/error states, and Nutrition Coach proposal surfaces.
+5. **Advanced Coach** — Coach history/trust/detail, recovery check-in, training limitations, Safety & Recovery preflight/review, Combined Coach, Strength Coach, Nutrition Coach, proposals, provenance/trust statuses, and raw validation/result copy.
+6. **Final global pass** — remaining direct `Intl`/`toLocaleString`, visible enum formatting, count-dependent copy, accessibility labels/hints, dialogs, alerts, stale/offline/retry states, and a repository-wide hard-coded English baseline.
+
+First slice implemented in PR #147:
+
+- Settings shell, section headings, subtitle, alerts, developer tools, OTA status copy, and localized fallbacks;
+- Account/auth placeholders and device-session metadata/platform labels;
+- Personal details labels, validation, helper text, success state, and calculation-formula options;
+- Data & Sync summary/detail, status labels, offline/error/conflict explanations, recovery, conflict entity/source labels, and support diagnostics;
+- Privacy and About disclosures, Coach history/trust link, release metadata labels, and unavailable-link explanation;
+- local Settings bilingual dictionaries replaced by the typed localization contract;
+- real Russian pluralization applied to protected recovery-change counts;
+- targeted source-contract tests added to prevent inline locale branches, local Settings dictionaries, direct English alert text, and direct English high-risk UI props from returning in this slice.
+
+Validation boundary:
+
+- code and automated checks can verify catalog parity, source-contract rules, TypeScript, and regression behavior;
+- Russian layout, truncation, Dynamic Type, VoiceOver, keyboard, offline, sync conflict, and OTA diagnostic states still require physical-iPhone validation after runtime 1.0.2 is installed.
 
 ## Localization and regional formatting
 
@@ -12,6 +55,7 @@ Completed:
 - Russian and English catalogs;
 - device-language detection and persisted System/English/Russian override;
 - localized root navigation, tabs, Settings, auth, Account & Security, destructive confirmations, validation, and safe errors;
+- centralized Settings/Account/Privacy/About/Sync copy with no component-level locale branches in the completed slice;
 - locale-aware dates on account/session and Weight details surfaces;
 - stable untranslated persisted identifiers, enums, routes, and sync fields;
 - metric/imperial preferences with canonical internal storage;
@@ -31,10 +75,11 @@ Relevant mobile PRs:
 
 Remaining:
 
-- complete Russian/English translation for Home, Workouts, Nutrition, Progress, Exercise detail, Profile, Coach, release/update, loading, empty, and error copy;
+- complete Russian/English translation for Home/onboarding, Workouts, Nutrition, Progress detail, Profile planning, and advanced Coach copy;
 - migrate remaining direct `Intl` and `toLocaleString` usage to the localization/unit formatting boundary;
 - adopt pluralization helpers in real count-dependent user-facing messages;
-- extend missing-key, interpolation, plural-form, and unsupported-locale tests as catalogs grow;
+- extend the hard-coded English guard from the completed Settings/Account slice to each subsequent screen group;
+- extend interpolation, plural-form, and unsupported-locale tests as catalogs grow;
 - verify long Russian strings on narrow and wide layouts;
 - add Russian/English screenshot checks;
 - audit Dynamic Type, VoiceOver/TalkBack, contrast, Reduce Motion, focus order, and touch targets.

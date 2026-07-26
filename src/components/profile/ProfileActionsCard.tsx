@@ -1,10 +1,11 @@
 import { Text } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { DestructiveButton } from '@/components/ui/DestructiveButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { DestructiveButton } from '@/components/ui/DestructiveButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, Spacing, Typography } from '@/constants/theme';
+import { useLocalization } from '@/localization';
 
 type ProfileActionsCardProps = {
   onResetOnboarding: () => void;
@@ -12,29 +13,30 @@ type ProfileActionsCardProps = {
 
 export function ProfileActionsCard({ onResetOnboarding }: ProfileActionsCardProps) {
   const router = useRouter();
+  const { t } = useLocalization();
 
   return (
     <AppCard>
-      <Text style={styles.title}>Developer settings</Text>
-      <Text style={styles.badge}>Developer</Text>
+      <Text style={styles.title}>{t('developer.settingsTitle')}</Text>
+      <Text style={styles.badge}>{t('developer.badge')}</Text>
       <SecondaryButton
-        accessibilityHint="Opens the deterministic Strength Coach preview"
-        label="Strength Coach preview"
+        accessibilityHint={t('developer.strengthPreviewHint')}
+        label={t('developer.strengthPreview')}
         onPress={() => router.push('/workouts/coach')}
       />
       <SecondaryButton
-        accessibilityHint="Opens the deterministic Nutrition Coach preview"
-        label="Nutrition Coach preview"
+        accessibilityHint={t('developer.nutritionPreviewHint')}
+        label={t('developer.nutritionPreview')}
         onPress={() => router.push('/nutrition/coach')}
       />
       <SecondaryButton
-        accessibilityHint="Opens the guarded nutrition target proposal preview"
-        label="Nutrition target proposal"
+        accessibilityHint={t('developer.nutritionProposalHint')}
+        label={t('developer.nutritionProposal')}
         onPress={() => router.push('/nutrition/coach-proposal')}
       />
       <DestructiveButton
-        accessibilityHint="Resets the setup flow for this device"
-        label="Reset onboarding"
+        accessibilityHint={t('developer.resetOnboardingHint')}
+        label={t('developer.resetOnboarding')}
         onPress={onResetOnboarding}
       />
     </AppCard>

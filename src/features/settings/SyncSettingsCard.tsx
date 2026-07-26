@@ -13,9 +13,9 @@ import { getSyncStatusCopy, getSyncStatusExplanation } from './syncStatusCopy';
 export function SyncSettingsCard() {
   const router = useRouter();
   const { colors } = useAppTheme();
-  const { locale } = useLocalization();
+  const { t } = useLocalization();
   const { conflictCount, pendingOperations, status } = useWeightSync();
-  const copy = getSyncStatusCopy(locale);
+  const copy = getSyncStatusCopy(t);
 
   return (
     <AppCard>

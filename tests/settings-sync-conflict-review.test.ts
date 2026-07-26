@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { enMessages, ruMessages } from '@/localization/messages';
+
 declare const __dirname: string;
 declare const require: any;
 
@@ -21,8 +23,9 @@ describe('Settings sync conflict review', () => {
     expect(card).not.toContain('conflict.entityId');
     expect(card).not.toContain('conflict.details');
     expect(card).not.toContain('conflict.reason');
-    expect(copy).toContain('does not delete local data');
-    expect(copy).toContain('не удаляет локальные данные');
+    expect(copy).toContain("retryExplanation: t('syncConflict.retryExplanation')");
+    expect(enMessages['syncConflict.retryExplanation']).toContain('does not delete local data');
+    expect(ruMessages['syncConflict.retryExplanation']).toContain('не удаляет локальные данные');
   });
 
   it('retries the existing deterministic resolver through syncNow', () => {

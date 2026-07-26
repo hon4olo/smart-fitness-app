@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing, Typography } from '@/constants/theme';
+import { useLocalization } from '@/localization';
 
 export function ProfileRuntimeInfoCard({
   channel,
@@ -17,12 +18,14 @@ export function ProfileRuntimeInfoCard({
   runtimeVersion: string;
   updateId: string;
 }) {
+  const { t } = useLocalization();
+
   return (
     <AppCard>
-      <Text style={styles.title}>Runtime metadata</Text>
+      <Text style={styles.title}>{t('developer.runtimeMetadata')}</Text>
 
       <View style={styles.otaCard}>
-        <Text style={styles.otaTitle}>OTA update</Text>
+        <Text style={styles.otaTitle}>{t('developer.otaUpdate')}</Text>
 
         <View style={styles.otaRow}>
           <Text style={styles.otaLabel}>runtimeVersion</Text>
@@ -33,15 +36,19 @@ export function ProfileRuntimeInfoCard({
           <Text style={styles.otaValue}>{updateId}</Text>
         </View>
         <View style={styles.otaRow}>
-          <Text style={styles.otaLabel}>createdAt</Text>
+          <Text style={styles.otaLabel}>{t('developer.createdAt')}</Text>
           <Text style={styles.otaValue}>{createdAt}</Text>
         </View>
         <View style={styles.otaRow}>
-          <Text style={styles.otaLabel}>channel</Text>
+          <Text style={styles.otaLabel}>{t('developer.channel')}</Text>
           <Text style={styles.otaValue}>{channel}</Text>
         </View>
 
-        <AppButton label="Check for OTA update" onPress={onCheckForOtaUpdate} variant="secondary" />
+        <AppButton
+          label={t('developer.checkOtaUpdate')}
+          onPress={onCheckForOtaUpdate}
+          variant="secondary"
+        />
       </View>
     </AppCard>
   );

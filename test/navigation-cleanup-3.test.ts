@@ -96,9 +96,9 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(settings).toContain('<ProfileRuntimeInfoCard');
     expect(settings).toContain('developerExpanded');
     expect(sync).toContain("router.push('/sync-backup')");
-    expect(sync).toContain('Last sync');
+    expect(sync).toContain("t('sync.lastSync')");
     expect(developer).not.toContain('owner-only');
-    expect(developer).toContain('Developer');
+    expect(developer).toContain("t('developer.settingsTitle')");
   });
 
   test('business actions remain reachable through public and secondary routes', () => {

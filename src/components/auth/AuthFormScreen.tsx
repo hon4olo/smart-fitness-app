@@ -127,7 +127,7 @@ export function AuthFormScreen({ mode, onBack, onSubmit, onSwitchMode }: AuthFor
                   setFieldErrors((current) => ({ ...current, email: undefined }));
                 }
               }}
-              placeholder="you@example.com"
+              placeholder={t('auth.emailPlaceholder')}
               textContentType="emailAddress"
               value={email}
             />
@@ -180,7 +180,7 @@ export function AuthFormScreen({ mode, onBack, onSubmit, onSwitchMode }: AuthFor
                       setFieldErrors((current) => ({ ...current, displayName: undefined }));
                     }
                   }}
-                  placeholder="Alex"
+                  placeholder={t('auth.displayNamePlaceholder')}
                   textContentType="name"
                   value={displayName}
                 />

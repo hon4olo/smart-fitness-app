@@ -22,21 +22,17 @@ export function AppMutationFailureNotice({
   pendingCount,
 }: AppMutationFailureNoticeProps) {
   const { colors } = useAppTheme();
-  const { locale } = useLocalization();
+  const { locale, t } = useLocalization();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const copy = getDataRecoveryCopy(locale);
+  const copy = getDataRecoveryCopy(locale, t);
 
   if (!failure) return null;
 
   const isOutboxFailure = failure.stage === 'outbox';
   const title = isOutboxFailure
-    ? locale === 'ru'
-      ? 'Синхронизация ожидает повтора'
-      : 'Sync pending'
-    : locale === 'ru'
-      ? 'Не удалось сохранить локально'
-      : 'Local save failed';
+    ? t('recovery.syncPendingTitle')
+    : t('recovery.localSaveFailedTitle');
   const safeMessage = isOutboxFailure ? copy.outboxFailure : copy.localFailure;
   const retryLabel = isOutboxFailure ? copy.retrySync : copy.retrySave;
 
@@ -74,7 +70,7 @@ export function AppMutationFailureNotice({
           accessibilityRole="button"
           onPress={onDismiss}
           style={({ pressed }) => [styles.dismissAction, pressed && styles.pressed]}>
-          <Text style={styles.dismissLabel}>{locale === 'ru' ? 'Скрыть' : 'Dismiss'}</Text>
+          <Text style={styles.dismissLabel}>{t('common.dismiss')}</Text>
         </Pressable>
       </View>
     </View>

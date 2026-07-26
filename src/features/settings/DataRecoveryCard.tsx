@@ -20,9 +20,9 @@ type RecoveryState = 'idle' | 'loading' | 'recovering' | 'recovered' | 'error';
 
 export function DataRecoveryCard() {
   const { colors } = useAppTheme();
-  const { locale } = useLocalization();
+  const { locale, t } = useLocalization();
   const { mutationFailure, pendingMutationCount, retryFailedMutation } = useAppContext();
-  const copy = getDataRecoveryCopy(locale);
+  const copy = getDataRecoveryCopy(locale, t);
   const recoveryStore = useMemo(getDefaultAppMutationOutboxRecoveryStore, []);
   const recoveryQueueStore = useMemo(
     () => createAsyncStorageOperationQueueStore(createAsyncStorageAdapter()),
@@ -84,7 +84,7 @@ export function DataRecoveryCard() {
       {hasActiveFailure ? (
         <View style={styles.actionBlock}>
           <Text style={[styles.meta, { color: colors.textSecondary }]}>
-            {copy.failedAction}: {mutationFailure?.label ?? copy.unknownAction}
+            {copy.failedAction}: {copy.unknownAction}
           </Text>
           <AppButton
             disabled={isBusy}

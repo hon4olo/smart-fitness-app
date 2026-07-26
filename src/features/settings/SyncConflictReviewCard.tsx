@@ -16,10 +16,10 @@ type LoadState = 'loading' | 'ready' | 'error';
 
 export function SyncConflictReviewCard() {
   const { colors } = useAppTheme();
-  const { formatDate, locale } = useLocalization();
+  const { formatDate, t } = useLocalization();
   const { session } = useAuthSession();
   const { conflictCount, status, syncNow } = useWeightSync();
-  const copy = getSyncConflictCopy(locale);
+  const copy = getSyncConflictCopy(t);
   const conflictStore = useMemo(
     () => createSyncConflictStore(createAsyncStorageAdapter()),
     [],

@@ -8,11 +8,32 @@ import {
   localizeSessionManagementMessage,
 } from '@/localization/authCopy';
 import { enMessages, ruMessages } from '@/localization/messages';
+import { formatPlural } from '@/localization/pluralization';
 import { resolveLocale, translate } from '@/localization/LocalizationProvider';
 
 describe('localization foundation', () => {
   it('keeps Russian and English catalogs key-complete', () => {
     expect(Object.keys(ruMessages).sort()).toEqual(Object.keys(enMessages).sort());
+  });
+
+
+  it('keeps every catalog value non-empty', () => {
+    for (const catalog of [enMessages, ruMessages]) {
+      expect(Object.values(catalog).every((value) => value.trim().length > 0)).toBe(true);
+    }
+  });
+
+  it('uses localized Settings copy and Russian plural forms', () => {
+    expect(translate('ru', 'settings.personalDetails')).toBe('Личные данные');
+    expect(translate('ru', 'sync.status.offline')).toBe('Нет сети');
+    expect(
+      formatPlural('ru', 5, {
+        one: translate('ru', 'recovery.protected.one'),
+        few: translate('ru', 'recovery.protected.few'),
+        many: translate('ru', 'recovery.protected.many'),
+        other: translate('ru', 'recovery.protected.other'),
+      }),
+    ).toContain('5 защищённых изменений');
   });
 
   it('uses the detected system locale for system preference', () => {

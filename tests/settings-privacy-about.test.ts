@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { enMessages, ruMessages } from '@/localization/messages';
+
 declare const __dirname: string;
 declare const require: any;
 
@@ -15,10 +17,12 @@ describe('Settings privacy and about surfaces', () => {
 
     expect(settings).toContain('<PrivacySettingsCard />');
     expect(settings).toContain('<AboutSettingsCard />');
-    expect(cards).toContain('Anonymous data is not silently merged');
-    expect(cards).toContain('Анонимные данные не объединяются');
-    expect(cards).toContain('Product analytics is not currently enabled');
-    expect(cards).toContain('Продуктовая аналитика сейчас не включена');
+    expect(cards).toContain("t('privacy.localBody')");
+    expect(cards).toContain("t('privacy.analyticsBody')");
+    expect(enMessages['privacy.localBody']).toContain('Anonymous data is never merged');
+    expect(ruMessages['privacy.localBody']).toContain('Анонимные данные никогда не объединяются');
+    expect(enMessages['privacy.analyticsBody']).toContain('Product analytics is not enabled');
+    expect(ruMessages['privacy.analyticsBody']).toContain('Аналитика использования не включена');
     expect(cards).toContain('createSupportDiagnostics');
   });
 
@@ -29,6 +33,8 @@ describe('Settings privacy and about surfaces', () => {
     expect(cards).not.toContain('weightValue');
     expect(cards).not.toContain('calorieValue');
     expect(cards).not.toContain('emailAddress');
-    expect(cards).toContain('No legal or support link is shown until a verified destination is configured.');
+    expect(cards).toContain("t('about.legalUnavailable')");
+    expect(enMessages['about.legalUnavailable']).toContain('Legal links and support contacts');
+    expect(ruMessages['about.legalUnavailable']).toContain('Юридические ссылки и контакты поддержки');
   });
 });

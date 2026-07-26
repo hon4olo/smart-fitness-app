@@ -32,7 +32,7 @@ const validateDateOfBirth = (value: string): string | null => {
 
 export function PersonalDetailsSettingsCard() {
   const app = useAppContext();
-  const { locale } = useLocalization();
+  const { t } = useLocalization();
   const [dateOfBirth, setDateOfBirth] = useState(app.profile.dateOfBirth ?? '');
   const [calculationSex, setCalculationSex] = useState<ProfileCalculationSex | null>(
     app.profile.calculationSex,
@@ -45,23 +45,17 @@ export function PersonalDetailsSettingsCard() {
 
   const dateErrorKey = useMemo(() => validateDateOfBirth(dateOfBirth), [dateOfBirth]);
   const dateError = dateErrorKey
-    ? locale === 'ru'
-      ? dateErrorKey === 'future'
-        ? 'Дата рождения не может быть в будущем.'
-        : dateErrorKey === 'age'
-          ? 'Поддерживается возраст от 18 до 100 лет.'
-          : 'Используйте формат ГГГГ-ММ-ДД.'
-      : dateErrorKey === 'future'
-        ? 'Date of birth cannot be in the future.'
-        : dateErrorKey === 'age'
-          ? 'Supported age is 18–100.'
-          : 'Use YYYY-MM-DD.'
+    ? t(
+        dateErrorKey === 'future'
+          ? 'personalDetails.validation.future'
+          : dateErrorKey === 'age'
+            ? 'personalDetails.validation.age'
+            : 'personalDetails.validation.format',
+      )
     : undefined;
   const formulaError = calculationSex
     ? undefined
-    : locale === 'ru'
-      ? 'Выберите формулу расчёта.'
-      : 'Select the calculation formula.';
+    : t('personalDetails.validation.formula');
   const isDisabled = Boolean(dateError || formulaError);
 
   const save = () => {
@@ -87,29 +81,22 @@ export function PersonalDetailsSettingsCard() {
       onboardingCompleted: app.onboardingCompleted,
     };
     app.replaceState(nextState);
-    Alert.alert(
-      locale === 'ru' ? 'Личные данные сохранены' : 'Personal details saved',
-      locale === 'ru'
-        ? 'Coach будет использовать эти значения автоматически.'
-        : 'Coach will use these values automatically.',
-    );
+    Alert.alert(t('personalDetails.savedTitle'), t('personalDetails.savedBody'));
   };
 
   return (
     <AppCard>
-      <Text style={styles.title}>{locale === 'ru' ? 'Личные данные' : 'Personal details'}</Text>
+      <Text style={styles.title}>{t('personalDetails.title')}</Text>
       <Text style={styles.help}>
-        {locale === 'ru'
-          ? 'Дата рождения и формула расчёта задаются один раз в настройках и не дублируются в Coach.'
-          : 'Date of birth and calculation formula are set once in Settings and are not repeated in Coach.'}
+        {t('personalDetails.description')}
       </Text>
       <FormField
         autoCapitalize="none"
         autoCorrect={false}
         errorMessage={dateError}
-        helperText={locale === 'ru' ? 'Формат: ГГГГ-ММ-ДД' : 'Format: YYYY-MM-DD'}
+        helperText={t('personalDetails.dateFormat')}
         keyboardType="numbers-and-punctuation"
-        label={locale === 'ru' ? 'Дата рождения' : 'Date of birth'}
+        label={t('personalDetails.dateOfBirth')}
         maxLength={10}
         onChangeText={setDateOfBirth}
         placeholder="2000-05-12"
@@ -118,21 +105,19 @@ export function PersonalDetailsSettingsCard() {
       />
       <View style={styles.group}>
         <Text style={styles.label}>
-          {locale === 'ru' ? 'Формула расчёта' : 'Calculation formula'}
+          {t('personalDetails.calculationFormula')}
         </Text>
         <Text style={styles.help}>
-          {locale === 'ru'
-            ? 'Используется только в детерминированных формулах энергозатрат.'
-            : 'Used only by deterministic energy formulas.'}
+          {t('personalDetails.calculationFormulaDescription')}
         </Text>
         <View style={styles.row}>
           <FormulaOption
-            label={locale === 'ru' ? 'Мужская' : 'Male'}
+            label={t('personalDetails.formulaMale')}
             onPress={() => setCalculationSex('male')}
             selected={calculationSex === 'male'}
           />
           <FormulaOption
-            label={locale === 'ru' ? 'Женская' : 'Female'}
+            label={t('personalDetails.formulaFemale')}
             onPress={() => setCalculationSex('female')}
             selected={calculationSex === 'female'}
           />
@@ -141,7 +126,7 @@ export function PersonalDetailsSettingsCard() {
       </View>
       <PrimaryButton
         disabled={isDisabled}
-        label={locale === 'ru' ? 'Сохранить личные данные' : 'Save personal details'}
+        label={t('personalDetails.save')}
         onPress={save}
       />
     </AppCard>
