@@ -30,7 +30,7 @@ jobs:
         env:
           CI: '1'
         run: |
-          eas update:list --branch production --limit 10 --json --non-interactive > production-updates.json
+          eas update:list --branch production --limit 10 --json > production-updates.json
           cat production-updates.json
 
       - name: Verify auth-routing update
