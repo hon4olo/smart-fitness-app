@@ -19,6 +19,9 @@ jobs:
     env:
       CI: '1'
       SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+      EAS_BRANCH: production
+      EAS_CHANNEL: production
+      EXPECTED_RUNTIME_VERSION: '1.0.1'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -41,14 +44,57 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Publish EAS Update (manual)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Resolve update message
+        id: update-message
+        shell: bash
         env:
-          UPDATE_MESSAGE: ${{ github.event.inputs.message }}
-        run: eas update --platform ios --channel production --message "$UPDATE_MESSAGE" --environment production
+          MANUAL_MESSAGE: ${{ github.event.inputs.message }}
+          PUSH_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            printf 'message=%s\n' "$MANUAL_MESSAGE" >> "$GITHUB_OUTPUT"
+          else
+            printf 'message=%s\n' "$PUSH_MESSAGE" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Publish EAS Update (push)
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[ota]')
+      - name: Link production channel to production branch
+        run: eas channel:edit "$EAS_CHANNEL" --branch "$EAS_BRANCH" --non-interactive
+
+      - name: Publish verified iOS EAS Update
         env:
-          UPDATE_MESSAGE: ${{ github.event.head_commit.message }}
-        run: eas update --platform ios --channel production --message "$UPDATE_MESSAGE" --environment production
+          UPDATE_MESSAGE: ${{ steps.update-message.outputs.message }}
+        run: |
+          eas update \
+            --platform ios \
+            --branch "$EAS_BRANCH" \
+            --message "$UPDATE_MESSAGE" \
+            --environment production \
+            --json > eas-update.json
+          cat eas-update.json
+
+      - name: Verify published update metadata
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const payload = JSON.parse(fs.readFileSync('eas-update.json', 'utf8'));
+          const updates = Array.isArray(payload) ? payload : [payload];
+          const iosUpdate = updates.find((item) => item && item.platform === 'ios');
+          if (!iosUpdate) throw new Error('EAS did not return an iOS update record.');
+          if (!iosUpdate.id) throw new Error('Published iOS update is missing an update ID.');
+          if (iosUpdate.runtimeVersion !== process.env.EXPECTED_RUNTIME_VERSION) {
+            throw new Error(`Runtime mismatch: expected ${process.env.EXPECTED_RUNTIME_VERSION}, received ${iosUpdate.runtimeVersion ?? 'missing'}.`);
+          }
+          const group = iosUpdate.group ?? iosUpdate.groupId ?? 'not returned';
+          fs.appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            `## Verified EAS Update\n\n- Update ID: \`${iosUpdate.id}\`\n- Group: \`${group}\`\n- Platform: \`${iosUpdate.platform}\`\n- Runtime: \`${iosUpdate.runtimeVersion}\`\n- Branch: \`${process.env.EAS_BRANCH}\`\n- Channel: \`${process.env.EAS_CHANNEL}\`\n`,
+          );
+          NODE
+
+      - name: Upload EAS publication metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: eas-update-metadata
+          path: eas-update.json
+          if-no-files-found: error
+          retention-days: 14
