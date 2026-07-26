@@ -4,86 +4,72 @@ Updated: 2026-07-26
 
 ## Product principles
 
-- Keep primary tabs focused on user goals and daily actions.
-- Keep Profile as a concise identity and summary surface, with a Settings icon in the header.
-- Move account, personal details, language, appearance, units, sync, privacy, runtime diagnostics, and developer tools into Settings.
-- Keep goal planning, progress inputs, and AI Coach controls together in Progress.
+- Keep the five primary tabs focused on daily actions: Home, Workouts, Nutrition, Progress, and Coach.
+- Keep Profile available from the Home header instead of spending a permanent bottom-tab slot.
+- Keep Profile focused on user summary, goal planning, and the Settings entry point.
+- Keep Progress focused on recorded outcomes, trends, measurements, and recovery history.
+- Keep every AI Coach action on the dedicated Coach screen.
+- Keep account creation before plan onboarding; do not let signed-out users enter the normal app shell.
+- Collect stable registration inputs once, then avoid duplicate editors in Coach.
 - Never communicate disabled state through opacity alone; show the blocking reason or validation message.
-- Keep onboarding as a first-run/account-creation flow, not a permanent Home card.
-- Localize all user-facing copy in English and Russian; technical labels may remain inside an explicitly developer-only section.
-- Preserve current business logic, persistence schemas, sync contracts, and backend boundaries while restructuring presentation.
+- Localize all user-facing copy in English and Russian.
+- Preserve persistence schemas, sync payloads, and backend boundaries while restructuring presentation.
 
-## Completed visual architecture
+## Completed information architecture
 
-- [x] Profile has a top-right Settings control.
-- [x] Account actions were removed from Profile and live in Settings.
-- [x] Developer tools, OTA runtime metadata, and reset onboarding live only in Settings.
-- [x] Goal editing moved from Profile to Progress.
-- [x] AI Coach profile and secondary Coach routes moved from Profile to Progress.
-- [x] Date of birth and calculation formula have one canonical Settings editor.
-- [x] Date of birth and calculation formula are no longer duplicated in the Coach form.
-- [x] Coach validation reads those identity inputs from the stored profile.
-- [x] The large Home cloud-queue failure overlay was replaced by a compact recoverable status.
-- [x] Quick Setup moved to a dedicated first-run route.
-- [x] Home shell received the initial Russian localization and density pass.
+- [x] Profile is removed from the public bottom tab bar.
+- [x] A Profile control is available in the top-right of Home.
+- [x] Coach replaces Profile as the fifth public tab.
+- [x] Goal and plan editing moved from Progress to Profile.
+- [x] Progress no longer renders goal or Coach planning controls.
+- [x] The obsolete explanatory block was removed from Profile.
+- [x] AI Coach actions moved to the dedicated Coach screen.
+- [x] Height and training experience were removed from the Coach editor and moved into registration.
+- [x] First launch now presents Create account / Sign in before onboarding.
+- [x] Post-registration onboarding collects age in years, current weight, explained activity level, goal, and training days.
+- [x] Goal saving requires confirmation that activity recommendations and nutrition targets will be recalculated.
+- [x] Progress weight history uses a compact grid-and-column chart treatment.
+- [x] Weight outbox identity lookup fails soft when cached session restoration is temporarily unavailable.
+- [x] New auth, onboarding, Profile, Progress, and Coach copy is localized in English and Russian.
 
-## P0 — remaining broken or misleading states
+## P0 — release validation
 
-- Audit every disabled primary action and keep a visible explanation next to it.
-- Verify Coach profile persistence after force-close and relaunch on a physical iPhone.
-- Verify personal-details persistence and revisioned fitness-profile synchronization while signed in.
-- Verify signed-out personal details remain local and survive restart.
-- Verify queue-failure recovery does not duplicate a fitness-profile mutation.
+- Run TypeScript, the complete test suite, Expo Doctor, and export validation.
+- Verify the first-launch authentication choice on a clean install.
+- Verify registration persists height and training experience before onboarding.
+- Verify onboarding cannot be opened while signed out.
+- Verify an existing signed-in user with completed onboarding enters Home without seeing registration again.
+- Verify Profile opens from the Home header and is absent from the bottom bar.
+- Verify Coach is the fifth tab and every Coach route remains reachable.
+- Verify goal save confirmation, nutrition-target recalculation, and persistence after relaunch.
+- Verify adding weight no longer shows a false local-outbox failure when session lookup fails transiently.
+- Verify the new chart with 2, 4, and 7+ weight entries on a physical iPhone.
 
-## P1 — localization
+## P1 — follow-up polish
 
-- [x] Centralize and complete Settings, Account, Privacy, About, sync validation, alerts, diagnostics, and recovery copy in PR #147.
-- [x] Complete Profile summary, Progress overview/planning, Goals, AI Coach profile, body-measurement entry, charts, and Safety & Recovery card localization in PR #148.
-- [x] Complete Home and onboarding localization, including validation, alerts, pluralization, and bounded deterministic-status copy in PR #149.
-- [x] Complete Workouts hub localization, including counts, seed titles, empty/loading/disabled states, and accessibility copy in PR #150.
-- Workouts hub code and automated contracts still require physical-iPhone verification in English and Russian after runtime 1.0.2 is installed.
-- Complete Russian localization for the active workout/finish flow, remaining Workouts routes, Nutrition, Progress detail routes, and advanced Coach.
-- Remove mixed-language headings from Progress and Coach secondary routes.
-- Keep terminology consistent across tabs: goal, target weight, training days, synchronization, recovery, and Coach.
-
-## P1 — Profile and Settings polish
-
-- Replace the temporary text-based Settings glyph with the project-standard icon component when the shared icon treatment is consolidated.
-- Keep Profile limited to concise user-facing summary content.
-- Keep destructive account actions isolated inside the Account section in Settings.
-- Keep Developer tools collapsed by default and at the bottom of Settings.
-- Add clear saved/loading/failure feedback to personal-details and Coach mutations.
-
-## P1 — Progress planning hierarchy
-
-- Keep Goal and AI Coach sections collapsed by default.
-- Present planning controls before historical charts without allowing them to dominate the screen.
-- Split Progress into focused components before the route approaches the 500-line limit.
-- [x] Localize weight, body-measurement, training-progress, and Safety & Recovery overview cards in PR #148.
-
-## P2 — screen density and hierarchy
-
-- Reduce repeated cards, duplicated headings, and explanatory copy already implied by controls.
-- Use one dominant action per card and avoid multiple equal-weight CTAs.
-- Collapse advanced Coach and diagnostic information by default.
-- Keep error notices compact and attached to the affected feature rather than overlaying unrelated content.
+- Replace temporary emoji tab/header glyphs with the project-standard icon component when the shared icon treatment is consolidated.
+- Add an explicit Profile editor for registration-derived height and training experience without duplicating them in Coach.
+- Decide whether approximate age storage should migrate from a January 1 date-of-birth surrogate to a dedicated age/year field in a future schema version.
+- Add feature-scoped synchronization feedback near weight entry instead of relying only on the global mutation notice.
+- Continue Russian localization for active workout/finish, remaining Workouts routes, Nutrition, Progress detail routes, and advanced Coach routes.
+- Continue the disabled-control and dynamic-type audit across all tabs.
 
 ## Validation matrix
 
-- iPhone physical-device checks in English and Russian.
-- First-run onboarding, completed onboarding, signed-out, signed-in, offline, queue failure, and retry-success states.
-- Settings gear placement and navigation from Profile.
-- Account actions available in Settings and absent from Profile.
-- Goals and AI Coach available in Progress and absent from Profile.
-- Personal details save, Coach save, force-close, relaunch, and sync retry.
-- Small and large text, keyboard open, loading, validation error, and disabled actions.
-- Verify no data loss, no schema changes, no duplicate sync operations, and no regression in account deletion or recovery.
+- Clean install, existing install, signed-out, signed-in, offline, expired-session, and transient secure-storage failure.
+- English and Russian.
+- Small and large text sizes.
+- Registration, login, onboarding, relaunch, and logout.
+- Home Profile shortcut, hidden Profile tab, visible Coach tab, Settings navigation.
+- Goal edit, confirmation cancel, confirmation save, nutrition recalculation, persistence.
+- Weight create/update/delete, queue retry, no duplicate outbox operation, and no false failure banner.
+- Progress chart with equal values, narrow range, rising/falling values, and long localized date labels.
+- No data loss, no persistence schema change, no backend deployment, and no native/runtime change.
 
 ## Next execution order
 
-1. Physical-iPhone validation of the new Profile / Settings / Progress structure.
-2. Verify Coach and personal-details persistence after force-close and relaunch.
-3. Continue localization with the active workout/finish flow, then the remaining Workouts routes and Nutrition.
-4. Add explicit saved/loading/failure feedback for profile mutations.
-5. Continue the transparent/disabled control audit across all tabs.
-6. Complete the remaining visual-density pass and update this roadmap with device evidence.
+1. Complete automated validation and repair any TypeScript/test regressions from this slice.
+2. Merge the exact validated PR head with an `[ota]` merge title.
+3. Verify the production iOS EAS Update reports runtime `1.0.2` and a new update ID.
+4. Perform physical-iPhone smoke validation in Russian and English.
+5. Record device evidence and any remaining visual defects in this roadmap.
