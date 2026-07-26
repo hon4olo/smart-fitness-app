@@ -18,7 +18,6 @@ import {
   createBodyMeasurementDraft,
   getDefaultBodyMeasurementUnit,
 } from '@/features/progress/bodyMeasurementModel';
-import { ProgressPlanningSections } from '@/features/progress/ProgressPlanningSections';
 import {
   getBodyMeasurementDisplayLabel,
   getBodyMeasurementError,
@@ -135,7 +134,6 @@ export default function ProgressScreen() {
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.screen}>
       <View style={styles.container}>
         <SectionHeader title={t('tabs.progress')} subtitle={t('progress.subtitle')} />
-        <ProgressPlanningSections />
         <AppCard>
           <View style={styles.sectionHeader}>
             <Text selectable style={styles.sectionTitle}>{t('progress.weight')}</Text>
