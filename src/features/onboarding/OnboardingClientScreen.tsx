@@ -28,7 +28,7 @@ import {
 export default function OnboardingClientScreen() {
   const { completeOnboarding, onboardingCompleted, profile, updateNutritionTargets } =
     useAppContext();
-  const { locale } = useLocalization();
+  const { t } = useLocalization();
   const { weight: weightUnit } = useUnitPreferences();
   const insets = useSafeAreaInsets();
   const [currentWeightInput, setCurrentWeightInput] = useState('');
@@ -56,18 +56,16 @@ export default function OnboardingClientScreen() {
 
   const validationMessage = useMemo(() => {
     if (!Number.isFinite(parsedCurrentWeightDisplay) || parsedCurrentWeightDisplay <= 0) {
-      return locale === 'ru' ? 'Укажите текущий вес.' : 'Enter your current weight.';
+      return t('onboarding.validation.currentWeight');
     }
     if (!Number.isFinite(parsedTargetWeightDisplay) || parsedTargetWeightDisplay <= 0) {
-      return locale === 'ru' ? 'Укажите целевой вес.' : 'Enter your target weight.';
+      return t('onboarding.validation.targetWeight');
     }
     if (!Number.isInteger(trainingDays) || trainingDays < 1 || trainingDays > 7) {
-      return locale === 'ru'
-        ? 'Количество тренировочных дней должно быть от 1 до 7.'
-        : 'Training days must be between 1 and 7.';
+      return t('onboarding.validation.trainingDays');
     }
     return null;
-  }, [locale, parsedCurrentWeightDisplay, parsedTargetWeightDisplay, trainingDays]);
+  }, [parsedCurrentWeightDisplay, parsedTargetWeightDisplay, t, trainingDays]);
 
   const handleComplete = () => {
     if (validationMessage) return;
@@ -92,11 +90,9 @@ export default function OnboardingClientScreen() {
     const carbs = Math.max(0, Math.round((calories - protein * 4 - fats * 9) / 4));
 
     updateNutritionTargets({ calories, protein, carbs, fats });
-    Alert.alert(
-      locale === 'ru' ? 'Настройка завершена' : 'Setup complete',
-      locale === 'ru' ? 'Главный экран готов.' : 'Your dashboard is ready.',
-      [{ text: 'OK', onPress: () => router.replace('/') }],
-    );
+    Alert.alert(t('onboarding.successTitle'), t('onboarding.successBody'), [
+      { text: t('onboarding.successAction'), onPress: () => router.replace('/') },
+    ]);
   };
 
   return (
@@ -112,44 +108,26 @@ export default function OnboardingClientScreen() {
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>
-              {locale === 'ru' ? 'ПЕРВОНАЧАЛЬНАЯ НАСТРОЙКА' : 'QUICK SETUP'}
-            </Text>
-            <Text style={styles.title}>
-              {locale === 'ru' ? 'Настроим ваш план' : 'Set up your plan'}
-            </Text>
-            <Text style={styles.subtitle}>
-              {locale === 'ru'
-                ? 'Эти данные можно изменить позже в профиле.'
-                : 'You can change these details later from Profile.'}
-            </Text>
+            <Text style={styles.eyebrow}>{t('onboarding.eyebrow')}</Text>
+            <Text style={styles.title}>{t('onboarding.title')}</Text>
+            <Text style={styles.subtitle}>{t('onboarding.subtitle')}</Text>
           </View>
 
           <AppCard>
             <Field
-              label={
-                locale === 'ru'
-                  ? `Текущий вес (${weightUnit})`
-                  : `Current weight (${weightUnit})`
-              }
+              label={t('onboarding.currentWeight', { unit: weightUnit })}
               onChangeText={setCurrentWeightInput}
               placeholder={weightUnit === 'lb' ? '182.3' : '82.7'}
               value={currentWeightInput}
             />
             <Field
-              label={
-                locale === 'ru'
-                  ? `Целевой вес (${weightUnit})`
-                  : `Target weight (${weightUnit})`
-              }
+              label={t('onboarding.targetWeight', { unit: weightUnit })}
               onChangeText={setTargetWeightInput}
               placeholder={weightUnit === 'lb' ? '165' : '75'}
               value={targetWeightInput}
             />
             <Field
-              label={
-                locale === 'ru' ? 'Тренировочных дней в неделю' : 'Training days per week'
-              }
+              label={t('onboarding.trainingDays')}
               keyboardType="number-pad"
               onChangeText={setTrainingDaysInput}
               placeholder="3"
@@ -157,20 +135,20 @@ export default function OnboardingClientScreen() {
             />
 
             <View style={styles.goalBlock}>
-              <Text style={styles.label}>{locale === 'ru' ? 'Цель' : 'Goal'}</Text>
+              <Text style={styles.label}>{t('onboarding.goal')}</Text>
               <View style={styles.goalRow}>
                 <AppButton
-                  label={locale === 'ru' ? 'Сушка' : 'Lose fat'}
+                  label={t('profile.goal.loseFat')}
                   onPress={() => setGoalType('lose_fat')}
                   variant={goalType === 'lose_fat' ? 'primary' : 'secondary'}
                 />
                 <AppButton
-                  label={locale === 'ru' ? 'Поддержание' : 'Maintain'}
+                  label={t('profile.goal.maintain')}
                   onPress={() => setGoalType('maintain')}
                   variant={goalType === 'maintain' ? 'primary' : 'secondary'}
                 />
                 <AppButton
-                  label={locale === 'ru' ? 'Набор' : 'Gain muscle'}
+                  label={t('profile.goal.gainMuscle')}
                   onPress={() => setGoalType('gain_muscle')}
                   variant={goalType === 'gain_muscle' ? 'primary' : 'secondary'}
                 />
@@ -184,7 +162,7 @@ export default function OnboardingClientScreen() {
             ) : null}
             <AppButton
               disabled={Boolean(validationMessage)}
-              label={locale === 'ru' ? 'Завершить настройку' : 'Complete setup'}
+              label={t('onboarding.complete')}
               onPress={handleComplete}
             />
           </AppCard>
@@ -211,6 +189,7 @@ function Field({
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
+        accessibilityLabel={label}
         keyboardType={keyboardType}
         onChangeText={onChangeText}
         placeholder={placeholder}
