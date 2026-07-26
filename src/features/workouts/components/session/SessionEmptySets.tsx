@@ -15,7 +15,7 @@ export const SessionEmptySets = memo(function SessionEmptySets({ label = 'No exe
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{label}</Text>
-      <Text style={styles.subtitle}>Add exercises to start logging sets.</Text>
+      <Text style={styles.subtitle}>{t('workouts.session.noSetsDescription')}</Text>
     </View>
   );
 });

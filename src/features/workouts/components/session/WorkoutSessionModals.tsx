@@ -3,8 +3,10 @@ import { Modal, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
 import { createStyles } from '@/features/workouts/styles/workoutSessionScreenStyles';
+import { useLocalization } from '@/localization';
 
 type WorkoutSessionStyles = ReturnType<typeof createStyles>;
+
 
 type ExerciseTarget = {
   exerciseId: string;
@@ -92,6 +94,8 @@ export function ExerciseOverflowModal({
   onReplace(target: ExerciseTarget): void;
   styles: WorkoutSessionStyles;
 }) {
+  const { t } = useLocalization();
+
   return (
     <Modal
       animationType="fade"
@@ -108,7 +112,7 @@ export function ExerciseOverflowModal({
             <Pressable
               onPress={() => exercise && onReplace(exercise)}
               style={({ pressed }) => [styles.overflowAction, pressed && styles.pressed]}>
-              <Text style={styles.overflowActionLabel}>Replace exercise</Text>
+              <Text style={styles.overflowActionLabel}>{t('workouts.session.replaceExercise')}</Text>
             </Pressable>
             <Pressable
               onPress={() => exercise && onDelete(exercise)}
@@ -118,13 +122,13 @@ export function ExerciseOverflowModal({
                 pressed && styles.pressed,
               ]}>
               <Text style={[styles.overflowActionLabel, styles.overflowDangerLabel]}>
-                Delete exercise
+                {t('workouts.session.deleteExercise')}
               </Text>
             </Pressable>
             <Pressable
               onPress={onCancel}
               style={({ pressed }) => [styles.overflowCancel, pressed && styles.pressed]}>
-              <Text style={styles.overflowCancelLabel}>Cancel</Text>
+              <Text style={styles.overflowCancelLabel}>{t('common.cancel')}</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -156,6 +160,8 @@ export function WorkoutOverflowModal({
   trackRpeEnabled: boolean;
   visible: boolean;
 }) {
+  const { t } = useLocalization();
+
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
       <Pressable
@@ -165,7 +171,7 @@ export function WorkoutOverflowModal({
           <Text style={styles.overflowTitle}>{title}</Text>
           <View style={styles.overflowActions}>
             <WorkoutSheetRow
-              label="Track RPE"
+              label={t('workouts.session.trackRpe')}
               styles={styles}
               trailingAccessory={
                 <Switch
@@ -176,17 +182,17 @@ export function WorkoutOverflowModal({
                 />
               }
             />
-            <WorkoutSheetRow label="Add exercises" onPress={onAddExercises} styles={styles} />
+            <WorkoutSheetRow label={t('workouts.session.addExercises')} onPress={onAddExercises} styles={styles} />
             <WorkoutSheetRow
               destructive
-              label="Discard workout"
+              label={t('workouts.session.discard')}
               onPress={onDiscard}
               styles={styles}
             />
             <Pressable
               onPress={onClose}
               style={({ pressed }) => [styles.overflowCancel, pressed && styles.pressed]}>
-              <Text style={styles.overflowCancelLabel}>Cancel</Text>
+              <Text style={styles.overflowCancelLabel}>{t('common.cancel')}</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -208,6 +214,8 @@ export function ReplacementExerciseModal({
   styles: WorkoutSessionStyles;
   target: ExerciseTarget | null;
 }) {
+  const { t } = useLocalization();
+
   return (
     <Modal
       animationType="slide"
@@ -217,11 +225,11 @@ export function ReplacementExerciseModal({
       <View style={styles.replacementBackdrop}>
         <View style={styles.replacementSheet}>
           <View style={styles.replacementHeader}>
-            <Text style={styles.replacementTitle}>Replace exercise</Text>
+            <Text style={styles.replacementTitle}>{t('workouts.session.replaceExercise')}</Text>
             <Pressable
               onPress={onClose}
               style={({ pressed }) => [styles.overflowCancel, pressed && styles.pressed]}>
-              <Text style={styles.overflowCancelLabel}>Cancel</Text>
+              <Text style={styles.overflowCancelLabel}>{t('common.cancel')}</Text>
             </Pressable>
           </View>
           <ScrollView
@@ -242,7 +250,7 @@ export function ReplacementExerciseModal({
                     {exercise.name}
                   </Text>
                   <Text numberOfLines={1} style={styles.replacementRowMeta}>
-                    {exercise.muscleGroup ?? exercise.category ?? 'Exercise'}
+                    {exercise.muscleGroup ?? exercise.category ?? t('workouts.session.exerciseFallback')}
                   </Text>
                 </View>
               </Pressable>

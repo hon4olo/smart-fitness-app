@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { WorkoutSet } from '@/context/AppContext';
 import { Colors } from '@/constants/theme';
+import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { displayWeightInputToKg, formatWeightValue, useUnitPreferences } from '@/units';
 
@@ -43,6 +44,7 @@ export const SessionSetTable = memo(function SessionSetTable({
   targetSetCount,
 }: SessionSetTableProps) {
   const { colors } = useAppTheme();
+  const { t } = useLocalization();
   const { weight: weightUnit } = useUnitPreferences();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const rowCount = Math.max(sets.length, targetSetCount);
@@ -57,16 +59,16 @@ export const SessionSetTable = memo(function SessionSetTable({
     <View style={styles.table}>
       <View style={styles.tableHeader}>
         <View style={[styles.headerCell, styles.colSet]}>
-          <Text style={styles.headerText}>Set</Text>
+          <Text style={styles.headerText}>{t('workouts.session.set')}</Text>
         </View>
         <View style={[styles.headerCell, styles.colPrevious, styles.headerCellPrevious]}>
-          <Text style={styles.headerText}>Previous</Text>
+          <Text style={styles.headerText}>{t('workouts.session.previous')}</Text>
         </View>
         <View style={[styles.headerCell, styles.colWeight, styles.headerCellWeight]}>
           <Text style={styles.headerText}>{weightUnit}</Text>
         </View>
         <View style={[styles.headerCell, styles.colReps, styles.headerCellReps]}>
-          <Text style={styles.headerText}>Reps</Text>
+          <Text style={styles.headerText}>{t('workouts.session.reps')}</Text>
         </View>
         <View style={[styles.headerCell, styles.colCompletion, styles.headerCellCompletion]}>
           <Text style={styles.headerText}>✓</Text>

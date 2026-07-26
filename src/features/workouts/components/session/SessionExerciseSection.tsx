@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { WorkoutSet } from '@/context/AppContext';
 import { Colors, Spacing } from '@/constants/theme';
+import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { SessionSetTable } from './SessionSetTable';
@@ -51,6 +52,7 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
   previousSets,
 }: SessionExerciseSectionProps) {
   const { colors } = useAppTheme();
+  const { t } = useLocalization();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const plannedSetCount = Math.max(exercise.targetSets ?? 0, exerciseSets.length);
   const collapsedRows = exerciseSets.length > 0
@@ -96,7 +98,7 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
                 </View>
               ))
             ) : (
-              <Text style={styles.collapsedLine}>No sets added</Text>
+              <Text style={styles.collapsedLine}>{t('workouts.session.noSets')}</Text>
             )
           ) : null}
         </View>
@@ -107,9 +109,9 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
 
       {expanded ? (
         <View style={styles.expanded}>
-          <TextInput placeholder="Notes..." placeholderTextColor={colors.textMuted} style={styles.notesInput} />
+          <TextInput placeholder={t('workouts.session.notesPlaceholder')} placeholderTextColor={colors.textMuted} style={styles.notesInput} />
           <Pressable disabled={!onNotesPress} onPress={onNotesPress} style={({ pressed }) => [styles.restTimer, pressed && styles.pressed]}>
-            <Text style={styles.restTimerLabel}>Rest Timer: Off</Text>
+            <Text style={styles.restTimerLabel}>{t('workouts.session.restTimerOff')}</Text>
           </Pressable>
           <SessionSetTable
             draftInputs={draftInputs}

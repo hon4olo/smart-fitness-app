@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing } from '@/constants/theme';
+import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type SessionHeaderProps = {
@@ -28,6 +29,7 @@ export const SessionHeader = memo(function SessionHeader({
   volume,
 }: SessionHeaderProps) {
   const { colors } = useAppTheme();
+  const { t } = useLocalization();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -53,15 +55,15 @@ export const SessionHeader = memo(function SessionHeader({
           disabled={finishDisabled}
           onPress={onFinish}
           style={({ pressed }) => [styles.finishButton, finishDisabled && styles.finishButtonDisabled, pressed && !finishDisabled && styles.finishButtonPressed]}>
-          <Text style={[styles.finishLabel, finishDisabled && styles.finishLabelDisabled]}>Finish</Text>
+          <Text style={[styles.finishLabel, finishDisabled && styles.finishLabelDisabled]}>{t('workouts.session.finish')}</Text>
         </Pressable>
       </View>
 
       {sets > 0 ? (
         <View style={styles.statsRow}>
-          <Stat label="Sets" value={`${sets}`} />
-          <Stat label="Reps" value={`${reps}`} />
-          <Stat label="Volume" value={`${Math.round(volume).toLocaleString()} kg`} />
+          <Stat label={t('workouts.session.sets')} value={`${sets}`} />
+          <Stat label={t('workouts.session.reps')} value={`${reps}`} />
+          <Stat label={t('workouts.session.volume')} value={`${Math.round(volume).toLocaleString()} kg`} />
         </View>
       ) : null}
 

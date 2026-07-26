@@ -33,6 +33,17 @@ const FIRST_SLICE_FILES = [
   'src/features/settings/syncStatusCopy.ts',
 ] as const;
 
+
+const ACTIVE_WORKOUT_FILES = [
+  'src/features/workouts/screens/WorkoutSessionScreen.tsx',
+  'src/features/workouts/screens/WorkoutSessionFinishScreen.tsx',
+  'src/features/workouts/components/session/WorkoutSessionBody.tsx',
+  'src/features/workouts/components/session/WorkoutSessionModalLayer.tsx',
+  'src/features/workouts/components/session/WorkoutSessionModals.tsx',
+  'src/features/workouts/components/session/WorkoutSessionLoadingState.tsx',
+  'src/features/workouts/components/session/WorkoutSessionMissingState.tsx',
+] as const;
+
 const extractMessageKeys = (source: string, start: string) => {
   const objectSource = source.split(start, 2)[1]?.split('} as const;', 1)[0] ?? '';
   return [...objectSource.matchAll(/^\s*'([^']+)'\s*:/gm)].map((match) => match[1]);
@@ -41,28 +52,12 @@ const extractMessageKeys = (source: string, start: string) => {
 describe('localized Settings and account UI contract', () => {
   it('keeps source catalogs free of duplicate keys', () => {
     const keys = [
-      ...extractMessageKeys(
-        readSource('src/localization/messages.ts'),
-        'const enCoreMessages = {',
-      ),
-      ...extractMessageKeys(
-        readSource('src/localization/settingsMessages.ts'),
-        'export const enSettingsMessages = {',
-      ),
-      ...extractMessageKeys(
-        readSource('src/localization/progressMessages.ts'),
-        'export const enProgressMessages = {',
-      ),
-      ...extractMessageKeys(
-        readSource('src/localization/homeOnboardingMessages.ts'),
-        'export const enHomeOnboardingMessages = {',
-      ),
-      ...extractMessageKeys(
-        readSource('src/localization/workoutsMessages.ts'),
-        'export const enWorkoutsMessages = {',
-      ),
+      ...extractMessageKeys(readSource('src/localization/messages.ts'), 'const enCoreMessages = {'),
+      ...extractMessageKeys(readSource('src/localization/settingsMessages.ts'), 'export const enSettingsMessages = {'),
+      ...extractMessageKeys(readSource('src/localization/progressMessages.ts'), 'export const enProgressMessages = {'),
+      ...extractMessageKeys(readSource('src/localization/homeOnboardingMessages.ts'), 'export const enHomeOnboardingMessages = {'),
+      ...extractMessageKeys(readSource('src/localization/workoutsMessages.ts'), 'export const enWorkoutsMessages = {'),
     ];
-
     expect(new Set(keys).size).toBe(keys.length);
   });
 
@@ -86,10 +81,16 @@ describe('localized Settings and account UI contract', () => {
   it('routes high-risk UI props and alerts through translation keys', () => {
     for (const path of FIRST_SLICE_FILES) {
       const source = readSource(path);
-      expect(source, path).not.toMatch(
-        /\b(?:label|title|subtitle|helperText|accessibilityLabel|accessibilityHint)\s*=\s*['"][A-Za-z]/,
-      );
+      expect(source, path).not.toMatch(/\b(?:label|title|subtitle|helperText|accessibilityLabel|accessibilityHint)\s*=\s*['"][A-Za-z]/);
       expect(source, path).not.toMatch(/Alert\.alert\(\s*['"][A-Za-z]/);
+    }
+  });
+
+  it('routes active workout and finish alerts through translation keys', () => {
+    for (const path of ACTIVE_WORKOUT_FILES) {
+      const source = readSource(path);
+      expect(source, path).not.toMatch(/Alert\.alert\(\s*['"][A-Za-z]/);
+      expect(source, path).not.toMatch(/locale\s*===\s*['"](?:ru|en)['"]/);
     }
   });
 });
