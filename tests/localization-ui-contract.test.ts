@@ -20,6 +20,7 @@ const FIRST_SLICE_FILES = [
   'src/components/auth/DeleteAccountModal.tsx',
   'src/components/profile/ProfileActionsCard.tsx',
   'src/components/profile/ProfileRuntimeInfoCard.tsx',
+  'src/components/profile/ProfileSyncStatusCard.tsx',
   'src/context/appContext/AppMutationFailureNotice.tsx',
   'src/features/settings/DataRecoveryCard.tsx',
   'src/features/settings/PersonalDetailsSettingsCard.tsx',
