@@ -19,6 +19,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
@@ -26,72 +27,51 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Read production updates
-        id: read-updates
-        continue-on-error: true
         env:
           CI: '1'
-        shell: bash
         run: |
-          set +e
-          eas update:list --branch production --limit 10 --json > production-updates.json 2> eas-read.log
-          status=$?
-          cat eas-read.log
-          test ! -s production-updates.json || cat production-updates.json
-          printf 'exit_code=%s\n' "$status" >> "$GITHUB_OUTPUT"
-          exit "$status"
+          eas update:list --branch production --platform ios --limit 10 --json > production-updates.json
+          cat production-updates.json
 
       - name: Verify auth-routing update
-        if: steps.read-updates.outcome == 'success'
         run: |
           node <<'NODE'
           const fs = require('fs');
           const payload = JSON.parse(fs.readFileSync('production-updates.json', 'utf8'));
           const expectedMessage = '[ota] Publish production auth routing fix';
-          const seen = [];
-          const walk = (value) => {
+          const matches = [];
+          const walk = (value, inherited = {}) => {
             if (!value || typeof value !== 'object') return;
             if (Array.isArray(value)) {
-              value.forEach(walk);
+              value.forEach((item) => walk(item, inherited));
               return;
             }
-            if (typeof value.message === 'string') {
-              seen.push({
-                message: value.message,
-                id: value.id ?? value.updateId ?? null,
-                group: value.group ?? value.groupId ?? null,
-                runtimeVersion: value.runtimeVersion ?? null,
-                platform: value.platform ?? null,
-                createdAt: value.createdAt ?? null,
-              });
-            }
-            Object.values(value).forEach(walk);
+            const context = {
+              message: typeof value.message === 'string' ? value.message : inherited.message,
+              group: value.group ?? value.groupId ?? value.id ?? inherited.group ?? null,
+              runtimeVersion: value.runtimeVersion ?? inherited.runtimeVersion ?? null,
+              createdAt: value.createdAt ?? inherited.createdAt ?? null,
+            };
+            if (context.message === expectedMessage) matches.push(context);
+            Object.values(value).forEach((item) => walk(item, context));
           };
           walk(payload);
-          const match = seen.find((item) => item.message === expectedMessage);
-          if (!match) {
-            console.error('Recent update messages:', seen.map((item) => item.message));
-            throw new Error('Production auth-routing OTA was not found.');
-          }
-          if (match.runtimeVersion && match.runtimeVersion !== '1.0.2') {
-            throw new Error(`Unexpected runtime: ${match.runtimeVersion}`);
-          }
+          const match = matches.find((item) => !item.runtimeVersion || item.runtimeVersion === '1.0.2');
+          if (!match) throw new Error('Production auth-routing OTA was not found for runtime 1.0.2.');
           fs.writeFileSync('verified-auth-ota.json', JSON.stringify(match, null, 2));
           console.log('Verified production auth OTA:', match);
           NODE
 
       - name: Upload verification metadata
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: verified-production-auth-ota
           path: |
             production-updates.json
-            eas-read.log
             verified-auth-ota.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 3
-
-      - name: Fail if EAS metadata could not be read
-        if: steps.read-updates.outcome != 'success'
-        run: exit 1
