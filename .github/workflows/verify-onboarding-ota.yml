@@ -1,0 +1,79 @@
+name: Verify onboarding production OTA
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.head_ref == 'release/verify-onboarding-ota'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Read production updates
+        env:
+          CI: '1'
+        run: |
+          eas update:list --branch production --platform ios --limit 10 --json > production-updates.json
+          cat production-updates.json
+
+      - name: Verify onboarding update
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const payload = JSON.parse(fs.readFileSync('production-updates.json', 'utf8'));
+          const expectedMessage = '[ota] Persist onboarding completion across relaunch (#160)';
+          const matches = [];
+          const walk = (value, inherited = {}) => {
+            if (!value || typeof value !== 'object') return;
+            if (Array.isArray(value)) {
+              value.forEach((item) => walk(item, inherited));
+              return;
+            }
+            const context = {
+              message: typeof value.message === 'string' ? value.message : inherited.message,
+              id: value.id ?? value.updateId ?? inherited.id ?? null,
+              group: value.group ?? value.groupId ?? inherited.group ?? null,
+              runtimeVersion: value.runtimeVersion ?? inherited.runtimeVersion ?? null,
+              platform: value.platform ?? inherited.platform ?? null,
+              createdAt: value.createdAt ?? inherited.createdAt ?? null,
+            };
+            if (context.message === expectedMessage) matches.push(context);
+            Object.values(value).forEach((item) => walk(item, context));
+          };
+          walk(payload);
+          const match = matches.find((item) => !item.runtimeVersion || item.runtimeVersion === '1.0.2');
+          if (!match) throw new Error('Onboarding production OTA was not found for runtime 1.0.2.');
+          fs.writeFileSync('verified-onboarding-ota.json', JSON.stringify(match, null, 2));
+          console.log('Verified onboarding production OTA:', match);
+          NODE
+
+      - name: Upload verification metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-onboarding-production-ota
+          path: |
+            production-updates.json
+            verified-onboarding-ota.json
+          if-no-files-found: error
+          retention-days: 3
