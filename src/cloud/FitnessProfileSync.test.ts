@@ -71,9 +71,9 @@ describe('fitness profile sync', () => {
         targetWeeklyWeightChangeKg: -0.4,
         createdAt: '2026-07-23T12:00:00.000Z',
         updatedAt: '2026-07-23T12:00:00.000Z',
-        deviceId,
       },
     });
+    expect(operation.metadata?.deviceId).toBe(deviceId);
   });
 
   it('applies a validated remote snapshot to local state and metadata', () => {
@@ -97,7 +97,6 @@ describe('fitness profile sync', () => {
             trainingDaysPerWeek: 5,
             targetWeightKg: 70,
             targetWeeklyWeightChangeKg: 0.25,
-            deviceId,
           },
         },
       ],
