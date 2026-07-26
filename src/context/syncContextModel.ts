@@ -1,5 +1,8 @@
 import { isApiError } from '@/api/client';
-import type { CloudPushResult } from '@/cloud/CloudProvider';
+import type {
+  CloudPushResult,
+  RejectedSyncOperation,
+} from '@/cloud/CloudProvider';
 import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
 import { isBodyMeasurementQueueOperation } from '@/cloud/BodyMeasurementSync';
 import { isCustomExerciseQueueOperation } from '@/cloud/CustomExerciseSync';
@@ -39,6 +42,39 @@ export const collectAcknowledgedSyncOperationKeys = (
     ...(pushResult?.appliedOperations ?? []).map((operation) => operation.id),
     ...(pushResult?.duplicateIdempotencyKeys ?? []),
   ].filter((key): key is string => typeof key === 'string' && Boolean(key.trim())));
+
+const formatRejectedDetails = (details: unknown): string | null => {
+  if (typeof details === 'string' && details.trim()) return details.trim().slice(0, 800);
+  if (details === undefined || details === null) return null;
+  try {
+    return JSON.stringify(details).slice(0, 800);
+  } catch {
+    return null;
+  }
+};
+
+export const formatRejectedSyncOperationsError = (
+  operations: RejectedSyncOperation[],
+): string | null => {
+  if (!operations.length) return null;
+  const first = operations[0];
+  const countLabel = operations.length === 1
+    ? '1 sync operation rejected'
+    : `${operations.length} sync operations rejected`;
+  const identity = [first.entityType, first.entityId].filter(Boolean).join(' • ');
+  const transport = [
+    first.status === undefined ? null : `HTTP ${first.status}`,
+    first.code,
+    first.requestId ? `request ${first.requestId}` : null,
+  ].filter((value): value is string => Boolean(value));
+  const details = formatRejectedDetails(first.details);
+  const description = [
+    first.message,
+    details && details !== first.message ? details : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return `${countLabel}: ${[identity, ...transport].filter(Boolean).join(' • ')} — ${description.join(' • ')}`;
+};
 
 export const resolveSyncFailureStatus = (error: unknown): WeightSyncStatus => {
   if (isApiError(error)) {

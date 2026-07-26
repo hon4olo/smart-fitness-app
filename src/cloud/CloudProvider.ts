@@ -1,11 +1,23 @@
 import type { ConflictRecord, SyncBatch, SyncOperation, SyncRevision, SyncSnapshot, SyncState } from './CloudSyncTypes';
 
+export type RejectedSyncOperation = {
+  operationId: string;
+  entityType: string;
+  entityId?: string;
+  status?: number;
+  code?: string;
+  message: string;
+  requestId?: string;
+  details?: unknown;
+};
+
 export type CloudPushResult = SyncState & {
   revision?: number;
   serverTimestamp?: string;
   appliedOperations?: SyncOperation[];
   conflicts?: ConflictRecord[];
   duplicateIdempotencyKeys?: string[];
+  rejectedOperations?: RejectedSyncOperation[];
 };
 
 export type CloudPullResult = Omit<SyncBatch, 'revision'> & Partial<SyncState> & {

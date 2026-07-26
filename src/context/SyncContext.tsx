@@ -56,6 +56,7 @@ import {
   collectAcknowledgedSyncOperationKeys,
   countSupportedQueueOperations,
   countUnresolvedSyncConflicts,
+  formatRejectedSyncOperationsError,
   resolveStatus,
   resolveSyncFailureStatus,
   type SyncPullResult,
@@ -375,9 +376,17 @@ export function SyncProvider({
 
       const afterPending = await queueStore.getPending();
       setPendingOperations(countSupportedQueueOperations(afterPending));
+      const rejectedSyncError = formatRejectedSyncOperationsError(
+        pushResult?.rejectedOperations ?? [],
+      );
       const successfulSyncAt = pushResult?.serverTimestamp ?? pullResult?.serverTimestamp;
-      if (successfulSyncAt) setLastSyncAt(successfulSyncAt);
-      setStatus(resolveStatus(result.status.phase, nextConflictCount > 0, true));
+      if (successfulSyncAt && !rejectedSyncError) setLastSyncAt(successfulSyncAt);
+      if (rejectedSyncError) {
+        setError(rejectedSyncError);
+        setStatus('error');
+      } else {
+        setStatus(resolveStatus(result.status.phase, nextConflictCount > 0, true));
+      }
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Sync failed';
       setError(message);
