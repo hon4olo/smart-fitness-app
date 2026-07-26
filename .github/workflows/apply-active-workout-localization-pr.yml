@@ -15,14 +15,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: localize-active-workout-finish
       - name: Apply verified patch
         shell: bash
         run: |
-          PATCH_B64="$(sed -n 's/^          PATCH_B64: //p' .github/workflows/apply-active-workout-localization.yml)"
-          test -n "$PATCH_B64"
-          printf '%s' "$PATCH_B64" | base64 --decode | gzip --decompress > /tmp/active.patch
+          base64 --decode .localization/active-code.patch.b64 | gzip --decompress > /tmp/active.patch
           git apply --check /tmp/active.patch
           git apply /tmp/active.patch
+          rm .localization/active-code.patch.b64
+          rmdir .localization
           rm .github/workflows/apply-active-workout-localization.yml
           rm .github/workflows/apply-active-workout-localization-pr.yml
           git diff --check
