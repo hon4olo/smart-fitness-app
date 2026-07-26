@@ -65,22 +65,29 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(source).toContain('Add weight');
   });
 
-  test('profile stays user-focused while Settings owns technical controls', () => {
+  test('Profile stays concise while Settings and Progress own editing', () => {
     const screen = readSource('src/app/(tabs)/profile.tsx');
+    const progress = readSource('src/app/(tabs)/progress.tsx');
+    const planning = readSource('src/features/progress/ProgressPlanningSections.tsx');
     const preferences = readSource('src/components/profile/ProfilePreferencesCard.tsx');
     const settings = readSource('src/app/settings/index.tsx');
     const sync = readSource('src/components/profile/ProfileSyncStatusCard.tsx');
     const developer = readSource('src/components/profile/ProfileActionsCard.tsx');
 
-    expect(screen).toContain("t('profile.accountSection')");
-    expect(screen).toContain('ProfileGoalsCard');
-    expect(screen).toContain('ProfileCoachCard');
     expect(screen).toContain('ProfilePreferencesCard');
     expect(screen).toContain("router.push('/settings')");
+    expect(screen).not.toContain('AuthGateCard');
+    expect(screen).not.toContain('ProfileGoalsCard');
+    expect(screen).not.toContain('ProfileCoachCard');
     expect(screen).not.toContain('ProfileSyncStatusCard');
     expect(screen).not.toContain('ProfileRuntimeInfoCard');
     expect(screen).not.toContain('ProfileActionsCard');
+    expect(progress).toContain('<ProgressPlanningSections />');
+    expect(planning).toContain('ProfileGoalsCard');
+    expect(planning).toContain('ProfileCoachCard');
     expect(preferences).not.toContain('SegmentedControl');
+    expect(settings).toContain('<AuthGateCard />');
+    expect(settings).toContain('<PersonalDetailsSettingsCard />');
     expect(settings).toContain('settings.appearance');
     expect(settings).toContain('settings.language');
     expect(settings).toContain('SegmentedControl');
