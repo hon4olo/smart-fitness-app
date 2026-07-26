@@ -1,1 +1,0 @@
-Temporary note for PR creation. The final validation workflow removes only its own patch machinery; this note documents the production failure mode and remains only if explicitly retained.
