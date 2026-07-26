@@ -53,14 +53,24 @@ Second slice implemented in PR #148:
 - completed-scope source contracts preventing component-level locale branches, direct English high-risk props/alerts, and raw analytics/internal status codes from being rendered;
 - global direct locale branches reduced from 11 files / 117 branches at audit baseline to 4 files / 50 branches.
 
-Remaining screen groups after PR #148:
+Third slice implemented in PR #149:
 
-1. **Home and onboarding** — remaining Home status/action copy and onboarding validation, labels, segmented options, success alerts, and accessibility copy.
-2. **Workouts** — Workouts hub, active session, finish flow, set table/actions, exercise library/detail, workout history/detail, programs, routines, templates, builder, safety gate, preview tools, and integration/coming-soon states.
-3. **Nutrition** — Nutrition tab, food browser/search, Add Food, custom-food form, barcode scanner, serving editor, favorites/recent foods, meal templates, targets, empty/error states, and Nutrition Coach proposal surfaces.
-4. **Progress detail flows** — weight entry/details, measurement detail/charts/forms, exercise detail analytics, and any remaining secondary progress routes.
-5. **Advanced Coach** — Coach history/trust/detail, recovery check-in, training limitations, Safety & Recovery preflight/review, Combined Coach, Strength Coach, Nutrition Coach, proposals, provenance/trust statuses, and raw validation/result copy.
-6. **Final global pass** — remaining direct `Intl`/`toLocaleString`, visible enum formatting, count-dependent copy, accessibility labels/hints, dialogs, alerts, stale/offline/retry states, and the repository-wide hard-coded English baseline.
+- Home summary, calories state, current weight, workout action, weekly snapshot, recovery status, and all action labels now use typed translation keys;
+- deterministic Home motivation and recovery values are mapped to bounded user-facing copy instead of rendering internal English results;
+- weekly workout-volume display uses the selected weight unit and locale-aware number formatting without changing canonical calculations;
+- workout streaks use the existing English/Russian pluralization contract;
+- onboarding heading, field labels, goal choices, validation, disabled-action explanation, success alert, and input accessibility labels are localized;
+- a separate typed Home/onboarding catalog contains 70 English and 70 Russian keys with exact parity and no duplicates;
+- completed-scope tests prevent inline locale branches, raw Home analytics strings, direct English high-risk props, and direct English Alert copy;
+- direct locale branches are reduced from 11 files / 117 branches at audit baseline to 2 advanced-Coach files / 33 branches.
+
+Remaining screen groups after PR #149:
+
+1. **Workouts** — Workouts hub, active session, finish flow, set table/actions, exercise library/detail, workout history/detail, programs, routines, templates, builder, safety gate, preview tools, and integration/coming-soon states.
+2. **Nutrition** — Nutrition tab, food browser/search, Add Food, custom-food form, barcode scanner, serving editor, favorites/recent foods, meal templates, targets, empty/error states, and Nutrition Coach proposal surfaces.
+3. **Progress detail flows** — weight entry/details, measurement detail/charts/forms, exercise detail analytics, and any remaining secondary progress routes.
+4. **Advanced Coach** — Coach history/trust/detail, recovery check-in, training limitations, Safety & Recovery preflight/review, Combined Coach, Strength Coach, Nutrition Coach, proposals, provenance/trust statuses, and raw validation/result copy.
+5. **Final global pass** — remaining direct `Intl`/`toLocaleString`, visible enum formatting, count-dependent copy, accessibility labels/hints, dialogs, alerts, stale/offline/retry states, and the repository-wide hard-coded English baseline.
 
 Validation boundary:
 
@@ -79,6 +89,7 @@ Completed:
 - localized root navigation, tabs, Settings, auth, Account & Security, destructive confirmations, validation, and safe errors;
 - centralized Settings/Account/Privacy/About/Sync copy with no component-level locale branches in the completed slice;
 - centralized Profile/Progress/Goals/AI Coach overview copy with no component-level locale branches in the completed slice;
+- centralized Home/onboarding copy with bounded deterministic-status localization and no component-level locale branches in the completed slice;
 - locale-aware dates on account/session and Weight details surfaces;
 - stable untranslated persisted identifiers, enums, routes, and sync fields;
 - metric/imperial preferences with canonical internal storage;
@@ -98,7 +109,7 @@ Relevant mobile PRs:
 
 Remaining:
 
-- complete Russian/English translation for Home/onboarding, Workouts, Nutrition, Progress detail flows, and advanced Coach copy;
+- complete Russian/English translation for Workouts, Nutrition, Progress detail flows, and advanced Coach copy;
 - migrate remaining direct `Intl` and `toLocaleString` usage to the localization/unit formatting boundary;
 - adopt pluralization helpers in real count-dependent user-facing messages;
 - extend the hard-coded English guard from the completed Settings/Account slice to each subsequent screen group;
