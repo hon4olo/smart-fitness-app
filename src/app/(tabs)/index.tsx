@@ -10,8 +10,11 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import {
+  getHomeMotivationLabel,
+  getHomeRecoveryStatusLabel,
+} from '@/features/home/homeLocalization';
+import {
   getCurrentWorkoutStreak,
-  getHomePrimaryWorkoutActionLabel,
   getWeeklyWorkoutCount,
   getWeeklyWorkoutVolumeTrend,
   type HomeSnapshotItem,
@@ -19,7 +22,6 @@ import {
 import {
   getMotivationInsight,
   getNutritionAdvisor,
-  getProgramAdvisor,
   getRecoveryAdvisor,
   getTrainingAdvisor,
 } from '@/lib/intelligence';
@@ -31,8 +33,13 @@ import {
   getWorkoutPrograms,
   hydrateActiveWorkoutSessionDraft,
 } from '@/lib/workouts';
-import { useLocalization } from '@/localization';
-import { formatEnergyValue, formatWeightValue, useUnitPreferences } from '@/units';
+import { formatPlural, useLocalization } from '@/localization';
+import {
+  formatEnergyValue,
+  formatWeightValue,
+  useUnitPreferences,
+  weightFromKg,
+} from '@/units';
 
 export default function HomeScreen() {
   const {
@@ -46,12 +53,11 @@ export default function HomeScreen() {
     workoutSessions,
     workouts,
   } = useAppContext();
-  const { locale, t } = useLocalization();
+  const { formatNumber, locale, t } = useLocalization();
   const { energy: energyUnit, weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
   const todayKey = formatLocalDate(new Date());
   const [activeDraftReady, setActiveDraftReady] = useState(false);
-  const isRussian = locale === 'ru';
 
   useEffect(() => {
     if (!onboardingCompleted) router.replace('/onboarding');
@@ -112,10 +118,6 @@ export default function HomeScreen() {
       }),
     [currentProgram, exercises, workoutSessions, workouts],
   );
-  const programAdvisor = useMemo(
-    () => getProgramAdvisor({ exercises, program: currentProgram, workouts }),
-    [currentProgram, exercises, workouts],
-  );
   const nutritionAdvisor = useMemo(
     () =>
       getNutritionAdvisor({
@@ -149,14 +151,10 @@ export default function HomeScreen() {
     Math.abs(caloriesRemaining),
     energyUnit,
   );
-  const caloriesRemainingLabel =
-    caloriesRemaining < 0
-      ? isRussian
-        ? `Превышение: ${caloriesRemainingDisplay} ${energyUnit}`
-        : `Over by ${caloriesRemainingDisplay} ${energyUnit}`
-      : isRussian
-        ? `Осталось ${caloriesRemainingDisplay} ${energyUnit}`
-        : `${caloriesRemainingDisplay} ${energyUnit} left`;
+  const caloriesRemainingLabel = t(
+    caloriesRemaining < 0 ? 'home.caloriesOver' : 'home.caloriesLeft',
+    { unit: energyUnit, value: caloriesRemainingDisplay },
+  );
 
   const activeWorkoutDraft = activeDraftReady ? getActiveWorkoutSessionDraft() : null;
   const activeWorkout = useMemo(() => activeWorkoutDraft, [activeWorkoutDraft]);
@@ -166,28 +164,59 @@ export default function HomeScreen() {
         params: { workoutId: activeWorkout.workoutId },
       }
     : '/track';
-  const primaryWorkoutLabel = isRussian
-    ? activeWorkout
-      ? 'Продолжить тренировку'
-      : 'Начать тренировку'
-    : getHomePrimaryWorkoutActionLabel(activeWorkout);
+  const primaryWorkoutLabel = t(
+    activeWorkout ? 'home.continueWorkout' : 'home.startWorkout',
+  );
+
+  const roundedCurrentVolume = Math.round(weightFromKg(weeklyVolumeTrend.currentVolume, weightUnit));
+  const roundedPreviousVolume = Math.round(weightFromKg(weeklyVolumeTrend.previousVolume, weightUnit));
+  const roundedVolumeDelta = roundedCurrentVolume - roundedPreviousVolume;
+  const volumePercentChange =
+    weeklyVolumeTrend.previousVolume > 0
+      ? Math.round(
+          ((weeklyVolumeTrend.currentVolume - weeklyVolumeTrend.previousVolume) /
+            weeklyVolumeTrend.previousVolume) *
+            100,
+        )
+      : null;
+  const trainingVolumeValue =
+    volumePercentChange !== null
+      ? t('home.volumeChangePercent', {
+          percent: `${volumePercentChange >= 0 ? '+' : ''}${formatNumber(volumePercentChange)}`,
+        })
+      : roundedCurrentVolume > 0
+        ? t('home.volumeValue', {
+            unit: weightUnit,
+            volume: formatNumber(roundedCurrentVolume),
+          })
+        : '—';
+  const trainingVolumeDetail =
+    roundedPreviousVolume > 0
+      ? t('home.volumeChange', {
+          delta: `${roundedVolumeDelta >= 0 ? '+' : ''}${formatNumber(roundedVolumeDelta)}`,
+          unit: weightUnit,
+        })
+      : roundedCurrentVolume > 0
+        ? t('home.volumeThisWeek', {
+            unit: weightUnit,
+            volume: formatNumber(roundedCurrentVolume),
+          })
+        : t('home.volumeNoData');
 
   const snapshotItems = useMemo<HomeSnapshotItem[]>(
     () => [
       {
         id: 'workouts-this-week',
-        label: isRussian ? 'Тренировки за неделю' : 'Workouts this week',
-        value: `${workoutsThisWeek}`,
-        detail: isRussian
-          ? `Цель: ${profile.trainingDaysPerWeek}`
-          : `Goal ${profile.trainingDaysPerWeek}`,
+        label: t('home.workoutsThisWeek'),
+        value: formatNumber(workoutsThisWeek),
+        detail: t('home.goalDetail', { count: profile.trainingDaysPerWeek }),
         tone: workoutsThisWeek >= profile.trainingDaysPerWeek ? 'positive' : 'neutral',
       },
       {
         id: 'training-volume',
-        label: isRussian ? 'Объём тренинга' : 'Training volume',
-        value: weeklyVolumeTrend.label,
-        detail: isRussian ? 'Сравнение с прошлой неделей' : weeklyVolumeTrend.detail,
+        label: t('home.trainingVolume'),
+        value: trainingVolumeValue,
+        detail: trainingVolumeDetail,
         tone:
           weeklyVolumeTrend.previousVolume > 0 &&
           weeklyVolumeTrend.currentVolume >= weeklyVolumeTrend.previousVolume
@@ -196,25 +225,22 @@ export default function HomeScreen() {
       },
       {
         id: 'recovery-status',
-        label: isRussian ? 'Восстановление' : 'Recovery',
-        value: isRussian
-          ? recoveryAdvisor.status === 'Overloaded'
-            ? 'Перегрузка'
-            : 'Готов'
-          : recoveryAdvisor.status,
-        detail: isRussian ? 'По последним тренировкам' : recoveryAdvisor.recoveryExplanation,
+        label: t('home.recovery'),
+        value: getHomeRecoveryStatusLabel(t, recoveryAdvisor.status),
+        detail: t('home.recoveryDetail'),
         tone: recoveryAdvisor.status === 'Overloaded' ? 'warning' : 'neutral',
       },
     ],
     [
-      isRussian,
+      formatNumber,
       profile.trainingDaysPerWeek,
-      recoveryAdvisor.recoveryExplanation,
       recoveryAdvisor.status,
+      t,
+      trainingVolumeDetail,
+      trainingVolumeValue,
       weeklyVolumeTrend.currentVolume,
-      weeklyVolumeTrend.detail,
-      weeklyVolumeTrend.label,
       weeklyVolumeTrend.previousVolume,
+      weightUnit,
       workoutsThisWeek,
     ],
   );
@@ -233,24 +259,25 @@ export default function HomeScreen() {
       <View style={styles.container}>
         <SectionHeader title={t('tabs.home')} />
         <HomeSummaryCard
-          caloriesLabel={isRussian ? 'Калории' : 'Calories'}
+          caloriesLabel={t('home.calories')}
           caloriesRemainingLabel={caloriesRemainingLabel}
           currentWeightLabel={currentWeightLabel}
-          currentWeightTitle={isRussian ? 'Текущий вес' : 'Current weight'}
+          currentWeightTitle={t('home.currentWeight')}
           isCaloriesOverTarget={caloriesRemaining < 0}
-          motivation={
-            isRussian ? 'Выберите одно действие и продолжайте по плану.' : motivation
-          }
+          motivation={getHomeMotivationLabel(t, motivation)}
           streakLabel={
             currentWorkoutStreak
-              ? isRussian
-                ? `${currentWorkoutStreak.days} дн.`
-                : `${currentWorkoutStreak.days}-day streak`
+              ? formatPlural(locale, currentWorkoutStreak.days, {
+                  one: t('home.streak.one'),
+                  few: t('home.streak.few'),
+                  many: t('home.streak.many'),
+                  other: t('home.streak.other'),
+                })
               : undefined
           }
-          streakTitle={isRussian ? 'Серия' : 'Streak'}
-          title={isRussian ? 'Главное на сегодня' : 'What matters now'}
-          todayLabel={isRussian ? 'Сегодня' : 'Today'}
+          streakTitle={t('home.streak')}
+          title={t('home.mattersNow')}
+          todayLabel={t('home.today')}
         />
         <QuickActionsCard
           primaryAction={{
@@ -259,24 +286,20 @@ export default function HomeScreen() {
           }}
           secondaryActions={[
             {
-              label: isRussian ? 'Добавить еду' : 'Add food',
+              label: t('home.addFood'),
               onPress: () => router.push('/track'),
             },
             {
-              label: isRussian ? 'Записать вес' : 'Log weight',
+              label: t('home.logWeight'),
               onPress: () => router.push('/weight-entry'),
             },
           ]}
-          title={isRussian ? 'Следующее действие' : 'Next action'}
+          title={t('home.nextAction')}
         />
         <HomeSnapshotCard
           items={snapshotItems}
-          subtitle={
-            isRussian
-              ? 'Тренировки, восстановление и недельный объём.'
-              : 'Workouts, recovery, and weekly volume.'
-          }
-          title={isRussian ? 'Сводка за неделю' : 'Weekly snapshot'}
+          subtitle={t('home.weeklySubtitle')}
+          title={t('home.weeklySnapshot')}
         />
       </View>
     </ScrollView>
