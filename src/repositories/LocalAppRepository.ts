@@ -4,7 +4,6 @@ import {
   defaultState as defaultAppState,
 } from '@/data/defaults';
 import { exerciseDatabase, mergeExerciseCatalog } from '@/data/exercises';
-import type { AppState } from '@/types';
 import {
   normalizeBodyMeasurements,
   normalizeExercises,
@@ -14,13 +13,15 @@ import {
   normalizeWorkouts,
   normalizeWorkoutSessions,
 } from '@/lib/appState';
+import { hasCompleteOnboardingData } from '@/lib/onboarding';
 import {
   normalizeRecoveryCheckIns,
   normalizeUserLimitations,
 } from '@/lib/safetyRecoveryState';
+import type { StorageAdapter } from '@/storage/StorageAdapter';
+import type { AppState } from '@/types';
 
 import type { AppRepository } from './AppRepository';
-import type { StorageAdapter } from '@/storage/StorageAdapter';
 
 export type LocalAppRepositoryOptions = {
   cloudProvider?: CloudProvider;
@@ -30,47 +31,53 @@ export const APP_STATE_STORAGE_KEY = '@smart_fitness_mvp_state';
 const DEFAULT_WORKOUT_TEMPLATE_IDS = DEFAULT_WORKOUT_TEMPLATE_IDS_FROM_DATA;
 const defaultState: AppState = defaultAppState;
 
-const normalizeStoredState = (storedState: Partial<AppState>): AppState => ({
-  ...defaultState,
-  ...storedState,
-  workouts: normalizeWorkouts(
-    storedState.workouts ?? defaultState.workouts,
-    DEFAULT_WORKOUT_TEMPLATE_IDS,
-  ),
-  trainingPrograms: (storedState.trainingPrograms ?? defaultState.trainingPrograms).map(
-    (program) => ({
-      ...program,
-      days: program.days.map((day) => ({ ...day })),
-      progression: program.progression ? { ...program.progression } : undefined,
-      metadata: program.metadata ? { ...program.metadata } : undefined,
-    }),
-  ),
-  exercises: storedState.exercises
-    ? mergeExerciseCatalog(exerciseDatabase, normalizeExercises(storedState.exercises))
-    : defaultState.exercises,
-  workoutSessions: normalizeWorkoutSessions(
-    storedState.workoutSessions ?? defaultState.workoutSessions,
-  ),
-  foodEntries: normalizeFoodEntries(storedState.foodEntries ?? defaultState.foodEntries),
-  mealTemplates: normalizeMealTemplates(
-    storedState.mealTemplates ?? defaultState.mealTemplates,
-  ),
-  nutritionTargets: storedState.nutritionTargets ?? defaultState.nutritionTargets,
-  profile: {
+const normalizeStoredState = (storedState: Partial<AppState>): AppState => {
+  const profile = {
     ...defaultState.profile,
     ...(storedState.profile ?? {}),
-  },
-  onboardingCompleted:
-    storedState.onboardingCompleted ?? defaultState.onboardingCompleted,
-  weightHistory: normalizeWeightHistory(
+  };
+  const weightHistory = normalizeWeightHistory(
     storedState.weightHistory ?? defaultState.weightHistory,
-  ),
-  bodyMeasurements: normalizeBodyMeasurements(
-    storedState.bodyMeasurements ?? defaultState.bodyMeasurements,
-  ),
-  userLimitations: normalizeUserLimitations(storedState.userLimitations),
-  recoveryCheckIns: normalizeRecoveryCheckIns(storedState.recoveryCheckIns),
-});
+  );
+
+  return {
+    ...defaultState,
+    ...storedState,
+    workouts: normalizeWorkouts(
+      storedState.workouts ?? defaultState.workouts,
+      DEFAULT_WORKOUT_TEMPLATE_IDS,
+    ),
+    trainingPrograms: (storedState.trainingPrograms ?? defaultState.trainingPrograms).map(
+      (program) => ({
+        ...program,
+        days: program.days.map((day) => ({ ...day })),
+        progression: program.progression ? { ...program.progression } : undefined,
+        metadata: program.metadata ? { ...program.metadata } : undefined,
+      }),
+    ),
+    exercises: storedState.exercises
+      ? mergeExerciseCatalog(exerciseDatabase, normalizeExercises(storedState.exercises))
+      : defaultState.exercises,
+    workoutSessions: normalizeWorkoutSessions(
+      storedState.workoutSessions ?? defaultState.workoutSessions,
+    ),
+    foodEntries: normalizeFoodEntries(storedState.foodEntries ?? defaultState.foodEntries),
+    mealTemplates: normalizeMealTemplates(
+      storedState.mealTemplates ?? defaultState.mealTemplates,
+    ),
+    nutritionTargets: storedState.nutritionTargets ?? defaultState.nutritionTargets,
+    profile,
+    onboardingCompleted:
+      storedState.onboardingCompleted ??
+      hasCompleteOnboardingData({ profile, weightHistory }),
+    weightHistory,
+    bodyMeasurements: normalizeBodyMeasurements(
+      storedState.bodyMeasurements ?? defaultState.bodyMeasurements,
+    ),
+    userLimitations: normalizeUserLimitations(storedState.userLimitations),
+    recoveryCheckIns: normalizeRecoveryCheckIns(storedState.recoveryCheckIns),
+  };
+};
 
 export const createLocalAppRepository = (
   storage: StorageAdapter,
@@ -106,6 +113,7 @@ export const createLocalAppRepository = (
         await storage.write(APP_STATE_STORAGE_KEY, JSON.stringify(state));
       } catch (error) {
         console.warn('Failed to persist MVP app state', error);
+        throw error;
       }
     },
     async clearState() {
