@@ -20,8 +20,7 @@ jobs:
         shell: bash
         run: |
           base64 --decode .localization/active-code.patch.b64 | gzip --decompress > /tmp/active.patch
-          git apply --check /tmp/active.patch
-          git apply /tmp/active.patch
+          git apply --3way /tmp/active.patch
           rm .localization/active-code.patch.b64
           rmdir .localization
           rm .github/workflows/apply-active-workout-localization.yml
