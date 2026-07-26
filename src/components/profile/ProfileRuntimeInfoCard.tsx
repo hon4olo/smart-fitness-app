@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native';
 
+import { getMobileApiBaseUrl } from '@/api';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing, Typography } from '@/constants/theme';
@@ -19,12 +20,20 @@ export function ProfileRuntimeInfoCard({
   updateId: string;
 }) {
   const { t } = useLocalization();
+  const apiBaseUrl = getMobileApiBaseUrl();
 
   return (
     <AppCard>
       <Text style={styles.title}>{t('developer.runtimeMetadata')}</Text>
 
       <View style={styles.otaCard}>
+        <View style={styles.otaRow}>
+          <Text style={styles.otaLabel}>API base URL</Text>
+          <Text selectable style={styles.otaValue}>
+            {apiBaseUrl}
+          </Text>
+        </View>
+
         <Text style={styles.otaTitle}>{t('developer.otaUpdate')}</Text>
 
         <View style={styles.otaRow}>
