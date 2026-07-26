@@ -1,0 +1,53 @@
+name: One-time production OTA
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.head_ref == 'release/ota-2026-07-26-localization'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout exact release commit
+        uses: actions/checkout@v4
+        with:
+          ref: 264180cb68cbaa59a3f8056ec87f084c546fd06b
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verify release identity
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "264180cb68cbaa59a3f8056ec87f084c546fd06b"
+          node - <<'NODE'
+          const expo = require('./app.json').expo;
+          if (expo.version !== '1.0.2') throw new Error(`Unexpected app version: ${expo.version}`);
+          if (expo.runtimeVersion?.policy !== 'appVersion') throw new Error('Unexpected runtimeVersion policy');
+          if (expo.updates?.requestHeaders?.['expo-channel-name'] !== 'production') throw new Error('Unexpected update channel');
+          console.log('Release identity verified: runtime 1.0.2, channel production');
+          NODE
+
+      - name: Require Expo authentication
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          test -n "$EXPO_TOKEN" || { echo 'EXPO_TOKEN secret is not configured'; exit 1; }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish production OTA
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          CI: '1'
+        run: npx --yes eas-cli@latest update --channel production --environment production --message "Localize active workout and finish flow (264180c)" --non-interactive
