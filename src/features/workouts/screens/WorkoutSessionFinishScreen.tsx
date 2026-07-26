@@ -13,6 +13,7 @@ import {
   getWorkoutSessionCompletedSetCount,
 } from '@/features/workouts/sessionScreenModel';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
+import { useLocalization } from '@/localization';
 import {
   clearActiveWorkoutSessionDraft,
   getActiveWorkoutSessionDraft,
@@ -22,18 +23,18 @@ import {
 } from '@/lib/workouts';
 import { createWorkoutSessionFinishStyles } from './workoutSessionFinishScreen.styles';
 
-const getSessionTitle = () => {
+const getSessionTitleKey = () => {
   const hour = new Date().getHours();
 
   if (hour < 12) {
-    return 'Morning session';
+    return 'workouts.finish.morning' as const;
   }
 
   if (hour < 18) {
-    return 'Afternoon session';
+    return 'workouts.finish.afternoon' as const;
   }
 
-  return 'Evening session';
+  return 'workouts.finish.evening' as const;
 };
 
 const formatDurationLabel = (startedAt: string, finishedAt = new Date().toISOString()) => {
@@ -54,28 +55,26 @@ const isSameCalendarDay = (left: Date, right: Date) =>
   left.getMonth() === right.getMonth() &&
   left.getDate() === right.getDate();
 
-const formatDateTimeLabel = (value: string) => {
+const formatDateTimeLabel = (value: string, formatDate: ReturnType<typeof useLocalization>['formatDate'], todayAt: (time: string) => string) => {
   const date = new Date(value);
-  const time = new Intl.DateTimeFormat(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
+  const time = formatDate(date, { hour: '2-digit', minute: '2-digit' });
 
   if (isSameCalendarDay(date, new Date())) {
-    return `Today at ${time}`;
+    return todayAt(time);
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return formatDate(date, {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     month: 'short',
-  }).format(date);
+  });
 };
 
 export default function WorkoutSessionFinishScreen() {
   const { isRestoringState, saveWorkoutSession } = useAppContext();
   const { colors } = useWorkoutTheme();
+  const { formatDate, t } = useLocalization();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createWorkoutSessionFinishStyles(colors), [colors]);
   const [draft, setDraft] = useState<ReturnType<typeof getActiveWorkoutSessionDraft> | undefined>(
@@ -103,9 +102,9 @@ export default function WorkoutSessionFinishScreen() {
 
   useEffect(() => {
     if (draft && title.length === 0) {
-      setTitle(getSessionTitle());
+      setTitle(t(getSessionTitleKey()));
     }
-  }, [draft, title.length]);
+  }, [draft, t, title.length]);
 
   useEffect(() => {
     if (!isRestoringState && draft === null) {
@@ -116,7 +115,7 @@ export default function WorkoutSessionFinishScreen() {
   if (isRestoringState || draft === undefined) {
     return (
       <View style={[styles.screen, styles.loadingState]}>
-        <Text style={styles.loadingLabel}>Loading workout…</Text>
+        <Text style={styles.loadingLabel}>{t('workouts.session.loading')}</Text>
       </View>
     );
   }
@@ -127,7 +126,7 @@ export default function WorkoutSessionFinishScreen() {
 
   const completedSetCount = getWorkoutSessionCompletedSetCount(draft);
   const canSave = completedSetCount > 0;
-  const dateTimeLabel = formatDateTimeLabel(new Date().toISOString());
+  const dateTimeLabel = formatDateTimeLabel(new Date().toISOString(), formatDate, (time) => t('workouts.finish.todayAt', { time }));
   const durationLabel = formatDurationLabel(draft.startedAt);
   const discardActiveWorkoutAndReturn = () => {
     clearActiveWorkoutSessionDraft();
@@ -165,10 +164,10 @@ export default function WorkoutSessionFinishScreen() {
   };
 
   const discardWorkout = () => {
-    Alert.alert('Discard workout?', 'Your logged sets will not be saved.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('workouts.session.discardTitle'), t('workouts.session.discardDescription'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Discard workout',
+        text: t('workouts.session.discard'),
         style: 'destructive',
         onPress: discardActiveWorkoutAndReturn,
       },
@@ -192,9 +191,9 @@ export default function WorkoutSessionFinishScreen() {
               onPress={() => router.back()}
               style={({ pressed }) => [styles.resumeButton, pressed && styles.pressed]}>
               <Text style={styles.resumeChevron}>‹</Text>
-              <Text style={styles.resumeLabel}>Resume</Text>
+              <Text style={styles.resumeLabel}>{t('workouts.finish.resume')}</Text>
             </Pressable>
-            <Text style={styles.title}>Finish Workout</Text>
+            <Text style={styles.title}>{t('workouts.finish.title')}</Text>
             <View style={styles.headerSpacer} />
           </View>
 
@@ -202,7 +201,7 @@ export default function WorkoutSessionFinishScreen() {
             <View style={styles.singleLineField}>
               <TextInput
                 autoCapitalize="words"
-                placeholder="Workout name"
+                placeholder={t('workouts.finish.workoutName')}
                 placeholderTextColor={colors.textMuted}
                 selectionColor={colors.accent}
                 style={styles.titleInput}
@@ -222,7 +221,7 @@ export default function WorkoutSessionFinishScreen() {
             <TextInput
               multiline
               onChangeText={setNotes}
-              placeholder="How did it go? Share more about your workout"
+              placeholder={t('workouts.finish.notesPlaceholder')}
               placeholderTextColor={colors.textMuted}
               selectionColor={colors.accent}
               style={styles.notesInput}
@@ -237,7 +236,7 @@ export default function WorkoutSessionFinishScreen() {
               onPress={openWorkoutMediaIntegration}
               style={({ pressed }) => [styles.mediaButton, pressed && styles.pressed]}>
               <Text style={styles.mediaIcon}>▧</Text>
-              <Text style={styles.mediaLabel}>Add Photo/Video</Text>
+              <Text style={styles.mediaLabel}>{t('workouts.finish.addMedia')}</Text>
             </Pressable>
           </View>
 
@@ -245,7 +244,7 @@ export default function WorkoutSessionFinishScreen() {
             <IntegrationRow
               icon="▴"
               iconStyle={styles.stravaIcon}
-              label="Post to Strava"
+              label={t('workouts.finish.postStrava')}
               value={stravaEnabled}
               onValueChange={(value) => {
                 setStravaEnabled(value);
@@ -257,7 +256,7 @@ export default function WorkoutSessionFinishScreen() {
             <IntegrationRow
               icon="♥"
               iconStyle={styles.healthIcon}
-              label="Apple Health"
+              label={t('workouts.finish.appleHealth')}
               value={appleHealthEnabled}
               onValueChange={(value) => {
                 setAppleHealthEnabled(value);
@@ -271,7 +270,7 @@ export default function WorkoutSessionFinishScreen() {
           <Pressable
             onPress={discardWorkout}
             style={({ pressed }) => [styles.discardButton, pressed && styles.pressed]}>
-            <Text style={styles.discardLabel}>Discard Workout</Text>
+            <Text style={styles.discardLabel}>{t('workouts.session.discard')}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -295,7 +294,7 @@ export default function WorkoutSessionFinishScreen() {
               pressed && canSave && styles.pressed,
             ]}>
             <Text style={[styles.saveButtonLabel, !canSave && styles.saveButtonLabelDisabled]}>
-              Save
+              {t('workouts.finish.save')}
             </Text>
           </Pressable>
         </View>

@@ -9,6 +9,7 @@ import {
 } from '@/features/workouts/components/session/WorkoutSessionModals';
 import { createStyles } from '@/features/workouts/styles/workoutSessionScreenStyles';
 import type { WorkoutRpe } from '@/types';
+import { useLocalization } from '@/localization';
 
 type WorkoutSessionStyles = ReturnType<typeof createStyles>;
 
@@ -77,6 +78,8 @@ export function WorkoutSessionModalLayer({
   workoutOverflowOpen: boolean;
   workoutTitle: string;
 }) {
+  const { t } = useLocalization();
+
   return (
     <>
       <ExerciseOverflowModal
@@ -103,10 +106,10 @@ export function WorkoutSessionModalLayer({
         onClose={onCloseWorkoutOverflow}
         onDiscard={() => {
           onCloseWorkoutOverflow();
-          Alert.alert('Discard workout?', 'Your logged sets will not be saved.', [
-            { text: 'Cancel', style: 'cancel' },
+          Alert.alert(t('workouts.session.discardTitle'), t('workouts.session.discardDescription'), [
+            { text: t('common.cancel'), style: 'cancel' },
             {
-              text: 'Discard workout',
+              text: t('workouts.session.discard'),
               style: 'destructive',
               onPress: onDiscardWorkout,
             },

@@ -5,6 +5,7 @@ import { getPreviousCompletedSetsForExercise } from '@/features/workouts/session
 import { createStyles } from '@/features/workouts/styles/workoutSessionScreenStyles';
 import type { WorkoutSessionDraft } from '@/features/workouts/types';
 import type { WorkoutSession } from '@/types';
+import { useLocalization } from '@/localization';
 
 import { WorkoutSessionEmptyWorkoutCard } from './WorkoutSessionEmptyWorkoutCard';
 import { WorkoutSessionFooterActions } from './WorkoutSessionFooterActions';
@@ -78,6 +79,8 @@ export function WorkoutSessionBody({
   visibleExercises: SessionExercise[];
   workoutSessions: WorkoutSession[];
 }) {
+  const { t } = useLocalization();
+
   return (
     <>
       <SessionHeader
@@ -129,17 +132,17 @@ export function WorkoutSessionBody({
                 onCommitRowInputs={() => undefined}
                 onLongPressExercise={onLongPressExercise}
                 onLongPressRow={(setId) =>
-                  Alert.alert('Set actions', undefined, [
-                    { text: 'Cancel', style: 'cancel' },
+                  Alert.alert(t('workouts.session.setActions'), undefined, [
+                    { text: t('common.cancel'), style: 'cancel' },
                     {
-                      text: 'Delete set',
+                      text: t('workouts.session.deleteSet'),
                       style: 'destructive',
                       onPress: () => onRemoveSet(setId),
                     },
                   ])
                 }
                 onNotesPress={
-                  exercise.notes ? () => Alert.alert('Notes', exercise.notes ?? '') : undefined
+                  exercise.notes ? () => Alert.alert(t('workouts.session.notes'), exercise.notes ?? '') : undefined
                 }
                 onEditSetRpe={onEditSetRpe}
                 onRepsChange={(setId, value) => onSetChange(setId, 'reps', value)}

@@ -35,9 +35,9 @@ describe('workout session redesign', () => {
     expect(source).not.toContain('Edit set');
     expect(source).not.toContain('horizontal chips');
 
-    expect(finishSource).toContain('Finish Workout');
-    expect(finishSource).toContain('Discard Workout');
-    expect(finishSource).toContain('Save');
+    expect(finishSource).toContain("t('workouts.finish.title')");
+    expect(finishSource).toContain("t('workouts.session.discard')");
+    expect(finishSource).toContain("t('workouts.finish.save')");
   });
 
   it('uses a full-width five column set table grid', () => {

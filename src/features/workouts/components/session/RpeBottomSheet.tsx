@@ -3,6 +3,7 @@ import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing } from '@/constants/theme';
+import { type MessageKey, useLocalization } from '@/localization';
 import type { WorkoutRpe } from '@/types';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
@@ -17,7 +18,7 @@ type RpeBottomSheetProps = {
   onSkip: () => void;
 };
 
-const getRpeHelper = (value?: WorkoutRpe) => {
+const getRpeHelper = (value: WorkoutRpe | undefined, t: (key: MessageKey) => string) => {
   switch (value) {
     case 6:
       return '≈ 4+ reps in reserve';
@@ -28,14 +29,19 @@ const getRpeHelper = (value?: WorkoutRpe) => {
     case 9:
       return '≈ 1 RIR';
     case 10:
-      return 'Failure';
+      return t('workouts.session.rpeFailure');
     default:
-      return value ? 'Rate effort between reserve markers' : 'Select how hard this set felt';
+      return t(
+        value
+          ? 'workouts.session.rpeHelperReserve'
+          : 'workouts.session.rpeHelperDefault',
+      );
   }
 };
 
 export function RpeBottomSheet({ selectedRpe, setLabel, visible, onDismiss, onSelect, onSkip }: RpeBottomSheetProps) {
   const { colors } = useAppTheme();
+  const { t } = useLocalization();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const translateY = useRef(new Animated.Value(220)).current;
@@ -80,9 +86,9 @@ export function RpeBottomSheet({ selectedRpe, setLabel, visible, onDismiss, onSe
   return (
     <Modal animationType="none" transparent visible={visible} onRequestClose={onDismiss}>
       <View style={styles.backdrop}>
-        <Pressable accessibilityLabel="Dismiss RPE selector" onPress={() => dismissWithAnimation()} style={styles.scrim} />
+        <Pressable accessibilityLabel={t('workouts.session.rpeDismiss')} onPress={() => dismissWithAnimation()} style={styles.scrim} />
         <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + Spacing.two, transform: [{ translateY }] }]}>
-          <Text style={styles.title}>RPE for {setLabel}</Text>
+          <Text style={styles.title}>{t('workouts.session.rpeTitle', { set: setLabel })}</Text>
           <View style={styles.values}>
             {RPE_VALUES.map((value) => {
               const selected = helperRpe === value;
@@ -99,10 +105,10 @@ export function RpeBottomSheet({ selectedRpe, setLabel, visible, onDismiss, onSe
           </View>
           <View style={styles.helper}>
             <Text style={styles.helperTitle}>{helperRpe ? `RPE ${helperRpe}` : 'RPE'}</Text>
-            <Text style={styles.helperText}>{getRpeHelper(helperRpe)}</Text>
+            <Text style={styles.helperText}>{getRpeHelper(helperRpe, t)}</Text>
           </View>
           <Pressable accessibilityRole="button" onPress={() => dismissWithAnimation(onSkip)} style={({ pressed }) => [styles.skipButton, pressed && styles.pressed]}>
-            <Text style={styles.skipLabel}>Skip</Text>
+            <Text style={styles.skipLabel}>{t('workouts.session.rpeSkip')}</Text>
           </Pressable>
         </Animated.View>
       </View>
