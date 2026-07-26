@@ -56,6 +56,7 @@ import {
   collectAcknowledgedSyncOperationKeys,
   countSupportedQueueOperations,
   countUnresolvedSyncConflicts,
+  formatRejectedSyncOperationsError,
   resolveStatus,
   resolveSyncFailureStatus,
   type SyncPullResult,
@@ -90,6 +91,7 @@ export function SyncProvider({
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [pendingOperations, setPendingOperations] = useState(0);
   const [conflictCount, setConflictCount] = useState(0);
+  const [diagnostic, setDiagnostic] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const syncingRef = useRef(false);
   const conflictStateVersionRef = useRef(0);
@@ -285,6 +287,7 @@ export function SyncProvider({
     if (syncingRef.current || isRestoringState) return;
     syncingRef.current = true;
     setStatus(isAuthenticated ? 'syncing' : 'local-only');
+    setDiagnostic(null);
     setError(null);
     try {
       if (!session || !isAuthenticated) {
@@ -375,9 +378,18 @@ export function SyncProvider({
 
       const afterPending = await queueStore.getPending();
       setPendingOperations(countSupportedQueueOperations(afterPending));
+      const rejectedSyncError = formatRejectedSyncOperationsError(
+        pushResult?.rejectedOperations ?? [],
+      );
       const successfulSyncAt = pushResult?.serverTimestamp ?? pullResult?.serverTimestamp;
-      if (successfulSyncAt) setLastSyncAt(successfulSyncAt);
-      setStatus(resolveStatus(result.status.phase, nextConflictCount > 0, true));
+      if (successfulSyncAt && !rejectedSyncError) setLastSyncAt(successfulSyncAt);
+      if (rejectedSyncError) {
+        setDiagnostic(rejectedSyncError);
+        setError('One or more sync operations were rejected');
+        setStatus('error');
+      } else {
+        setStatus(resolveStatus(result.status.phase, nextConflictCount > 0, true));
+      }
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Sync failed';
       setError(message);
@@ -431,8 +443,16 @@ export function SyncProvider({
   }, [isRestoringState, session, syncNow]);
 
   const value = useMemo<WeightSyncContextValue>(
-    () => ({ conflictCount, error, lastSyncAt, pendingOperations, status, syncNow }),
-    [conflictCount, error, lastSyncAt, pendingOperations, status, syncNow],
+    () => ({
+      conflictCount,
+      diagnostic,
+      error,
+      lastSyncAt,
+      pendingOperations,
+      status,
+      syncNow,
+    }),
+    [conflictCount, diagnostic, error, lastSyncAt, pendingOperations, status, syncNow],
   );
 
   return <WeightSyncContext.Provider value={value}>{children}</WeightSyncContext.Provider>;
