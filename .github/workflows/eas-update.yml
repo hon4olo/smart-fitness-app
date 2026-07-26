@@ -52,10 +52,15 @@ jobs:
           PUSH_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            printf 'message=%s\n' "$MANUAL_MESSAGE" >> "$GITHUB_OUTPUT"
+            update_message="$MANUAL_MESSAGE"
           else
-            printf 'message=%s\n' "$PUSH_MESSAGE" >> "$GITHUB_OUTPUT"
+            update_message="$PUSH_MESSAGE"
           fi
+          update_message="${update_message%%$'\n'*}"
+          if [[ -z "$update_message" ]]; then
+            update_message="OTA update"
+          fi
+          printf 'message=%s\n' "$update_message" >> "$GITHUB_OUTPUT"
 
       - name: Link production channel to production branch
         run: eas channel:edit "$EAS_CHANNEL" --branch "$EAS_BRANCH" --non-interactive
