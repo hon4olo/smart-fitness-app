@@ -10,6 +10,8 @@ const validationKeys: Record<string, MessageKey> = {
   'Confirm your password.': 'auth.validation.confirmRequired',
   'Passwords do not match.': 'auth.validation.passwordMismatch',
   'Display name must be 40 characters or less.': 'auth.validation.displayNameMax',
+  'Enter a height from 50 to 300 cm.': 'auth.validation.heightRange',
+  'Select training experience.': 'auth.validation.trainingExperienceRequired',
   'Enter your current password.': 'auth.validation.currentPasswordRequired',
   'Enter a new password.': 'auth.validation.newPasswordRequired',
   'Use a password different from your current password.': 'auth.validation.newPasswordDifferent',
