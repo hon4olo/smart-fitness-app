@@ -1,0 +1,138 @@
+name: Apply nutrition library sync identity fix
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/fix-nutrition-library-sync-identity'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply deterministic patch
+        run: python .github/patches/apply-nutrition-library-sync-identity-fix.py
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate targeted repair
+        run: |
+          npx tsc --noEmit
+          npx vitest run test/nutrition-library-sync-identity.test.ts test/sync-acknowledged-keys.test.ts
+
+      - name: Verify repaired payload against production
+        run: |
+          node <<'NODE'
+          const crypto = require('node:crypto');
+          const baseUrl = 'https://api.peptonio.com';
+          const password = `NutritionUuidAudit!${crypto.randomUUID()}Aa1`;
+          const email = `nutrition-uuid-audit-${Date.now()}@example.com`;
+          let token;
+          const request = async (path, options = {}) => {
+            const response = await fetch(`${baseUrl}${path}`, options);
+            const text = await response.text();
+            let body = null;
+            try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+            return { response, body };
+          };
+          (async () => {
+            const register = await request('/v1/auth/register', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', accept: 'application/json' },
+              body: JSON.stringify({
+                email,
+                password,
+                displayName: 'Nutrition UUID contract audit',
+                deviceName: 'GitHub Actions',
+                platform: 'ios',
+                appVersion: '1.0.2',
+              }),
+            });
+            if (!register.response.ok) throw new Error(`register HTTP ${register.response.status}`);
+            token = register.body.accessToken;
+            const deviceId = register.body.device.id;
+            const entityId = crypto.randomUUID();
+            const now = new Date().toISOString();
+            const push = await request('/v1/sync/push', {
+              method: 'POST',
+              headers: {
+                authorization: `Bearer ${token}`,
+                'content-type': 'application/json',
+                accept: 'application/json',
+              },
+              body: JSON.stringify({
+                deviceId,
+                clientRevision: 0,
+                operations: [{
+                  entityType: 'nutritionLibraryItems',
+                  entityId,
+                  operationType: 'upsert',
+                  baseRevision: 0,
+                  idempotencyKey: `nutrition-uuid-audit:${entityId}`,
+                  payload: {
+                    schemaVersion: 1,
+                    libraryId: entityId,
+                    kind: 'custom',
+                    name: 'Audit food',
+                    calories: 100,
+                    protein: 10,
+                    carbs: 10,
+                    fats: 2,
+                    servingSize: 100,
+                    servingUnit: 'g',
+                    quantity: '100 g',
+                    source: 'manual',
+                    savedAt: now,
+                    updatedAt: now,
+                    revision: 1,
+                  },
+                }],
+              }),
+            });
+            if (!push.response.ok) {
+              throw new Error(`nutrition library push HTTP ${push.response.status}: ${JSON.stringify(push.body)}`);
+            }
+            console.log(`Production nutrition library UUID contract passed at revision ${push.body.revision}`);
+            const deletion = await request('/v1/auth/account', {
+              method: 'DELETE',
+              headers: {
+                authorization: `Bearer ${token}`,
+                'content-type': 'application/json',
+                accept: 'application/json',
+              },
+              body: JSON.stringify({ password }),
+            });
+            if (!deletion.response.ok) throw new Error(`cleanup HTTP ${deletion.response.status}`);
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Remove temporary patch machinery
+        run: |
+          rm .github/patches/apply-nutrition-library-sync-identity-fix.py
+          rm .github/workflows/apply-nutrition-library-sync-identity-fix.yml
+
+      - name: Commit repair
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "[ota] Repair nutrition library sync identity"
+          git push origin HEAD:${{ github.head_ref }}
