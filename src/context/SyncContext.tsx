@@ -53,6 +53,7 @@ import type { AppState } from '@/types';
 
 import { applySyncPullResult } from './applySyncPullResult';
 import {
+  collectAcknowledgedSyncOperationKeys,
   countSupportedQueueOperations,
   countUnresolvedSyncConflicts,
   resolveStatus,
@@ -336,14 +337,16 @@ export function SyncProvider({
       conflictStateVersionRef.current += 1;
       setConflictCount(nextConflictCount);
 
-      if (pushResult?.appliedOperations?.length) {
-        const appliedKeys = new Set(pushResult.appliedOperations.map((operation) => operation.id));
+      const acknowledgedKeys = collectAcknowledgedSyncOperationKeys(pushResult);
+      if (acknowledgedKeys.size > 0) {
         const queuedOperations = (await queueStore.loadOperations()) as Array<{
           opId: string;
           idempotencyKey: string;
         }>;
         for (const operation of queuedOperations) {
-          if (appliedKeys.has(operation.idempotencyKey)) await queueStore.acknowledge(operation.opId);
+          if (acknowledgedKeys.has(operation.idempotencyKey)) {
+            await queueStore.acknowledge(operation.opId);
+          }
         }
         await queueStore.removeAcknowledged();
       }

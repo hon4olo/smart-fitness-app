@@ -1,4 +1,5 @@
 import { isApiError } from '@/api/client';
+import type { CloudPushResult } from '@/cloud/CloudProvider';
 import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
 import { isBodyMeasurementQueueOperation } from '@/cloud/BodyMeasurementSync';
 import { isCustomExerciseQueueOperation } from '@/cloud/CustomExerciseSync';
@@ -30,6 +31,14 @@ export type WeightSyncContextValue = {
   error: string | null;
   syncNow(): Promise<void>;
 };
+
+export const collectAcknowledgedSyncOperationKeys = (
+  pushResult?: Pick<CloudPushResult, 'appliedOperations' | 'duplicateIdempotencyKeys'> | null,
+): Set<string> =>
+  new Set([
+    ...(pushResult?.appliedOperations ?? []).map((operation) => operation.id),
+    ...(pushResult?.duplicateIdempotencyKeys ?? []),
+  ].filter((key): key is string => typeof key === 'string' && Boolean(key.trim())));
 
 export const resolveSyncFailureStatus = (error: unknown): WeightSyncStatus => {
   if (isApiError(error)) {

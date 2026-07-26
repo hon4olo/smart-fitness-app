@@ -1,3 +1,5 @@
+import { createDeterministicUuid, isUuid } from '@/lib/ids';
+
 import type { DraftItem } from './addFoodModel';
 
 export type NutritionLibraryFood = DraftItem & {
@@ -11,6 +13,14 @@ export type NutritionLibraryFood = DraftItem & {
 };
 
 const STORAGE_PREFIX = 'smart-fitness:nutrition-food-library:v1';
+const SYNC_ENTITY_NAMESPACE = 'nutritionLibraryItems';
+
+export const getNutritionLibrarySyncEntityId = (libraryId: string): string => {
+  const normalized = libraryId.trim();
+  return isUuid(normalized)
+    ? normalized.toLowerCase()
+    : createDeterministicUuid(`${SYNC_ENTITY_NAMESPACE}:${normalized}`);
+};
 
 export const getNutritionFoodLibraryStorageKey = (ownerId: string | null): string =>
   `${STORAGE_PREFIX}:${ownerId ?? 'anonymous'}`;
@@ -23,6 +33,7 @@ const normalizeLibraryFood = (value: unknown): NutritionLibraryFood | null => {
   const item = value as Partial<NutritionLibraryFood>;
   if (
     typeof item.libraryId !== 'string' ||
+    !item.libraryId.trim() ||
     (item.kind !== 'custom' && item.kind !== 'provider-favorite') ||
     typeof item.savedAt !== 'string' ||
     typeof item.name !== 'string' ||
@@ -46,9 +57,11 @@ const normalizeLibraryFood = (value: unknown): NutritionLibraryFood | null => {
     typeof item.syncedRevision === 'number' && Number.isFinite(item.syncedRevision)
       ? Math.min(revision, Math.max(0, Math.floor(item.syncedRevision)))
       : 0;
+  const libraryId = getNutritionLibrarySyncEntityId(item.libraryId);
 
   return {
     ...(item as NutritionLibraryFood),
+    libraryId,
     updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : item.savedAt,
     revision,
     syncedRevision,
@@ -78,10 +91,12 @@ export const parseNutritionFoodLibrary = (raw: string | null): NutritionLibraryF
 export const serializeNutritionFoodLibrary = (items: NutritionLibraryFood[]): string =>
   JSON.stringify(items);
 
-export const getNutritionLibraryId = (draft: DraftItem): string =>
-  draft.externalId
+export const getNutritionLibraryId = (draft: DraftItem): string => {
+  const sourceId = draft.externalId
     ? `${draft.source}:${draft.externalId}`
     : `custom:${draft.name.trim().toLowerCase()}:${draft.brandName?.trim().toLowerCase() ?? ''}`;
+  return getNutritionLibrarySyncEntityId(sourceId);
+};
 
 export const getActiveNutritionLibraryFoods = (
   items: NutritionLibraryFood[],
