@@ -13,7 +13,7 @@ export default function SignInScreen() {
       onBack={() => router.back()}
       onSubmit={async (values) => {
         await login({ email: values.email, password: values.password });
-        router.replace('/(tabs)/profile');
+        router.replace('/');
       }}
       onSwitchMode={() => router.push('/auth/register')}
     />
