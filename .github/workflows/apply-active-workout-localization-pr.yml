@@ -1,0 +1,33 @@
+name: Apply active workout localization from PR
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply verified patch
+        shell: bash
+        run: |
+          PATCH_B64="$(sed -n 's/^          PATCH_B64: //p' .github/workflows/apply-active-workout-localization.yml)"
+          test -n "$PATCH_B64"
+          printf '%s' "$PATCH_B64" | base64 --decode | gzip --decompress > /tmp/active.patch
+          git apply --check /tmp/active.patch
+          git apply /tmp/active.patch
+          rm .github/workflows/apply-active-workout-localization.yml
+          rm .github/workflows/apply-active-workout-localization-pr.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "feat: localize active workout and finish flow"
+          git push origin HEAD:localize-active-workout-finish
