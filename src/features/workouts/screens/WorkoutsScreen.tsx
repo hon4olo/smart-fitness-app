@@ -20,8 +20,13 @@ import {
   hydrateActiveWorkoutSessionDraft,
   startEmptyWorkoutSessionDraft,
 } from '@/lib/workouts';
+import { formatPlural, useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { TrainingProgram } from '@/types';
+import {
+  getWorkoutsHubProgramTitle,
+  getWorkoutsHubWorkoutTitle,
+} from '@/features/workouts/workoutsHubLocalization';
 
 import {
   createModalStyles,
@@ -32,8 +37,8 @@ import {
 } from './workoutsScreen.styles';
 
 const tabs = [
-  { key: 'start-now', label: 'Start Now' },
-  { key: 'programs', label: 'Programs' },
+  { key: 'start-now', messageKey: 'workouts.tabs.startNow' },
+  { key: 'programs', messageKey: 'workouts.tabs.programs' },
 ] as const;
 
 type TabKey = (typeof tabs)[number]['key'];
@@ -49,8 +54,15 @@ const getInitials = (value: string) =>
     .join('')
     .toUpperCase() || '+';
 
-function TopTabs({ activeTab, onChange }: { activeTab: TabKey; onChange: (tab: TabKey) => void }) {
+function TopTabs({
+  activeTab,
+  onChange,
+}: {
+  activeTab: TabKey;
+  onChange: (tab: TabKey) => void;
+}) {
   const { colors } = useAppTheme();
+  const { t } = useLocalization();
   const styles = useMemo(() => createTopTabsStyles(colors), [colors]);
 
   return (
@@ -58,8 +70,12 @@ function TopTabs({ activeTab, onChange }: { activeTab: TabKey; onChange: (tab: T
       {tabs.map((tab) => {
         const selected = activeTab === tab.key;
         return (
-          <Pressable key={tab.key} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => onChange(tab.key)}>
-            <Text style={[styles.label, selected && styles.labelSelected]}>{tab.label}</Text>
+          <Pressable
+            key={tab.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            onPress={() => onChange(tab.key)}>
+            <Text style={[styles.label, selected && styles.labelSelected]}>{t(tab.messageKey)}</Text>
           </Pressable>
         );
       })}
@@ -69,32 +85,53 @@ function TopTabs({ activeTab, onChange }: { activeTab: TabKey; onChange: (tab: T
 
 function RoutineCard({ index, summary }: { index: number; summary: WorkoutTemplateSummary }) {
   const { colors } = useAppTheme();
+  const { locale, t } = useLocalization();
   const styles = useMemo(() => createRoutineCardStyles(colors), [colors]);
+  const exerciseCountLabel = formatPlural(locale, summary.exerciseCount, {
+    one: t('workouts.exerciseCount.one'),
+    few: t('workouts.exerciseCount.few'),
+    many: t('workouts.exerciseCount.many'),
+    other: t('workouts.exerciseCount.other'),
+  });
+
+  const displayTitle = getWorkoutsHubWorkoutTitle(t, summary.workout);
+  const displaySubtitle =
+    summary.workout.isCustom && summary.subtitle ? summary.subtitle : exerciseCountLabel;
 
   return (
     <Pressable
-      onPress={() => router.push({ pathname: '/workouts/template/[workoutId]', params: { workoutId: summary.workout.id } })}
+      accessibilityHint={t('workouts.openTemplateHint')}
+      accessibilityLabel={displayTitle}
+      accessibilityRole="button"
+      onPress={() =>
+        router.push({
+          pathname: '/workouts/template/[workoutId]',
+          params: { workoutId: summary.workout.id },
+        })
+      }
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <View style={[styles.cover, { backgroundColor: cardTints[index % cardTints.length] }]}>
-        <Text style={styles.coverLabel}>{getInitials(summary.workout.title)}</Text>
+        <Text style={styles.coverLabel}>{getInitials(displayTitle)}</Text>
       </View>
       <Text numberOfLines={1} style={styles.title}>
-        {summary.workout.title}
+        {displayTitle}
       </Text>
       <Text numberOfLines={1} style={styles.subtitle}>
-        {summary.subtitle || `${summary.exerciseCount} exercises`}
+        {displaySubtitle}
       </Text>
     </Pressable>
   );
 }
 
 function ProgramRow({
+  favoriteMode,
   icon,
   onPress,
   summary,
   title,
   workoutCount,
 }: {
+  favoriteMode?: 'show-all' | 'show-favorites';
   icon: 'add' | 'favorite' | 'program';
   onPress: () => void;
   summary?: WorkoutProgramSummary;
@@ -102,20 +139,46 @@ function ProgramRow({
   workoutCount: number;
 }) {
   const { colors } = useAppTheme();
+  const { locale, t } = useLocalization();
   const styles = useMemo(() => createProgramRowStyles(colors), [colors]);
   const isAdd = icon === 'add';
+  const workoutCountLabel = formatPlural(locale, workoutCount, {
+    one: t('workouts.workoutCount.one'),
+    few: t('workouts.workoutCount.few'),
+    many: t('workouts.workoutCount.many'),
+    other: t('workouts.workoutCount.other'),
+  });
+
+  const displayTitle = summary ? getWorkoutsHubProgramTitle(t, summary.program) : title;
+  const accessibilityHint =
+    icon === 'add'
+      ? t('workouts.addProgramHint')
+      : icon === 'favorite'
+        ? t(
+            favoriteMode === 'show-all'
+              ? 'workouts.showAllProgramsHint'
+              : 'workouts.showFavoritesHint',
+          )
+        : t('workouts.openProgramHint');
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+    <Pressable
+      accessibilityHint={accessibilityHint}
+      accessibilityLabel={displayTitle}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
       <View style={[styles.iconBox, isAdd && styles.addIconBox]}>
-        <Text style={[styles.iconLabel, isAdd && styles.addIconLabel]}>{icon === 'add' ? '+' : icon === 'favorite' ? '♡' : '▰'}</Text>
+        <Text style={[styles.iconLabel, isAdd && styles.addIconLabel]}>
+          {icon === 'add' ? '+' : icon === 'favorite' ? '♡' : '▰'}
+        </Text>
       </View>
       <View style={styles.copy}>
         <Text numberOfLines={1} style={styles.title}>
-          {summary?.program.name ?? title}
+          {displayTitle}
         </Text>
         <Text numberOfLines={1} style={styles.subtitle}>
-          {workoutCount} Workout{workoutCount === 1 ? '' : 's'}
+          {workoutCountLabel}
         </Text>
       </View>
     </Pressable>
@@ -132,6 +195,7 @@ function CreateProgramModal({
   visible: boolean;
 }) {
   const { colors } = useAppTheme();
+  const { t } = useLocalization();
   const styles = useMemo(() => createModalStyles(colors), [colors]);
   const [name, setName] = useState('');
 
@@ -147,12 +211,13 @@ function CreateProgramModal({
     <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.panel}>
-          <Text style={styles.title}>Give the program a name</Text>
+          <Text style={styles.title}>{t('workouts.createProgramTitle')}</Text>
           <TextInput
             autoCapitalize="words"
             autoFocus
             onChangeText={setName}
-            placeholder="Program name"
+            accessibilityLabel={t('workouts.programName')}
+            placeholder={t('workouts.programName')}
             placeholderTextColor={colors.textMuted}
             returnKeyType="done"
             selectionColor={colors.accent}
@@ -164,15 +229,27 @@ function CreateProgramModal({
               }
             }}
           />
+          {!canCreate ? (
+            <Text accessibilityLiveRegion="polite" style={styles.modalHelperText}>
+              {t('workouts.programNameRequired')}
+            </Text>
+          ) : null}
           <View style={styles.actions}>
-            <Pressable onPress={onClose} style={({ pressed }) => [styles.cancelButton, pressed && styles.pressed]}>
-              <Text style={styles.cancelLabel}>Cancel</Text>
+            <Pressable
+              onPress={onClose}
+              style={({ pressed }) => [styles.cancelButton, pressed && styles.pressed]}>
+              <Text style={styles.cancelLabel}>{t('common.cancel')}</Text>
             </Pressable>
             <Pressable
+              accessibilityState={{ disabled: !canCreate }}
               disabled={!canCreate}
               onPress={() => onCreate(name)}
-              style={({ pressed }) => [styles.createButton, !canCreate && styles.disabledButton, pressed && canCreate && styles.pressed]}>
-              <Text style={styles.createLabel}>Create</Text>
+              style={({ pressed }) => [
+                styles.createButton,
+                !canCreate && styles.disabledButton,
+                pressed && canCreate && styles.pressed,
+              ]}>
+              <Text style={styles.createLabel}>{t('workouts.create')}</Text>
             </Pressable>
           </View>
         </View>
@@ -183,9 +260,16 @@ function CreateProgramModal({
 
 export default function WorkoutsScreen() {
   const { colors } = useAppTheme();
+  const { t } = useLocalization();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createWorkoutsScreenStyles(colors), [colors]);
-  const { isRestoringState, saveTrainingProgram, trainingPrograms, workoutSessions, workouts } = useAppContext();
+  const {
+    isRestoringState,
+    saveTrainingProgram,
+    trainingPrograms,
+    workoutSessions,
+    workouts,
+  } = useAppContext();
   const [activeTab, setActiveTab] = useState<TabKey>('start-now');
   const [activeDraft, setActiveDraft] = useState<WorkoutSessionDraft | null>(null);
   const [draftReady, setDraftReady] = useState(false);
@@ -223,14 +307,22 @@ export default function WorkoutsScreen() {
     }, []),
   );
 
-  const suggested = useMemo(() => getSuggestedWorkoutTemplates(workouts, workoutSessions).slice(0, 2), [workoutSessions, workouts]);
-  const recent = useMemo(() => getRecentlyUsedWorkoutTemplates(workouts, workoutSessions, 6), [workoutSessions, workouts]);
+  const suggested = useMemo(
+    () => getSuggestedWorkoutTemplates(workouts, workoutSessions).slice(0, 2),
+    [workoutSessions, workouts],
+  );
+  const recent = useMemo(
+    () => getRecentlyUsedWorkoutTemplates(workouts, workoutSessions, 6),
+    [workoutSessions, workouts],
+  );
   const programSummaries = useMemo(() => {
     const programs = getWorkoutPrograms(workouts, trainingPrograms);
     return programs.map((program) => getWorkoutProgramSummary(program, workouts, workoutSessions));
   }, [trainingPrograms, workoutSessions, workouts]);
   const favoriteCount = programSummaries.filter((summary) => summary.isFavorite).length;
-  const visibleProgramSummaries = favoritesOnly ? programSummaries.filter((summary) => summary.isFavorite) : programSummaries;
+  const visibleProgramSummaries = favoritesOnly
+    ? programSummaries.filter((summary) => summary.isFavorite)
+    : programSummaries;
 
   const startEmptyWorkout = () => {
     const draft = startEmptyWorkoutSessionDraft();
@@ -264,7 +356,7 @@ export default function WorkoutsScreen() {
   if (isRestoringState || !draftReady) {
     return (
       <View style={[styles.screen, styles.loadingState]}>
-        <Text style={styles.loadingLabel}>Loading workouts...</Text>
+        <Text style={styles.loadingLabel}>{t('workouts.loading')}</Text>
       </View>
     );
   }
@@ -279,20 +371,32 @@ export default function WorkoutsScreen() {
         <View style={styles.container}>
           <View style={styles.header}>
             <TopTabs activeTab={activeTab} onChange={setActiveTab} />
-            <Pressable onPress={() => router.push('/workouts/exercise-library')} style={({ pressed }) => [styles.searchButton, pressed && styles.pressed]}>
+            <Pressable
+              accessibilityHint={t('workouts.searchExercisesHint')}
+              accessibilityLabel={t('workouts.searchExercisesAccessibility')}
+              accessibilityRole="button"
+              onPress={() => router.push('/workouts/exercise-library')}
+              style={({ pressed }) => [styles.searchButton, pressed && styles.pressed]}>
               <Text style={styles.searchLabel}>⌕</Text>
             </Pressable>
           </View>
 
           {activeTab === 'start-now' ? (
             <View style={styles.sectionStack}>
-              <View style={styles.grid}>
-                {suggested.map((summary, index) => (
-                  <RoutineCard key={summary.workout.id} index={index} summary={summary} />
-                ))}
-              </View>
-              <Text style={styles.sectionTitle}>Recently Added</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+              {suggested.length > 0 ? (
+                <View style={styles.grid}>
+                  {suggested.map((summary, index) => (
+                    <RoutineCard key={summary.workout.id} index={index} summary={summary} />
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyProgramText}>{t('workouts.noRoutines')}</Text>
+              )}
+              <Text style={styles.sectionTitle}>{t('workouts.recentlyAdded')}</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}>
                 {(recent.length > 0 ? recent : suggested).map((summary, index) => (
                   <View key={summary.workout.id} style={styles.horizontalCard}>
                     <RoutineCard index={index} summary={summary} />
@@ -302,9 +406,22 @@ export default function WorkoutsScreen() {
             </View>
           ) : (
             <View style={styles.programList}>
-              <ProgramRow icon="add" title="Add new program" workoutCount={0} onPress={() => setCreateProgramOpen(true)} />
-              <ProgramRow icon="favorite" title={favoritesOnly ? 'All programs' : 'Favorites'} workoutCount={favoritesOnly ? programSummaries.length : favoriteCount} onPress={() => setFavoritesOnly((current) => !current)} />
-              {favoritesOnly && visibleProgramSummaries.length === 0 ? <Text style={styles.emptyProgramText}>No favorite programs yet.</Text> : null}
+              <ProgramRow
+                icon="add"
+                title={t('workouts.addProgram')}
+                workoutCount={0}
+                onPress={() => setCreateProgramOpen(true)}
+              />
+              <ProgramRow
+                favoriteMode={favoritesOnly ? 'show-all' : 'show-favorites'}
+                icon="favorite"
+                title={favoritesOnly ? t('workouts.allPrograms') : t('workouts.favorites')}
+                workoutCount={favoritesOnly ? programSummaries.length : favoriteCount}
+                onPress={() => setFavoritesOnly((current) => !current)}
+              />
+              {favoritesOnly && visibleProgramSummaries.length === 0 ? (
+                <Text style={styles.emptyProgramText}>{t('workouts.noFavorites')}</Text>
+              ) : null}
               {visibleProgramSummaries.map((summary) => (
                 <ProgramRow
                   key={summary.program.id}
@@ -312,7 +429,12 @@ export default function WorkoutsScreen() {
                   summary={summary}
                   title={summary.program.name}
                   workoutCount={summary.workoutCount}
-                  onPress={() => router.push({ pathname: '/workouts/program/[programId]', params: { programId: summary.program.id } })}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/workouts/program/[programId]',
+                      params: { programId: summary.program.id },
+                    })
+                  }
                 />
               ))}
             </View>
@@ -322,14 +444,29 @@ export default function WorkoutsScreen() {
 
       <View pointerEvents="box-none" style={[styles.footer, { paddingBottom: insets.bottom + 2 }]}>
         <View style={styles.container}>
-          <Pressable onPress={activeDraft ? resumeWorkout : startEmptyWorkout} style={({ pressed }) => [styles.footerButton, pressed && styles.pressed]}>
+          <Pressable
+            accessibilityHint={t(
+              activeDraft ? 'workouts.resumeWorkoutHint' : 'workouts.startEmptyWorkoutHint',
+            )}
+            accessibilityLabel={t(
+              activeDraft ? 'workouts.resumeWorkout' : 'workouts.startEmptyWorkout',
+            )}
+            accessibilityRole="button"
+            onPress={activeDraft ? resumeWorkout : startEmptyWorkout}
+            style={({ pressed }) => [styles.footerButton, pressed && styles.pressed]}>
             <Text style={styles.footerIcon}>▶</Text>
-            <Text style={styles.footerLabel}>{activeDraft ? 'Resume Workout' : 'Start an Empty Workout'}</Text>
+            <Text style={styles.footerLabel}>
+              {activeDraft ? t('workouts.resumeWorkout') : t('workouts.startEmptyWorkout')}
+            </Text>
           </Pressable>
         </View>
       </View>
 
-      <CreateProgramModal visible={createProgramOpen} onClose={() => setCreateProgramOpen(false)} onCreate={createProgram} />
+      <CreateProgramModal
+        visible={createProgramOpen}
+        onClose={() => setCreateProgramOpen(false)}
+        onCreate={createProgram}
+      />
     </View>
   );
 }

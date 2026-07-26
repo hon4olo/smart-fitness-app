@@ -77,8 +77,8 @@ describe('workout session redesign', () => {
   it('hides the empty workout CTA when add exercise is not implemented', () => {
     const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
 
-    expect(source).toContain('Start Now');
-    expect(source).toContain('Programs');
+    expect(source).toContain("messageKey: 'workouts.tabs.startNow'");
+    expect(source).toContain("messageKey: 'workouts.tabs.programs'");
     expect(source).not.toContain('Start empty workout');
     expect(source).not.toContain('Workout plan:');
   });
