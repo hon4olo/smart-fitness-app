@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Radii, Spacing } from '@/constants/theme';
+import { getBodyMeasurementMetricLabel } from '@/features/progress/progressLocalization';
+import { useLocalization } from '@/localization';
 import {
   BODY_MEASUREMENT_METRICS,
   getBodyMeasurementUnits,
@@ -31,12 +33,13 @@ export function AddBodyMeasurementCard({
   onChangeValue,
   onSave,
 }: Props) {
+  const { t } = useLocalization();
   const availableUnits = getBodyMeasurementUnits(draft.metric);
 
   return (
     <AppCard>
-      <Text style={styles.sectionTitle}>Add measurement</Text>
-      <Text style={styles.inputLabel}>Metric</Text>
+      <Text style={styles.sectionTitle}>{t('measurement.add')}</Text>
+      <Text style={styles.inputLabel}>{t('measurement.metric')}</Text>
       <View style={styles.choiceGrid}>
         {BODY_MEASUREMENT_METRICS.map((option) => {
           const selected = option.metric === draft.metric;
@@ -48,7 +51,7 @@ export function AddBodyMeasurementCard({
               onPress={() => onChangeMetric(option.metric)}
               style={[styles.choice, selected && styles.choiceSelected]}>
               <Text style={[styles.choiceLabel, selected && styles.choiceLabelSelected]}>
-                {option.label}
+                {getBodyMeasurementMetricLabel(t, option.metric)}
               </Text>
             </Pressable>
           );
@@ -56,10 +59,11 @@ export function AddBodyMeasurementCard({
       </View>
       {draft.metric === 'custom' ? (
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Custom label</Text>
+          <Text style={styles.inputLabel}>{t('measurement.customLabel')}</Text>
           <TextInput
             onChangeText={onChangeCustomLabel}
-            placeholder="Forearm"
+            accessibilityLabel={t('measurement.customLabel')}
+            placeholder={t('measurement.customPlaceholder')}
             placeholderTextColor={Colors.dark.textSecondary}
             style={styles.input}
             value={draft.customLabel}
@@ -68,8 +72,9 @@ export function AddBodyMeasurementCard({
       ) : null}
       <View style={styles.inputGrid}>
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Value</Text>
+          <Text style={styles.inputLabel}>{t('measurement.value')}</Text>
           <TextInput
+            accessibilityLabel={t('measurement.value')}
             keyboardType="decimal-pad"
             onChangeText={onChangeValue}
             placeholder={draft.unit === 'in' ? '33.1' : draft.unit === 'percent' ? '15' : '84'}
@@ -79,7 +84,7 @@ export function AddBodyMeasurementCard({
           />
         </View>
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Unit</Text>
+          <Text style={styles.inputLabel}>{t('measurement.unit')}</Text>
           <View style={styles.unitRow}>
             {availableUnits.map((unit) => {
               const selected = draft.unit === unit;
@@ -100,7 +105,7 @@ export function AddBodyMeasurementCard({
         </View>
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <AppButton disabled={isDisabled} label="Save measurement" onPress={onSave} />
+      <AppButton disabled={isDisabled} label={t('measurement.save')} onPress={onSave} />
     </AppCard>
   );
 }

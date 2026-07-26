@@ -43,11 +43,11 @@ describe('product simplification 2.0', () => {
 
   test('progress screen keeps one weight summary and hides duplicate analytics blocks', () => {
     const source = readSource('src/app/(tabs)/progress.tsx');
-    expect(source).toContain('Current weight');
+    expect(source).toContain("t('progress.currentWeight')");
     expect(source).not.toContain('7-day');
     expect(source).not.toContain('30-day');
     expect(source).not.toContain('weekly average');
-    expect(source).toContain('Weight details');
+    expect(source).toContain("t('progress.weightDetails')");
   });
 
   test('home screen stays within three primary content sections', () => {

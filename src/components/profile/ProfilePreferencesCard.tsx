@@ -1,5 +1,6 @@
 import { AppCard } from '@/components/ui/AppCard';
 import { ListRow } from '@/components/ui/ListRow';
+import { useLocalization } from '@/localization';
 
 type ProfilePreferencesCardProps = {
   activityLevel: string;
@@ -12,11 +13,13 @@ export function ProfilePreferencesCard({
   goalType,
   trainingDaysPerWeek,
 }: ProfilePreferencesCardProps) {
+  const { t } = useLocalization();
+
   return (
     <AppCard>
-      <ListRow title="Goal type" value={goalType} />
-      <ListRow title="Activity level" value={activityLevel} />
-      <ListRow title="Training days" value={trainingDaysPerWeek} />
+      <ListRow title={t('profile.goalType')} value={goalType} />
+      <ListRow title={t('profile.activityLevel')} value={activityLevel} />
+      <ListRow title={t('profile.trainingDays')} value={trainingDaysPerWeek} />
     </AppCard>
   );
 }

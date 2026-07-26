@@ -11,6 +11,11 @@ import type {
   CoachActivityLevel,
   CoachProfileFormErrors,
 } from '@/features/profile/coachProfileForm';
+import {
+  getActivityLevelLabel,
+  getCoachProfileErrors,
+  getTrainingExperienceLabel,
+} from '@/features/progress/progressLocalization';
 import { useLocalization } from '@/localization';
 import type { ProfileTrainingExperience } from '@/types';
 import type { LengthUnit } from '@/units';
@@ -86,109 +91,91 @@ export function ProfileCoachCard({
   personalDetailsReady,
   trainingExperience,
 }: ProfileCoachCardProps) {
-  const { locale } = useLocalization();
+  const { t } = useLocalization();
+  const localizedErrors = getCoachProfileErrors(t, errors);
   const activityOptions = [
-    { label: locale === 'ru' ? 'Низкая' : 'Sedentary', value: 'sedentary' as const },
-    { label: locale === 'ru' ? 'Лёгкая' : 'Light', value: 'light' as const },
-    { label: locale === 'ru' ? 'Средняя' : 'Moderate', value: 'moderate' as const },
-    { label: locale === 'ru' ? 'Высокая' : 'High', value: 'high' as const },
-    { label: locale === 'ru' ? 'Очень высокая' : 'Very high', value: 'very_high' as const },
+    { label: getActivityLevelLabel(t, 'sedentary'), value: 'sedentary' as const },
+    { label: getActivityLevelLabel(t, 'light'), value: 'light' as const },
+    { label: getActivityLevelLabel(t, 'moderate'), value: 'moderate' as const },
+    { label: getActivityLevelLabel(t, 'high'), value: 'high' as const },
+    { label: getActivityLevelLabel(t, 'very_high'), value: 'very_high' as const },
   ];
   const experienceOptions = [
-    { label: locale === 'ru' ? 'Новичок' : 'Beginner', value: 'beginner' as const },
-    { label: locale === 'ru' ? 'Средний' : 'Intermediate', value: 'intermediate' as const },
-    { label: locale === 'ru' ? 'Продвинутый' : 'Advanced', value: 'advanced' as const },
+    { label: getTrainingExperienceLabel(t, 'beginner'), value: 'beginner' as const },
+    { label: getTrainingExperienceLabel(t, 'intermediate'), value: 'intermediate' as const },
+    { label: getTrainingExperienceLabel(t, 'advanced'), value: 'advanced' as const },
   ];
 
   return (
     <AppCard>
-      <Text style={styles.title}>{locale === 'ru' ? 'Профиль Coach' : 'Coach profile'}</Text>
-      <Text style={styles.helpText}>
-        {locale === 'ru'
-          ? 'Здесь остаются только параметры тренировок. Дата рождения и формула расчёта берутся из Настроек.'
-          : 'Only training inputs live here. Date of birth and calculation formula come from Settings.'}
-      </Text>
+      <Text style={styles.title}>{t('coach.profileTitle')}</Text>
+      <Text style={styles.helpText}>{t('coach.profileHelp')}</Text>
       {!personalDetailsReady ? (
         <View style={styles.personalDetailsNotice}>
-          <Text style={styles.noticeTitle}>
-            {locale === 'ru' ? 'Заполните личные данные' : 'Complete personal details'}
-          </Text>
-          <Text style={styles.fieldHelp}>
-            {locale === 'ru'
-              ? 'Укажите дату рождения и формулу расчёта в Настройках, чтобы сохранить профиль Coach.'
-              : 'Set date of birth and calculation formula in Settings before saving Coach.'}
-          </Text>
-          <SecondaryButton
-            label={locale === 'ru' ? 'Открыть настройки' : 'Open Settings'}
-            onPress={onOpenPersonalDetails}
-          />
+          <Text style={styles.noticeTitle}>{t('coach.personalDetailsRequired')}</Text>
+          <Text style={styles.fieldHelp}>{t('coach.personalDetailsRequiredBody')}</Text>
+          <SecondaryButton label={t('profile.settingsAction')} onPress={onOpenPersonalDetails} />
         </View>
       ) : null}
       <FormField
-        errorMessage={errors.heightCm}
-        helperText={
-          locale === 'ru'
-            ? 'Используется в детерминированных формулах энергозатрат'
-            : 'Used by deterministic energy formulas'
-        }
+        errorMessage={localizedErrors.heightCm}
+        helperText={t('coach.heightHelp')}
         keyboardType="decimal-pad"
-        label={locale === 'ru' ? `Рост (${lengthUnit})` : `Height (${lengthUnit})`}
+        label={t('coach.height', { unit: lengthUnit })}
         onChangeText={onHeightCmChange}
         placeholder={lengthUnit === 'in' ? '69' : '175'}
         textContentType="none"
         value={heightCm}
       />
       <View style={styles.fieldGroup}>
-        <Text style={styles.label}>{locale === 'ru' ? 'Уровень активности' : 'Activity level'}</Text>
+        <Text style={styles.label}>{t('coach.activityLevel')}</Text>
         <ChoiceGrid
-          accessibilityLabel={locale === 'ru' ? 'Уровень активности' : 'Activity level'}
+          accessibilityLabel={t('coach.activityLevel')}
           onChange={onActivityLevelChange}
           options={activityOptions}
           value={activityLevel}
         />
-        <InlineError message={errors.activityLevel} />
+        <InlineError message={localizedErrors.activityLevel} />
       </View>
       <View style={styles.fieldGroup}>
-        <Text style={styles.label}>
-          {locale === 'ru' ? 'Тренировочный опыт' : 'Training experience'}
-        </Text>
+        <Text style={styles.label}>{t('coach.trainingExperience')}</Text>
         <ChoiceGrid
-          accessibilityLabel={locale === 'ru' ? 'Тренировочный опыт' : 'Training experience'}
+          accessibilityLabel={t('coach.trainingExperience')}
           columns={3}
           onChange={onTrainingExperienceChange}
           options={experienceOptions}
           value={trainingExperience}
         />
-        <InlineError message={errors.trainingExperience} />
+        <InlineError message={localizedErrors.trainingExperience} />
       </View>
       <PrimaryButton
         disabled={isSaveDisabled}
-        label={locale === 'ru' ? 'Сохранить профиль Coach' : 'Save coach profile'}
+        label={t('coach.saveProfile')}
         onPress={onSave}
       />
       <SecondaryButton
-        accessibilityHint="Opens the self-reported recovery check-in form"
-        label={locale === 'ru' ? 'Добавить оценку восстановления' : 'Add recovery check-in'}
+        accessibilityHint={t('coach.hintRecoveryCheckIn')}
+        label={t('coach.addRecoveryCheckIn')}
         onPress={() => router.push('/profile/recovery-check-in')}
       />
       <SecondaryButton
-        accessibilityHint="Opens the self-reported training limitation manager"
-        label={locale === 'ru' ? 'Ограничения тренировок' : 'Manage training limitations'}
+        accessibilityHint={t('coach.hintLimitations')}
+        label={t('coach.manageLimitations')}
         onPress={() => router.push('/profile/limitations')}
       />
       <SecondaryButton
-        accessibilityHint="Opens the deterministic limitations and recovery readiness review"
-        label={locale === 'ru' ? 'Безопасность и восстановление' : 'Open Safety & Recovery'}
+        accessibilityHint={t('coach.hintSafetyRecovery')}
+        label={t('coach.openSafetyRecovery')}
         onPress={() => router.push('/profile/safety-recovery')}
       />
       <SecondaryButton
-        accessibilityHint="Opens the deterministic Strength, Nutrition, and Safety combined review"
-        label={locale === 'ru' ? 'Общий обзор Coach' : 'Open Combined Coach'}
+        accessibilityHint={t('coach.hintCombinedReview')}
+        label={t('coach.openCombinedReview')}
         onPress={() => router.push('/profile/combined-review')}
       />
       <SecondaryButton
-        accessibilityHint="Builds read-only Strength and Nutrition proposals under the Safety ceiling"
-        label={locale === 'ru' ? 'Общее предложение Coach' : 'Open Combined proposal'}
+        accessibilityHint={t('coach.hintCombinedProposal')}
+        label={t('coach.openCombinedProposal')}
         onPress={() => router.push('/profile/combined-proposal')}
       />
     </AppCard>

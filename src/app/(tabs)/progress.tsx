@@ -19,13 +19,15 @@ import {
   getDefaultBodyMeasurementUnit,
 } from '@/features/progress/bodyMeasurementModel';
 import { ProgressPlanningSections } from '@/features/progress/ProgressPlanningSections';
-import { formatShortDate } from '@/lib';
+import {
+  getBodyMeasurementDisplayLabel,
+  getBodyMeasurementError,
+} from '@/features/progress/progressLocalization';
 import { createUuid } from '@/lib/ids';
 import { getProgressAnalytics } from '@/lib/progress';
+import { useLocalization } from '@/localization';
 import type { BodyMeasurementMetric, BodyMeasurementUnit } from '@/types';
 import { formatLengthValue, formatWeightValue, weightFromKg, useUnitPreferences } from '@/units';
-
-const toDateLabel = (value: string) => formatShortDate(value);
 
 const SectionRow = memo(function SectionRow({ label, value, detail }: { detail?: string; label: string; value: string }) {
   return (
@@ -41,10 +43,13 @@ const SectionRow = memo(function SectionRow({ label, value, detail }: { detail?:
 
 export default function ProgressScreen() {
   const { addBodyMeasurement, bodyMeasurements, exercises, weightHistory, workoutSessions } = useAppContext();
+  const { formatDate, formatNumber, t } = useLocalization();
   const { length: lengthUnit, weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
   const [measurementDraft, setMeasurementDraft] = useState(() => createBodyMeasurementDraft(lengthUnit));
   const [measurementError, setMeasurementError] = useState<string | null>(null);
+  const toDateLabel = (value: string) =>
+    formatDate(value, { day: 'numeric', month: 'short' });
 
   useEffect(() => {
     setMeasurementDraft((current) => {
@@ -74,11 +79,19 @@ export default function ProgressScreen() {
   const weightSummaryLabel = latestWeight !== null ? `${formatWeightValue(latestWeight, weightUnit)} ${weightUnit}` : '—';
   const convertedWeightDelta = weightChange7d !== null ? weightFromKg(weightChange7d, weightUnit) : null;
   const weightTrendLabel = convertedWeightDelta !== null
-    ? `${convertedWeightDelta > 0 ? '+' : ''}${convertedWeightDelta.toFixed(1)} ${weightUnit} this week`
-    : 'No recent trend yet';
+    ? t('progress.weightTrendWeek', {
+        delta: `${convertedWeightDelta > 0 ? '+' : ''}${formatNumber(convertedWeightDelta, {
+          maximumFractionDigits: 1,
+          minimumFractionDigits: 1,
+        })}`,
+        unit: weightUnit,
+      })
+    : t('progress.noRecentTrend');
   const weightDetailLabel = analytics.weight.currentWeightEntry
-    ? `Latest check-in · ${toDateLabel(analytics.weight.currentWeightEntry.createdAt)}`
-    : 'Add a weight check-in to start tracking';
+    ? t('progress.latestCheckIn', {
+        date: toDateLabel(analytics.weight.currentWeightEntry.createdAt),
+      })
+    : t('progress.addWeightPrompt');
   const isMeasurementDisabled = measurementDraft.value.trim().length === 0 ||
     (measurementDraft.metric === 'custom' && measurementDraft.customLabel.trim().length === 0);
 
@@ -99,7 +112,7 @@ export default function ProgressScreen() {
   const saveMeasurement = () => {
     const result = buildBodyMeasurement({ draft: measurementDraft, id: createUuid(), now: new Date().toISOString() });
     if (!result.ok) {
-      setMeasurementError(result.message);
+      setMeasurementError(getBodyMeasurementError(t, result.message));
       return;
     }
     addBodyMeasurement(result.measurement);
@@ -121,48 +134,48 @@ export default function ProgressScreen() {
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.screen}>
       <View style={styles.container}>
-        <SectionHeader title="Progress" subtitle="Keep the useful trends, hide the noise." />
+        <SectionHeader title={t('tabs.progress')} subtitle={t('progress.subtitle')} />
         <ProgressPlanningSections />
         <AppCard>
           <View style={styles.sectionHeader}>
-            <Text selectable style={styles.sectionTitle}>Weight</Text>
+            <Text selectable style={styles.sectionTitle}>{t('progress.weight')}</Text>
             <Text selectable style={styles.sectionSubtitle}>{weightTrendLabel}</Text>
           </View>
           <View style={styles.weightHero}>
             <View style={styles.weightHeroCopy}>
-              <Text selectable style={styles.weightHeroLabel}>Current weight</Text>
+              <Text selectable style={styles.weightHeroLabel}>{t('progress.currentWeight')}</Text>
               <Text selectable style={styles.weightHeroValue}>{weightSummaryLabel}</Text>
               <Text selectable style={styles.weightHeroDetail}>{weightDetailLabel}</Text>
             </View>
-            <AppButton label="Weight details" onPress={() => router.push('/weight-details')} variant="secondary" />
+            <AppButton label={t('progress.weightDetails')} onPress={() => router.push('/weight-details')} variant="secondary" />
           </View>
           {hasWeightChart ? (
             <View style={styles.chartWrap}>
               <ProgressTrendChart
-                emptyLabel="Add at least two weigh-ins to see a chart."
+                emptyLabel={t('progress.weightChartEmpty')}
                 maxLabel={`${Math.max(...weightTrendPoints.map((point) => point.value)).toFixed(1)} ${weightUnit}`}
                 minLabel={`${Math.min(...weightTrendPoints.map((point) => point.value)).toFixed(1)} ${weightUnit}`}
                 points={weightTrendPoints}
               />
             </View>
           ) : (
-            <EmptyProgressState description="Add a couple of weigh-ins and the chart will appear here." message="No weight chart yet." title="Track a baseline" />
+            <EmptyProgressState description={t('progress.weightBaselineDescription')} message={t('progress.weightBaselineMessage')} title={t('progress.weightBaselineTitle')} />
           )}
           <View style={styles.weightActions}>
-            <AppButton label="Add weight" onPress={() => router.push('/weight-entry')} />
-            <AppButton label="Training details" onPress={() => router.push('/weight-details')} variant="secondary" />
+            <AppButton label={t('progress.addWeight')} onPress={() => router.push('/weight-entry')} />
+            <AppButton label={t('progress.trainingDetails')} onPress={() => router.push('/weight-details')} variant="secondary" />
           </View>
         </AppCard>
         <AppCard>
-          <View style={styles.sectionHeader}><Text selectable style={styles.sectionTitle}>Body measurements</Text></View>
+          <View style={styles.sectionHeader}><Text selectable style={styles.sectionTitle}>{t('progress.bodyMeasurements')}</Text></View>
           {bodyMeasurementPreview.length > 0 ? (
             <View style={styles.stack}>
               {bodyMeasurementPreview.map((measurement) => (
-                <SectionRow key={measurement.id} detail={toDateLabel(measurement.createdAt)} label={measurement.label} value={formatMeasurementValue(measurement)} />
+                <SectionRow key={measurement.id} detail={toDateLabel(measurement.createdAt)} label={getBodyMeasurementDisplayLabel(t, measurement.metric, measurement.label)} value={formatMeasurementValue(measurement)} />
               ))}
             </View>
           ) : (
-            <EmptyProgressState description="Add a measurement when it matters. Keep the rest out of the way." message="No measurements yet." title="Nothing to show" />
+            <EmptyProgressState description={t('progress.measurementsEmptyDescription')} message={t('progress.measurementsEmptyMessage')} title={t('progress.measurementsEmptyTitle')} />
           )}
           <AddBodyMeasurementCard
             draft={measurementDraft}
@@ -177,15 +190,34 @@ export default function ProgressScreen() {
         </AppCard>
         <AppCard>
           <View style={styles.sectionHeader}>
-            <Text selectable style={styles.sectionTitle}>Training progress</Text>
-            <Text selectable style={styles.sectionSubtitle}>One compact view of workload.</Text>
+            <Text selectable style={styles.sectionTitle}>{t('progress.trainingProgress')}</Text>
+            <Text selectable style={styles.sectionSubtitle}>{t('progress.trainingSubtitle')}</Text>
           </View>
           <View style={styles.stack}>
-            <SectionRow detail={previousVolumePoint ? `${latestVolumePoint?.volume.toLocaleString() ?? '0'} vs ${previousVolumePoint.volume.toLocaleString()}` : 'Recent sessions only'} label="Weekly workout count" value={`${analytics.workoutVolumeTrend.length}`} />
-            <SectionRow detail={latestVolumePoint ? `Latest session · ${toDateLabel(latestVolumePoint.createdAt)}` : 'No workout trend yet'} label="Training volume" value={latestVolumePoint ? latestVolumePoint.volume.toLocaleString() : '—'} />
-            <SectionRow detail={analytics.latestPrs.length > 0 ? 'Personal records on deck' : 'No PRs yet'} label="Recent PRs" value={`${analytics.latestPrs.length}`} />
+            <SectionRow
+              detail={previousVolumePoint
+                ? t('progress.compareValues', {
+                    current: formatNumber(latestVolumePoint?.volume ?? 0),
+                    previous: formatNumber(previousVolumePoint.volume),
+                  })
+                : t('progress.recentSessionsOnly')}
+              label={t('progress.weeklyWorkoutCount')}
+              value={formatNumber(analytics.workoutVolumeTrend.length)}
+            />
+            <SectionRow
+              detail={latestVolumePoint
+                ? t('progress.latestSession', { date: toDateLabel(latestVolumePoint.createdAt) })
+                : t('progress.noWorkoutTrend')}
+              label={t('progress.trainingVolume')}
+              value={latestVolumePoint ? formatNumber(latestVolumePoint.volume) : '—'}
+            />
+            <SectionRow
+              detail={analytics.latestPrs.length > 0 ? t('progress.prsOnDeck') : t('progress.noPrs')}
+              label={t('progress.recentPrs')}
+              value={formatNumber(analytics.latestPrs.length)}
+            />
           </View>
-          <AppButton label="Training details" onPress={() => router.push('/weight-details')} variant="secondary" />
+          <AppButton label={t('progress.trainingDetails')} onPress={() => router.push('/weight-details')} variant="secondary" />
         </AppCard>
         <SafetyRecoveryProgressCard onOpenHistory={() => router.push('/workout-history')} sessions={workoutSessions} />
         <SafetyRecoveryWeeklyTrendCard

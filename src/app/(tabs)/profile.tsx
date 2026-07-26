@@ -5,24 +5,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProfilePreferencesCard } from '@/components/profile/ProfilePreferencesCard';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import {
+  getGoalTypeLabel,
+  getStoredActivityLevelLabel,
+} from '@/features/progress/progressLocalization';
 import { useLocalization } from '@/localization';
-import type { ProfileGoalType } from '@/types';
-
-const goalTypeLabel = (value: ProfileGoalType, locale: 'en' | 'ru') => {
-  if (locale === 'ru') {
-    if (value === 'lose_fat') return 'Сушка';
-    if (value === 'maintain') return 'Поддержание';
-    return 'Набор массы';
-  }
-  if (value === 'lose_fat') return 'Lose fat';
-  if (value === 'maintain') return 'Maintain';
-  return 'Gain muscle';
-};
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { profile } = useAppContext();
-  const { locale, t } = useLocalization();
+  const { t } = useLocalization();
   const safeAreaInsets = useSafeAreaInsets();
 
   return (
@@ -37,7 +29,7 @@ export default function ProfileScreen() {
         <View style={styles.headerRow}>
           <Text style={styles.title}>{t('profile.title')}</Text>
           <Pressable
-            accessibilityLabel={locale === 'ru' ? 'Открыть настройки' : 'Open Settings'}
+            accessibilityLabel={t('profile.settingsAction')}
             accessibilityRole="button"
             onPress={() => router.push('/settings')}
             style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}>
@@ -46,23 +38,17 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{locale === 'ru' ? 'Кратко' : 'Summary'}</Text>
+          <Text style={styles.sectionTitle}>{t('profile.summary')}</Text>
           <ProfilePreferencesCard
-            activityLevel={profile.activityLevel}
-            goalType={goalTypeLabel(profile.goalType, locale)}
+            activityLevel={getStoredActivityLevelLabel(t, profile.activityLevel)}
+            goalType={getGoalTypeLabel(t, profile.goalType)}
             trainingDaysPerWeek={`${profile.trainingDaysPerWeek}`}
           />
         </View>
 
         <View style={styles.note}>
-          <Text style={styles.noteTitle}>
-            {locale === 'ru' ? 'План и Coach находятся в Прогрессе' : 'Plan and Coach are in Progress'}
-          </Text>
-          <Text style={styles.noteText}>
-            {locale === 'ru'
-              ? 'Цель, параметры тренировок и инструменты AI Coach теперь собраны рядом с вашими результатами.'
-              : 'Goals, training inputs, and AI Coach tools now live next to your results.'}
-          </Text>
+          <Text style={styles.noteTitle}>{t('profile.planMovedTitle')}</Text>
+          <Text style={styles.noteText}>{t('profile.planMovedBody')}</Text>
         </View>
       </View>
     </ScrollView>

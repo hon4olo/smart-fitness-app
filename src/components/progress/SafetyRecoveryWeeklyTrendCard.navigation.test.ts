@@ -17,7 +17,7 @@ describe('Safety Recovery weekly history drilldown', () => {
     const card = readSource('src/components/progress/SafetyRecoveryWeeklyTrendCard.tsx');
 
     expect(card).toContain('setSelectedPointKey(point.key)');
-    expect(card).toContain('All workouts');
+    expect(card).toContain("t('safety.allWorkouts')");
     expect(card).toContain('openHistory(status)');
     expect(card).toContain('getEndExclusive');
   });

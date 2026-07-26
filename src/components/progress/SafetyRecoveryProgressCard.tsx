@@ -8,6 +8,15 @@ import {
   buildSafetyRecoveryProgressAnalytics,
   type SafetyRecoveryProgressPeriod,
 } from '@/features/progress/safetyRecoveryProgressAnalytics';
+import {
+  getSafetyLoadDeltaLabel,
+  getSafetyLoadLatestLabel,
+  getSafetyMovementLabel,
+  getSafetyPeriodLabel,
+  getSafetyStatusLabel,
+  getSafetyWindowLabel,
+} from '@/features/progress/progressLocalization';
+import { formatPlural, useLocalization } from '@/localization';
 import type { WorkoutSafetyReviewStatus, WorkoutSession } from '@/types';
 
 type SafetyRecoveryProgressCardProps = {
@@ -15,11 +24,7 @@ type SafetyRecoveryProgressCardProps = {
   onOpenHistory(): void;
 };
 
-const PERIOD_OPTIONS: Array<{ id: SafetyRecoveryProgressPeriod; label: string }> = [
-  { id: '30d', label: '30 days' },
-  { id: '90d', label: '90 days' },
-  { id: 'all', label: 'All time' },
-];
+const PERIOD_IDS: SafetyRecoveryProgressPeriod[] = ['30d', '90d', 'all'];
 
 const getStatusColor = (status: WorkoutSafetyReviewStatus): string => {
   if (status === 'ready') return Colors.dark.success;
@@ -28,15 +33,13 @@ const getStatusColor = (status: WorkoutSafetyReviewStatus): string => {
   return Colors.dark.accent;
 };
 
-const formatSignedValue = (value: number, suffix = ''): string => {
-  if (value > 0) return `+${value}${suffix}`;
-  return `${value}${suffix}`;
-};
+const formatSignedValue = (value: number): string => (value > 0 ? `+${value}` : `${value}`);
 
 export function SafetyRecoveryProgressCard({
   onOpenHistory,
   sessions,
 }: SafetyRecoveryProgressCardProps) {
+  const { formatNumber, locale, t } = useLocalization();
   const [period, setPeriod] = useState<SafetyRecoveryProgressPeriod>('30d');
   const analytics = useMemo(
     () => buildSafetyRecoveryProgressAnalytics(sessions, period),
@@ -45,45 +48,56 @@ export function SafetyRecoveryProgressCard({
   const visibleStatusMetrics = analytics.statusMetrics.filter(
     (metric) => metric.status !== 'needs_input' || metric.count > 0,
   );
+  const currentPeriodLabel = getSafetyWindowLabel(t, period);
+  const previousPeriodLabel = period === 'all'
+    ? t('safety.window.all')
+    : t('safety.previousDays', { days: period === '30d' ? 30 : 90 });
+  const formatDeltaDetail = (
+    value: number | null,
+    emptyKey: 'safety.noWorkoutsPrevious' | 'safety.noFreshPrevious' | 'safety.noReviewedPrevious',
+  ) => {
+    if (value === null) return t(emptyKey);
+    if (value > 0) return t('safety.loadUp', { value: Math.abs(value) });
+    if (value < 0) return t('safety.loadDown', { value: Math.abs(value) });
+    return t('safety.noChangePrevious');
+  };
+  const formatPercentagePoints = (value: number | null) =>
+    value === null
+      ? '—'
+      : t('safety.percentagePoints', { value: formatSignedValue(value) });
 
   return (
     <AppCard>
       <View style={styles.header}>
-        <Text selectable style={styles.title}>
-          Safety & Recovery history
-        </Text>
-        <Text selectable style={styles.subtitle}>
-          Historical context from completed workouts. This is not a current readiness result.
-        </Text>
+        <Text selectable style={styles.title}>{t('safety.historyTitle')}</Text>
+        <Text selectable style={styles.subtitle}>{t('safety.historySubtitle')}</Text>
       </View>
 
       <View style={styles.periodSection}>
-        <Text selectable style={styles.periodLabel}>
-          Period
-        </Text>
+        <Text selectable style={styles.periodLabel}>{t('safety.period')}</Text>
         <View style={styles.periodRow}>
-          {PERIOD_OPTIONS.map((option) => {
-            const selected = period === option.id;
+          {PERIOD_IDS.map((option) => {
+            const selected = period === option;
             return (
               <Pressable
-                key={option.id}
+                key={option}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                onPress={() => setPeriod(option.id)}
+                onPress={() => setPeriod(option)}
                 style={({ pressed }) => [
                   styles.periodChip,
                   selected && styles.periodChipSelected,
                   pressed && styles.pressed,
                 ]}>
                 <Text style={[styles.periodChipLabel, selected && styles.periodChipLabelSelected]}>
-                  {option.label}
+                  {getSafetyPeriodLabel(t, option)}
                 </Text>
               </Pressable>
             );
           })}
         </View>
         <Text selectable style={styles.periodHelp}>
-          Showing {analytics.periodLabel.toLowerCase()}.
+          {t('safety.showingPeriod', { period: currentPeriodLabel })}
         </Text>
       </View>
 
@@ -92,97 +106,84 @@ export function SafetyRecoveryProgressCard({
           <Text selectable style={styles.summaryValue}>
             {analytics.reviewedWorkouts}/{analytics.totalWorkouts}
           </Text>
-          <Text selectable style={styles.summaryLabel}>
-            Fresh reviewed workouts
-          </Text>
+          <Text selectable style={styles.summaryLabel}>{t('safety.freshReviewedWorkouts')}</Text>
+        </View>
+        <View style={styles.summaryCell}>
+          <Text selectable style={styles.summaryValue}>{analytics.reviewCoverageLabel}</Text>
+          <Text selectable style={styles.summaryLabel}>{t('safety.reviewCoverage')}</Text>
         </View>
         <View style={styles.summaryCell}>
           <Text selectable style={styles.summaryValue}>
-            {analytics.reviewCoverageLabel}
+            {getSafetyLoadLatestLabel(t, analytics.loadTrend.latestMultiplier)}
           </Text>
-          <Text selectable style={styles.summaryLabel}>
-            Review coverage
-          </Text>
+          <Text selectable style={styles.summaryLabel}>{t('safety.latestLoadCeiling')}</Text>
         </View>
         <View style={styles.summaryCell}>
           <Text selectable style={styles.summaryValue}>
-            {analytics.loadTrend.latestLabel}
+            {formatNumber(analytics.missingOrStaleWorkouts)}
           </Text>
-          <Text selectable style={styles.summaryLabel}>
-            Latest reviewed load ceiling
-          </Text>
-        </View>
-        <View style={styles.summaryCell}>
-          <Text selectable style={styles.summaryValue}>
-            {analytics.missingOrStaleWorkouts}
-          </Text>
-          <Text selectable style={styles.summaryLabel}>
-            Missing or stale gates
-          </Text>
+          <Text selectable style={styles.summaryLabel}>{t('safety.missingStaleGates')}</Text>
         </View>
       </View>
 
       {analytics.comparison ? (
         <View style={styles.section}>
-          <Text selectable style={styles.sectionTitle}>
-            Period comparison
-          </Text>
+          <Text selectable style={styles.sectionTitle}>{t('safety.comparisonTitle')}</Text>
           <Text selectable style={styles.sectionHelp}>
-            {analytics.periodLabel} compared with {analytics.comparison.previousPeriodLabel.toLowerCase()}.
+            {t('safety.comparisonHelp', {
+              current: currentPeriodLabel,
+              previous: previousPeriodLabel,
+            })}
           </Text>
           <View style={styles.comparisonGrid}>
             <View style={styles.comparisonCell}>
               <Text selectable style={styles.comparisonValue}>
                 {formatSignedValue(analytics.comparison.workoutCountDelta)}
               </Text>
-              <Text selectable style={styles.comparisonLabel}>
-                Workouts
-              </Text>
+              <Text selectable style={styles.comparisonLabel}>{t('safety.workouts')}</Text>
               <Text selectable style={styles.comparisonDetail}>
-                {analytics.totalWorkouts} vs {analytics.comparison.previousTotalWorkouts}
+                {t('progress.compareValues', {
+                  current: analytics.totalWorkouts,
+                  previous: analytics.comparison.previousTotalWorkouts,
+                })}
               </Text>
             </View>
             <View style={styles.comparisonCell}>
               <Text selectable style={styles.comparisonValue}>
                 {formatSignedValue(analytics.comparison.reviewedWorkoutsDelta)}
               </Text>
-              <Text selectable style={styles.comparisonLabel}>
-                Fresh reviews
-              </Text>
+              <Text selectable style={styles.comparisonLabel}>{t('safety.freshReviews')}</Text>
               <Text selectable style={styles.comparisonDetail}>
-                {analytics.reviewedWorkouts} vs {analytics.comparison.previousReviewedWorkouts}
+                {t('progress.compareValues', {
+                  current: analytics.reviewedWorkouts,
+                  previous: analytics.comparison.previousReviewedWorkouts,
+                })}
               </Text>
             </View>
             <View style={styles.comparisonCell}>
               <Text selectable style={styles.comparisonValue}>
-                {analytics.comparison.reviewCoverageDeltaPercentagePoints === null
-                  ? '—'
-                  : formatSignedValue(
-                      analytics.comparison.reviewCoverageDeltaPercentagePoints,
-                      ' pp',
-                    )}
+                {formatPercentagePoints(analytics.comparison.reviewCoverageDeltaPercentagePoints)}
               </Text>
-              <Text selectable style={styles.comparisonLabel}>
-                Review coverage
-              </Text>
+              <Text selectable style={styles.comparisonLabel}>{t('safety.reviewCoverage')}</Text>
               <Text selectable style={styles.comparisonDetail}>
-                {analytics.comparison.reviewCoverageDeltaLabel}
+                {formatDeltaDetail(
+                  analytics.comparison.reviewCoverageDeltaPercentagePoints,
+                  'safety.noWorkoutsPrevious',
+                )}
               </Text>
             </View>
             <View style={styles.comparisonCell}>
               <Text selectable style={styles.comparisonValue}>
-                {analytics.comparison.restrictedWorkoutShareDeltaPercentagePoints === null
-                  ? '—'
-                  : formatSignedValue(
-                      analytics.comparison.restrictedWorkoutShareDeltaPercentagePoints,
-                      ' pp',
-                    )}
+                {formatPercentagePoints(
+                  analytics.comparison.restrictedWorkoutShareDeltaPercentagePoints,
+                )}
               </Text>
-              <Text selectable style={styles.comparisonLabel}>
-                Restricted reviews
-              </Text>
+              <Text selectable style={styles.comparisonLabel}>{t('safety.restrictedReviews')}</Text>
               <Text selectable style={styles.comparisonDetail}>
-                {analytics.comparison.restrictedWorkoutShareDeltaLabel}
+                {formatDeltaDetail(
+                  analytics.comparison.restrictedWorkoutShareDeltaPercentagePoints,
+                  'safety.noFreshPrevious',
+                )}
               </Text>
             </View>
           </View>
@@ -191,12 +192,8 @@ export function SafetyRecoveryProgressCard({
 
       {analytics.reviewedWorkouts > 0 ? (
         <View style={styles.section}>
-          <Text selectable style={styles.sectionTitle}>
-            Review status distribution
-          </Text>
-          <Text selectable style={styles.sectionHelp}>
-            Shares use only fresh reviewed workout contexts in the selected period.
-          </Text>
+          <Text selectable style={styles.sectionTitle}>{t('safety.statusDistribution')}</Text>
+          <Text selectable style={styles.sectionHelp}>{t('safety.statusDistributionHelp')}</Text>
           <View style={styles.statusList}>
             {visibleStatusMetrics.map((metric) => (
               <View key={metric.status} style={styles.statusRow}>
@@ -208,16 +205,19 @@ export function SafetyRecoveryProgressCard({
                     ]}
                   />
                   <Text selectable style={styles.statusLabel}>
-                    {metric.label}
+                    {getSafetyStatusLabel(t, metric.status)}
                   </Text>
                 </View>
                 <View style={styles.statusValueCopy}>
                   <Text selectable style={styles.statusValue}>
-                    {metric.shareLabel} · {metric.count}
+                    {metric.shareLabel} · {formatNumber(metric.count)}
                   </Text>
-                  {metric.deltaLabel ? (
+                  {metric.deltaPercentagePoints !== null ? (
                     <Text selectable style={styles.statusDelta}>
-                      {metric.deltaLabel}
+                      {formatDeltaDetail(
+                        metric.deltaPercentagePoints,
+                        'safety.noReviewedPrevious',
+                      )}
                     </Text>
                   ) : null}
                 </View>
@@ -226,60 +226,61 @@ export function SafetyRecoveryProgressCard({
           </View>
         </View>
       ) : (
-        <Text selectable style={styles.emptyText}>
-          No fresh reviewed workouts were completed in the selected period.
-        </Text>
+        <Text selectable style={styles.emptyText}>{t('safety.noFreshSelectedPeriod')}</Text>
       )}
 
       <View style={styles.section}>
-        <Text selectable style={styles.sectionTitle}>
-          Reviewed load ceiling trend
-        </Text>
+        <Text selectable style={styles.sectionTitle}>{t('safety.loadTrendTitle')}</Text>
         <Text selectable style={styles.loadTrendValue}>
-          {analytics.loadTrend.deltaLabel}
+          {getSafetyLoadDeltaLabel(
+            t,
+            analytics.loadTrend.direction,
+            analytics.loadTrend.deltaPercentagePoints,
+            analytics.loadTrend.latestMultiplier,
+            analytics.loadTrend.previousMultiplier,
+          )}
         </Text>
-        <Text selectable style={styles.sectionHelp}>
-          This compares the two latest fresh reviewed workout ceilings inside the selected period,
-          not the weight actually used.
-        </Text>
+        <Text selectable style={styles.sectionHelp}>{t('safety.loadTrendHelp')}</Text>
       </View>
 
       <View style={styles.section}>
-        <Text selectable style={styles.sectionTitle}>
-          Frequent movement restrictions
-        </Text>
+        <Text selectable style={styles.sectionTitle}>{t('safety.frequentRestrictions')}</Text>
         {analytics.topMovementPatterns.length > 0 ? (
           <View style={styles.movementList}>
             {analytics.topMovementPatterns.map((movement) => (
               <View key={movement.movementPattern} style={styles.movementRow}>
                 <View style={styles.movementCopy}>
                   <Text selectable style={styles.movementLabel}>
-                    {movement.label}
+                    {getSafetyMovementLabel(t, movement.movementPattern)}
                   </Text>
                   <Text selectable style={styles.sectionHelp}>
-                    {movement.count} restricted workout{movement.count === 1 ? '' : 's'}
+                    {formatPlural(locale, movement.count, {
+                      one: t('safety.restrictedWorkout.one'),
+                      other: t('safety.restrictedWorkout.other'),
+                    })}
                   </Text>
                 </View>
-                <Text selectable style={styles.movementShare}>
-                  {movement.shareLabel}
-                </Text>
+                <Text selectable style={styles.movementShare}>{movement.shareLabel}</Text>
               </View>
             ))}
           </View>
         ) : (
-          <Text selectable style={styles.emptyText}>
-            No structured movement restrictions were recorded in fresh reviewed workouts for this
-            period.
-          </Text>
+          <Text selectable style={styles.emptyText}>{t('safety.noStructuredRestrictions')}</Text>
         )}
       </View>
 
       <Text selectable style={styles.contextNote}>
-        {analytics.noContextWorkouts} workout{analytics.noContextWorkouts === 1 ? '' : 's'} had no
-        recorded Safety context. {analytics.contextWorkouts} had some recorded context.
+        {t('safety.contextNote', {
+          without: formatNumber(analytics.noContextWorkouts),
+          withContext: formatNumber(analytics.contextWorkouts),
+        })}
       </Text>
 
-      <AppButton label="Open workout history" onPress={onOpenHistory} variant="secondary" />
+      <AppButton
+        label={t('safety.openWorkoutHistory')}
+        onPress={onOpenHistory}
+        variant="secondary"
+      />
     </AppCard>
   );
 }
