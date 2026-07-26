@@ -140,7 +140,7 @@ export const createBodyMeasurementQueueOperation = (input: {
   };
   const payload =
     input.action === 'delete'
-      ? { id: measurement.id, deletedAt: now, deviceId: input.deviceId }
+      ? { id: measurement.id, deletedAt: now }
       : {
           schemaVersion: 1,
           id: measurement.id,
@@ -151,7 +151,6 @@ export const createBodyMeasurementQueueOperation = (input: {
           measuredAt: snapshot.measuredAt,
           createdAt: previous?.createdAt ?? measurement.createdAt,
           updatedAt: now,
-          deviceId: input.deviceId,
         };
   const idempotencyKey = createOfflineSyncQueueIdempotencyKey({
     entityType: 'bodyMeasurements',

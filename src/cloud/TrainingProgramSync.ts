@@ -277,7 +277,7 @@ export const createTrainingProgramQueueOperation = (input: {
   const progression = toPayloadProgression(snapshot);
   const payload =
     input.action === 'delete'
-      ? { id: program.id, deletedAt: now, deviceId: input.deviceId }
+      ? { id: program.id, deletedAt: now }
       : {
           schemaVersion: 1,
           id: program.id,
@@ -292,7 +292,6 @@ export const createTrainingProgramQueueOperation = (input: {
           ...(snapshot.metadata ? { metadata: snapshot.metadata } : {}),
           createdAt: previous?.createdAt ?? program.createdAt,
           updatedAt: now,
-          deviceId: input.deviceId,
         };
   const idempotencyKey = createOfflineSyncQueueIdempotencyKey({
     entityType: 'trainingPrograms',

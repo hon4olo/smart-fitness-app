@@ -1,70 +1,4 @@
-from pathlib import Path
-
-
-def replace_once(path: str, old: str, new: str) -> None:
-    file_path = Path(path)
-    text = file_path.read_text()
-    count = text.count(old)
-    if count != 1:
-        raise RuntimeError(f"{path}: expected one replacement, found {count}: {old!r}")
-    file_path.write_text(text.replace(old, new, 1))
-
-
-replace_once(
-    "src/cloud/CloudQueueHelpers.ts",
-    "const isFitnessProfileEntity = (value: string): boolean =>\n  value === 'fitnessProfiles' || value === 'fitness_profiles';",
-    "const SERVER_STRICT_IDENTITY_PAYLOAD_ENTITIES = new Set([\n  'fitnessProfiles',\n  'fitness_profiles',\n  'bodyMeasurements',\n  'body_measurements',\n  'trainingPrograms',\n  'training_programs',\n]);\nconst isServerStrictIdentityPayloadEntity = (value: string): boolean =>\n  SERVER_STRICT_IDENTITY_PAYLOAD_ENTITIES.has(value);",
-)
-replace_once(
-    "src/cloud/CloudQueueHelpers.ts",
-    "    !isFitnessProfileEntity(entityType) ||",
-    "    !isServerStrictIdentityPayloadEntity(entityType) ||",
-)
-
-replace_once(
-    "src/cloud/BodyMeasurementSync.ts",
-    "      ? { id: measurement.id, deletedAt: now, deviceId: input.deviceId }",
-    "      ? { id: measurement.id, deletedAt: now }",
-)
-replace_once(
-    "src/cloud/BodyMeasurementSync.ts",
-    "          updatedAt: now,\n          deviceId: input.deviceId,",
-    "          updatedAt: now,",
-)
-
-replace_once(
-    "src/cloud/TrainingProgramSync.ts",
-    "      ? { id: program.id, deletedAt: now, deviceId: input.deviceId }",
-    "      ? { id: program.id, deletedAt: now }",
-)
-replace_once(
-    "src/cloud/TrainingProgramSync.ts",
-    "          updatedAt: now,\n          deviceId: input.deviceId,",
-    "          updatedAt: now,",
-)
-
-replace_once(
-    "src/context/syncContextModel.ts",
-    "import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';",
-    "import { isApiError } from '@/api/client';\nimport type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';",
-)
-replace_once(
-    "src/context/syncContextModel.ts",
-    "export type RemoteChangedEntity = {",
-    "export const resolveSyncFailureStatus = (error: unknown): WeightSyncStatus => {\n  if (isApiError(error)) {\n    if (error.code === 'unauthorized' || error.status === 401) return 'local-only';\n    if (\n      error.code === 'network_error' ||\n      error.code === 'timeout' ||\n      error.code === 'unavailable'\n    ) {\n      return 'offline';\n    }\n    return 'error';\n  }\n\n  return error instanceof Error && error.message.toLowerCase().includes('auth')\n    ? 'local-only'\n    : 'error';\n};\n\nexport type RemoteChangedEntity = {",
-)
-replace_once(
-    "src/context/SyncContext.tsx",
-    "  resolveStatus,\n  type SyncPullResult,",
-    "  resolveStatus,\n  resolveSyncFailureStatus,\n  type SyncPullResult,",
-)
-replace_once(
-    "src/context/SyncContext.tsx",
-    "      setStatus(message.toLowerCase().includes('auth') ? 'local-only' : 'offline');",
-    "      setStatus(resolveSyncFailureStatus(syncError));",
-)
-
-Path("test/strict-sync-payload-compatibility.test.ts").write_text("""import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '@/api/client';
 import { createBodyMeasurementQueueOperation } from '@/cloud/BodyMeasurementSync';
@@ -177,4 +111,3 @@ describe('sync failure status classification', () => {
     expect(resolveSyncFailureStatus(new ApiError({ code: 'unauthorized', message: 'Unauthorized', status: 401 }))).toBe('local-only');
   });
 });
-""")

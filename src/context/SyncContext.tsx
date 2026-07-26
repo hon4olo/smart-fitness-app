@@ -56,6 +56,7 @@ import {
   countSupportedQueueOperations,
   countUnresolvedSyncConflicts,
   resolveStatus,
+  resolveSyncFailureStatus,
   type SyncPullResult,
   type WeightSyncContextValue,
   type WeightSyncStatus,
@@ -377,7 +378,7 @@ export function SyncProvider({
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Sync failed';
       setError(message);
-      setStatus(message.toLowerCase().includes('auth') ? 'local-only' : 'offline');
+      setStatus(resolveSyncFailureStatus(syncError));
     } finally {
       syncingRef.current = false;
     }

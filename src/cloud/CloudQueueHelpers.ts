@@ -27,8 +27,16 @@ const includesString = <T extends string>(
   typeof value === 'string' && (values as readonly string[]).includes(value);
 const isWeightHistoryEntity = (value: string): boolean =>
   value === 'weightHistory' || value === 'weight_history';
-const isFitnessProfileEntity = (value: string): boolean =>
-  value === 'fitnessProfiles' || value === 'fitness_profiles';
+const SERVER_STRICT_IDENTITY_PAYLOAD_ENTITIES = new Set([
+  'fitnessProfiles',
+  'fitness_profiles',
+  'bodyMeasurements',
+  'body_measurements',
+  'trainingPrograms',
+  'training_programs',
+]);
+const isServerStrictIdentityPayloadEntity = (value: string): boolean =>
+  SERVER_STRICT_IDENTITY_PAYLOAD_ENTITIES.has(value);
 
 const stableStringify = (value: unknown): string => {
   if (value === null || typeof value !== 'object') {
@@ -67,7 +75,7 @@ const normalizePayloadForServer = (
 ): { payload: Record<string, unknown> | undefined; changed: boolean } => {
   if (
     !payload ||
-    !isFitnessProfileEntity(entityType) ||
+    !isServerStrictIdentityPayloadEntity(entityType) ||
     !Object.prototype.hasOwnProperty.call(payload, 'deviceId')
   ) {
     return { payload, changed: false };

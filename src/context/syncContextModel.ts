@@ -1,3 +1,4 @@
+import { isApiError } from '@/api/client';
 import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
 import { isBodyMeasurementQueueOperation } from '@/cloud/BodyMeasurementSync';
 import { isCustomExerciseQueueOperation } from '@/cloud/CustomExerciseSync';
@@ -28,6 +29,24 @@ export type WeightSyncContextValue = {
   conflictCount: number;
   error: string | null;
   syncNow(): Promise<void>;
+};
+
+export const resolveSyncFailureStatus = (error: unknown): WeightSyncStatus => {
+  if (isApiError(error)) {
+    if (error.code === 'unauthorized' || error.status === 401) return 'local-only';
+    if (
+      error.code === 'network_error' ||
+      error.code === 'timeout' ||
+      error.code === 'unavailable'
+    ) {
+      return 'offline';
+    }
+    return 'error';
+  }
+
+  return error instanceof Error && error.message.toLowerCase().includes('auth')
+    ? 'local-only'
+    : 'error';
 };
 
 export type RemoteChangedEntity = {
