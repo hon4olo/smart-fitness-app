@@ -1,0 +1,142 @@
+name: Diagnose production sync
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.head_ref == 'diagnostic/production-sync-smoke'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exercise production auth and sync
+        env:
+          API_BASE_URL: https://api.peptonio.com
+        run: |
+          node <<'NODE'
+          const crypto = require('node:crypto');
+
+          const baseUrl = process.env.API_BASE_URL;
+          const password = `SyncSmoke!${crypto.randomUUID()}Aa1`;
+          const email = `sync-smoke-${Date.now()}-${crypto.randomBytes(4).toString('hex')}@example.com`;
+          let accessToken = null;
+          let deviceId = null;
+          let userId = null;
+          let primaryError = null;
+
+          const parseBody = async (response) => {
+            const text = await response.text();
+            if (!text) return null;
+            try { return JSON.parse(text); } catch { return text; }
+          };
+
+          const request = async (path, options = {}) => {
+            const response = await fetch(`${baseUrl}${path}`, options);
+            const body = await parseBody(response);
+            return { response, body };
+          };
+
+          const assertOk = (label, result) => {
+            console.log(`${label}: HTTP ${result.response.status}`);
+            if (!result.response.ok) {
+              console.error(`${label} body:`, JSON.stringify(result.body));
+              throw new Error(`${label} failed with HTTP ${result.response.status}`);
+            }
+            return result.body;
+          };
+
+          try {
+            const health = await request('/health');
+            console.log('health: HTTP', health.response.status, JSON.stringify(health.body));
+            if (!health.response.ok) throw new Error(`health failed with HTTP ${health.response.status}`);
+
+            const register = assertOk('register', await request('/v1/auth/register', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', accept: 'application/json' },
+              body: JSON.stringify({
+                email,
+                password,
+                displayName: 'Production Sync Smoke',
+                deviceName: 'GitHub Actions sync diagnostic',
+                platform: 'ios',
+                appVersion: '1.0.2',
+              }),
+            }));
+            accessToken = register?.accessToken;
+            deviceId = register?.device?.id;
+            userId = register?.user?.id;
+            if (!accessToken || !deviceId || !userId) throw new Error('register response omitted auth identity');
+            console.log('registered identity:', JSON.stringify({ userId, deviceId }));
+
+            const authHeaders = {
+              authorization: `Bearer ${accessToken}`,
+              'content-type': 'application/json',
+              accept: 'application/json',
+            };
+
+            const status = assertOk('sync status', await request('/v1/sync/status', {
+              headers: { authorization: authHeaders.authorization, accept: 'application/json' },
+            }));
+            console.log('sync status body:', JSON.stringify(status));
+
+            const entityId = crypto.randomUUID();
+            const now = new Date().toISOString();
+            const idempotencyKey = `sync-smoke:${entityId}:${now}`;
+            const push = assertOk('sync push', await request('/v1/sync/push', {
+              method: 'POST',
+              headers: authHeaders,
+              body: JSON.stringify({
+                deviceId,
+                clientRevision: 0,
+                operations: [{
+                  entityType: 'weightHistory',
+                  entityId,
+                  operationType: 'upsert',
+                  baseRevision: 0,
+                  idempotencyKey,
+                  payload: {
+                    id: entityId,
+                    weight: 82.7,
+                    recordedAt: now,
+                    createdAt: now,
+                    updatedAt: now,
+                  },
+                }],
+              }),
+            }));
+            console.log('sync push body:', JSON.stringify(push));
+
+            const pull = assertOk('sync pull', await request('/v1/sync/pull', {
+              method: 'POST',
+              headers: authHeaders,
+              body: JSON.stringify({ deviceId, clientRevision: 0 }),
+            }));
+            console.log('sync pull summary:', JSON.stringify({
+              revision: pull?.revision ?? pull?.serverRevision,
+              changedCount: Array.isArray(pull?.changedEntities) ? pull.changedEntities.length : null,
+              deletedCount: Array.isArray(pull?.deletedEntities) ? pull.deletedEntities.length : null,
+              conflictCount: Array.isArray(pull?.conflicts) ? pull.conflicts.length : null,
+            }));
+          } catch (error) {
+            primaryError = error;
+          } finally {
+            if (accessToken) {
+              const deletion = await request('/v1/auth/account', {
+                method: 'DELETE',
+                headers: {
+                  authorization: `Bearer ${accessToken}`,
+                  'content-type': 'application/json',
+                  accept: 'application/json',
+                },
+                body: JSON.stringify({ password }),
+              });
+              console.log(`delete account: HTTP ${deletion.response.status}`);
+              if (!deletion.response.ok) console.error('delete account body:', JSON.stringify(deletion.body));
+            }
+          }
+
+          if (primaryError) throw primaryError;
+          NODE
