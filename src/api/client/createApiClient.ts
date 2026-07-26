@@ -241,7 +241,7 @@ export const createApiClient = (options: ApiClientOptions): ApiClient => {
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      let cleanup = () => undefined;
+      let cleanup: () => void = () => undefined;
       try {
         const url = buildUrl(options.baseUrl, requestOptions.path, requestOptions.query);
         const requestInit = createRequestInit(requestOptions, requestId, timeoutMs, options.defaultHeaders);
