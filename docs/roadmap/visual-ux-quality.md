@@ -41,6 +41,7 @@ Updated: 2026-07-26
 - [x] Complete Profile summary, Progress overview/planning, Goals, AI Coach profile, body-measurement entry, charts, and Safety & Recovery card localization in PR #148.
 - [x] Complete Home and onboarding localization, including validation, alerts, pluralization, and bounded deterministic-status copy in PR #149.
 - [x] Complete Workouts hub localization, including counts, seed titles, empty/loading/disabled states, and accessibility copy in PR #150.
+- Workouts hub code and automated contracts still require physical-iPhone verification in English and Russian after runtime 1.0.2 is installed.
 - Complete Russian localization for the active workout/finish flow, remaining Workouts routes, Nutrition, Progress detail routes, and advanced Coach.
 - Remove mixed-language headings from Progress and Coach secondary routes.
 - Keep terminology consistent across tabs: goal, target weight, training days, synchronization, recovery, and Coach.
