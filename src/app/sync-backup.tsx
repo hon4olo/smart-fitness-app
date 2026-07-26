@@ -22,7 +22,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function SyncBackupScreen() {
-  const { conflictCount, error, lastSyncAt, pendingOperations, status, syncNow } = useWeightSync();
+  const { conflictCount, diagnostic, lastSyncAt, pendingOperations, status, syncNow } = useWeightSync();
   const { formatDate, t } = useLocalization();
   const safeAreaInsets = useSafeAreaInsets();
   const copy = getSyncStatusCopy(t);
@@ -45,7 +45,9 @@ export default function SyncBackupScreen() {
           <Text style={styles.title}>{copy.currentStatus}</Text>
           <Text style={styles.value}>{copy.statusLabels[status]}</Text>
           <Text style={styles.detail}>{getSyncStatusExplanation(copy, status)}</Text>
-          {error ? <Text selectable style={styles.errorDetail}>{error}</Text> : null}
+          {diagnostic ? (
+            <Text selectable style={styles.errorDetail}>{diagnostic}</Text>
+          ) : null}
           <Text style={styles.detail}>
             {copy.lastSync}:{' '}
             {lastSyncAt

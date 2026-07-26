@@ -31,6 +31,7 @@ export type WeightSyncContextValue = {
   lastSyncAt: string | null;
   pendingOperations: number;
   conflictCount: number;
+  diagnostic: string | null;
   error: string | null;
   syncNow(): Promise<void>;
 };

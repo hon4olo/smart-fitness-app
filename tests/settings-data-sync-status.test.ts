@@ -11,7 +11,7 @@ const projectRoot = resolve(__dirname, '..');
 const readSource = (path: string) => readFileSync(resolve(projectRoot, path), 'utf8');
 
 describe('Settings Data and Sync status', () => {
-  it('surfaces the existing sync contract without exposing raw errors', () => {
+  it('surfaces sanitized sync diagnostics without exposing the raw error field', () => {
     const settings = readSource('src/app/settings/index.tsx');
     const details = readSource('src/app/sync-backup.tsx');
     const card = readSource('src/features/settings/SyncSettingsCard.tsx');
@@ -23,6 +23,8 @@ describe('Settings Data and Sync status', () => {
     expect(details).toContain('conflictCount');
     expect(details).toContain('syncNow()');
     expect(details).not.toContain('{error ?');
+    expect(details).toContain('{diagnostic ?');
+    expect(details).toContain('selectable');
     expect(copy).toContain("'local-only': t('sync.status.localOnly')");
     expect(copy).toContain("localOnlyExplanation: t('sync.explanation.localOnly')");
     expect(enMessages['sync.status.localOnly']).toBe('Local only');
