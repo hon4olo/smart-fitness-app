@@ -33,6 +33,20 @@ const getRecoveryLabel = (action: WeightHistoryAction): string => {
   return 'Delete weight entry';
 };
 
+export async function resolveWeightSyncIdentity(
+  authService: Pick<AuthService, 'getCurrentSession'>,
+): Promise<{ actorId?: string; deviceId: string }> {
+  try {
+    const session = await authService.getCurrentSession();
+    return {
+      actorId: session?.user.id,
+      deviceId: session?.device.id ?? 'local-device',
+    };
+  } catch {
+    return { deviceId: 'local-device' };
+  }
+}
+
 export function useWeightHistoryActions({
   authService,
   queueStore,
@@ -43,14 +57,14 @@ export function useWeightHistoryActions({
   const outboxRecoveryStore = useMemo(getDefaultAppMutationOutboxRecoveryStore, []);
   const buildWeightHistoryOperation = useCallback(
     async (action: WeightHistoryAction, entry: WeightEntry): Promise<OfflineSyncQueueOperation> => {
-      const session = await authService.getCurrentSession();
+      const identity = await resolveWeightSyncIdentity(authService);
       const metadata = await weightSyncMetadataStore.get(entry.id);
       return createWeightHistoryQueueOperation({
         action,
         entry,
-        deviceId: session?.device.id ?? 'local-device',
+        deviceId: identity.deviceId,
         baseRevision: metadata?.revision ?? 0,
-        actorId: session?.user.id,
+        actorId: identity.actorId,
         previous: metadata,
       });
     },
