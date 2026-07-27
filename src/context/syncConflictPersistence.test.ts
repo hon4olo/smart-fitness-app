@@ -23,16 +23,28 @@ describe('sync conflict persistence integration', () => {
     expect(source).toContain('setConflictCount(conflicts.length)');
   });
 
-  it('persists conflict snapshots before deciding whether pull cursor may advance', () => {
+  it('retains failed conflicts and clears successful snapshots only after pull applies', () => {
     const source = readSource('src/context/SyncContext.tsx');
-    const persistIndex = source.indexOf(
+    const failedIndex = source.indexOf("if (result.status.phase === 'Failed')");
+    const failedMergeIndex = source.indexOf(
       'await conflictStore.merge(session.user.id, snapshots)',
+      failedIndex,
     );
     const pullApplyIndex = source.indexOf('await applySyncPullResult({');
+    const clearIndex = source.indexOf(
+      'await conflictStore.clear(session.user.id)',
+      pullApplyIndex,
+    );
+    const successfulMergeIndex = source.indexOf(
+      'await conflictStore.merge(session.user.id, snapshots)',
+      pullApplyIndex,
+    );
 
-    expect(persistIndex).toBeGreaterThan(-1);
-    expect(pullApplyIndex).toBeGreaterThan(persistIndex);
-    expect(source).toContain('persistedConflicts.length');
-    expect(source).toContain('nextConflictCount,');
+    expect(failedIndex).toBeGreaterThan(-1);
+    expect(failedMergeIndex).toBeGreaterThan(failedIndex);
+    expect(pullApplyIndex).toBeGreaterThan(failedMergeIndex);
+    expect(clearIndex).toBeGreaterThan(pullApplyIndex);
+    expect(successfulMergeIndex).toBeGreaterThan(pullApplyIndex);
+    expect(source).toContain('nextConflictCount = Math.max');
   });
 });

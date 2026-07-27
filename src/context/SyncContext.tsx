@@ -330,19 +330,7 @@ export function SyncProvider({
           createSyncConflictSnapshot(conflict, 'pull', detectedAt),
         ),
       ].filter((snapshot): snapshot is SyncConflictSnapshot => Boolean(snapshot));
-      let persistedConflicts: SyncConflictSnapshot[];
-      if (shouldClearPersistedSyncConflicts(result.status.phase, activeCycleConflictCount)) {
-        await conflictStore.clear(session.user.id);
-        persistedConflicts = [];
-      } else {
-        persistedConflicts = await conflictStore.merge(session.user.id, snapshots);
-      }
-      const nextConflictCount = Math.max(
-        activeCycleConflictCount,
-        persistedConflicts.length,
-      );
-      conflictStateVersionRef.current += 1;
-      setConflictCount(nextConflictCount);
+      let nextConflictCount = activeCycleConflictCount;
 
       const acknowledgedKeys = collectAcknowledgedSyncOperationKeys(pushResult);
       if (acknowledgedKeys.size > 0) {
@@ -364,6 +352,10 @@ export function SyncProvider({
       );
 
       if (result.status.phase === 'Failed') {
+        const persistedConflicts = await conflictStore.merge(session.user.id, snapshots);
+        nextConflictCount = Math.max(activeCycleConflictCount, persistedConflicts.length);
+        conflictStateVersionRef.current += 1;
+        setConflictCount(nextConflictCount);
         const cause = result.error?.cause ?? result.error;
         const afterPending = await queueStore.getPending();
         setPendingOperations(countSupportedQueueOperations(afterPending));
@@ -399,6 +391,17 @@ export function SyncProvider({
           workoutTemplateMetadataStore,
         });
       }
+
+      let persistedConflicts: SyncConflictSnapshot[];
+      if (shouldClearPersistedSyncConflicts(result.status.phase, activeCycleConflictCount)) {
+        await conflictStore.clear(session.user.id);
+        persistedConflicts = [];
+      } else {
+        persistedConflicts = await conflictStore.merge(session.user.id, snapshots);
+      }
+      nextConflictCount = Math.max(activeCycleConflictCount, persistedConflicts.length);
+      conflictStateVersionRef.current += 1;
+      setConflictCount(nextConflictCount);
 
       const afterPending = await queueStore.getPending();
       setPendingOperations(countSupportedQueueOperations(afterPending));
