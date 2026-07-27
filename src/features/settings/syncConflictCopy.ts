@@ -1,5 +1,7 @@
 import type { Translate } from '@/localization';
 
+import type { SyncConflictDiagnosticKey } from './syncConflictDiagnostic';
+
 export type SyncConflictCopy = {
   title: string;
   healthy: string;
@@ -11,6 +13,8 @@ export type SyncConflictCopy = {
   retry: string;
   retrying: string;
   retryExplanation: string;
+  diagnosticTitle: string;
+  diagnosticLabels: Record<SyncConflictDiagnosticKey, string>;
   unknownEntity: string;
   sourceLabels: Record<'client' | 'push' | 'pull', string>;
   entityLabels: Record<string, string>;
@@ -27,6 +31,19 @@ export const getSyncConflictCopy = (t: Translate): SyncConflictCopy => ({
   retry: t('syncConflict.retry'),
   retrying: t('syncConflict.retrying'),
   retryExplanation: t('syncConflict.retryExplanation'),
+  diagnosticTitle: t('syncConflict.diagnosticTitle'),
+  diagnosticLabels: {
+    status: t('syncConflict.diagnostic.status'),
+    reason: t('syncConflict.diagnostic.reason'),
+    strategy: t('syncConflict.diagnostic.strategy'),
+    entityId: t('syncConflict.diagnostic.entityId'),
+    localRevision: t('syncConflict.diagnostic.localRevision'),
+    remoteRevision: t('syncConflict.diagnostic.remoteRevision'),
+    baseRevision: t('syncConflict.diagnostic.baseRevision'),
+    requestId: t('syncConflict.diagnostic.requestId'),
+    fields: t('syncConflict.diagnostic.fields'),
+    fingerprint: t('syncConflict.diagnostic.fingerprint'),
+  },
   unknownEntity: t('syncConflict.unknownEntity'),
   sourceLabels: {
     client: t('syncConflict.source.client'),
