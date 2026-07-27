@@ -32,6 +32,7 @@ describe('sync idempotency key length contract', () => {
     const key = createOfflineSyncQueueIdempotencyKey(current);
 
     expect(key).toMatch(/^queue:v2:op:update:/);
+    expect(key.length).toBeLessThan(80);
     expect(key.length).toBeLessThanOrEqual(MAX_SYNC_IDEMPOTENCY_KEY_LENGTH);
     expect(createOfflineSyncQueueIdempotencyKey(current)).toBe(key);
     expect(
