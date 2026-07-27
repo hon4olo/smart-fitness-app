@@ -31,6 +31,7 @@ jobs:
         run: |
           python scripts/apply-stale-sync-idempotency-repair.py
           python scripts/fix-partial-push-test-type.py
+          python scripts/refine-stale-sync-migration-scope.py
 
       - name: Install dependencies
         run: npm ci
@@ -55,6 +56,10 @@ jobs:
           test/sync-stale-idempotency-repair.test.ts
           test/sync-failure-diagnostic.test.ts
           test/sync-coordinator.test.ts
+          test/offline-sync-queue.test.ts
+          src/context/appContext/AppMutationOutboxRecovery.test.ts
+          src/cloud/CloudQueueHelpers.test.ts
+          test/sync-payload-repair-scope.test.ts
 
       - name: Full regression suite
         run: |
@@ -82,6 +87,7 @@ jobs:
         run: |
           rm scripts/apply-stale-sync-idempotency-repair.py
           rm scripts/fix-partial-push-test-type.py
+          rm scripts/refine-stale-sync-migration-scope.py
           rm .github/workflows/apply-stale-sync-idempotency-repair.yml
           rm -f stale-sync-repair-tsc.log stale-sync-repair-regression.log
 
