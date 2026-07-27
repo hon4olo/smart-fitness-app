@@ -101,17 +101,27 @@ describe('sync conflict counting', () => {
     ).toBe(0);
   });
 
-  it('ignores terminal server conflict records but counts pending records', () => {
+  it('ignores terminal and deterministic server-wins records but counts review conflicts', () => {
     expect(isUnresolvedSyncConflict({ status: 'pending' })).toBe(true);
+    expect(
+      isUnresolvedSyncConflict({ status: 'pending', resolutionStrategy: 'server_wins' }),
+    ).toBe(false);
+    expect(
+      isUnresolvedSyncConflict({ status: 'pending', resolutionStrategy: 'remoteWins' }),
+    ).toBe(false);
     expect(isUnresolvedSyncConflict({ status: 'needsReview' })).toBe(true);
-    expect(isUnresolvedSyncConflict({ status: 'autoResolved' })).toBe(false);
+    expect(isUnresolvedSyncConflict({ status: 'auto_resolved' })).toBe(false);
     expect(isUnresolvedSyncConflict({ status: 'resolved' })).toBe(false);
     expect(isUnresolvedSyncConflict({ status: 'ignored' })).toBe(false);
 
     expect(
       countUnresolvedSyncConflicts({
         localUnresolvedCount: 1,
-        pushConflicts: [{ status: 'pending' }, { status: 'resolved' }],
+        pushConflicts: [
+          { status: 'pending', resolutionStrategy: 'server_wins' },
+          { status: 'pending' },
+          { status: 'resolved' },
+        ],
         pullConflicts: [{ status: 'autoResolved' }, { status: 'needsReview' }],
       }),
     ).toBe(3);

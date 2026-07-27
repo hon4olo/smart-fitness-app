@@ -95,7 +95,7 @@ export function SyncConflictReviewCard() {
                       selectable
                       style={[styles.diagnosticLine, { color: colors.textSecondary }]}>
                       <Text style={{ color: colors.textPrimary }}>
-                        {copy.diagnosticLabels[item.key]}:\u00a0
+                        {copy.diagnosticLabels[item.key]}:{' '}
                       </Text>
                       {item.value}
                     </Text>

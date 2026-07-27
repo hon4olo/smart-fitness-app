@@ -1,6 +1,4 @@
-from pathlib import Path
-
-Path('test/sync-conflict-review-card.test.ts').write_text("""import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 declare const __dirname: string;
 declare const require: any;
@@ -18,10 +16,7 @@ const source = readFileSync(
 
 describe('sync conflict review card formatting', () => {
   it('renders a real separator instead of a literal unicode escape', () => {
-    expect(source).not.toContain('\\\\u00a0');
+    expect(source).not.toContain('\\u00a0');
     expect(source).toContain("{copy.diagnosticLabels[item.key]}:{' '}");
   });
 });
-""")
-
-print('Rewrote conflict card source check without Node type imports')

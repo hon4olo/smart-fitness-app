@@ -215,13 +215,22 @@ export type SyncPullResult = {
 
 type SyncConflictLike = {
   status?: unknown;
+  resolutionStrategy?: unknown;
 };
 
-const TERMINAL_SYNC_CONFLICT_STATUSES = new Set(['autoResolved', 'resolved', 'ignored']);
+const normalizeConflictToken = (value: unknown): string =>
+  typeof value === 'string' ? value.trim().toLowerCase().replace(/[^a-z]/g, '') : '';
+const TERMINAL_SYNC_CONFLICT_STATUSES = new Set(['autoresolved', 'resolved', 'ignored']);
+const SERVER_WINS_SYNC_STRATEGIES = new Set(['serverwins', 'remotewins']);
 
-export const isUnresolvedSyncConflict = (conflict: SyncConflictLike): boolean =>
-  typeof conflict.status !== 'string' ||
-  !TERMINAL_SYNC_CONFLICT_STATUSES.has(conflict.status);
+export const isUnresolvedSyncConflict = (conflict: SyncConflictLike): boolean => {
+  const status = normalizeConflictToken(conflict.status);
+  if (TERMINAL_SYNC_CONFLICT_STATUSES.has(status)) return false;
+  return !(
+    status === 'pending' &&
+    SERVER_WINS_SYNC_STRATEGIES.has(normalizeConflictToken(conflict.resolutionStrategy))
+  );
+};
 
 export const countUnresolvedSyncConflicts = ({
   localUnresolvedCount,
