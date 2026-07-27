@@ -50,7 +50,6 @@ jobs:
           );
           if (!match) process.exit(1);
           fs.writeFileSync('verified-compact-sync-key-ota.json', JSON.stringify({
-            updateId: match.id,
             groupId: match.group ?? match.groupId,
             message: match.message,
             runtimeVersion: match.runtimeVersion,
@@ -69,11 +68,15 @@ jobs:
           cat production-update-list.json >&2 || true
           exit 1
 
+      - name: Capture exact update IDs
+        run: eas update:view 66ad12ef-6535-465e-add5-4d8ea178b7bf --json --non-interactive > production-update-view.json
+
       - name: Upload verification metadata
         uses: actions/upload-artifact@v4
         with:
           name: verified-compact-sync-key-production-ota
           path: |
             production-update-list.json
+            production-update-view.json
             verified-compact-sync-key-ota.json
           retention-days: 3
