@@ -135,40 +135,54 @@ const readPushFailure = (error: unknown): PushFailureDetails => {
   const record = isSyncCoordinatorRecord(error) ? error : undefined;
   const body = record?.body;
   const bodyRecord = isSyncCoordinatorRecord(body) ? body : undefined;
-  const bodyMessage = bodyRecord
-    ? [bodyRecord.message, bodyRecord.error, bodyRecord.detail, bodyRecord.reason]
-        .map(readOptionalString)
-        .find((value): value is string => Boolean(value))
-    : readOptionalString(body);
+  const nestedError = isSyncCoordinatorRecord(bodyRecord?.error)
+    ? bodyRecord.error
+    : undefined;
   const message =
-    bodyMessage ??
+    readOptionalString(nestedError?.message) ??
+    readOptionalString(bodyRecord?.message) ??
+    readOptionalString(bodyRecord?.error) ??
+    readOptionalString(bodyRecord?.detail) ??
+    readOptionalString(bodyRecord?.reason) ??
+    readOptionalString(body) ??
     readOptionalString(record?.message) ??
     (error instanceof Error ? error.message : 'Sync operation rejected');
   const details =
+    nestedError?.details ??
+    nestedError?.issues ??
+    nestedError?.errors ??
     bodyRecord?.details ??
     bodyRecord?.issues ??
-    bodyRecord?.errors ??
-    (bodyRecord && Object.keys(bodyRecord).length > 1 ? bodyRecord : undefined);
+    bodyRecord?.errors;
+  const code =
+    readOptionalString(nestedError?.code) ??
+    readOptionalString(bodyRecord?.code) ??
+    readOptionalString(bodyRecord?.errorCode) ??
+    readOptionalString(record?.code);
+  const requestId =
+    readOptionalString(nestedError?.requestId) ??
+    readOptionalString(bodyRecord?.requestId) ??
+    readOptionalString(record?.requestId);
 
   return {
     message,
     ...(typeof record?.status === 'number' && Number.isFinite(record.status)
       ? { status: Math.floor(record.status) }
       : {}),
-    ...(readOptionalString(record?.code) ? { code: readOptionalString(record?.code) } : {}),
-    ...(readOptionalString(record?.requestId)
-      ? { requestId: readOptionalString(record?.requestId) }
-      : {}),
+    ...(code ? { code } : {}),
+    ...(requestId ? { requestId } : {}),
     ...(details === undefined ? {} : { details }),
   };
 };
 
 const isIsolatablePushFailure = (error: unknown): boolean => {
   const failure = readPushFailure(error);
+  const backendCode = failure.code?.toUpperCase();
   return (
     failure.status === 400 ||
     failure.status === 422 ||
-    failure.code === 'validation_error'
+    failure.code === 'validation_error' ||
+    (failure.status === 409 && backendCode === 'SYNC_IDEMPOTENCY_KEY_REUSE')
   );
 };
 

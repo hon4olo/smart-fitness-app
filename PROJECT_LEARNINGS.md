@@ -78,7 +78,7 @@ The existing Combined Coach aggregates deterministic reviews. Full Combined Stra
 - Advance the cursor only when every returned operation is supported and safely materialized.
 - Critical mutations use the ordered application mutation queue and expose persistence or outbox failures with retry controls.
 - Keep authenticated user/device identity in the sync request envelope or operation metadata, not inside strict entity payloads. When an outbound payload contract changes, normalize persisted queue entries and regenerate their idempotency keys before retrying.
-- A validation failure in one queued operation must not block valid siblings. Isolate HTTP 400/422 operations, acknowledge successful partitions, keep the rejected local operation, and surface a sanitized diagnostic with its entity, status, validation details, and backend request ID; never display tokens, email, or raw account payloads.
+- A deterministic client error in one queued operation must not block valid siblings. Isolate HTTP 400/422 and `SYNC_IDEMPOTENCY_KEY_REUSE` failures, regenerate keys only for operations explicitly rejected for key reuse, preserve successful uploads if pull later fails, and surface sanitized stage/entity/status/request diagnostics without tokens, email, raw payloads, or full idempotency keys.
 - Queue mutation locking and deduplication protect the queue itself, but do not make application-state persistence and outbox enqueue one atomic storage transaction.
 - The save-succeeded/enqueue-failed path must remain recoverable after application restart and must never be hidden from the user.
 

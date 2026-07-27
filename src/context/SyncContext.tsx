@@ -52,12 +52,15 @@ import type { WeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore'
 import type { AppState } from '@/types';
 
 import { applySyncPullResult } from './applySyncPullResult';
+import { repairRejectedSyncIdempotencyKeys } from './repairRejectedSyncOperations';
 import {
   collectAcknowledgedSyncOperationKeys,
   countSupportedQueueOperations,
   countUnresolvedSyncConflicts,
   formatRejectedSyncOperationsError,
+  formatSyncFailureDiagnostic,
   resolveStatus,
+  resolveSyncFailureStage,
   resolveSyncFailureStatus,
   type SyncPullResult,
   type WeightSyncContextValue,
@@ -304,12 +307,6 @@ export function SyncProvider({
       await ensureMealTemplateSync();
       await ensureSafetyRecoverySync();
       const result = await syncCoordinator.syncNow();
-      if (result.status.phase === 'Failed') {
-        const cause = result.error?.cause;
-        throw cause instanceof Error
-          ? cause
-          : new Error(result.error?.message ?? 'Sync failed');
-      }
       const pushResult = result.push?.result;
       const pullResult = result.pull?.result;
       const detectedAt =
@@ -354,6 +351,26 @@ export function SyncProvider({
         await queueStore.removeAcknowledged();
       }
 
+      await repairRejectedSyncIdempotencyKeys(
+        queueStore,
+        pushResult?.rejectedOperations ?? [],
+      );
+
+      if (result.status.phase === 'Failed') {
+        const cause = result.error?.cause ?? result.error;
+        const afterPending = await queueStore.getPending();
+        setPendingOperations(countSupportedQueueOperations(afterPending));
+        setDiagnostic(
+          formatSyncFailureDiagnostic(
+            cause,
+            resolveSyncFailureStage(result.transitions),
+          ),
+        );
+        setError('Synchronization failed');
+        setStatus(resolveSyncFailureStatus(cause));
+        return;
+      }
+
       if (pullResult) {
         await applySyncPullResult({
           bodyMeasurementMetadataStore,
@@ -392,6 +409,7 @@ export function SyncProvider({
       }
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Sync failed';
+      setDiagnostic(formatSyncFailureDiagnostic(syncError, 'local processing'));
       setError(message);
       setStatus(resolveSyncFailureStatus(syncError));
     } finally {

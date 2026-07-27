@@ -396,3 +396,43 @@ describe('sync coordinator', () => {
     expect(coordinator.getStatus()).toEqual({ phase: 'Completed', cancelled: false, reason: 'sync completed', lastSyncAt: NOW, lastError: undefined });
   });
 });
+
+
+describe('sync coordinator partial failure preservation', () => {
+  it('keeps the successful push result when pull fails afterwards', async () => {
+    const pending = makeOperation({ opId: 'op-preserved', entityId: 'preserved' });
+    const applied = buildSyncBatch([pending], NOW).operations[0];
+    const provider = makeProvider({
+      pushOperations: vi.fn(async () => ({
+        status: 'idle' as const,
+        pendingOperations: 0,
+        conflictCount: 0,
+        serverTimestamp: NOW,
+        appliedOperations: [applied],
+      })),
+      pullChanges: vi.fn(async () => {
+        throw new Error('pull unavailable');
+      }),
+    });
+    const coordinator = createSyncCoordinator({
+      queueStore: makeQueueStore([pending]),
+      provider,
+      now: () => NOW,
+    });
+
+    const result = await coordinator.syncNow();
+
+    expect(result.phase).toBe('Failed');
+    expect(result.transitions).toEqual([
+      'Idle',
+      'Preparing',
+      'Uploading',
+      'Downloading',
+      'Failed',
+    ]);
+    expect(result.push?.result?.appliedOperations?.map((item) => item.id)).toEqual([
+      'op-preserved',
+    ]);
+    expect(result.pull).toBeUndefined();
+  });
+});
