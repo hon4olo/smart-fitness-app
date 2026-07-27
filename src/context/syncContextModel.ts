@@ -44,11 +44,48 @@ export const collectAcknowledgedSyncOperationKeys = (
     ...(pushResult?.duplicateIdempotencyKeys ?? []),
   ].filter((key): key is string => typeof key === 'string' && Boolean(key.trim())));
 
+const SAFE_DIAGNOSTIC_DETAIL_KEYS = new Set([
+  'code',
+  'entityType',
+  'existingEntityId',
+  'existingEntityType',
+  'expected',
+  'field',
+  'message',
+  'path',
+  'reason',
+  'received',
+  'requestedEntityId',
+  'requestedEntityType',
+]);
+
+const sanitizeDiagnosticDetails = (value: unknown, depth = 0): unknown => {
+  if (depth > 3 || value === undefined || value === null) return undefined;
+  if (typeof value === 'string') return value.trim().slice(0, 240);
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, 8)
+      .map((item) => sanitizeDiagnosticDetails(item, depth + 1))
+      .filter((item) => item !== undefined);
+  }
+  if (typeof value !== 'object') return undefined;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([key]) => SAFE_DIAGNOSTIC_DETAIL_KEYS.has(key))
+    .map(([key, entryValue]) => [
+      key,
+      sanitizeDiagnosticDetails(entryValue, depth + 1),
+    ] as const)
+    .filter(([, entryValue]) => entryValue !== undefined);
+  return entries.length ? Object.fromEntries(entries) : undefined;
+};
+
 const formatRejectedDetails = (details: unknown): string | null => {
-  if (typeof details === 'string' && details.trim()) return details.trim().slice(0, 800);
-  if (details === undefined || details === null) return null;
+  const safeDetails = sanitizeDiagnosticDetails(details);
+  if (safeDetails === undefined) return null;
+  if (typeof safeDetails === 'string') return safeDetails;
   try {
-    return JSON.stringify(details).slice(0, 800);
+    return JSON.stringify(safeDetails).slice(0, 800);
   } catch {
     return null;
   }
@@ -75,6 +112,60 @@ export const formatRejectedSyncOperationsError = (
   ].filter((value): value is string => Boolean(value));
 
   return `${countLabel}: ${[identity, ...transport].filter(Boolean).join(' • ')} — ${description.join(' • ')}`;
+};
+
+const isDiagnosticRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+const readDiagnosticString = (value: unknown): string | undefined =>
+  typeof value === 'string' && value.trim() ? value.trim() : undefined;
+
+export const resolveSyncFailureStage = (transitions: string[]): string => {
+  if (transitions.includes('Resolving')) return 'conflict resolution';
+  if (transitions.includes('Downloading')) return 'download';
+  if (transitions.includes('Uploading')) return 'upload';
+  if (transitions.includes('Preparing')) return 'preparation';
+  return 'synchronization';
+};
+
+export const formatSyncFailureDiagnostic = (
+  error: unknown,
+  stage: string,
+): string => {
+  const record = isDiagnosticRecord(error) ? error : undefined;
+  const body = isApiError(error) ? error.body : record?.body;
+  const bodyRecord = isDiagnosticRecord(body) ? body : undefined;
+  const nestedError = isDiagnosticRecord(bodyRecord?.error)
+    ? bodyRecord.error
+    : undefined;
+  const message =
+    readDiagnosticString(nestedError?.message) ??
+    readDiagnosticString(bodyRecord?.message) ??
+    readDiagnosticString(bodyRecord?.error) ??
+    readDiagnosticString(bodyRecord?.detail) ??
+    readDiagnosticString(bodyRecord?.reason) ??
+    readDiagnosticString(record?.message) ??
+    (error instanceof Error ? error.message : 'Unknown synchronization error');
+  const status = isApiError(error)
+    ? error.status
+    : typeof record?.status === 'number' && Number.isFinite(record.status)
+      ? Math.floor(record.status)
+      : undefined;
+  const code =
+    readDiagnosticString(nestedError?.code) ??
+    readDiagnosticString(bodyRecord?.code) ??
+    readDiagnosticString(bodyRecord?.errorCode) ??
+    (isApiError(error) ? error.code : readDiagnosticString(record?.code));
+  const requestId =
+    readDiagnosticString(nestedError?.requestId) ??
+    readDiagnosticString(bodyRecord?.requestId) ??
+    (isApiError(error) ? error.requestId : readDiagnosticString(record?.requestId));
+  const transport = [
+    `stage ${stage}`,
+    status === undefined ? null : `HTTP ${status}`,
+    code,
+    requestId ? `request ${requestId}` : null,
+  ].filter((value): value is string => Boolean(value));
+  return `Synchronization failed: ${transport.join(' • ')} — ${message}`;
 };
 
 export const resolveSyncFailureStatus = (error: unknown): WeightSyncStatus => {

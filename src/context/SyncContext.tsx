@@ -10,7 +10,10 @@ import {
 } from 'react';
 import { AppState as ReactNativeAppState } from 'react-native';
 
-import type { SyncCoordinator } from '@/cloud';
+import {
+  repairOfflineSyncQueueOperationIdempotencyKey,
+  type SyncCoordinator,
+} from '@/cloud';
 import { planBodyMeasurementSyncOperations } from '@/cloud/BodyMeasurementSyncPlanner';
 import type { OfflineSyncQueueStore } from '@/cloud/CloudQueueStore';
 import { planCustomExerciseSyncOperations } from '@/cloud/CustomExerciseSyncPlanner';
@@ -57,7 +60,9 @@ import {
   countSupportedQueueOperations,
   countUnresolvedSyncConflicts,
   formatRejectedSyncOperationsError,
+  formatSyncFailureDiagnostic,
   resolveStatus,
+  resolveSyncFailureStage,
   resolveSyncFailureStatus,
   type SyncPullResult,
   type WeightSyncContextValue,
@@ -304,12 +309,6 @@ export function SyncProvider({
       await ensureMealTemplateSync();
       await ensureSafetyRecoverySync();
       const result = await syncCoordinator.syncNow();
-      if (result.status.phase === 'Failed') {
-        const cause = result.error?.cause;
-        throw cause instanceof Error
-          ? cause
-          : new Error(result.error?.message ?? 'Sync failed');
-      }
       const pushResult = result.push?.result;
       const pullResult = result.pull?.result;
       const detectedAt =
@@ -354,6 +353,46 @@ export function SyncProvider({
         await queueStore.removeAcknowledged();
       }
 
+      const reusedKeyOperationIds = new Set(
+        (pushResult?.rejectedOperations ?? [])
+          .filter(
+            (operation) =>
+              operation.status === 409 &&
+              operation.code?.toUpperCase() === 'SYNC_IDEMPOTENCY_KEY_REUSE',
+          )
+          .map((operation) => operation.operationId),
+      );
+      if (reusedKeyOperationIds.size > 0) {
+        const queuedOperations = await queueStore.loadOperations();
+        for (const operation of queuedOperations) {
+          if (!reusedKeyOperationIds.has(operation.opId)) continue;
+          const repaired = repairOfflineSyncQueueOperationIdempotencyKey(operation);
+          if (repaired.idempotencyKey === operation.idempotencyKey) continue;
+          await queueStore.updateOperation(operation.opId, {
+            idempotencyKey: repaired.idempotencyKey,
+            metadata: repaired.metadata,
+            status: 'pending',
+            lastError: undefined,
+            nextRetryAt: undefined,
+          });
+        }
+      }
+
+      if (result.status.phase === 'Failed') {
+        const cause = result.error?.cause ?? result.error;
+        const afterPending = await queueStore.getPending();
+        setPendingOperations(countSupportedQueueOperations(afterPending));
+        setDiagnostic(
+          formatSyncFailureDiagnostic(
+            cause,
+            resolveSyncFailureStage(result.transitions),
+          ),
+        );
+        setError('Synchronization failed');
+        setStatus(resolveSyncFailureStatus(cause));
+        return;
+      }
+
       if (pullResult) {
         await applySyncPullResult({
           bodyMeasurementMetadataStore,
@@ -392,6 +431,7 @@ export function SyncProvider({
       }
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Sync failed';
+      setDiagnostic(formatSyncFailureDiagnostic(syncError, 'local processing'));
       setError(message);
       setStatus(resolveSyncFailureStatus(syncError));
     } finally {

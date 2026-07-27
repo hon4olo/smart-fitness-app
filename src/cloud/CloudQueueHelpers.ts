@@ -186,6 +186,29 @@ export const createOfflineSyncQueueIdempotencyKey = (
     stableStringify(operation.payload ?? {}),
   ].join(':');
 
+export const repairOfflineSyncQueueOperationIdempotencyKey = (
+  operation: OfflineSyncQueueOperation,
+): OfflineSyncQueueOperation => {
+  const idempotencyKey = createOfflineSyncQueueIdempotencyKey({
+    entityType: operation.entityType,
+    entityId: operation.entityId,
+    action: operation.action,
+    clientTimestamp: operation.clientTimestamp,
+    actorId: operation.actorId,
+    baseRevision: operation.baseRevision,
+    payload: operation.payload,
+  });
+  if (idempotencyKey === operation.idempotencyKey) return operation;
+  return {
+    ...operation,
+    idempotencyKey,
+    metadata: {
+      ...operation.metadata,
+      requestId: idempotencyKey,
+    },
+  };
+};
+
 export const createOfflineSyncQueueBackoff = (
   retryCount: number,
   now = new Date().toISOString(),
@@ -305,11 +328,11 @@ export const normalizeOfflineSyncQueueOperation = (
     isOfflineSyncQueueIdempotencyKey(operation.idempotencyKey)
       ? operation.idempotencyKey
       : createOfflineSyncQueueIdempotencyKey({
-        entityType,
-        entityId,
-        action,
-        clientTimestamp,
-        actorId,
+          entityType,
+          entityId,
+          action,
+          clientTimestamp,
+          actorId,
           baseRevision,
           payload,
         });

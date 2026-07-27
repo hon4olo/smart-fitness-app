@@ -22,6 +22,7 @@ import type {
   SyncPreview,
   SyncPreviewPull,
   SyncPullSimulation,
+  SyncPushSimulation,
 } from './SyncCoordinatorTypes';
 
 const emptyConflictResolution = (): SyncConflictResolution => ({
@@ -150,8 +151,12 @@ export const createSyncCoordinator = (
     });
     transitions.push('Preparing');
 
+    let preparation: SyncPreparation | undefined;
+    let push: SyncPushSimulation | undefined;
+    let pull: SyncPullSimulation | undefined;
+
     try {
-      const preparation = await prepareSync(dependencies, now);
+      preparation = await prepareSync(dependencies, now);
       lastStatistics = preparation.statistics;
 
       if (!preparation.validation.valid) {
@@ -221,11 +226,11 @@ export const createSyncCoordinator = (
 
       updateStatus({ phase: 'Uploading' });
       transitions.push('Uploading');
-      const push = await simulatePush(dependencies, preparation.batch);
+      push = await simulatePush(dependencies, preparation.batch);
 
       updateStatus({ phase: 'Downloading' });
       transitions.push('Downloading');
-      const pull = await simulatePull(dependencies, now);
+      pull = await simulatePull(dependencies, now);
 
       updateStatus({ phase: 'Resolving' });
       transitions.push('Resolving');
@@ -286,17 +291,18 @@ export const createSyncCoordinator = (
         reason: 'sync failed',
         lastError: error,
       });
-      const preparation = await prepareSync(dependencies, now);
+      const failedPreparation =
+        preparation ?? (await prepareSync(dependencies, now));
       const conflicts = emptyConflictResolution();
-      const statistics = captureStatistics(preparation, conflicts);
+      const statistics = captureStatistics(failedPreparation, conflicts, pull);
       return buildSyncResult(
         status,
         statistics,
-        preparation,
+        failedPreparation,
         conflicts,
         [...transitions, 'Failed'],
-        undefined,
-        undefined,
+        push,
+        pull,
         error,
       );
     }

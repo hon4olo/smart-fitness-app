@@ -90,6 +90,54 @@ describe('sync push validation isolation', () => {
     expect(message).toContain('req-bad');
   });
 
+  it('isolates backend idempotency-key reuse and keeps valid siblings moving', async () => {
+    const pushOperations = vi.fn(async (currentBatch: SyncBatch) => {
+      if (currentBatch.operations.some((item) => item.id === 'stale-key')) {
+        throw Object.assign(new Error('Conflict'), {
+          status: 409,
+          code: 'conflict',
+          requestId: 'req-reuse',
+          body: {
+            error: {
+              code: 'SYNC_IDEMPOTENCY_KEY_REUSE',
+              message: 'Idempotency key was already used for a different sync operation',
+              details: {
+                existingEntityType: 'foodEntries',
+                requestedEntityType: 'foodEntries',
+                idempotencyKey: 'must-not-be-displayed',
+              },
+            },
+          },
+        });
+      }
+      return appliedResult(currentBatch);
+    });
+
+    const result = await simulatePush(
+      { provider: providerWith(pushOperations) },
+      batch([
+        operation('good-a', '11111111-1111-4111-8111-111111111111'),
+        operation('stale-key', '22222222-2222-4222-8222-222222222222'),
+      ]),
+    );
+
+    expect(result.result?.appliedOperations?.map((item) => item.id)).toEqual(['good-a']);
+    expect(result.result?.rejectedOperations).toEqual([
+      expect.objectContaining({
+        operationId: 'stale-key',
+        status: 409,
+        code: 'SYNC_IDEMPOTENCY_KEY_REUSE',
+        requestId: 'req-reuse',
+      }),
+    ]);
+    const message = formatRejectedSyncOperationsError(
+      result.result?.rejectedOperations ?? [],
+    );
+    expect(message).toContain('SYNC_IDEMPOTENCY_KEY_REUSE');
+    expect(message).toContain('HTTP 409');
+    expect(message).not.toContain('must-not-be-displayed');
+  });
+
   it('uses one request when the original batch is valid', async () => {
     const pushOperations = vi.fn(async (currentBatch: SyncBatch) =>
       appliedResult(currentBatch),

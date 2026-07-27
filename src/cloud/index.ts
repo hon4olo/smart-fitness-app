@@ -89,6 +89,7 @@ export {
   incrementOfflineSyncQueueRetry,
   isOfflineSyncQueueIdempotencyKey,
   normalizeOfflineSyncQueueOperation,
+  repairOfflineSyncQueueOperationIdempotencyKey,
   sortOfflineSyncQueueOperations,
   toOfflineSyncQueueSyncOperation,
 } from './CloudQueueHelpers';
