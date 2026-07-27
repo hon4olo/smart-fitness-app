@@ -2,6 +2,8 @@ import { repairOfflineSyncQueueOperationIdempotencyKey } from '@/cloud';
 import type { OfflineSyncQueueStore } from '@/cloud/CloudQueueStore';
 import type { RejectedSyncOperation } from '@/cloud/CloudProvider';
 
+// Repair only operations that the backend explicitly rejected for key reuse.
+// Unrelated queue and recovery records retain their original identity.
 export const repairRejectedSyncIdempotencyKeys = async (
   queueStore: OfflineSyncQueueStore,
   rejectedOperations: RejectedSyncOperation[],
