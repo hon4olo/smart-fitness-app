@@ -22,8 +22,10 @@ import {
   type StorageAdapter,
 } from '@/storage';
 
+// This marker is stored in Expo SecureStore on native builds. SecureStore keys may
+// contain only alphanumeric characters, `.`, `-`, and `_`.
 export const PENDING_ACCOUNT_CLEANUP_STORAGE_KEY =
-  '@smart_fitness_pending_account_cleanup';
+  'smart_fitness_pending_account_cleanup';
 
 const STATIC_ACCOUNT_DATA_KEYS = [
   APP_STATE_STORAGE_KEY,
