@@ -107,6 +107,9 @@ describe('sync conflict counting', () => {
       isUnresolvedSyncConflict({ status: 'pending', resolutionStrategy: 'server_wins' }),
     ).toBe(false);
     expect(
+      isUnresolvedSyncConflict({ status: ' PENDING ', resolutionStrategy: 'SERVER-WINS' }),
+    ).toBe(false);
+    expect(
       isUnresolvedSyncConflict({ status: 'pending', resolutionStrategy: 'remoteWins' }),
     ).toBe(false);
     expect(isUnresolvedSyncConflict({ status: 'needsReview' })).toBe(true);
