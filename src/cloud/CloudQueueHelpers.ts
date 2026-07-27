@@ -1,5 +1,5 @@
 import { getNutritionLibrarySyncEntityId } from '@/features/nutrition/nutritionFoodLibrary';
-import { ensureUuid } from '@/lib/ids';
+import { createDeterministicUuid, ensureUuid } from '@/lib/ids';
 
 import type { CloudError } from './CloudErrors';
 import { CLOUD_ERROR_CODES } from './CloudErrors';
@@ -16,6 +16,7 @@ import type { SyncOperation, SyncRevision } from './CloudSyncTypes';
 
 const DEFAULT_RETRY_BASE_MS = 1_000;
 const DEFAULT_RETRY_MAX_MS = 15 * 60 * 1_000;
+export const MAX_SYNC_IDEMPOTENCY_KEY_LENGTH = 255;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -163,6 +164,12 @@ export const isOfflineSyncQueueIdempotencyKey = (
 ): value is string =>
   isString(value) && value.startsWith('queue:') && value.split(':').length >= 5;
 
+export const isServerCompatibleOfflineSyncQueueIdempotencyKey = (
+  value: unknown,
+): value is string =>
+  isOfflineSyncQueueIdempotencyKey(value) &&
+  value.length <= MAX_SYNC_IDEMPOTENCY_KEY_LENGTH;
+
 export const createOfflineSyncQueueIdempotencyKey = (
   operation: Pick<
     OfflineSyncQueueOperation,
@@ -172,19 +179,22 @@ export const createOfflineSyncQueueIdempotencyKey = (
     baseRevision?: SyncRevision;
     payload?: Record<string, unknown>;
   },
-): string =>
-  [
-    'queue',
-    operation.entityType,
-    operation.entityId,
-    operation.action,
-    operation.clientTimestamp,
-    operation.actorId ?? '',
-    operation.baseRevision
-      ? `${operation.baseRevision.id}:${operation.baseRevision.number}`
-      : '',
-    stableStringify(operation.payload ?? {}),
-  ].join(':');
+): string => {
+  const canonicalOperation = stableStringify({
+    action: operation.action,
+    actorId: operation.actorId ?? null,
+    baseRevision: operation.baseRevision ?? null,
+    clientTimestamp: operation.clientTimestamp,
+    entityId: operation.entityId,
+    entityType: operation.entityType,
+    payload: operation.payload ?? {},
+  });
+  const digest = createDeterministicUuid(
+    `offline-sync-idempotency:v2:${canonicalOperation}`,
+  );
+
+  return ['queue', 'v2', 'op', operation.action, digest].join(':');
+};
 
 export const repairOfflineSyncQueueOperationIdempotencyKey = (
   operation: OfflineSyncQueueOperation,
@@ -325,7 +335,7 @@ export const normalizeOfflineSyncQueueOperation = (
   const idempotencyKey =
     !entityIdChanged &&
     !payloadCompatibility.changed &&
-    isOfflineSyncQueueIdempotencyKey(operation.idempotencyKey)
+    isServerCompatibleOfflineSyncQueueIdempotencyKey(operation.idempotencyKey)
       ? operation.idempotencyKey
       : createOfflineSyncQueueIdempotencyKey({
           entityType,
