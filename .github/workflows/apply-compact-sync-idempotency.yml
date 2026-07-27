@@ -1,0 +1,76 @@
+name: Apply compact sync idempotency repair
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/compact-sync-idempotency'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/compact-sync-idempotency
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Apply compact key repair
+        run: python scripts/apply-compact-sync-idempotency.py
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Repository file line audit
+        run: node scripts/check-repository-file-lines.mjs
+
+      - name: Changed file line limit
+        run: node scripts/check-changed-file-lines.mjs
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Focused sync tests
+        run: >-
+          npx vitest run
+          test/sync-idempotency-key-length.test.ts
+          test/sync-stale-idempotency-repair.test.ts
+          test/sync-push-validation-isolation.test.ts
+          test/sync-coordinator.test.ts
+
+      - name: Full regression suite
+        run: npm test
+
+      - name: Expo export
+        run: npx expo export --clear
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: Diff validation
+        run: git diff --check
+
+      - name: Remove temporary repair machinery
+        run: |
+          rm scripts/apply-compact-sync-idempotency.py
+          rm .github/workflows/apply-compact-sync-idempotency.yml
+
+      - name: Commit validated repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "[ota] Compact sync idempotency keys"
+          git push origin HEAD:agent/compact-sync-idempotency
