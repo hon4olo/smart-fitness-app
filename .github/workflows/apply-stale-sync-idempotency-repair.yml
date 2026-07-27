@@ -28,7 +28,32 @@ jobs:
           cache: npm
 
       - name: Apply deterministic repair
-        run: python scripts/apply-stale-sync-idempotency-repair.py
+        run: |
+          python scripts/apply-stale-sync-idempotency-repair.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('test/sync-coordinator.test.ts')
+          text = path.read_text()
+          old = """      pushOperations: vi.fn(async () => ({
+        status: 'idle',
+        pendingOperations: 0,
+        conflictCount: 0,
+        serverTimestamp: NOW,
+        appliedOperations: [applied],
+      })),
+"""
+          new = """      pushOperations: vi.fn(async () => ({
+        status: 'idle' as const,
+        pendingOperations: 0,
+        conflictCount: 0,
+        serverTimestamp: NOW,
+        appliedOperations: [applied],
+      })),
+"""
+          if text.count(old) != 1:
+              raise RuntimeError(f'expected one partial-push test result, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
 
       - name: Install dependencies
         run: npm ci
