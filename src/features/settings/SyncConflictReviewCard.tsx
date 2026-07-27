@@ -11,6 +11,7 @@ import { createAsyncStorageAdapter, createSyncConflictStore, type SyncConflictSn
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { getSyncConflictCopy, getSyncConflictEntityLabel } from './syncConflictCopy';
+import { getSyncConflictDiagnosticItems } from './syncConflictDiagnostic';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -69,21 +70,40 @@ export function SyncConflictReviewCard() {
 
       {conflicts.length > 0 ? (
         <View style={styles.list}>
-          {conflicts.map((conflict) => (
-            <View
-              key={conflict.conflictId}
-              style={[styles.conflict, { borderColor: colors.borderSubtle }]}>
-              <Text style={[styles.entity, { color: colors.textPrimary }]}>
-                {getSyncConflictEntityLabel(copy, conflict.entityType)}
-              </Text>
-              <Text style={[styles.meta, { color: colors.textSecondary }]}>
-                {copy.detected}: {formatDate(conflict.detectedAt, { dateStyle: 'medium', timeStyle: 'short' })}
-              </Text>
-              <Text style={[styles.meta, { color: colors.textSecondary }]}>
-                {copy.source}: {copy.sourceLabels[conflict.source]}
-              </Text>
-            </View>
-          ))}
+          {conflicts.map((conflict) => {
+            const diagnostics = getSyncConflictDiagnosticItems(conflict);
+            return (
+              <View
+                key={conflict.conflictId}
+                style={[styles.conflict, { borderColor: colors.borderSubtle }]}>
+                <Text style={[styles.entity, { color: colors.textPrimary }]}>
+                  {getSyncConflictEntityLabel(copy, conflict.entityType)}
+                </Text>
+                <Text style={[styles.meta, { color: colors.textSecondary }]}>
+                  {copy.detected}: {formatDate(conflict.detectedAt, { dateStyle: 'medium', timeStyle: 'short' })}
+                </Text>
+                <Text style={[styles.meta, { color: colors.textSecondary }]}>
+                  {copy.source}: {copy.sourceLabels[conflict.source]}
+                </Text>
+                <View style={[styles.diagnostic, { borderColor: colors.borderSubtle }]}>
+                  <Text style={[styles.diagnosticTitle, { color: colors.textPrimary }]}>
+                    {copy.diagnosticTitle}
+                  </Text>
+                  {diagnostics.map((item) => (
+                    <Text
+                      key={item.key}
+                      selectable
+                      style={[styles.diagnosticLine, { color: colors.textSecondary }]}>
+                      <Text style={{ color: colors.textPrimary }}>
+                        {copy.diagnosticLabels[item.key]}:\u00a0
+                      </Text>
+                      {item.value}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            );
+          })}
           <Text style={[styles.note, { color: colors.textSecondary }]}>
             {copy.retryExplanation}
           </Text>
@@ -110,6 +130,23 @@ const styles = StyleSheet.create({
     fontSize: Typography.body.fontSize,
     lineHeight: Typography.body.lineHeight,
     marginTop: Spacing.one,
+  },
+  diagnostic: {
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+    marginTop: Spacing.one,
+    padding: Spacing.two,
+  },
+  diagnosticLine: {
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
+  },
+  diagnosticTitle: {
+    fontSize: Typography.label.fontSize,
+    fontWeight: Typography.label.fontWeight,
+    lineHeight: Typography.label.lineHeight,
+    marginBottom: 2,
   },
   entity: {
     fontSize: Typography.bodyEmphasized.fontSize,
