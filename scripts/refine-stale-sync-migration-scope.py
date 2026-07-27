@@ -81,6 +81,16 @@ replace_once(
 export const createOfflineSyncQueueBackoff = (
 """,
 )
+replace_once(
+    'src/cloud/index.ts',
+    """  normalizeOfflineSyncQueueOperation,
+  sortOfflineSyncQueueOperations,
+""",
+    """  normalizeOfflineSyncQueueOperation,
+  repairOfflineSyncQueueOperationIdempotencyKey,
+  sortOfflineSyncQueueOperations,
+""",
+)
 
 # Repair only the queue entries explicitly rejected by the backend. Valid sibling
 # acknowledgements are already removed immediately before this block.
