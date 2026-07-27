@@ -1,0 +1,79 @@
+name: Verify SecureStore key production OTA
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.head_ref == 'release/verify-securestore-key-ota'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for production update
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 24); do
+            eas update:list --branch production --limit 20 --json --non-interactive > production-update-list.json
+            if node - <<'NODE'
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('production-update-list.json', 'utf8'));
+          const groups = Array.isArray(data) ? data : (Array.isArray(data.currentPage) ? data.currentPage : []);
+          const updates = groups.flatMap((group) => Array.isArray(group.updates) ? group.updates.map((update) => ({ ...update, groupId: group.id ?? group.group })) : [group]);
+          const match = updates.find((update) =>
+            typeof update.message === 'string' &&
+            update.message.includes('[ota] Fix SecureStore cleanup marker key (#176)') &&
+            update.runtimeVersion === '1.0.2' &&
+            (update.platform === 'ios' || String(update.platforms ?? '').includes('ios'))
+          );
+          if (!match) process.exit(1);
+          fs.writeFileSync('verified-securestore-key-ota.json', JSON.stringify({
+            updateId: match.id,
+            groupId: match.group ?? match.groupId,
+            message: match.message,
+            runtimeVersion: match.runtimeVersion,
+            platform: match.platform ?? match.platforms,
+            createdAt: match.createdAt,
+          }, null, 2));
+          NODE
+            then
+              cat verified-securestore-key-ota.json
+              exit 0
+            fi
+            echo "Production OTA not visible yet (attempt ${attempt}/24)"
+            sleep 20
+          done
+          echo "Expected production OTA was not found" >&2
+          cat production-update-list.json >&2 || true
+          exit 1
+
+      - name: Upload verification metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-securestore-key-production-ota
+          path: |
+            production-update-list.json
+            verified-securestore-key-ota.json
+          retention-days: 3
