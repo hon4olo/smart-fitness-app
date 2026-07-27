@@ -28,7 +28,9 @@ jobs:
           cache: npm
 
       - name: Apply repair
-        run: python scripts/apply-server-wins-conflict-repair.py
+        run: |
+          python scripts/apply-server-wins-conflict-repair.py
+          python scripts/fix-server-wins-test.py
 
       - name: Install dependencies
         run: npm ci
@@ -75,6 +77,7 @@ jobs:
       - name: Remove temporary repair machinery
         run: |
           rm scripts/apply-server-wins-conflict-repair.py
+          rm scripts/fix-server-wins-test.py
           rm .github/workflows/apply-server-wins-conflict-repair.yml
 
       - name: Commit validated repair
