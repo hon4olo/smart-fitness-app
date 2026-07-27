@@ -236,6 +236,11 @@ export const countUnresolvedSyncConflicts = ({
   pushConflicts.filter(isUnresolvedSyncConflict).length +
   pullConflicts.filter(isUnresolvedSyncConflict).length;
 
+export const shouldClearPersistedSyncConflicts = (
+  phase: string,
+  activeCycleConflictCount: number,
+): boolean => phase !== 'Failed' && activeCycleConflictCount === 0;
+
 export const resolveStatus = (
   phase: string,
   hasConflicts: boolean,

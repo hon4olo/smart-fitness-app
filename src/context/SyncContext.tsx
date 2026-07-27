@@ -61,6 +61,7 @@ import {
   formatSyncFailureDiagnostic,
   resolveStatus,
   resolveSyncFailureStage,
+  shouldClearPersistedSyncConflicts,
   resolveSyncFailureStatus,
   type SyncPullResult,
   type WeightSyncContextValue,
@@ -329,7 +330,13 @@ export function SyncProvider({
           createSyncConflictSnapshot(conflict, 'pull', detectedAt),
         ),
       ].filter((snapshot): snapshot is SyncConflictSnapshot => Boolean(snapshot));
-      const persistedConflicts = await conflictStore.merge(session.user.id, snapshots);
+      let persistedConflicts: SyncConflictSnapshot[];
+      if (shouldClearPersistedSyncConflicts(result.status.phase, activeCycleConflictCount)) {
+        await conflictStore.clear(session.user.id);
+        persistedConflicts = [];
+      } else {
+        persistedConflicts = await conflictStore.merge(session.user.id, snapshots);
+      }
       const nextConflictCount = Math.max(
         activeCycleConflictCount,
         persistedConflicts.length,

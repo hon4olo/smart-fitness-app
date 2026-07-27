@@ -55,6 +55,16 @@ export const DEFAULT_CONFLICT_POLICIES: Record<string, ConflictPolicy> = {
     allowDeleteStrategy: 'manualReview',
     preferStableTieBreak: 'local',
   },
+  fitnessProfiles: {
+    strategy: 'lastWriteWins',
+    allowDeleteStrategy: 'manualReview',
+    preferStableTieBreak: 'local',
+  },
+  fitness_profiles: {
+    strategy: 'lastWriteWins',
+    allowDeleteStrategy: 'manualReview',
+    preferStableTieBreak: 'local',
+  },
   nutritionTargets: {
     strategy: 'lastWriteWins',
     allowDeleteStrategy: 'manualReview',
