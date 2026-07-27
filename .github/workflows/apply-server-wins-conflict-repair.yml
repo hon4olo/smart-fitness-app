@@ -40,7 +40,17 @@ jobs:
         run: node scripts/check-changed-file-lines.mjs
 
       - name: TypeScript
-        run: npx tsc --noEmit
+        id: typescript
+        run: npx tsc --noEmit > server-wins-typescript.log 2>&1
+
+      - name: Upload TypeScript diagnostics
+        if: failure() && steps.typescript.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-wins-typescript-log
+          path: server-wins-typescript.log
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Focused conflict tests
         run: >-
