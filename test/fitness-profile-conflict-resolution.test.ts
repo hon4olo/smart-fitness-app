@@ -30,7 +30,7 @@ const conflict = (entityType: string): ConflictRecord => ({
 });
 
 describe('fitness profile conflict policy', () => {
-  it.each(['fitnessProfiles', 'fitness_profiles'])(
+  it.each(['profile', 'fitnessProfiles', 'fitness_profiles'])(
     'auto-resolves %s with last-write-wins',
     (entityType) => {
       const registry = createConflictPolicyRegistry();
