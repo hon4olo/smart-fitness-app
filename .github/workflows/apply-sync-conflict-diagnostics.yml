@@ -34,10 +34,10 @@ jobs:
         run: npm ci
 
       - name: Repository file line audit
-        run: npm run audit:lines
+        run: node scripts/check-repository-file-lines.mjs
 
       - name: Changed file line limit
-        run: npm run audit:changed-lines
+        run: node scripts/check-changed-file-lines.mjs
 
       - name: TypeScript
         run: npx tsc --noEmit
