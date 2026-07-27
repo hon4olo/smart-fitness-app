@@ -34,7 +34,17 @@ jobs:
         run: npm ci
 
       - name: TypeScript
-        run: npx tsc --noEmit
+        run: |
+          set -o pipefail
+          npx tsc --noEmit 2>&1 | tee stale-sync-repair-tsc.log
+
+      - name: Upload TypeScript diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stale-sync-repair-tsc-log
+          path: stale-sync-repair-tsc.log
+          retention-days: 3
 
       - name: Focused synchronization tests
         run: >-
@@ -60,6 +70,7 @@ jobs:
         run: |
           rm scripts/apply-stale-sync-idempotency-repair.py
           rm .github/workflows/apply-stale-sync-idempotency-repair.yml
+          rm -f stale-sync-repair-tsc.log
 
       - name: Commit validated repair
         run: |
