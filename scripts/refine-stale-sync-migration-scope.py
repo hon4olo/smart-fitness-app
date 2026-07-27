@@ -10,30 +10,21 @@ def replace_once(path: str, old: str, new: str) -> None:
     target.write_text(text.replace(old, new, 1))
 
 
+# The initial patch intentionally computed a canonical key for comparison. Restore
+# normal queue semantics: stored keys remain authoritative until the backend
+# specifically rejects one as reused for different content.
 replace_once(
     'src/cloud/CloudQueueHelpers.ts',
-    """export const normalizeOfflineSyncQueueOperation = (
-  operation: unknown,
-  index = 0,
-  now = new Date().toISOString(),
-): OfflineSyncQueueOperation | null => {
-""",
-    """export type NormalizeOfflineSyncQueueOperationOptions = {
-  repairStaleIdempotencyKey?: boolean;
-};
-
-export const normalizeOfflineSyncQueueOperation = (
-  operation: unknown,
-  index = 0,
-  now = new Date().toISOString(),
-  options: NormalizeOfflineSyncQueueOperationOptions = {},
-): OfflineSyncQueueOperation | null => {
-""",
-)
-
-replace_once(
-    'src/cloud/CloudQueueHelpers.ts',
-    """  const idempotencyKey =
+    """  const canonicalIdempotencyKey = createOfflineSyncQueueIdempotencyKey({
+    entityType,
+    entityId,
+    action,
+    clientTimestamp,
+    actorId,
+    baseRevision,
+    payload,
+  });
+  const idempotencyKey =
     !entityIdChanged &&
     !payloadCompatibility.changed &&
     isOfflineSyncQueueIdempotencyKey(operation.idempotencyKey) &&
@@ -41,126 +32,159 @@ replace_once(
       ? operation.idempotencyKey
       : canonicalIdempotencyKey;
 """,
-    """  const storedIdempotencyKey = isOfflineSyncQueueIdempotencyKey(
-    operation.idempotencyKey,
-  )
-    ? operation.idempotencyKey
-    : undefined;
-  const shouldRepairStaleKey =
-    options.repairStaleIdempotencyKey &&
-    storedIdempotencyKey !== undefined &&
-    storedIdempotencyKey !== canonicalIdempotencyKey;
-  const idempotencyKey =
+    """  const idempotencyKey =
     !entityIdChanged &&
     !payloadCompatibility.changed &&
-    storedIdempotencyKey &&
-    !shouldRepairStaleKey
-      ? storedIdempotencyKey
-      : canonicalIdempotencyKey;
+    isOfflineSyncQueueIdempotencyKey(operation.idempotencyKey)
+      ? operation.idempotencyKey
+      : createOfflineSyncQueueIdempotencyKey({
+          entityType,
+          entityId,
+          action,
+          clientTimestamp,
+          actorId,
+          baseRevision,
+          payload,
+        });
 """,
 )
 
+# Provide an explicit repair primitive used only after the backend identifies a
+# reused key. It returns a new immutable queue record and updates request metadata.
 replace_once(
-    'src/storage/AsyncStorageOperationQueueStore.ts',
-    """      .map((operation, index) => normalizeOfflineSyncQueueOperation(operation, index, now))
+    'src/cloud/CloudQueueHelpers.ts',
+    """export const createOfflineSyncQueueBackoff = (
 """,
-    """      .map((operation, index) =>
-        normalizeOfflineSyncQueueOperation(operation, index, now, {
-          repairStaleIdempotencyKey: true,
-        }),
-      )
+    """export const repairOfflineSyncQueueOperationIdempotencyKey = (
+  operation: OfflineSyncQueueOperation,
+): OfflineSyncQueueOperation => {
+  const idempotencyKey = createOfflineSyncQueueIdempotencyKey({
+    entityType: operation.entityType,
+    entityId: operation.entityId,
+    action: operation.action,
+    clientTimestamp: operation.clientTimestamp,
+    actorId: operation.actorId,
+    baseRevision: operation.baseRevision,
+    payload: operation.payload,
+  });
+  if (idempotencyKey === operation.idempotencyKey) return operation;
+  return {
+    ...operation,
+    idempotencyKey,
+    metadata: {
+      ...operation.metadata,
+      requestId: idempotencyKey,
+    },
+  };
+};
+
+export const createOfflineSyncQueueBackoff = (
 """,
 )
 
+# Repair only the queue entries explicitly rejected by the backend. Valid sibling
+# acknowledgements are already removed immediately before this block.
 replace_once(
-    'test/sync-stale-idempotency-repair.test.ts',
-    """    const normalized = normalizeOfflineSyncQueueOperation({
-      ...base,
-      payload: currentPayload,
-      idempotencyKey: keyFor(oldPayload),
-    });
+    'src/context/SyncContext.tsx',
+    """import type { SyncCoordinator } from '@/cloud';
 """,
-    """    const normalized = normalizeOfflineSyncQueueOperation(
-      {
-        ...base,
-        payload: currentPayload,
-        idempotencyKey: keyFor(oldPayload),
-      },
-      0,
-      now,
-      { repairStaleIdempotencyKey: true },
-    );
+    """import {
+  repairOfflineSyncQueueOperationIdempotencyKey,
+  type SyncCoordinator,
+} from '@/cloud';
+""",
+)
+replace_once(
+    'src/context/SyncContext.tsx',
+    """        await queueStore.removeAcknowledged();
+      }
+
+      if (result.status.phase === 'Failed') {
+""",
+    """        await queueStore.removeAcknowledged();
+      }
+
+      const reusedKeyOperationIds = new Set(
+        (pushResult?.rejectedOperations ?? [])
+          .filter(
+            (operation) =>
+              operation.status === 409 &&
+              operation.code?.toUpperCase() === 'SYNC_IDEMPOTENCY_KEY_REUSE',
+          )
+          .map((operation) => operation.operationId),
+      );
+      if (reusedKeyOperationIds.size > 0) {
+        const queuedOperations = await queueStore.loadOperations();
+        for (const operation of queuedOperations) {
+          if (!reusedKeyOperationIds.has(operation.opId)) continue;
+          const repaired = repairOfflineSyncQueueOperationIdempotencyKey(operation);
+          if (repaired.idempotencyKey === operation.idempotencyKey) continue;
+          await queueStore.updateOperation(operation.opId, {
+            idempotencyKey: repaired.idempotencyKey,
+            metadata: repaired.metadata,
+            status: 'pending',
+            lastError: undefined,
+            nextRetryAt: undefined,
+          });
+        }
+      }
+
+      if (result.status.phase === 'Failed') {
 """,
 )
 
-replace_once(
-    'test/sync-stale-idempotency-repair.test.ts',
-    """  it('preserves the canonical key when it already matches current content', () => {
-""",
-    """  it('preserves a caller-provided key outside persisted queue migration', () => {
-    const oldPayload = { id: base.entityId, calories: 100 };
-    const currentPayload = { id: base.entityId, calories: 125 };
-    const storedKey = keyFor(oldPayload);
-    const normalized = normalizeOfflineSyncQueueOperation({
-      ...base,
-      payload: currentPayload,
-      idempotencyKey: storedKey,
-    });
+# Replace the broad migration test with a unit test for targeted backend-rejection
+# repair. Default normalization behavior remains unchanged and existing queue,
+# outbox, and payload-scope contracts stay valid.
+Path('test/sync-stale-idempotency-repair.test.ts').write_text("""import { describe, expect, it } from 'vitest';
 
-    expect(normalized?.idempotencyKey).toBe(storedKey);
+import {
+  createOfflineSyncQueueIdempotencyKey,
+  repairOfflineSyncQueueOperationIdempotencyKey,
+} from '@/cloud/CloudQueueHelpers';
+import type { OfflineSyncQueueOperation } from '@/cloud/CloudQueueTypes';
+
+const now = '2026-07-27T06:00:00.000Z';
+const revision = { id: 'rev-3', number: 3, createdAt: now };
+const operation = (overrides: Partial<OfflineSyncQueueOperation> = {}): OfflineSyncQueueOperation => ({
+  opId: 'foodEntries:entry-1',
+  entityType: 'foodEntries',
+  entityId: '11111111-1111-4111-8111-111111111111',
+  action: 'update',
+  clientTimestamp: now,
+  actorId: '22222222-2222-4222-8222-222222222222',
+  baseRevision: revision,
+  payload: { id: '11111111-1111-4111-8111-111111111111', calories: 125 },
+  idempotencyKey: 'queue:foodEntries:legacy:update:stale',
+  retryCount: 0,
+  status: 'pending',
+  metadata: { requestId: 'queue:foodEntries:legacy:update:stale' },
+  ...overrides,
+});
+
+describe('stale sync idempotency repair', () => {
+  it('regenerates a backend-rejected key from current operation content', () => {
+    const current = operation();
+    const repaired = repairOfflineSyncQueueOperationIdempotencyKey(current);
+    const expected = createOfflineSyncQueueIdempotencyKey(current);
+
+    expect(repaired.idempotencyKey).toBe(expected);
+    expect(repaired.idempotencyKey).not.toBe(current.idempotencyKey);
+    expect(repaired.metadata?.requestId).toBe(expected);
+    expect(repaired.payload).toEqual(current.payload);
   });
 
-  it('preserves the canonical key when it already matches current content', () => {
-""",
-)
-
-# Add a store-level migration test proving that real AsyncStorage loads repair old
-# persisted keys while enqueue behavior remains unchanged.
-path = Path('test/offline-sync-queue.test.ts')
-text = path.read_text()
-marker = """  it('returns an empty list for empty storage', async () => {
-"""
-addition = """  it('repairs stale persisted idempotency keys when restoring the queue', async () => {
-    const oldPayload = { value: 1 };
-    const currentPayload = { value: 2 };
+  it('returns the same operation when its key is already canonical', () => {
+    const draft = operation();
+    const canonical = createOfflineSyncQueueIdempotencyKey(draft);
     const current = operation({
-      opId: 'op-stale-persisted',
-      entityId: 'entity-stale-persisted',
-      payload: currentPayload,
-      idempotencyKey: createOfflineSyncQueueIdempotencyKey({
-        entityType: 'workoutSessions',
-        entityId: 'entity-stale-persisted',
-        action: 'update',
-        clientTimestamp: NOW,
-        actorId: 'actor-1',
-        baseRevision: REVISION,
-        payload: oldPayload,
-      }),
-    });
-    const storage = memoryStorage(
-      JSON.stringify({ version: 1, operations: [current], updatedAt: NOW }),
-    );
-    const store = createAsyncStorageOperationQueueStore(storage);
-
-    const restored = await store.loadOperations();
-    const expected = createOfflineSyncQueueIdempotencyKey({
-      entityType: current.entityType,
-      entityId: current.entityId,
-      action: current.action,
-      clientTimestamp: current.clientTimestamp,
-      actorId: current.actorId,
-      baseRevision: current.baseRevision,
-      payload: currentPayload,
+      idempotencyKey: canonical,
+      metadata: { requestId: canonical },
     });
 
-    expect(restored).toHaveLength(1);
-    expect(restored[0]?.idempotencyKey).toBe(expected);
-    expect(restored[0]?.metadata?.requestId).toBe(expected);
+    expect(repairOfflineSyncQueueOperationIdempotencyKey(current)).toBe(current);
   });
+});
+""")
 
-"""
-if text.count(marker) != 1:
-    raise RuntimeError(f'offline queue insertion marker count: {text.count(marker)}')
-path.write_text(text.replace(marker, addition + marker, 1))
-
-print('Scoped stale idempotency repair to persisted queue restoration')
+print('Targeted stale key repair to backend-rejected queue operations')
