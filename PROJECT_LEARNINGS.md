@@ -63,6 +63,7 @@ The existing Combined Coach aggregates deterministic reviews. Full Combined Stra
 - Food-provider and AI-provider credentials remain backend-only.
 - Ordinary auth-session storage contains only user, device, and session metadata; it must never contain access or refresh tokens.
 - Native access and refresh tokens use Expo SecureStore. Existing AsyncStorage token envelopes migrate once, are verified in secure storage, and are removed only after successful verification.
+- Every key passed to Expo SecureStore must be non-empty and contain only alphanumeric characters, `.`, `-`, and `_`; AsyncStorage-style keys beginning with `@` are invalid on native builds.
 - Web and non-native test runtimes intentionally use volatile in-memory token storage instead of silently downgrading secrets to ordinary persistent storage.
 - `expo-secure-store` is a native runtime dependency. A matching native build is required before releasing JavaScript that imports it.
 - A backend model provider is optional and capability-gated. Deterministic reviews must remain available when it is disabled.
