@@ -66,7 +66,7 @@ const conflict = (entityType: string): ConflictRecord => ({
 });
 
 describe('fitness profile conflict policy', () => {
-  it.each(['fitnessProfiles', 'fitness_profiles']) (
+  it.each(['fitnessProfiles', 'fitness_profiles'])(
     'auto-resolves %s with last-write-wins',
     (entityType) => {
       const registry = createConflictPolicyRegistry();
@@ -90,10 +90,12 @@ describe('fitness profile conflict policy', () => {
 
 path = Path('PROJECT_LEARNINGS.md')
 text = path.read_text()
-needle = "- A deterministic client error in one queued operation must not block valid siblings. Isolate HTTP 400/422 and `SYNC_IDEMPOTENCY_KEY_REUSE` failures, regenerate keys only for operations explicitly rejected for key reuse, preserve successful uploads if pull later fails, and surface sanitized stage/entity/status/request diagnostics without tokens, email, raw payloads, or full idempotency keys.\n"
-addition = needle + "- Conflict policy keys must match actual sync entity names and aliases. `fitnessProfiles` / `fitness_profiles` use last-write-wins; after a fully successful cycle with zero active conflicts, clear stale persisted conflict snapshots so resolved items do not remain permanently in Settings.\n"
-if text.count(needle) != 1:
-    raise RuntimeError('PROJECT_LEARNINGS sync lesson anchor not found exactly once')
-path.write_text(text.replace(needle, addition, 1))
+lesson = "- Conflict policy keys must match actual sync entity names and aliases. `fitnessProfiles` / `fitness_profiles` use last-write-wins; after a fully successful cycle with zero active conflicts, clear stale persisted conflict snapshots so resolved items do not remain permanently in Settings.\n"
+anchor = "- Queue mutation locking and deduplication protect the queue itself, but do not make application-state persistence and outbox enqueue one atomic storage transaction.\n"
+if lesson not in text:
+    if text.count(anchor) != 1:
+        raise RuntimeError('PROJECT_LEARNINGS sync lesson anchor not found exactly once')
+    text = text.replace(anchor, lesson + anchor, 1)
+path.write_text(text)
 
 print('Applied fitness profile conflict policy and stale-conflict reconciliation repair')
