@@ -34,7 +34,7 @@ jobs:
         run: npm ci
 
       - name: Validate source line limits
-        run: npm run check:file-lines
+        run: node scripts/check-repository-file-lines.mjs
 
       - name: TypeScript
         run: npx tsc --noEmit
