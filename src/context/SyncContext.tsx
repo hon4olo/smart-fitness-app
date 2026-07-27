@@ -10,10 +10,7 @@ import {
 } from 'react';
 import { AppState as ReactNativeAppState } from 'react-native';
 
-import {
-  repairOfflineSyncQueueOperationIdempotencyKey,
-  type SyncCoordinator,
-} from '@/cloud';
+import type { SyncCoordinator } from '@/cloud';
 import { planBodyMeasurementSyncOperations } from '@/cloud/BodyMeasurementSyncPlanner';
 import type { OfflineSyncQueueStore } from '@/cloud/CloudQueueStore';
 import { planCustomExerciseSyncOperations } from '@/cloud/CustomExerciseSyncPlanner';
@@ -55,6 +52,7 @@ import type { WeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore'
 import type { AppState } from '@/types';
 
 import { applySyncPullResult } from './applySyncPullResult';
+import { repairRejectedSyncIdempotencyKeys } from './repairRejectedSyncOperations';
 import {
   collectAcknowledgedSyncOperationKeys,
   countSupportedQueueOperations,
@@ -353,30 +351,10 @@ export function SyncProvider({
         await queueStore.removeAcknowledged();
       }
 
-      const reusedKeyOperationIds = new Set(
-        (pushResult?.rejectedOperations ?? [])
-          .filter(
-            (operation) =>
-              operation.status === 409 &&
-              operation.code?.toUpperCase() === 'SYNC_IDEMPOTENCY_KEY_REUSE',
-          )
-          .map((operation) => operation.operationId),
+      await repairRejectedSyncIdempotencyKeys(
+        queueStore,
+        pushResult?.rejectedOperations ?? [],
       );
-      if (reusedKeyOperationIds.size > 0) {
-        const queuedOperations = await queueStore.loadOperations();
-        for (const operation of queuedOperations) {
-          if (!reusedKeyOperationIds.has(operation.opId)) continue;
-          const repaired = repairOfflineSyncQueueOperationIdempotencyKey(operation);
-          if (repaired.idempotencyKey === operation.idempotencyKey) continue;
-          await queueStore.updateOperation(operation.opId, {
-            idempotencyKey: repaired.idempotencyKey,
-            metadata: repaired.metadata,
-            status: 'pending',
-            lastError: undefined,
-            nextRetryAt: undefined,
-          });
-        }
-      }
 
       if (result.status.phase === 'Failed') {
         const cause = result.error?.cause ?? result.error;
