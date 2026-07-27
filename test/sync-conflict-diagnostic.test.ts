@@ -37,6 +37,21 @@ describe('sync conflict diagnostics', () => {
     expect(byKey.fingerprint).toMatch(/^conflict-[0-9a-f]{8}$/);
   });
 
+  it('falls back to the stored explanation when the top-level reason is absent', () => {
+    const value = snapshot();
+    delete value.reason;
+    value.details = {
+      explanation: 'manual review required after overlapping nutrition target changes',
+      localVersion: { calories: 2800 },
+      remoteVersion: { calories: 2500 },
+    };
+
+    const reason = getSyncConflictDiagnosticItems(value).find((item) => item.key === 'reason');
+    expect(reason?.value).toBe(
+      'manual review required after overlapping nutrition target changes',
+    );
+  });
+
   it('never exposes local or remote payload content or the raw conflict id', () => {
     const raw = snapshot().conflictId;
     const serialized = JSON.stringify(getSyncConflictDiagnosticItems(snapshot()));
