@@ -52,5 +52,14 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "expo": {
+    "install": {
+      "exclude": [
+        "@expo/ui",
+        "expo",
+        "expo-router"
+      ]
+    }
+  },
   "private": true
 }
