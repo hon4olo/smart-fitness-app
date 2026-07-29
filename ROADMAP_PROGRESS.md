@@ -44,7 +44,6 @@ Always inspect current `main` and open pull requests in both repositories before
 - Blocking backend lint, build, test, migration, schema, startup, and health checks.
 - All tracked hand-written mobile files at or below 500 lines.
 - Nutrition child-flow hardening source work complete.
-- Privacy-safe crash-reporting source foundation complete.
 - Account deletion, authenticated password change, and session/device management complete at source-code level.
 - Typed English/Russian localization foundation and dedicated Settings route complete.
 - Weight, length, and energy unit preferences implemented with canonical `kg/cm/kcal` storage.
@@ -57,7 +56,7 @@ See [`docs/roadmap/release-and-account.md`](docs/roadmap/release-and-account.md)
 
 Covers:
 
-- release gate, staging, native builds, OTA lanes, Sentry, and device validation;
+- release gate, staging, native builds, OTA lanes, and device validation;
 - account deletion, password change, sessions/devices, password reset, privacy, and analytics prerequisites.
 
 ### Localization and Settings
@@ -91,7 +90,7 @@ Covers:
 1. Complete remaining localization infrastructure: pluralization, missing-key coverage, and migration of direct number/date formatting.
 2. Move Account & Security into the dedicated Settings information architecture.
 3. Add user-visible Data & Sync status and safe recovery actions.
-4. Configure Sentry/EAS values, select a compatible runtime, and verify source maps on preview devices.
+4. Complete the remaining release-device and offline-restart matrix on the working standalone runtime.
 5. Deploy and validate current account-lifecycle backend endpoints when explicitly authorized.
 6. Configure `BACKEND_REPOSITORY_TOKEN` and run the fixed-SHA cross-repository release gate.
 7. Create matching native builds and execute the device/offline/second-device matrix.
