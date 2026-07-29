@@ -48,10 +48,12 @@ export function NutritionAppliedChangeCard({
               <TargetSnapshot
                 label={copy.before}
                 rows={formatTargets(summary.before)}
+                styles={styles}
               />
               <TargetSnapshot
                 label={copy.after}
                 rows={formatTargets(summary.after)}
+                styles={styles}
               />
             </View>
             <View style={styles.explanationBlock}>
@@ -75,58 +77,27 @@ export function NutritionAppliedChangeCard({
   );
 }
 
+type ChangeSummaryStyles = ReturnType<typeof createStyles>;
+
 type TargetSnapshotProps = {
   label: string;
   rows: Array<{ label: string; value: string }>;
+  styles: ChangeSummaryStyles;
 };
 
-function TargetSnapshot({ label, rows }: TargetSnapshotProps) {
+function TargetSnapshot({ label, rows, styles }: TargetSnapshotProps) {
   return (
-    <View style={stylesStatic.snapshot}>
-      <Text style={stylesStatic.snapshotTitle}>{label}</Text>
+    <View style={styles.snapshot}>
+      <Text style={styles.snapshotTitle}>{label}</Text>
       {rows.map((row) => (
-        <View key={row.label} style={stylesStatic.row}>
-          <Text style={stylesStatic.label}>{row.label}</Text>
-          <Text style={stylesStatic.value}>{row.value}</Text>
+        <View key={row.label} style={styles.row}>
+          <Text style={styles.label}>{row.label}</Text>
+          <Text style={styles.value}>{row.value}</Text>
         </View>
       ))}
     </View>
   );
 }
-
-const stylesStatic = StyleSheet.create({
-  label: {
-    color: Colors.dark.textSecondary,
-    flex: 1,
-    fontSize: Typography.caption.fontSize,
-  },
-  row: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: Spacing.one,
-    justifyContent: 'space-between',
-  },
-  snapshot: {
-    borderColor: Colors.dark.borderSubtle,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    flex: 1,
-    gap: Spacing.one,
-    minWidth: 0,
-    padding: Spacing.two,
-  },
-  snapshotTitle: {
-    color: Colors.dark.textPrimary,
-    fontSize: Typography.body.fontSize,
-    fontWeight: '700',
-  },
-  value: {
-    color: Colors.dark.textPrimary,
-    flex: 1,
-    fontSize: Typography.caption.fontSize,
-    textAlign: 'right',
-  },
-});
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
@@ -152,13 +123,44 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingTop: Spacing.two,
     },
     explanationBlock: { gap: Spacing.one },
+    label: {
+      color: colors.textSecondary,
+      flex: 1,
+      fontSize: Typography.caption.fontSize,
+    },
+    row: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: Spacing.one,
+      justifyContent: 'space-between',
+    },
     sectionLabel: {
       color: colors.textPrimary,
       fontSize: Typography.caption.fontSize,
       fontWeight: '700',
     },
+    snapshot: {
+      borderColor: colors.borderSubtle,
+      borderRadius: 12,
+      borderWidth: StyleSheet.hairlineWidth,
+      flex: 1,
+      gap: Spacing.one,
+      minWidth: 0,
+      padding: Spacing.two,
+    },
     snapshotGrid: {
       flexDirection: 'row',
       gap: Spacing.two,
+    },
+    snapshotTitle: {
+      color: colors.textPrimary,
+      fontSize: Typography.body.fontSize,
+      fontWeight: '700',
+    },
+    value: {
+      color: colors.textPrimary,
+      flex: 1,
+      fontSize: Typography.caption.fontSize,
+      textAlign: 'right',
     },
   });
