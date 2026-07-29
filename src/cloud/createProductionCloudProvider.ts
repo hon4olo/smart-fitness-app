@@ -133,26 +133,60 @@ const normalizeOperations = (
     .map((record) => toRemoteSyncOperation(record, fallbackRevision, fallbackCreatedAt))
     .filter((operation): operation is SyncOperation => Boolean(operation));
 
+const normalizeConflictToken = (value: unknown): string =>
+  typeof value === 'string' ? value.trim().toLowerCase().replace(/[^a-z]/g, '') : '';
+
+const isServerWinsConflict = (value: unknown): value is ConflictRecord => {
+  if (!isRecord(value)) return false;
+  const status = normalizeConflictToken(value.status);
+  const strategy = normalizeConflictToken(value.resolutionStrategy);
+  return status === 'pending' && (strategy === 'serverwins' || strategy === 'remotewins');
+};
+
+const normalizeConflictKey = (entityType: unknown, entityId: unknown): string | null =>
+  typeof entityType === 'string' &&
+  entityType.trim() &&
+  typeof entityId === 'string' &&
+  entityId.trim()
+    ? `${entityType.trim()}:${entityId.trim()}`
+    : null;
+
+const unresolvedConflictCount = (conflicts: unknown[] | undefined): number =>
+  (conflicts ?? []).filter((conflict) => !isServerWinsConflict(conflict)).length;
+
 const toPushResult = (response: SyncPushResponse, timestamp: string): CloudPushResult => {
   const revision = response.revision ?? 0;
+  const conflicts = Array.isArray(response.conflicts) ? response.conflicts : [];
+  const serverWinsConflictKeys = new Set(
+    conflicts
+      .filter(isServerWinsConflict)
+      .map((conflict) => normalizeConflictKey(conflict.entityType, conflict.entityId))
+      .filter((key): key is string => Boolean(key)),
+  );
   const appliedOperations = normalizeOperations(
-    (response.appliedOperations ?? []).filter(
-      (operation) => isRecord(operation) && operation.status === 'applied',
-    ),
+    (response.appliedOperations ?? []).filter((operation) => {
+      if (!isRecord(operation)) return false;
+      if (operation.status === 'applied') return true;
+      if (operation.status !== 'conflict') return false;
+      return serverWinsConflictKeys.has(
+        normalizeConflictKey(operation.entityType, operation.entityId) ?? '',
+      );
+    }),
     revision,
     response.serverTimestamp ?? timestamp,
   );
+  const unresolvedConflicts = unresolvedConflictCount(conflicts);
 
   return {
-    status: response.status ?? (response.conflicts?.length ? 'conflict' : 'idle'),
+    status: response.status ?? (unresolvedConflicts > 0 ? 'conflict' : 'idle'),
     pendingOperations: response.pendingOperations ?? 0,
-    conflictCount: response.conflictCount ?? response.conflicts?.length ?? 0,
+    conflictCount: response.conflictCount ?? unresolvedConflicts,
     lastSyncedAt: response.serverTimestamp,
     ...(response.revision === undefined ? {} : { revision: response.revision }),
     ...(response.serverTimestamp ? { serverTimestamp: response.serverTimestamp } : {}),
     ...(appliedOperations.length ? { appliedOperations } : {}),
     ...(Array.isArray(response.conflicts)
-      ? { conflicts: response.conflicts as ConflictRecord[] }
+      ? { conflicts: conflicts as ConflictRecord[] }
       : {}),
     ...(Array.isArray(response.duplicateIdempotencyKeys)
       ? {
@@ -186,13 +220,16 @@ const toPullResult = (response: SyncPullResponse, timestamp: string): CloudPullR
   const unsupportedEntityCount =
     changedCandidates.length + deleted.length - changedOperations.length - deletedOperations.length;
 
+  const conflicts = Array.isArray(response.conflicts) ? response.conflicts : [];
+  const unresolvedConflicts = unresolvedConflictCount(conflicts);
+
   return {
     id: `pull-${response.serverTimestamp ?? timestamp}`,
     operations: [...changedOperations, ...deletedOperations],
     createdAt: response.serverTimestamp ?? timestamp,
-    status: response.status ?? 'idle',
+    status: response.status ?? (unresolvedConflicts > 0 ? 'conflict' : 'idle'),
     pendingOperations: response.pendingOperations ?? 0,
-    conflictCount: response.conflictCount ?? response.conflicts?.length ?? 0,
+    conflictCount: response.conflictCount ?? unresolvedConflicts,
     lastSyncedAt: response.serverTimestamp,
     revision: serverRevision,
     serverRevision,
@@ -200,7 +237,7 @@ const toPullResult = (response: SyncPullResponse, timestamp: string): CloudPullR
     ...(changed.length ? { changedEntities: changed } : {}),
     ...(deleted.length ? { deletedEntities: deleted } : {}),
     ...(Array.isArray(response.conflicts)
-      ? { conflicts: response.conflicts as ConflictRecord[] }
+      ? { conflicts: conflicts as ConflictRecord[] }
       : {}),
     metadata: {
       ...(response.metadata ?? {}),

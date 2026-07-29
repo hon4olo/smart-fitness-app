@@ -21,7 +21,7 @@ describe('Settings account and security placement', () => {
   it('records pluralization and Settings progress in the focused phase file', () => {
     const roadmap = readSource('docs/roadmap/localization-settings.md');
 
-    expect(roadmap).toContain('Intl.PluralRules');
+    expect(roadmap).toContain('deterministic English/Russian pluralization helpers');
     expect(roadmap).toContain('Account & Security is surfaced inside the dedicated Settings');
   });
 });

@@ -112,7 +112,7 @@ Completed:
 - `cm/in` for profile height and body-measurement entry/analytics;
 - `kcal/kJ` across Nutrition summary, search, favorites, recent foods, saved meals, portion editor, Add Food summary, and custom-food input;
 - locale-aware weight/length/energy formatter API in UnitPreferencesProvider;
-- `Intl.PluralRules`-backed English/Russian pluralization helpers with one/few/many/other support and count interpolation.
+- deterministic English/Russian pluralization helpers with one/few/many/other support and count interpolation.
 
 Relevant mobile PRs:
 
