@@ -133,14 +133,21 @@ describe('product simplification 2.0', () => {
 
   test('tab bar is compact and conventional', () => {
     const source = readSource('src/app/(tabs)/_layout.tsx');
+    const tabBar = readSource('src/components/navigation/LiquidGlassTabBar.tsx');
+
     expect(source).toContain('Tabs');
     expect(source).not.toContain('NativeTabs');
-    expect(source).toContain('tabBarHeight');
-    expect(source).toContain('borderTopWidth: 0.5');
-    expect(source).toContain('paddingBottom: Math.max(insets.bottom, 6)');
-    expect(source).not.toContain('capsule');
+    expect(source).toContain('tabBar={(props) => <LiquidGlassTabBar {...props} />}');
+    expect(source).toContain('headerShown: false');
+    expect(source).toContain('tabBarHideOnKeyboard: true');
     expect(source).toContain("title: t('tabs.coach')");
     expect(source).toContain('name="profile" options={{ href: null }}');
+    expect(tabBar).toContain("import type { BottomTabBarProps } from 'expo-router/js-tabs';");
+    expect(tabBar).toContain('BlurView');
+    expect(tabBar).toContain('Canvas');
+    expect(tabBar).toContain('usePathInterpolation');
+    expect(tabBar).toContain("selectionAsync()");
+    expect(tabBar).toContain("impactAsync(Haptics.ImpactFeedbackStyle.Light)");
   });
 
   test('theme tokens remain valid', () => {
