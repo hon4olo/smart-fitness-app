@@ -8,6 +8,7 @@ import type {
   CoachAppliedEntityRevision,
   CoachSourceRevision,
 } from '@/api/coach/applicationProvenance';
+import type { NutritionAppliedRationaleCode } from '@/api/coach/nutritionAppliedChangeSummary';
 import type { SupportedLocale } from '@/localization';
 
 const DOMAIN_COPY: Record<SupportedLocale, Record<CoachDomain, string>> = {
@@ -28,6 +29,32 @@ const ENTITY_COPY: Record<
   ru: { nutrition_target: 'Цель питания', workout_session: 'Тренировочная сессия', workout_template: 'Шаблон тренировки' },
 };
 
+const RATIONALE_COPY: Record<
+  SupportedLocale,
+  Record<NutritionAppliedRationaleCode, string>
+> = {
+  en: {
+    already_consistent: 'Targets were already consistent',
+    macro_calorie_mismatch: 'Calories and macros were inconsistent',
+    goal_alignment: 'Alignment with the selected goal',
+    energy_balance_trend: 'Recent energy-balance trend',
+    macro_distribution: 'Macro distribution',
+    adherence_pattern: 'Recent adherence pattern',
+    training_support: 'Training support',
+    recovery_support: 'Recovery support',
+  },
+  ru: {
+    already_consistent: 'Цели уже были согласованы',
+    macro_calorie_mismatch: 'Калории и макросы не совпадали',
+    goal_alignment: 'Соответствие выбранной цели',
+    energy_balance_trend: 'Последняя динамика энергетического баланса',
+    macro_distribution: 'Распределение макронутриентов',
+    adherence_pattern: 'Последняя динамика соблюдения плана',
+    training_support: 'Поддержка тренировок',
+    recovery_support: 'Поддержка восстановления',
+  },
+};
+
 export const getCoachHistoryCopy = (locale: SupportedLocale) => ({
   title: locale === 'ru' ? 'История Coach' : 'Coach history',
   subtitle: locale === 'ru' ? 'Неизменяемая история проверок и предложений' : 'Immutable review and proposal history',
@@ -39,6 +66,7 @@ export const getCoachHistoryCopy = (locale: SupportedLocale) => ({
   notice: locale === 'ru' ? 'Историю Coach не удалось загрузить.' : 'Coach history could not be loaded.',
   policies: locale === 'ru' ? 'Версии правил' : 'Policy versions',
   agents: locale === 'ru' ? 'Цепочка агентов' : 'Agent trail',
+  statusLabel: locale === 'ru' ? 'Статус' : 'Status',
   trust: locale === 'ru' ? 'Проверка источников' : 'Source verification',
   trustValidationFailed: locale === 'ru'
     ? 'Метаданные состояния источников не прошли проверку. Считайте предложение недоступным до повторного обновления.'
@@ -55,6 +83,19 @@ export const getCoachHistoryCopy = (locale: SupportedLocale) => ({
   fingerprintRecorded: locale === 'ru'
     ? 'Fingerprint исходных ревизий записан.'
     : 'Source revision fingerprint recorded.',
+  appliedChanges: locale === 'ru' ? 'Применённые изменения' : 'Applied changes',
+  appliedChangesUnavailable: locale === 'ru'
+    ? 'Сводка применённого изменения не прошла проверку и не отображается.'
+    : 'The applied-change summary failed validation and is not displayed.',
+  before: locale === 'ru' ? 'До' : 'Before',
+  after: locale === 'ru' ? 'После' : 'After',
+  calories: locale === 'ru' ? 'Энергия' : 'Energy',
+  protein: locale === 'ru' ? 'Белки' : 'Protein',
+  carbs: locale === 'ru' ? 'Углеводы' : 'Carbs',
+  fats: locale === 'ru' ? 'Жиры' : 'Fats',
+  rationale: locale === 'ru' ? 'Причины' : 'Rationale',
+  policyReferences: locale === 'ru' ? 'Использованные правила' : 'Policy references',
+  grams: locale === 'ru' ? 'г' : 'g',
   requested: locale === 'ru' ? 'Запрошено' : 'Requested',
   completed: locale === 'ru' ? 'Завершено' : 'Completed',
   requestType: locale === 'ru' ? 'Тип запроса' : 'Request type',
@@ -66,6 +107,7 @@ export const getCoachHistoryCopy = (locale: SupportedLocale) => ({
   domain: (domain: CoachDomain) => DOMAIN_COPY[locale][domain],
   status: (status: CoachRunStatus) => STATUS_COPY[locale][status],
   entity: (entityType: CoachSourceRevision['entityType'] | CoachAppliedEntityRevision['entityType']) => ENTITY_COPY[locale][entityType],
+  rationaleCode: (code: NutritionAppliedRationaleCode) => RATIONALE_COPY[locale][code],
   application: (key: string) => {
     if (key === 'nutrition') return locale === 'ru' ? 'Питание' : 'Nutrition';
     if (key === 'effectiveStrength') return locale === 'ru' ? 'Силовой план' : 'Strength plan';
