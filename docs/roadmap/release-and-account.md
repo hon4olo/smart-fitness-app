@@ -1,6 +1,6 @@
 # Release and account roadmap
 
-Updated: 2026-07-25
+Updated: 2026-07-30
 
 ## Release readiness and observability
 
@@ -10,18 +10,16 @@ Completed:
 
 - backend production config, migrations, compiled startup, and `/health` are blocking in CI;
 - rollout and rollback procedures are documented;
-- privacy-safe Sentry integration, source-map wiring, Expo Doctor, and root error recovery are complete in mobile PR #96;
+- root error recovery and privacy-safe local diagnostics remain available without a third-party crash-reporting SDK;
 - account deletion, password change, and session/device management are complete at source-code level.
 
 Remaining:
 
 - configure `BACKEND_REPOSITORY_TOKEN` and run the fixed-SHA cross-repository gate;
-- configure Sentry and EAS environment values;
-- select a new runtime/app version and create matching iOS and Android builds;
-- verify native and EAS Update source maps with sanitized test events;
+- the standalone iOS runtime 1.0.3 is working; create and validate the matching Android build;
 - run staged preview/internal-production rollout and rollback rehearsal;
 - run real-device smoke on small iPhone, standard iPhone, Android, offline restart, and a second device;
-- complete auth-refresh and API failure-category instrumentation without raw payloads.
+- complete privacy-safe local auth-refresh and API failure-category diagnostics without raw payloads.
 
 ## Account lifecycle
 
