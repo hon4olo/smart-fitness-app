@@ -4,13 +4,17 @@ on:
   push:
     branches:
       - agent/remove-sentry-and-align-roadmap
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && (github.event_name == 'push' || github.head_ref == 'agent/remove-sentry-and-align-roadmap')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
