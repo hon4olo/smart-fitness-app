@@ -137,6 +137,75 @@ describe('createProductionCloudProvider', () => {
     );
   });
 
+  it('treats backend server-wins push conflicts as acknowledged and not user-review conflicts', async () => {
+    const apiClient = {
+      async request() {
+        return {
+          revision: 9,
+          appliedOperations: [
+            {
+              id: 'database-operation-id',
+              idempotencyKey: 'queue:weightHistory:weight-1:update:unique',
+              entityType: 'weightHistory',
+              entityId: 'weight-1',
+              operationType: 'upsert',
+              status: 'conflict',
+              baseRevision: 3,
+              revision: 9,
+              payload: { id: 'weight-1', weight: 69.5 },
+              error: null,
+              appliedAt: '2026-07-22T09:00:01.000Z',
+              createdAt: '2026-07-22T09:00:01.000Z',
+              updatedAt: '2026-07-22T09:00:01.000Z',
+            },
+          ],
+          conflicts: [
+            {
+              id: 'conflict-1',
+              userId: 'user-1',
+              deviceId: 'device-1',
+              entityType: 'weightHistory',
+              entityId: 'weight-1',
+              conflictType: 'revision_mismatch',
+              status: 'pending',
+              baseRevision: 3,
+              localRevision: 3,
+              remoteRevision: 9,
+              localPayload: { id: 'weight-1', weight: 69.5 },
+              remotePayload: { id: 'weight-1', weight: 70 },
+              resolvedPayload: null,
+              resolutionStrategy: 'server_wins',
+              reason: 'Client revision does not match the server revision',
+              detectedAt: '2026-07-22T09:00:01.000Z',
+              resolvedAt: null,
+              revision: 9,
+            },
+          ],
+          duplicateIdempotencyKeys: [],
+          serverTimestamp: '2026-07-22T09:00:01.000Z',
+        };
+      },
+    } as unknown as ApiClient;
+    const provider = createProductionCloudProvider({
+      apiClient,
+      authService,
+      cursorStore: { async get() { return { serverRevision: 8 }; } } as never,
+      now: () => '2026-07-22T09:00:01.000Z',
+    });
+
+    const result = await provider.pushOperations(batch);
+
+    expect(result.status).toBe('idle');
+    expect(result.conflictCount).toBe(0);
+    expect(result.appliedOperations?.[0]?.id).toBe(
+      'queue:weightHistory:weight-1:update:unique',
+    );
+    expect(result.conflicts?.[0]).toMatchObject({
+      status: 'pending',
+      resolutionStrategy: 'server_wins',
+    });
+  });
+
   it('pushes fitness profile snapshots with their canonical entity type', async () => {
     const requests: ApiRequestOptions[] = [];
     const apiClient = {

@@ -9,12 +9,12 @@ const projectRoot = resolve(__dirname, '..');
 const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 
 describe('pluralization source contract', () => {
-  it('exports Intl.PluralRules-backed helpers from localization', () => {
+  it('exports deterministic helpers from localization without Intl.PluralRules', () => {
     const implementation = readSource('src/localization/pluralization.ts');
     const barrel = readSource('src/localization/index.ts');
 
-    expect(implementation).toContain('Intl.PluralRules');
-    expect(implementation).toContain("ru: 'ru-RU'");
+    expect(implementation).not.toContain('Intl.PluralRules');
+    expect(implementation).toContain('selectRussianCategory');
     expect(barrel).toContain('formatPlural');
     expect(barrel).toContain('selectPluralForm');
   });

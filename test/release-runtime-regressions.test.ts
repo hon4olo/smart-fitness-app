@@ -71,7 +71,7 @@ describe('release runtime regressions', () => {
     };
 
     expect(Object.values(eas.build).every((profile) => profile.developmentClient !== true)).toBe(true);
-    expect(eas.build.standalone).toMatchObject({
+    expect(eas.build.development).toMatchObject({
       channel: 'production',
       distribution: 'internal',
     });
