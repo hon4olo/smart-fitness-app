@@ -15,7 +15,7 @@ describe('navigation repair and UX cleanup 3.0', () => {
     const source = readSource('src/app/(tabs)/_layout.tsx');
 
     expect(count(source, '<Tabs.Screen')).toBe(9);
-    expect(count(source, '<TabIcon focused={focused} name=')).toBe(5);
+    expect(source).toContain('tabBar={(props) => <LiquidGlassTabBar {...props} />}');
     expect(count(source, 'href: null')).toBe(4);
     expect(source).toContain("title: t('tabs.home')");
     expect(source).toContain("title: t('tabs.workouts')");

@@ -1,4 +1,4 @@
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import {
   BlurMask,
   Canvas,
@@ -301,7 +301,7 @@ export function LiquidGlassTabBar({ state, descriptors, navigation }: BottomTabB
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'flex-end',
   },
   outerContainer: {
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     }),
   },
   tabRow: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'center',
   },
