@@ -131,6 +131,11 @@ The existing Combined Coach aggregates deterministic reviews. Full Combined Stra
 - Keep useful summary cards visible and collapse or move heavy sections when necessary.
 - Safety analytics use immutable completed-workout metadata and must exclude stale/missing reviews from fresh status calculations.
 - Typed body measurements are synchronized; malformed legacy values must fail closed rather than be guessed.
+- React list keys must describe item identity, not displayed text. Axis labels can legitimately repeat when a trend is flat, so use semantic keys such as maximum/midpoint/minimum.
+
+## Localization
+
+- Do not assume `Intl.PluralRules` is constructable in every Hermes release runtime. Plural formatting must retain a deterministic English/Russian fallback so a missing Intl constructor cannot crash an entire screen.
 
 ## Mobile layout
 
@@ -152,10 +157,11 @@ The existing Combined Coach aggregates deterministic reviews. Full Combined Stra
 ## Build and deployment
 
 - Release iPhone builds must not depend on Metro.
+- A profile with `developmentClient: true` intentionally opens the Expo development launcher. Device builds intended to behave as normal apps must use a standalone internal/preview/production profile with no development-client flag.
 - OTA-safe changes are compatible JS, TS, TSX, and assets-only changes.
 - Use `[ota]` only for OTA-safe changes.
 - Native module, Expo plugin, entitlement, Pod, runtime-version, or binary changes require a new native build.
-- Before enabling JavaScript that imports a new native module, bump or align the runtime, create a new native build, and publish only to the matching channel.
+- Before enabling JavaScript that imports a new native module, bump or align the runtime, create a new native build, and publish only to the matching channel. With the `appVersion` runtime policy, bump the app version whenever native dependencies change.
 - Expo native modules must remain on the same SDK patch set. Dyld symbol failures usually indicate ABI drift; run `npx expo install --fix`, `npx expo-doctor`, and regenerate native projects/pods before rebuilding.
 - A merge to `main` is not an OTA or device deployment. Never claim installation unless publishing/building actually occurred.
 - The full mobile regression suite currently must become blocking before green CI can be treated as complete release validation.
