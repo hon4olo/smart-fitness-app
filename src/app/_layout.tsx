@@ -10,16 +10,10 @@ import { useEffect, useMemo } from 'react';
 
 import { AppProvider } from '@/context/AppContext';
 import { LocalizationProvider, useLocalization } from '@/localization';
-import { CrashReportContextBridge } from '@/observability/CrashReportContextBridge';
-import {
-  initializeCrashReporting,
-  wrapRootComponent,
-} from '@/observability/crashReporting';
 import { RootErrorFallback } from '@/observability/RootErrorFallback';
 import { AppThemeProvider, useAppTheme } from '@/theme/AppThemeProvider';
 import { UnitPreferencesProvider } from '@/units';
 
-initializeCrashReporting();
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return <RootErrorFallback error={error} retry={retry} />;
@@ -60,7 +54,6 @@ function RootNavigator() {
   return (
     <ThemeProvider value={navigationTheme}>
       <AppProvider>
-        <CrashReportContextBridge />
         <StatusBar style={resolvedAppearance === 'dark' ? 'light' : 'dark'} />
         <Stack
           screenOptions={{
@@ -104,4 +97,4 @@ function RootLayout() {
   );
 }
 
-export default wrapRootComponent(RootLayout);
+export default RootLayout;

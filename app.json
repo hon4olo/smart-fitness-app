@@ -32,7 +32,6 @@
       "expo-router",
       "expo-image",
       "expo-secure-store",
-      "@sentry/react-native/expo",
       [
         "expo-camera",
         {

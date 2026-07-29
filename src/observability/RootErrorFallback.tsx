@@ -1,5 +1,5 @@
 import * as Updates from 'expo-updates';
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,30 +8,20 @@ import {
   View,
 } from 'react-native';
 
-import { captureFatalError, restartApplicationAsync } from './crashReporting';
-import { createSupportIdentifier } from './crashReportingModel';
-
 type RootErrorFallbackProps = {
   error: Error;
   retry(): void;
 };
 
-export function RootErrorFallback({ error, retry }: RootErrorFallbackProps) {
+export function RootErrorFallback({ retry }: RootErrorFallbackProps) {
   const [restarting, setRestarting] = useState(false);
-  const supportId = useMemo(
-    () => createSupportIdentifier(error, Updates.updateId),
-    [error],
-  );
-
-  useEffect(() => {
-    captureFatalError(error);
-  }, [error]);
 
   const restart = async () => {
     if (restarting) return;
     setRestarting(true);
-    const restarted = await restartApplicationAsync();
-    if (!restarted) {
+    try {
+      await Updates.reloadAsync();
+    } catch {
       setRestarting(false);
       retry();
     }
@@ -45,10 +35,6 @@ export function RootErrorFallback({ error, retry }: RootErrorFallbackProps) {
         <Text selectable style={styles.body}>
           Your saved data has not been intentionally removed. Try reopening this screen or restart the app.
         </Text>
-        <View style={styles.supportBox}>
-          <Text selectable style={styles.supportLabel}>Support code</Text>
-          <Text selectable style={styles.supportValue}>{supportId}</Text>
-        </View>
         <Pressable
           accessibilityRole="button"
           disabled={restarting}
@@ -108,27 +94,8 @@ const styles = StyleSheet.create({
     color: '#B0B0B5',
     fontSize: 16,
     lineHeight: 24,
-    marginTop: 12,
-  },
-  supportBox: {
-    backgroundColor: '#1C1C1E',
-    borderRadius: 14,
     marginBottom: 20,
-    marginTop: 20,
-    padding: 14,
-  },
-  supportLabel: {
-    color: '#8E8E93',
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  supportValue: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '700',
-    letterSpacing: 0.8,
+    marginTop: 12,
   },
   primaryButton: {
     alignItems: 'center',
