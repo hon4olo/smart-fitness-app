@@ -189,11 +189,6 @@ for (const file of [
   remove(file);
 }
 
-let ota = read('.github/workflows/eas-update.yml')
-  .replace("      SENTRY_DISABLE_AUTO_UPLOAD: 'true'\n", '')
-  .replace("      EXPECTED_RUNTIME_VERSION: '1.0.2'", "      EXPECTED_RUNTIME_VERSION: '1.0.3'");
-write('.github/workflows/eas-update.yml', ota);
-
 let roadmap = read('ROADMAP_PROGRESS.md')
   .replace('- Privacy-safe crash-reporting source foundation complete.\n', '')
   .replace(
