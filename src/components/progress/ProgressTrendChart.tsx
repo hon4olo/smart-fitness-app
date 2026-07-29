@@ -42,7 +42,11 @@ export const ProgressTrendChart = memo(function ProgressTrendChart({
     const midpoint = axisMinimum + axisRange / 2;
 
     return {
-      axisLabels: [maxLabel, midpoint.toFixed(1), minLabel],
+      axisLabels: [
+        { key: 'maximum', value: maxLabel },
+        { key: 'midpoint', value: midpoint.toFixed(1) },
+        { key: 'minimum', value: minLabel },
+      ],
       bars: points.map((point) => ({
         ...point,
         height: Math.max(
@@ -89,9 +93,9 @@ export const ProgressTrendChart = memo(function ProgressTrendChart({
           </View>
         </View>
         <View style={styles.axis}>
-          {chartMetrics.axisLabels.map((label) => (
-            <Text key={label} numberOfLines={1} style={styles.axisLabel}>
-              {label}
+          {chartMetrics.axisLabels.map((axisLabel) => (
+            <Text key={axisLabel.key} numberOfLines={1} style={styles.axisLabel}>
+              {axisLabel.value}
             </Text>
           ))}
         </View>
