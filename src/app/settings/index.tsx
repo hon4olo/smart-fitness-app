@@ -29,6 +29,9 @@ import {
 
 type OtaValueSource = Record<string, unknown>;
 
+const supportDiagnosticsEnabled =
+  __DEV__ || process.env.EXPO_PUBLIC_SUPPORT_MODE?.trim().toLowerCase() === 'true';
+
 export default function SettingsScreen() {
   const router = useRouter();
   const app = useAppContext();
@@ -205,30 +208,32 @@ export default function SettingsScreen() {
           <AboutSettingsCard />
         </SettingsSection>
 
-        <View style={styles.section}>
-          <View style={styles.developerHeader}>
-            <View style={styles.developerCopy}>
-              <Text style={styles.sectionTitle}>{t('settings.developerTools')}</Text>
-              <Text style={styles.footer}>{t('settings.developerToolsDescription')}</Text>
-            </View>
-            <SecondaryButton
-              label={developerExpanded ? t('common.hide') : t('common.show')}
-              onPress={() => setDeveloperExpanded((current) => !current)}
-            />
-          </View>
-          {developerExpanded ? (
-            <View style={styles.developerStack}>
-              <ProfileActionsCard onResetOnboarding={handleResetOnboarding} />
-              <ProfileRuntimeInfoCard
-                channel={otaChannel}
-                createdAt={otaCreatedAt}
-                onCheckForOtaUpdate={handleCheckForOtaUpdate}
-                runtimeVersion={otaRuntimeVersion}
-                updateId={otaUpdateId}
+        {supportDiagnosticsEnabled ? (
+          <View style={styles.section}>
+            <View style={styles.developerHeader}>
+              <View style={styles.developerCopy}>
+                <Text style={styles.sectionTitle}>{t('settings.developerTools')}</Text>
+                <Text style={styles.footer}>{t('settings.developerToolsDescription')}</Text>
+              </View>
+              <SecondaryButton
+                label={developerExpanded ? t('common.hide') : t('common.show')}
+                onPress={() => setDeveloperExpanded((current) => !current)}
               />
             </View>
-          ) : null}
-        </View>
+            {developerExpanded ? (
+              <View style={styles.developerStack}>
+                <ProfileActionsCard onResetOnboarding={handleResetOnboarding} />
+                <ProfileRuntimeInfoCard
+                  channel={otaChannel}
+                  createdAt={otaCreatedAt}
+                  onCheckForOtaUpdate={handleCheckForOtaUpdate}
+                  runtimeVersion={otaRuntimeVersion}
+                  updateId={otaUpdateId}
+                />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         <Text style={styles.footer}>{t('settings.aboutPreferences')}</Text>
       </View>
