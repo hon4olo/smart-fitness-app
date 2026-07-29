@@ -197,6 +197,10 @@ write('.github/workflows/eas-update.yml', ota);
 let roadmap = read('ROADMAP_PROGRESS.md')
   .replace('- Privacy-safe crash-reporting source foundation complete.\n', '')
   .replace(
+    '- release gate, staging, native builds, OTA lanes, Sentry, and device validation;\n',
+    '- release gate, staging, native builds, OTA lanes, and device validation;\n',
+  )
+  .replace(
     '4. Configure Sentry/EAS values, select a compatible runtime, and verify source maps on preview devices.\n',
     '4. Complete the remaining release-device and offline-restart matrix on the working standalone runtime.\n',
   );
@@ -220,8 +224,10 @@ let release = read('docs/roadmap/release-and-account.md')
   );
 write('docs/roadmap/release-and-account.md', release);
 
-const quality = read('docs/roadmap/data-quality-and-scale.md').replace(
-  'and Sentry runtime stability;',
-  'and standalone runtime stability;',
-);
+const quality = read('docs/roadmap/data-quality-and-scale.md')
+  .replace(
+    '- local Xcode source-map upload was disabled with the Scheme-only `SENTRY_DISABLE_AUTO_UPLOAD=true` setting, without adding production Sentry credentials or disabling the SDK in application code.\n',
+    '',
+  )
+  .replace('and Sentry runtime stability;', 'and standalone runtime stability;');
 write('docs/roadmap/data-quality-and-scale.md', quality);
