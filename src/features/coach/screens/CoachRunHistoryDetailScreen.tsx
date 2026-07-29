@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { createCoachApi, type CoachRunEnvelope } from '@/api/coach';
 import { parseCoachApplicationProvenance } from '@/api/coach/applicationProvenance';
+import { parseCoachNutritionAppliedChanges } from '@/api/coach/nutritionAppliedChangeSummary';
 import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
@@ -13,6 +14,7 @@ import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { getCoachHistoryCopy } from '../coachHistoryCopy';
 import { CoachRunTrustCard } from '../components/CoachRunTrustCard';
+import { NutritionAppliedChangeCard } from '../components/NutritionAppliedChangeCard';
 
 export default function CoachRunHistoryDetailScreen() {
   const params = useLocalSearchParams<{ runId?: string }>();
@@ -42,6 +44,18 @@ export default function CoachRunHistoryDetailScreen() {
       return {
         invalid: false,
         items: parseCoachApplicationProvenance(run.run.result),
+      };
+    } catch {
+      return { invalid: true, items: [] };
+    }
+  }, [run]);
+
+  const nutritionChangeState = useMemo(() => {
+    if (!run) return { invalid: false, items: [] };
+    try {
+      return {
+        invalid: false,
+        items: parseCoachNutritionAppliedChanges(run.run.result),
       };
     } catch {
       return { invalid: true, items: [] };
@@ -111,7 +125,7 @@ export default function CoachRunHistoryDetailScreen() {
               <AppCard>
                 <Text style={styles.cardTitle}>{copy.domain(run.run.domain)}</Text>
                 <Row label={copy.requestType} value={run.run.requestType.replaceAll('_', ' ')} />
-                <Row label="Status" value={copy.status(run.run.status)} />
+                <Row label={copy.statusLabel} value={copy.status(run.run.status)} />
                 <Row
                   label={copy.requested}
                   value={formatDate(run.run.requestedAt, { dateStyle: 'medium', timeStyle: 'short' })}
@@ -125,6 +139,11 @@ export default function CoachRunHistoryDetailScreen() {
               </AppCard>
 
               <CoachRunTrustCard run={run} locale={locale} />
+
+              <NutritionAppliedChangeCard
+                changes={nutritionChangeState.items}
+                invalid={nutritionChangeState.invalid}
+              />
 
               {provenanceState.invalid || provenanceState.items.length > 0 ? (
                 <AppCard>
@@ -175,7 +194,7 @@ export default function CoachRunHistoryDetailScreen() {
                   run.agentRuns.map((agent) => (
                     <View key={agent.id} style={styles.agentBlock}>
                       <Text style={styles.agentName}>{agent.sequence}. {agent.agentName}</Text>
-                      <Row label="Status" value={copy.status(agent.status)} />
+                      <Row label={copy.statusLabel} value={copy.status(agent.status)} />
                       {agent.policyVersion ? <Row label={copy.policies} value={agent.policyVersion} /> : null}
                     </View>
                   ))
