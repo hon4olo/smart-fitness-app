@@ -2,7 +2,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Brain, Dumbbell, Home, TrendingUp, Utensils, type LucideIcon } from 'lucide-react-native';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -54,7 +54,9 @@ const TabButton = memo(function TabButton({
   const pressScale = useSharedValue(1);
   const activeProgress = useSharedValue(isActive ? 1 : 0);
 
-  activeProgress.value = withSpring(isActive ? 1 : 0, ACTIVE_SPRING);
+  useEffect(() => {
+    activeProgress.value = withSpring(isActive ? 1 : 0, ACTIVE_SPRING);
+  }, [activeProgress, isActive]);
 
   const animatedButtonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pressScale.value }],
@@ -82,7 +84,7 @@ const TabButton = memo(function TabButton({
     <AnimatedPressable
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
-      accessibilityState={isActive ? { selected: true } : { selected: false }}
+      accessibilityState={{ selected: isActive }}
       onLongPress={onLongPress}
       onPress={handlePress}
       onPressIn={handlePressIn}
@@ -90,11 +92,7 @@ const TabButton = memo(function TabButton({
       style={[styles.tabItem, animatedButtonStyle]}
       testID={testID}>
       <Animated.View pointerEvents="none" style={[styles.activePill, animatedPillStyle]} />
-      <Icon
-        color={isActive ? '#FFFFFF' : '#8F8F98'}
-        size={24}
-        strokeWidth={2}
-      />
+      <Icon color={isActive ? '#FFFFFF' : '#8F8F98'} size={24} strokeWidth={2} />
     </AnimatedPressable>
   );
 });
