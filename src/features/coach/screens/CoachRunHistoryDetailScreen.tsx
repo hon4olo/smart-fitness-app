@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { createCoachApi, type CoachRunEnvelope } from '@/api/coach';
+import { parseCoachAppliedChanges } from '@/api/coach/appliedChangeSummary';
 import { parseCoachApplicationProvenance } from '@/api/coach/applicationProvenance';
 import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
@@ -12,6 +13,7 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { getCoachHistoryCopy } from '../coachHistoryCopy';
+import { CoachAppliedChangeCard } from '../components/CoachAppliedChangeCard';
 import { CoachRunTrustCard } from '../components/CoachRunTrustCard';
 
 export default function CoachRunHistoryDetailScreen() {
@@ -42,6 +44,18 @@ export default function CoachRunHistoryDetailScreen() {
       return {
         invalid: false,
         items: parseCoachApplicationProvenance(run.run.result),
+      };
+    } catch {
+      return { invalid: true, items: [] };
+    }
+  }, [run]);
+
+  const appliedChangeState = useMemo(() => {
+    if (!run) return { invalid: false, items: [] };
+    try {
+      return {
+        invalid: false,
+        items: parseCoachAppliedChanges(run.run.result),
       };
     } catch {
       return { invalid: true, items: [] };
@@ -89,7 +103,10 @@ export default function CoachRunHistoryDetailScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.back()}
+          style={styles.backButton}>
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.headerCopy}>
@@ -97,7 +114,11 @@ export default function CoachRunHistoryDetailScreen() {
           <Text style={styles.subtitle}>{copy.immutable}</Text>
         </View>
       </View>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.eight }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + Spacing.eight },
+        ]}>
         <View style={styles.container}>
           {loading ? <Text style={styles.body}>{copy.loading}</Text> : null}
           {error ? (
@@ -110,21 +131,38 @@ export default function CoachRunHistoryDetailScreen() {
             <>
               <AppCard>
                 <Text style={styles.cardTitle}>{copy.domain(run.run.domain)}</Text>
-                <Row label={copy.requestType} value={run.run.requestType.replaceAll('_', ' ')} />
-                <Row label="Status" value={copy.status(run.run.status)} />
+                <Row
+                  label={copy.requestType}
+                  value={run.run.requestType.replaceAll('_', ' ')}
+                />
+                <Row
+                  label={copy.statusLabel}
+                  value={copy.status(run.run.status)}
+                />
                 <Row
                   label={copy.requested}
-                  value={formatDate(run.run.requestedAt, { dateStyle: 'medium', timeStyle: 'short' })}
+                  value={formatDate(run.run.requestedAt, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
                 />
                 {run.run.completedAt ? (
                   <Row
                     label={copy.completed}
-                    value={formatDate(run.run.completedAt, { dateStyle: 'medium', timeStyle: 'short' })}
+                    value={formatDate(run.run.completedAt, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
                   />
                 ) : null}
               </AppCard>
 
               <CoachRunTrustCard run={run} locale={locale} />
+
+              <CoachAppliedChangeCard
+                changes={appliedChangeState.items}
+                invalid={appliedChangeState.invalid}
+              />
 
               {provenanceState.invalid || provenanceState.items.length > 0 ? (
                 <AppCard>
@@ -135,9 +173,10 @@ export default function CoachRunHistoryDetailScreen() {
                     provenanceState.items.map((item) => (
                       <View
                         key={`${item.applicationKey}:${item.sourceFingerprint}`}
-                        style={styles.provenanceBlock}
-                      >
-                        <Text style={styles.agentName}>{copy.application(item.applicationKey)}</Text>
+                        style={styles.provenanceBlock}>
+                        <Text style={styles.agentName}>
+                          {copy.application(item.applicationKey)}
+                        </Text>
                         {item.sources.map((source) => (
                           <Row
                             key={`${source.entityType}:${source.entityId}`}
@@ -149,7 +188,9 @@ export default function CoachRunHistoryDetailScreen() {
                           label={copy.appliedRevision}
                           value={`${copy.entity(item.appliedEntity.entityType)} · ${copy.revision(item.appliedEntity.revision)}`}
                         />
-                        <Text style={styles.provenanceNote}>{copy.fingerprintRecorded}</Text>
+                        <Text style={styles.provenanceNote}>
+                          {copy.fingerprintRecorded}
+                        </Text>
                       </View>
                     ))
                   )}
@@ -174,9 +215,16 @@ export default function CoachRunHistoryDetailScreen() {
                 ) : (
                   run.agentRuns.map((agent) => (
                     <View key={agent.id} style={styles.agentBlock}>
-                      <Text style={styles.agentName}>{agent.sequence}. {agent.agentName}</Text>
-                      <Row label="Status" value={copy.status(agent.status)} />
-                      {agent.policyVersion ? <Row label={copy.policies} value={agent.policyVersion} /> : null}
+                      <Text style={styles.agentName}>
+                        {agent.sequence}. {agent.agentName}
+                      </Text>
+                      <Row
+                        label={copy.statusLabel}
+                        value={copy.status(agent.status)}
+                      />
+                      {agent.policyVersion ? (
+                        <Row label={copy.policies} value={agent.policyVersion} />
+                      ) : null}
                     </View>
                   ))
                 )}
@@ -199,25 +247,95 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const stylesStatic = StyleSheet.create({
-  label: { color: Colors.dark.textSecondary, flex: 1, fontSize: Typography.caption.fontSize },
-  row: { alignItems: 'flex-start', flexDirection: 'row', gap: Spacing.two, justifyContent: 'space-between' },
-  value: { color: Colors.dark.textPrimary, flex: 1, fontSize: Typography.caption.fontSize, textAlign: 'right' },
+  label: {
+    color: Colors.dark.textSecondary,
+    flex: 1,
+    fontSize: Typography.caption.fontSize,
+  },
+  row: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+  },
+  value: {
+    color: Colors.dark.textPrimary,
+    flex: 1,
+    fontSize: Typography.caption.fontSize,
+    textAlign: 'right',
+  },
 });
 
-const createStyles = (colors: typeof Colors.light) => StyleSheet.create({
-  agentBlock: { borderTopColor: colors.borderSubtle, borderTopWidth: StyleSheet.hairlineWidth, gap: Spacing.one, paddingTop: Spacing.two },
-  agentName: { color: colors.textPrimary, fontSize: Typography.body.fontSize, fontWeight: '700' },
-  backButton: { alignItems: 'center', borderColor: colors.borderSubtle, borderRadius: Radii.large, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
-  backLabel: { color: colors.textPrimary, fontSize: 32, lineHeight: 34 },
-  body: { color: colors.textSecondary, fontSize: Typography.body.fontSize, lineHeight: Typography.body.lineHeight },
-  cardTitle: { color: colors.textPrimary, fontSize: Typography.cardTitle.fontSize, fontWeight: Typography.cardTitle.fontWeight },
-  container: { alignSelf: 'center', gap: Spacing.three, maxWidth: MaxContentWidth, width: '100%' },
-  content: { paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
-  header: { alignItems: 'center', flexDirection: 'row', gap: Spacing.three, paddingBottom: Spacing.two, paddingHorizontal: Spacing.three },
-  headerCopy: { flex: 1, gap: Spacing.one },
-  provenanceBlock: { borderTopColor: colors.borderSubtle, borderTopWidth: StyleSheet.hairlineWidth, gap: Spacing.one, paddingTop: Spacing.two },
-  provenanceNote: { color: colors.textSecondary, fontSize: Typography.caption.fontSize, lineHeight: Typography.caption.lineHeight },
-  screen: { backgroundColor: colors.background, flex: 1 },
-  subtitle: { color: colors.textSecondary, fontSize: Typography.caption.fontSize },
-  title: { color: colors.textPrimary, fontSize: Typography.screenTitle.fontSize, fontWeight: Typography.screenTitle.fontWeight },
-});
+const createStyles = (colors: typeof Colors.light) =>
+  StyleSheet.create({
+    agentBlock: {
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      gap: Spacing.one,
+      paddingTop: Spacing.two,
+    },
+    agentName: {
+      color: colors.textPrimary,
+      fontSize: Typography.body.fontSize,
+      fontWeight: '700',
+    },
+    backButton: {
+      alignItems: 'center',
+      borderColor: colors.borderSubtle,
+      borderRadius: Radii.large,
+      borderWidth: 1,
+      height: 44,
+      justifyContent: 'center',
+      width: 44,
+    },
+    backLabel: { color: colors.textPrimary, fontSize: 32, lineHeight: 34 },
+    body: {
+      color: colors.textSecondary,
+      fontSize: Typography.body.fontSize,
+      lineHeight: Typography.body.lineHeight,
+    },
+    cardTitle: {
+      color: colors.textPrimary,
+      fontSize: Typography.cardTitle.fontSize,
+      fontWeight: Typography.cardTitle.fontWeight,
+    },
+    container: {
+      alignSelf: 'center',
+      gap: Spacing.three,
+      maxWidth: MaxContentWidth,
+      width: '100%',
+    },
+    content: {
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.three,
+    },
+    header: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.three,
+      paddingBottom: Spacing.two,
+      paddingHorizontal: Spacing.three,
+    },
+    headerCopy: { flex: 1, gap: Spacing.one },
+    provenanceBlock: {
+      borderTopColor: colors.borderSubtle,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      gap: Spacing.one,
+      paddingTop: Spacing.two,
+    },
+    provenanceNote: {
+      color: colors.textSecondary,
+      fontSize: Typography.caption.fontSize,
+      lineHeight: Typography.caption.lineHeight,
+    },
+    screen: { backgroundColor: colors.background, flex: 1 },
+    subtitle: {
+      color: colors.textSecondary,
+      fontSize: Typography.caption.fontSize,
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: Typography.screenTitle.fontSize,
+      fontWeight: Typography.screenTitle.fontWeight,
+    },
+  });
