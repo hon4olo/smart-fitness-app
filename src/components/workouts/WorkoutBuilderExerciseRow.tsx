@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import { getWorkoutBuilderCopy } from '@/localization/workoutBuilderCopy';
 
 import type { DraftWorkoutExercise } from './workout-builder-types';
 
@@ -14,9 +16,29 @@ type WorkoutBuilderExerciseRowProps = {
   onMove: (exerciseId: string, direction: -1 | 1) => void;
 };
 
-function MiniAction({ label, onPress }: { label: string; onPress: () => void }) {
+function MiniAction({
+  accessibilityLabel,
+  disabled = false,
+  label,
+  onPress,
+}: {
+  accessibilityLabel: string;
+  disabled?: boolean;
+  label: string;
+  onPress: () => void;
+}) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.miniAction, pressed && styles.pressed]}>
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.miniAction,
+        disabled && styles.disabled,
+        pressed && !disabled && styles.pressed,
+      ]}>
       <Text style={styles.miniActionLabel}>{label}</Text>
     </Pressable>
   );
@@ -31,18 +53,22 @@ export function WorkoutBuilderExerciseRow({
   onDuplicate,
   onMove,
 }: WorkoutBuilderExerciseRowProps) {
+  const { locale } = useLocalization();
+  const copy = getWorkoutBuilderCopy(locale);
+
   return (
     <View style={styles.row}>
       <View style={styles.rowHeader}>
-        <View style={styles.handle}>
+        <View accessibilityElementsHidden style={styles.handle}>
           <Text style={styles.handleLabel}>≡</Text>
         </View>
 
         <View style={styles.headerContent}>
-          <Text style={styles.exerciseIndex}>Exercise</Text>
+          <Text style={styles.exerciseIndex}>{copy.exercise}</Text>
           <TextInput
+            accessibilityLabel={copy.exercise}
             onChangeText={(value) => onChange(exercise.id, { name: value })}
-            placeholder="Bench press"
+            placeholder={copy.exercisePlaceholder}
             placeholderTextColor={Colors.dark.textSecondary}
             style={styles.nameInput}
             value={exercise.name}
@@ -52,8 +78,9 @@ export function WorkoutBuilderExerciseRow({
 
       <View style={styles.metaRow}>
         <View style={styles.metaField}>
-          <Text style={styles.label}>Sets</Text>
+          <Text style={styles.label}>{copy.sets}</Text>
           <TextInput
+            accessibilityLabel={copy.sets}
             keyboardType="number-pad"
             onChangeText={(value) => onChange(exercise.id, { targetSets: value })}
             placeholder="3"
@@ -63,8 +90,9 @@ export function WorkoutBuilderExerciseRow({
           />
         </View>
         <View style={styles.metaField}>
-          <Text style={styles.label}>Reps</Text>
+          <Text style={styles.label}>{copy.reps}</Text>
           <TextInput
+            accessibilityLabel={copy.reps}
             keyboardType="number-pad"
             onChangeText={(value) => onChange(exercise.id, { targetReps: value })}
             placeholder="8"
@@ -74,8 +102,9 @@ export function WorkoutBuilderExerciseRow({
           />
         </View>
         <View style={styles.metaField}>
-          <Text style={styles.label}>Rest sec</Text>
+          <Text style={styles.label}>{copy.restSeconds}</Text>
           <TextInput
+            accessibilityLabel={copy.restSeconds}
             keyboardType="number-pad"
             onChangeText={(value) => onChange(exercise.id, { restSeconds: value })}
             placeholder="90"
@@ -87,11 +116,12 @@ export function WorkoutBuilderExerciseRow({
       </View>
 
       <View style={styles.metaField}>
-        <Text style={styles.label}>Notes</Text>
+        <Text style={styles.label}>{copy.notes}</Text>
         <TextInput
+          accessibilityLabel={copy.notes}
           multiline
           onChangeText={(value) => onChange(exercise.id, { notes: value })}
-          placeholder="Tempo, cues, or setup notes"
+          placeholder={copy.exerciseNotesPlaceholder}
           placeholderTextColor={Colors.dark.textSecondary}
           style={styles.notesInput}
           value={exercise.notes}
@@ -100,15 +130,37 @@ export function WorkoutBuilderExerciseRow({
 
       <View style={styles.actionsRow}>
         <View style={styles.actionCluster}>
-          <MiniAction label="↑" onPress={() => onMove(exercise.id, -1)} />
-          <MiniAction label="↓" onPress={() => onMove(exercise.id, 1)} />
-          <MiniAction label="Duplicate" onPress={() => onDuplicate(exercise.id)} />
+          <MiniAction
+            accessibilityLabel={copy.moveUp}
+            disabled={!canMoveUp}
+            label="↑"
+            onPress={() => onMove(exercise.id, -1)}
+          />
+          <MiniAction
+            accessibilityLabel={copy.moveDown}
+            disabled={!canMoveDown}
+            label="↓"
+            onPress={() => onMove(exercise.id, 1)}
+          />
+          <MiniAction
+            accessibilityLabel={copy.duplicate}
+            label={copy.duplicate}
+            onPress={() => onDuplicate(exercise.id)}
+          />
         </View>
-        <MiniAction label="Delete" onPress={() => onDelete(exercise.id)} />
+        <MiniAction
+          accessibilityLabel={copy.delete}
+          label={copy.delete}
+          onPress={() => onDelete(exercise.id)}
+        />
       </View>
 
       {!canMoveUp || !canMoveDown ? (
-        <Text style={styles.hint}>{!canMoveUp && !canMoveDown ? 'Single exercise only' : 'Reorder when needed'}</Text>
+        <Text style={styles.hint}>
+          {!canMoveUp && !canMoveDown
+            ? copy.singleExerciseOnly
+            : copy.reorderWhenNeeded}
+        </Text>
       ) : null}
     </View>
   );
@@ -124,6 +176,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  disabled: {
+    opacity: 0.4,
   },
   exerciseIndex: {
     color: Colors.dark.textSecondary,
@@ -234,8 +289,8 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
   },
   rowHeader: {
+    alignItems: 'flex-start',
     flexDirection: 'row',
     gap: Spacing.two,
-    alignItems: 'flex-start',
   },
 });
