@@ -145,28 +145,28 @@ Completed and merged in PR #226:
 Completed:
 
 - recursive `.tsx` audit for direct locale formatting, raw status fallback and humanized internal-code fallback;
-- removal of unreachable legacy presentation components;
+- recursive `.ts` helper/view-model audit for direct locale formatting and unsafe status fallbacks;
+- removal of unreachable and obsolete formatted presentation helpers;
 - bounded standalone Nutrition Target Proposal and Workout History list/detail presentation;
 - central selected-locale and selected-unit formatting on reachable presentation surfaces;
 - permanent source contracts preventing regression.
 
-The `.tsx` presentation boundary audit merged in PR #235. The `.ts` helper/view-model boundary audit is implemented in PR #236 and must merge only from an exact-green Mobile CI head.
+The `.tsx` presentation boundary audit merged in PR #235. The `.ts` helper/view-model boundary audit merged in PR #236. Presentation-level `.toFixed` auditing is implemented in PR #237 and must merge only from an exact-green Mobile CI head.
 
 ## Current next task
 
-### Repository-wide contextual literal audit
+### Repository-wide fixed-unit and accessibility audit
 
-After PR #236, audit remaining reachable source with context-sensitive checks that cannot be safely enforced by the broad formatting guards:
+After PR #237, audit remaining reachable source with context-sensitive checks for:
 
-- presentation-level `toFixed` while preserving calculation and serialization rounding;
 - fixed `kg`, `lb`, `cm`, `in`, `kcal` and `kJ` display copy outside central unit boundaries;
 - fixed English accessibility labels, hints and control text;
 - raw provider/backend/status/enum fallbacks not matched by the bounded status guards;
 - literal-English source tests that should assert semantic behavior.
 
-Use separate bounded PRs for real findings and do not create no-op changes.
+Preserve calculation and serialization rounding, routes, IDs, persisted canonical units, API and sync schemas, business logic, polling, idempotency, explicit confirmations and completed history.
 
-Must preserve routes, IDs, persisted canonical units, API and sync schemas, business logic, polling, idempotency, explicit confirmations and completed history.
+Use separate bounded PRs for real findings and do not create no-op changes.
 
 ## Product/API dependency
 

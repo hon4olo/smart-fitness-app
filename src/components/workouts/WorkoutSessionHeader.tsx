@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
 import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type WorkoutSessionHeaderProps = {
@@ -15,8 +16,10 @@ type WorkoutSessionHeaderProps = {
 
 export function WorkoutSessionHeader({ completedLabel, elapsedLabel, nextExerciseName, progressPercent, workoutTitle }: WorkoutSessionHeaderProps) {
   const { colors } = useAppTheme();
+  const { formatNumber } = useLocalization();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const clampedProgress = Math.max(0, Math.min(100, progressPercent));
+  const progressLabel = formatNumber(clampedProgress, { maximumFractionDigits: 0 });
 
   return (
     <AppCard style={styles.card}>
@@ -40,7 +43,7 @@ export function WorkoutSessionHeader({ completedLabel, elapsedLabel, nextExercis
         ) : null}
       </View>
 
-      <View accessibilityLabel={`${clampedProgress.toFixed(0)} percent complete`} style={styles.progressTrack}>
+      <View accessibilityLabel={`${progressLabel} percent complete`} style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${clampedProgress}%` }]} />
       </View>
     </AppCard>
