@@ -262,7 +262,10 @@ const parseStrength = (value: Record<string, unknown>): StrengthAppliedChangeSum
       `sets[${index}].rationaleCode`,
       40,
     );
-    if (!ADJUSTMENTS.has(adjustment) || !STRENGTH_SET_RATIONALE.has(rationaleCode)) {
+    if (
+      !ADJUSTMENTS.has(adjustment) ||
+      !STRENGTH_SET_RATIONALE.has(rationaleCode as StrengthSetRationaleCode)
+    ) {
       return fail(`sets[${index}] contract`);
     }
     return {
