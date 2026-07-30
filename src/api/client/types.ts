@@ -1,3 +1,5 @@
+import type { ApiErrorCode } from './errors';
+
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
 export type ApiRetryOptions = {
@@ -17,6 +19,23 @@ export type ApiRequestOptions<TBody = unknown> = {
   signal?: AbortSignal;
 };
 
+export type ApiDiagnosticCategory =
+  | 'auth'
+  | 'auth_refresh'
+  | 'sync'
+  | 'coach'
+  | 'food'
+  | 'profile'
+  | 'other';
+
+export type ApiRequestOutcome = {
+  category: ApiDiagnosticCategory;
+  method: HttpMethod;
+  outcome: 'success' | ApiErrorCode;
+  attempts: number;
+  durationMs: number;
+};
+
 export type ApiClientOptions = {
   baseUrl: string;
   fetchImpl?: typeof fetch;
@@ -24,6 +43,8 @@ export type ApiClientOptions = {
   defaultRetry?: Partial<ApiRetryOptions>;
   defaultHeaders?: Record<string, string>;
   requestIdFactory?: () => string;
+  now?: () => number;
+  onRequestOutcome?: (outcome: ApiRequestOutcome) => void;
 };
 
 export type ApiClient = {

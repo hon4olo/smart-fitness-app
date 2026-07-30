@@ -1,5 +1,12 @@
 import { ApiError } from './errors';
-import type { ApiClient, ApiClientOptions, ApiRequestOptions, ApiRetryOptions, HttpMethod } from './types';
+import type {
+  ApiClient,
+  ApiClientOptions,
+  ApiDiagnosticCategory,
+  ApiRequestOptions,
+  ApiRetryOptions,
+  HttpMethod,
+} from './types';
 
 const SAFE_RETRY_METHODS: HttpMethod[] = ['GET', 'HEAD', 'OPTIONS'];
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -12,16 +19,18 @@ const DEFAULT_RETRY: ApiRetryOptions = {
 const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isRetryableStatus = (status: number): boolean => status === 408 || status === 425 || status === 429 || status >= 500;
+const isRetryableStatus = (status: number): boolean =>
+  status === 408 || status === 425 || status === 429 || status >= 500;
 
-const sleep = (ms: number) => new Promise<void>((resolve) => {
-  if (ms <= 0) {
-    resolve();
-    return;
-  }
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => {
+    if (ms <= 0) {
+      resolve();
+      return;
+    }
 
-  setTimeout(resolve, ms);
-});
+    setTimeout(resolve, ms);
+  });
 
 const createRequestId = (): string => {
   const cryptoApi = globalThis.crypto as Crypto | undefined;
@@ -32,7 +41,11 @@ const createRequestId = (): string => {
   return `req-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
 };
 
-const buildUrl = (baseUrl: string, path: string, query?: ApiRequestOptions['query']): string => {
+const buildUrl = (
+  baseUrl: string,
+  path: string,
+  query?: ApiRequestOptions['query'],
+): string => {
   const normalizedBase = baseUrl.replace(/\/+$/, '');
   const normalizedPath = path.replace(/^\/+/, '');
   const baseWithPath = `${normalizedBase}/${normalizedPath}`;
@@ -45,6 +58,31 @@ const buildUrl = (baseUrl: string, path: string, query?: ApiRequestOptions['quer
     .join('&');
 
   return search ? `${baseWithPath}?${search}` : baseWithPath;
+};
+
+export const classifyApiDiagnosticCategory = (path: string): ApiDiagnosticCategory => {
+  const normalized = `/${path.split('?')[0].replace(/^\/+/, '').toLowerCase()}`;
+  if (normalized === '/v1/auth/refresh') return 'auth_refresh';
+  if (normalized.startsWith('/v1/auth/')) return 'auth';
+  if (normalized === '/v1/sync' || normalized.startsWith('/v1/sync/')) return 'sync';
+  if (normalized === '/v1/coach' || normalized.startsWith('/v1/coach/')) return 'coach';
+  if (
+    normalized === '/v1/food' ||
+    normalized.startsWith('/v1/food/') ||
+    normalized === '/v1/nutrition' ||
+    normalized.startsWith('/v1/nutrition/')
+  ) {
+    return 'food';
+  }
+  if (
+    normalized === '/v1/user' ||
+    normalized.startsWith('/v1/user/') ||
+    normalized === '/v1/profile' ||
+    normalized.startsWith('/v1/profile/')
+  ) {
+    return 'profile';
+  }
+  return 'other';
 };
 
 const inferMessage = (status: number, body: unknown): string => {
@@ -100,7 +138,10 @@ const inferErrorCode = (status: number): ApiError['code'] => {
   }
 };
 
-const normalizeRetry = (retry: ApiRequestOptions['retry'], defaults: Partial<ApiRetryOptions> | undefined): ApiRetryOptions | false => {
+const normalizeRetry = (
+  retry: ApiRequestOptions['retry'],
+  defaults: Partial<ApiRetryOptions> | undefined,
+): ApiRetryOptions | false => {
   if (retry === false) {
     return false;
   }
@@ -170,12 +211,20 @@ const mapNetworkError = (error: unknown): ApiError => {
   });
 };
 
-const isInstanceOfGlobal = (value: unknown, constructorName: 'FormData' | 'Blob' | 'URLSearchParams'): boolean => {
+const isInstanceOfGlobal = (
+  value: unknown,
+  constructorName: 'FormData' | 'Blob' | 'URLSearchParams',
+): boolean => {
   const constructorValue = globalThis[constructorName];
   return typeof constructorValue === 'function' && value instanceof constructorValue;
 };
 
-const createRequestInit = <TBody>(options: ApiRequestOptions<TBody>, requestId: string, timeoutMs: number, defaultHeaders: Record<string, string> | undefined) => {
+const createRequestInit = <TBody>(
+  options: ApiRequestOptions<TBody>,
+  requestId: string,
+  timeoutMs: number,
+  defaultHeaders: Record<string, string> | undefined,
+) => {
   const headers = new Headers({
     Accept: 'application/json',
     'x-request-id': requestId,
@@ -218,20 +267,34 @@ const createRequestInit = <TBody>(options: ApiRequestOptions<TBody>, requestId: 
 
   if (timeoutMs > 0) {
     timeoutHandle = setTimeout(() => {
-      const timeoutError = typeof DOMException !== 'undefined'
-        ? new DOMException('Request timed out', 'AbortError')
-        : Object.assign(new Error('Request timed out'), { name: 'AbortError' });
+      const timeoutError =
+        typeof DOMException !== 'undefined'
+          ? new DOMException('Request timed out', 'AbortError')
+          : Object.assign(new Error('Request timed out'), { name: 'AbortError' });
       controller.abort(timeoutError);
     }, timeoutMs);
   }
 
-  return { init: { method: options.method, headers, body, signal: controller.signal } as RequestInit, cleanup };
+  return {
+    init: {
+      method: options.method,
+      headers,
+      body,
+      signal: controller.signal,
+    } as RequestInit,
+    cleanup,
+  };
 };
 
 export const createApiClient = (options: ApiClientOptions): ApiClient => {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
+  const now = options.now ?? Date.now;
 
-  const request = async <TResponse, TBody = unknown>(requestOptions: ApiRequestOptions<TBody>): Promise<TResponse> => {
+  const request = async <TResponse, TBody = unknown>(
+    requestOptions: ApiRequestOptions<TBody>,
+  ): Promise<TResponse> => {
+    const startedAt = now();
+    const category = classifyApiDiagnosticCategory(requestOptions.path);
     const timeoutMs = requestOptions.timeoutMs ?? options.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS;
     const retryConfig = normalizeRetry(requestOptions.retry, options.defaultRetry);
     const safeMethod = SAFE_RETRY_METHODS.includes(requestOptions.method);
@@ -239,12 +302,33 @@ export const createApiClient = (options: ApiClientOptions): ApiClient => {
     const requestId = options.requestIdFactory?.() ?? createRequestId();
 
     let lastError: unknown;
+    let attemptsUsed = 0;
+
+    const report = (outcome: 'success' | ApiError['code']) => {
+      try {
+        options.onRequestOutcome?.({
+          category,
+          method: requestOptions.method,
+          outcome,
+          attempts: attemptsUsed,
+          durationMs: Math.max(0, now() - startedAt),
+        });
+      } catch {
+        // Diagnostics are fail-open and cannot affect the request contract.
+      }
+    };
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      attemptsUsed = attempt;
       let cleanup: () => void = () => undefined;
       try {
         const url = buildUrl(options.baseUrl, requestOptions.path, requestOptions.query);
-        const requestInit = createRequestInit(requestOptions, requestId, timeoutMs, options.defaultHeaders);
+        const requestInit = createRequestInit(
+          requestOptions,
+          requestId,
+          timeoutMs,
+          options.defaultHeaders,
+        );
         cleanup = requestInit.cleanup;
         const response = await fetchImpl(url, requestInit.init);
         const body = await parseResponseBody(response);
@@ -263,7 +347,9 @@ export const createApiClient = (options: ApiClientOptions): ApiClient => {
           if (attempt < maxAttempts && error.retryable) {
             lastError = error;
             cleanup();
-            const delay = retryConfig ? retryConfig.delayMs * retryConfig.factor ** (attempt - 1) : 0;
+            const delay = retryConfig
+              ? retryConfig.delayMs * retryConfig.factor ** (attempt - 1)
+              : 0;
             await sleep(delay);
             continue;
           }
@@ -272,30 +358,47 @@ export const createApiClient = (options: ApiClientOptions): ApiClient => {
         }
 
         cleanup();
+        report('success');
         return body as TResponse;
       } catch (error) {
         cleanup();
         const mappedError = error instanceof ApiError ? error : mapNetworkError(error);
         if (attempt < maxAttempts && mappedError.retryable && safeMethod) {
           lastError = mappedError;
-          const delay = retryConfig ? retryConfig.delayMs * retryConfig.factor ** (attempt - 1) : 0;
+          const delay = retryConfig
+            ? retryConfig.delayMs * retryConfig.factor ** (attempt - 1)
+            : 0;
           await sleep(delay);
           continue;
         }
 
+        report(mappedError.code);
         throw mappedError;
       }
     }
 
-    throw lastError instanceof Error ? lastError : new ApiError({ code: 'unknown', message: 'Request failed', retryable: false, cause: lastError });
+    const finalError =
+      lastError instanceof ApiError
+        ? lastError
+        : new ApiError({
+            code: 'unknown',
+            message: 'Request failed',
+            retryable: false,
+            cause: lastError,
+          });
+    report(finalError.code);
+    throw finalError;
   };
 
   return {
     request,
     get: (path, requestOptions) => request({ ...requestOptions, method: 'GET', path }),
-    post: (path, body, requestOptions) => request({ ...requestOptions, method: 'POST', path, body }),
-    put: (path, body, requestOptions) => request({ ...requestOptions, method: 'PUT', path, body }),
-    patch: (path, body, requestOptions) => request({ ...requestOptions, method: 'PATCH', path, body }),
+    post: (path, body, requestOptions) =>
+      request({ ...requestOptions, method: 'POST', path, body }),
+    put: (path, body, requestOptions) =>
+      request({ ...requestOptions, method: 'PUT', path, body }),
+    patch: (path, body, requestOptions) =>
+      request({ ...requestOptions, method: 'PATCH', path, body }),
     delete: (path, requestOptions) => request({ ...requestOptions, method: 'DELETE', path }),
   };
 };
