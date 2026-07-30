@@ -55,7 +55,7 @@ export default function SafetyRecoveryPreflightScreen() {
     isAuthenticated &&
     summary.reviewReady &&
     !syncBlocked;
-  const syncStatusLabel = copy.syncLabels[String(status)] ?? String(status);
+  const syncStatusLabel = copy.syncLabel(String(status));
   const formatTimestamp = (value: string | null) => {
     if (!value) return copy.notAvailable;
     const parsed = new Date(value);
