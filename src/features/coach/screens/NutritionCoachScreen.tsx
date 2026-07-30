@@ -27,6 +27,7 @@ import { buildNutritionStrategyViewModel } from '@/features/coach/nutritionStrat
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { getNutritionCoachCopy } from '@/localization/nutritionCoachCopy';
+import { getBoundedCoachRunStatusLabel } from '@/localization/statusPresentation';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { formatEnergyValue, useUnitPreferences } from '@/units';
 
@@ -239,7 +240,7 @@ export default function NutritionCoachScreen() {
   const strategyConfirmationSupported =
     capabilities?.nutrition.structuredStrategyConfirmation === true;
   const controlsBusy = Boolean(activeRunType) || confirmingStrategy;
-  const runStatus = run ? copy.runStatus[run.run.status] ?? run.run.status : '';
+  const runStatus = run ? getBoundedCoachRunStatusLabel(locale, run.run.status) : '';
 
   return (
     <View style={styles.screen}>
