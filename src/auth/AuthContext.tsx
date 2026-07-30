@@ -8,6 +8,8 @@ import type {
   AuthSession,
   AuthService,
   ChangePasswordInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
 } from './types';
 import { resolveAuthGateStatus, type AuthGateStatus } from './auth-ui';
 
@@ -24,6 +26,8 @@ export type AuthContextValue = {
   refresh(): Promise<AuthSession | null>;
   logout(): Promise<void>;
   changePassword(input: ChangePasswordInput): Promise<void>;
+  requestPasswordReset(input: ForgotPasswordInput): Promise<void>;
+  resetPassword(input: ResetPasswordInput): Promise<void>;
   deleteAccount(password: string): Promise<AccountDeletionResult>;
   fetchProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: AuthProfileUpdate): Promise<AuthProfile | null>;
@@ -139,6 +143,13 @@ export function AuthProvider({ children, service }: AuthProviderProps) {
       },
       changePassword: async (input) => {
         await service.changePassword(input);
+        setSession(null);
+        setProfile(null);
+        setError(null);
+      },
+      requestPasswordReset: (input) => service.requestPasswordReset(input),
+      resetPassword: async (input) => {
+        await service.resetPassword(input);
         setSession(null);
         setProfile(null);
         setError(null);
