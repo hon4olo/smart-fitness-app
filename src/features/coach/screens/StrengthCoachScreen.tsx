@@ -16,18 +16,17 @@ import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useLocalization } from '@/localization';
+import { getStrengthCoachCopy } from '@/localization/strengthCoachCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { WorkoutSession } from '@/types';
+import { useUnitPreferences, weightFromKg } from '@/units';
+
+import { StrengthCoachResultCard } from '../components/StrengthCoachResultCard';
 import { StrengthStrategyProposalView } from '../components/StrengthStrategyProposalView';
-import {
-  buildStrengthCoachViewModel,
-  type StrengthCoachMetricSummary,
-} from '../strengthCoachViewModel';
+import { buildStrengthCoachViewModel } from '../strengthCoachViewModel';
 import { buildStrengthStrategyViewModel } from '../strengthStrategyViewModel';
-import {
-  createStrengthCoachScreenStyles,
-  type StrengthCoachScreenStyles,
-} from './strengthCoachScreen.styles';
+import { createStrengthCoachScreenStyles } from './strengthCoachScreen.styles';
 
 const getCompletedSetCount = (session: WorkoutSession): number =>
   session.sets.filter((set) => set.completed !== false).length;
@@ -50,44 +49,6 @@ const createConfirmationKey = (runId: string): string =>
     .toString(16)
     .slice(2)}`;
 
-const formatSessionDate = (value: string): string => {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return 'Unknown date';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-};
-
-function MetricGrid({
-  metrics,
-  styles,
-}: {
-  metrics: StrengthCoachMetricSummary;
-  styles: StrengthCoachScreenStyles;
-}) {
-  const items = [
-    { label: 'Completed sets', value: String(metrics.completedSets) },
-    { label: 'Total reps', value: String(metrics.totalReps) },
-    { label: 'Tonnage', value: `${metrics.totalTonnage.toLocaleString()} kg` },
-    {
-      label: 'Average RPE',
-      value: metrics.averageActualRpe === null ? '—' : String(metrics.averageActualRpe),
-    },
-  ];
-
-  return (
-    <View style={styles.metricGrid}>
-      {items.map((item) => (
-        <View key={item.label} style={styles.metricCell}>
-          <Text style={styles.metricValue}>{item.value}</Text>
-          <Text style={styles.metricLabel}>{item.label}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 export default function StrengthCoachScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStrengthCoachScreenStyles(colors), [colors]);
@@ -95,8 +56,13 @@ export default function StrengthCoachScreen() {
   const { isRestoringState, workoutSessions } = useAppContext();
   const { syncNow } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
+  const { formatDate, formatNumber, locale } = useLocalization();
+  const { weight } = useUnitPreferences();
+  const copy = getStrengthCoachCopy(locale);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
+  const [capabilitiesLoading, setCapabilitiesLoading] = useState(false);
+  const [capabilitiesUnavailable, setCapabilitiesUnavailable] = useState(false);
   const [busyAction, setBusyAction] = useState<StrengthCoachRequestType | null>(null);
   const [confirmingStrategy, setConfirmingStrategy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,13 +106,16 @@ export default function StrengthCoachScreen() {
   );
 
   useEffect(() => {
-    let cancelled = false;
     if (!ready || !isAuthenticated) {
       setCapabilities(null);
-      return () => {
-        cancelled = true;
-      };
+      setCapabilitiesLoading(false);
+      setCapabilitiesUnavailable(false);
+      return;
     }
+
+    let cancelled = false;
+    setCapabilitiesLoading(true);
+    setCapabilitiesUnavailable(false);
 
     void coachApi
       .getCapabilities()
@@ -154,7 +123,12 @@ export default function StrengthCoachScreen() {
         if (!cancelled) setCapabilities(value);
       })
       .catch(() => {
-        if (!cancelled) setCapabilities(null);
+        if (cancelled) return;
+        setCapabilities(null);
+        setCapabilitiesUnavailable(true);
+      })
+      .finally(() => {
+        if (!cancelled) setCapabilitiesLoading(false);
       });
 
     return () => {
@@ -195,9 +169,11 @@ export default function StrengthCoachScreen() {
     } catch (requestError) {
       if (requestError instanceof Error && requestError.name === 'AbortError') return;
       setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Strength Coach could not complete the request.',
+        requestType === 'strength_strategy_proposal'
+          ? copy.strategyFailed
+          : requestType === 'next_workout_proposal'
+            ? copy.proposalFailed
+            : copy.reviewFailed,
       );
     } finally {
       if (abortControllerRef.current === abortController) {
@@ -225,12 +201,8 @@ export default function StrengthCoachScreen() {
       });
       setRun(confirmed);
       await syncNow();
-    } catch (confirmationError) {
-      setError(
-        confirmationError instanceof Error
-          ? confirmationError.message
-          : 'The Strength Strategy template could not be created.',
-      );
+    } catch {
+      setError(copy.confirmationFailed);
     } finally {
       setConfirmingStrategy(false);
     }
@@ -238,13 +210,22 @@ export default function StrengthCoachScreen() {
 
   const requestStrategyConfirmation = () => {
     if (!strategyViewModel || strategyViewModel.kind !== 'proposal') return;
+    const setCount = strategyViewModel.sets.length;
     Alert.alert(
-      'Create workout template?',
-      `Create a new ${strategyViewModel.strategy} template with ${strategyViewModel.sets.length} mapped set${strategyViewModel.sets.length === 1 ? '' : 's'} and ${strategyViewModel.proposedTonnage.toLocaleString()} kg proposed volume?\n\nThe completed source workout will not be changed.`,
+      copy.createTemplateTitle,
+      copy.createTemplateBody(
+        copy.strategyLabel(strategyViewModel.strategy),
+        setCount,
+        formatNumber(setCount, { maximumFractionDigits: 0 }),
+        formatNumber(weightFromKg(strategyViewModel.proposedTonnage, weight), {
+          maximumFractionDigits: 1,
+        }),
+        weight,
+      ),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: copy.cancel, style: 'cancel' },
         {
-          text: 'Create template',
+          text: copy.createTemplate,
           onPress: () => {
             void confirmStrategy();
           },
@@ -256,20 +237,46 @@ export default function StrengthCoachScreen() {
   const loading = !ready || isRestoringState;
   const completedSetCount = latestSession ? getCompletedSetCount(latestSession) : 0;
   const controlsBusy = Boolean(busyAction) || confirmingStrategy;
+  const runStatus = run ? copy.runStatus[run.run.status] ?? copy.resultUnavailableTitle : '';
+  const latestSessionDate = latestSession
+    ? Number.isFinite(new Date(latestSession.finishedAt).getTime())
+      ? formatDate(latestSession.finishedAt, { dateStyle: 'medium', timeStyle: 'short' })
+      : copy.unknownDate
+    : '';
+  const capabilityStatus = strengthStrategyAvailable
+    ? strengthConfirmationAvailable
+      ? copy.providerAndConfirmationAvailable
+      : copy.providerAvailable
+    : capabilitiesLoading
+      ? copy.checkingCapabilities
+      : capabilitiesUnavailable
+        ? copy.capabilityUnknown
+        : copy.providerDisabled;
+  const strategyResultCopy = strategyViewModel
+    ? strategyViewModel.kind === 'pending'
+      ? { title: copy.strategyInProgressTitle, message: copy.strategyInProgressBody }
+      : strategyViewModel.kind === 'failed'
+        ? { title: copy.resultUnavailableTitle, message: copy.resultUnavailableBody }
+        : strategyViewModel.kind === 'rejected'
+          ? copy.rejectionCopy(strategyViewModel.reason)
+          : strategyViewModel.kind === 'applied'
+            ? { title: copy.templateCreatedTitle, message: copy.templateCreatedBody }
+            : { title: copy.strategyPreviewTitle, message: copy.strategyPreviewBody }
+    : null;
 
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
-          accessibilityLabel="Back"
+          accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>Strength Coach</Text>
-          <Text style={styles.subtitle}>Deterministic and guarded preview</Text>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.subtitle}>{copy.subtitle}</Text>
         </View>
       </View>
 
@@ -282,162 +289,115 @@ export default function StrengthCoachScreen() {
         <View style={styles.container}>
           <AppCard>
             <View style={styles.badgeRow}>
-              <Text style={styles.previewBadge}>Preview</Text>
-              <Text style={styles.statusText}>
-                {strengthStrategyAvailable
-                  ? strengthConfirmationAvailable
-                    ? 'Structured Strength provider and confirmation available'
-                    : 'Structured Strength preview available'
-                  : 'Structured Strength provider disabled'}
-              </Text>
+              <Text style={styles.previewBadge}>{copy.preview}</Text>
+              <Text style={styles.statusText}>{capabilityStatus}</Text>
             </View>
-            <Text style={styles.cardTitle}>Validated training analysis</Text>
-            <Text style={styles.bodyText}>
-              This screen uses synchronized workout sets, deterministic metrics and hard guardrails.
-              A confirmed strategy creates a new template and never edits completed workout history.
-            </Text>
+            <Text style={styles.cardTitle}>{copy.validatedAnalysis}</Text>
+            <Text style={styles.bodyText}>{copy.validatedBody}</Text>
           </AppCard>
 
           {loading ? (
             <AppCard>
-              <Text style={styles.cardTitle}>Preparing account and training data…</Text>
+              <Text style={styles.cardTitle}>{copy.preparing}</Text>
             </AppCard>
           ) : !isAuthenticated ? (
             <AppCard>
-              <Text style={styles.cardTitle}>Sign in required</Text>
-              <Text style={styles.bodyText}>
-                Strength Coach reads only training data synchronized to your protected backend account.
-              </Text>
-              <PrimaryButton label="Sign in" onPress={() => router.push('/auth/sign-in')} />
+              <Text style={styles.cardTitle}>{copy.signInRequired}</Text>
+              <Text style={styles.bodyText}>{copy.signInBody}</Text>
+              <PrimaryButton label={copy.signIn} onPress={() => router.push('/auth/sign-in')} />
             </AppCard>
           ) : (
             <AppCard>
-              <Text style={styles.cardTitle}>Training context</Text>
+              <Text style={styles.cardTitle}>{copy.trainingContext}</Text>
               {latestSession ? (
                 <View style={styles.sessionSummary}>
                   <Text style={styles.sessionTitle}>{latestSession.workoutTitle}</Text>
-                  <Text style={styles.bodyText}>
-                    {formatSessionDate(latestSession.finishedAt)}
-                  </Text>
+                  <Text style={styles.bodyText}>{latestSessionDate}</Text>
                   <Text style={styles.metaText}>
-                    {completedSetCount} completed set{completedSetCount === 1 ? '' : 's'} selected
-                    as the primary session
+                    {copy.selectedPrimarySession(
+                      completedSetCount,
+                      formatNumber(completedSetCount, { maximumFractionDigits: 0 }),
+                    )}
                   </Text>
                 </View>
               ) : (
-                <Text style={styles.bodyText}>
-                  No completed local workout is available. Finish and synchronize a workout first.
-                </Text>
+                <Text style={styles.bodyText}>{copy.noCompletedWorkout}</Text>
               )}
 
               <PrimaryButton
                 disabled={!latestSession || controlsBusy}
-                label="Review latest workout"
+                label={copy.reviewLatestWorkout}
                 loading={busyAction === 'session_review'}
                 onPress={() => void startRun('session_review')}
               />
               <SecondaryButton
                 disabled={!latestSession || controlsBusy}
-                label="Propose next workout"
+                label={copy.proposeNextWorkout}
                 loading={busyAction === 'next_workout_proposal'}
                 onPress={() => void startRun('next_workout_proposal')}
               />
               {strengthStrategyAvailable ? (
                 <SecondaryButton
                   disabled={!latestSession || controlsBusy}
-                  label="Generate AI Strength Strategy"
+                  label={copy.generateStrategy}
                   loading={busyAction === 'strength_strategy_proposal'}
                   onPress={() => void startRun('strength_strategy_proposal')}
                 />
-              ) : null}
-              <Text style={styles.disclaimer}>
-                The deterministic proposal mirrors completed sets. The optional AI strategy must map
-                every source set exactly once and pass load, repetition, RPE and volume policies.
-              </Text>
+              ) : (
+                <Text style={styles.disclaimer}>
+                  {capabilitiesLoading
+                    ? copy.capabilityChecking
+                    : capabilitiesUnavailable
+                      ? copy.capabilityUnavailable
+                      : copy.capabilityDisabled}
+                </Text>
+              )}
+              <Text style={styles.disclaimer}>{copy.disclaimer}</Text>
             </AppCard>
           )}
 
           {error ? (
             <AppCard style={styles.errorCard}>
-              <Text style={styles.errorTitle}>Request error</Text>
+              <Text style={styles.errorTitle}>{copy.requestError}</Text>
               <Text style={styles.bodyText}>{error}</Text>
             </AppCard>
           ) : null}
 
           {viewModel ? (
-            <AppCard>
-              <View style={styles.resultHeader}>
-                <Text style={styles.cardTitle}>{viewModel.title}</Text>
-                <Text style={styles.resultStatus}>{run?.run.status.toUpperCase()}</Text>
-              </View>
-              <Text style={styles.bodyText}>{viewModel.message}</Text>
-
-              {viewModel.kind === 'review' || viewModel.kind === 'proposal' ? (
-                <MetricGrid metrics={viewModel.metrics} styles={styles} />
-              ) : null}
-
-              {viewModel.kind === 'proposal' ? (
-                <View style={styles.proposalList}>
-                  <View style={styles.guardrailRow}>
-                    <Text style={styles.metaText}>Guardrail</Text>
-                    <Text style={styles.guardrailValue}>{viewModel.guardrailStatus}</Text>
-                  </View>
-                  {viewModel.sets.map((set, index) => (
-                    <View key={`${set.sourceSetId}-${index}`} style={styles.proposalRow}>
-                      <View style={styles.proposalCopy}>
-                        <Text numberOfLines={1} style={styles.sessionTitle}>
-                          {set.exerciseName}
-                        </Text>
-                        <Text style={styles.metaText}>
-                          {set.weight} kg × {set.reps} · target RPE {set.targetRpe}
-                        </Text>
-                      </View>
-                      <Text style={styles.adjustmentLabel}>
-                        {set.adjustmentPercent > 0 ? '+' : ''}{set.adjustmentPercent}%
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              {viewModel.kind === 'rejected' || viewModel.kind === 'proposal'
-                ? viewModel.issues.length > 0
-                  ? (
-                      <View style={styles.issueList}>
-                        {viewModel.issues.map((issue, index) => (
-                          <Text key={`${issue}-${index}`} style={styles.issueText}>
-                            • {issue}
-                          </Text>
-                        ))}
-                      </View>
-                    )
-                  : null
-                : null}
-            </AppCard>
+            <StrengthCoachResultCard
+              copy={copy}
+              runStatus={runStatus}
+              styles={styles}
+              viewModel={viewModel}
+            />
           ) : null}
 
-          {strategyViewModel ? (
+          {strategyViewModel && strategyResultCopy ? (
             <AppCard>
               <View style={styles.resultHeader}>
-                <Text style={styles.cardTitle}>{strategyViewModel.title}</Text>
-                <Text style={styles.resultStatus}>{run?.run.status.toUpperCase()}</Text>
+                <Text style={styles.cardTitle}>{strategyResultCopy.title}</Text>
+                <Text style={styles.resultStatus}>{runStatus}</Text>
               </View>
-              <Text style={styles.bodyText}>{strategyViewModel.message}</Text>
+              <Text style={styles.bodyText}>{strategyResultCopy.message}</Text>
               {strategyViewModel.kind === 'proposal' || strategyViewModel.kind === 'applied' ? (
                 <StrengthStrategyProposalView
                   confirmationEnabled={strengthConfirmationAvailable}
                   confirming={confirmingStrategy}
+                  copy={copy}
                   onConfirm={requestStrategyConfirmation}
                   viewModel={strategyViewModel}
                 />
               ) : null}
               {strategyViewModel.kind === 'rejected' && strategyViewModel.issues.length > 0 ? (
                 <View style={styles.issueList}>
-                  {strategyViewModel.issues.map((issue, index) => (
-                    <Text key={`${issue}-${index}`} style={styles.issueText}>
-                      • {issue}
-                    </Text>
-                  ))}
+                  <Text style={styles.issueText}>
+                    • {copy.deterministicIssues(
+                      strategyViewModel.issues.length,
+                      formatNumber(strategyViewModel.issues.length, {
+                        maximumFractionDigits: 0,
+                      }),
+                    )}
+                  </Text>
                 </View>
               ) : null}
             </AppCard>

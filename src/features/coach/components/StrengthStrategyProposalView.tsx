@@ -2,58 +2,49 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import type { StrengthCoachCopy } from '@/localization/strengthCoachCopy';
+import { useUnitPreferences, weightFromKg } from '@/units';
+
 import type { StrengthStrategyDisplayViewModel } from '../strengthStrategyViewModel';
-
-const formatNumber = (value: number, maximumFractionDigits = 1): string =>
-  new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value);
-
-const formatCode = (value: string): string =>
-  value
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-
-const formatDateTime = (value: string): string => {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-};
 
 export function StrengthStrategyProposalView({
   confirmationEnabled,
   confirming,
+  copy,
   onConfirm,
   viewModel,
 }: {
   confirmationEnabled: boolean;
   confirming: boolean;
+  copy: StrengthCoachCopy;
   onConfirm(): void;
   viewModel: StrengthStrategyDisplayViewModel;
 }) {
+  const { formatDate, formatNumber } = useLocalization();
+  const { weight } = useUnitPreferences();
   const applied = viewModel.kind === 'applied';
 
   return (
     <View style={styles.stack}>
       <View style={applied ? styles.appliedBanner : styles.previewBanner}>
         <Text style={applied ? styles.appliedTitle : styles.previewTitle}>
-          {applied ? 'Template created' : 'AI preview · not applied'}
+          {applied ? copy.templateCreated : copy.previewNotApplied}
         </Text>
         <Text style={styles.bodyText}>
           {applied
-            ? 'The backend revalidated this proposal and created a new synchronized workout template. The completed source workout was not modified.'
+            ? copy.templateCreatedBody
             : confirmationEnabled
-              ? 'This proposal passed deterministic source-set, load, repetition, RPE and total-volume validation. Confirmation creates a new workout template and does not edit workout history.'
-              : 'This proposal passed deterministic validation. Strength confirmation is not available on this backend version.'}
+              ? copy.confirmationPreviewBody
+              : copy.confirmationUnavailableBody}
         </Text>
         {applied ? (
           <View style={styles.appliedMetadata}>
-            <Text style={styles.metaText}>Revision {viewModel.appliedRevision}</Text>
-            <Text style={styles.metaText}>{formatDateTime(viewModel.appliedAt)}</Text>
-            <Text numberOfLines={1} style={styles.auditText}>
-              Template {viewModel.templateId}
+            <Text style={styles.metaText}>
+              {copy.revision} {formatNumber(viewModel.appliedRevision, { maximumFractionDigits: 0 })}
+            </Text>
+            <Text style={styles.metaText}>
+              {formatDate(viewModel.appliedAt, { dateStyle: 'medium', timeStyle: 'short' })}
             </Text>
           </View>
         ) : null}
@@ -61,30 +52,40 @@ export function StrengthStrategyProposalView({
 
       <View style={styles.headerRow}>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>{formatCode(viewModel.strategy)}</Text>
+          <Text style={styles.title}>{copy.strategyLabel(viewModel.strategy)}</Text>
           <Text style={styles.metaText}>
-            {viewModel.dataQuality} data · {formatNumber(viewModel.confidence * 100, 0)}% confidence
+            {copy.dataQuality}: {copy.dataQualityLabel(viewModel.dataQuality)} · {copy.confidence}:{' '}
+            {formatNumber(viewModel.confidence * 100, { maximumFractionDigits: 0 })}%
           </Text>
         </View>
-        <Text style={styles.statusBadge}>{viewModel.guardrailStatus.toUpperCase()}</Text>
+        <Text style={styles.statusBadge}>{copy.guardrailLabel(viewModel.guardrailStatus)}</Text>
       </View>
 
       <View style={styles.metricRow}>
         <View style={styles.metricCell}>
-          <Text style={styles.metricValue}>{formatNumber(viewModel.proposedTonnage, 0)}</Text>
-          <Text style={styles.metaText}>Proposed kg</Text>
+          <Text style={styles.metricValue}>
+            {formatNumber(weightFromKg(viewModel.proposedTonnage, weight), {
+              maximumFractionDigits: 1,
+            })}
+          </Text>
+          <Text style={styles.metaText}>{copy.proposedVolume} ({weight})</Text>
         </View>
         <View style={styles.metricCell}>
           <Text style={styles.metricValue}>
             {viewModel.volumeChangePercent === null
               ? '—'
-              : `${viewModel.volumeChangePercent > 0 ? '+' : ''}${formatNumber(viewModel.volumeChangePercent)}%`}
+              : `${viewModel.volumeChangePercent > 0 ? '+' : ''}${formatNumber(
+                  viewModel.volumeChangePercent,
+                  { maximumFractionDigits: 1 },
+                )}%`}
           </Text>
-          <Text style={styles.metaText}>Volume change</Text>
+          <Text style={styles.metaText}>{copy.volumeChange}</Text>
         </View>
         <View style={styles.metricCell}>
-          <Text style={styles.metricValue}>{viewModel.sets.length}</Text>
-          <Text style={styles.metaText}>Mapped sets</Text>
+          <Text style={styles.metricValue}>
+            {formatNumber(viewModel.sets.length, { maximumFractionDigits: 0 })}
+          </Text>
+          <Text style={styles.metaText}>{copy.mappedSets}</Text>
         </View>
       </View>
 
@@ -93,38 +94,47 @@ export function StrengthStrategyProposalView({
           <View key={set.sourceSetId} style={styles.setRow}>
             <View style={styles.setCopy}>
               <Text numberOfLines={1} style={styles.setTitle}>
-                {index + 1}. {set.exerciseName}
+                {formatNumber(index + 1, { maximumFractionDigits: 0 })}. {set.exerciseName}
               </Text>
               <Text style={styles.bodyText}>
-                {formatNumber(set.weight)} kg × {set.reps} · target RPE {set.targetRpe}
+                {formatNumber(weightFromKg(set.weight, weight), { maximumFractionDigits: 1 })}{' '}
+                {weight} × {copy.reps(
+                  set.reps,
+                  formatNumber(set.reps, { maximumFractionDigits: 0 }),
+                )}{' '}
+                · {copy.targetRpe} {formatNumber(set.targetRpe, { maximumFractionDigits: 1 })}
               </Text>
-              <Text style={styles.metaText}>{formatCode(set.rationaleCode)}</Text>
+              <Text style={styles.metaText}>{copy.rationaleLabel(set.rationaleCode)}</Text>
             </View>
-            <Text style={styles.adjustment}>{set.adjustment.toUpperCase()}</Text>
+            <Text style={styles.adjustment}>{copy.adjustmentLabel(set.adjustment)}</Text>
           </View>
         ))}
       </View>
 
       <View style={styles.codeSection}>
-        <Text style={styles.sectionTitle}>Rationale</Text>
-        {viewModel.rationaleCodes.map((code) => (
-          <Text key={code} style={styles.bodyText}>• {formatCode(code)}</Text>
+        <Text style={styles.sectionTitle}>{copy.rationale}</Text>
+        {viewModel.rationaleCodes.map((code, index) => (
+          <Text key={`${code}-${index}`} style={styles.bodyText}>
+            • {copy.rationaleLabel(code)}
+          </Text>
         ))}
       </View>
 
       <View style={styles.codeSection}>
-        <Text style={styles.sectionTitle}>Caveats</Text>
-        {viewModel.caveatCodes.map((code) => (
-          <Text key={code} style={styles.caveatText}>• {formatCode(code)}</Text>
+        <Text style={styles.sectionTitle}>{copy.caveats}</Text>
+        {viewModel.caveatCodes.map((code, index) => (
+          <Text key={`${code}-${index}`} style={styles.caveatText}>
+            • {copy.caveatLabel(code)}
+          </Text>
         ))}
       </View>
 
       {viewModel.issues.length > 0 ? (
         <View style={styles.issueBox}>
-          <Text style={styles.issueTitle}>Guardrail issues</Text>
-          {viewModel.issues.map((issue) => (
-            <Text key={`${issue.code}:${issue.path}`} style={styles.caveatText}>
-              • {issue.message}
+          <Text style={styles.issueTitle}>{copy.guardrailIssues}</Text>
+          {viewModel.issues.map((issue, index) => (
+            <Text key={`${issue.code}:${issue.path}:${index}`} style={styles.caveatText}>
+              • {copy.issueLabel(issue.code, issue.severity)}
             </Text>
           ))}
         </View>
@@ -132,19 +142,16 @@ export function StrengthStrategyProposalView({
 
       {!applied && confirmationEnabled ? (
         <View style={styles.confirmSection}>
-          <PrimaryButton
-            label="Create workout template"
-            loading={confirming}
-            onPress={onConfirm}
-          />
-          <Text style={styles.metaText}>
-            Only the run ID and a new idempotency key are sent. The backend reloads and revalidates the saved proposal before creating the template.
-          </Text>
+          <PrimaryButton label={copy.createTemplate} loading={confirming} onPress={onConfirm} />
+          <Text style={styles.metaText}>{copy.confirmationExplanation}</Text>
         </View>
       ) : null}
 
       <Text style={styles.auditText}>
-        {viewModel.provider} · {viewModel.model} · {viewModel.attempts} attempt{viewModel.attempts === 1 ? '' : 's'} · {viewModel.latencyMs} ms
+        {copy.validationAttempts(
+          viewModel.attempts,
+          formatNumber(viewModel.attempts, { maximumFractionDigits: 0 }),
+        )}
       </Text>
     </View>
   );
