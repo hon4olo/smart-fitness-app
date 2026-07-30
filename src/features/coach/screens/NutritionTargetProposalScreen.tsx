@@ -10,7 +10,11 @@ import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useLocalization } from '@/localization';
+import { getNutritionTargetProposalCopy } from '@/localization/nutritionTargetProposalCopy';
+import { getBoundedCoachRunStatusLabel } from '@/localization/statusPresentation';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { useUnitPreferences } from '@/units';
 import {
   buildNutritionCoachViewModel,
   type NutritionMetricTotals,
@@ -23,33 +27,26 @@ import { createNutritionTargetProposalStyles } from './nutritionTargetProposalSt
 
 const LOOKBACK_OPTIONS = [7, 14, 30] as const;
 
-const formatNumber = (value: number): string =>
-  new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
-
-const formatDateTime = (value: string): string => {
-  const date = new Date(value);
-  return Number.isFinite(date.getTime())
-    ? new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      }).format(date)
-    : value;
-};
-
 const createIdempotencyKey = (scope: string): string =>
   `mobile-${scope}-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
 
 function TargetSummary({ label, totals }: { label: string; totals: NutritionMetricTotals }) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createNutritionTargetProposalStyles(colors), [colors]);
+  const { formatNumber, locale } = useLocalization();
+  const { energy, formatEnergyValue } = useUnitPreferences();
+  const copy = getNutritionTargetProposalCopy(locale);
 
   return (
     <View style={styles.targetBox}>
       <Text style={styles.sectionTitle}>{label}</Text>
-      <Text style={styles.targetCalories}>{formatNumber(totals.calories)} kcal</Text>
+      <Text style={styles.targetCalories}>
+        {formatEnergyValue(totals.calories)} {energy}
+      </Text>
       <Text style={styles.metaText}>
-        P {formatNumber(totals.protein)} · C {formatNumber(totals.carbs)} · F{' '}
-        {formatNumber(totals.fats)}
+        {copy.proteinShort} {formatNumber(totals.protein, { maximumFractionDigits: 1 })} ·{' '}
+        {copy.carbsShort} {formatNumber(totals.carbs, { maximumFractionDigits: 1 })} ·{' '}
+        {copy.fatsShort} {formatNumber(totals.fats, { maximumFractionDigits: 1 })}
       </Text>
     </View>
   );
@@ -62,7 +59,11 @@ export default function NutritionTargetProposalScreen() {
   const { isRestoringState } = useAppContext();
   const { syncNow } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
-  const [lookbackDays, setLookbackDays] = useState<(typeof LOOKBACK_OPTIONS)[number]>(14);
+  const { formatDate, formatNumber, locale } = useLocalization();
+  const { energy, formatEnergyValue } = useUnitPreferences();
+  const copy = getNutritionTargetProposalCopy(locale);
+  const [lookbackDays, setLookbackDays] =
+    useState<(typeof LOOKBACK_OPTIONS)[number]>(14);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [busy, setBusy] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -121,11 +122,7 @@ export default function NutritionTargetProposalScreen() {
       );
     } catch (requestError) {
       if (requestError instanceof Error && requestError.name === 'AbortError') return;
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Nutrition Coach could not generate the proposal.',
-      );
+      setError(copy.requestFailed);
     } finally {
       if (abortControllerRef.current === controller) {
         abortControllerRef.current = null;
@@ -158,12 +155,8 @@ export default function NutritionTargetProposalScreen() {
       });
       setApplied(readAppliedNutritionProposal(confirmed));
       await syncNow();
-    } catch (applyError) {
-      setError(
-        applyError instanceof Error
-          ? applyError.message
-          : 'The proposal could not be applied. Generate a new proposal and try again.',
-      );
+    } catch {
+      setError(copy.applyFailed);
     } finally {
       setApplying(false);
     }
@@ -173,16 +166,16 @@ export default function NutritionTargetProposalScreen() {
     if (viewModel?.kind !== 'proposal') return;
 
     Alert.alert(
-      'Apply nutrition target changes?',
-      `Calories stay at ${formatNumber(viewModel.proposedTargets.calories)} kcal. Macros will change to P ${formatNumber(viewModel.proposedTargets.protein)}, C ${formatNumber(viewModel.proposedTargets.carbs)}, F ${formatNumber(viewModel.proposedTargets.fats)}. The backend will reject the change if the target is stale.`,
+      copy.applyTitle,
+      copy.applyBody(
+        `${formatEnergyValue(viewModel.proposedTargets.calories)} ${energy}`,
+        formatNumber(viewModel.proposedTargets.protein, { maximumFractionDigits: 1 }),
+        formatNumber(viewModel.proposedTargets.carbs, { maximumFractionDigits: 1 }),
+        formatNumber(viewModel.proposedTargets.fats, { maximumFractionDigits: 1 }),
+      ),
       [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Apply',
-          onPress: () => {
-            void applyProposal();
-          },
-        },
+        { text: copy.cancel, style: 'cancel' },
+        { text: copy.apply, onPress: () => void applyProposal() },
       ],
     );
   };
@@ -193,20 +186,34 @@ export default function NutritionTargetProposalScreen() {
     viewModel.guardrailStatus === 'valid' &&
     viewModel.changed &&
     !applied;
+  const runStatus = run
+    ? getBoundedCoachRunStatusLabel(locale, run.run.status)
+    : '';
+  const resultPresentation = !viewModel
+    ? null
+    : viewModel.kind === 'pending'
+      ? { title: copy.pendingTitle, message: copy.pendingMessage }
+      : viewModel.kind === 'failed'
+        ? { title: copy.failedTitle, message: copy.failedMessage }
+        : viewModel.kind === 'rejected'
+          ? { title: copy.rejectedTitle, message: copy.rejectedMessage }
+          : viewModel.kind === 'proposal'
+            ? { title: copy.proposalTitle, message: copy.proposalMessage }
+            : { title: copy.failedTitle, message: copy.failedMessage };
 
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
-          accessibilityLabel="Back"
+          accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
         <View>
-          <Text style={styles.title}>Target Proposal</Text>
-          <Text style={styles.subtitle}>Deterministic guardrails</Text>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.subtitle}>{copy.subtitle}</Text>
         </View>
       </View>
 
@@ -216,28 +223,25 @@ export default function NutritionTargetProposalScreen() {
         <View style={styles.container}>
           <AppCard>
             <View style={styles.badgeRow}>
-              <Text style={styles.badge}>Preview</Text>
-              <Text style={styles.metaText}>Explicit confirmation required</Text>
+              <Text style={styles.badge}>{copy.preview}</Text>
+              <Text style={styles.metaText}>{copy.explicitConfirmation}</Text>
             </View>
-            <Text style={styles.cardTitle}>Calorie-neutral macro reconciliation</Text>
-            <Text style={styles.bodyText}>
-              Checks 4P + 4C + 9F against the current calorie target and proposes the smallest
-              macro correction. It never raises or lowers calories from observed eating behaviour.
-            </Text>
+            <Text style={styles.cardTitle}>{copy.reconciliationTitle}</Text>
+            <Text style={styles.bodyText}>{copy.reconciliationBody}</Text>
           </AppCard>
 
           {loading ? (
             <AppCard>
-              <Text style={styles.cardTitle}>Preparing synchronized data…</Text>
+              <Text style={styles.cardTitle}>{copy.preparing}</Text>
             </AppCard>
           ) : !authenticated ? (
             <AppCard>
-              <Text style={styles.cardTitle}>Sign in required</Text>
-              <PrimaryButton label="Sign in" onPress={() => router.push('/auth/sign-in')} />
+              <Text style={styles.cardTitle}>{copy.signInRequired}</Text>
+              <PrimaryButton label={copy.signIn} onPress={() => router.push('/auth/sign-in')} />
             </AppCard>
           ) : (
             <AppCard>
-              <Text style={styles.cardTitle}>Validation period</Text>
+              <Text style={styles.cardTitle}>{copy.validationPeriod}</Text>
               <View style={styles.periodRow}>
                 {LOOKBACK_OPTIONS.map((days) => {
                   const selected = days === lookbackDays;
@@ -257,7 +261,10 @@ export default function NutritionTargetProposalScreen() {
                         pressed && styles.pressed,
                       ]}>
                       <Text style={[styles.periodLabel, selected && styles.periodLabelSelected]}>
-                        {days} days
+                        {copy.days(
+                          days,
+                          formatNumber(days, { maximumFractionDigits: 0 }),
+                        )}
                       </Text>
                     </Pressable>
                   );
@@ -265,90 +272,89 @@ export default function NutritionTargetProposalScreen() {
               </View>
               <PrimaryButton
                 disabled={busy || applying}
-                label="Generate guarded proposal"
+                label={copy.generate}
                 loading={busy}
                 onPress={() => void startProposal()}
               />
-              <Text style={styles.disclaimer}>
-                Requires at least three tracked days and an active synchronized target. Applying a
-                valid result triggers backend revision checks and then normal sync pull.
-              </Text>
+              <Text style={styles.disclaimer}>{copy.requirements}</Text>
             </AppCard>
           )}
 
           {error ? (
             <AppCard style={styles.errorCard}>
-              <Text style={styles.errorTitle}>Request error</Text>
+              <Text style={styles.errorTitle}>{copy.requestError}</Text>
               <Text style={styles.bodyText}>{error}</Text>
             </AppCard>
           ) : null}
 
-          {viewModel ? (
+          {viewModel && resultPresentation ? (
             <AppCard>
               <View style={styles.resultHeader}>
-                <Text style={styles.cardTitle}>{viewModel.title}</Text>
-                <Text style={styles.resultStatus}>{run?.run.status.toUpperCase()}</Text>
+                <Text style={styles.cardTitle}>{resultPresentation.title}</Text>
+                <Text style={styles.resultStatus}>{runStatus}</Text>
               </View>
-              <Text style={styles.bodyText}>{viewModel.message}</Text>
+              <Text style={styles.bodyText}>{resultPresentation.message}</Text>
 
               {viewModel.kind === 'proposal' ? (
                 <View style={styles.resultStack}>
                   <View style={styles.verdictRow}>
-                    <Text style={styles.metaText}>Guardrail</Text>
-                    <Text style={styles.verdict}>{viewModel.guardrailStatus}</Text>
+                    <Text style={styles.metaText}>{copy.guardrail}</Text>
+                    <Text style={styles.verdict}>
+                      {copy.guardrailLabel(viewModel.guardrailStatus)}
+                    </Text>
                   </View>
                   <View style={styles.targetsRow}>
-                    <TargetSummary label="Current" totals={viewModel.currentTargets} />
-                    <TargetSummary label="Proposed" totals={viewModel.proposedTargets} />
+                    <TargetSummary label={copy.current} totals={viewModel.currentTargets} />
+                    <TargetSummary label={copy.proposed} totals={viewModel.proposedTargets} />
                   </View>
                   <View style={styles.mathBox}>
-                    <Text style={styles.sectionTitle}>Math validation</Text>
+                    <Text style={styles.sectionTitle}>{copy.mathValidation}</Text>
                     <Text style={styles.bodyText}>
-                      Before: {formatNumber(viewModel.currentMacroCalories)} kcal · mismatch{' '}
-                      {formatNumber(viewModel.calorieMathMismatchBefore)}
+                      {copy.before}: {formatEnergyValue(viewModel.currentMacroCalories)} {energy} ·{' '}
+                      {copy.mismatch}{' '}
+                      {formatNumber(viewModel.calorieMathMismatchBefore, { maximumFractionDigits: 1 })}
                     </Text>
                     <Text style={styles.bodyText}>
-                      After: {formatNumber(viewModel.proposedMacroCalories)} kcal · mismatch{' '}
-                      {formatNumber(viewModel.calorieMathMismatchAfter)}
+                      {copy.after}: {formatEnergyValue(viewModel.proposedMacroCalories)} {energy} ·{' '}
+                      {copy.mismatch}{' '}
+                      {formatNumber(viewModel.calorieMathMismatchAfter, { maximumFractionDigits: 1 })}
                     </Text>
                   </View>
                   {viewModel.issues.map((issue) => (
-                    <Text key={issue.code} style={styles.issueText}>
-                      • {issue.message}
+                    <Text key={`${issue.code}:${issue.field}`} style={styles.issueText}>
+                      • {copy.issueMessage}
                     </Text>
                   ))}
 
                   {applied ? (
                     <View style={styles.appliedBox}>
-                      <Text style={styles.appliedTitle}>Applied</Text>
+                      <Text style={styles.appliedTitle}>{copy.applied}</Text>
                       <Text style={styles.disclaimer}>
-                        Backend revision {applied.revision} was created at{' '}
-                        {formatDateTime(applied.appliedAt)}. A normal sync pull was requested.
+                        {copy.appliedBody(
+                          applied.revision,
+                          formatDate(applied.appliedAt, {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          }),
+                        )}
                       </Text>
                     </View>
                   ) : (
                     <View style={styles.notAppliedBox}>
-                      <Text style={styles.sectionTitle}>Not applied</Text>
-                      <Text style={styles.disclaimer}>
-                        The backend will reload the current target, compare its revision with this
-                        proposal and rerun guardrails before writing.
-                      </Text>
+                      <Text style={styles.sectionTitle}>{copy.notApplied}</Text>
+                      <Text style={styles.disclaimer}>{copy.notAppliedBody}</Text>
                     </View>
                   )}
 
                   {canApply ? (
                     <PrimaryButton
                       disabled={applying}
-                      label="Apply validated target"
+                      label={copy.applyValidated}
                       loading={applying}
                       onPress={requestApplyConfirmation}
                     />
                   ) : null}
                 </View>
-              ) : null}
-
-              {viewModel.kind === 'rejected' ? (
-                <Text style={styles.issueText}>• {viewModel.reason}</Text>
               ) : null}
             </AppCard>
           ) : null}
