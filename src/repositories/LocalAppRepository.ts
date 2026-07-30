@@ -18,6 +18,10 @@ import {
   normalizeRecoveryCheckIns,
   normalizeUserLimitations,
 } from '@/lib/safetyRecoveryState';
+import {
+  createLocalStateDiagnosticsRecorder,
+  type LocalStateDiagnosticsRecorder,
+} from '@/storage/LocalStateDiagnostics';
 import type { StorageAdapter } from '@/storage/StorageAdapter';
 import type { AppState } from '@/types';
 
@@ -25,6 +29,8 @@ import type { AppRepository } from './AppRepository';
 
 export type LocalAppRepositoryOptions = {
   cloudProvider?: CloudProvider;
+  diagnosticsRecorder?: LocalStateDiagnosticsRecorder;
+  now?: () => number;
 };
 
 export const APP_STATE_STORAGE_KEY = '@smart_fitness_mvp_state';
@@ -84,34 +90,78 @@ export const createLocalAppRepository = (
   options: LocalAppRepositoryOptions = {},
 ): AppRepository => {
   void options.cloudProvider;
+  const diagnostics =
+    options.diagnosticsRecorder ?? createLocalStateDiagnosticsRecorder(storage);
+  const now = options.now ?? Date.now;
 
   return {
     async loadState() {
+      const startedAt = now();
+      let serializedState: string | undefined;
+      let normalizedState: AppState | undefined;
       try {
         const storedState = await storage.read(APP_STATE_STORAGE_KEY);
+        serializedState = storedState ?? undefined;
 
         if (!storedState) {
+          diagnostics.record({
+            operation: 'load',
+            durationMs: now() - startedAt,
+            success: true,
+          });
           return null;
         }
 
-        const normalizedState = normalizeStoredState(
+        normalizedState = normalizeStoredState(
           JSON.parse(storedState) as Partial<AppState>,
         );
         const normalizedJson = JSON.stringify(normalizedState);
+        serializedState = normalizedJson;
         if (normalizedJson !== storedState) {
           await storage.write(APP_STATE_STORAGE_KEY, normalizedJson);
         }
 
+        diagnostics.record({
+          operation: 'load',
+          durationMs: now() - startedAt,
+          success: true,
+          serializedState,
+          state: normalizedState,
+        });
         return normalizedState;
       } catch (error) {
+        diagnostics.record({
+          operation: 'load',
+          durationMs: now() - startedAt,
+          success: false,
+          serializedState,
+          state: normalizedState,
+        });
         console.warn('Failed to restore MVP app state', error);
         return null;
       }
     },
     async saveState(state) {
+      const startedAt = now();
+      let serializedState: string | undefined;
       try {
-        await storage.write(APP_STATE_STORAGE_KEY, JSON.stringify(state));
+        serializedState = JSON.stringify(state);
+        await storage.write(APP_STATE_STORAGE_KEY, serializedState);
+        diagnostics.record({
+          operation: 'save',
+          durationMs: now() - startedAt,
+          success: true,
+          serializedState,
+          state,
+        });
       } catch (error) {
+        diagnostics.record({
+          operation: 'save',
+          durationMs: now() - startedAt,
+          success: false,
+          serializedState,
+          state,
+        });
         console.warn('Failed to persist MVP app state', error);
         throw error;
       }
@@ -119,6 +169,7 @@ export const createLocalAppRepository = (
     async clearState() {
       try {
         await storage.remove(APP_STATE_STORAGE_KEY);
+        diagnostics.reset();
       } catch (error) {
         console.warn('Failed to clear MVP app state', error);
       }
