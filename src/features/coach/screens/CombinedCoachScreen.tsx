@@ -15,11 +15,15 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useLocalization } from '@/localization';
+import { getCombinedReviewCopy, type CombinedReviewCopy } from '@/localization/combinedReviewCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { WorkoutSession } from '@/types';
+import { formatEnergyValue, useUnitPreferences } from '@/units';
 import {
   buildCombinedCoachViewModel,
   type CombinedCoachIssue,
+  type CombinedCoachStatus,
   type CombinedCoachViewModel,
 } from '../combinedCoachViewModel';
 import {
@@ -35,11 +39,6 @@ const latestSession = (sessions: WorkoutSession[]): WorkoutSession | null =>
     (left, right) => Date.parse(right.finishedAt) - Date.parse(left.finishedAt),
   )[0] ?? null;
 
-const formatNumber = (value: number | null, suffix = ''): string =>
-  value === null
-    ? '—'
-    : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)}${suffix}`;
-
 const issueColor = (
   issue: CombinedCoachIssue,
   colors: typeof Colors.light,
@@ -53,10 +52,12 @@ const issueColor = (
 function DomainCard({
   title,
   status,
+  statusLabel,
   children,
 }: {
   title: string;
-  status: string;
+  status: CombinedCoachStatus | 'ready' | 'needs_input';
+  statusLabel: string;
   children: React.ReactNode;
 }) {
   const { colors } = useAppTheme();
@@ -68,12 +69,11 @@ function DomainCard({
           style={[
             styles.domainBadge,
             {
-              backgroundColor:
-                status === 'ready' ? colors.successSoft : colors.warningSoft,
+              backgroundColor: status === 'ready' ? colors.successSoft : colors.warningSoft,
               color: status === 'ready' ? colors.success : colors.warning,
             },
           ]}>
-          {status.toUpperCase()}
+          {statusLabel}
         </Text>
       </View>
       {children}
@@ -81,30 +81,46 @@ function DomainCard({
   );
 }
 
-function CombinedResult({ viewModel }: { viewModel: CombinedCoachViewModel }) {
+function CombinedResult({
+  copy,
+  viewModel,
+}: {
+  copy: CombinedReviewCopy;
+  viewModel: CombinedCoachViewModel;
+}) {
   const { colors } = useAppTheme();
+  const { formatNumber } = useLocalization();
+  const { energy, formatWeightValue, weight } = useUnitPreferences();
+  const presentation = copy.viewModelCopy(viewModel);
+  const formatOptional = (value: number | null, fractionDigits = 1): string =>
+    value === null
+      ? '—'
+      : formatNumber(value, { maximumFractionDigits: fractionDigits });
+
   if (viewModel.kind !== 'review') {
     return (
       <AppCard>
-        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
-          {viewModel.title}
-        </Text>
+        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{presentation.title}</Text>
         <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
-          {viewModel.message}
+          {presentation.message}
         </Text>
       </AppCard>
     );
   }
 
+  const strengthStatus = copy.statusLabels[viewModel.strength.status];
+  const nutritionStatus = copy.statusLabels[viewModel.nutrition.status];
+  const safetyStatus = copy.statusLabels[viewModel.safety.status];
+  const completedSets = viewModel.strength.completedSets ?? 0;
+  const trackedDays = viewModel.nutrition.trackedDays ?? 0;
+
   return (
     <AppCard>
       <View style={styles.resultHeader}>
         <View style={styles.flexCopy}>
-          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
-            {viewModel.title}
-          </Text>
+          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{presentation.title}</Text>
           <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
-            {viewModel.message}
+            {presentation.message}
           </Text>
         </View>
         <Text
@@ -116,62 +132,97 @@ function CombinedResult({ viewModel }: { viewModel: CombinedCoachViewModel }) {
               color: viewModel.status === 'ready' ? colors.success : colors.warning,
             },
           ]}>
-          {viewModel.status.toUpperCase()}
+          {copy.statusLabels[viewModel.status]}
         </Text>
       </View>
 
       <View style={styles.domainStack}>
-        <DomainCard title="Strength" status={viewModel.strength.status}>
+        <DomainCard
+          status={viewModel.strength.status}
+          statusLabel={strengthStatus}
+          title={copy.strength}>
           <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
-            {formatNumber(viewModel.strength.completedSets)} completed sets ·{' '}
-            {formatNumber(viewModel.strength.totalReps)} reps
+            {copy.strengthSummary(
+              completedSets,
+              formatNumber(completedSets, { maximumFractionDigits: 0 }),
+              formatOptional(viewModel.strength.totalReps, 0),
+            )}
           </Text>
           <Text style={[styles.metaText, { color: colors.textMuted }]}>
-            Tonnage {formatNumber(viewModel.strength.totalTonnage, ' kg')} · average RPE{' '}
-            {formatNumber(viewModel.strength.averageActualRpe)}
+            {copy.tonnageAndRpe(
+              viewModel.strength.totalTonnage === null
+                ? '—'
+                : formatWeightValue(viewModel.strength.totalTonnage),
+              weight,
+              formatOptional(viewModel.strength.averageActualRpe),
+            )}
           </Text>
         </DomainCard>
 
-        <DomainCard title="Nutrition" status={viewModel.nutrition.status}>
+        <DomainCard
+          status={viewModel.nutrition.status}
+          statusLabel={nutritionStatus}
+          title={copy.nutrition}>
           <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
-            {formatNumber(viewModel.nutrition.trackedDays)} tracked days ·{' '}
-            {formatNumber(viewModel.nutrition.coveragePercent, '%')} coverage
+            {copy.nutritionSummary(
+              trackedDays,
+              formatNumber(trackedDays, { maximumFractionDigits: 0 }),
+              formatOptional(viewModel.nutrition.coveragePercent, 0),
+            )}
           </Text>
           <Text style={[styles.metaText, { color: colors.textMuted }]}>
-            Average {formatNumber(viewModel.nutrition.averageCaloriesPerTrackedDay, ' kcal')} ·{' '}
-            {formatNumber(viewModel.nutrition.averageProteinPerTrackedDay, ' g protein')}
+            {copy.nutritionAverages(
+              viewModel.nutrition.averageCaloriesPerTrackedDay === null
+                ? '—'
+                : formatEnergyValue(viewModel.nutrition.averageCaloriesPerTrackedDay, energy),
+              energy,
+              formatOptional(viewModel.nutrition.averageProteinPerTrackedDay),
+            )}
           </Text>
         </DomainCard>
 
-        <DomainCard title="Safety & Recovery" status={viewModel.safety.status}>
+        <DomainCard
+          status={viewModel.safety.status}
+          statusLabel={safetyStatus}
+          title={copy.safetyRecovery}>
           <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
-            Recommended load {Math.round(viewModel.safety.recommendedLoadMultiplier * 100)}%
+            {copy.recommendedLoad(
+              formatNumber(Math.round(viewModel.safety.recommendedLoadMultiplier * 100), {
+                maximumFractionDigits: 0,
+              }),
+            )}
           </Text>
           <Text style={[styles.metaText, { color: colors.textMuted }]}>
-            {viewModel.safety.restrictionCount} restrictions · {viewModel.safety.issueCount} findings
+            {copy.safetySummary(
+              viewModel.safety.restrictionCount,
+              formatNumber(viewModel.safety.restrictionCount, { maximumFractionDigits: 0 }),
+              viewModel.safety.issueCount,
+              formatNumber(viewModel.safety.issueCount, { maximumFractionDigits: 0 }),
+            )}
           </Text>
         </DomainCard>
       </View>
 
       {viewModel.issues.length > 0 ? (
         <View style={styles.issueStack}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Final guardrail</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            {copy.finalGuardrail}
+          </Text>
           {viewModel.issues.map((issue, index) => (
-            <Text
-              key={`${issue.code}:${issue.domain}:${index}`}
-              style={[styles.bodyText, { color: issueColor(issue, colors) }]}>
-              • {issue.message}
-            </Text>
+            <View key={`${issue.code}:${issue.domain}:${index}`}>
+              <Text style={[styles.metaText, { color: issueColor(issue, colors) }]}>
+                {copy.issueSummary(issue)}
+              </Text>
+              <Text style={[styles.bodyText, { color: issueColor(issue, colors) }]}>
+                {copy.issueMessage}
+              </Text>
+            </View>
           ))}
         </View>
       ) : null}
 
       <View style={[styles.boundaryBox, { borderColor: colors.borderSubtle }]}>
-        <Text style={[styles.metaText, { color: colors.textMuted }]}>
-          Combined Coach is read-only. It cannot confirm or apply Strength, Nutrition, or workout
-          changes. Each future proposal keeps its own deterministic validation and explicit
-          confirmation boundary.
-        </Text>
+        <Text style={[styles.metaText, { color: colors.textMuted }]}>{copy.boundary}</Text>
       </View>
     </AppCard>
   );
@@ -184,6 +235,8 @@ export default function CombinedCoachScreen() {
   const app = useAppContext();
   const { syncNow, status: syncStatus } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
+  const { formatNumber, locale } = useLocalization();
+  const copy = getCombinedReviewCopy(locale);
   const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [busy, setBusy] = useState(false);
@@ -258,12 +311,8 @@ export default function CombinedCoachScreen() {
           maxPolls: 30,
         }),
       );
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Combined Coach could not complete the review.',
-      );
+    } catch {
+      setError(copy.requestErrorBody);
     } finally {
       setBusy(false);
     }
@@ -273,15 +322,15 @@ export default function CombinedCoachScreen() {
     <View style={themedStyles.screen}>
       <View style={[themedStyles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
-          accessibilityLabel="Back"
+          accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [themedStyles.backButton, pressed && styles.pressed]}>
           <Text style={themedStyles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.flexCopy}>
-          <Text style={themedStyles.title}>Combined Coach</Text>
-          <Text style={themedStyles.subtitle}>Strength · Nutrition · Safety</Text>
+          <Text style={themedStyles.title}>{copy.title}</Text>
+          <Text style={themedStyles.subtitle}>{copy.subtitle}</Text>
         </View>
       </View>
 
@@ -293,51 +342,48 @@ export default function CombinedCoachScreen() {
         showsVerticalScrollIndicator={false}>
         <View style={themedStyles.container}>
           <AppCard>
-            <Text style={themedStyles.cardTitle}>Local context</Text>
+            <Text style={themedStyles.cardTitle}>{copy.localContext}</Text>
             <Text style={themedStyles.bodyText}>
-              Workout: {primarySession?.workoutTitle ?? 'no completed workout'}
+              {copy.workout}: {primarySession?.workoutTitle ?? copy.noWorkout}
             </Text>
             <Text style={themedStyles.bodyText}>
-              Nutrition days: {trackedNutritionDays} · recovery check-ins:{' '}
-              {app.recoveryCheckIns.length} · active limitations: {activeLimitations}
+              {copy.contextCounts(
+                formatNumber(trackedNutritionDays, { maximumFractionDigits: 0 }),
+                formatNumber(app.recoveryCheckIns.length, { maximumFractionDigits: 0 }),
+                formatNumber(activeLimitations, { maximumFractionDigits: 0 }),
+              )}
             </Text>
             <Text style={themedStyles.metaText}>
-              Capability: {combinedAvailable ? 'v6 available' : 'not enabled'} · Sync: {syncStatus}
+              {copy.capability}: {combinedAvailable ? copy.capabilityAvailable : copy.capabilityUnavailable} ·{' '}
+              {copy.sync}: {copy.syncLabels[syncStatus] ?? syncStatus}
             </Text>
           </AppCard>
 
           {!ready ? (
             <AppCard>
-              <Text style={themedStyles.cardTitle}>Preparing account…</Text>
+              <Text style={themedStyles.cardTitle}>{copy.preparing}</Text>
             </AppCard>
           ) : !isAuthenticated ? (
             <AppCard>
-              <Text style={themedStyles.cardTitle}>Sign in required</Text>
-              <Text style={themedStyles.bodyText}>
-                Combined Coach uses account-scoped synchronized records and child Coach runs.
-              </Text>
-              <PrimaryButton label="Sign in" onPress={() => router.push('/auth/sign-in')} />
+              <Text style={themedStyles.cardTitle}>{copy.signInRequired}</Text>
+              <Text style={themedStyles.bodyText}>{copy.signInBody}</Text>
+              <PrimaryButton label={copy.signIn} onPress={() => router.push('/auth/sign-in')} />
             </AppCard>
           ) : (
             <AppCard>
-              <Text style={themedStyles.cardTitle}>Run deterministic combined review</Text>
-              <Text style={themedStyles.bodyText}>
-                This starts the existing Strength session review, Nutrition review, and Safety &
-                Recovery review in parallel, then applies one final status guardrail.
-              </Text>
+              <Text style={themedStyles.cardTitle}>{copy.runTitle}</Text>
+              <Text style={themedStyles.bodyText}>{copy.runBody}</Text>
               <PrimaryButton
                 disabled={!combinedAvailable || busy}
-                label="Run Combined Coach review"
+                label={copy.runReview}
                 loading={busy}
                 onPress={() => void runCombinedReview()}
               />
               {!combinedAvailable ? (
-                <Text style={themedStyles.metaText}>
-                  Combined Coach remains hidden until the backend advertises capability schema v6.
-                </Text>
+                <Text style={themedStyles.metaText}>{copy.capabilityHint}</Text>
               ) : null}
               <SecondaryButton
-                label="Review Safety inputs"
+                label={copy.reviewSafety}
                 onPress={() => router.push('/profile/safety-recovery')}
               />
             </AppCard>
@@ -345,12 +391,12 @@ export default function CombinedCoachScreen() {
 
           {error ? (
             <AppCard style={themedStyles.errorCard}>
-              <Text style={themedStyles.errorTitle}>Combined Coach error</Text>
+              <Text style={themedStyles.errorTitle}>{copy.requestError}</Text>
               <Text style={themedStyles.bodyText}>{error}</Text>
             </AppCard>
           ) : null}
 
-          {viewModel ? <CombinedResult viewModel={viewModel} /> : null}
+          {viewModel ? <CombinedResult copy={copy} viewModel={viewModel} /> : null}
         </View>
       </ScrollView>
     </View>
