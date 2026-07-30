@@ -98,7 +98,7 @@ Completed:
 - bounded unknown limitation enums without humanized internal-code fallbacks;
 - capability copy without user-visible internal schema versions.
 
-The remaining Safety & Recovery retry/status presentation is implemented in PR #234 and must merge only from an exact-green Mobile CI head.
+The remaining Safety & Recovery retry/status presentation merged in PR #234.
 
 ### Combined Coach
 
@@ -140,16 +140,28 @@ Completed and merged in PR #226:
 - preserved abort, polling, idempotency, explicit `confirmRun`, post-confirmation sync and new-template-only application;
 - full Mobile CI.
 
+### Repository-wide presentation boundaries
+
+Completed:
+
+- recursive `.tsx` audit for direct locale formatting, raw status fallback and humanized internal-code fallback;
+- removal of unreachable legacy presentation components;
+- bounded standalone Nutrition Target Proposal and Workout History list/detail presentation;
+- central selected-locale and selected-unit formatting on reachable presentation surfaces;
+- permanent source contracts preventing regression.
+
+The `.tsx` presentation boundary audit merged in PR #235. The `.ts` helper/view-model boundary audit is implemented in PR #236 and must merge only from an exact-green Mobile CI head.
+
 ## Current next task
 
-### Repository-wide localization final pass
+### Repository-wide contextual literal audit
 
-After PR #234, run a repository-wide source audit for remaining reachable production presentation that bypasses completed boundaries:
+After PR #236, audit remaining reachable source with context-sensitive checks that cannot be safely enforced by the broad formatting guards:
 
-- direct `Intl`, `toLocaleString` and presentation-level `toFixed`;
-- fixed `kg`, `cm`, `kcal` or English-only date/count strings;
-- hard-coded accessibility labels and controls;
-- raw provider/backend/status/enum fallbacks;
+- presentation-level `toFixed` while preserving calculation and serialization rounding;
+- fixed `kg`, `lb`, `cm`, `in`, `kcal` and `kJ` display copy outside central unit boundaries;
+- fixed English accessibility labels, hints and control text;
+- raw provider/backend/status/enum fallbacks not matched by the bounded status guards;
 - literal-English source tests that should assert semantic behavior.
 
 Use separate bounded PRs for real findings and do not create no-op changes.
