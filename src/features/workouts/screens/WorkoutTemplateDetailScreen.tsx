@@ -1,24 +1,38 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import { getWorkoutsHubWorkoutTitle } from '@/features/workouts/workoutsHubLocalization';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 import {
   getWorkoutTemplateById,
   hydrateActiveWorkoutSessionDraft,
+  isWorkoutTemplateFavorite,
   parseWorkoutPlanDescription,
   startWorkoutSession,
   toggleWorkoutTemplateFavorite,
 } from '@/lib/workouts';
+import { useLocalization } from '@/localization';
+import { getWorkoutTemplateDetailCopy } from '@/localization/workoutTemplateDetailCopy';
 
 export default function WorkoutTemplateDetailScreen() {
   const params = useLocalSearchParams<{ workoutId?: string }>();
   const workoutId = Array.isArray(params.workoutId) ? params.workoutId[0] : params.workoutId;
   const { workouts, isRestoringState, deleteWorkoutTemplate } = useAppContext();
   const { colors } = useWorkoutTheme();
+  const { formatNumber, locale, t } = useLocalization();
+  const copy = getWorkoutTemplateDetailCopy(locale);
   const insets = useSafeAreaInsets();
   const { height: viewportHeight } = useWindowDimensions();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -27,14 +41,20 @@ export default function WorkoutTemplateDetailScreen() {
     void hydrateActiveWorkoutSessionDraft();
   }, []);
 
-  const workout = useMemo(() => (workoutId ? getWorkoutTemplateById(workoutId, workouts) : null), [workoutId, workouts]);
-  const parsedPlan = useMemo(() => parseWorkoutPlanDescription(workout?.description), [workout?.description]);
+  const workout = useMemo(
+    () => (workoutId ? getWorkoutTemplateById(workoutId, workouts) : null),
+    [workoutId, workouts],
+  );
+  const parsedPlan = useMemo(
+    () => parseWorkoutPlanDescription(workout?.description),
+    [workout?.description],
+  );
 
   if (isRestoringState) {
     return (
       <View style={styles.screen}>
         <View style={styles.loadingState}>
-          <Text style={styles.loadingLabel}>Loading workout...</Text>
+          <Text style={styles.loadingLabel}>{copy.loading}</Text>
         </View>
       </View>
     );
@@ -44,29 +64,39 @@ export default function WorkoutTemplateDetailScreen() {
     return (
       <View style={styles.screen}>
         <View style={styles.loadingState}>
-          <Text style={styles.emptyTitle}>Workout not found</Text>
-          <Pressable onPress={() => router.replace('/workouts')} style={({ pressed }) => [styles.backToWorkouts, pressed && styles.pressed]}>
-            <Text style={styles.backToWorkoutsLabel}>Back to Workouts</Text>
+          <Text style={styles.emptyTitle}>{copy.notFound}</Text>
+          <Pressable
+            accessibilityLabel={copy.backToWorkouts}
+            accessibilityRole="button"
+            onPress={() => router.replace('/workouts')}
+            style={({ pressed }) => [styles.backToWorkouts, pressed && styles.pressed]}>
+            <Text style={styles.backToWorkoutsLabel}>{copy.backToWorkouts}</Text>
           </Pressable>
         </View>
       </View>
     );
   }
 
+  const displayTitle = getWorkoutsHubWorkoutTitle(t, workout);
+
   const openMenu = () => {
-    Alert.alert(workout.title, undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Favorite / unfavorite', onPress: () => toggleWorkoutTemplateFavorite(workout.id) },
+    const favorite = isWorkoutTemplateFavorite(workout.id);
+    Alert.alert(displayTitle, undefined, [
+      { text: copy.cancel, style: 'cancel' },
+      {
+        text: favorite ? copy.removeFavorite : copy.addFavorite,
+        onPress: () => toggleWorkoutTemplateFavorite(workout.id),
+      },
       ...(workout.isCustom
         ? [
             {
-              text: 'Delete workout',
+              text: copy.deleteWorkout,
               style: 'destructive' as const,
               onPress: () => {
-                Alert.alert('Delete workout?', 'This removes the template only. Completed sessions stay in history.', [
-                  { text: 'Cancel', style: 'cancel' },
+                Alert.alert(copy.deleteTitle, copy.deleteBody, [
+                  { text: copy.cancel, style: 'cancel' },
                   {
-                    text: 'Delete',
+                    text: copy.delete,
                     style: 'destructive',
                     onPress: () => {
                       deleteWorkoutTemplate(workout.id);
@@ -89,15 +119,28 @@ export default function WorkoutTemplateDetailScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-          <Text style={styles.backButtonLabel}>‹ Back</Text>
+        <Pressable
+          accessibilityLabel={copy.back}
+          accessibilityRole="button"
+          onPress={() => router.back()}
+          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+          <Text style={styles.backButtonLabel}>‹ {copy.back}</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>Workout</Text>
+        <Text style={styles.headerTitle}>{copy.headerTitle}</Text>
         <View style={styles.headerActions}>
-          <Pressable style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+          <Pressable
+            accessibilityLabel={copy.shareUnavailable}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: true }}
+            disabled
+            style={styles.iconButton}>
             <Text style={styles.headerIcon}>↗</Text>
           </Pressable>
-          <Pressable onPress={openMenu} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+          <Pressable
+            accessibilityLabel={copy.moreOptions}
+            accessibilityRole="button"
+            onPress={openMenu}
+            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
             <Text style={styles.headerIcon}>…</Text>
           </Pressable>
         </View>
@@ -105,28 +148,40 @@ export default function WorkoutTemplateDetailScreen() {
 
       <ScrollView
         contentInsetAdjustmentBehavior="never"
-        contentContainerStyle={[styles.content, { minHeight: viewportHeight - insets.top, paddingBottom: insets.bottom + 116 }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            minHeight: viewportHeight - insets.top,
+            paddingBottom: insets.bottom + 116,
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <Text selectable style={styles.title}>
-            {workout.title}
+            {displayTitle}
           </Text>
 
           <View style={styles.exerciseList}>
             {workout.exercises.map((exercise, index) => {
               const plan = parsedPlan.exercises[index];
+              const targetSets = plan?.targetSets ?? 3;
               return (
                 <View key={exercise.id} style={styles.exerciseRow}>
                   <View style={styles.exerciseThumb}>
-                    <Text style={styles.exerciseThumbLabel}>{exercise.name.slice(0, 1).toUpperCase()}</Text>
+                    <Text style={styles.exerciseThumbLabel}>
+                      {exercise.name.slice(0, 1).toUpperCase()}
+                    </Text>
                   </View>
                   <View style={styles.exerciseCopy}>
                     <Text selectable style={styles.exerciseTitle}>
                       {exercise.name}
                     </Text>
                     <Text selectable style={styles.exerciseMeta}>
-                      {plan?.targetSets ?? 3} Sets
+                      {copy.setCount(
+                        targetSets,
+                        formatNumber(targetSets, { maximumFractionDigits: 0 }),
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -138,8 +193,13 @@ export default function WorkoutTemplateDetailScreen() {
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
         <View style={styles.container}>
-          <Pressable onPress={startWorkout} style={({ pressed }) => [styles.footerButton, pressed && styles.pressed]}>
-            <Text style={styles.footerButtonLabel}>Start Workout</Text>
+          <Pressable
+            accessibilityHint={copy.startWorkoutHint}
+            accessibilityLabel={copy.startWorkout}
+            accessibilityRole="button"
+            onPress={startWorkout}
+            style={({ pressed }) => [styles.footerButton, pressed && styles.pressed]}>
+            <Text style={styles.footerButtonLabel}>{copy.startWorkout}</Text>
           </Pressable>
         </View>
       </View>

@@ -118,7 +118,8 @@ describe('navigation repair and UX cleanup 3.0', () => {
     const weightEntry = readSource('src/app/weight-entry.tsx');
 
     expect(workouts).toContain("t('workouts.addProgram')");
-    expect(template).toContain('Start Workout');
+    expect(template).toContain('startWorkoutSession(workout)');
+    expect(template).toContain('copy.startWorkout');
     expect(program).toContain('Add routine to program');
     expect(progress).toContain("router.push('/weight-entry')");
     expect(profile).toContain("router.push('/settings')");
