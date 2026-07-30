@@ -23,11 +23,11 @@ describe('workout session redesign', () => {
     const sessionSection = readSource('src/features/workouts/components/session/SessionExerciseSection.tsx');
     const sessionUi = [source, sessionHeader, sessionTable, sessionSection].join('\n');
 
-    expect(sessionUi).toContain('Finish');
-    expect(sessionUi).toContain('Add set');
-    expect(sessionUi).toContain('Previous');
-    expect(sessionUi).toContain('kg');
-    expect(sessionUi).toContain('Reps');
+    expect(sessionHeader).toContain("t('workouts.session.finish')");
+    expect(sessionSection).toContain("t('workouts.session.addSet')");
+    expect(sessionTable).toContain("t('workouts.session.previous')");
+    expect(sessionTable).toContain('weightUnit');
+    expect(sessionTable).toContain("t('workouts.session.reps')");
     expect(sessionUi).toContain('✓');
     expect(source).not.toContain('Exercise X of Y');
     expect(source).not.toContain('WorkoutSessionExerciseNavigator');

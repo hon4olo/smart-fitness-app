@@ -32,12 +32,14 @@ import {
   buildVisibleSessionExercises,
   buildWorkoutSessionLiveSummary,
 } from '@/features/workouts/workoutSessionScreenViewModel';
+import { getWorkoutsHubWorkoutTitle } from '@/features/workouts/workoutsHubLocalization';
 import {
   getActiveWorkoutSessionDraft,
   getWorkoutTemplateById,
   hydrateActiveWorkoutSessionDraft,
   parseWorkoutPlanDescription,
 } from '@/lib/workouts';
+import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { WorkoutRpe } from '@/types';
 
@@ -55,6 +57,7 @@ export default function WorkoutSessionScreen() {
   const workoutId = Array.isArray(params.workoutId) ? params.workoutId[0] : params.workoutId;
   const { workouts, exercises, isRestoringState, workoutSessions } = useAppContext();
   const { colors } = useAppTheme();
+  const { t } = useLocalization();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [bootstrappedDraft, setBootstrappedDraft] = useState<
@@ -346,6 +349,11 @@ export default function WorkoutSessionScreen() {
 
   const { completedReps, completedSets, completedVolume, rpeSet, rpeSetLabel } =
     buildWorkoutSessionLiveSummary(draft, rpeSetId);
+  const displayWorkoutTitle = isEmptyWorkout
+    ? t('workouts.session.emptyWorkout')
+    : workout
+      ? getWorkoutsHubWorkoutTitle(t, workout)
+      : draft.workoutTitle;
   const openAddExercises = () => router.push('/workout-session/exercises');
   const openTestGif = () => router.push('/exercises/direct-gif-test');
 
@@ -383,6 +391,7 @@ export default function WorkoutSessionScreen() {
         styles={styles}
         visibleExercises={visibleExercises}
         workoutSessions={workoutSessions}
+        workoutTitle={displayWorkoutTitle}
       />
 
       <WorkoutSessionModalLayer
@@ -419,7 +428,7 @@ export default function WorkoutSessionScreen() {
         styles={styles}
         trackRpeEnabled={trackRpeEnabled}
         workoutOverflowOpen={workoutOverflowOpen}
-        workoutTitle={draft.workoutTitle}
+        workoutTitle={displayWorkoutTitle}
       />
     </View>
   );

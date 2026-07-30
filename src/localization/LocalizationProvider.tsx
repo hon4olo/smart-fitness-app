@@ -14,6 +14,7 @@ import {
   type MessageKey,
   type SupportedLocale,
 } from './messages';
+import { selectPluralForm } from './pluralization';
 
 export const LANGUAGE_PREFERENCE_STORAGE_KEY = '@smart_fitness_language_preference';
 
@@ -46,6 +47,9 @@ export const translate = (
   );
 };
 
+type PluralMessageBaseKey<Key extends MessageKey = MessageKey> =
+  Key extends `${infer Base}.one` ? Base : never;
+
 type LocalizationContextValue = {
   locale: SupportedLocale;
   languagePreference: LanguagePreference;
@@ -53,6 +57,7 @@ type LocalizationContextValue = {
   t: (key: MessageKey, values?: Record<string, string | number>) => string;
   formatDate: (value: Date | string | number, options?: Intl.DateTimeFormatOptions) => string;
   formatNumber: (value: number, options?: Intl.NumberFormatOptions) => string;
+  formatPlural: (baseKey: PluralMessageBaseKey, count: number) => string;
 };
 
 const LocalizationContext = createContext<LocalizationContextValue | null>(null);
@@ -102,6 +107,16 @@ export function LocalizationProvider({ children }: PropsWithChildren) {
         new Intl.DateTimeFormat(localeTag[locale], options).format(new Date(input)),
       formatNumber: (input, options) =>
         new Intl.NumberFormat(localeTag[locale], options).format(input),
+      formatPlural: (baseKey, count) => {
+        const key = selectPluralForm(locale, count, {
+          one: `${baseKey}.one`,
+          few: `${baseKey}.few`,
+          many: `${baseKey}.many`,
+          other: `${baseKey}.other`,
+        }) as MessageKey;
+        const localizedCount = new Intl.NumberFormat(localeTag[locale]).format(count);
+        return translate(locale, key, { count: localizedCount });
+      },
     }),
     [languagePreference, locale],
   );

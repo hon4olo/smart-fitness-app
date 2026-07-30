@@ -2,8 +2,10 @@ import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
-import type { WorkoutRpe } from '@/types';
+import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import type { WorkoutRpe } from '@/types';
+import { useUnitPreferences } from '@/units';
 
 import { SESSION_TABLE_COLUMNS, SESSION_TABLE_GAPS, SESSION_TABLE_TOTAL_WIDTH } from './sessionTableLayout';
 
@@ -35,19 +37,26 @@ export const SessionSetRow = memo(function SessionSetRow({
   previousLabel,
 }: SessionSetRowProps) {
   const { colors } = useAppTheme();
+  const { formatNumber, t } = useLocalization();
+  const { weight } = useUnitPreferences();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isDark = colors.background === Colors.dark.background;
+  const setLabel = formatNumber(index + 1, { maximumFractionDigits: 0 });
 
   return (
     <View style={styles.rowWrap}>
       <View style={[styles.row, completed && (isDark ? styles.rowCompletedDark : styles.rowCompletedLight)]}>
         <Text selectable style={[styles.cell, styles.colSet]}>
-          {index + 1}
+          {setLabel}
         </Text>
         <Text selectable numberOfLines={1} style={[styles.cell, styles.previousCell, styles.colPrevious]}>
           {previousLabel}
         </Text>
         <TextInput
+          accessibilityLabel={t('workouts.session.weightInput', {
+            set: setLabel,
+            unit: weight,
+          })}
           autoCapitalize="none"
           autoCorrect={false}
           blurOnSubmit
@@ -63,6 +72,7 @@ export const SessionSetRow = memo(function SessionSetRow({
         />
         <View style={[styles.repsCell, styles.colReps]}>
           <TextInput
+            accessibilityLabel={t('workouts.session.repsInput', { set: setLabel })}
             autoCapitalize="none"
             autoCorrect={false}
             blurOnSubmit
@@ -77,17 +87,33 @@ export const SessionSetRow = memo(function SessionSetRow({
             onSubmitEditing={onCommit}
           />
           {completed && actualRpe !== undefined ? (
-            <Pressable accessibilityRole="button" hitSlop={8} onPress={onEditRpe} style={({ pressed }) => [styles.rpeBadge, pressed && styles.pressed]}>
+            <Pressable
+              accessibilityLabel={t('workouts.session.editRpe', { set: setLabel })}
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={onEditRpe}
+              style={({ pressed }) => [styles.rpeBadge, pressed && styles.pressed]}>
               <Text style={styles.rpeBadgeLabel}>{actualRpe}</Text>
             </Pressable>
           ) : null}
         </View>
         <View style={[styles.completionCell, styles.colCompletion]}>
           <Pressable
-            accessibilityRole="button"
+            accessibilityLabel={t(
+              completed
+                ? 'workouts.session.markSetIncomplete'
+                : 'workouts.session.markSetComplete',
+              { set: setLabel },
+            )}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: completed }}
             onLongPress={actualRpe !== undefined ? onEditRpe : onLongPress}
             onPress={onToggle}
-            style={({ pressed }) => [styles.iconCell, completed && (isDark ? styles.iconCellCompletedDark : styles.iconCellCompletedLight), pressed && styles.pressed]}>
+            style={({ pressed }) => [
+              styles.iconCell,
+              completed && (isDark ? styles.iconCellCompletedDark : styles.iconCellCompletedLight),
+              pressed && styles.pressed,
+            ]}>
             <Text style={[styles.checkLabel, completed && styles.checkLabelCompleted]}>✓</Text>
           </Pressable>
         </View>

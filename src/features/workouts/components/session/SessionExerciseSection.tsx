@@ -2,9 +2,10 @@ import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { WorkoutSet } from '@/context/AppContext';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { formatWeightValue, useUnitPreferences } from '@/units';
 
 import { SessionSetTable } from './SessionSetTable';
 import type { SessionDraftInputs, SessionExercise } from './types';
@@ -52,26 +53,40 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
   previousSets,
 }: SessionExerciseSectionProps) {
   const { colors } = useAppTheme();
-  const { t } = useLocalization();
+  const { formatNumber, formatPlural, t } = useLocalization();
+  const { weight: weightUnit } = useUnitPreferences();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const plannedSetCount = Math.max(exercise.targetSets ?? 0, exerciseSets.length);
   const collapsedRows = exerciseSets.length > 0
     ? exerciseSets.map((set, index) => ({
         completed: set.completed !== false,
         id: set.id,
-        indexLabel: `${index + 1}`,
-        valueLabel: `${set.weight > 0 ? `${set.weight} kg` : '- kg'}  ·  ${set.reps > 0 ? `${set.reps} Reps` : '- Reps'}`,
+        indexLabel: formatNumber(index + 1, { maximumFractionDigits: 0 }),
+        valueLabel: `${set.weight > 0 ? `${formatWeightValue(set.weight, weightUnit)} ${weightUnit}` : `— ${weightUnit}`}  ·  ${set.reps > 0 ? formatPlural('workouts.session.repCount', set.reps) : `— ${t('workouts.session.reps')}`}`,
       }))
     : Array.from({ length: plannedSetCount }, (_, index) => ({
         completed: false,
         id: `${exercise.id}-planned-${index}`,
-        indexLabel: `${index + 1}`,
-        valueLabel: '- kg  ·  - Reps',
+        indexLabel: formatNumber(index + 1, { maximumFractionDigits: 0 }),
+        valueLabel: `— ${weightUnit}  ·  — ${t('workouts.session.reps')}`,
       }));
+  const expandLabel = t(
+    expanded ? 'workouts.session.collapseExercise' : 'workouts.session.expandExercise',
+    { exercise: exercise.name },
+  );
 
   return (
     <View style={styles.section}>
-      <Pressable onPress={() => onToggleExpanded(exercise.id)} style={({ pressed }) => [styles.header, expanded && styles.headerExpanded, pressed && styles.pressed]}>
+      <Pressable
+        accessibilityLabel={expandLabel}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        onPress={() => onToggleExpanded(exercise.id)}
+        style={({ pressed }) => [
+          styles.header,
+          expanded && styles.headerExpanded,
+          pressed && styles.pressed,
+        ]}>
         <View style={styles.exerciseThumb}>
           <Text style={styles.exerciseThumbLabel}>{exercise.name.slice(0, 1).toUpperCase()}</Text>
           <Text style={styles.exerciseHelp}>?</Text>
@@ -102,15 +117,35 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
             )
           ) : null}
         </View>
-        <Pressable accessibilityRole="button" hitSlop={12} onPress={() => onLongPressExercise(exercise.id, exercise.name)} style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}>
+        <Pressable
+          accessibilityLabel={t('workouts.session.exerciseActions', {
+            exercise: exercise.name,
+          })}
+          accessibilityRole="button"
+          hitSlop={12}
+          onPress={() => onLongPressExercise(exercise.id, exercise.name)}
+          style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}>
           <Text style={styles.menuLabel}>•••</Text>
         </Pressable>
       </Pressable>
 
       {expanded ? (
         <View style={styles.expanded}>
-          <TextInput placeholder={t('workouts.session.notesPlaceholder')} placeholderTextColor={colors.textMuted} style={styles.notesInput} />
-          <Pressable disabled={!onNotesPress} onPress={onNotesPress} style={({ pressed }) => [styles.restTimer, pressed && styles.pressed]}>
+          <TextInput
+            accessibilityLabel={t('workouts.session.notesForExercise', {
+              exercise: exercise.name,
+            })}
+            placeholder={t('workouts.session.notesPlaceholder')}
+            placeholderTextColor={colors.textMuted}
+            style={styles.notesInput}
+          />
+          <Pressable
+            accessibilityLabel={t('workouts.session.restTimerOff')}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !onNotesPress }}
+            disabled={!onNotesPress}
+            onPress={onNotesPress}
+            style={({ pressed }) => [styles.restTimer, pressed && styles.pressed]}>
             <Text style={styles.restTimerLabel}>{t('workouts.session.restTimerOff')}</Text>
           </Pressable>
           <SessionSetTable
@@ -128,8 +163,14 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
             targetSetCount={plannedSetCount}
             sets={exerciseSets}
           />
-          <Pressable accessibilityRole="button" onPress={() => onAddSet(exercise.id)} style={({ pressed }) => [styles.addSetButton, pressed && styles.pressed]}>
-            <Text style={styles.addSetLabel}>+ Add set</Text>
+          <Pressable
+            accessibilityLabel={t('workouts.session.addSetForExercise', {
+              exercise: exercise.name,
+            })}
+            accessibilityRole="button"
+            onPress={() => onAddSet(exercise.id)}
+            style={({ pressed }) => [styles.addSetButton, pressed && styles.pressed]}>
+            <Text style={styles.addSetLabel}>+ {t('workouts.session.addSet')}</Text>
           </Pressable>
         </View>
       ) : null}

@@ -55,9 +55,13 @@ Completed:
 - program detail loading/not-found states, stable-ID titles, favourite/delete/remove actions, unavailable-template handling, pluralized exercise counts and saved toast;
 - linked new-routine builder, exercise picker/action menu, selected `kg/lb` labels and localized accessibility;
 - program builder, reusable-workout picker, workout editor, builder card and exercise-row controls;
-- localized discard interception, stable-ID workout titles, count-dependent picker actions and builder accessibility states.
+- localized discard interception, stable-ID workout titles, count-dependent picker actions and builder accessibility states;
+- session-header metrics using selected `kg/lb` and locale-aware numbers;
+- collapsed exercise previews with localized repetitions, selected units and Add Set controls;
+- semantic set-input, RPE and completion accessibility states;
+- display-only localization for empty and built-in workout titles without changing persisted draft values.
 
-Program/routine details were completed in PR #228. Builder/picker/editor localization is implemented in PR #229 with source-contract coverage and must merge only from an exact-green Mobile CI head.
+Program/routine details merged in PR #228. Builder/picker/editor localization merged in PR #229. Session-preview boundaries are implemented in PR #230 and must merge only from an exact-green Mobile CI head.
 
 ### Progress
 
@@ -109,33 +113,38 @@ Completed and merged in PR #226:
 
 ## Current next task
 
-### Secondary Workouts — remaining preview and Safety/session boundaries
+### Secondary Progress — measurement and training analytics details
 
-Run a repository-backed audit and implement the next linked slice covering any remaining workout preview, discard, validation, readiness or Safety/session-preview surfaces not already behind typed copy and locale/unit boundaries.
+Run a repository-backed audit and implement the first real linked slice across secondary Progress surfaces, prioritizing:
 
-The slice must include the directly rendered components and source-contract tests required to remove:
+- measurement-detail screens and editors;
+- exercise-progress details;
+- workout-volume details;
+- secondary charts, summaries and filters that bypass the central locale or unit boundary.
 
-- remaining hard-coded user controls, confirmations and accessibility labels;
-- fixed `kg`, `Reps`, `Set` or `Previous` presentation outside selected-unit boundaries;
-- built-in workout/program titles that bypass stable-ID localization;
-- raw validation, readiness or Safety status codes/messages;
-- obsolete tests that assert literal English instead of semantic behavior.
+The selected slice must remove directly rendered:
+
+- direct `Intl` or `toLocaleString`;
+- fixed `kg`, `cm` or English date/count presentation;
+- hard-coded controls, empty/error states and accessibility labels;
+- visible internal statuses or enum values;
+- tests asserting literal English instead of semantic behavior.
 
 Must preserve:
 
-- active-session draft lifecycle and completed-session history;
-- workout/template/program/exercise IDs and ordering;
-- save, discard, start, finish and navigation contracts;
-- readiness/Safety fail-closed behavior and explicit user confirmation;
-- canonical persisted values and sync schemas.
+- measurement, workout-session and exercise IDs;
+- canonical `kg`/`cm` persistence and conversion back from selected display units;
+- chart ranges, aggregation and ordering;
+- add/edit/delete and navigation contracts;
+- sync schemas, revision behavior and completed workout history.
 
-If that audit finds no remaining production surface in this category, advance directly to Secondary Progress rather than creating a no-op PR.
+If one category has no remaining production issue, continue directly to the next category rather than creating a no-op PR.
 
 ## Remaining source work
 
-### Secondary Progress
+### Secondary Progress after the first slice
 
-Audit/localize measurement details, exercise-progress details, workout-volume details and other secondary analytics outside established locale/unit boundaries.
+Continue through the remaining measurement, exercise-progress, workout-volume and analytics surfaces until all established locale/unit boundaries are consistently applied.
 
 ### Remaining Coach work
 
