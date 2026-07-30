@@ -3,25 +3,12 @@ import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { AuthProvider } from '@/auth';
 import { defaultState as defaultAppState } from '@/data/defaults';
 import { getLastWorkoutSession as getLastWorkoutSessionFromState } from '@/lib/appState';
-import { upsertWorkoutSessionById } from '@/lib/workouts';
 import type {
   AppContextType,
   AppState,
   BodyMeasurement,
-  Exercise,
-  FoodEntry,
-  MealTemplate,
-  MealType,
-  NutritionState,
-  NutritionTargets,
   ProfileGoalType,
-  ProfileState,
   ProfileTrainingExperience,
-  TrainingProgram,
-  WeightEntry,
-  Workout,
-  WorkoutSession,
-  WorkoutSet,
 } from '@/types';
 
 import { SyncProvider } from './SyncContext';
@@ -39,17 +26,7 @@ import { useAppInfrastructure } from './appContext/useAppInfrastructure';
 import { useAppMutationQueue } from './appContext/useAppMutationQueue';
 import { useNutritionStateActions } from './appContext/useNutritionStateActions';
 import { useWeightHistoryActions } from './appContext/useWeightHistoryActions';
-import {
-  addWorkoutTemplateToState,
-  deleteCustomExerciseFromState,
-  deleteCustomWorkoutTemplateFromState,
-  deleteTrainingProgramFromState,
-  deleteWorkoutSessionFromState,
-  saveTrainingProgramToState,
-  toggleTrainingProgramFavoriteInState,
-  updateCustomWorkoutTemplateInState,
-  updateWorkoutSessionPreservingImmutableFields,
-} from './appContext/workoutActions';
+import { useWorkoutStateActions } from './appContext/useWorkoutStateActions';
 
 export type {
   AppContextType,
@@ -110,132 +87,19 @@ export function AppProvider({ children }: PropsWithChildren) {
     setState,
     weightSyncMetadataStore,
   });
-
-  const addExercise = useCallback(
-    (exercise: {
-      id: string;
-      name: string;
-      muscleGroup?: string;
-      isCustom: boolean;
-      createdAt: string;
-    }) => {
-      setState((currentState) => {
-        const nextState = {
-          ...currentState,
-          exercises: [
-            ...currentState.exercises,
-            {
-              ...exercise,
-              isCustom: true,
-              createdAt: exercise.createdAt ?? new Date().toISOString(),
-            },
-          ],
-        };
-        scheduleStateMutation({ label: 'Save custom exercise', nextState });
-        return nextState;
-      });
-    },
-    [scheduleStateMutation],
-  );
-
-  const addWorkoutTemplate = useCallback(
-    (template: {
-      id: string;
-      title: string;
-      description?: string;
-      exercises: string[];
-      createdAt: string;
-    }) => {
-      setState((currentState) => {
-        const nextState = addWorkoutTemplateToState(currentState, template);
-        scheduleStateMutation({ label: 'Save workout template', nextState });
-        return nextState;
-      });
-    },
-    [scheduleStateMutation],
-  );
-
-  const updateWorkoutTemplate = useCallback(
-    (
-      templateId: string,
-      updatedTemplate: { title: string; description?: string; exercises: string[] },
-    ) => {
-      setState((currentState) => {
-        const nextState = updateCustomWorkoutTemplateInState(
-          currentState,
-          templateId,
-          updatedTemplate,
-          new Date().toISOString(),
-        );
-        scheduleStateMutation({ label: 'Update workout template', nextState });
-        return nextState;
-      });
-    },
-    [scheduleStateMutation],
-  );
-
-  const saveTrainingProgram = useCallback(
-    (program: TrainingProgram) => {
-      setState((currentState) => {
-        const nextState = saveTrainingProgramToState(
-          currentState,
-          program,
-          new Date().toISOString(),
-        );
-        scheduleStateMutation({ label: 'Save training program', nextState });
-        return nextState;
-      });
-    },
-    [scheduleStateMutation],
-  );
-
-  const deleteTrainingProgram = useCallback(
-    (programId: string) => {
-      setState((currentState) => {
-        const nextState = deleteTrainingProgramFromState(currentState, programId);
-        scheduleStateMutation({ label: 'Delete training program', nextState });
-        return nextState;
-      });
-    },
-    [scheduleStateMutation],
-  );
-
-  const toggleTrainingProgramFavorite = useCallback(
-    (programId: string) => {
-      setState((currentState) => {
-        const nextState = toggleTrainingProgramFavoriteInState(
-          currentState,
-          programId,
-          new Date().toISOString(),
-        );
-        scheduleStateMutation({ label: 'Update training program favorite', nextState });
-        return nextState;
-      });
-    },
-    [scheduleStateMutation],
-  );
-
-  const deleteWorkoutTemplate = useCallback(
-    (templateId: string) => {
-      setState((currentState) => {
-        const nextState = deleteCustomWorkoutTemplateFromState(currentState, templateId);
-        scheduleStateMutation({ label: 'Delete workout template', nextState });
-        return nextState;
-      });
-    },
-    [scheduleStateMutation],
-  );
-
-  const deleteExercise = useCallback(
-    (exerciseId: string) => {
-      setState((currentState) => {
-        const nextState = deleteCustomExerciseFromState(currentState, exerciseId);
-        scheduleStateMutation({ label: 'Delete custom exercise', nextState });
-        return nextState;
-      });
-    },
-    [scheduleStateMutation],
-  );
+  const {
+    addExercise,
+    addWorkoutTemplate,
+    deleteExercise,
+    deleteTrainingProgram,
+    deleteWorkoutSession,
+    deleteWorkoutTemplate,
+    saveTrainingProgram,
+    saveWorkoutSession,
+    toggleTrainingProgramFavorite,
+    updateWorkoutSession,
+    updateWorkoutTemplate,
+  } = useWorkoutStateActions({ scheduleStateMutation, setState });
 
   const updateProfileGoals = useCallback(
     (goals: {
@@ -286,20 +150,6 @@ export function AppProvider({ children }: PropsWithChildren) {
     [scheduleStateMutation],
   );
 
-  const saveWorkoutSession = useCallback(
-    (session: WorkoutSession) => {
-      setState((currentState) => {
-        const nextState = {
-          ...currentState,
-          workoutSessions: upsertWorkoutSessionById(currentState.workoutSessions, session),
-        };
-        scheduleStateMutation({ label: 'Save workout session', nextState });
-        return nextState;
-      });
-    },
-    [scheduleStateMutation],
-  );
-
   const completeOnboarding = useCallback(
     (setup: {
       age: number;
@@ -339,32 +189,6 @@ export function AppProvider({ children }: PropsWithChildren) {
       return nextState;
     });
   }, [scheduleStateMutation]);
-
-  const deleteWorkoutSession = useCallback(
-    (sessionId: string) => {
-      setState((currentState) => {
-        const nextState = deleteWorkoutSessionFromState(currentState, sessionId);
-        scheduleStateMutation({ label: 'Delete workout session', nextState });
-        return nextState;
-      });
-    },
-    [scheduleStateMutation],
-  );
-
-  const updateWorkoutSession = useCallback(
-    (sessionId: string, updatedSession: WorkoutSession) => {
-      setState((currentState) => {
-        const nextState = updateWorkoutSessionPreservingImmutableFields(
-          currentState,
-          sessionId,
-          updatedSession,
-        );
-        scheduleStateMutation({ label: 'Update workout session', nextState });
-        return nextState;
-      });
-    },
-    [scheduleStateMutation],
-  );
 
   const replaceState = useCallback(
     (nextState: AppState) => {
