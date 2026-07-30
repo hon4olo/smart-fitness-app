@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 
 export const createWorkoutSafetyGateStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
@@ -71,7 +71,7 @@ export const createWorkoutSafetyGateStyles = (colors: typeof Colors.light) =>
     },
     container: {
       gap: Spacing.four,
-      maxWidth: 760,
+      maxWidth: MaxContentWidth,
       width: '100%',
     },
     content: {
