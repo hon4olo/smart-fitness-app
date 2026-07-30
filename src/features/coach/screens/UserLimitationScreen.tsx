@@ -15,6 +15,7 @@ import {
 } from '@/context/appContext/safetyRecoveryActions';
 import { createUuid } from '@/lib/ids';
 import { useLocalization } from '@/localization';
+import { getBoundedSyncStatusLabel } from '@/localization/statusPresentation';
 import {
   getUserLimitationsCopy,
   type UserLimitationsCopy,
@@ -77,7 +78,7 @@ const localizeValidationMessage = (message: string, copy: UserLimitationsCopy) =
     'Select at least one movement pattern to avoid.': copy.validation.movement,
     'Resolved date cannot be before the onset date.': copy.validation.resolvedBeforeOnset,
   };
-  return messages[message] ?? message;
+  return messages[message] ?? copy.localValidationFailed;
 };
 
 export default function UserLimitationScreen() {
@@ -95,7 +96,7 @@ export default function UserLimitationScreen() {
   const [message, setMessage] = useState<string | null>(null);
 
   const activeCount = app.userLimitations.filter((item) => item.status === 'active').length;
-  const syncStatusLabel = copy.syncLabels[String(syncStatus)] ?? String(syncStatus);
+  const syncStatusLabel = getBoundedSyncStatusLabel(locale, String(syncStatus));
 
   useEffect(() => {
     if (!pendingChange) return;
@@ -257,39 +258,11 @@ export default function UserLimitationScreen() {
             <Text style={themedStyles.cardTitle}>{copy.addLimitation}</Text>
             <Text style={themedStyles.bodyText}>{copy.addExplanation}</Text>
 
-            <ChoiceGrid
-              label={copy.type}
-              onChange={(value) => updateDraft('kind', value)}
-              options={options.kinds}
-              value={draft.kind}
-            />
-            <ChoiceGrid
-              columns={3}
-              label={copy.bodyRegion}
-              onChange={(value) => updateDraft('bodyRegion', value)}
-              options={options.bodyRegions}
-              value={draft.bodyRegion}
-            />
-            <ChoiceGrid
-              columns={3}
-              label={copy.affectedSide}
-              onChange={(value) => updateDraft('side', value)}
-              options={options.sides}
-              value={draft.side}
-            />
-            <ChoiceGrid
-              columns={3}
-              label={copy.severity}
-              onChange={(value) => updateDraft('severity', value)}
-              options={options.severities}
-              value={draft.severity}
-            />
-            <ChoiceGrid
-              label={copy.trainingImpact}
-              onChange={(value) => updateDraft('trainingImpact', value)}
-              options={options.impacts}
-              value={draft.trainingImpact}
-            />
+            <ChoiceGrid label={copy.type} onChange={(value) => updateDraft('kind', value)} options={options.kinds} value={draft.kind} />
+            <ChoiceGrid columns={3} label={copy.bodyRegion} onChange={(value) => updateDraft('bodyRegion', value)} options={options.bodyRegions} value={draft.bodyRegion} />
+            <ChoiceGrid columns={3} label={copy.affectedSide} onChange={(value) => updateDraft('side', value)} options={options.sides} value={draft.side} />
+            <ChoiceGrid columns={3} label={copy.severity} onChange={(value) => updateDraft('severity', value)} options={options.severities} value={draft.severity} />
+            <ChoiceGrid label={copy.trainingImpact} onChange={(value) => updateDraft('trainingImpact', value)} options={options.impacts} value={draft.trainingImpact} />
             <MovementGrid onToggle={toggleMovement} values={draft.movementPatterns} />
 
             <View style={styles.fieldGroup}>

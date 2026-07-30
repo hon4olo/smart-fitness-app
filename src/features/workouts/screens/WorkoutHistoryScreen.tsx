@@ -6,12 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppCard } from '@/components/ui/AppCard';
 import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import { useLocalization } from '@/localization';
+import { getWorkoutHistoryCopy } from '@/localization/workoutHistoryCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { weightFromKg, useUnitPreferences } from '@/units';
 import {
   buildWorkoutHistoryProgramOptions,
   filterWorkoutHistory,
-  formatWorkoutHistoryDateRange,
+  getWorkoutDurationMinutes,
   parseWorkoutHistoryRouteFilters,
   type WorkoutHistoryDateRange,
   type WorkoutHistoryPeriodFilter,
@@ -25,23 +27,6 @@ import {
   createFilterRowStyles,
   createWorkoutHistoryScreenStyles,
 } from './workoutHistoryScreen.styles';
-
-const PERIOD_OPTIONS: Array<{ id: WorkoutHistoryPeriodFilter; label: string }> = [
-  { id: 'all', label: 'All time' },
-  { id: '7d', label: '7 days' },
-  { id: '30d', label: '30 days' },
-  { id: '90d', label: '90 days' },
-];
-
-const SAFETY_OPTIONS: Array<{ id: WorkoutHistorySafetyFilter; label: string }> = [
-  { id: 'all', label: 'All statuses' },
-  { id: 'ready', label: 'Ready' },
-  { id: 'modify', label: 'Modify' },
-  { id: 'blocked', label: 'Blocked' },
-  { id: 'needs_input', label: 'Needs input' },
-  { id: 'missing_or_stale', label: 'Missing / stale' },
-  { id: 'no_context', label: 'No context' },
-];
 
 const getToneColor = (
   tone: WorkoutHistorySafetyTone,
@@ -110,6 +95,8 @@ export default function WorkoutHistoryScreen() {
     [params.from, params.safety, params.to],
   );
   const { trainingPrograms, workoutSessions } = useAppContext();
+  const { formatDate, formatNumber, locale } = useLocalization();
+  const copy = getWorkoutHistoryCopy(locale);
   const { weight: weightUnit } = useUnitPreferences();
   const { colors } = useAppTheme();
   const styles = useMemo(() => createWorkoutHistoryScreenStyles(colors), [colors]);
@@ -126,9 +113,39 @@ export default function WorkoutHistoryScreen() {
     setSafety(routeFilters.safety);
   }, [routeFilters.dateRange?.endAt, routeFilters.dateRange?.startAt, routeFilters.safety]);
 
+  const periodOptions = useMemo<Array<{ id: WorkoutHistoryPeriodFilter; label: string }>>(
+    () => [
+      { id: 'all', label: copy.allTime },
+      { id: '7d', label: copy.last7Days },
+      { id: '30d', label: copy.last30Days },
+      { id: '90d', label: copy.last90Days },
+    ],
+    [copy],
+  );
+  const safetyOptions = useMemo<Array<{ id: WorkoutHistorySafetyFilter; label: string }>>(
+    () => [
+      { id: 'all', label: copy.allStatuses },
+      { id: 'ready', label: copy.safetyLabel('ready') },
+      { id: 'modify', label: copy.safetyLabel('modify') },
+      { id: 'blocked', label: copy.safetyLabel('blocked') },
+      { id: 'needs_input', label: copy.safetyLabel('needs_input') },
+      { id: 'missing_or_stale', label: copy.missingOrStale },
+      { id: 'no_context', label: copy.noContext },
+    ],
+    [copy],
+  );
   const programOptions = useMemo(
-    () => buildWorkoutHistoryProgramOptions(trainingPrograms),
-    [trainingPrograms],
+    () =>
+      buildWorkoutHistoryProgramOptions(trainingPrograms).map((option) => ({
+        ...option,
+        label:
+          option.id === 'all'
+            ? copy.allPrograms
+            : option.id === 'unassigned'
+              ? copy.unassigned
+              : option.label,
+      })),
+    [copy.allPrograms, copy.unassigned, trainingPrograms],
   );
   const history = useMemo(
     () =>
@@ -143,7 +160,19 @@ export default function WorkoutHistoryScreen() {
   const reviewedCount = history.filter((item) => item.hasSafetyContext).length;
   const filtersActive =
     dateRange !== null || period !== 'all' || programId !== 'all' || safety !== 'all';
-  const dateRangeLabel = dateRange ? formatWorkoutHistoryDateRange(dateRange) : null;
+  const dateRangeLabel = dateRange
+    ? `${formatDate(dateRange.startAt, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      })}–${formatDate(Math.max(dateRange.startAt, dateRange.endAt - 1), {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      })}`
+    : null;
 
   const clearFilters = () => {
     setDateRange(null);
@@ -151,23 +180,35 @@ export default function WorkoutHistoryScreen() {
     setProgramId('all');
     setSafety('all');
   };
-
   const formatVolume = (volumeKg: number) =>
-    `${Math.round(weightFromKg(volumeKg, weightUnit)).toLocaleString()} ${weightUnit}`;
+    `${formatNumber(weightFromKg(volumeKg, weightUnit), {
+      maximumFractionDigits: 0,
+    })} ${weightUnit}`;
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) {
+      return copy.durationMinutes(formatNumber(minutes, { maximumFractionDigits: 0 }));
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    return copy.durationHours(
+      formatNumber(hours, { maximumFractionDigits: 0 }),
+      remainder > 0 ? formatNumber(remainder, { maximumFractionDigits: 0 }) : null,
+    );
+  };
 
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
-          accessibilityLabel="Back"
+          accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>Workout history</Text>
-          <Text style={styles.subtitle}>Completed sessions and recorded pre-workout context</Text>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.subtitle}>{copy.subtitle}</Text>
         </View>
       </View>
 
@@ -181,30 +222,34 @@ export default function WorkoutHistoryScreen() {
           <AppCard>
             <View style={styles.summaryRow}>
               <View style={styles.summaryCell}>
-                <Text style={styles.summaryValue}>{history.length}</Text>
+                <Text style={styles.summaryValue}>
+                  {formatNumber(history.length, { maximumFractionDigits: 0 })}
+                </Text>
                 <Text style={styles.summaryLabel}>
-                  {filtersActive ? `Showing of ${workoutSessions.length}` : 'Completed workouts'}
+                  {filtersActive
+                    ? copy.showingOf(
+                        formatNumber(history.length, { maximumFractionDigits: 0 }),
+                        formatNumber(workoutSessions.length, { maximumFractionDigits: 0 }),
+                      )
+                    : copy.completedWorkouts}
                 </Text>
               </View>
               <View style={styles.summaryCell}>
-                <Text style={styles.summaryValue}>{reviewedCount}</Text>
-                <Text style={styles.summaryLabel}>With Safety context</Text>
+                <Text style={styles.summaryValue}>
+                  {formatNumber(reviewedCount, { maximumFractionDigits: 0 })}
+                </Text>
+                <Text style={styles.summaryLabel}>{copy.withSafetyContext}</Text>
               </View>
             </View>
-            <Text style={styles.helperText}>
-              Safety & Recovery data here is a historical record of what was displayed before each
-              workout. It is not a current readiness recommendation.
-            </Text>
+            <Text style={styles.helperText}>{copy.historicalContextNote}</Text>
           </AppCard>
 
           <AppCard style={styles.filtersCard}>
             <View style={styles.filtersHeader}>
               <View style={styles.filtersHeaderCopy}>
-                <Text style={styles.cardTitle}>Filters</Text>
+                <Text style={styles.cardTitle}>{copy.filters}</Text>
                 <Text style={styles.helperText}>
-                  {dateRangeLabel
-                    ? `Selected weekly range · ${dateRangeLabel}`
-                    : 'Period, program and recorded Safety status'}
+                  {dateRangeLabel ? copy.selectedWeeklyRange(dateRangeLabel) : copy.filterHint}
                 </Text>
               </View>
               {filtersActive ? (
@@ -212,20 +257,20 @@ export default function WorkoutHistoryScreen() {
                   accessibilityRole="button"
                   onPress={clearFilters}
                   style={({ pressed }) => [pressed && styles.pressed]}>
-                  <Text style={styles.clearLabel}>Clear</Text>
+                  <Text style={styles.clearLabel}>{copy.clear}</Text>
                 </Pressable>
               ) : null}
             </View>
 
-            <FilterRow label="Period">
+            <FilterRow label={copy.period}>
               {dateRangeLabel ? (
                 <FilterChip
-                  label={`Week · ${dateRangeLabel}`}
+                  label={`${copy.week} · ${dateRangeLabel}`}
                   onPress={() => setDateRange(null)}
                   selected
                 />
               ) : null}
-              {PERIOD_OPTIONS.map((option) => (
+              {periodOptions.map((option) => (
                 <FilterChip
                   key={option.id}
                   label={option.label}
@@ -238,7 +283,7 @@ export default function WorkoutHistoryScreen() {
               ))}
             </FilterRow>
 
-            <FilterRow label="Program">
+            <FilterRow label={copy.program}>
               {programOptions.map((option) => (
                 <FilterChip
                   key={option.id}
@@ -249,8 +294,8 @@ export default function WorkoutHistoryScreen() {
               ))}
             </FilterRow>
 
-            <FilterRow label="Safety status">
-              {SAFETY_OPTIONS.map((option) => (
+            <FilterRow label={copy.safety}>
+              {safetyOptions.map((option) => (
                 <FilterChip
                   key={option.id}
                   label={option.label}
@@ -263,81 +308,96 @@ export default function WorkoutHistoryScreen() {
 
           {workoutSessions.length === 0 ? (
             <AppCard>
-              <Text style={styles.cardTitle}>No completed workouts yet</Text>
-              <Text style={styles.bodyText}>
-                Finish and save a workout to create the first history entry.
-              </Text>
+              <Text style={styles.cardTitle}>{copy.noCompletedTitle}</Text>
+              <Text style={styles.bodyText}>{copy.noCompletedBody}</Text>
             </AppCard>
           ) : history.length === 0 ? (
             <AppCard>
-              <Text style={styles.cardTitle}>No workouts match these filters</Text>
-              <Text style={styles.bodyText}>
-                Change the period, program or Safety status to widen the result set.
-              </Text>
+              <Text style={styles.cardTitle}>{copy.noMatches}</Text>
+              <Text style={styles.bodyText}>{copy.noMatchesBody}</Text>
               <Pressable
                 accessibilityRole="button"
                 onPress={clearFilters}
                 style={({ pressed }) => [styles.resetButton, pressed && styles.pressed]}>
-                <Text style={styles.resetLabel}>Clear filters</Text>
+                <Text style={styles.resetLabel}>{copy.clearFilters}</Text>
               </Pressable>
             </AppCard>
           ) : (
             <View style={styles.list}>
-              {history.map((item) => (
-                <Pressable
-                  key={item.session.id}
-                  accessibilityHint="Opens the completed workout details"
-                  accessibilityRole="button"
-                  onPress={() =>
-                    router.push({
-                      pathname: '/workout-history/[sessionId]',
-                      params: { sessionId: item.session.id },
+              {history.map((item) => {
+                const safetyMetadata = item.session.safetyRecovery;
+                const dateLabel = Number.isFinite(Date.parse(item.session.finishedAt))
+                  ? formatDate(item.session.finishedAt, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
                     })
-                  }
-                  style={({ pressed }) => [pressed && styles.pressed]}>
-                  <AppCard style={styles.historyCard}>
-                    <View style={styles.cardHeader}>
-                      <View style={styles.cardHeaderCopy}>
-                        <Text numberOfLines={1} style={styles.cardTitle}>
-                          {item.session.workoutTitle}
+                  : copy.unknownDate;
+                return (
+                  <Pressable
+                    key={item.session.id}
+                    accessibilityLabel={copy.openSession(item.session.workoutTitle)}
+                    accessibilityHint={copy.openSessionHint}
+                    accessibilityRole="button"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/workout-history/[sessionId]',
+                        params: { sessionId: item.session.id },
+                      })
+                    }
+                    style={({ pressed }) => [pressed && styles.pressed]}>
+                    <AppCard style={styles.historyCard}>
+                      <View style={styles.cardHeader}>
+                        <View style={styles.cardHeaderCopy}>
+                          <Text numberOfLines={1} style={styles.cardTitle}>
+                            {item.session.workoutTitle}
+                          </Text>
+                          <Text style={styles.metaText}>{dateLabel}</Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.safetyBadge,
+                            { color: getToneColor(item.safetyTone, colors) },
+                          ]}>
+                          {copy.safetyHistoryLabel(
+                            safetyMetadata?.gateKind ?? null,
+                            safetyMetadata?.reviewStatus ?? null,
+                          )}
                         </Text>
-                        <Text style={styles.metaText}>{item.dateLabel}</Text>
                       </View>
-                      <Text
-                        style={[
-                          styles.safetyBadge,
-                          { color: getToneColor(item.safetyTone, colors) },
-                        ]}>
-                        {item.safetyLabel}
-                      </Text>
-                    </View>
 
-                    <View style={styles.metricsRow}>
-                      <View style={styles.metricCell}>
-                        <Text style={styles.metricValue}>{item.durationLabel}</Text>
-                        <Text style={styles.metricLabel}>Duration</Text>
+                      <View style={styles.metricsRow}>
+                        <View style={styles.metricCell}>
+                          <Text style={styles.metricValue}>
+                            {formatDuration(getWorkoutDurationMinutes(item.session))}
+                          </Text>
+                          <Text style={styles.metricLabel}>{copy.duration}</Text>
+                        </View>
+                        <View style={styles.metricCell}>
+                          <Text style={styles.metricValue}>
+                            {formatNumber(item.setCount, { maximumFractionDigits: 0 })}
+                          </Text>
+                          <Text style={styles.metricLabel}>{copy.sets(item.setCount, '')}</Text>
+                        </View>
+                        <View style={styles.metricCell}>
+                          <Text style={styles.metricValue}>
+                            {formatNumber(item.exerciseCount, { maximumFractionDigits: 0 })}
+                          </Text>
+                          <Text style={styles.metricLabel}>{copy.exercises}</Text>
+                        </View>
+                        <View style={styles.metricCell}>
+                          <Text style={styles.metricValue}>{formatVolume(item.volume)}</Text>
+                          <Text style={styles.metricLabel}>{copy.volumeLabel}</Text>
+                        </View>
                       </View>
-                      <View style={styles.metricCell}>
-                        <Text style={styles.metricValue}>{item.setCount}</Text>
-                        <Text style={styles.metricLabel}>Sets</Text>
-                      </View>
-                      <View style={styles.metricCell}>
-                        <Text style={styles.metricValue}>{item.exerciseCount}</Text>
-                        <Text style={styles.metricLabel}>Exercises</Text>
-                      </View>
-                      <View style={styles.metricCell}>
-                        <Text style={styles.metricValue}>{formatVolume(item.volume)}</Text>
-                        <Text style={styles.metricLabel}>Volume</Text>
-                      </View>
-                    </View>
 
-                    <View style={styles.openRow}>
-                      <Text style={styles.openLabel}>View workout details</Text>
-                      <Text style={styles.chevron}>›</Text>
-                    </View>
-                  </AppCard>
-                </Pressable>
-              ))}
+                      <View style={styles.openRow}>
+                        <Text style={styles.openLabel}>{copy.viewDetails}</Text>
+                        <Text style={styles.chevron}>›</Text>
+                      </View>
+                    </AppCard>
+                  </Pressable>
+                );
+              })}
             </View>
           )}
         </View>
