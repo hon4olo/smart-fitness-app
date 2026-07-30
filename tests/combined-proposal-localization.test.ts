@@ -40,28 +40,28 @@ describe('Combined proposal localization', () => {
     expect(result).not.toContain('${targets.calories} kcal');
   });
 
-  it('preserves explicit confirmations, source revisions, idempotency, and separate mutations', () => {
+  it('preserves explicit confirmation gates, idempotency, and separate API mutations', () => {
     const screen = readSource('src/features/coach/screens/CombinedCoachProposalScreen.tsx');
 
-    expect(screen).toContain('confirmCombinedEffectiveStrengthRun');
-    expect(screen).toContain('confirmCombinedNutritionRun');
-    expect(screen).toContain('getCombinedEffectiveStrengthConfirmationBlocker');
-    expect(screen).toContain('sourceRevision');
-    expect(screen).toContain("createIdempotencyKey('combined-effective-strength')");
-    expect(screen).toContain("createIdempotencyKey('combined-nutrition')");
-    expect(screen).toContain('app.upsertWorkoutTemplate');
-    expect(screen).toContain('app.setNutritionTargets');
+    expect(screen).toContain('coachApi.confirmCombinedEffectiveStrength');
+    expect(screen).toContain('coachApi.confirmCombinedNutrition');
+    expect(screen).toContain('viewModel.effectiveStrengthApplication === null');
+    expect(screen).toContain('viewModel.nutritionApplication === null');
+    expect(screen).toContain('createStrengthConfirmationKey');
+    expect(screen).toContain('createNutritionConfirmationKey');
+    expect(screen).toContain('capabilities.combined.automaticApplication === false');
   });
 
   it('keeps the fail-closed parser and does not expose raw API or issue messages', () => {
     const screen = readSource('src/features/coach/screens/CombinedCoachProposalScreen.tsx');
     const result = readSource('src/features/coach/components/CombinedCoachProposalResult.tsx');
-    const parser = readSource('src/features/coach/combinedCoachProposalViewModel.ts');
+    const viewModel = readSource('src/features/coach/combinedCoachProposalViewModel.ts');
+    const parser = readSource('src/features/coach/combinedCoachProposalParser.ts');
 
-    expect(parser).toContain('automaticApplication !== false');
-    expect(parser).toContain("run.domain !== 'combined'");
+    expect(parser).toContain('value.automaticApplication !== false');
+    expect(viewModel).toContain("run.domain !== 'combined'");
     expect(screen).not.toContain('requestError.message');
-    expect(screen).not.toContain('confirmation.message');
+    expect(screen).not.toContain('confirmationError.message');
     expect(result).not.toContain('issue.message');
     expect(result).not.toContain('viewModel.message');
     expect(screen).toContain('copy.requestFailed');
