@@ -120,7 +120,8 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(workouts).toContain("t('workouts.addProgram')");
     expect(template).toContain('startWorkoutSession(workout)');
     expect(template).toContain('copy.startWorkout');
-    expect(program).toContain('Add routine to program');
+    expect(program).toContain("pathname: '/workouts/routine/new'");
+    expect(program).toContain('copy.addRoutine');
     expect(progress).toContain("router.push('/weight-entry')");
     expect(profile).toContain("router.push('/settings')");
     expect(coach).toContain('/profile/recovery-check-in');
