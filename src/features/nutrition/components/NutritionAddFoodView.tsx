@@ -19,6 +19,8 @@ import type {
 import type { NutritionLibraryFood } from '@/features/nutrition/nutritionFoodLibrary';
 import type { createAddFoodStyles } from '@/features/nutrition/styles/addFoodStyles';
 import type { FoodProviderSearchStatus } from '@/features/nutrition/useFoodProviderSearch';
+import { useLocalization } from '@/localization';
+import { getNutritionAddFoodCopy } from '@/localization/nutritionAddFoodCopy';
 import type { FoodCatalogItem, MealTemplate } from '@/types';
 
 import { BarcodeScannerModal } from './BarcodeScannerModal';
@@ -118,6 +120,8 @@ export type NutritionAddFoodViewProps = {
 };
 
 export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
+  const { locale } = useLocalization();
+  const copy = getNutritionAddFoodCopy(locale);
   const {
     backendFoodResults,
     backendFoodSearchStatus,
@@ -189,8 +193,17 @@ export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
     topInset,
   } = props;
 
+  const formatProviderLabel = (provider: FoodItem['source']['provider']) =>
+    copy.providerLabels[provider] ?? provider;
+  const getFoodAttributionLabel = (food: Pick<FoodItem, 'attribution' | 'source'>) =>
+    food.source.provider === 'fatsecret'
+      ? copy.fatSecretAttribution
+      : food.attribution?.text ?? copy.source(formatProviderLabel(food.source.provider));
+
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.screen}>
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -200,8 +213,12 @@ export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <View style={styles.headerRow}>
-            <Pressable accessibilityLabel="Cancel" hitSlop={10} onPress={onBack} style={styles.backButton}>
-              <Text style={styles.backButtonText}>Cancel</Text>
+            <Pressable
+              accessibilityLabel={copy.cancel}
+              hitSlop={10}
+              onPress={onBack}
+              style={styles.backButton}>
+              <Text style={styles.backButtonText}>{copy.cancel}</Text>
             </Pressable>
             <View style={styles.headerCopy}>
               <Text selectable style={styles.title}>{selectedMealLabel}</Text>
@@ -211,13 +228,13 @@ export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
           </View>
 
           <SegmentedControl
-            accessibilityLabel="Food picker mode"
+            accessibilityLabel={copy.pickerMode}
             onChange={onModeChange}
             options={[
-              { label: 'Food', value: 'food' },
-              { label: 'Recent', value: 'recent' },
-              { label: 'Favorites', value: 'favorites' },
-              { label: 'Meals', value: 'meals' },
+              { label: copy.modes.food, value: 'food' },
+              { label: copy.modes.recent, value: 'recent' },
+              { label: copy.modes.favorites, value: 'favorites' },
+              { label: copy.modes.meals, value: 'meals' },
             ]}
             value={mode}
           />
@@ -230,7 +247,11 @@ export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
             <Text selectable style={styles.summaryCalories}>{selectedMealCaloriesLabel}</Text>
           </View>
 
-          {message ? <View style={styles.messageBanner}><Text selectable style={styles.messageText}>{message}</Text></View> : null}
+          {message ? (
+            <View style={styles.messageBanner}>
+              <Text selectable style={styles.messageText}>{message}</Text>
+            </View>
+          ) : null}
 
           {mode === 'food' ? (
             <FoodSearchModeSection
@@ -239,8 +260,8 @@ export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
               colors={colors}
               favoriteIds={favoriteIds}
               foodSuggestions={foodSuggestions}
-              formatProviderLabel={(provider) => provider === 'fatsecret' ? 'FatSecret' : provider === 'openfoodfacts' ? 'OpenFoodFacts' : provider === 'custom' ? 'Custom' : 'Local'}
-              getFoodAttributionLabel={(food) => food.source.provider === 'fatsecret' ? 'Food data provided by FatSecret' : food.attribution?.text ?? `Source: ${food.source.provider}`}
+              formatProviderLabel={formatProviderLabel}
+              getFoodAttributionLabel={getFoodAttributionLabel}
               onClearQuery={onClearQuery}
               onOpenCatalogFood={onOpenCatalogFood}
               onOpenFoodItem={onOpenFoodItem}
@@ -307,11 +328,21 @@ export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
           ) : null}
 
           <View style={styles.quietActionRow}>
-            <Pressable accessibilityLabel="Create food" hitSlop={10} onPress={onToggleCreateFood} style={styles.quietActionButton}>
-              <Text style={styles.quietActionText}>{createFoodOpen ? 'Hide create food' : 'Create food'}</Text>
+            <Pressable
+              accessibilityLabel={copy.createFood}
+              hitSlop={10}
+              onPress={onToggleCreateFood}
+              style={styles.quietActionButton}>
+              <Text style={styles.quietActionText}>
+                {createFoodOpen ? copy.hideCreateFood : copy.createFood}
+              </Text>
             </Pressable>
-            <Pressable accessibilityLabel="Go to meals mode" hitSlop={10} onPress={() => onModeChange('meals')} style={styles.quietActionButton}>
-              <Text style={styles.quietActionText}>Create meal</Text>
+            <Pressable
+              accessibilityLabel={copy.goToMeals}
+              hitSlop={10}
+              onPress={() => onModeChange('meals')}
+              style={styles.quietActionButton}>
+              <Text style={styles.quietActionText}>{copy.createMeal}</Text>
             </Pressable>
           </View>
 
@@ -348,7 +379,7 @@ export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
         <FoodPortionSheet
           attributionLabel={selectedDraftAttributionLabel}
           colors={colors}
-          deleteLabel="Delete entry"
+          deleteLabel={copy.deleteEntry}
           draft={selectedDraft}
           insetsBottom={bottomInset}
           macroTotalsLabel={selectedDraftMacroTotalsLabel}
