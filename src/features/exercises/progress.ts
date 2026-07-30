@@ -1,13 +1,17 @@
-import type { ProgressTrendPoint } from '@/components/progress/ProgressTrendChart';
-
 import type { ExerciseHistoryGroup } from './history';
+
+export type ExerciseProgressTrendPoint = {
+  key: string;
+  finishedAt: string;
+  value: number;
+};
 
 export type ExerciseProgressMetrics = {
   bestWeight: number;
   bestReps: number;
   totalVolume: number;
   estimatedOneRepMax: number;
-  volumeTrend: ProgressTrendPoint[];
+  volumeTrend: ExerciseProgressTrendPoint[];
 };
 
 export const calculateEstimatedOneRepMax = (weight: number, reps: number) => {
@@ -18,13 +22,15 @@ export const calculateEstimatedOneRepMax = (weight: number, reps: number) => {
   return weight * (1 + reps / 30);
 };
 
-const formatDateLabel = (value: string) =>
-  new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(value));
-
-export const calculateExerciseProgressMetrics = (historyGroups: ExerciseHistoryGroup[]): ExerciseProgressMetrics => {
+export const calculateExerciseProgressMetrics = (
+  historyGroups: ExerciseHistoryGroup[],
+): ExerciseProgressMetrics => {
   const sets = historyGroups.flatMap((group) => group.sets);
   const totalVolume = sets.reduce((total, set) => total + set.weight * set.reps, 0);
-  const estimatedOneRepMax = sets.reduce((best, set) => Math.max(best, calculateEstimatedOneRepMax(set.weight, set.reps)), 0);
+  const estimatedOneRepMax = sets.reduce(
+    (best, set) => Math.max(best, calculateEstimatedOneRepMax(set.weight, set.reps)),
+    0,
+  );
   const bestWeight = sets.reduce((best, set) => Math.max(best, set.weight), 0);
   const bestReps = sets.reduce((best, set) => Math.max(best, set.reps), 0);
 
@@ -36,15 +42,10 @@ export const calculateExerciseProgressMetrics = (historyGroups: ExerciseHistoryG
     volumeTrend: [...historyGroups]
       .reverse()
       .slice(-6)
-      .map((group) => {
-        const value = group.sets.reduce((total, set) => total + set.weight * set.reps, 0);
-
-        return {
-          key: group.sessionId,
-          label: formatDateLabel(group.finishedAt),
-          value,
-          displayValue: Math.round(value).toLocaleString(),
-        };
-      }),
+      .map((group) => ({
+        key: group.sessionId,
+        finishedAt: group.finishedAt,
+        value: group.sets.reduce((total, set) => total + set.weight * set.reps, 0),
+      })),
   };
 };
