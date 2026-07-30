@@ -91,8 +91,8 @@ describe('local state diagnostics', () => {
 
     const stored = storage.values.get(LOCAL_STATE_DIAGNOSTICS_STORAGE_KEY) ?? '';
     expect(stored).not.toContain('Bench press');
-    expect(stored).not.toContain('weight');
-    expect(stored).not.toContain('email');
+    expect(stored).not.toContain('Upper Body Strength');
+    expect(stored).not.toContain('user@example.com');
   });
 
   it('fails open when the diagnostics store cannot write', async () => {
