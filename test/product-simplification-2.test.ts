@@ -181,8 +181,11 @@ describe('product simplification 2.0', () => {
     expect(workouts).toContain("messageKey: 'workouts.tabs.startNow'");
     expect(workouts).toContain("messageKey: 'workouts.tabs.programs'");
     expect(workouts).not.toContain('Start empty workout');
-    expect(template).toContain('Start Workout');
-    expect(template).toContain('Favorite / unfavorite');
+    expect(template).toContain('startWorkoutSession(workout)');
+    expect(template).toContain('copy.startWorkout');
+    expect(template).toContain('toggleWorkoutTemplateFavorite(workout.id)');
+    expect(template).toContain('copy.addFavorite');
+    expect(template).toContain('copy.removeFavorite');
     expect(program).toContain('Add routine to program');
     expect(program).toContain('playButton');
     expect(program).not.toContain('styles.startChip');
