@@ -99,17 +99,21 @@ describe('product simplification 2.0', () => {
   });
 
   test('nutrition picker route keeps the meal-aware modes and quiet edit/delete path', () => {
-    const source = [readSource('src/app/nutrition/add-food.tsx'), readSource('src/features/nutrition/components/NutritionAddFoodView.tsx')].join('\n');
-    expect(source).toContain("label: 'Food'");
-    expect(source).toContain("label: 'Recent'");
-    expect(source).toContain("label: 'Favorites'");
-    expect(source).toContain("label: 'Meals'");
-    expect(source).toContain('Create food');
-    expect(source).toContain('Create meal');
+    const route = readSource('src/app/nutrition/add-food.tsx');
+    const view = readSource('src/features/nutrition/components/NutritionAddFoodView.tsx');
+    const copy = readSource('src/localization/nutritionAddFoodCopy.ts');
+    const source = [route, view, copy].join('\n');
+
+    expect(view).toContain("label: copy.modes.food");
+    expect(view).toContain("label: copy.modes.recent");
+    expect(view).toContain("label: copy.modes.favorites");
+    expect(view).toContain("label: copy.modes.meals");
+    expect(view).toContain('copy.createFood');
+    expect(view).toContain('copy.createMeal');
     expect(source).toContain('onQuickAdd');
-    expect(source).toContain('Delete entry');
-    expect(source).toContain('Save changes');
-    expect(source).toContain('Add to ${selectedMealLabel}');
+    expect(view).toContain('deleteLabel={copy.deleteEntry}');
+    expect(route).toContain('copy.saveChanges');
+    expect(route).toContain('copy.addToMeal(selectedMealLabel)');
   });
 
   test('Profile owns the plan, Coach owns Coach tools, and Progress stays analytical', () => {
