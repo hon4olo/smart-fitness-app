@@ -44,14 +44,14 @@ export const SessionSetTable = memo(function SessionSetTable({
   targetSetCount,
 }: SessionSetTableProps) {
   const { colors } = useAppTheme();
-  const { t } = useLocalization();
+  const { formatNumber, t } = useLocalization();
   const { weight: weightUnit } = useUnitPreferences();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const rowCount = Math.max(sets.length, targetSetCount);
   const previousLabel = (index: number) =>
     previousSets[index]
-      ? `${formatWeightValue(previousSets[index].weight, weightUnit)}${weightUnit} x ${previousSets[index].reps}`
-      : '-';
+      ? `${formatWeightValue(previousSets[index].weight, weightUnit)} ${weightUnit} × ${formatNumber(previousSets[index].reps, { maximumFractionDigits: 0 })}`
+      : '—';
 
   if (rowCount === 0) return <SessionEmptySets />;
 
