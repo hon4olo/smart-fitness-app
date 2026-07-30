@@ -5,6 +5,8 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { ListRow } from '@/components/ui/ListRow';
 import { formatCompactMacroTotals, formatNumber, sumNutritionTotals } from '@/lib/nutrition';
+import { useLocalization } from '@/localization';
+import { getNutritionAddFoodCopy } from '@/localization/nutritionAddFoodCopy';
 import type { MealTemplate } from '@/types';
 import { formatEnergyValue, useUnitPreferences } from '@/units';
 
@@ -44,6 +46,8 @@ export function SavedMealsModeSection({
   styles,
 }: SavedMealsModeSectionProps) {
   const { energy } = useUnitPreferences();
+  const { formatNumber: formatLocalizedNumber, locale } = useLocalization();
+  const copy = getNutritionAddFoodCopy(locale);
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
 
@@ -60,33 +64,43 @@ export function SavedMealsModeSection({
   return (
     <AppCard>
       <View style={styles.sectionHeader}>
-        <Text selectable style={styles.sectionTitle}>Meals</Text>
+        <Text selectable style={styles.sectionTitle}>{copy.mealsTitle}</Text>
       </View>
 
       <View style={styles.quietActionRow}>
-        <Pressable accessibilityLabel="Create meal" hitSlop={10} onPress={onToggleCreateMeal} style={styles.quietActionButton}>
-          <Text style={styles.quietActionText}>Create meal</Text>
+        <Pressable
+          accessibilityLabel={copy.createMeal}
+          hitSlop={10}
+          onPress={onToggleCreateMeal}
+          style={styles.quietActionButton}>
+          <Text style={styles.quietActionText}>{copy.createMeal}</Text>
         </Pressable>
-        <Pressable accessibilityLabel="Manage meals" hitSlop={10} onPress={onToggleManageMeals} style={styles.quietActionButton}>
-          <Text style={styles.quietActionText}>{manageMealsOpen ? 'Done managing' : 'Manage meals'}</Text>
+        <Pressable
+          accessibilityLabel={copy.manageMeals}
+          hitSlop={10}
+          onPress={onToggleManageMeals}
+          style={styles.quietActionButton}>
+          <Text style={styles.quietActionText}>
+            {manageMealsOpen ? copy.doneManaging : copy.manageMeals}
+          </Text>
         </Pressable>
       </View>
 
       {createMealOpen ? (
         <View style={styles.inlineForm}>
           <TextInput
-            accessibilityLabel="Meal name"
+            accessibilityLabel={copy.mealName}
             autoCapitalize="words"
             onChangeText={setMealTemplateName}
-            placeholder="Meal name"
+            placeholder={copy.mealName}
             placeholderTextColor={colors.textSecondary}
             style={styles.input}
             value={mealTemplateName}
           />
           <Text selectable style={styles.helperText}>
-            Saves the current {selectedMealLabel.toLowerCase()} diary items as a reusable meal.
+            {copy.saveCurrentMealHint(selectedMealLabel)}
           </Text>
-          <AppButton label="Save meal" onPress={onSaveMealTemplate} />
+          <AppButton label={copy.saveMeal} onPress={onSaveMealTemplate} />
         </View>
       ) : null}
 
@@ -95,20 +109,31 @@ export function SavedMealsModeSection({
           {mealTemplates.map((template) => {
             const templateTotals = sumNutritionTotals(template.items);
             const expanded = expandedTemplateId === template.id;
+            const formattedItemCount = formatLocalizedNumber(template.items.length, {
+              maximumFractionDigits: 0,
+            });
             return (
               <View key={template.id} style={styles.inlineForm}>
                 <ListRow
-                  accessibilityHint="Open saved meal details"
-                  detail={`${template.items.length} item${template.items.length === 1 ? '' : 's'} · ${formatCompactMacroTotals(templateTotals)}`}
+                  accessibilityHint={copy.openSavedMeal}
+                  detail={`${copy.itemCount(template.items.length, formattedItemCount)} · ${formatCompactMacroTotals(templateTotals)}`}
                   onPress={() => toggleDetails(template)}
                   title={template.name}
                   trailing={
                     <View style={styles.rowActions}>
-                      <Pressable accessibilityLabel={`Add ${template.name} to ${selectedMealLabel}`} hitSlop={10} onPress={() => onQuickAddMealTemplate(template)} style={styles.iconButton}>
+                      <Pressable
+                        accessibilityLabel={copy.addSavedMeal(template.name, selectedMealLabel)}
+                        hitSlop={10}
+                        onPress={() => onQuickAddMealTemplate(template)}
+                        style={styles.iconButton}>
                         <Text style={styles.iconButtonText}>+</Text>
                       </Pressable>
                       {manageMealsOpen ? (
-                        <Pressable accessibilityLabel={`Delete ${template.name}`} hitSlop={10} onPress={() => onDeleteMealTemplate(template.id)} style={styles.iconButton}>
+                        <Pressable
+                          accessibilityLabel={copy.deleteSavedMeal(template.name)}
+                          hitSlop={10}
+                          onPress={() => onDeleteMealTemplate(template.id)}
+                          style={styles.iconButton}>
                           <Text style={styles.iconButtonText}>×</Text>
                         </Pressable>
                       ) : null}
@@ -120,10 +145,10 @@ export function SavedMealsModeSection({
                 {expanded ? (
                   <View style={styles.inlineForm}>
                     <TextInput
-                      accessibilityLabel="Saved meal name"
+                      accessibilityLabel={copy.savedMealName}
                       autoCapitalize="words"
                       onChangeText={setEditingName}
-                      placeholder="Meal name"
+                      placeholder={copy.mealName}
                       placeholderTextColor={colors.textSecondary}
                       style={styles.input}
                       value={editingName}
@@ -133,21 +158,28 @@ export function SavedMealsModeSection({
                         <View style={styles.nutrientCardCopy}>
                           <Text selectable style={styles.nutrientLabel}>{item.name}</Text>
                           <Text selectable style={styles.nutrientHint}>
-                            {formatNumber(item.quantity ?? item.servingSize ?? 1)} {item.servingUnit ?? 'unit'} · {formatCompactMacroTotals(item)}
+                            {formatNumber(item.quantity ?? item.servingSize ?? 1)} {item.servingUnit ?? copy.unit.toLowerCase()} · {formatCompactMacroTotals(item)}
                           </Text>
                         </View>
-                        <Text selectable style={styles.nutrientValue}>{formatEnergyValue(item.calories, energy)} {energy}</Text>
+                        <Text selectable style={styles.nutrientValue}>
+                          {formatEnergyValue(item.calories, energy)} {energy}
+                        </Text>
                       </View>
                     ))}
                     <AppButton
                       disabled={!editingName.trim()}
-                      label="Save name"
+                      label={copy.saveName}
                       onPress={() => onRenameMealTemplate(template.id, editingName)}
                       variant="secondary"
                     />
                     <AppButton
-                      label={`Replace with current ${selectedMealLabel.toLowerCase()}`}
-                      onPress={() => onReplaceMealTemplateItems(template.id, editingName.trim() || template.name)}
+                      label={copy.replaceWithCurrent(selectedMealLabel)}
+                      onPress={() =>
+                        onReplaceMealTemplateItems(
+                          template.id,
+                          editingName.trim() || template.name,
+                        )
+                      }
                       variant="secondary"
                     />
                   </View>
@@ -158,7 +190,7 @@ export function SavedMealsModeSection({
         </View>
       ) : (
         <View style={styles.emptyBlock}>
-          <Text selectable style={styles.emptyStateText}>No saved meals yet.</Text>
+          <Text selectable style={styles.emptyStateText}>{copy.noSavedMeals}</Text>
         </View>
       )}
     </AppCard>
