@@ -58,6 +58,12 @@ const createNoopAuthService = (): AuthService & { profileRepository: RemoteProfi
   async changePassword() {
     throw new Error('Auth service is unavailable');
   },
+  async requestPasswordReset() {
+    throw new Error('Auth service is unavailable');
+  },
+  async resetPassword() {
+    throw new Error('Auth service is unavailable');
+  },
   async deleteAccount() {
     throw new Error('Auth service is unavailable');
   },
