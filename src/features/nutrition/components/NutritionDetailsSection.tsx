@@ -1,6 +1,8 @@
 import { Text, View } from 'react-native';
 
 import { formatNumber } from '@/lib/nutrition';
+import { useLocalization } from '@/localization';
+import { getNutritionDiaryCopy } from '@/localization/nutritionDiaryCopy';
 
 type NutritionDetailsSectionProps = {
   styles: Record<string, any>;
@@ -8,16 +10,19 @@ type NutritionDetailsSectionProps = {
 };
 
 export function NutritionDetailsSection({ styles, totalFiber }: NutritionDetailsSectionProps) {
+  const { locale } = useLocalization();
+  const copy = getNutritionDiaryCopy(locale);
+
   return (
     <View style={styles.detailsSection}>
       <View style={styles.sectionHeader}>
         <Text selectable style={styles.sectionTitle}>
-          Nutrition details
+          {copy.nutritionDetails}
         </Text>
       </View>
       <View style={styles.detailRow}>
         <Text selectable style={styles.detailLabel}>
-          Fiber
+          {copy.fiber}
         </Text>
         <Text selectable style={styles.detailValue}>
           {formatNumber(totalFiber)} g
