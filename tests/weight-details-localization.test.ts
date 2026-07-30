@@ -32,8 +32,9 @@ describe('Weight Details localization', () => {
 
     expect(screen).toContain('getProgressAnalytics');
     expect(screen).toContain('weightFromKg');
-    expect(screen).toContain('formatWeightValue(entry.weight, weightUnit)');
-    expect(screen).toContain('formatWeightValue(analytics.weight.currentWeight, weightUnit)');
+    expect(screen).toContain('formatWeightValue(entry.weight)');
+    expect(screen).toContain('formatWeightValue(analytics.weight.currentWeight)');
+    expect(screen).toContain('weight: weightUnit');
     expect(screen).toContain("router.push('/workout-history')");
   });
 
