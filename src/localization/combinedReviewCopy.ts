@@ -1,5 +1,4 @@
 import type {
-  CombinedCoachAction,
   CombinedCoachIssue,
   CombinedCoachStatus,
   CombinedCoachViewModel,
@@ -55,16 +54,6 @@ export const getCombinedReviewCopy = (locale: SupportedLocale) => {
           : 'All child domains completed without a blocking finding.',
     },
   };
-  const actionLabels: Record<CombinedCoachAction, string> = {
-    review_strength_proposal:
-      locale === 'ru' ? 'Проверить Strength-предложение' : 'Review the Strength proposal',
-    review_nutrition_proposal:
-      locale === 'ru' ? 'Проверить Nutrition-предложение' : 'Review the Nutrition proposal',
-    complete_recovery_check_in:
-      locale === 'ru' ? 'Заполнить проверку восстановления' : 'Complete a recovery check-in',
-    resolve_safety_restrictions:
-      locale === 'ru' ? 'Разрешить ограничения безопасности' : 'Resolve safety restrictions',
-  };
   const issueSeverityLabels: Record<CombinedCoachIssue['severity'], string> = {
     input_required: locale === 'ru' ? 'Нужны данные' : 'Input required',
     warning: locale === 'ru' ? 'Предупреждение' : 'Warning',
@@ -76,7 +65,6 @@ export const getCombinedReviewCopy = (locale: SupportedLocale) => {
     nutrition: locale === 'ru' ? 'Питание' : 'Nutrition',
     safety_recovery: locale === 'ru' ? 'Безопасность и восстановление' : 'Safety & Recovery',
   };
-
   const viewModelCopy = (viewModel: CombinedCoachViewModel) => {
     if (viewModel.kind === 'pending') {
       return {
@@ -101,84 +89,90 @@ export const getCombinedReviewCopy = (locale: SupportedLocale) => {
 
   return {
     statusLabels,
-    statusPresentation,
-    actionLabels,
     issueSeverityLabels,
     issueDomainLabels,
     viewModelCopy,
     back: locale === 'ru' ? 'Назад' : 'Back',
     title: locale === 'ru' ? 'Объединённый Coach' : 'Combined Coach',
     subtitle: locale === 'ru' ? 'Strength · Питание · Безопасность' : 'Strength · Nutrition · Safety',
-    preview: locale === 'ru' ? 'Предпросмотр и анализ' : 'Preview and review',
-    explanation:
+    localContext: locale === 'ru' ? 'Локальный контекст' : 'Local context',
+    workout: locale === 'ru' ? 'Тренировка' : 'Workout',
+    noWorkout: locale === 'ru' ? 'нет завершённой тренировки' : 'no completed workout',
+    contextCounts: (nutritionDays: string, checkIns: string, limitations: string) =>
       locale === 'ru'
-        ? 'Запускает дочерние Strength, Nutrition и Safety-анализы под одним родительским запуском. Этот экран остаётся только для чтения и никогда не применяет изменения автоматически.'
-        : 'Runs Strength, Nutrition, and Safety child reviews under one parent run. This surface remains read-only and never applies changes automatically.',
-    capabilityChecking:
-      locale === 'ru' ? 'Проверка возможностей backend' : 'Checking backend capability',
-    capabilityAvailable:
-      locale === 'ru' ? 'Combined v1 доступен' : 'Combined v1 available',
-    capabilityUnavailable:
-      locale === 'ru' ? 'Combined недоступен' : 'Combined unavailable',
+        ? `Дни питания: ${nutritionDays} · проверки восстановления: ${checkIns} · активные ограничения: ${limitations}`
+        : `Nutrition days: ${nutritionDays} · recovery check-ins: ${checkIns} · active limitations: ${limitations}`,
+    capability: locale === 'ru' ? 'Возможности' : 'Capability',
+    capabilityAvailable: locale === 'ru' ? 'v6 доступна' : 'v6 available',
+    capabilityUnavailable: locale === 'ru' ? 'не включено' : 'not enabled',
+    sync: locale === 'ru' ? 'Синхронизация' : 'Sync',
+    syncLabels: {
+      idle: locale === 'ru' ? 'готово' : 'idle',
+      syncing: locale === 'ru' ? 'выполняется' : 'syncing',
+      success: locale === 'ru' ? 'завершена' : 'success',
+      error: locale === 'ru' ? 'ошибка' : 'error',
+      offline: locale === 'ru' ? 'нет подключения' : 'offline',
+      conflict: locale === 'ru' ? 'конфликт' : 'conflict',
+    } as Record<string, string>,
+    preparing: locale === 'ru' ? 'Подготовка аккаунта…' : 'Preparing account…',
     signInRequired: locale === 'ru' ? 'Требуется вход' : 'Sign in required',
     signInBody:
       locale === 'ru'
-        ? 'Combined Coach использует только синхронизированные записи защищённого backend-аккаунта.'
-        : 'Combined Coach reads only records synchronized to your protected backend account.',
+        ? 'Combined Coach использует синхронизированные записи защищённого backend-аккаунта и дочерние Coach-запуски.'
+        : 'Combined Coach uses account-scoped synchronized records and child Coach runs.',
     signIn: locale === 'ru' ? 'Войти' : 'Sign in',
-    runReview: locale === 'ru' ? 'Запустить объединённый анализ' : 'Run Combined review',
-    openProposal:
-      locale === 'ru' ? 'Открыть объединённое предложение' : 'Open Combined proposal',
+    runTitle: locale === 'ru' ? 'Запустить детерминированный объединённый анализ' : 'Run deterministic combined review',
+    runBody:
+      locale === 'ru'
+        ? 'Запускает существующие Strength, Nutrition и Safety & Recovery анализы параллельно, затем применяет единый финальный guardrail-статус.'
+        : 'Runs the existing Strength, Nutrition, and Safety & Recovery reviews in parallel, then applies one final status guardrail.',
+    runReview: locale === 'ru' ? 'Запустить Combined Coach' : 'Run Combined Coach review',
     capabilityHint:
       locale === 'ru'
-        ? 'Кнопка остаётся недоступной, пока авторизованный backend не вернёт точный Combined v1 контракт.'
-        : 'This control remains disabled until the authenticated backend returns the exact Combined v1 capability contract.',
-    requestError: locale === 'ru' ? 'Ошибка объединённого анализа' : 'Combined review error',
+        ? 'Кнопка недоступна, пока backend не объявит точный capability schema v6.'
+        : 'Combined Coach remains unavailable until the backend advertises capability schema v6.',
+    reviewSafety: locale === 'ru' ? 'Проверить Safety-входы' : 'Review Safety inputs',
+    requestError: locale === 'ru' ? 'Ошибка объединённого анализа' : 'Combined Coach error',
     requestErrorBody:
       locale === 'ru'
         ? 'Не удалось завершить объединённый анализ. Проверьте подключение и синхронизацию, затем повторите попытку.'
         : 'Combined Coach could not complete the review. Check connectivity and synchronization, then try again.',
-    runStatusLabels: {
-      queued: locale === 'ru' ? 'В очереди' : 'Queued',
-      running: locale === 'ru' ? 'Выполняется' : 'Running',
-      completed: locale === 'ru' ? 'Завершено' : 'Completed',
-      rejected: locale === 'ru' ? 'Отклонено' : 'Rejected',
-      failed: locale === 'ru' ? 'Ошибка' : 'Failed',
-    } as Record<string, string>,
     strength: 'Strength',
     nutrition: locale === 'ru' ? 'Питание' : 'Nutrition',
     safetyRecovery: locale === 'ru' ? 'Безопасность и восстановление' : 'Safety & Recovery',
-    setsAndTonnage: (sets: number, setsFormatted: string, tonnage: string, unit: string) =>
+    strengthSummary: (sets: number, setsFormatted: string, reps: string) =>
       locale === 'ru'
-        ? `${setsFormatted} ${pluralRu(sets, ['подход', 'подхода', 'подходов'])} · ${tonnage} ${unit}`
-        : `${setsFormatted} ${sets === 1 ? 'set' : 'sets'} · ${tonnage} ${unit}`,
-    targetSummary: (
-      energy: string,
-      energyUnit: string,
-      protein: string,
-      carbs: string,
-      fats: string,
-    ) => `${energy} ${energyUnit} · P ${protein} · C ${carbs} · F ${fats}`,
+        ? `${setsFormatted} ${pluralRu(sets, ['завершённый подход', 'завершённых подхода', 'завершённых подходов'])} · ${reps} повторений`
+        : `${setsFormatted} completed ${sets === 1 ? 'set' : 'sets'} · ${reps} reps`,
+    tonnageAndRpe: (tonnage: string, unit: string, rpe: string) =>
+      locale === 'ru'
+        ? `Тоннаж ${tonnage} ${unit} · средний RPE ${rpe}`
+        : `Tonnage ${tonnage} ${unit} · average RPE ${rpe}`,
+    nutritionSummary: (days: number, daysFormatted: string, coverage: string) =>
+      locale === 'ru'
+        ? `${daysFormatted} ${pluralRu(days, ['отслеживаемый день', 'отслеживаемых дня', 'отслеживаемых дней'])} · покрытие ${coverage}%`
+        : `${daysFormatted} tracked ${days === 1 ? 'day' : 'days'} · ${coverage}% coverage`,
+    nutritionAverages: (energy: string, energyUnit: string, protein: string) =>
+      locale === 'ru'
+        ? `Среднее ${energy} ${energyUnit} · белок ${protein} г`
+        : `Average ${energy} ${energyUnit} · ${protein} g protein`,
+    recommendedLoad: (percent: string) =>
+      locale === 'ru' ? `Рекомендуемая нагрузка ${percent}%` : `Recommended load ${percent}%`,
     safetySummary: (restrictions: number, restrictionsFormatted: string, findings: number, findingsFormatted: string) =>
       locale === 'ru'
         ? `${restrictionsFormatted} ${pluralRu(restrictions, ['ограничение', 'ограничения', 'ограничений'])} · ${findingsFormatted} ${pluralRu(findings, ['результат', 'результата', 'результатов'])}`
         : `${restrictionsFormatted} ${restrictions === 1 ? 'restriction' : 'restrictions'} · ${findingsFormatted} ${findings === 1 ? 'finding' : 'findings'}`,
-    pendingActions: locale === 'ru' ? 'Ожидающие действия' : 'Pending actions',
-    guardrailFindings: locale === 'ru' ? 'Результаты ограничений' : 'Guardrail findings',
+    finalGuardrail: locale === 'ru' ? 'Финальный guardrail' : 'Final guardrail',
     issueSummary: (issue: CombinedCoachIssue) =>
       `${issueDomainLabels[issue.domain]} · ${issueSeverityLabels[issue.severity]}`,
     issueMessage:
       locale === 'ru'
-        ? 'Детерминированный дочерний анализ вернул типизированный результат. Проверьте домен и серьёзность.'
+        ? 'Дочерний детерминированный анализ вернул типизированный результат. Проверьте домен и серьёзность.'
         : 'A deterministic child review returned a typed finding. Review its domain and severity.',
     boundary:
       locale === 'ru'
-        ? 'Combined Coach агрегирует результаты, но не применяет предложения. Любое изменение Strength, Nutrition или Safety требует отдельного явного workflow.'
-        : 'Combined Coach aggregates results but does not apply proposals. Any Strength, Nutrition, or Safety mutation requires a separate explicit workflow.',
-    actionsCount: (count: number, formatted: string) =>
-      locale === 'ru'
-        ? `${formatted} ${pluralRu(count, ['действие', 'действия', 'действий'])}`
-        : `${formatted} action${count === 1 ? '' : 's'}`,
+        ? 'Combined Coach работает только для чтения. Он не подтверждает и не применяет изменения Strength, Nutrition или тренировок. Каждое предложение требует отдельного детерминированного workflow и явного подтверждения.'
+        : 'Combined Coach is read-only. It cannot confirm or apply Strength, Nutrition, or workout changes. Each proposal requires its own deterministic workflow and explicit confirmation.',
   };
 };
 
