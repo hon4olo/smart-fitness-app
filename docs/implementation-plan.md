@@ -1,6 +1,6 @@
 # Smart Fitness Implementation Completion Plan
 
-Updated: 2026-07-23
+Updated: 2026-07-31
 
 This document is the execution plan for completing the current Smart Fitness architecture across:
 
@@ -27,47 +27,61 @@ Already implemented:
 - revisioned sync for recovery check-ins;
 - revisioned sync for typed body measurements;
 - revisioned sync for training programs;
+- revisioned sync for custom exercises with stable UUID references;
+- revisioned sync for meal templates with strict nested food snapshots;
 - deterministic Nutrition review;
 - structured Nutrition Strategy preview and explicit confirmation;
 - deterministic Strength review;
 - structured Strength Strategy preview and explicit workout-template confirmation;
 - deterministic Safety & Recovery review;
 - pre-workout Safety acknowledgement with immutable completed-workout provenance;
-- read-only Combined Coach review.
+- read-only Combined Coach review;
+- blocking Mobile CI checks for repository line limits, TypeScript, Coach/sync contracts, the full regression suite, Expo export, and Expo Doctor;
+- blocking backend lint, build, tests, migration/schema checks, startup, and health validation;
+- a completed initial decomposition pass with no currently known hand-written mobile or backend source/architecture file above 500 physical lines.
 
 ## Execution order
 
 ### Phase 0 — documentation and audit baseline
 
-Estimate: 0.5 day.
+Status: implementation plan refreshed on 2026-07-31. Instruction/status documents must continue to be corrected whenever older completion language is discovered.
 
 Tasks:
 
 - [x] create this implementation plan;
-- [ ] update mobile `AGENTS.md` to match current implementation;
-- [ ] update mobile `PROJECT_LEARNINGS.md` to match current implementation;
-- [ ] update backend `AGENTS.md` to match current sync coverage;
-- [ ] record the remaining oversized hand-written files;
-- [ ] keep one canonical priority order across both repositories.
+- [x] refresh the mobile implementation status and decomposition baseline;
+- [x] verify the backend instruction file reflects the production stack and blocking validation;
+- [x] record the current oversized-file audit result;
+- [x] keep one canonical priority order in this document;
+- [ ] remove any remaining stale custom-exercise or meal-template “unfinished” wording from secondary instruction documents.
 
 Acceptance criteria:
 
-- no instruction file lists SecureStore, body-measurement sync, training-program sync, or observable persistence as unfinished;
-- remaining work is described consistently in both repositories;
-- agents cannot mistake completed infrastructure for pending work.
+- no canonical execution plan lists completed sync entities or completed decompositions as unfinished;
+- remaining work is described consistently across active roadmap files;
+- agents cannot mistake completed infrastructure for pending implementation.
 
 ### Phase 1 — decompose oversized files
 
-Estimate: 1.5–2.5 days.
+Status: initial audited pass completed. The 500-line policy and blocking repository audit remain active for future additions.
 
-Priority targets:
+Completed priority targets:
 
-1. mobile `src/api/coach.ts`;
-2. backend `src/services/coach/nutrition-coach-orchestrator.ts`;
-3. mobile `src/features/nutrition/styles/addFoodStyles.ts`;
-4. backend `docs/architecture/ai-coach.md`;
-5. mobile `src/context/AppContext.tsx` before it crosses the limit;
-6. mobile `src/context/SyncContext.tsx` before adding more entity planners.
+1. [x] mobile `src/api/coach.ts` — reduced to a small public barrel over focused Coach modules;
+2. [x] backend `src/services/coach/nutrition-coach-orchestrator.ts` — split below the limit;
+3. [x] mobile `src/features/nutrition/styles/addFoodStyles.ts` — reduced to a small composed style barrel;
+4. [x] backend AI Coach architecture ADR — split into focused documents;
+5. [x] mobile `src/context/AppContext.tsx` — state-action hooks extracted;
+6. [x] mobile `src/context/SyncContext.tsx` — sync-store initialization extracted.
+
+Additional completed mobile decompositions:
+
+- `SafetyRecoveryProgressCard.tsx`;
+- `BarcodeScannerModal.tsx`;
+- `WorkoutsScreen.tsx`;
+- `WorkoutBuilderScreen.tsx`;
+- `CloudQueueHelpers.ts`;
+- `SyncCoordinatorOperations.ts`.
 
 Rules:
 
@@ -75,7 +89,8 @@ Rules:
 - move cohesive parsers, contracts, helpers, styles, or execution infrastructure;
 - keep every new hand-written file at or below 500 physical lines;
 - retain or add focused tests for moved logic;
-- avoid generic abstractions created only to satisfy the line limit.
+- avoid generic abstractions created only to satisfy the line limit;
+- re-run the repository audit after major additions rather than assuming the current result remains true.
 
 Acceptance criteria:
 
@@ -83,58 +98,70 @@ Acceptance criteria:
 - TypeScript/build, focused tests, lint, and formatting checks pass;
 - no route, DTO, sync, or UI behavior changes.
 
-### Phase 2 — finish remaining revisioned sync entities
+### Phase 2 — remaining revisioned sync entities
 
-Estimate: 2–3 days.
+Status: completed across mobile and backend on 2026-07-23.
 
 #### Custom exercises
 
-Tasks:
+Completed:
 
-- [ ] define a schema-versioned mobile/backend sync payload;
-- [ ] normalize legacy IDs into stable entity IDs;
-- [ ] add backend schema, repository, dispatcher, and ownership tests;
-- [ ] add mobile queue operation builder and sync planner;
-- [ ] add revision metadata storage and remote materialization;
-- [ ] preserve references from workout templates, sessions, and training programs;
-- [ ] test create, update, delete, duplicate delivery, conflict, malformed payload, and offline queueing.
+- [x] schema-versioned mobile/backend payload;
+- [x] deterministic normalization of legacy IDs into stable UUID entity IDs;
+- [x] backend table, repository, dispatcher, ownership validation, tombstones, and migration;
+- [x] mobile queue operation builder and sync planner;
+- [x] revision metadata storage and remote materialization;
+- [x] canonical references preserved for workout templates, sessions, training programs, and Coach contexts;
+- [x] focused create/update/delete, malformed-payload, ownership, planner, and remote-materialization coverage.
+
+Implemented in backend PR #29 and mobile PR #49. Mobile PR #51 subsequently registered the entity aliases in supported pull accounting so valid operations no longer block cursor advancement.
 
 #### Meal templates
 
-Tasks:
+Completed:
 
-- [ ] define a schema-versioned payload for template metadata and items;
-- [ ] add backend schema, repository, dispatcher, and ownership tests;
-- [ ] add mobile planner, metadata store, and remote materialization;
-- [ ] validate embedded food-entry snapshots at the trust boundary;
-- [ ] test create, update, delete, duplicate delivery, conflict, malformed payload, and offline queueing.
+- [x] schema-versioned payload for template metadata and nested food snapshots;
+- [x] backend table, repository, dispatcher, ownership validation, tombstones, and migration;
+- [x] mobile planner, metadata store, and remote materialization;
+- [x] strict trust-boundary validation for embedded food snapshots and unique item IDs;
+- [x] deterministic migration of legacy template/item IDs;
+- [x] focused create/update/delete, malformed-payload, planner, and remote-materialization coverage.
+
+Implemented in backend PR #30 and mobile PR #50.
 
 Acceptance criteria:
 
-- every user-created entity required by Nutrition and Strength Coach is available after sign-in on a second device;
+- user-created custom exercises and meal templates use first-class revisioned sync entities;
 - unsupported or malformed remote entities fail closed without advancing the sync cursor;
-- tombstones and conflicts behave deterministically.
+- tombstones and ownership checks remain deterministic.
 
 ### Phase 3 — sync and persistence hardening
 
-Estimate: 0.5–1.5 days.
+Status: partially complete.
 
-Tasks:
+Completed:
 
-- [ ] audit every critical `AppContext` mutation for use of the ordered mutation queue;
-- [ ] document the save-succeeded/enqueue-failed recovery contract;
-- [ ] add application-restart recovery tests for failed outbox writes;
+- [x] durable restart replay for the weight-history save-succeeded/outbox-enqueue-failed path;
+- [x] persisted unresolved conflict state with restart restoration and per-user isolation;
+- [x] deterministic push validation isolation so one rejected operation does not block valid siblings;
+- [x] idempotency-key length migration and targeted key-reuse repair;
+- [x] cursor advancement guarded by supported-entity handling and conflict state.
+
+Remaining:
+
+- [ ] extend or explicitly document durable outbox recovery coverage for every critical synchronized mutation;
 - [ ] test token refresh during push and pull;
-- [ ] test concurrent local mutation and remote pull materialization;
-- [ ] test two-device conflicts for each mutable synchronized entity;
-- [ ] verify cursor advancement only after all returned operations are handled.
+- [ ] test concurrent local mutation and remote pull materialization across representative entities;
+- [ ] complete two-device conflict coverage for every mutable synchronized entity;
+- [ ] execute the physical second-device and offline-restart matrix on a matching standalone runtime.
 
 Acceptance criteria:
 
 - no critical persistence or enqueue failure is silently ignored;
 - retries do not duplicate accepted operations;
 - conflict state remains visible and recoverable;
-- an interrupted mutation cannot silently lose user data.
+- an interrupted mutation cannot silently lose user data;
+- release-device validation confirms the tested source contracts on a matching binary/runtime.
 
 ### Phase 4 — staging model-provider activation
 
@@ -159,30 +186,16 @@ Acceptance criteria:
 
 ### Phase 5 — Combined Strategy proposal
 
-Estimate: 3–5 days.
+Status: source implementation is substantially complete; verify the exact backend/mobile contract and remaining rollout gates before adding new behavior.
 
-The existing Combined Coach is a read-only deterministic review. This phase adds a coordinated proposal without automatic application.
+Implemented product surface includes:
 
-Backend tasks:
+- read-only Combined Review;
+- Combined Proposal with effective Safety-capped Strength output;
+- separate explicit Strength-template and Nutrition-target confirmations;
+- revisioned writes, idempotency keys, strict parsing, and no automatic application.
 
-- [ ] add a versioned `combined_strategy_proposal` request type;
-- [ ] run eligible Nutrition and Strength structured agents with Safety context;
-- [ ] apply Safety restrictions and load multipliers to the Strength proposal;
-- [ ] reconcile nutrition targets with recovery state and training demand;
-- [ ] add a deterministic combined final guardrail;
-- [ ] persist child run IDs, versions, validation reports, and concise audit metadata;
-- [ ] expose a separate Combined Strategy capability flag;
-- [ ] define explicit partial-failure and retry behavior;
-- [ ] keep automatic application disabled.
-
-Mobile tasks:
-
-- [ ] add strict Combined Strategy capability parsing;
-- [ ] add a strict versioned result parser and view model;
-- [ ] render one read-only combined preview;
-- [ ] display blocking, input-required, modification, and warning states clearly;
-- [ ] require separate explicit confirmation for every applying action;
-- [ ] never infer support from schema version alone.
+Remaining work is limited to confirmed contract gaps, staging/provider validation, release validation, and any separately approved compensating-revert contract. Do not infer a missing implementation solely from the older phase checklist.
 
 Acceptance criteria:
 
@@ -194,43 +207,38 @@ Acceptance criteria:
 
 ### Phase 6 — CI and release readiness
 
-Estimate: 1.5–2.5 days.
+Status: source-level CI is substantially complete; environment/device validation remains external.
 
-Tasks:
+Completed:
 
-- [ ] remove stale assertions from the full mobile regression suite;
-- [ ] make the full mobile regression suite blocking in CI;
-- [ ] ensure backend build, test, lint, and format checks are blocking;
-- [ ] add focused end-to-end contract tests for auth, sync, and Coach polling;
+- [x] make the full mobile regression suite blocking in CI;
+- [x] make mobile line audit, TypeScript, Coach/sync contracts, Expo export, and Expo Doctor blocking;
+- [x] make backend lint, build, test, migration/schema, startup, and health validation blocking;
+- [x] add rollout/rollback and release validation documentation.
+
+Remaining:
+
+- [ ] remove remaining stale source assertions as they are discovered during bounded refactors;
 - [ ] run release-device smoke tests for workout, nutrition, progress, auth, sync, and Coach flows;
-- [ ] verify offline restart and queue recovery;
+- [ ] verify offline restart and queue recovery on a matching standalone runtime;
 - [ ] verify a matching native build contains Expo SecureStore;
-- [ ] publish OTA changes only to a compatible runtime/channel;
-- [ ] document staging and production rollout/rollback steps.
+- [ ] configure and run the fixed-SHA cross-repository release gate;
+- [ ] publish OTA changes only to a compatible runtime/channel when explicitly authorized.
 
 Acceptance criteria:
 
-- green CI means all required regression suites passed;
-- the current production mobile binary contains every required native module;
+- green CI means all configured required source-level suites passed;
+- green CI does not replace physical release-device validation;
+- the production mobile binary contains every required native module;
 - staging smoke tests pass before production feature flags are enabled;
 - rollback does not require destructive database operations.
 
-## Estimated total
-
-Expected engineering time:
-
-- implementation only: 6–9 working days;
-- production-ready validation and stabilization: 8–12 working days;
-- practical calendar allowance: 2–3 weeks, including CI, native-build, staging, and release-device feedback.
-
 ## Immediate next actions
 
-1. Complete Phase 0 documentation refresh.
-2. Decompose `src/api/coach.ts` without changing its exported contract.
-3. Decompose the Nutrition Coach orchestrator using a small typed run-execution helper.
-4. Implement custom-exercise sync before meal-template sync because workout templates and training programs depend on canonical exercise references.
-5. Complete meal-template sync.
-6. Harden restart and two-device conflict scenarios.
-7. Activate the model provider in staging.
-8. Implement Combined Strategy proposal.
-9. Make the full regression suite blocking and complete release validation.
+1. Remove stale completion wording from secondary roadmap/instruction documents.
+2. Complete the repository-wide visible Pressable/menu/tab/state-control and raw-status presentation audit.
+3. Extend sync restart-recovery coverage beyond the current weight-history journal or document the exact bounded contract.
+4. Add token-refresh, concurrent-mutation, and broader two-device conflict tests.
+5. Introduce provider-neutral Coach model configuration and validate it in staging when credentials are available.
+6. Configure the fixed-SHA cross-repository release gate.
+7. Complete physical release-device, offline-restart, and second-device validation.
