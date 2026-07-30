@@ -1,13 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
 import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/ui/AppCard';
@@ -17,7 +10,13 @@ import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants
 import { useAppContext } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { upsertRecoveryCheckInInState } from '@/context/appContext/safetyRecoveryActions';
+import { RecoveryScorePicker } from '@/features/coach/components/RecoveryScorePicker';
 import { createUuid } from '@/lib/ids';
+import { useLocalization } from '@/localization';
+import {
+  getRecoveryCheckInCopy,
+  type RecoveryCheckInCopy,
+} from '@/localization/recoveryCheckInCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type {
   AppContextType,
@@ -25,6 +24,7 @@ import type {
   RecoveryScaleOneToFive,
   RecoveryScaleZeroToFive,
 } from '@/types';
+
 import {
   buildRecoveryCheckIn,
   emptyRecoveryCheckInDraft,
@@ -51,15 +51,6 @@ const toAppState = (app: AppContextType): AppState => ({
   onboardingCompleted: app.onboardingCompleted,
 });
 
-const formatTimestamp = (value: string): string => {
-  const parsed = new Date(value);
-  if (!Number.isFinite(parsed.getTime())) return 'Unknown time';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(parsed);
-};
-
 const scoreSummary = (draft: RecoveryCheckInDraft): number =>
   [
     draft.sleepDurationHours.trim() ? draft.sleepDurationHours : null,
@@ -71,76 +62,23 @@ const scoreSummary = (draft: RecoveryCheckInDraft): number =>
     draft.readiness,
   ].filter((value) => value !== null).length;
 
-function ScorePicker<T extends number>({
-  label,
-  helperText,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  helperText: string;
-  options: readonly T[];
-  value: T | null;
-  onChange(value: T | null): void;
-}) {
-  const { colors } = useAppTheme();
-  return (
-    <View style={styles.fieldGroup}>
-      <View style={styles.fieldHeader}>
-        <View style={styles.fieldCopy}>
-          <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>{label}</Text>
-          <Text style={[styles.helperText, { color: colors.textMuted }]}>{helperText}</Text>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Clear ${label}`}
-          disabled={value === null}
-          onPress={() => onChange(null)}>
-          <Text
-            style={[
-              styles.clearLabel,
-              { color: value === null ? colors.textMuted : colors.accent },
-            ]}>
-            Clear
-          </Text>
-        </Pressable>
-      </View>
-      <View style={styles.scoreRow}>
-        {options.map((option) => {
-          const selected = option === value;
-          return (
-            <Pressable
-              key={option}
-              accessibilityRole="radio"
-              accessibilityLabel={`${label} ${option}`}
-              accessibilityState={{ checked: selected }}
-              onPress={() => onChange(option)}
-              style={({ pressed }) => [
-                styles.scoreButton,
-                {
-                  backgroundColor: selected ? colors.accentSoft : colors.surfaceElevated,
-                  borderColor: selected ? colors.accent : colors.borderSubtle,
-                },
-                pressed && styles.pressed,
-              ]}>
-              <Text
-                style={[
-                  styles.scoreButtonLabel,
-                  { color: selected ? colors.accent : colors.textPrimary },
-                ]}>
-                {option}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
+const localizeValidationMessage = (message: string, copy: RecoveryCheckInCopy) => {
+  if (message === 'Sleep duration must be between 0 and 24 hours.') {
+    return copy.validation.sleepRange;
+  }
+  if (message === 'Add at least two recovery signals before saving.') {
+    return copy.validation.minimumSignals;
+  }
+  if (message === 'The check-in timestamp is invalid.') {
+    return copy.validation.timestamp;
+  }
+  return message;
+};
 
 export default function RecoveryCheckInScreen() {
   const { colors } = useAppTheme();
+  const { formatDate, formatNumber, locale } = useLocalization();
+  const copy = getRecoveryCheckInCopy(locale);
   const themedStyles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const app = useAppContext();
@@ -152,6 +90,12 @@ export default function RecoveryCheckInScreen() {
 
   const latestCheckIn = app.recoveryCheckIns[0] ?? null;
   const selectedSignalCount = scoreSummary(draft);
+  const formatTimestamp = (value: string) => {
+    const parsed = new Date(value);
+    if (!Number.isFinite(parsed.getTime())) return copy.unknownTime;
+    return formatDate(parsed, { dateStyle: 'medium', timeStyle: 'short' });
+  };
+  const syncStatusLabel = copy.syncLabels[String(syncStatus)] ?? String(syncStatus);
 
   useEffect(() => {
     if (
@@ -164,14 +108,10 @@ export default function RecoveryCheckInScreen() {
     let cancelled = false;
     void syncNow()
       .then(() => {
-        if (!cancelled) {
-          setSaveMessage('Recovery check-in saved and synchronized.');
-        }
+        if (!cancelled) setSaveMessage(copy.savedAndSynced);
       })
       .catch(() => {
-        if (!cancelled) {
-          setSaveMessage('Recovery check-in saved locally. Sync will retry when available.');
-        }
+        if (!cancelled) setSaveMessage(copy.savedLocallyRetry);
       })
       .finally(() => {
         if (!cancelled) setPendingSyncId(null);
@@ -180,7 +120,7 @@ export default function RecoveryCheckInScreen() {
     return () => {
       cancelled = true;
     };
-  }, [app.recoveryCheckIns, pendingSyncId, syncNow]);
+  }, [app.recoveryCheckIns, copy.savedAndSynced, copy.savedLocallyRetry, pendingSyncId, syncNow]);
 
   const updateDraft = <Key extends keyof RecoveryCheckInDraft>(
     key: Key,
@@ -202,35 +142,40 @@ export default function RecoveryCheckInScreen() {
       now: new Date().toISOString(),
     });
     if (!result.ok) {
-      setFormError(result.message);
+      setFormError(localizeValidationMessage(result.message, copy));
       return;
     }
 
     const nextState = upsertRecoveryCheckInInState(toAppState(app), result.checkIn);
     if (!nextState.recoveryCheckIns.some((checkIn) => checkIn.id === result.checkIn.id)) {
-      setFormError('The recovery check-in did not pass local validation.');
+      setFormError(copy.localValidationFailed);
       return;
     }
 
     app.replaceState(nextState);
     setPendingSyncId(result.checkIn.id);
     setDraft(emptyRecoveryCheckInDraft());
-    setSaveMessage(`Saved ${result.signalCount} recovery signals locally.`);
+    setSaveMessage(
+      copy.savedSignals(
+        result.signalCount,
+        formatNumber(result.signalCount, { maximumFractionDigits: 0 }),
+      ),
+    );
   };
 
   return (
     <View style={themedStyles.screen}>
       <View style={[themedStyles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
-          accessibilityLabel="Back"
+          accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
-          style={({ pressed }) => [themedStyles.backButton, pressed && styles.pressed]}>
+          style={({ pressed }) => [themedStyles.backButton, pressed && themedStyles.pressed]}>
           <Text style={themedStyles.backLabel}>‹</Text>
         </Pressable>
-        <View style={styles.fieldCopy}>
-          <Text style={themedStyles.title}>Recovery check-in</Text>
-          <Text style={themedStyles.subtitle}>Self-reported signals for deterministic review</Text>
+        <View style={themedStyles.headerCopy}>
+          <Text style={themedStyles.title}>{copy.title}</Text>
+          <Text style={themedStyles.subtitle}>{copy.subtitle}</Text>
         </View>
       </View>
 
@@ -243,33 +188,32 @@ export default function RecoveryCheckInScreen() {
         showsVerticalScrollIndicator={false}>
         <View style={themedStyles.container}>
           <AppCard>
-            <Text style={themedStyles.cardTitle}>Current status</Text>
+            <Text style={themedStyles.cardTitle}>{copy.currentStatus}</Text>
             <Text style={themedStyles.bodyText}>
-              Latest saved check-in:{' '}
-              {latestCheckIn ? formatTimestamp(latestCheckIn.recordedAt) : 'none'}
+              {copy.latestSaved}: {latestCheckIn ? formatTimestamp(latestCheckIn.recordedAt) : copy.none}
             </Text>
             <Text style={themedStyles.metaText}>
-              Sync: {syncStatus} · pending operations: {pendingOperations}
+              {copy.syncStatus(
+                syncStatusLabel,
+                formatNumber(pendingOperations, { maximumFractionDigits: 0 }),
+              )}
             </Text>
             {syncError ? (
               <Text style={[themedStyles.metaText, { color: colors.warning }]}>
-                {syncError}
+                {copy.syncIssue}
               </Text>
             ) : null}
           </AppCard>
 
           <AppCard>
-            <Text style={themedStyles.cardTitle}>Today’s signals</Text>
-            <Text style={themedStyles.bodyText}>
-              Add at least two fields. Higher fatigue, soreness, stress, and pain interference mean
-              more disruption. Higher sleep quality and readiness mean better recovery.
-            </Text>
+            <Text style={themedStyles.cardTitle}>{copy.todaySignals}</Text>
+            <Text style={themedStyles.bodyText}>{copy.signalsExplanation}</Text>
 
-            <View style={styles.fieldGroup}>
-              <Text style={themedStyles.fieldLabel}>Sleep duration</Text>
-              <Text style={themedStyles.metaText}>Hours from 0 to 24</Text>
+            <View style={themedStyles.fieldGroup}>
+              <Text style={themedStyles.fieldLabel}>{copy.sleepDuration}</Text>
+              <Text style={themedStyles.metaText}>{copy.sleepDurationHelper}</Text>
               <TextInput
-                accessibilityLabel="Sleep duration in hours"
+                accessibilityLabel={copy.sleepDurationAccessibility}
                 keyboardType="decimal-pad"
                 onChangeText={(value) => updateDraft('sleepDurationHours', value)}
                 placeholder="7.5"
@@ -279,51 +223,54 @@ export default function RecoveryCheckInScreen() {
               />
             </View>
 
-            <ScorePicker
-              helperText="1 = very poor · 5 = very good"
-              label="Sleep quality"
+            <RecoveryScorePicker
+              helperText={copy.veryPoorToVeryGood}
+              label={copy.sleepQuality}
               onChange={(value) => updateDraft('sleepQuality', value)}
               options={ONE_TO_FIVE}
               value={draft.sleepQuality}
             />
-            <ScorePicker
-              helperText="1 = low · 5 = maximum"
-              label="Fatigue"
+            <RecoveryScorePicker
+              helperText={copy.lowToMaximum}
+              label={copy.fatigue}
               onChange={(value) => updateDraft('fatigue', value)}
               options={ONE_TO_FIVE}
               value={draft.fatigue}
             />
-            <ScorePicker
-              helperText="0 = none · 5 = maximum"
-              label="Soreness"
+            <RecoveryScorePicker
+              helperText={copy.noneToMaximum}
+              label={copy.soreness}
               onChange={(value) => updateDraft('soreness', value)}
               options={ZERO_TO_FIVE}
               value={draft.soreness}
             />
-            <ScorePicker
-              helperText="1 = low · 5 = maximum"
-              label="Stress"
+            <RecoveryScorePicker
+              helperText={copy.lowToMaximum}
+              label={copy.stress}
               onChange={(value) => updateDraft('stress', value)}
               options={ONE_TO_FIVE}
               value={draft.stress}
             />
-            <ScorePicker
-              helperText="0 = none · 5 = maximum"
-              label="Pain interference"
+            <RecoveryScorePicker
+              helperText={copy.noneToMaximum}
+              label={copy.painInterference}
               onChange={(value) => updateDraft('painInterference', value)}
               options={ZERO_TO_FIVE}
               value={draft.painInterference}
             />
-            <ScorePicker
-              helperText="1 = very low · 5 = very high"
-              label="Readiness"
+            <RecoveryScorePicker
+              helperText={copy.veryLowToVeryHigh}
+              label={copy.readiness}
               onChange={(value) => updateDraft('readiness', value)}
               options={ONE_TO_FIVE}
               value={draft.readiness}
             />
 
             <Text style={themedStyles.metaText}>
-              Selected signals: {selectedSignalCount} / 7
+              {copy.selectedSignals(
+                selectedSignalCount,
+                formatNumber(selectedSignalCount, { maximumFractionDigits: 0 }),
+              )}
             </Text>
             {formError ? <Text style={themedStyles.errorText}>{formError}</Text> : null}
             {saveMessage ? (
@@ -332,78 +279,26 @@ export default function RecoveryCheckInScreen() {
 
             <PrimaryButton
               disabled={app.isRestoringState || Boolean(pendingSyncId)}
-              label="Save recovery check-in"
+              label={copy.save}
               loading={Boolean(pendingSyncId)}
               onPress={saveCheckIn}
             />
             <SecondaryButton
-              accessibilityHint="Opens the deterministic Safety and Recovery readiness review"
-              label="Open Safety & Recovery review"
+              accessibilityHint={copy.openReviewHint}
+              label={copy.openReview}
               onPress={() => router.push('/profile/safety-recovery')}
             />
           </AppCard>
 
           <AppCard>
-            <Text style={themedStyles.cardTitle}>Boundary</Text>
-            <Text style={themedStyles.bodyText}>
-              These are self-reported inputs, not a diagnosis. The review cannot automatically apply
-              workout changes. Free-text medical notes are not collected on this screen.
-            </Text>
+            <Text style={themedStyles.cardTitle}>{copy.boundary}</Text>
+            <Text style={themedStyles.bodyText}>{copy.boundaryBody}</Text>
           </AppCard>
         </View>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  clearLabel: {
-    fontSize: Typography.caption.fontSize,
-    fontWeight: '700',
-  },
-  fieldCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  fieldGroup: {
-    gap: Spacing.one,
-  },
-  fieldHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: Spacing.two,
-    justifyContent: 'space-between',
-  },
-  fieldLabel: {
-    fontSize: Typography.label.fontSize,
-    fontWeight: Typography.label.fontWeight,
-    lineHeight: Typography.label.lineHeight,
-  },
-  helperText: {
-    fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
-  },
-  pressed: {
-    opacity: 0.68,
-  },
-  scoreButton: {
-    alignItems: 'center',
-    borderRadius: Radii.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 42,
-  },
-  scoreButtonLabel: {
-    fontSize: Typography.bodyStrong.fontSize,
-    fontWeight: '800',
-    lineHeight: Typography.bodyStrong.lineHeight,
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    gap: Spacing.one,
-  },
-});
 
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
@@ -445,6 +340,7 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: Typography.callout.fontSize,
       lineHeight: Typography.callout.lineHeight,
     },
+    fieldGroup: { gap: Spacing.one },
     fieldLabel: {
       color: colors.textPrimary,
       fontSize: Typography.label.fontSize,
@@ -459,6 +355,7 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingBottom: Spacing.two,
       paddingHorizontal: Spacing.two,
     },
+    headerCopy: { flex: 1, minWidth: 0 },
     input: {
       backgroundColor: colors.surfaceElevated,
       borderColor: colors.borderSubtle,
@@ -475,10 +372,8 @@ const createStyles = (colors: typeof Colors.light) =>
       fontSize: Typography.caption.fontSize,
       lineHeight: Typography.caption.lineHeight,
     },
-    screen: {
-      backgroundColor: colors.background,
-      flex: 1,
-    },
+    pressed: { opacity: 0.68 },
+    screen: { backgroundColor: colors.background, flex: 1 },
     subtitle: {
       color: colors.textSecondary,
       fontSize: Typography.caption.fontSize,
