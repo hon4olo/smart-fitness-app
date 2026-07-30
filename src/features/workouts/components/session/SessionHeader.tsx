@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '@/constants/theme';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { useUnitPreferences, weightFromKg } from '@/units';
 
 type SessionHeaderProps = {
   elapsedLabel: string;
@@ -29,41 +30,70 @@ export const SessionHeader = memo(function SessionHeader({
   volume,
 }: SessionHeaderProps) {
   const { colors } = useAppTheme();
-  const { t } = useLocalization();
+  const { formatNumber, t } = useLocalization();
+  const { weight } = useUnitPreferences();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const formattedVolume = `${formatNumber(weightFromKg(volume, weight), {
+    maximumFractionDigits: 1,
+  })} ${weight}`;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 4 }]}>
       <View style={[styles.topRow, { borderBottomColor: colors.borderSubtle }]}>
-        <Pressable accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
+        <Pressable
+          accessibilityLabel={t('workouts.session.backAccessibility')}
+          accessibilityRole="button"
+          onPress={onBack}
+          style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
           <View style={styles.chevronDown} />
         </Pressable>
-        <Pressable accessibilityRole="button" style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
+        <View
+          accessibilityLabel={t('workouts.session.timerAccessibility')}
+          accessibilityRole="image"
+          style={styles.flatIconButton}>
           <View style={styles.stopwatchIcon}>
             <View style={styles.stopwatchStem} />
             <View style={styles.stopwatchHand} />
           </View>
-        </Pressable>
+        </View>
         <View style={styles.topSpacer} />
-        <Pressable accessibilityRole="button" hitSlop={12} onPress={onOverflow} style={({ pressed }) => [styles.overflowButton, pressed && styles.pressed]}>
+        <Pressable
+          accessibilityLabel={t('workouts.session.moreActions')}
+          accessibilityRole="button"
+          hitSlop={12}
+          onPress={onOverflow}
+          style={({ pressed }) => [styles.overflowButton, pressed && styles.pressed]}>
           <Text style={styles.overflowLabel}>•••</Text>
         </Pressable>
         <Pressable
+          accessibilityLabel={t('workouts.session.finish')}
           accessibilityRole="button"
           accessibilityState={{ disabled: finishDisabled }}
           disabled={finishDisabled}
           onPress={onFinish}
-          style={({ pressed }) => [styles.finishButton, finishDisabled && styles.finishButtonDisabled, pressed && !finishDisabled && styles.finishButtonPressed]}>
-          <Text style={[styles.finishLabel, finishDisabled && styles.finishLabelDisabled]}>{t('workouts.session.finish')}</Text>
+          style={({ pressed }) => [
+            styles.finishButton,
+            finishDisabled && styles.finishButtonDisabled,
+            pressed && !finishDisabled && styles.finishButtonPressed,
+          ]}>
+          <Text style={[styles.finishLabel, finishDisabled && styles.finishLabelDisabled]}>
+            {t('workouts.session.finish')}
+          </Text>
         </Pressable>
       </View>
 
       {sets > 0 ? (
         <View style={styles.statsRow}>
-          <Stat label={t('workouts.session.sets')} value={`${sets}`} />
-          <Stat label={t('workouts.session.reps')} value={`${reps}`} />
-          <Stat label={t('workouts.session.volume')} value={`${Math.round(volume).toLocaleString()} kg`} />
+          <Stat
+            label={t('workouts.session.sets')}
+            value={formatNumber(sets, { maximumFractionDigits: 0 })}
+          />
+          <Stat
+            label={t('workouts.session.reps')}
+            value={formatNumber(reps, { maximumFractionDigits: 0 })}
+          />
+          <Stat label={t('workouts.session.volume')} value={formattedVolume} />
         </View>
       ) : null}
 
