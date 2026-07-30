@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 
 import { AppCard } from '@/components/ui/AppCard';
 import { Spacing, Typography } from '@/constants/theme';
+import { getPrivacyCurrentCopy } from '@/localization/privacyCurrentCopy';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
@@ -29,11 +30,12 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 export function PrivacySettingsCard() {
-  const { t } = useLocalization();
+  const { locale, t } = useLocalization();
+  const currentCopy = getPrivacyCurrentCopy(locale);
   return (
     <AppCard>
       <Disclosure body={t('privacy.localBody')} title={t('privacy.localTitle')} />
-      <Disclosure body={t('privacy.crashBody')} title={t('privacy.crashTitle')} />
+      <Disclosure body={currentCopy.crashBody} title={currentCopy.crashTitle} />
       <Disclosure body={t('privacy.analyticsBody')} title={t('privacy.analyticsTitle')} />
     </AppCard>
   );
