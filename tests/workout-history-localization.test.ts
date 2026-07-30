@@ -49,3 +49,5 @@ describe('workout history localization and units', () => {
     expect(card).toContain('copy.setMeta(formatWeightValue(set.weight), weight');
   });
 });
+
+// Revalidate this contract against the current main regression baseline.
