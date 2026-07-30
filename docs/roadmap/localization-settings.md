@@ -1,89 +1,206 @@
-# Localization and Settings roadmap
+# Localization and Settings Roadmap
 
 Updated: 2026-07-30
 
-## Localization and regional formatting
+## Goal
 
-Status: typed English/Russian infrastructure, unit preferences, deterministic pluralization, and the principal account/navigation/training surfaces are complete at source-code level. Remaining work is concentrated in Nutrition, secondary Workouts/Progress routes, advanced Coach flows, final formatting/accessibility audit, screenshots, and physical-device validation.
+Make English and Russian first-class product languages across the complete user journey while keeping persisted values, sync schemas, API identifiers and canonical health/fitness units stable.
 
-Completed foundation:
+## Current foundations
 
-- typed message keys with English fallback and exact English/Russian catalog parity checks;
-- device-language detection plus persisted System/English/Russian override;
-- immediate language application without restart;
-- locale-aware date and number formatting boundaries;
-- deterministic English/Russian one/few/many/other pluralization without relying on unavailable Hermes `Intl.PluralRules`;
-- metric/imperial preferences with canonical internal `kg/cm/kcal` storage;
-- `kg/lb`, `cm/in`, and `kcal/kJ` formatting and input conversion across implemented flows;
-- stable persisted identifiers, enums, routes, sync fields, user-created names, and provider/database source content remain untranslated internally.
+Completed shared foundations:
 
-Completed screen groups:
+- system, English and Russian language selection;
+- persisted language preference;
+- centralized locale-aware date and number formatting;
+- deterministic English/Russian pluralization helpers;
+- weight, length and energy display-unit preferences;
+- canonical persistence in kilograms, centimetres and kilocalories;
+- root error-recovery localization before providers mount;
+- password-reset source flow localization;
+- Account & Security inside dedicated Settings;
+- support-only local storage/API diagnostics with no raw user payloads.
 
-- root navigation and bottom tabs;
-- Settings, Account & Security, Privacy, About, Data & Sync, conflict/recovery/support diagnostics, and personal details;
-- registration, sign-in, account-first choice, onboarding, password change, account deletion, sessions/devices, forgot-password, and reset-password;
-- Profile summary, goals, AI Coach profile, body-measurement entry, and main Progress overview/cards;
-- Home summary, recovery/motivation states, current weight, workout action, weekly snapshot, and onboarding;
-- Workouts hub, built-in seed-title display mapping, program creation entry, loading/empty/disabled states, and accessibility copy;
-- active workout, set table/actions, RPE/previous-result copy, cancellation, finish flow, summary, and alerts;
-- immutable Coach history filters/detail, trust states, provenance, applied Nutrition/Strength before-after changes, deterministic rationale, and input-coverage summaries;
-- pre-provider root error recovery;
-- local performance/support diagnostics and the current local-only privacy disclosure;
-- developer and OTA diagnostics hidden from ordinary production users.
+## Completed product surfaces
 
-Completed or in final validation on 2026-07-30:
-
-- Exercise Library browser, search, filters, favorites, recently used, custom-exercise form, accessibility actions, rows, and exercise detail sheet;
-- Workout History list/edit/delete flow, relative dates, pluralized set counts, selected `kg/lb` display, and conversion back to canonical kilograms on edit.
-
-Remaining screen groups:
-
-1. **Secondary Workouts routes** — program/routine/template details and builders, workout safety gate, preview tools, integration/coming-soon surfaces, and any remaining completed-workout secondary detail copy not covered by Workout History.
-2. **Nutrition** — diary, food browser/search, Add Food, custom-food form, barcode scanner, serving editor, favorites/recent foods, saved meals, meal templates, targets, loading/empty/error states, and Nutrition Coach proposal surfaces.
-3. **Progress secondary routes** — any remaining weight/measurement detail screens, charts/forms, exercise-detail analytics, and secondary insight surfaces that still bypass the localization boundary.
-4. **Advanced Coach** — recovery check-in, limitations, Safety & Recovery preflight/review, Combined/Strength/Nutrition proposal and confirmation surfaces, and remaining validation/result states outside immutable history.
-5. **Final global pass** — remaining direct `Intl`/`toLocaleString`, visible enum formatting, count-dependent copy, accessibility labels/hints, dialogs, alerts, stale/offline/retry states, and repository-wide hard-coded English source contracts.
-
-Validation still requiring devices or rendered screenshots:
-
-- long Russian strings on narrow, standard, and wide layouts;
-- English/Russian reference screenshots for primary screens and critical child flows;
-- Dynamic Type, VoiceOver/TalkBack, contrast, Reduce Motion, focus order, keyboard-open states, touch targets, clipping, and safe areas;
-- physical-iPhone and Android verification of locale switching, decimal input, units, offline/error states, and deep links.
-
-## Dedicated Settings
+### Home and primary navigation
 
 Completed:
 
-- dedicated Settings route;
-- Language: System, English, Russian;
-- Appearance: System, Light, Dark;
-- weight, length, and energy units;
-- safe defaults, persistence, account/device storage-scope separation, and immediate application;
-- Account & Security entry and flows;
-- personal details and goal/profile controls;
-- Data & Sync status, recovery, conflict review, and sanitized support diagnostics;
-- Privacy disclosure matching the current architecture: no external crash reporting, no product analytics, and only privacy-safe device-local aggregate diagnostics;
-- About version/build/runtime/update metadata;
-- developer/support diagnostics hidden unless development mode or explicit support mode is enabled;
-- local performance diagnostics visible only inside the collapsed support-only developer section;
-- unavailable or unimplemented settings hidden instead of shown as inert controls.
+- Home summary and snapshot surfaces;
+- quick actions and tab labels;
+- primary Settings navigation;
+- primary Profile preferences and goals.
 
-Remaining:
+### Nutrition
 
-- remove the duplicate Account surface from Profile only after Settings placement and back-navigation are validated on devices;
-- configure verified legal and support destinations before showing links;
-- add analytics consent only after a provider and reviewed event/retention/deletion contract are approved;
-- add workout preferences only after their behavior and persistence scope are defined;
-- add notification categories only when the corresponding notification behavior exists.
+Completed:
 
-## Source and validation rules
+- main Nutrition diary;
+- selected-day and seven-day navigation;
+- streak, macro headers and meal groups;
+- food-entry accessibility copy;
+- Nutrition details and fibre summary;
+- full Nutrition calendar and logged-day accessibility states;
+- Add Food route and picker modes;
+- search, provider states and provider attribution;
+- recent foods;
+- favourites and My foods;
+- saved meals and meal-template management;
+- custom-food creation and validation;
+- portion editor;
+- barcode scanner, permission, lookup and manual-product flows;
+- safe localized barcode and food-search errors;
+- kcal/kJ presentation across diary, discovery, saved meals, custom food and portion editing.
 
-For each completed localization slice:
+Stable product data remains unchanged:
 
-- preserve persisted values and business logic;
-- use typed or bounded copy contracts rather than component-level locale branches scattered across the UI;
-- use central date/number/unit formatters;
-- keep English/Russian key parity and fallback tests current;
-- add source-contract tests preventing audited direct English controls, raw internal statuses, and unsafe direct formatting from returning;
-- do not claim layout/accessibility completion until rendered-device checks have actually passed.
+- food names and brands;
+- provider identifiers and attribution;
+- meal identifiers and user-created meal names;
+- canonical nutrition values;
+- food-entry, food-library and meal-template sync schemas.
+
+### Workouts
+
+Completed:
+
+- active workout session labels and set table;
+- workout-session actions and validation;
+- exercise browser, filters, favourites and recently used;
+- custom exercise form;
+- exercise-detail sheet;
+- Workout History list, editing, validation and deletion confirmation;
+- kg/lb display and canonical-kg persistence when editing completed sets.
+
+Persisted exercise names, database content, workout IDs and sync schemas remain unchanged.
+
+### Progress
+
+Completed:
+
+- primary Progress tab;
+- weight summary and primary analytics;
+- localized Weight Details route;
+- 30-day weight trend and chart states;
+- recent weigh-ins;
+- selected kg/lb presentation while retaining canonical kg analytics;
+- link from Weight Details to localized Workout History.
+
+### Coach trust and history
+
+Completed:
+
+- Coach run history and detail presentation;
+- provenance and source-revision display;
+- before/after Nutrition summaries;
+- standalone Strength before/after summaries;
+- Combined effective Strength before/after summaries;
+- input-coverage summaries without raw snapshots or health values;
+- safe fail-closed parsing of displayed metadata.
+
+### Safety and Recovery
+
+Completed:
+
+- Recovery Check-In;
+- localized recovery fields, score controls, timestamps, validation and sync states;
+- User Limitations;
+- typed display mappings for limitation kind, body region, side, severity, training impact, movement pattern and status;
+- selected-locale onset and resolved dates;
+- Safety & Recovery preflight;
+- deterministic local-readiness and synchronization gates;
+- Safety & Recovery review and results;
+- localized restrictions, findings, load recommendations and snapshot states;
+- bounded user-safe capability, request, sync and issue errors.
+
+Stable validation models, deterministic policies, API lifecycle, persisted enums and sync schemas remain unchanged.
+
+### Settings and support
+
+Completed:
+
+- language, appearance and unit preferences;
+- Account & Security placement;
+- production diagnostics hidden by default;
+- support diagnostics available only in development or explicit support mode;
+- privacy disclosure aligned with the absence of external crash telemetry;
+- local aggregate storage and API metrics without payloads, tokens, email addresses or health values.
+
+## Remaining source work
+
+### Workouts secondary surfaces
+
+Still requires a focused audit and localization pass:
+
+- program and routine detail screens;
+- workout-template detail and builder screens;
+- program workout picker/editor modals;
+- secondary preview and discard-confirmation surfaces;
+- any remaining Safety gate/session-preview copy outside completed session and history flows.
+
+### Progress secondary surfaces
+
+Still requires a focused audit and localization pass:
+
+- secondary measurement detail routes;
+- exercise-progress detail views;
+- workout-volume detail views;
+- additional Safety/Recovery analytics summaries outside completed Coach review surfaces.
+
+### Advanced Coach proposal and confirmation surfaces
+
+Still requires localization and safe-error presentation:
+
+- Nutrition proposal/review confirmation surfaces;
+- Strength strategy/proposal confirmation surfaces;
+- Combined proposal and explicit Strength/Nutrition application surfaces;
+- remaining advanced Coach status, issue and alert copy outside history and completed Safety/Recovery flows.
+
+All proposal work must continue to preserve:
+
+- explicit confirmation before mutation;
+- revisioned writes;
+- idempotency keys;
+- fail-closed parsers;
+- separation between Strength, Nutrition and Safety mutations;
+- no raw provider/backend error details in user-visible copy.
+
+### Repository-wide cleanup
+
+Remaining audit work:
+
+- direct `Intl` or `toLocaleString` calls in user-facing secondary screens;
+- fixed English accessibility labels in secondary routes;
+- fixed `kg`, `cm`, `kcal` or date copy outside established unit/locale boundaries;
+- tests that assert obsolete English literals instead of semantic localization contracts.
+
+## External validation still required
+
+Source and CI completion does not replace physical-device validation.
+
+Still requires user/device or release access:
+
+- full English/Russian visual pass on physical iOS hardware;
+- Android build and layout validation;
+- large-text and screen-reader matrix;
+- narrow/wide device layout checks;
+- light/dark/system appearance matrix;
+- kg/lb, cm/in and kcal/kJ matrix;
+- second-device sync and conflict checks;
+- offline termination/restart recovery;
+- production password-reset email delivery after provider configuration and deployment;
+- OTA/native build, rollback and release-gate validation.
+
+## Completion criteria
+
+Localization is complete only when:
+
+- every reachable production surface has English and Russian copy;
+- dates and numbers follow the selected app language rather than only the OS locale;
+- user-facing units follow selected preferences while persistence remains canonical;
+- plural forms are deterministic;
+- accessibility labels and alerts are localized;
+- raw backend/provider errors and internal enum codes are not displayed;
+- EN/RU, theme, unit, accessibility and device matrices pass;
+- no persistence, sync or API identifiers are translated.
