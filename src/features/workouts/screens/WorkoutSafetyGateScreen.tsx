@@ -9,6 +9,8 @@ import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useLocalization } from '@/localization';
+import { getWorkoutSafetyGateCopy } from '@/localization/workoutSafetyGateCopy';
 import {
   createAsyncStorageAdapter,
   createSafetyRecoveryReviewStore,
@@ -43,6 +45,8 @@ export default function WorkoutSafetyGateScreen({
   ): Promise<void> | void;
 }) {
   const { colors } = useAppTheme();
+  const { locale } = useLocalization();
+  const copy = useMemo(() => getWorkoutSafetyGateCopy(locale), [locale]);
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const app = useAppContext();
@@ -118,7 +122,7 @@ export default function WorkoutSafetyGateScreen({
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
-          accessibilityLabel="Back"
+          accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
