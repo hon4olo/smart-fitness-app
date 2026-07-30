@@ -1,6 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import type { NutritionCoachCopy } from '@/localization/nutritionCoachCopy';
+import { formatEnergyValue, useUnitPreferences } from '@/units';
 
 import type {
   NutritionCoachMetricSummary,
@@ -8,22 +11,23 @@ import type {
 } from '../nutritionCoachViewModel';
 import type { NutritionCoachScreenStyles } from '../screens/nutritionCoachScreen.styles';
 
-const formatNumber = (value: number, maximumFractionDigits = 1): string =>
-  new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value);
-
-const formatDate = (value: string): string => {
-  const date = new Date(`${value}T12:00:00.000Z`);
-  return Number.isFinite(date.getTime())
-    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date)
-    : value;
-};
-
-function MacroGrid({ totals }: { totals: NutritionMetricTotals }) {
+function MacroGrid({
+  copy,
+  totals,
+}: {
+  copy: NutritionCoachCopy;
+  totals: NutritionMetricTotals;
+}) {
+  const { formatNumber } = useLocalization();
+  const { energy } = useUnitPreferences();
   const items = [
-    { label: 'Calories', value: formatNumber(totals.calories, 0) },
-    { label: 'Protein', value: `${formatNumber(totals.protein)} g` },
-    { label: 'Carbs', value: `${formatNumber(totals.carbs)} g` },
-    { label: 'Fats', value: `${formatNumber(totals.fats)} g` },
+    {
+      label: copy.calories,
+      value: `${formatEnergyValue(totals.calories, energy)} ${energy}`,
+    },
+    { label: copy.protein, value: `${formatNumber(totals.protein)} g` },
+    { label: copy.carbs, value: `${formatNumber(totals.carbs)} g` },
+    { label: copy.fats, value: `${formatNumber(totals.fats)} g` },
   ];
 
   return (
@@ -39,58 +43,70 @@ function MacroGrid({ totals }: { totals: NutritionMetricTotals }) {
 }
 
 export function NutritionCoachReviewMetrics({
+  copy,
   metrics,
   styles,
 }: {
+  copy: NutritionCoachCopy;
   metrics: NutritionCoachMetricSummary;
   styles: NutritionCoachScreenStyles;
 }) {
+  const { formatDate, formatNumber } = useLocalization();
+  const { energy, formatWeightValue, weight } = useUnitPreferences();
   const trackedAverage = metrics.averages.perTrackedDay;
+  const ratioUnit = weight === 'lb' ? 'g/lb' : 'g/kg';
+  const ratioValue = (value: number) => (weight === 'lb' ? value / 2.2046226218 : value);
 
   return (
     <View style={styles.resultStack}>
       <View style={styles.summaryRow}>
         <View style={styles.summaryCell}>
-          <Text style={styles.summaryValue}>{metrics.completeness.trackedDays}</Text>
-          <Text style={styles.metaText}>Tracked days</Text>
+          <Text style={styles.summaryValue}>
+            {formatNumber(metrics.completeness.trackedDays, { maximumFractionDigits: 0 })}
+          </Text>
+          <Text style={styles.metaText}>{copy.trackedDays}</Text>
         </View>
         <View style={styles.summaryCell}>
-          <Text style={styles.summaryValue}>{metrics.completeness.missingDays}</Text>
-          <Text style={styles.metaText}>Missing days</Text>
+          <Text style={styles.summaryValue}>
+            {formatNumber(metrics.completeness.missingDays, { maximumFractionDigits: 0 })}
+          </Text>
+          <Text style={styles.metaText}>{copy.missingDays}</Text>
         </View>
         <View style={styles.summaryCell}>
           <Text style={styles.summaryValue}>
             {formatNumber(metrics.completeness.coveragePercent)}%
           </Text>
-          <Text style={styles.metaText}>Coverage</Text>
+          <Text style={styles.metaText}>{copy.coverage}</Text>
         </View>
       </View>
 
       <View style={styles.sectionBlock}>
-        <Text style={styles.sectionTitle}>Average per calendar day</Text>
-        <MacroGrid totals={metrics.averages.perCalendarDay} />
+        <Text style={styles.sectionTitle}>{copy.calendarAverage}</Text>
+        <MacroGrid copy={copy} totals={metrics.averages.perCalendarDay} />
       </View>
 
       <View style={styles.sectionBlock}>
-        <Text style={styles.sectionTitle}>Average per tracked day</Text>
+        <Text style={styles.sectionTitle}>{copy.trackedAverage}</Text>
         {trackedAverage ? (
-          <MacroGrid totals={trackedAverage} />
+          <MacroGrid copy={copy} totals={trackedAverage} />
         ) : (
-          <Text style={styles.bodyText}>No tracked-day average is available.</Text>
+          <Text style={styles.bodyText}>{copy.noTrackedAverage}</Text>
         )}
       </View>
 
       {metrics.targetComparison ? (
         <View style={styles.sectionBlock}>
-          <Text style={styles.sectionTitle}>Current target comparison</Text>
+          <Text style={styles.sectionTitle}>{copy.targetComparison}</Text>
           <View style={styles.infoRow}>
-            <Text style={styles.metaText}>Days within ±10% calories</Text>
+            <Text style={styles.metaText}>{copy.daysWithinCalories}</Text>
             <Text style={styles.infoValue}>
-              {metrics.targetComparison.daysWithinCaloriesTenPercent}
+              {formatNumber(metrics.targetComparison.daysWithinCaloriesTenPercent, {
+                maximumFractionDigits: 0,
+              })}
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.metaText}>Tracked-day adherence</Text>
+            <Text style={styles.metaText}>{copy.trackedAdherence}</Text>
             <Text style={styles.infoValue}>
               {metrics.targetComparison.trackedDayAdherencePercent === null
                 ? '—'
@@ -98,13 +114,13 @@ export function NutritionCoachReviewMetrics({
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.metaText}>Tracked calorie delta</Text>
+            <Text style={styles.metaText}>{copy.trackedDelta}</Text>
             <Text style={styles.infoValue}>
               {metrics.targetComparison.averageTrackedDayDelta
-                ? `${metrics.targetComparison.averageTrackedDayDelta.calories > 0 ? '+' : ''}${formatNumber(
+                ? `${metrics.targetComparison.averageTrackedDayDelta.calories > 0 ? '+' : ''}${formatEnergyValue(
                     metrics.targetComparison.averageTrackedDayDelta.calories,
-                    0,
-                  )} kcal`
+                    energy,
+                  )} ${energy}`
                 : '—'}
             </Text>
           </View>
@@ -113,43 +129,59 @@ export function NutritionCoachReviewMetrics({
 
       {metrics.proteinPerKg ? (
         <View style={styles.sectionBlock}>
-          <Text style={styles.sectionTitle}>Protein relative to body weight</Text>
+          <Text style={styles.sectionTitle}>{copy.proteinPerWeight}</Text>
           <View style={styles.infoRow}>
-            <Text style={styles.metaText}>Weight baseline</Text>
-            <Text style={styles.infoValue}>{formatNumber(metrics.proteinPerKg.weightKg)} kg</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.metaText}>Calendar-day average</Text>
+            <Text style={styles.metaText}>{copy.weightBaseline}</Text>
             <Text style={styles.infoValue}>
-              {formatNumber(metrics.proteinPerKg.averageCalendarDay, 2)} g/kg
+              {formatWeightValue(metrics.proteinPerKg.weightKg)} {weight}
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.metaText}>Tracked-day average</Text>
+            <Text style={styles.metaText}>{copy.calendarAverage}</Text>
+            <Text style={styles.infoValue}>
+              {formatNumber(ratioValue(metrics.proteinPerKg.averageCalendarDay), {
+                maximumFractionDigits: 2,
+              })}{' '}
+              {ratioUnit}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.metaText}>{copy.trackedAverage}</Text>
             <Text style={styles.infoValue}>
               {metrics.proteinPerKg.averageTrackedDay === null
                 ? '—'
-                : `${formatNumber(metrics.proteinPerKg.averageTrackedDay, 2)} g/kg`}
+                : `${formatNumber(ratioValue(metrics.proteinPerKg.averageTrackedDay), {
+                    maximumFractionDigits: 2,
+                  })} ${ratioUnit}`}
             </Text>
           </View>
         </View>
       ) : null}
 
       <View style={styles.sectionBlock}>
-        <Text style={styles.sectionTitle}>Daily coverage</Text>
+        <Text style={styles.sectionTitle}>{copy.dailyCoverage}</Text>
         {metrics.days.map((day) => (
           <View key={day.date} style={styles.dayRow}>
             <View style={styles.dayCopy}>
-              <Text style={styles.dayTitle}>{formatDate(day.date)}</Text>
+              <Text style={styles.dayTitle}>
+                {formatDate(`${day.date}T12:00:00.000Z`, { dateStyle: 'medium' })}
+              </Text>
               <Text style={styles.metaText}>
                 {day.tracked
-                  ? `${day.entryCount} entr${day.entryCount === 1 ? 'y' : 'ies'}`
-                  : 'No entries'}
+                  ? copy.entries(
+                      day.entryCount,
+                      formatNumber(day.entryCount, { maximumFractionDigits: 0 }),
+                    )
+                  : copy.noEntries}
               </Text>
             </View>
             <View style={styles.dayValues}>
-              <Text style={styles.infoValue}>{formatNumber(day.totals.calories, 0)} kcal</Text>
-              <Text style={styles.metaText}>{formatNumber(day.totals.protein)} g protein</Text>
+              <Text style={styles.infoValue}>
+                {formatEnergyValue(day.totals.calories, energy)} {energy}
+              </Text>
+              <Text style={styles.metaText}>
+                {formatNumber(day.totals.protein)} g {copy.protein.toLowerCase()}
+              </Text>
             </View>
           </View>
         ))}

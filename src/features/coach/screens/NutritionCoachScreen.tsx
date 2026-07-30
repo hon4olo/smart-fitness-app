@@ -25,7 +25,10 @@ import {
 import { buildNutritionCoachViewModel } from '@/features/coach/nutritionCoachViewModel';
 import { buildNutritionStrategyViewModel } from '@/features/coach/nutritionStrategyViewModel';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useLocalization } from '@/localization';
+import { getNutritionCoachCopy } from '@/localization/nutritionCoachCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { formatEnergyValue, useUnitPreferences } from '@/units';
 
 import { createNutritionCoachScreenStyles } from './nutritionCoachScreen.styles';
 
@@ -46,9 +49,6 @@ const createConfirmationIdempotencyKey = (runId: string): string =>
     .toString(16)
     .slice(2)}`;
 
-const formatNumber = (value: number, maximumFractionDigits = 1): string =>
-  new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value);
-
 export default function NutritionCoachScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createNutritionCoachScreenStyles(colors), [colors]);
@@ -56,6 +56,9 @@ export default function NutritionCoachScreen() {
   const { isRestoringState } = useAppContext();
   const { syncNow } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
+  const { formatNumber, locale } = useLocalization();
+  const { energy } = useUnitPreferences();
+  const copy = getNutritionCoachCopy(locale);
   const [lookbackDays, setLookbackDays] =
     useState<(typeof LOOKBACK_OPTIONS)[number]>(14);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
@@ -64,7 +67,7 @@ export default function NutritionCoachScreen() {
   const [error, setError] = useState<string | null>(null);
   const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
   const [capabilitiesLoading, setCapabilitiesLoading] = useState(false);
-  const [capabilitiesError, setCapabilitiesError] = useState<string | null>(null);
+  const [capabilitiesUnavailable, setCapabilitiesUnavailable] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const isAuthenticated = Boolean(session?.tokens.accessToken);
@@ -107,28 +110,24 @@ export default function NutritionCoachScreen() {
   useEffect(() => {
     if (!ready || !isAuthenticated) {
       setCapabilities(null);
-      setCapabilitiesError(null);
+      setCapabilitiesUnavailable(false);
       setCapabilitiesLoading(false);
       return;
     }
 
     let cancelled = false;
     setCapabilitiesLoading(true);
-    setCapabilitiesError(null);
+    setCapabilitiesUnavailable(false);
 
     void coachApi
       .getCapabilities()
       .then((nextCapabilities) => {
         if (!cancelled) setCapabilities(nextCapabilities);
       })
-      .catch((capabilityError: unknown) => {
+      .catch(() => {
         if (cancelled) return;
         setCapabilities(null);
-        setCapabilitiesError(
-          capabilityError instanceof Error
-            ? capabilityError.message
-            : 'Coach capabilities could not be verified.',
-        );
+        setCapabilitiesUnavailable(true);
       })
       .finally(() => {
         if (!cancelled) setCapabilitiesLoading(false);
@@ -147,7 +146,7 @@ export default function NutritionCoachScreen() {
       requestType === 'nutrition_strategy_proposal' &&
       capabilities?.nutrition.structuredStrategyProposal !== true
     ) {
-      setError('AI strategy is not enabled on this backend.');
+      setError(copy.strategyNotEnabled);
       return;
     }
 
@@ -165,20 +164,19 @@ export default function NutritionCoachScreen() {
         idempotencyKey: createIdempotencyKey(requestType, lookbackDays),
       });
       setRun(initial);
-      const terminal = await coachApi.waitForTerminalRun(initial, {
-        signal: abortController.signal,
-        intervalMs: 750,
-        maxPolls: 20,
-      });
-      setRun(terminal);
+      setRun(
+        await coachApi.waitForTerminalRun(initial, {
+          signal: abortController.signal,
+          intervalMs: 750,
+          maxPolls: 20,
+        }),
+      );
     } catch (requestError) {
       if (requestError instanceof Error && requestError.name === 'AbortError') return;
       setError(
-        requestError instanceof Error
-          ? requestError.message
-          : requestType === 'nutrition_strategy_proposal'
-            ? 'Nutrition Strategy could not complete the preview.'
-            : 'Nutrition Coach could not complete the review.',
+        requestType === 'nutrition_strategy_proposal'
+          ? copy.strategyFailed
+          : copy.reviewFailed,
       );
     } finally {
       if (abortControllerRef.current === abortController) {
@@ -206,12 +204,8 @@ export default function NutritionCoachScreen() {
       });
       setRun(confirmed);
       await syncNow();
-    } catch (confirmationError) {
-      setError(
-        confirmationError instanceof Error
-          ? confirmationError.message
-          : 'The Nutrition Strategy could not be applied.',
-      );
+    } catch {
+      setError(copy.strategyApplyFailed);
     } finally {
       setConfirmingStrategy(false);
     }
@@ -221,12 +215,18 @@ export default function NutritionCoachScreen() {
     if (strategyViewModel?.kind !== 'proposal') return;
     const { proposal } = strategyViewModel;
     Alert.alert(
-      'Apply AI strategy?',
-      `Replace the active nutrition target with ${formatNumber(proposal.calorieTarget, 0)} kcal, ${formatNumber(proposal.macros.protein, 0)} g protein, ${formatNumber(proposal.macros.carbs, 0)} g carbs and ${formatNumber(proposal.macros.fats, 0)} g fats?\n\nThe backend will verify the target revision and rerun deterministic guardrails before applying.`,
+      copy.applyTitle,
+      copy.applyBody(
+        formatEnergyValue(proposal.calorieTarget, energy),
+        energy,
+        formatNumber(proposal.macros.protein, { maximumFractionDigits: 0 }),
+        formatNumber(proposal.macros.carbs, { maximumFractionDigits: 0 }),
+        formatNumber(proposal.macros.fats, { maximumFractionDigits: 0 }),
+      ),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: copy.cancel, style: 'cancel' },
         {
-          text: 'Apply strategy',
+          text: copy.applyStrategy,
           style: 'destructive',
           onPress: () => void confirmStrategy(),
         },
@@ -239,21 +239,21 @@ export default function NutritionCoachScreen() {
   const strategyConfirmationSupported =
     capabilities?.nutrition.structuredStrategyConfirmation === true;
   const controlsBusy = Boolean(activeRunType) || confirmingStrategy;
-  const runStatus = run?.run.status.toUpperCase() ?? '';
+  const runStatus = run ? copy.runStatus[run.run.status] ?? run.run.status : '';
 
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
-          accessibilityLabel="Back"
+          accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>Nutrition Coach</Text>
-          <Text style={styles.subtitle}>Deterministic review · gated AI preview</Text>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.subtitle}>{copy.subtitle}</Text>
         </View>
       </View>
 
@@ -266,37 +266,32 @@ export default function NutritionCoachScreen() {
         <View style={styles.container}>
           <AppCard>
             <View style={styles.badgeRow}>
-              <Text style={styles.previewBadge}>Preview</Text>
+              <Text style={styles.previewBadge}>{copy.preview}</Text>
               <Text style={styles.statusText}>
                 {strategyAvailable
-                  ? 'Structured strategy provider available'
+                  ? copy.providerAvailable
                   : capabilitiesLoading
-                    ? 'Checking backend capabilities'
-                    : 'Deterministic review available'}
+                    ? copy.checkingCapabilities
+                    : copy.deterministicAvailable}
               </Text>
             </View>
-            <Text style={styles.cardTitle}>Validated nutrition analysis</Text>
-            <Text style={styles.bodyText}>
-              Deterministic review is always calculated from synchronized records. AI Strategy is
-              shown only when the authenticated backend reports an enabled structured provider.
-            </Text>
+            <Text style={styles.cardTitle}>{copy.validatedAnalysis}</Text>
+            <Text style={styles.bodyText}>{copy.validatedBody}</Text>
           </AppCard>
 
           {loading ? (
             <AppCard>
-              <Text style={styles.cardTitle}>Preparing account and nutrition data…</Text>
+              <Text style={styles.cardTitle}>{copy.preparing}</Text>
             </AppCard>
           ) : !isAuthenticated ? (
             <AppCard>
-              <Text style={styles.cardTitle}>Sign in required</Text>
-              <Text style={styles.bodyText}>
-                Nutrition Coach reads only data synchronized to your protected backend account.
-              </Text>
-              <PrimaryButton label="Sign in" onPress={() => router.push('/auth/sign-in')} />
+              <Text style={styles.cardTitle}>{copy.signInRequired}</Text>
+              <Text style={styles.bodyText}>{copy.signInBody}</Text>
+              <PrimaryButton label={copy.signIn} onPress={() => router.push('/auth/sign-in')} />
             </AppCard>
           ) : (
             <AppCard>
-              <Text style={styles.cardTitle}>Analysis period</Text>
+              <Text style={styles.cardTitle}>{copy.period}</Text>
               <View style={styles.periodRow}>
                 {LOOKBACK_OPTIONS.map((days) => {
                   const selected = days === lookbackDays;
@@ -317,7 +312,10 @@ export default function NutritionCoachScreen() {
                         pressed && !controlsBusy && styles.pressed,
                       ]}>
                       <Text style={[styles.periodLabel, selected && styles.periodLabelSelected]}>
-                        {days} days
+                        {copy.days(
+                          days,
+                          formatNumber(days, { maximumFractionDigits: 0 }),
+                        )}
                       </Text>
                     </Pressable>
                   );
@@ -327,7 +325,7 @@ export default function NutritionCoachScreen() {
               <View style={styles.actionStack}>
                 <PrimaryButton
                   disabled={controlsBusy}
-                  label="Review synchronized nutrition"
+                  label={copy.reviewNutrition}
                   loading={activeRunType === 'review'}
                   onPress={() => void startNutritionRun('nutrition_review')}
                 />
@@ -335,37 +333,35 @@ export default function NutritionCoachScreen() {
                 {strategyAvailable ? (
                   <PrimaryButton
                     disabled={controlsBusy}
-                    label="Generate AI strategy preview"
+                    label={copy.generateStrategy}
                     loading={activeRunType === 'strategy'}
                     onPress={() => void startNutritionRun('nutrition_strategy_proposal')}
                   />
                 ) : (
                   <Text style={styles.capabilityText}>
                     {capabilitiesLoading
-                      ? 'Checking whether AI Strategy is enabled…'
-                      : capabilitiesError
-                        ? 'AI Strategy availability could not be verified. Deterministic review remains available.'
-                        : 'AI strategy provider is not enabled on this backend.'}
+                      ? copy.strategyChecking
+                      : capabilitiesUnavailable
+                        ? copy.strategyUnknown
+                        : copy.strategyDisabled}
                   </Text>
                 )}
               </View>
 
-              <Text style={styles.disclaimer}>
-                At least three tracked days are required. Strategy output is not applied until a
-                separate confirmation succeeds.
-              </Text>
+              <Text style={styles.disclaimer}>{copy.minimumTracking}</Text>
             </AppCard>
           )}
 
           {error ? (
             <AppCard style={styles.errorCard}>
-              <Text style={styles.errorTitle}>Request error</Text>
+              <Text style={styles.errorTitle}>{copy.requestError}</Text>
               <Text style={styles.bodyText}>{error}</Text>
             </AppCard>
           ) : null}
 
           {reviewViewModel ? (
             <NutritionCoachReviewResultCard
+              copy={copy}
               deterministicSummary={deterministicSummary}
               rejectionCopy={reviewRejectionCopy}
               runStatus={runStatus}
@@ -378,6 +374,7 @@ export default function NutritionCoachScreen() {
             <NutritionCoachStrategyResultCard
               confirmationSupported={strategyConfirmationSupported}
               confirming={confirmingStrategy}
+              copy={copy}
               deterministicSummary={deterministicSummary}
               onConfirm={requestStrategyConfirmation}
               runStatus={runStatus}
