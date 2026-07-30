@@ -51,7 +51,11 @@ Completed:
 - exercise detail sheet;
 - Workout History list/edit/delete;
 - selected `kg/lb` with conversion back to canonical kilograms on edit;
-- workout-template detail loading/not-found states, menu, favourite toggle, deletion confirmation, pluralized set counts, accessibility and start action.
+- workout-template detail loading/not-found states, menu, favourite toggle, deletion confirmation, pluralized set counts, accessibility and start action;
+- program detail loading/not-found states, stable-ID titles, favourite/delete/remove actions, unavailable-template handling, pluralized exercise counts and saved toast;
+- linked new-routine builder, exercise picker/action menu, selected `kg/lb` labels and localized accessibility.
+
+Program/routine details were completed in PR #228 with source-contract coverage and full Mobile CI.
 
 ### Progress
 
@@ -103,36 +107,37 @@ Completed and merged in PR #226:
 
 ## Current next task
 
-### Secondary Workouts — program and routine details
+### Secondary Workouts — builders, pickers and confirmations
 
-Immediate linked slice after workout-template detail:
+Immediate linked slice after program/routine details:
 
-- `src/features/workouts/screens/ProgramDetailScreen.tsx`;
-- routine creation/editor routes reached from the program detail screen;
-- directly required typed copy modules and source-contract tests.
+- `src/features/workouts/screens/WorkoutBuilderScreen.tsx`;
+- `src/components/workouts/ProgramWorkoutPickerModal.tsx`;
+- `src/components/workouts/ProgramWorkoutEditorModal.tsx`;
+- directly required builder cards, preview/discard confirmations, typed copy modules and source-contract tests.
 
 Confirmed remaining issues include:
 
-- hard-coded loading/not-found, menu, favourite, delete, unavailable-workout and saved-toast copy;
-- direct English exercise/workout counts;
-- hard-coded accessibility boundaries and uppercase presentation controls;
-- user-facing built-in program/workout titles bypassing stable-ID localization;
-- remaining builder, picker, preview and discard-confirmation copy outside the localization boundary.
+- hard-coded Save/Create/Add/Cancel/Done and empty-state copy;
+- hard-coded discard/delete confirmations and validation alerts;
+- remaining fixed `kg`, `Reps`, `Set`, `Previous` and accessibility labels outside established unit/copy boundaries;
+- visible built-in workout/program titles bypassing stable-ID localization;
+- tests checking stale literal English strings instead of semantic route/action contracts.
 
 Must preserve:
 
-- program IDs, workout-template IDs, day IDs and schedule ordering;
-- custom vs built-in program behavior;
-- favourite, delete and remove-from-program actions;
-- routine creation navigation and saved-workout return state;
-- training-program persistence and revisioned sync contracts;
+- builder mode and existing-program hydration;
+- workout-template IDs, program IDs, exercise IDs and ordering;
+- create-vs-edit behavior, picker selection and editor state;
+- save/discard/delete contracts and navigation return state;
+- canonical persisted weight values and training-program sync schemas;
 - completed workout history.
 
 ## Remaining source work
 
-### Secondary Workouts after program/routine details
+### Secondary Workouts after builders
 
-Audit/localize remaining workout-template builders, workout picker/editor modals, preview/discard surfaces and remaining Safety gate/session-preview copy.
+Audit/localize remaining workout picker/editor variants, preview/discard surfaces and remaining Safety gate/session-preview copy not covered by the builder slice.
 
 ### Secondary Progress
 
