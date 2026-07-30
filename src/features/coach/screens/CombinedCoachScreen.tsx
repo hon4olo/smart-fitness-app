@@ -16,6 +16,7 @@ import { useAppContext } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
+import { getCombinedCoachTrustCopy } from '@/localization/combinedCoachTrustCopy';
 import { getCombinedReviewCopy, type CombinedReviewCopy } from '@/localization/combinedReviewCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { WorkoutSession } from '@/types';
@@ -237,6 +238,7 @@ export default function CombinedCoachScreen() {
   const { ready, refresh, session } = useAuthSession();
   const { formatNumber, locale } = useLocalization();
   const copy = getCombinedReviewCopy(locale);
+  const trustCopy = getCombinedCoachTrustCopy(locale);
   const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [busy, setBusy] = useState(false);
@@ -247,6 +249,13 @@ export default function CombinedCoachScreen() {
     capabilities?.schemaVersion === 6 &&
     capabilities.combined?.deterministicReview === true &&
     capabilities.combined.automaticApplication === false;
+  const capabilityPresentation = !ready
+    ? 'checking'
+    : !isAuthenticated
+      ? 'sign_in'
+      : combinedAvailable
+        ? 'available'
+        : 'unavailable';
   const primarySession = useMemo(
     () => latestSession(app.workoutSessions),
     [app.workoutSessions],
@@ -354,8 +363,8 @@ export default function CombinedCoachScreen() {
               )}
             </Text>
             <Text style={themedStyles.metaText}>
-              {copy.capability}: {combinedAvailable ? copy.capabilityAvailable : copy.capabilityUnavailable} ·{' '}
-              {copy.sync}: {copy.syncLabels[syncStatus] ?? syncStatus}
+              {copy.capability}: {trustCopy.capabilityLabel(capabilityPresentation)} ·{' '}
+              {copy.sync}: {trustCopy.syncLabel(syncStatus)}
             </Text>
           </AppCard>
 
@@ -380,7 +389,7 @@ export default function CombinedCoachScreen() {
                 onPress={() => void runCombinedReview()}
               />
               {!combinedAvailable ? (
-                <Text style={themedStyles.metaText}>{copy.capabilityHint}</Text>
+                <Text style={themedStyles.metaText}>{trustCopy.unavailableHint}</Text>
               ) : null}
               <SecondaryButton
                 label={copy.reviewSafety}
