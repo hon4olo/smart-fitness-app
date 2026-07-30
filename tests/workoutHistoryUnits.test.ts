@@ -15,17 +15,22 @@ describe('workout history unit boundaries', () => {
 
     expect(source).toContain('useUnitPreferences');
     expect(source).toContain('weightFromKg(volumeKg, weightUnit)');
+    expect(source).toContain('formatNumber(weightFromKg(volumeKg, weightUnit)');
     expect(source).toContain('formatVolume(item.volume)');
     expect(source).not.toContain('{item.volumeLabel}');
+    expect(source).not.toContain('.toLocaleString(');
   });
 
   it('formats completed set weights and exercise volume through the selected unit', () => {
     const source = readSource('src/features/workouts/screens/WorkoutHistoryDetailScreen.tsx');
 
+    expect(source).toContain('formatWeightValue, weight: weightUnit');
     expect(source).toContain('weightUnit.toUpperCase()');
-    expect(source).toContain('formatWeightValue(set.weight, weightUnit)');
+    expect(source).toContain('formatWeightValue(set.weight)');
+    expect(source).toContain('weightFromKg(volumeKg, weightUnit)');
     expect(source).toContain('formatVolume(group.volume)');
     expect(source).toContain('formatVolume(summary.volume)');
     expect(source).not.toContain('Math.round(group.volume).toLocaleString()} kg');
+    expect(source).not.toContain('new Intl.');
   });
 });
