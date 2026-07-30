@@ -2,9 +2,9 @@
 
 Updated: 2026-07-30
 
-## Goal
+## Localization and regional formatting
 
-Make English and Russian first-class product languages across every reachable production surface while keeping persisted values, API identifiers, sync schemas, user-created names and canonical health/fitness units stable.
+Goal: make English and Russian first-class product languages across every reachable production surface while keeping persisted values, API identifiers, sync schemas, user-created names and canonical health/fitness units stable.
 
 ## Shared foundations
 
@@ -13,7 +13,7 @@ Completed:
 - System, English and Russian language selection with persisted preference;
 - immediate language application without restart;
 - centralized locale-aware date and number formatting;
-- deterministic English/Russian pluralization helpers;
+- deterministic English/Russian one/few/many/other pluralization;
 - weight, length and energy display-unit preferences;
 - canonical persistence in `kg`, `cm` and `kcal`;
 - English fallback and EN/RU catalog parity checks;
@@ -22,233 +22,150 @@ Completed:
 - password-reset source flow localization;
 - privacy-safe local storage/API diagnostics without raw payloads, tokens, email addresses or health values.
 
-Stable internal data must remain untranslated:
-
-- routes, IDs, enum values and sync fields;
-- provider/database content and attribution identifiers;
-- user-created food, meal, workout, exercise, routine, program and template names;
-- canonical measurement and nutrition values.
+Stable internal data remains untranslated: routes, IDs, enum values, sync fields, provider/database identifiers, user-created names and canonical measurement values.
 
 ## Completed production surfaces
 
-### Home, navigation and account
+### Account, Home and Settings
 
-Completed:
-
-- root navigation and bottom tabs;
-- Home summary, weekly snapshot, current weight and workout action;
-- onboarding and account-first flows;
-- sign-in, registration, sessions/devices, password change and account deletion;
-- forgot-password and reset-password source flows;
-- Settings, Account & Security, Privacy, About and Data & Sync;
-- Profile summary, personal details, goals and AI Coach profile;
-- production-only hiding of developer and OTA diagnostics.
+Completed root navigation, Home summaries, onboarding, authentication, sessions/devices, password/account flows, Settings, Account & Security, Privacy, About, Data & Sync, Profile preferences and production hiding of developer/OTA diagnostics.
 
 ### Nutrition diary and food flows
 
 Completed:
 
-- main Nutrition diary and selected-day navigation;
-- seven-day strip, full Nutrition calendar and logged-day accessibility states;
-- streak, macro headers, meal groups and item-count pluralization;
-- Nutrition details and fibre summary;
-- Add Food route and picker modes;
-- search, provider states and attribution;
-- recent foods, favourites and My foods;
-- saved meals and meal-template management;
-- custom-food creation and validation;
-- portion editor;
-- barcode scanner, permission, lookup and manual-product flows;
-- safe localized search/barcode errors;
-- selected `kcal/kJ` presentation across completed diary and food surfaces.
+- main diary, selected-day navigation, seven-day strip and full calendar;
+- streak, macro headers, meal groups, counts, Nutrition details and fibre;
+- Add Food search, recent foods, favourites, My foods and saved meals;
+- custom food, portion editor and barcode/manual-product flows;
+- safe provider/search/scanner errors;
+- selected `kcal/kJ` presentation.
 
 ### Workouts core flows
 
 Completed:
 
 - Workouts hub and program-creation entry;
-- active workout session and set-table labels/actions;
-- RPE, previous result, cancellation, finish flow, summary and alerts;
-- Exercise Library browser, search, filters, favourites and recently used;
-- custom-exercise form and exercise detail sheet;
-- Workout History list, editing, validation and deletion confirmation;
-- selected `kg/lb` display with conversion back to canonical kilograms on edit.
+- active session, set table, RPE, cancellation, finish and summary;
+- Exercise Library, filters, favourites, recently used and custom exercise;
+- exercise detail sheet;
+- Workout History list/edit/delete;
+- selected `kg/lb` with conversion back to canonical kilograms on edit.
 
 ### Progress
 
-Completed:
+Completed primary Progress, Weight Details, 30-day trend, chart states, recent weigh-ins, selected `kg/lb` and the link to localized Workout History.
 
-- primary Progress overview and cards;
-- weight summary and primary analytics;
-- Weight Details route;
-- 30-day trend and chart states;
-- recent weigh-ins;
-- selected `kg/lb` presentation while analytics remain canonical kilograms;
-- link from Weight Details to localized Workout History.
+### Coach history and trust
 
-### Coach history and trust surfaces
-
-Completed:
-
-- immutable Coach run history and filters;
-- run details, trust states and provenance;
-- Nutrition and Strength before/after summaries;
-- Combined effective Strength before/after summaries;
-- deterministic rationale;
-- privacy-safe input-coverage summaries;
-- fail-closed parsing of displayed metadata.
+Completed immutable run history/detail, trust states, provenance, Nutrition/Strength/Combined before-after summaries, deterministic rationale, privacy-safe input coverage and fail-closed metadata parsing.
 
 ### Safety and Recovery
 
-Completed:
-
-- Recovery Check-In fields, score controls, timestamps, validation and sync states;
-- User Limitations form/list;
-- typed display mappings for limitation kind, body region, side, severity, training impact, movement pattern and status;
-- selected-locale onset and resolved dates;
-- Safety & Recovery preflight and deterministic readiness gates;
-- Safety & Recovery review/results;
-- localized restrictions, findings, load recommendations and snapshot states;
-- bounded capability, request, sync and issue errors.
+Completed Recovery Check-In, User Limitations, typed enum display mappings, selected-locale dates, Safety & Recovery preflight/review, deterministic readiness gates, restrictions, findings, load recommendations and bounded errors.
 
 ### Combined Coach
 
 Completed:
 
-- read-only Combined Review;
-- child Strength, Nutrition and Safety summaries;
-- capability schema v6 gate, polling, idempotency and `automaticApplication: false`;
-- selected `kg/lb` and `kcal/kJ` presentation;
-- bounded typed findings and safe request errors;
-- Combined Proposal review;
-- effective Safety-capped Strength plan;
-- separate explicit Strength-template and Nutrition-target confirmation actions;
-- source revisions, idempotency keys and revisioned writes;
-- fail-closed parsing and no automatic mutation.
+- read-only Combined Review with child Strength/Nutrition/Safety summaries;
+- schema-v6 gate, polling, idempotency and `automaticApplication: false`;
+- selected `kg/lb` and `kcal/kJ`;
+- Combined Proposal with effective Safety-capped Strength;
+- separate explicit Strength-template and Nutrition-target confirmations;
+- revisioned writes, idempotency keys, fail-closed parsing and no automatic mutation.
 
 ### Nutrition Coach
 
-Completed in PR #224 and merged to `main`:
+Completed and merged in PR #224:
 
-- account, capability and analysis-period states;
-- deterministic Nutrition review;
+- account/capability/period states;
+- deterministic Nutrition review and metrics;
 - structured AI strategy preview;
-- review metrics and daily coverage;
-- strategy proposal and confirmation alert;
-- selected `kcal/kJ`, `kg/lb` and `g/kg` or `g/lb` presentation;
-- abort handling, polling, idempotency and explicit `confirmRun` workflow;
-- post-confirmation sync;
+- strategy confirmation alert and explicit `confirmRun`;
+- selected `kcal/kJ`, `kg/lb` and `g/kg` or `g/lb`;
+- abort, polling, idempotency and post-confirmation sync;
 - bounded capability, request, confirmation, rejection and issue presentation;
-- source-contract coverage and full Mobile CI.
+- full Mobile CI.
 
 ## Current next task
 
 ### Strength Coach localization
 
-Branch already exists:
-
-- `agent/localize-strength-coach`
+Existing branch: `agent/localize-strength-coach`.
 
 Current state:
 
-- branch was created from `main`;
-- audit is complete;
-- no product commits or PR exist yet.
+- created from `main`;
+- audit complete;
+- no product commits and no PR yet.
 
 Required linked slice:
 
 - `src/features/coach/screens/StrengthCoachScreen.tsx`;
 - `src/features/coach/components/StrengthStrategyProposalView.tsx`;
-- any directly required typed localization module and source-contract tests.
+- directly required typed copy module and source-contract tests.
 
-Confirmed issues to remove:
+Confirmed issues:
 
-- direct `Intl.DateTimeFormat`;
-- `toLocaleString`;
+- direct `Intl.DateTimeFormat` and `toLocaleString`;
 - fixed `kg` presentation;
 - hard-coded metrics, controls, alerts and accessibility labels;
 - uppercase/internal statuses and guardrail codes;
 - raw request, confirmation, view-model and issue messages;
-- direct provider/model audit details where they are not intended user-facing metadata.
+- direct provider/model audit details not intended as user-facing copy.
 
 Must preserve:
 
-- `session_review`, `next_workout_proposal` and `strength_strategy_proposal` request types;
+- `session_review`, `next_workout_proposal` and `strength_strategy_proposal`;
 - latest/source-session mapping;
 - abort and polling behavior;
-- structured proposal and confirmation capability gates;
-- idempotency keys;
-- explicit `coachApi.confirmRun`;
+- proposal/confirmation capability gates;
+- idempotency keys and explicit `coachApi.confirmRun`;
 - post-confirmation sync;
 - deterministic source-set, load, repetition, RPE and volume validation;
-- creation of a new workout template without changing completed workout history.
+- creation of a new template without changing completed history.
 
 ## Remaining source work after Strength Coach
 
-### Secondary Workouts surfaces
+### Secondary Workouts
 
-Still requires focused audit/localization:
+Audit/localize program and routine details, template details/builders, workout picker/editor modals, preview/discard surfaces and remaining Safety gate/session-preview copy.
 
-- program and routine detail screens;
-- workout-template detail and builder screens;
-- program workout picker/editor modals;
-- secondary preview and discard-confirmation surfaces;
-- remaining workout Safety gate/session-preview copy outside completed session/history flows.
+### Secondary Progress
 
-### Secondary Progress surfaces
+Audit/localize measurement details, exercise-progress details, workout-volume details and other secondary analytics outside established locale/unit boundaries.
 
-Still requires focused audit/localization:
+### Remaining Coach work
 
-- measurement detail routes;
-- exercise-progress detail views;
-- workout-volume detail views;
-- secondary insight and analytics surfaces that still bypass localization/unit boundaries.
-
-### Remaining Coach surfaces
-
-After Strength Coach, verify:
-
-- any standalone proposal/confirmation route not covered by Nutrition, Combined or Strength flows;
-- stale/offline/retry states outside immutable history;
-- remaining direct provider/backend messages;
-- compensating-revert UX for Coach-applied changes, if not already implemented elsewhere.
+Verify standalone proposal/confirmation routes, stale/offline/retry states, remaining provider/backend messages and compensating-revert UX for Coach-applied changes.
 
 ### Repository-wide final pass
 
-Audit and remove:
-
-- direct `Intl` or `toLocaleString` calls in reachable user-facing secondary screens;
-- fixed English accessibility labels/hints;
-- fixed `kg`, `cm`, `kcal` and date copy outside established boundaries;
-- visible internal enum/status formatting;
-- obsolete source-tests that assert literal English instead of semantic localization contracts.
+Remove remaining direct `Intl`/`toLocaleString`, fixed English accessibility labels, fixed `kg`/`cm`/`kcal` copy, visible internal enums/statuses and obsolete literal-English source tests.
 
 ## External validation still required
 
-Source and CI completion does not replace device/release validation.
+Requires user/device/provider/release access:
 
-Still requires user, device, provider or release access:
-
-- full EN/RU visual pass on physical iPhone;
-- Android build and layout validation;
-- narrow, standard and wide device checks;
-- Dynamic Type and VoiceOver/TalkBack matrix;
-- focus order, keyboard-open states, touch targets, clipping and safe areas;
-- light/dark/system appearance matrix;
-- `kg/lb`, `cm/in` and `kcal/kJ` matrix;
-- second-device sync and conflict checks;
-- offline termination/restart recovery;
-- production password-reset email delivery after provider configuration and backend deployment;
+- physical iPhone EN/RU visual pass;
+- Android build/layout validation;
+- narrow/standard/wide devices;
+- Dynamic Type and VoiceOver/TalkBack;
+- focus, keyboard, touch targets, clipping and safe areas;
+- appearance and unit matrices;
+- second-device sync/conflicts and offline restart recovery;
+- production password-reset email after provider configuration and deployment;
 - OTA/native build, rollback and release-gate validation.
 
 ## Source and validation rules
 
 For every localization slice:
 
-- preserve business logic, persisted values and sync/API contracts;
+- preserve business logic, persistence and sync/API contracts;
 - use typed or bounded copy contracts;
 - use central date, number and unit formatters;
 - keep English fallback and EN/RU parity tests current;
-- add source-contract tests preventing audited hard-coded controls, raw internal statuses, raw provider errors and unsafe direct formatting from returning;
+- add source-contract tests preventing hard-coded controls, raw internal statuses, raw provider errors and unsafe formatting;
 - require line audit, TypeScript, Coach/sync contracts, full regression suite, Expo export and Expo Doctor before merge;
-- do not claim rendered layout or accessibility completion without physical-device or screenshot validation.
+- do not claim rendered layout/accessibility completion without device or screenshot validation.
