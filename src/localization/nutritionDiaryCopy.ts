@@ -24,6 +24,8 @@ export const getNutritionDiaryCopy = (locale: SupportedLocale) => {
   return {
     title: locale === 'ru' ? 'Питание' : 'Nutrition',
     mealDiary: locale === 'ru' ? 'Дневник питания' : 'Meal diary',
+    nutritionDetails: locale === 'ru' ? 'Подробности питания' : 'Nutrition details',
+    fiber: locale === 'ru' ? 'Клетчатка' : 'Fiber',
     today: locale === 'ru' ? 'Сегодня' : 'Today',
     todaySelected: locale === 'ru' ? 'Выбран сегодняшний день' : 'Today selected',
     jumpToToday: locale === 'ru' ? 'Перейти к сегодняшнему дню' : 'Jump to today',
