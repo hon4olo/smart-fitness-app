@@ -1,8 +1,12 @@
 import { getNutritionLibrarySyncEntityId } from '@/features/nutrition/nutritionFoodLibrary';
-import { createDeterministicUuid, ensureUuid } from '@/lib/ids';
+import { ensureUuid } from '@/lib/ids';
 
 import type { CloudError } from './CloudErrors';
 import { CLOUD_ERROR_CODES } from './CloudErrors';
+import {
+  createOfflineSyncQueueIdempotencyKey,
+  isServerCompatibleOfflineSyncQueueIdempotencyKey,
+} from './CloudQueueIdempotency';
 import type {
   OfflineSyncQueueAction,
   OfflineSyncQueueOperation,
@@ -14,9 +18,17 @@ import {
 } from './CloudQueueTypes';
 import type { SyncOperation, SyncRevision } from './CloudSyncTypes';
 
-const DEFAULT_RETRY_BASE_MS = 1_000;
-const DEFAULT_RETRY_MAX_MS = 15 * 60 * 1_000;
-export const MAX_SYNC_IDEMPOTENCY_KEY_LENGTH = 255;
+export {
+  MAX_SYNC_IDEMPOTENCY_KEY_LENGTH,
+  createOfflineSyncQueueIdempotencyKey,
+  isOfflineSyncQueueIdempotencyKey,
+  isServerCompatibleOfflineSyncQueueIdempotencyKey,
+  repairOfflineSyncQueueOperationIdempotencyKey,
+} from './CloudQueueIdempotency';
+export {
+  createOfflineSyncQueueBackoff,
+  incrementOfflineSyncQueueRetry,
+} from './CloudQueueRetry';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -41,25 +53,6 @@ const SERVER_STRICT_IDENTITY_PAYLOAD_ENTITIES = new Set([
 ]);
 const isServerStrictIdentityPayloadEntity = (value: string): boolean =>
   SERVER_STRICT_IDENTITY_PAYLOAD_ENTITIES.has(value);
-
-const stableStringify = (value: unknown): string => {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
-  }
-
-  return `{${Object.entries(value)
-    .filter(([, entryValue]) => entryValue !== undefined)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(
-      ([key, entryValue]) =>
-        `${JSON.stringify(key)}:${stableStringify(entryValue)}`,
-    )
-    .join(',')}}`;
-};
 
 const clampRetryCount = (value: unknown): number =>
   typeof value === 'number' && Number.isFinite(value)
@@ -158,106 +151,6 @@ const normalizeAction = (value: unknown): OfflineSyncQueueAction =>
   includesString(OFFLINE_SYNC_QUEUE_ACTIONS, value) ? value : 'update';
 const normalizeStatus = (value: unknown): OfflineSyncQueueStatus =>
   includesString(OFFLINE_SYNC_QUEUE_STATUSES, value) ? value : 'pending';
-
-export const isOfflineSyncQueueIdempotencyKey = (
-  value: unknown,
-): value is string =>
-  isString(value) && value.startsWith('queue:') && value.split(':').length >= 5;
-
-export const isServerCompatibleOfflineSyncQueueIdempotencyKey = (
-  value: unknown,
-): value is string =>
-  isOfflineSyncQueueIdempotencyKey(value) &&
-  value.length <= MAX_SYNC_IDEMPOTENCY_KEY_LENGTH;
-
-export const createOfflineSyncQueueIdempotencyKey = (
-  operation: Pick<
-    OfflineSyncQueueOperation,
-    'entityId' | 'entityType' | 'action' | 'clientTimestamp'
-  > & {
-    actorId?: string;
-    baseRevision?: SyncRevision;
-    payload?: Record<string, unknown>;
-  },
-): string => {
-  const canonicalOperation = stableStringify({
-    action: operation.action,
-    actorId: operation.actorId ?? null,
-    baseRevision: operation.baseRevision ?? null,
-    clientTimestamp: operation.clientTimestamp,
-    entityId: operation.entityId,
-    entityType: operation.entityType,
-    payload: operation.payload ?? {},
-  });
-  const digest = createDeterministicUuid(
-    `offline-sync-idempotency:v2:${canonicalOperation}`,
-  );
-
-  return ['queue', 'v2', 'op', operation.action, digest].join(':');
-};
-
-export const repairOfflineSyncQueueOperationIdempotencyKey = (
-  operation: OfflineSyncQueueOperation,
-): OfflineSyncQueueOperation => {
-  const idempotencyKey = createOfflineSyncQueueIdempotencyKey({
-    entityType: operation.entityType,
-    entityId: operation.entityId,
-    action: operation.action,
-    clientTimestamp: operation.clientTimestamp,
-    actorId: operation.actorId,
-    baseRevision: operation.baseRevision,
-    payload: operation.payload,
-  });
-  if (idempotencyKey === operation.idempotencyKey) return operation;
-  return {
-    ...operation,
-    idempotencyKey,
-    metadata: {
-      ...operation.metadata,
-      requestId: idempotencyKey,
-    },
-  };
-};
-
-export const createOfflineSyncQueueBackoff = (
-  retryCount: number,
-  now = new Date().toISOString(),
-  baseDelayMs = DEFAULT_RETRY_BASE_MS,
-  maxDelayMs = DEFAULT_RETRY_MAX_MS,
-) => {
-  const attempts = Math.max(0, Math.floor(retryCount));
-  const delayMs = Math.min(maxDelayMs, baseDelayMs * 2 ** attempts);
-
-  return {
-    retryCount: attempts,
-    nextRetryAt: new Date(Date.parse(now) + delayMs).toISOString(),
-  };
-};
-
-export const incrementOfflineSyncQueueRetry = (
-  operation: OfflineSyncQueueOperation,
-  error: CloudError,
-  now = new Date().toISOString(),
-  baseDelayMs = DEFAULT_RETRY_BASE_MS,
-  maxDelayMs = DEFAULT_RETRY_MAX_MS,
-): OfflineSyncQueueOperation => {
-  const nextRetryCount = operation.retryCount + 1;
-  const { nextRetryAt } = createOfflineSyncQueueBackoff(
-    nextRetryCount,
-    now,
-    baseDelayMs,
-    maxDelayMs,
-  );
-
-  return {
-    ...operation,
-    retryCount: nextRetryCount,
-    status: 'failed',
-    lastError: error,
-    nextRetryAt,
-    updatedAt: now,
-  };
-};
 
 export const toOfflineSyncQueueSyncOperation = (
   operation: OfflineSyncQueueOperation,
