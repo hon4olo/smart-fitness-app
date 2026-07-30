@@ -1,6 +1,6 @@
 # Smart Fitness Implementation Completion Plan
 
-Updated: 2026-07-23
+Updated: 2026-07-31
 
 This document is the execution plan for completing the current Smart Fitness architecture across:
 
@@ -33,41 +33,52 @@ Already implemented:
 - structured Strength Strategy preview and explicit workout-template confirmation;
 - deterministic Safety & Recovery review;
 - pre-workout Safety acknowledgement with immutable completed-workout provenance;
-- read-only Combined Coach review.
+- read-only Combined Coach review;
+- blocking Mobile CI checks for repository line limits, TypeScript, Coach/sync contracts, the full regression suite, Expo export, and Expo Doctor;
+- a completed initial decomposition pass with no currently known hand-written mobile or backend source/architecture file above 500 physical lines.
 
 ## Execution order
 
 ### Phase 0 — documentation and audit baseline
 
-Estimate: 0.5 day.
+Status: completed on 2026-07-31. Continue updating the documents when implementation status changes.
 
 Tasks:
 
 - [x] create this implementation plan;
-- [ ] update mobile `AGENTS.md` to match current implementation;
-- [ ] update mobile `PROJECT_LEARNINGS.md` to match current implementation;
-- [ ] update backend `AGENTS.md` to match current sync coverage;
-- [ ] record the remaining oversized hand-written files;
-- [ ] keep one canonical priority order across both repositories.
+- [x] update mobile `AGENTS.md` to match current implementation;
+- [x] update mobile `PROJECT_LEARNINGS.md` to match current implementation;
+- [x] update backend `AGENTS.md` to match current sync coverage;
+- [x] record the remaining oversized hand-written files;
+- [x] keep one canonical priority order across both repositories.
 
 Acceptance criteria:
 
-- no instruction file lists SecureStore, body-measurement sync, training-program sync, or observable persistence as unfinished;
+- no instruction file lists SecureStore, body-measurement sync, training-program sync, observable persistence, or blocking mobile regression CI as unfinished;
 - remaining work is described consistently in both repositories;
-- agents cannot mistake completed infrastructure for pending work.
+- agents cannot mistake completed infrastructure or completed decompositions for pending work.
 
 ### Phase 1 — decompose oversized files
 
-Estimate: 1.5–2.5 days.
+Status: initial audited pass completed. The 500-line policy and blocking repository audit remain active for future additions.
 
-Priority targets:
+Completed priority targets:
 
-1. mobile `src/api/coach.ts`;
-2. backend `src/services/coach/nutrition-coach-orchestrator.ts`;
-3. mobile `src/features/nutrition/styles/addFoodStyles.ts`;
-4. backend `docs/architecture/ai-coach.md`;
-5. mobile `src/context/AppContext.tsx` before it crosses the limit;
-6. mobile `src/context/SyncContext.tsx` before adding more entity planners.
+1. [x] mobile `src/api/coach.ts` — reduced to a small public barrel over focused Coach modules;
+2. [x] backend `src/services/coach/nutrition-coach-orchestrator.ts` — split below the limit;
+3. [x] mobile `src/features/nutrition/styles/addFoodStyles.ts` — reduced to a small composed style barrel;
+4. [x] backend AI Coach architecture ADR — split into focused documents;
+5. [x] mobile `src/context/AppContext.tsx` — state-action hooks extracted;
+6. [x] mobile `src/context/SyncContext.tsx` — sync-store initialization extracted.
+
+Additional completed mobile decompositions:
+
+- `SafetyRecoveryProgressCard.tsx`;
+- `BarcodeScannerModal.tsx`;
+- `WorkoutsScreen.tsx`;
+- `WorkoutBuilderScreen.tsx`;
+- `CloudQueueHelpers.ts`;
+- `SyncCoordinatorOperations.ts`.
 
 Rules:
 
@@ -75,7 +86,8 @@ Rules:
 - move cohesive parsers, contracts, helpers, styles, or execution infrastructure;
 - keep every new hand-written file at or below 500 physical lines;
 - retain or add focused tests for moved logic;
-- avoid generic abstractions created only to satisfy the line limit.
+- avoid generic abstractions created only to satisfy the line limit;
+- re-run the repository audit after major additions rather than assuming the current result remains true.
 
 Acceptance criteria:
 
@@ -198,8 +210,8 @@ Estimate: 1.5–2.5 days.
 
 Tasks:
 
-- [ ] remove stale assertions from the full mobile regression suite;
-- [ ] make the full mobile regression suite blocking in CI;
+- [ ] remove remaining stale assertions from the full mobile regression suite as they are discovered;
+- [x] make the full mobile regression suite blocking in CI;
 - [ ] ensure backend build, test, lint, and format checks are blocking;
 - [ ] add focused end-to-end contract tests for auth, sync, and Coach polling;
 - [ ] run release-device smoke tests for workout, nutrition, progress, auth, sync, and Coach flows;
@@ -210,27 +222,28 @@ Tasks:
 
 Acceptance criteria:
 
-- green CI means all required regression suites passed;
+- green CI means all configured required regression suites passed;
+- green CI does not replace physical release-device validation;
 - the current production mobile binary contains every required native module;
 - staging smoke tests pass before production feature flags are enabled;
 - rollback does not require destructive database operations.
 
 ## Estimated total
 
-Expected engineering time:
+Original engineering estimate:
 
 - implementation only: 6–9 working days;
 - production-ready validation and stabilization: 8–12 working days;
 - practical calendar allowance: 2–3 weeks, including CI, native-build, staging, and release-device feedback.
 
+Phases 0 and the initial Phase 1 decomposition pass are complete. Remaining estimates should be recalculated after the exact custom-exercise and meal-template contracts are inspected across both repositories.
+
 ## Immediate next actions
 
-1. Complete Phase 0 documentation refresh.
-2. Decompose `src/api/coach.ts` without changing its exported contract.
-3. Decompose the Nutrition Coach orchestrator using a small typed run-execution helper.
-4. Implement custom-exercise sync before meal-template sync because workout templates and training programs depend on canonical exercise references.
-5. Complete meal-template sync.
-6. Harden restart and two-device conflict scenarios.
-7. Activate the model provider in staging.
-8. Implement Combined Strategy proposal.
-9. Make the full regression suite blocking and complete release validation.
+1. Implement custom-exercise sync across mobile and backend while preserving canonical references.
+2. Complete meal-template sync with strict embedded-item validation.
+3. Harden restart recovery, token refresh, concurrent mutation, cursor advancement, and two-device conflicts.
+4. Introduce provider-neutral Coach model configuration and validate it in staging.
+5. Implement the Combined Strategy proposal behind a separate capability flag.
+6. Finish backend release-blocking validation and focused auth/sync/Coach contract tests.
+7. Complete physical release-device smoke testing and rollout/rollback documentation.
