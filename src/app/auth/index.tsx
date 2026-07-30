@@ -49,6 +49,11 @@ export default function AuthLandingScreen() {
             variant="secondary"
           />
           <AppButton
+            label={t('passwordReset.forgot.link')}
+            onPress={() => router.push('/auth/forgot-password')}
+            variant="secondary"
+          />
+          <AppButton
             label={t('common.continue')}
             onPress={() => router.replace(onboardingCompleted ? '/' : '/onboarding')}
             variant="secondary"

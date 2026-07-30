@@ -38,6 +38,8 @@ export type {
   AuthTokens,
   ChangePasswordInput,
   CreateAuthServiceOptions,
+  ForgotPasswordInput,
+  ResetPasswordInput,
   TokenManager,
 } from './types';
 export { getDefaultAuthDeviceInfo } from './device';

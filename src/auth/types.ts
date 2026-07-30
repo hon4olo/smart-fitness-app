@@ -93,6 +93,15 @@ export type ChangePasswordInput = {
   newPassword: string;
 };
 
+export type ForgotPasswordInput = {
+  email: string;
+};
+
+export type ResetPasswordInput = {
+  token: string;
+  newPassword: string;
+};
+
 export type AuthStorage = {
   read(key: string): Promise<string | null>;
   write(key: string, value: string): Promise<void>;
@@ -116,6 +125,8 @@ export type AuthService = {
   refresh(): Promise<AuthSession | null>;
   logout(): Promise<void>;
   changePassword(input: ChangePasswordInput): Promise<void>;
+  requestPasswordReset(input: ForgotPasswordInput): Promise<void>;
+  resetPassword(input: ResetPasswordInput): Promise<void>;
   deleteAccount(password: string): Promise<AccountDeletionResult>;
   fetchProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: AuthProfileUpdate): Promise<AuthProfile | null>;

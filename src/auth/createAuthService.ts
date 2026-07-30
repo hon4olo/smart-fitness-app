@@ -22,6 +22,8 @@ import type {
   AuthTokens,
   ChangePasswordInput,
   CreateAuthServiceOptions,
+  ForgotPasswordInput,
+  ResetPasswordInput,
 } from './types';
 
 export const AUTH_SESSION_STORAGE_KEY = '@smart_fitness_mvp_auth_session';
@@ -256,6 +258,20 @@ export const createAuthService = ({
         headers: authHeader(accessToken),
         retry: false,
       });
+      await clearLocalSession();
+    },
+    requestPasswordReset: async (input: ForgotPasswordInput): Promise<void> => {
+      await apiClient.post<{ accepted: true }, ForgotPasswordInput>(
+        '/v1/auth/forgot-password',
+        input,
+        { retry: false },
+      );
+    },
+    resetPassword: async (input: ResetPasswordInput): Promise<void> => {
+      await apiClient.post<
+        { success: true; requiresReauthentication: true },
+        ResetPasswordInput
+      >('/v1/auth/reset-password', input, { retry: false });
       await clearLocalSession();
     },
     deleteAccount: async (password: string): Promise<AccountDeletionResult> => {

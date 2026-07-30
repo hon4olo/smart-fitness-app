@@ -1,4 +1,5 @@
 import { enHomeOnboardingMessages, ruHomeOnboardingMessages } from './homeOnboardingMessages';
+import { enPasswordResetMessages, ruPasswordResetMessages } from './passwordResetMessages';
 import { enProgressMessages, ruProgressMessages } from './progressMessages';
 import { enSettingsMessages, ruSettingsMessages } from './settingsMessages';
 import { enWorkoutsMessages, ruWorkoutsMessages } from './workoutsMessages';
@@ -153,6 +154,7 @@ export const enMessages = {
   ...enProgressMessages,
   ...enHomeOnboardingMessages,
   ...enWorkoutsMessages,
+  ...enPasswordResetMessages,
 } as const;
 
 export type MessageKey = keyof typeof enMessages;
@@ -311,6 +313,7 @@ export const ruMessages: Record<MessageKey, string> = {
   ...ruProgressMessages,
   ...ruHomeOnboardingMessages,
   ...ruWorkoutsMessages,
+  ...ruPasswordResetMessages,
 };
 
 export const MESSAGE_CATALOGS: Record<SupportedLocale, Record<MessageKey, string>> = {
