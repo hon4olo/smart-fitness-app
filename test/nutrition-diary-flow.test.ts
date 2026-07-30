@@ -70,17 +70,21 @@ describe('nutrition compact diary 5.0', () => {
     expect(nutritionUi).not.toContain('No food logged');
   });
 
-  test('today and calendar actions remain layout-stable and date switching uses the compact route', () => {
+  test('today and calendar actions remain layout-stable and dates use the central localization boundary', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
+    const summaryHook = readSource('src/features/nutrition/hooks/useNutritionDaySummary.ts');
     const utils = readSource('src/features/nutrition/utils/nutritionScreenUtils.ts');
-    const nutritionDateSource = [source, utils].join('\n');
 
     expect(source).toContain('todayButtonDisabled');
     expect(source).toContain("router.replace({ pathname: '/nutrition', params: { date: nextDate } })");
     expect(source).toContain("pathname: '/nutrition/date-picker'");
     expect(source).toContain('selectedDateLabel');
-    expect(nutritionDateSource).toContain('formatWeekdayLabel');
-    expect(nutritionDateSource).toContain('formatDayNumber');
+    expect(source).toContain("formatDate(`${dateLabel}T12:00:00`, { weekday: 'long' })");
+    expect(summaryHook).toContain("dayLabel: formatDate(date, { weekday: 'short' })");
+    expect(summaryHook).toContain("dayNumber: formatDate(date, { day: 'numeric' })");
+    expect(utils).not.toContain('Intl.DateTimeFormat');
+    expect(utils).not.toContain('formatWeekdayLabel');
+    expect(utils).not.toContain('formatDayNumber');
   });
 
   test('meal rows stay compact and use additive expansion without delete controls in the diary', () => {
