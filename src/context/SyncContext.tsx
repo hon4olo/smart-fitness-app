@@ -31,23 +31,7 @@ import { planSafetyRecoverySyncOperations } from '@/cloud/SafetyRecoverySyncPlan
 import { planTrainingProgramSyncOperations } from '@/cloud/TrainingProgramSyncPlanner';
 import { planWorkoutTemplateSyncOperations } from '@/cloud/WorkoutTemplateSyncPlanner';
 import { useAuthSession } from '@/hooks/useAuthSession';
-import {
-  createAsyncStorageAdapter,
-  createBodyMeasurementSyncMetadataStore,
-  createCustomExerciseSyncMetadataStore,
-  createFitnessProfileSyncMetadataStore,
-  createFoodEntrySyncMetadataStore,
-  createMealTemplateSyncMetadataStore,
-  createNutritionTargetSyncMetadataStore,
-  createSafetyRecoverySyncMetadataStore,
-  createSyncConflictSnapshot,
-  createSyncConflictStore,
-  createTrainingProgramSyncMetadataStore,
-  createWorkoutSessionSyncMetadataStore,
-  createWorkoutTemplateSyncMetadataStore,
-  getDefaultSyncCursorStore,
-  type SyncConflictSnapshot,
-} from '@/storage';
+import { createSyncConflictSnapshot, type SyncConflictSnapshot } from '@/storage';
 import type { WeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
 import type { AppState } from '@/types';
 
@@ -67,6 +51,7 @@ import {
   type WeightSyncContextValue,
   type WeightSyncStatus,
 } from './syncContextModel';
+import { useSyncStores } from './useSyncStores';
 
 export type { WeightSyncContextValue, WeightSyncStatus } from './syncContextModel';
 
@@ -100,49 +85,20 @@ export function SyncProvider({
   const syncingRef = useRef(false);
   const conflictStateVersionRef = useRef(0);
   const latestStateRef = useRef(state);
-  const cursorStore = useMemo(() => getDefaultSyncCursorStore(), []);
-  const syncStorage = useMemo(() => createAsyncStorageAdapter(), []);
-  const conflictStore = useMemo(() => createSyncConflictStore(syncStorage), [syncStorage]);
-  const bodyMeasurementMetadataStore = useMemo(
-    () => createBodyMeasurementSyncMetadataStore(syncStorage),
-    [syncStorage],
-  );
-  const workoutSessionMetadataStore = useMemo(
-    () => createWorkoutSessionSyncMetadataStore(syncStorage),
-    [syncStorage],
-  );
-  const workoutTemplateMetadataStore = useMemo(
-    () => createWorkoutTemplateSyncMetadataStore(syncStorage),
-    [syncStorage],
-  );
-  const trainingProgramMetadataStore = useMemo(
-    () => createTrainingProgramSyncMetadataStore(syncStorage),
-    [syncStorage],
-  );
-  const customExerciseMetadataStore = useMemo(
-    () => createCustomExerciseSyncMetadataStore(syncStorage),
-    [syncStorage],
-  );
-  const foodEntryMetadataStore = useMemo(
-    () => createFoodEntrySyncMetadataStore(syncStorage),
-    [syncStorage],
-  );
-  const mealTemplateMetadataStore = useMemo(
-    () => createMealTemplateSyncMetadataStore(syncStorage),
-    [syncStorage],
-  );
-  const nutritionTargetMetadataStore = useMemo(
-    () => createNutritionTargetSyncMetadataStore(syncStorage),
-    [syncStorage],
-  );
-  const fitnessProfileMetadataStore = useMemo(
-    () => createFitnessProfileSyncMetadataStore(syncStorage),
-    [syncStorage],
-  );
-  const safetyRecoveryMetadataStore = useMemo(
-    () => createSafetyRecoverySyncMetadataStore(syncStorage),
-    [syncStorage],
-  );
+  const {
+    bodyMeasurementMetadataStore,
+    conflictStore,
+    cursorStore,
+    customExerciseMetadataStore,
+    fitnessProfileMetadataStore,
+    foodEntryMetadataStore,
+    mealTemplateMetadataStore,
+    nutritionTargetMetadataStore,
+    safetyRecoveryMetadataStore,
+    trainingProgramMetadataStore,
+    workoutSessionMetadataStore,
+    workoutTemplateMetadataStore,
+  } = useSyncStores();
 
   useEffect(() => {
     latestStateRef.current = state;
