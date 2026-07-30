@@ -3,6 +3,8 @@ import { Text, View } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import { getDeveloperToolsCopy } from '@/localization/developerToolsCopy';
 
 type DeveloperToolsCardProps = {
   createdAt: string;
@@ -19,6 +21,9 @@ export function DeveloperToolsCard({
   runtimeVersion,
   updateId,
 }: DeveloperToolsCardProps) {
+  const { locale } = useLocalization();
+  const copy = getDeveloperToolsCopy(locale);
+
   return (
     <AppCard>
       <Text style={styles.developerTitle}>Developer Tools</Text>
@@ -44,7 +49,7 @@ export function DeveloperToolsCard({
         </View>
 
         <AppButton
-          label="Check for OTA update"
+          label={copy.checkForOtaUpdate}
           onPress={onCheckForOtaUpdate}
           variant="secondary"
         />
