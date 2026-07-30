@@ -148,25 +148,26 @@ Completed:
 - recursive `.ts` helper/view-model audit for direct locale formatting and unsafe status fallbacks;
 - presentation-level `.toFixed` audit while preserving calculation and serialization rounding;
 - fixed display-unit literal audit with central selected-energy and protein-ratio conversion;
-- removal of unreachable and obsolete formatted presentation helpers;
+- static accessibility-label and hint audit with dynamic-template classification;
+- removal of unreachable diagnostic and obsolete formatted presentation helpers;
 - bounded standalone Nutrition Target Proposal and Workout History list/detail presentation;
 - central selected-locale and selected-unit formatting on reachable presentation surfaces;
 - permanent source contracts preventing regression.
 
-The `.tsx` presentation boundary audit merged in PR #235. The `.ts` helper/view-model boundary audit merged in PR #236. Presentation-level `.toFixed` auditing merged in PR #237. Fixed display-unit auditing is implemented in PR #238 and must merge only from an exact-green Mobile CI head.
+The `.tsx` presentation boundary audit merged in PR #235. The `.ts` helper/view-model boundary audit merged in PR #236. Presentation-level `.toFixed` auditing merged in PR #237. Fixed display-unit auditing merged in PR #238. Accessibility copy auditing is implemented in PR #239 and must merge only from an exact-green Mobile CI head.
 
 ## Current next task
 
-### Repository-wide accessibility and control-copy audit
+### Repository-wide visible control-copy and raw-status audit
 
-After PR #238, audit remaining reachable source with context-sensitive checks for:
+After PR #239, audit remaining reachable source with context-sensitive checks for:
 
-- fixed English accessibility labels and hints;
-- fixed English button, menu and state-control copy outside localization boundaries;
+- fixed English button, menu, tab and state-control copy outside localization boundaries;
 - raw provider/backend/status/enum fallbacks not matched by the bounded status guards;
+- reachable screens that still expose internal diagnostic or policy wording;
 - literal-English source tests that should assert semantic behavior.
 
-Preserve routes, IDs, persisted canonical units, calculations, API and sync schemas, business logic, polling, idempotency, explicit confirmations and completed history.
+Preserve accessibility roles/states, touch handlers, routes, IDs, persisted canonical units, calculations, API and sync schemas, business logic, polling, idempotency, explicit confirmations and completed history.
 
 Use separate bounded PRs for real findings and do not create no-op changes.
 
