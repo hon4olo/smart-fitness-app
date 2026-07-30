@@ -29,13 +29,16 @@ export const ProgressTrendChart = memo(function ProgressTrendChart({
   minLabel,
   points,
 }: ProgressTrendChartProps) {
-  const { t } = useLocalization();
+  const { formatNumber, t } = useLocalization();
   const chartMetrics = useMemo(() => {
     if (points.length < 2) return null;
 
     const minValue = Math.min(...points.map((point) => point.value));
     const maxValue = Math.max(...points.map((point) => point.value));
-    const visibleRange = Math.max(maxValue - minValue, Math.max(Math.abs(maxValue), 1) * 0.08);
+    const visibleRange = Math.max(
+      maxValue - minValue,
+      Math.max(Math.abs(maxValue), 1) * 0.08,
+    );
     const axisMinimum = minValue - visibleRange * 0.18;
     const axisMaximum = maxValue + visibleRange * 0.08;
     const axisRange = Math.max(axisMaximum - axisMinimum, 1);
@@ -44,7 +47,13 @@ export const ProgressTrendChart = memo(function ProgressTrendChart({
     return {
       axisLabels: [
         { key: 'maximum', value: maxLabel },
-        { key: 'midpoint', value: midpoint.toFixed(1) },
+        {
+          key: 'midpoint',
+          value: formatNumber(midpoint, {
+            maximumFractionDigits: 1,
+            minimumFractionDigits: 1,
+          }),
+        },
         { key: 'minimum', value: minLabel },
       ],
       bars: points.map((point) => ({
@@ -55,7 +64,7 @@ export const ProgressTrendChart = memo(function ProgressTrendChart({
         ),
       })),
     };
-  }, [maxLabel, minLabel, points]);
+  }, [formatNumber, maxLabel, minLabel, points]);
 
   if (!chartMetrics) {
     return <Text style={styles.emptyText}>{emptyLabel}</Text>;
