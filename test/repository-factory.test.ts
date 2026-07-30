@@ -18,7 +18,7 @@ const makeClient = () => ({
 } as unknown as ApiClient & { get: ReturnType<typeof vi.fn>; patch: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> });
 
 describe('repository factory', () => {
-  it('builds the live auth and profile clients from the centralized api config', async () => {
+  it('builds the live auth and profile clients from centralized config with local diagnostics', async () => {
     const storage = createMemoryStorage();
     const apiClient = makeClient();
     const baseUrlSpy = vi.spyOn(apiConfig, 'getMobileApiBaseUrl').mockReturnValue(apiConfig.PRODUCTION_API_BASE_URL);
@@ -60,7 +60,10 @@ describe('repository factory', () => {
     const service = provider.getAuthService();
 
     expect(baseUrlSpy).toHaveBeenCalledTimes(1);
-    expect(createApiClientSpy).toHaveBeenCalledWith({ baseUrl: apiConfig.PRODUCTION_API_BASE_URL });
+    expect(createApiClientSpy).toHaveBeenCalledWith({
+      baseUrl: apiConfig.PRODUCTION_API_BASE_URL,
+      onRequestOutcome: expect.any(Function),
+    });
 
     const session = await service.register({ email: 'alice@example.com', password: 'StrongPass123!' });
     const profile = await service.fetchProfile();
