@@ -3,34 +3,19 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import { getCombinedProposalCopy } from '@/localization/combinedProposalCopy';
+import { getUserLimitationsCopy } from '@/localization/userLimitationsCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
+import { formatEnergyValue, useUnitPreferences } from '@/units';
 import type {
   CombinedCoachProposalViewModel,
   CombinedProposalTargets,
   CombinedSafetyRestriction,
 } from '../combinedCoachProposalViewModel';
 
-const formatTargets = (targets: CombinedProposalTargets | null): string =>
-  targets
-    ? `${targets.calories} kcal · P ${targets.protein} · C ${targets.carbs} · F ${targets.fats}`
-    : '—';
-
-const formatRestriction = (restriction: CombinedSafetyRestriction): string => {
-  const movementCopy =
-    restriction.movementPatterns.length > 0
-      ? ` · ${restriction.movementPatterns.join(', ')}`
-      : '';
-  return `${restriction.action.replaceAll('_', ' ')} · max ${Math.round(
-    restriction.maximumLoadMultiplier * 100,
-  )}%${movementCopy}`;
-};
-
-const actionCopy: Record<string, string> = {
-  review_strength_proposal: 'Review the Strength proposal separately',
-  apply_safety_load_ceiling: 'Create a workout template with the Safety load ceiling',
-  resolve_movement_restrictions: 'Resolve restricted movement patterns before using Strength',
-  confirm_nutrition_target: 'Apply the Nutrition target as a separate revisioned action',
-};
+const lookupLabel = (labels: Record<string, string>, value: string): string =>
+  labels[value] ?? value.toLowerCase().replaceAll('_', ' ');
 
 export function CombinedCoachProposalResult({
   viewModel,
@@ -50,14 +35,46 @@ export function CombinedCoachProposalResult({
   onConfirmNutrition(): void;
 }) {
   const { colors } = useAppTheme();
+  const { formatNumber, locale } = useLocalization();
+  const { energy, formatWeightValue, weight } = useUnitPreferences();
+  const copy = getCombinedProposalCopy(locale);
+  const limitationCopy = getUserLimitationsCopy(locale);
+  const presentation = copy.viewModelCopy(viewModel);
+
+  const formatTargets = (targets: CombinedProposalTargets | null): string =>
+    targets
+      ? copy.targetSummary(
+          formatEnergyValue(targets.calories, energy),
+          energy,
+          formatNumber(targets.protein, { maximumFractionDigits: 0 }),
+          formatNumber(targets.carbs, { maximumFractionDigits: 0 }),
+          formatNumber(targets.fats, { maximumFractionDigits: 0 }),
+        )
+      : '—';
+
+  const formatRestriction = (restriction: CombinedSafetyRestriction): string => {
+    const movements = restriction.movementPatterns
+      .map((value) =>
+        lookupLabel(limitationCopy.movementLabels as Record<string, string>, value),
+      )
+      .join(', ');
+    return copy.restrictionSummary(
+      copy.restrictionActionLabels[restriction.action],
+      formatNumber(Math.round(restriction.maximumLoadMultiplier * 100), {
+        maximumFractionDigits: 0,
+      }),
+      movements,
+    );
+  };
+
   if (viewModel.kind !== 'review') {
     return (
       <AppCard>
-        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
-          {viewModel.title}
+        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}> 
+          {presentation.title}
         </Text>
         <Text style={[styles.body, { color: colors.textSecondary }]}> 
-          {viewModel.message}
+          {presentation.message}
         </Text>
       </AppCard>
     );
@@ -72,10 +89,10 @@ export function CombinedCoachProposalResult({
       <View style={styles.resultHeader}>
         <View style={styles.flexCopy}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}> 
-            {viewModel.title}
+            {presentation.title}
           </Text>
           <Text style={[styles.body, { color: colors.textSecondary }]}> 
-            {viewModel.message}
+            {presentation.message}
           </Text>
         </View>
         <Text
@@ -87,40 +104,71 @@ export function CombinedCoachProposalResult({
               color: viewModel.status === 'ready' ? colors.success : colors.warning,
             },
           ]}> 
-          {viewModel.status.toUpperCase()}
+          {copy.statusLabels[viewModel.status]}
         </Text>
       </View>
 
       <View style={styles.stack}>
         <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}> 
-          <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Strength proposal</Text>
+          <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>
+            {copy.strengthProposal}
+          </Text>
           <Text style={[styles.body, { color: colors.textSecondary }]}> 
-            {viewModel.strength.sets.length} sets · proposed tonnage{' '}
-            {viewModel.strength.proposedTonnage ?? '—'} kg
+            {copy.setsAndTonnage(
+              viewModel.strength.sets.length,
+              formatNumber(viewModel.strength.sets.length, { maximumFractionDigits: 0 }),
+              viewModel.strength.proposedTonnage === null
+                ? '—'
+                : formatWeightValue(viewModel.strength.proposedTonnage),
+              weight,
+            )}
           </Text>
           {viewModel.strength.sets.slice(0, 4).map((set) => (
             <Text key={set.sourceSetId} style={[styles.meta, { color: colors.textMuted }]}> 
-              {set.exerciseName}: {set.weight} kg × {set.reps} · RPE {set.targetRpe}
+              {set.exerciseName}: {formatWeightValue(set.weight)} {weight} ×{' '}
+              {formatNumber(set.reps, { maximumFractionDigits: 0 })} · RPE{' '}
+              {formatNumber(set.targetRpe, { maximumFractionDigits: 1 })}
             </Text>
           ))}
 
           {effective ? (
             <View style={styles.stack}>
-              <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Effective plan</Text>
+              <Text style={[styles.domainTitle, { color: colors.textPrimary }]}> 
+                {copy.effectivePlan}
+              </Text>
               <Text style={[styles.body, { color: colors.textSecondary }]}> 
-                Effective tonnage: {effective.effectiveTonnage ?? 'blocked'} kg · load ceiling{' '}
-                {Math.round(effective.loadMultiplier * 100)}%
+                {effective.effectiveTonnage === null
+                  ? copy.blocked
+                  : copy.effectiveTonnage(
+                      formatWeightValue(effective.effectiveTonnage),
+                      weight,
+                      formatNumber(Math.round(effective.loadMultiplier * 100), {
+                        maximumFractionDigits: 0,
+                      }),
+                    )}
               </Text>
               {effective.sets.slice(0, 4).map((set) => (
                 <Text key={set.sourceSetId} style={[styles.meta, { color: colors.textMuted }]}> 
-                  {set.exerciseName}: proposed {set.proposedWeight} kg → effective{' '}
-                  {set.effectiveWeight} kg · ceiling {set.maximumAllowedWeight} kg
+                  {copy.setProposal(
+                    set.exerciseName,
+                    formatWeightValue(set.proposedWeight),
+                    formatWeightValue(set.effectiveWeight),
+                    formatWeightValue(set.maximumAllowedWeight),
+                    weight,
+                  )}
                 </Text>
               ))}
               {effective.unresolvedMovementPatterns.length > 0 ? (
                 <Text style={[styles.body, { color: colors.warning }]}> 
-                  Restricted movements unresolved:{' '}
-                  {effective.unresolvedMovementPatterns.join(', ')}
+                  {copy.restrictedUnresolved}:{' '}
+                  {effective.unresolvedMovementPatterns
+                    .map((value) =>
+                      lookupLabel(
+                        limitationCopy.movementLabels as Record<string, string>,
+                        value,
+                      ),
+                    )
+                    .join(', ')}
                 </Text>
               ) : null}
             </View>
@@ -129,15 +177,18 @@ export function CombinedCoachProposalResult({
           {strengthApplication ? (
             <View style={[styles.application, { borderColor: colors.success }]}> 
               <Text style={[styles.domainTitle, { color: colors.success }]}> 
-                Workout template created
+                {copy.templateCreated}
               </Text>
               <Text style={[styles.meta, { color: colors.textMuted }]}> 
-                Revision {strengthApplication.appliedRevision} · {strengthApplication.templateId}
+                {copy.revision}{' '}
+                {formatNumber(strengthApplication.appliedRevision, {
+                  maximumFractionDigits: 0,
+                })}
               </Text>
             </View>
           ) : canConfirmEffectiveStrength ? (
             <PrimaryButton
-              label="Create effective Strength template"
+              label={copy.createEffectiveTemplate}
               loading={effectiveStrengthBusy}
               onPress={onConfirmEffectiveStrength}
             />
@@ -145,12 +196,14 @@ export function CombinedCoachProposalResult({
         </View>
 
         <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}> 
-          <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Nutrition target</Text>
-          <Text style={[styles.meta, { color: colors.textMuted }]}>Current</Text>
+          <Text style={[styles.domainTitle, { color: colors.textPrimary }]}> 
+            {copy.nutritionTarget}
+          </Text>
+          <Text style={[styles.meta, { color: colors.textMuted }]}>{copy.current}</Text>
           <Text style={[styles.body, { color: colors.textSecondary }]}> 
             {formatTargets(viewModel.nutrition.currentTargets)}
           </Text>
-          <Text style={[styles.meta, { color: colors.textMuted }]}>Proposed</Text>
+          <Text style={[styles.meta, { color: colors.textMuted }]}>{copy.proposed}</Text>
           <Text style={[styles.body, { color: colors.textSecondary }]}> 
             {formatTargets(viewModel.nutrition.proposedTargets)}
           </Text>
@@ -158,15 +211,18 @@ export function CombinedCoachProposalResult({
           {nutritionApplication ? (
             <View style={[styles.application, { borderColor: colors.success }]}> 
               <Text style={[styles.domainTitle, { color: colors.success }]}> 
-                Nutrition target applied
+                {copy.targetApplied}
               </Text>
               <Text style={[styles.meta, { color: colors.textMuted }]}> 
-                Revision {nutritionApplication.appliedRevision} · {nutritionApplication.targetId}
+                {copy.revision}{' '}
+                {formatNumber(nutritionApplication.appliedRevision, {
+                  maximumFractionDigits: 0,
+                })}
               </Text>
             </View>
           ) : canConfirmNutrition ? (
             <PrimaryButton
-              label="Apply Nutrition target"
+              label={copy.applyNutritionTarget}
               loading={nutritionBusy}
               onPress={onConfirmNutrition}
             />
@@ -174,13 +230,23 @@ export function CombinedCoachProposalResult({
         </View>
 
         <View style={[styles.domainCard, { borderColor: colors.borderSubtle }]}> 
-          <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>Safety ceiling</Text>
+          <Text style={[styles.domainTitle, { color: colors.textPrimary }]}> 
+            {copy.safetyCeiling}
+          </Text>
           <Text style={[styles.body, { color: colors.textSecondary }]}> 
-            Maximum Strength load: {Math.round(viewModel.maximumStrengthLoadMultiplier * 100)}%
+            {copy.maximumStrengthLoad(
+              formatNumber(Math.round(viewModel.maximumStrengthLoadMultiplier * 100), {
+                maximumFractionDigits: 0,
+              }),
+            )}
           </Text>
           <Text style={[styles.meta, { color: colors.textMuted }]}> 
-            {viewModel.safety.restrictionCount} restrictions · {viewModel.safety.issueCount}{' '}
-            findings
+            {copy.restrictionsAndFindings(
+              viewModel.safety.restrictionCount,
+              formatNumber(viewModel.safety.restrictionCount, { maximumFractionDigits: 0 }),
+              viewModel.safety.issueCount,
+              formatNumber(viewModel.safety.issueCount, { maximumFractionDigits: 0 }),
+            )}
           </Text>
           {viewModel.safety.restrictions.slice(0, 4).map((restriction) => (
             <Text
@@ -194,10 +260,12 @@ export function CombinedCoachProposalResult({
 
       {viewModel.pendingActions.length > 0 ? (
         <View style={styles.stack}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Pending actions</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}> 
+            {copy.pendingActions}
+          </Text>
           {viewModel.pendingActions.map((action) => (
             <Text key={action} style={[styles.body, { color: colors.textSecondary }]}> 
-              • {actionCopy[action] ?? action}
+              • {copy.actionLabels[action]}
             </Text>
           ))}
         </View>
@@ -205,19 +273,25 @@ export function CombinedCoachProposalResult({
 
       {viewModel.issues.length > 0 ? (
         <View style={styles.stack}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Guardrail findings</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}> 
+            {copy.guardrailFindings}
+          </Text>
           {viewModel.issues.map((issue, index) => (
-            <Text key={`${issue.code}:${index}`} style={[styles.body, { color: colors.warning }]}> 
-              • {issue.message}
-            </Text>
+            <View key={`${issue.code}:${index}`}>
+              <Text style={[styles.meta, { color: colors.warning }]}> 
+                {copy.issueSummary(issue)}
+              </Text>
+              <Text style={[styles.body, { color: colors.textSecondary }]}> 
+                {copy.issueMessage}
+              </Text>
+            </View>
           ))}
         </View>
       ) : null}
 
       <View style={[styles.boundary, { borderColor: colors.borderSubtle }]}> 
         <Text style={[styles.meta, { color: colors.textMuted }]}> 
-          Strength and Nutrition are separate explicit actions. Creating a workout template never
-          edits completed history; applying Nutrition never creates or changes a workout template.
+          {copy.boundary}
         </Text>
       </View>
     </AppCard>
