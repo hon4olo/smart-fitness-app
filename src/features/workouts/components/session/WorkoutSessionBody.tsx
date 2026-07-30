@@ -4,14 +4,14 @@ import { Spacing } from '@/constants/theme';
 import { getPreviousCompletedSetsForExercise } from '@/features/workouts/sessionScreenModel';
 import { createStyles } from '@/features/workouts/styles/workoutSessionScreenStyles';
 import type { WorkoutSessionDraft } from '@/features/workouts/types';
-import type { WorkoutSession } from '@/types';
 import { useLocalization } from '@/localization';
+import type { WorkoutSession } from '@/types';
 
-import { WorkoutSessionEmptyWorkoutCard } from './WorkoutSessionEmptyWorkoutCard';
-import { WorkoutSessionFooterActions } from './WorkoutSessionFooterActions';
 import { SessionExerciseSection } from './SessionExerciseSection';
 import { SessionHeader } from './SessionHeader';
 import type { SessionDraftInputs, SessionExercise } from './types';
+import { WorkoutSessionEmptyWorkoutCard } from './WorkoutSessionEmptyWorkoutCard';
+import { WorkoutSessionFooterActions } from './WorkoutSessionFooterActions';
 
 type WorkoutSessionStyles = ReturnType<typeof createStyles>;
 
@@ -45,6 +45,7 @@ export function WorkoutSessionBody({
   styles,
   visibleExercises,
   workoutSessions,
+  workoutTitle,
 }: {
   bottomInset: number;
   canFinish: boolean;
@@ -78,6 +79,7 @@ export function WorkoutSessionBody({
   styles: WorkoutSessionStyles;
   visibleExercises: SessionExercise[];
   workoutSessions: WorkoutSession[];
+  workoutTitle: string;
 }) {
   const { t } = useLocalization();
 
@@ -91,7 +93,7 @@ export function WorkoutSessionBody({
         onOverflow={onOverflow}
         reps={completedReps}
         sets={completedSetCount}
-        title={draft.workoutTitle}
+        title={workoutTitle}
         volume={completedVolume}
       />
 
