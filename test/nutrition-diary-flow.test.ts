@@ -137,7 +137,7 @@ describe('nutrition compact diary 5.0', () => {
     expect(detailsSection).toContain('copy.nutritionDetails');
     expect(detailsSection).toContain('copy.fiber');
     expect(copy).toContain("nutritionDetails: locale === 'ru'");
-    expect(copy).toContain('Пищевая ценность');
+    expect(copy).toContain('Подробности питания');
     expect(copy).toContain('Nutrition details');
     expect([source, detailsSection].join('\n')).not.toContain('Sodium, cholesterol, sugar');
     expect([source, detailsSection].join('\n')).not.toContain('Not available yet');
