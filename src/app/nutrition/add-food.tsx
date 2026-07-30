@@ -23,6 +23,7 @@ import {
   type RecentItem,
 } from '@/features/nutrition/addFoodModel';
 import { NutritionAddFoodView } from '@/features/nutrition/components/NutritionAddFoodView';
+import { localizeCustomFoodErrors } from '@/features/nutrition/localizeCustomFoodErrors';
 import type { NutritionLibraryFood } from '@/features/nutrition/nutritionFoodLibrary';
 import { createAddFoodStyles } from '@/features/nutrition/styles/addFoodStyles';
 import { useFoodProviderSearch } from '@/features/nutrition/useFoodProviderSearch';
@@ -37,10 +38,7 @@ import {
   sumNutritionTotals,
 } from '@/lib/nutrition';
 import { useLocalization } from '@/localization';
-import {
-  getNutritionAddFoodCopy,
-  type NutritionAddFoodCopy,
-} from '@/localization/nutritionAddFoodCopy';
+import { getNutritionAddFoodCopy } from '@/localization/nutritionAddFoodCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { FoodCatalogItem, MealTemplate, MealType } from '@/types';
 import {
@@ -49,27 +47,6 @@ import {
   formatEnergyValue,
   useUnitPreferences,
 } from '@/units';
-
-const localizeCustomFoodErrors = (
-  errors: CustomFoodValidationErrors,
-  copy: NutritionAddFoodCopy,
-): CustomFoodValidationErrors =>
-  Object.fromEntries(
-    Object.entries(errors).map(([field, message]) => {
-      const localized = message === 'Enter a food name.'
-        ? copy.validation.foodName
-        : message === 'Enter a serving unit.'
-          ? copy.validation.servingUnit
-          : message === 'Use a number greater than 0.'
-            ? copy.validation.greaterThanZero
-            : message === 'Enter a number.'
-              ? copy.validation.number
-              : message === 'Use 0 or more.'
-                ? copy.validation.zeroOrMore
-                : message;
-      return [field, localized];
-    }),
-  ) as CustomFoodValidationErrors;
 
 export default function NutritionAddFoodScreen() {
   const { colors } = useAppTheme();
