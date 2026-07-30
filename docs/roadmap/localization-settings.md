@@ -61,11 +61,21 @@ Completed:
 - semantic set-input, RPE and completion accessibility states;
 - display-only localization for empty and built-in workout titles without changing persisted draft values.
 
-Program/routine details merged in PR #228. Builder/picker/editor localization merged in PR #229. Session-preview boundaries are implemented in PR #230 and must merge only from an exact-green Mobile CI head.
+Program/routine details merged in PR #228. Builder/picker/editor localization merged in PR #229. Session-preview boundaries merged in PR #230.
 
 ### Progress
 
-Completed primary Progress, Weight Details, 30-day trend, chart states, recent weigh-ins, selected `kg/lb` and the link to localized Workout History.
+Completed:
+
+- primary Progress and Weight Details copy, dates, chart states and recent weigh-ins;
+- selected `kg/lb` on weight summaries and Weight Details;
+- locale-aware body-measurement labels, entry validation and selected `cm/in` previews;
+- Safety & Recovery history and weekly-trend cards;
+- central locale formatting for Progress chart bounds, midpoint and body-fat values;
+- selected `kg/lb` workout-volume summaries converted from canonical kilogram volume;
+- selected units in Progress and Weight Details chart latest-value presentation.
+
+The first Secondary Progress analytics-formatting slice is implemented in PR #231 with source-contract coverage and must merge only from an exact-green Mobile CI head.
 
 ### Coach history and trust
 
@@ -113,18 +123,18 @@ Completed and merged in PR #226:
 
 ## Current next task
 
-### Secondary Progress — measurement and training analytics details
+### Secondary Progress — remaining detail and exercise analytics surfaces
 
-Run a repository-backed audit and implement the first real linked slice across secondary Progress surfaces, prioritizing:
+After PR #231, run a repository-backed audit and implement the next real linked slice covering reachable secondary Progress presentation that still bypasses established boundaries, prioritizing:
 
-- measurement-detail screens and editors;
-- exercise-progress details;
-- workout-volume details;
-- secondary charts, summaries and filters that bypass the central locale or unit boundary.
+- measurement-detail or measurement-history editors if reachable production routes exist;
+- exercise-progression and inactive-exercise summaries;
+- workout-volume details or filters beyond the localized overview;
+- secondary charts and accessibility descriptions not covered by the shared trend chart.
 
 The selected slice must remove directly rendered:
 
-- direct `Intl` or `toLocaleString`;
+- direct `Intl`, `toLocaleString` or `toFixed` formatting;
 - fixed `kg`, `cm` or English date/count presentation;
 - hard-coded controls, empty/error states and accessibility labels;
 - visible internal statuses or enum values;
@@ -138,13 +148,9 @@ Must preserve:
 - add/edit/delete and navigation contracts;
 - sync schemas, revision behavior and completed workout history.
 
-If one category has no remaining production issue, continue directly to the next category rather than creating a no-op PR.
+If an audited category has no reachable production surface, continue directly to the next category rather than creating a no-op PR.
 
 ## Remaining source work
-
-### Secondary Progress after the first slice
-
-Continue through the remaining measurement, exercise-progress, workout-volume and analytics surfaces until all established locale/unit boundaries are consistently applied.
 
 ### Remaining Coach work
 
