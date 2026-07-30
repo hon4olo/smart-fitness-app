@@ -7,7 +7,12 @@ export type {
   ApiRetryOptions,
   HttpMethod,
 } from './types';
-export { ApiError, API_ERROR_CODES, isApiError } from './errors';
+export {
+  ApiError,
+  API_ERROR_CODES,
+  isApiError,
+  type ApiErrorCode,
+} from './errors';
 export { classifyApiDiagnosticCategory, createApiClient } from './createApiClient';
 export {
   createLocalApiDiagnosticsRecorder,
