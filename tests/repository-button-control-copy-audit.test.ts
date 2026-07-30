@@ -17,6 +17,7 @@ const { join, relative, resolve } = require('path') as {
 const projectRoot = resolve(__dirname, '..');
 const presentationRoots = ['src/app', 'src/components', 'src/features'];
 const buttonComponents = '(?:PrimaryButton|SecondaryButton|AppButton)';
+const buttonPrefix = '<' + buttonComponents + '\\b[\\s\\S]{0,500}?\\blabel\\s*=\\s*';
 
 const collectPresentationFiles = (directory: string): string[] =>
   readdirSync(directory).flatMap((entry) => {
@@ -29,12 +30,12 @@ const lineNumberAt = (source: string, index: number) =>
   source.slice(0, index).split('\n').length;
 
 const quotedLabelPatterns = [
-  new RegExp(`<${buttonComponents}\\b[\\s\\S]{0,500}?\\blabel\\s*=\\s*(["'])([^"'\\n]+)\\1`, 'g'),
-  new RegExp(`<${buttonComponents}\\b[\\s\\S]{0,500}?\\blabel\\s*=\\s*\\{\\s*(["'])([^"'\\n]+)\\1\\s*\\}`, 'g'),
+  new RegExp(buttonPrefix + '(["\'])([^"\'\\n]+)\\1', 'g'),
+  new RegExp(buttonPrefix + '\\{\\s*(["\'])([^"\'\\n]+)\\1\\s*\\}', 'g'),
 ];
 const templateLabelPatterns = [
-  new RegExp(`<${buttonComponents}\\b[\\s\\S]{0,500}?\\blabel\\s*=\\s*\\`([^\\`\\n]+)\\``, 'g'),
-  new RegExp(`<${buttonComponents}\\b[\\s\\S]{0,500}?\\blabel\\s*=\\s*\\{\\s*\\`([^\\`\\n]+)\\`\\s*\\}`, 'g'),
+  new RegExp(buttonPrefix + '`([^`\\n]+)`', 'g'),
+  new RegExp(buttonPrefix + '\\{\\s*`([^`\\n]+)`\\s*\\}', 'g'),
 ];
 
 const hasStaticWords = (literal: string) =>
