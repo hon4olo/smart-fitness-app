@@ -2,12 +2,10 @@ import { useMemo } from 'react';
 
 import { addDays, sumNutritionTotals } from '@/lib';
 import { getLoggedFoodDates, getNutritionSummary, resolveFoodCatalogItem } from '@/lib/nutrition';
+import { useLocalization } from '@/localization';
 import type { FoodEntry } from '@/types';
 
 import {
-  formatDayNumber,
-  formatDisplayDate,
-  formatWeekdayLabel,
   getWeekStart,
   mealTypeOrder,
   type MealSummary,
@@ -21,28 +19,52 @@ type UseNutritionDaySummaryParams = {
   todayKey: string;
 };
 
-export function useNutritionDaySummary({ foodEntries, nutritionTargets, selectedDate, todayKey }: UseNutritionDaySummaryParams) {
-  const selectedDateEntries = useMemo(() => foodEntries.filter((entry) => entry.date === selectedDate), [foodEntries, selectedDate]);
-  const selectedDateNutrition = useMemo(() => sumNutritionTotals(selectedDateEntries), [selectedDateEntries]);
-  const nutritionSummary = useMemo(() => getNutritionSummary(selectedDateNutrition, nutritionTargets), [nutritionTargets, selectedDateNutrition]);
-  const selectedDateLabel = useMemo(() => formatDisplayDate(selectedDate), [selectedDate]);
+const toLocalNoon = (dateKey: string) => new Date(`${dateKey}T12:00:00`);
 
-  const streakDays = useMemo(() => new Set(foodEntries.map((entry) => entry.date)), [foodEntries]);
+export function useNutritionDaySummary({
+  foodEntries,
+  nutritionTargets,
+  selectedDate,
+  todayKey,
+}: UseNutritionDaySummaryParams) {
+  const { formatDate } = useLocalization();
+  const selectedDateEntries = useMemo(
+    () => foodEntries.filter((entry) => entry.date === selectedDate),
+    [foodEntries, selectedDate],
+  );
+  const selectedDateNutrition = useMemo(
+    () => sumNutritionTotals(selectedDateEntries),
+    [selectedDateEntries],
+  );
+  const nutritionSummary = useMemo(
+    () => getNutritionSummary(selectedDateNutrition, nutritionTargets),
+    [nutritionTargets, selectedDateNutrition],
+  );
+  const selectedDateLabel = useMemo(
+    () => formatDate(toLocalNoon(selectedDate), { day: 'numeric', month: 'short', weekday: 'short' }),
+    [formatDate, selectedDate],
+  );
+
+  const streakDays = useMemo(
+    () => new Set(foodEntries.map((entry) => entry.date)),
+    [foodEntries],
+  );
   const loggedDaySet = useMemo(() => getLoggedFoodDates(foodEntries), [foodEntries]);
   const weekDays = useMemo<WeekDay[]>(() => {
     const weekStart = getWeekStart(selectedDate);
     return Array.from({ length: 7 }, (_, index) => {
       const dateKey = addDays(weekStart, index);
+      const date = toLocalNoon(dateKey);
       return {
         dateKey,
-        dayLabel: formatWeekdayLabel(dateKey),
-        dayNumber: formatDayNumber(dateKey),
+        dayLabel: formatDate(date, { weekday: 'short' }),
+        dayNumber: formatDate(date, { day: 'numeric' }),
         isSelected: dateKey === selectedDate,
         isToday: dateKey === todayKey,
         isLogged: loggedDaySet.has(dateKey),
       };
     });
-  }, [selectedDate, todayKey, loggedDaySet]);
+  }, [formatDate, loggedDaySet, selectedDate, todayKey]);
 
   const nutritionStreak = useMemo(() => {
     let streak = 0;
@@ -60,7 +82,7 @@ export function useNutritionDaySummary({ foodEntries, nutritionTargets, selected
         const entries = selectedDateEntries.filter((entry) => entry.mealType === mealType);
         return { entries, mealType, subtotal: sumNutritionTotals(entries) };
       }),
-    [selectedDateEntries]
+    [selectedDateEntries],
   );
 
   const fiberBreakdown = useMemo(() => {
@@ -72,7 +94,8 @@ export function useNutritionDaySummary({ foodEntries, nutritionTargets, selected
       if (catalogFood?.fiber == null) continue;
 
       hasFiberData = true;
-      const servings = entry.servingSize && entry.quantity ? entry.quantity / entry.servingSize : 1;
+      const servings =
+        entry.servingSize && entry.quantity ? entry.quantity / entry.servingSize : 1;
       const safeServings = Number.isFinite(servings) && servings > 0 ? servings : 1;
       totalFiber += (catalogFood.fiber ?? 0) * safeServings;
     }
