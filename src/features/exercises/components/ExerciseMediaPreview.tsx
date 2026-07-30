@@ -3,6 +3,8 @@ import { Image, type ImageContentFit, type ImageStyle } from 'expo-image';
 import { ActivityIndicator, StyleSheet, Text, View, type ImageResizeMode, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Colors, Radii, Spacing } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import { getExerciseMediaCopy } from '@/localization/exerciseMediaCopy';
 
 import type { Exercise } from '../types';
 import { getExerciseMediaUri } from '../media';
@@ -38,6 +40,8 @@ export function ExerciseMediaPreview({
   showLabel = false,
   style,
 }: ExerciseMediaPreviewProps) {
+  const { locale } = useLocalization();
+  const copy = useMemo(() => getExerciseMediaCopy(locale), [locale]);
   const [loading, setLoading] = useState(Boolean(getExerciseMediaUri(exercise, { playing })));
   const [mediaFailed, setMediaFailed] = useState(false);
   const mediaUri = !mediaFailed ? getExerciseMediaUri(exercise, { playing }) : undefined;
@@ -54,7 +58,7 @@ export function ExerciseMediaPreview({
     <View style={[styles.frame, style]}>
       {mediaUri ? (
         <Image
-          accessibilityLabel={`${exercise.name} exercise media`}
+          accessibilityLabel={copy.accessibilityLabel(exercise.name)}
           autoplay={playing}
           cachePolicy="memory-disk"
           contentFit={resolvedContentFit}
@@ -87,7 +91,7 @@ export function ExerciseMediaPreview({
       {!mediaUri ? (
         <View style={styles.placeholder}>
           <Text style={styles.placeholderIcon}>▰</Text>
-          {showLabel ? <Text style={styles.placeholderText}>No media available</Text> : null}
+          {showLabel ? <Text style={styles.placeholderText}>{copy.unavailable}</Text> : null}
         </View>
       ) : null}
     </View>
