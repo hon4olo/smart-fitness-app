@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,10 +9,14 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { createUuid, formatShortDate } from '@/lib';
+import { useLocalization } from '@/localization';
+import { getWeightEntryCopy } from '@/localization/weightEntryCopy';
 import { displayWeightInputToKg, parseDisplayNumber, useUnitPreferences } from '@/units';
 
 export default function WeightEntryScreen() {
   const { addWeightEntry } = useAppContext();
+  const { locale } = useLocalization();
+  const copy = useMemo(() => getWeightEntryCopy(locale), [locale]);
   const { weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
   const [weight, setWeight] = useState('');
@@ -23,7 +27,7 @@ export default function WeightEntryScreen() {
     const parsedWeightKg = Number(displayWeightInputToKg(weight, weightUnit));
 
     if (!Number.isFinite(parsedDisplayWeight) || parsedDisplayWeight <= 0 || !Number.isFinite(parsedWeightKg)) {
-      setError('Enter a valid weight.');
+      setError(copy.invalidWeight);
       return;
     }
 
@@ -37,16 +41,16 @@ export default function WeightEntryScreen() {
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} keyboardShouldPersistTaps="handled" style={styles.screen}>
       <View style={styles.container}>
-        <SectionHeader title="Add weight" />
+        <SectionHeader title={copy.title} />
         <AppCard>
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Weight ({weightUnit})</Text>
+            <Text style={styles.label}>{copy.weightLabel(weightUnit)}</Text>
             <TextInput keyboardType="decimal-pad" onChangeText={(value) => { setWeight(value); if (error) setError(''); }} placeholder={weightUnit === 'lb' ? '182.3' : '82.7'} placeholderTextColor={Colors.dark.textSecondary} style={styles.input} value={weight} />
             {error ? <Text style={styles.error}>{error}</Text> : null}
           </View>
-          <AppButton label="Save weight" onPress={saveWeight} />
+          <AppButton label={copy.save} onPress={saveWeight} />
         </AppCard>
-        <AppButton label="Cancel" onPress={() => router.back()} variant="secondary" />
+        <AppButton label={copy.cancel} onPress={() => router.back()} variant="secondary" />
       </View>
     </ScrollView>
   );
