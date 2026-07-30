@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import type { WorkoutSafetyReviewStatus, WorkoutSession } from '@/types';
 import {
   filterWorkoutHistory,
-  formatWorkoutHistoryDateRange,
   parseWorkoutHistoryRouteFilters,
 } from './workoutHistoryViewModel';
 
@@ -105,13 +104,16 @@ describe('workout history explicit date ranges', () => {
     ).toEqual({ dateRange: null, safety: 'all' });
   });
 
-  it('formats the exclusive upper boundary as the visible inclusive day', () => {
-    expect(
-      formatWorkoutHistoryDateRange({
-        startAt: Date.parse('2026-07-01T00:00:00.000Z'),
-        endAt: Date.parse('2026-07-08T00:00:00.000Z'),
-      }),
-    ).toContain('Jul');
+  it('preserves raw range boundaries for localized screen formatting', () => {
+    const parsed = parseWorkoutHistoryRouteFilters({
+      from: '2026-07-01T00:00:00.000Z',
+      to: '2026-07-08T00:00:00.000Z',
+    });
+
+    expect(parsed.dateRange).toEqual({
+      startAt: Date.parse('2026-07-01T00:00:00.000Z'),
+      endAt: Date.parse('2026-07-08T00:00:00.000Z'),
+    });
   });
 
   it('ignores malformed ranges and falls back to the selected period', () => {
