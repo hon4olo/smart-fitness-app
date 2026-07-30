@@ -73,7 +73,6 @@ export type WorkoutTemplateSummary = {
   workout: Workout;
   exerciseCount: number;
   estimatedDuration: string;
-  lastUsedLabel?: string;
   subtitle: string;
 };
 
