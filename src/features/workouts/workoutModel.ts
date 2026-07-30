@@ -208,13 +208,10 @@ const getWorkoutEstimatedDuration = (workout: Workout) => {
 };
 
 export const getWorkoutTemplateSummary = (workout: Workout, sessions: WorkoutSession[]): WorkoutTemplateSummary => {
-  const usage = getWorkoutUsage(workout.id, sessions);
-
   return {
     workout,
     exerciseCount: workout.exercises.length,
     estimatedDuration: getWorkoutEstimatedDuration(workout),
-    lastUsedLabel: usage.lastSession ? new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(usage.lastSession.finishedAt)) : undefined,
     subtitle: getWorkoutSubtitle(workout),
   };
 };
