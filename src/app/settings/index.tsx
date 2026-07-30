@@ -13,6 +13,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import type { AppearanceMode } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import { LocalPerformanceDiagnosticsCard } from '@/features/settings/LocalPerformanceDiagnosticsCard';
 import { AboutSettingsCard, PrivacySettingsCard } from '@/features/settings/PrivacyAboutCards';
 import { PersonalDetailsSettingsCard } from '@/features/settings/PersonalDetailsSettingsCard';
 import { SyncSettingsCard } from '@/features/settings/SyncSettingsCard';
@@ -230,6 +231,7 @@ export default function SettingsScreen() {
                   runtimeVersion={otaRuntimeVersion}
                   updateId={otaUpdateId}
                 />
+                <LocalPerformanceDiagnosticsCard />
               </View>
             ) : null}
           </View>
