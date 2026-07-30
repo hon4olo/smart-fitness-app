@@ -6,6 +6,8 @@ import { ListRow } from '@/components/ui/ListRow';
 import { createDraftFromFoodItem } from '@/features/nutrition/addFoodModel';
 import type { FoodProviderSearchStatus } from '@/features/nutrition/useFoodProviderSearch';
 import { formatFoodMacros, formatFoodServing, formatNumber } from '@/lib/nutrition';
+import { useLocalization } from '@/localization';
+import { getNutritionAddFoodCopy } from '@/localization/nutritionAddFoodCopy';
 import type { FoodCatalogItem } from '@/types';
 import { formatEnergyValue, useUnitPreferences } from '@/units';
 
@@ -59,36 +61,53 @@ export function FoodSearchModeSection({
   styles,
 }: FoodSearchModeSectionProps) {
   const { energy } = useUnitPreferences();
-  const fatSecretAttributionFood = backendFoodResults.find((food) => food.source.provider === 'fatsecret');
+  const { locale } = useLocalization();
+  const copy = getNutritionAddFoodCopy(locale);
+  const fatSecretAttributionFood = backendFoodResults.find(
+    (food) => food.source.provider === 'fatsecret',
+  );
 
   return (
     <AppCard>
       <View style={styles.searchRow}>
         <TextInput
-          accessibilityLabel="Search food"
+          accessibilityLabel={copy.searchFood}
           autoCapitalize="none"
           autoCorrect={false}
           clearButtonMode="while-editing"
           onChangeText={setQuery}
-          placeholder="Search food"
+          placeholder={copy.searchFood}
           placeholderTextColor={colors.textSecondary}
           style={styles.searchInput}
           value={query}
         />
         {query.length > 0 ? (
-          <Pressable accessibilityLabel="Clear search" hitSlop={10} onPress={onClearQuery} style={styles.clearButton}>
+          <Pressable
+            accessibilityLabel={copy.clearSearch}
+            hitSlop={10}
+            onPress={onClearQuery}
+            style={styles.clearButton}>
             <Text style={styles.clearButtonText}>×</Text>
           </Pressable>
         ) : null}
-        <Pressable accessibilityLabel="Scan food barcode" hitSlop={10} onPress={onOpenScanner} style={styles.scanButton}>
-          <Text style={styles.scanButtonText}>Scan</Text>
+        <Pressable
+          accessibilityLabel={copy.scanBarcode}
+          hitSlop={10}
+          onPress={onOpenScanner}
+          style={styles.scanButton}>
+          <Text style={styles.scanButtonText}>{copy.scan}</Text>
         </Pressable>
       </View>
 
       {foodSuggestions.length > 0 ? (
         <View style={styles.suggestionList}>
           {foodSuggestions.map((suggestion) => (
-            <Pressable accessibilityLabel={`Search ${suggestion}`} hitSlop={6} key={suggestion} onPress={() => onSelectSuggestion(suggestion)} style={styles.suggestionChip}>
+            <Pressable
+              accessibilityLabel={copy.searchSuggestion(suggestion)}
+              hitSlop={6}
+              key={suggestion}
+              onPress={() => onSelectSuggestion(suggestion)}
+              style={styles.suggestionChip}>
               <Text style={styles.suggestionText}>{suggestion}</Text>
             </Pressable>
           ))}
@@ -96,10 +115,18 @@ export function FoodSearchModeSection({
       ) : null}
 
       <View style={styles.listGap}>
-        {backendFoodSearchStatus === 'debouncing' ? <Text selectable style={styles.helperText}>Waiting for you to finish typing…</Text> : null}
-        {backendFoodSearchStatus === 'loading' ? <Text selectable style={styles.helperText}>Searching food database…</Text> : null}
-        {backendFoodSearchStatus === 'empty' ? <Text selectable style={styles.helperText}>No online matches. Local foods are shown below.</Text> : null}
-        {backendFoodSearchStatus === 'error' ? <Text selectable style={styles.helperText}>Food database unavailable. Check your connection or use local foods.</Text> : null}
+        {backendFoodSearchStatus === 'debouncing' ? (
+          <Text selectable style={styles.helperText}>{copy.waitingForTyping}</Text>
+        ) : null}
+        {backendFoodSearchStatus === 'loading' ? (
+          <Text selectable style={styles.helperText}>{copy.searchingDatabase}</Text>
+        ) : null}
+        {backendFoodSearchStatus === 'empty' ? (
+          <Text selectable style={styles.helperText}>{copy.noOnlineMatches}</Text>
+        ) : null}
+        {backendFoodSearchStatus === 'error' ? (
+          <Text selectable style={styles.helperText}>{copy.databaseUnavailable}</Text>
+        ) : null}
 
         {backendFoodResults.map((food) => {
           const draft = createDraftFromFoodItem(food);
@@ -109,17 +136,25 @@ export function FoodSearchModeSection({
           return (
             <ListRow
               key={food.id}
-              accessibilityHint="Tap to set a portion before adding"
+              accessibilityHint={copy.tapToSetPortion}
               badge={formatProviderLabel(food.source.provider)}
               detail={`${detailPrefix}${formatFoodServing(draft)} · ${formatNumber(draft.protein)}P · ${formatNumber(draft.carbs)}C · ${formatNumber(draft.fats)}F`}
               onPress={() => onOpenFoodItem(food)}
               title={food.name}
               trailing={
                 <View style={styles.rowActions}>
-                  <Pressable accessibilityLabel={`${favorite ? 'Remove' : 'Add'} ${food.name} ${favorite ? 'from' : 'to'} favorites`} hitSlop={10} onPress={() => onToggleProviderFavorite(food)} style={styles.iconButton}>
+                  <Pressable
+                    accessibilityLabel={favorite ? copy.removeFavorite(food.name) : copy.addFavorite(food.name)}
+                    hitSlop={10}
+                    onPress={() => onToggleProviderFavorite(food)}
+                    style={styles.iconButton}>
                     <Text style={styles.iconButtonText}>{favorite ? '★' : '☆'}</Text>
                   </Pressable>
-                  <Pressable accessibilityLabel={`Quick add ${food.name} to ${selectedMealLabel}`} hitSlop={10} onPress={() => onQuickAddFoodItem(food)} style={styles.iconButton}>
+                  <Pressable
+                    accessibilityLabel={copy.quickAdd(food.name, selectedMealLabel)}
+                    hitSlop={10}
+                    onPress={() => onQuickAddFoodItem(food)}
+                    style={styles.iconButton}>
                     <Text style={styles.iconButtonText}>+</Text>
                   </Pressable>
                 </View>
@@ -129,23 +164,35 @@ export function FoodSearchModeSection({
           );
         })}
 
-        {fatSecretAttributionFood ? <Text selectable style={styles.resultAttribution}>{getFoodAttributionLabel(fatSecretAttributionFood)}</Text> : null}
+        {fatSecretAttributionFood ? (
+          <Text selectable style={styles.resultAttribution}>
+            {getFoodAttributionLabel(fatSecretAttributionFood)}
+          </Text>
+        ) : null}
 
         {searchResults.map((food) => {
           const favorite = favoriteIds.includes(food.id);
           return (
             <ListRow
               key={food.id}
-              accessibilityHint="Tap to set a portion before adding"
+              accessibilityHint={copy.tapToSetPortion}
               detail={`${formatFoodServing(food)} · ${formatFoodMacros(food)}`}
               onPress={() => onOpenCatalogFood(food)}
               title={food.name}
               trailing={
                 <View style={styles.rowActions}>
-                  <Pressable accessibilityLabel={`${favorite ? 'Remove' : 'Add'} ${food.name} ${favorite ? 'from' : 'to'} favorites`} hitSlop={10} onPress={() => onToggleFavorite(food.id)} style={styles.iconButton}>
+                  <Pressable
+                    accessibilityLabel={favorite ? copy.removeFavorite(food.name) : copy.addFavorite(food.name)}
+                    hitSlop={10}
+                    onPress={() => onToggleFavorite(food.id)}
+                    style={styles.iconButton}>
                     <Text style={styles.iconButtonText}>{favorite ? '★' : '☆'}</Text>
                   </Pressable>
-                  <Pressable accessibilityLabel={`Quick add ${food.name} to ${selectedMealLabel}`} hitSlop={10} onPress={() => onQuickAddCatalogFood(food)} style={styles.iconButton}>
+                  <Pressable
+                    accessibilityLabel={copy.quickAdd(food.name, selectedMealLabel)}
+                    hitSlop={10}
+                    onPress={() => onQuickAddCatalogFood(food)}
+                    style={styles.iconButton}>
                     <Text style={styles.iconButtonText}>+</Text>
                   </Pressable>
                 </View>
@@ -155,8 +202,12 @@ export function FoodSearchModeSection({
           );
         })}
 
-        {query.trim().length > 0 && backendFoodResults.length === 0 && searchResults.length === 0 && backendFoodSearchStatus !== 'loading' && backendFoodSearchStatus !== 'debouncing' ? (
-          <Text selectable style={styles.emptyStateText}>No food found</Text>
+        {query.trim().length > 0 &&
+        backendFoodResults.length === 0 &&
+        searchResults.length === 0 &&
+        backendFoodSearchStatus !== 'loading' &&
+        backendFoodSearchStatus !== 'debouncing' ? (
+          <Text selectable style={styles.emptyStateText}>{copy.noFoodFound}</Text>
         ) : null}
       </View>
     </AppCard>
