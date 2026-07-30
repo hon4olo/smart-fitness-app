@@ -3,6 +3,7 @@ import { createFoodEntrySyncingRepository } from './FoodEntrySyncingRepository';
 import { createLocalAppRepository } from './LocalAppRepository';
 import { createNutritionTargetSyncingRepository } from './NutritionTargetSyncingRepository';
 import type { RemoteProfileRepository } from './RemoteProfileRepository';
+import { createLocalApiDiagnosticsRecorder } from '@/api/client/LocalApiDiagnostics';
 import type { StorageAdapter } from '@/storage/StorageAdapter';
 import { createAsyncStorageOperationQueueStore } from '@/storage/AsyncStorageOperationQueueStore';
 import { createFoodEntrySyncMetadataStore } from '@/storage/FoodEntrySyncMetadataStore';
@@ -91,8 +92,15 @@ export const createRepositoryFactory = (
   const localRepository = createLocalAppRepository(storage);
   const tokenManager = options.tokenManager ?? createTokenManager(storage);
   const apiBaseUrl = options.apiBaseUrl ?? getMobileApiBaseUrl();
+  const apiDiagnostics = createLocalApiDiagnosticsRecorder(storage);
   const apiClient =
-    options.apiClient ?? (apiBaseUrl ? createApiClient({ baseUrl: apiBaseUrl }) : undefined);
+    options.apiClient ??
+    (apiBaseUrl
+      ? createApiClient({
+          baseUrl: apiBaseUrl,
+          onRequestOutcome: apiDiagnostics.record,
+        })
+      : undefined);
   const authService =
     options.authService ??
     (apiClient
