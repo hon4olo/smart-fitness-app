@@ -33,10 +33,14 @@ describe('Safety Recovery weekly history drilldown', () => {
 
   it('hydrates workout history filters from route params', () => {
     const history = readSource('src/features/workouts/screens/WorkoutHistoryScreen.tsx');
+    const copy = readSource('src/localization/workoutHistoryCopy.ts');
 
     expect(history).toContain('useLocalSearchParams<WorkoutHistoryRouteParams>');
     expect(history).toContain('parseWorkoutHistoryRouteFilters(params)');
     expect(history).toContain('dateRange,');
-    expect(history).toContain('Selected weekly range');
+    expect(history).toContain('copy.selectedWeeklyRange(dateRangeLabel)');
+    expect(copy).toContain('selectedWeeklyRange:');
+    expect(copy).toContain('Выбранная неделя');
+    expect(copy).toContain('Selected weekly range');
   });
 });
