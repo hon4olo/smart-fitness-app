@@ -5,6 +5,9 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
 import { WorkoutSession } from '@/context/AppContext';
+import { getWorkoutHistoryCopy } from '@/localization/workoutHistoryCopy';
+import { useLocalization } from '@/localization';
+import { useUnitPreferences } from '@/units';
 
 type WorkoutHistorySessionCardProps = {
   editingSessionSetId?: string;
@@ -53,6 +56,13 @@ export const WorkoutHistorySessionCard = memo(function WorkoutHistorySessionCard
   sessionWeight,
   visibleSets,
 }: WorkoutHistorySessionCardProps) {
+  const { locale, formatNumber } = useLocalization();
+  const { weight, formatWeightValue } = useUnitPreferences();
+  const copy = getWorkoutHistoryCopy(locale);
+  const formattedSetCount = formatNumber(session.sets.length, {
+    maximumFractionDigits: 0,
+  });
+
   return (
     <AppCard>
       <View style={styles.cardHeader}>
@@ -66,10 +76,10 @@ export const WorkoutHistorySessionCard = memo(function WorkoutHistorySessionCard
 
       <View style={styles.sessionStats}>
         <Text selectable style={styles.sessionStat}>
-          {session.sets.length} sets
+          {copy.sets(session.sets.length, formattedSetCount)}
         </Text>
         <Text selectable style={styles.sessionStat}>
-          {sessionVolume.toLocaleString()} kg volume
+          {copy.volume(formatWeightValue(sessionVolume), weight)}
         </Text>
       </View>
 
@@ -85,11 +95,11 @@ export const WorkoutHistorySessionCard = memo(function WorkoutHistorySessionCard
         <View style={styles.sessionEditor}>
           <View style={styles.inputGroup}>
             <Text selectable style={styles.inputLabel}>
-              Exercise name
+              {copy.exerciseName}
             </Text>
             <TextInput
               onChangeText={onSessionExerciseNameChange}
-              placeholder="Bench press"
+              placeholder={copy.exercisePlaceholder}
               placeholderTextColor={Colors.dark.textSecondary}
               style={styles.input}
               value={sessionExerciseName}
@@ -99,7 +109,7 @@ export const WorkoutHistorySessionCard = memo(function WorkoutHistorySessionCard
           <View style={styles.inputsRow}>
             <View style={styles.inputGroup}>
               <Text selectable style={styles.inputLabel}>
-                Weight
+                {copy.weight} ({weight})
               </Text>
               <TextInput
                 keyboardType="decimal-pad"
@@ -113,7 +123,7 @@ export const WorkoutHistorySessionCard = memo(function WorkoutHistorySessionCard
 
             <View style={styles.inputGroup}>
               <Text selectable style={styles.inputLabel}>
-                Reps
+                {copy.reps}
               </Text>
               <TextInput
                 keyboardType="number-pad"
@@ -126,9 +136,16 @@ export const WorkoutHistorySessionCard = memo(function WorkoutHistorySessionCard
             </View>
           </View>
 
-          <AppButton label={editingSessionSetId ? 'Save Set' : 'Add Set'} onPress={onSaveSessionSet} />
+          <AppButton
+            label={editingSessionSetId ? copy.saveSet : copy.addSet}
+            onPress={onSaveSessionSet}
+          />
           {editingSessionSetId ? (
-            <AppButton label="Cancel Edit" onPress={onCancelSessionSetEdit} variant="secondary" />
+            <AppButton
+              label={copy.cancelEdit}
+              onPress={onCancelSessionSetEdit}
+              variant="secondary"
+            />
           ) : null}
 
           <View style={styles.draftList}>
@@ -139,27 +156,43 @@ export const WorkoutHistorySessionCard = memo(function WorkoutHistorySessionCard
                     {set.exerciseName}
                   </Text>
                   <Text selectable style={styles.setMeta}>
-                    {set.weight} kg x {set.reps}
+                    {copy.setMeta(formatWeightValue(set.weight), weight, formatNumber(set.reps))}
                   </Text>
                 </View>
                 <View style={styles.setActions}>
-                  <AppButton label="Edit" onPress={() => onEditSessionSet(set)} variant="secondary" />
-                  <AppButton label="Delete" onPress={() => onDeleteSessionSet(set.id)} variant="secondary" />
+                  <AppButton
+                    label={copy.edit}
+                    onPress={() => onEditSessionSet(set)}
+                    variant="secondary"
+                  />
+                  <AppButton
+                    label={copy.delete}
+                    onPress={() => onDeleteSessionSet(set.id)}
+                    variant="secondary"
+                  />
                 </View>
               </View>
             ))}
           </View>
 
           <View style={styles.editorFooter}>
-            <AppButton label="Cancel" onPress={onCancelSessionEdit} variant="secondary" />
-            <AppButton label="Save Changes" onPress={onSaveSessionChanges} />
-            <AppButton label="Delete" onPress={onDeleteSession} variant="secondary" />
+            <AppButton
+              label={copy.cancel}
+              onPress={onCancelSessionEdit}
+              variant="secondary"
+            />
+            <AppButton label={copy.saveChanges} onPress={onSaveSessionChanges} />
+            <AppButton
+              label={copy.delete}
+              onPress={onDeleteSession}
+              variant="secondary"
+            />
           </View>
         </View>
       ) : (
         <>
-          <AppButton label="Edit" onPress={onEditSession} variant="secondary" />
-          <AppButton label="Delete" onPress={onDeleteSession} variant="secondary" />
+          <AppButton label={copy.edit} onPress={onEditSession} variant="secondary" />
+          <AppButton label={copy.delete} onPress={onDeleteSession} variant="secondary" />
         </>
       )}
     </AppCard>
@@ -177,9 +210,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontVariant: ['tabular-nums'],
   },
-  draftList: {
-    gap: Spacing.two,
-  },
+  draftList: { gap: Spacing.two },
   draftRow: {
     alignItems: 'center',
     borderColor: Colors.dark.border,
@@ -189,17 +220,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: Spacing.two,
   },
-  editorFooter: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  exercise: {
-    color: Colors.dark.text,
-    fontSize: 15,
-  },
-  exerciseList: {
-    gap: Spacing.one,
-  },
+  editorFooter: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  exercise: { color: Colors.dark.text, fontSize: 15 },
+  exerciseList: { gap: Spacing.one },
   input: {
     backgroundColor: Colors.dark.background,
     borderColor: Colors.dark.border,
@@ -211,42 +234,23 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: Spacing.two,
   },
-  inputGroup: {
-    gap: Spacing.one,
-  },
+  inputGroup: { flex: 1, gap: Spacing.one, minWidth: 130 },
   inputLabel: {
     color: Colors.dark.textSecondary,
     fontSize: 13,
     fontWeight: '700',
   },
-  inputsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  sessionEditor: {
-    gap: Spacing.two,
-    paddingTop: Spacing.two,
-  },
+  inputsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  sessionEditor: { gap: Spacing.two, paddingTop: Spacing.two },
   sessionStat: {
     color: Colors.dark.textSecondary,
     fontSize: 14,
     fontVariant: ['tabular-nums'],
     fontWeight: '700',
   },
-  sessionStats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  setActions: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  setContent: {
-    flex: 1,
-    gap: Spacing.one,
-  },
+  sessionStats: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  setActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  setContent: { flex: 1, gap: Spacing.one },
   setMeta: {
     color: Colors.dark.text,
     fontSize: 15,
