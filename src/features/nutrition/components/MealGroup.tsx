@@ -43,6 +43,11 @@ export function MealGroup({
 }: MealGroupProps) {
   const { formatNumber } = useLocalization();
   const itemCount = entries.length;
+  // Localized replacement for the legacy formatMealItemCount helper.
+  const itemCountLabel = copy.itemCount(
+    itemCount,
+    formatNumber(itemCount, { maximumFractionDigits: 0 }),
+  );
   const mealTargetPercent =
     nutritionTargetCalories > 0
       ? Math.round((subtotal.calories / nutritionTargetCalories) * 100)
@@ -64,10 +69,7 @@ export function MealGroup({
               {mealLabel}
             </Text>
             <Text selectable style={styles.mealHeaderMeta}>
-              {copy.itemCount(
-                itemCount,
-                formatNumber(itemCount, { maximumFractionDigits: 0 }),
-              )}
+              {itemCountLabel}
             </Text>
           </View>
         </View>
