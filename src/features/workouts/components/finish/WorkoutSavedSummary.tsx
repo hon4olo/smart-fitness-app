@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui/AppButton';
 import { Colors, Spacing } from '@/constants/theme';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
+import { useLocalization } from '@/localization';
+import { getWorkoutFinishCopy } from '@/localization/workoutFinishCopy';
 
 type WorkoutSavedSummaryProps = {
   dateTimeLabel: string;
@@ -26,19 +28,25 @@ export const WorkoutSavedSummary = memo(function WorkoutSavedSummary({
   workoutName,
 }: WorkoutSavedSummaryProps) {
   const { colors } = useWorkoutTheme();
+  const { formatNumber, locale } = useLocalization();
+  const copy = useMemo(() => getWorkoutFinishCopy(locale), [locale]);
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const setCountLabel = copy.sets(
+    setCount,
+    formatNumber(setCount, { maximumFractionDigits: 0 }),
+  );
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + Spacing.three, backgroundColor: colors.background }]}>
       <View style={styles.savedState}>
-        <Text selectable style={styles.savedTitle}>Workout saved</Text>
+        <Text selectable style={styles.savedTitle}>{copy.saved}</Text>
         <Text selectable style={styles.savedWorkoutName}>{workoutName}</Text>
-        <Text selectable style={styles.savedMeta}>{dateTimeLabel} · {durationLabel} · {setCount} set{setCount === 1 ? '' : 's'}</Text>
+        <Text selectable style={styles.savedMeta}>{dateTimeLabel} · {durationLabel} · {setCountLabel}</Text>
         {notes?.trim() ? <Text selectable style={styles.savedNotes}>{notes.trim()}</Text> : null}
         <View style={styles.savedActions}>
-          <AppButton label="Back to Workouts" onPress={onBackToWorkouts} />
-          <AppButton label="Home" onPress={onHome} variant="secondary" />
+          <AppButton label={copy.backToWorkouts} onPress={onBackToWorkouts} />
+          <AppButton label={copy.home} onPress={onHome} variant="secondary" />
         </View>
       </View>
     </View>
