@@ -1,8 +1,8 @@
 # Smart Fitness Roadmap Progress
 
-Updated: 2026-07-25
+Updated: 2026-07-31
 
-This is the canonical roadmap index. Detailed, frequently updated phase state lives in small files under `docs/roadmap/` so future updates do not require replacing one large monolithic document.
+This is the canonical roadmap index. Detailed phase state lives in focused files under `docs/roadmap/`.
 
 Read this index together with:
 
@@ -38,11 +38,15 @@ Always inspect current `main` and open pull requests in both repositories before
 ## Completed foundation
 
 - Single Fastify/PostgreSQL backend.
-- Revision-aware offline-first synchronization for the implemented domains.
+- Revision-aware offline-first synchronization for weight history, workout sessions, workout templates, food entries, nutrition targets, fitness profiles, limitations, recovery check-ins, body measurements, training programs, custom exercises, and meal templates.
+- Stable UUID custom-exercise references across templates, sessions, programs, and Coach contexts.
+- Strict nested meal-template snapshot validation with separate template/diary identity.
 - Deterministic and provider-neutral Coach contracts with explicit confirmation boundaries.
-- Blocking mobile line audits, TypeScript, contract tests, and full regression suite.
-- Blocking backend lint, build, test, migration, schema, startup, and health checks.
-- All tracked hand-written mobile files at or below 500 lines.
+- Combined Review and Combined Proposal source flows with separate applying confirmations and no automatic mutation.
+- Blocking mobile line audits, TypeScript, Coach/sync contracts, full regression suite, Expo export, and Expo Doctor.
+- Blocking backend lint, build, tests, migration/schema checks, startup, and health validation.
+- All tracked hand-written mobile/backend source and architecture files at or below 500 lines.
+- Durable weight outbox restart recovery and persisted unresolved conflict state.
 - Nutrition child-flow hardening source work complete.
 - Account deletion, authenticated password change, and session/device management complete at source-code level.
 - Typed English/Russian localization foundation and dedicated Settings route complete.
@@ -68,7 +72,8 @@ Covers:
 - English/Russian translation rollout;
 - locale dates, numbers, decimal separators, grouping, and pluralization;
 - `kg/lb`, `cm/in`, and `kcal/kJ` coverage;
-- accessibility and screenshot validation;
+- visible control-copy and raw-status source audits;
+- accessibility and physical-device validation;
 - Settings information architecture and preference scope.
 
 ### Data, quality, and scale
@@ -78,23 +83,21 @@ See [`docs/roadmap/data-quality-and-scale.md`](docs/roadmap/data-quality-and-sca
 Covers:
 
 - user-visible sync status and recovery;
-- cross-device Nutrition library sync;
-- visual regression and release-device matrix;
 - privacy-safe analytics;
 - Coach history and trust;
+- restart recovery, token refresh, concurrent mutation, and second-device conflict hardening;
 - measured local-storage scalability and possible SQLite migration;
 - deferred major scope.
 
 ## Recommended immediate next actions
 
-1. Complete remaining localization infrastructure: pluralization, missing-key coverage, and migration of direct number/date formatting.
-2. Move Account & Security into the dedicated Settings information architecture.
-3. Add user-visible Data & Sync status and safe recovery actions.
-4. Complete the remaining release-device and offline-restart matrix on the working standalone runtime.
-5. Deploy and validate current account-lifecycle backend endpoints when explicitly authorized.
-6. Configure `BACKEND_REPOSITORY_TOKEN` and run the fixed-SHA cross-repository release gate.
-7. Create matching native builds and execute the device/offline/second-device matrix.
-8. Add cross-device Nutrition library sync after device validation of the current local library.
+1. Complete the repository-wide visible Pressable/menu/tab/state-control and raw-status presentation audit.
+2. Remove remaining stale implementation-status wording from secondary mobile/backend instruction documents.
+3. Extend durable save-succeeded/outbox-enqueue-failed recovery beyond the current weight-history contract, or explicitly document the bounded coverage.
+4. Add token-refresh, concurrent local-mutation/remote-pull, and broader two-device conflict tests.
+5. Configure `BACKEND_REPOSITORY_TOKEN` and run the fixed-SHA cross-repository release gate when explicitly authorized.
+6. Introduce provider-neutral Coach model configuration and validate the provider in staging when credentials are available.
+7. Create matching native builds and execute the release-device, offline-restart, and second-device matrix when explicitly authorized.
 
 ## Validation expectations
 
@@ -111,7 +114,7 @@ For native dependency or Expo configuration changes:
 npx expo-doctor
 ```
 
-For localization changes, also run missing-key, fallback, interpolation, pluralization, and layout checks.
+For localization changes, also run missing-key, fallback, interpolation, pluralization, and source-boundary checks.
 
 For Settings changes, also test existing-install defaults, account switching, persistence scope, and immediate application.
 
