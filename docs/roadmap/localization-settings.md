@@ -78,7 +78,7 @@ Completed:
 - selected `kg/lb`, locale-aware dates/counts and volume-trend values on Exercise Detail;
 - bounded Exercise Detail errors and removal of raw provider/source/media diagnostics from user presentation.
 
-The first Secondary Progress analytics-formatting slice merged in PR #231. Exercise Detail progress localization is implemented in PR #232 with source-contract coverage and must merge only from an exact-green Mobile CI head.
+Secondary Progress analytics formatting merged in PR #231. Exercise Detail progress localization merged in PR #232. The final route-backed audit found no additional reachable measurement-history or workout-volume detail screen requiring a separate no-op slice.
 
 ### Coach history and trust
 
@@ -97,7 +97,11 @@ Completed:
 - selected `kg/lb` and `kcal/kJ`;
 - Combined Proposal with effective Safety-capped Strength;
 - separate explicit Strength-template and Nutrition-target confirmations;
-- revisioned writes, idempotency keys, fail-closed parsing and no automatic mutation.
+- revisioned writes, idempotency keys, fail-closed parsing and no automatic mutation;
+- bounded standalone capability states without user-visible schema versions;
+- bounded EN/RU sync presentation with a safe unknown-status fallback.
+
+Standalone Combined Review/Proposal trust presentation is implemented in PR #233 and must merge only from an exact-green Mobile CI head.
 
 ### Nutrition Coach
 
@@ -126,38 +130,26 @@ Completed and merged in PR #226:
 
 ## Current next task
 
-### Secondary Progress — final reachable-surface audit
+### Remaining Coach — retry and compensating-revert audit
 
-After PR #232, run a repository-backed audit of remaining reachable Progress presentation, prioritizing:
+After PR #233, audit the remaining reachable Coach flows for:
 
-- measurement-history or measurement-editor surfaces beyond the localized overview;
-- exercise-progression and inactive-exercise summaries outside Exercise Detail;
-- workout-volume details or filters beyond the localized overview;
-- remaining secondary charts and accessibility descriptions.
-
-The selected slice must remove directly rendered:
-
-- direct `Intl`, `toLocaleString` or `toFixed` formatting;
-- fixed `kg`, `cm` or English date/count presentation;
-- hard-coded controls, empty/error states and accessibility labels;
-- visible internal statuses or enum values;
-- tests asserting literal English instead of semantic behavior.
+- stale/offline/retry states that still bypass bounded copy;
+- raw provider/backend/status fallbacks outside the completed Strength, Nutrition and Combined surfaces;
+- standalone proposal or confirmation routes that duplicate completed flows;
+- compensating-revert UX for Coach-applied changes, if a reversible product contract exists in the current code and backend API.
 
 Must preserve:
 
-- measurement, workout-session and exercise IDs;
-- canonical `kg`/`cm` persistence and conversion back from selected display units;
-- chart ranges, aggregation and ordering;
-- add/edit/delete, favorites, media, share and navigation contracts;
-- sync schemas, revision behavior and completed workout history.
+- request types, capability gates, abort lifecycle, polling and idempotency;
+- explicit confirmations and `automaticApplication: false`;
+- revisioned writes and post-confirmation synchronization;
+- completed workout history and canonical Nutrition targets;
+- existing API and sync schemas.
 
-If no additional reachable Progress surface remains, advance directly to Remaining Coach rather than creating a no-op PR.
+If compensating revert is not supported by the current backend/API contract, document it as an external or future product dependency rather than inventing a client-only rollback.
 
 ## Remaining source work
-
-### Remaining Coach work
-
-Verify standalone proposal/confirmation routes, stale/offline/retry states, remaining provider/backend messages and compensating-revert UX for Coach-applied changes.
 
 ### Repository-wide final pass
 
