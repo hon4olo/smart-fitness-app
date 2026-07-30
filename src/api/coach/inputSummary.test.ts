@@ -106,7 +106,7 @@ describe('Coach input summary parser', () => {
     ).toMatchObject({ sources: [{ domain: 'nutrition', available: false }] });
   });
 
-  it('rejects duplicate domains, unsupported schemas, unsafe counts, and raw objects', () => {
+  it('rejects duplicate domains, unsupported schemas, unsafe counts, and raw fields', () => {
     const nutrition = {
       domain: 'nutrition',
       available: true,
@@ -138,6 +138,6 @@ describe('Coach input summary parser', () => {
         schemaVersion: 1,
         sources: [{ ...nutrition, contextSnapshot: { private: true } }],
       }),
-    ).not.toThrow();
+    ).toThrow('fields');
   });
 });
