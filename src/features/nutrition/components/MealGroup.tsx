@@ -1,13 +1,18 @@
 import { Pressable, Text, View } from 'react-native';
 
 import { sumNutritionTotals } from '@/lib';
-import { formatMealItemCount, formatNumber } from '@/lib/nutrition';
+import { formatNumber as formatNutritionNumber } from '@/lib/nutrition';
+import { useLocalization } from '@/localization';
+import type { getNutritionDiaryCopy } from '@/localization/nutritionDiaryCopy';
 import type { FoodEntry, MealType } from '@/types';
+import { formatEnergyValue, type EnergyUnit } from '@/units';
 
 import { FoodEntryRow } from './FoodEntryRow';
 import { NutritionSummaryGrid } from './NutritionSummaryGrid';
 
 type MealGroupProps = {
+  copy: ReturnType<typeof getNutritionDiaryCopy>;
+  energyUnit: EnergyUnit;
   entries: FoodEntry[];
   expanded: boolean;
   mealIcon: string;
@@ -22,6 +27,8 @@ type MealGroupProps = {
 };
 
 export function MealGroup({
+  copy,
+  energyUnit,
   entries,
   expanded,
   mealIcon,
@@ -34,14 +41,18 @@ export function MealGroup({
   styles,
   subtotal,
 }: MealGroupProps) {
+  const { formatNumber } = useLocalization();
   const itemCount = entries.length;
-  const mealTargetPercent = nutritionTargetCalories > 0 ? Math.round((subtotal.calories / nutritionTargetCalories) * 100) : 0;
+  const mealTargetPercent =
+    nutritionTargetCalories > 0
+      ? Math.round((subtotal.calories / nutritionTargetCalories) * 100)
+      : 0;
   const mealTargetPercentLabel = nutritionTargetCalories > 0 ? `${mealTargetPercent}%` : '--';
 
   return (
     <View style={styles.mealGroup}>
       <Pressable
-        accessibilityLabel={`${mealLabel} meal`}
+        accessibilityLabel={copy.mealAccessibility(mealLabel)}
         accessibilityState={{ expanded }}
         hitSlop={12}
         onPress={() => onToggleMealExpansion(mealType)}
@@ -53,14 +64,17 @@ export function MealGroup({
               {mealLabel}
             </Text>
             <Text selectable style={styles.mealHeaderMeta}>
-              {formatMealItemCount(itemCount)}
+              {copy.itemCount(
+                itemCount,
+                formatNumber(itemCount, { maximumFractionDigits: 0 }),
+              )}
             </Text>
           </View>
         </View>
 
         <View style={styles.mealHeaderActions}>
           <Pressable
-            accessibilityLabel={`Add food to ${mealLabel}`}
+            accessibilityLabel={copy.addFoodToMeal(mealLabel)}
             hitSlop={12}
             onPress={(event) => {
               event.stopPropagation();
@@ -77,29 +91,29 @@ export function MealGroup({
         <NutritionSummaryGrid
           styles={styles}
           values={{
-            fats: formatNumber(subtotal.fats),
-            carbs: formatNumber(subtotal.carbs),
-            protein: formatNumber(subtotal.protein),
+            fats: formatNutritionNumber(subtotal.fats),
+            carbs: formatNutritionNumber(subtotal.carbs),
+            protein: formatNutritionNumber(subtotal.protein),
             target: mealTargetPercentLabel,
-            calories: formatNumber(subtotal.calories),
+            calories: formatEnergyValue(subtotal.calories, energyUnit),
           }}
         />
       </View>
 
       {expanded ? (
         <View style={styles.foodList}>
-          {entries.length > 0
-            ? entries.map((entry, index) => (
-                <FoodEntryRow
-                  key={entry.id}
-                  entry={entry}
-                  index={index}
-                  nutritionTargetCalories={nutritionTargetCalories}
-                  onEdit={onEditFoodEntry}
-                  styles={styles}
-                />
-              ))
-            : null}
+          {entries.map((entry, index) => (
+            <FoodEntryRow
+              key={entry.id}
+              copy={copy}
+              energyUnit={energyUnit}
+              entry={entry}
+              index={index}
+              nutritionTargetCalories={nutritionTargetCalories}
+              onEdit={onEditFoodEntry}
+              styles={styles}
+            />
+          ))}
         </View>
       ) : null}
     </View>
