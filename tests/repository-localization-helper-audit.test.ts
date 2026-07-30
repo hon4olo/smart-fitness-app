@@ -47,7 +47,7 @@ const auditPatterns: AuditPattern[] = [
   },
   {
     name: 'raw status fallback',
-    pattern: /\?\?\s*(?:String\s*\()?[^^\n;:,)}]*status\b/gi,
+    pattern: /\?\?.{0,80}\bstatus\b/gi,
   },
   {
     name: 'humanized internal code fallback',
