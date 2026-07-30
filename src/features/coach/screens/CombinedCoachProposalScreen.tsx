@@ -15,6 +15,8 @@ import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme'
 import { useAppContext } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useLocalization } from '@/localization';
+import { getCombinedProposalCopy } from '@/localization/combinedProposalCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { WorkoutSession } from '@/types';
 import { CombinedCoachProposalResult } from '../components/CombinedCoachProposalResult';
@@ -41,6 +43,8 @@ export default function CombinedCoachProposalScreen() {
   const app = useAppContext();
   const { syncNow, status: syncStatus } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
+  const { locale } = useLocalization();
+  const copy = getCombinedProposalCopy(locale);
   const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [busy, setBusy] = useState(false);
@@ -95,6 +99,7 @@ export default function CombinedCoachProposalScreen() {
     viewModel.nutrition.changed === true &&
     viewModel.nutrition.requiresConfirmation === true &&
     viewModel.nutrition.applied === false;
+
   const coachApi = useMemo(
     () =>
       createCoachApi({
@@ -147,12 +152,8 @@ export default function CombinedCoachProposalScreen() {
           maxPolls: 30,
         }),
       );
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Combined Coach could not build the proposals.',
-      );
+    } catch {
+      setError(copy.requestFailed);
     } finally {
       setBusy(false);
     }
@@ -170,14 +171,10 @@ export default function CombinedCoachProposalScreen() {
       try {
         await syncNow();
       } catch {
-        setError('The workout template was created, but local synchronization needs to be retried.');
+        setError(copy.strengthSyncRetry);
       }
-    } catch (confirmationError) {
-      setError(
-        confirmationError instanceof Error
-          ? confirmationError.message
-          : 'The effective Strength template could not be created.',
-      );
+    } catch {
+      setError(copy.strengthConfirmationFailed);
     } finally {
       setStrengthConfirmationBusy(false);
     }
@@ -195,14 +192,10 @@ export default function CombinedCoachProposalScreen() {
       try {
         await syncNow();
       } catch {
-        setError('The Nutrition target was applied, but local synchronization needs to be retried.');
+        setError(copy.nutritionSyncRetry);
       }
-    } catch (confirmationError) {
-      setError(
-        confirmationError instanceof Error
-          ? confirmationError.message
-          : 'The Nutrition target could not be applied.',
-      );
+    } catch {
+      setError(copy.nutritionConfirmationFailed);
     } finally {
       setNutritionConfirmationBusy(false);
     }
@@ -210,46 +203,33 @@ export default function CombinedCoachProposalScreen() {
 
   const requestEffectiveStrengthConfirmation = () => {
     if (!canConfirmEffectiveStrength) return;
-    Alert.alert(
-      'Create workout template?',
-      'This creates a new revisioned template from the effective Strength loads. Completed workout history and Nutrition will not be changed.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Create template',
-          onPress: () => void confirmEffectiveStrength(),
-        },
-      ],
-    );
+    Alert.alert(copy.createTemplateTitle, copy.createTemplateBody, [
+      { text: copy.cancel, style: 'cancel' },
+      { text: copy.createTemplate, onPress: () => void confirmEffectiveStrength() },
+    ]);
   };
 
   const requestNutritionConfirmation = () => {
     if (!canConfirmNutrition) return;
-    Alert.alert(
-      'Apply Nutrition target?',
-      'This applies only the proposed Nutrition target through the revisioned sync path. Strength templates and completed workout history will not be changed.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Apply target',
-          onPress: () => void confirmNutrition(),
-        },
-      ],
-    );
+    Alert.alert(copy.applyNutritionTitle, copy.applyNutritionBody, [
+      { text: copy.cancel, style: 'cancel' },
+      { text: copy.applyTarget, onPress: () => void confirmNutrition() },
+    ]);
   };
 
   return (
     <View style={themed.screen}>
       <View style={[themed.header, { paddingTop: insets.top + Spacing.two }]}> 
         <Pressable
+          accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
           style={themed.backButton}> 
           <Text style={themed.backLabel}>‹</Text>
         </Pressable>
         <View style={themed.flexCopy}>
-          <Text style={themed.title}>Combined proposal</Text>
-          <Text style={themed.subtitle}>Strength · Nutrition · Safety</Text>
+          <Text style={themed.title}>{copy.title}</Text>
+          <Text style={themed.subtitle}>{copy.subtitle}</Text>
         </View>
       </View>
 
@@ -258,34 +238,31 @@ export default function CombinedCoachProposalScreen() {
         showsVerticalScrollIndicator={false}> 
         <View style={themed.container}>
           <AppCard>
-            <Text style={themed.cardTitle}>Explicit proposal and application</Text>
-            <Text style={themed.body}> 
-              Builds Strength and Nutrition proposals, derives effective Strength loads under the
-              Safety ceiling, and keeps every mutation as a separate explicit action.
-            </Text>
+            <Text style={themed.cardTitle}>{copy.explicitProposal}</Text>
+            <Text style={themed.body}>{copy.explanation}</Text>
             <Text style={themed.meta}> 
-              Capability: {capabilities ? `v${capabilities.schemaVersion}` : 'not enabled'} · Sync:{' '}
-              {syncStatus}
+              {copy.capability}: {capabilities ? `v${capabilities.schemaVersion}` : copy.notEnabled} ·{' '}
+              {copy.sync}: {copy.syncLabels[syncStatus] ?? syncStatus}
             </Text>
             {!ready ? null : !isAuthenticated ? (
-              <PrimaryButton label="Sign in" onPress={() => router.push('/auth/sign-in')} />
+              <PrimaryButton label={copy.signIn} onPress={() => router.push('/auth/sign-in')} />
             ) : (
               <PrimaryButton
                 disabled={!proposalAvailable || busy}
-                label="Build Combined proposal"
+                label={copy.buildProposal}
                 loading={busy}
                 onPress={() => void runProposal()}
               />
             )}
             <SecondaryButton
-              label="Open regular Combined review"
+              label={copy.openReview}
               onPress={() => router.push('/profile/combined-review')}
             />
           </AppCard>
 
           {error ? (
             <AppCard style={themed.errorCard}>
-              <Text style={themed.errorTitle}>Combined proposal notice</Text>
+              <Text style={themed.errorTitle}>{copy.notice}</Text>
               <Text style={themed.body}>{error}</Text>
             </AppCard>
           ) : null}
