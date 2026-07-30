@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useLocalization } from '@/localization';
 import type { NutritionDeterministicSummary } from '../nutritionDeterministicSummary';
 
 const FIELD_LABELS: Record<string, string> = {
@@ -15,17 +16,17 @@ const FIELD_LABELS: Record<string, string> = {
   'nutritionHistory.minimumTrackedDays': 'At least three tracked nutrition days',
 };
 
-const formatNumber = (value: number, maximumFractionDigits = 0): string =>
-  new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value);
-
-const formatSigned = (value: number): string =>
-  `${value > 0 ? '+' : ''}${formatNumber(value)}`;
-
 export function NutritionDeterministicSummaryView({
   summary,
 }: {
   summary: NutritionDeterministicSummary;
 }) {
+  const { formatNumber } = useLocalization();
+  const formatMetric = (value: number, maximumFractionDigits = 0): string =>
+    formatNumber(value, { maximumFractionDigits });
+  const formatSigned = (value: number): string =>
+    `${value > 0 ? '+' : ''}${formatMetric(value)}`;
+
   if (summary.readiness.status === 'needs_input') {
     return (
       <View style={styles.warningBox}>
@@ -72,15 +73,15 @@ export function NutritionDeterministicSummaryView({
 
       <View style={styles.metricGrid}>
         <View style={styles.metricCell}>
-          <Text style={styles.metricValue}>{formatNumber(energy.bmrCalories)}</Text>
+          <Text style={styles.metricValue}>{formatMetric(energy.bmrCalories)}</Text>
           <Text style={styles.metaText}>BMR kcal</Text>
         </View>
         <View style={styles.metricCell}>
-          <Text style={styles.metricValue}>{formatNumber(energy.tdeeCalories)}</Text>
+          <Text style={styles.metricValue}>{formatMetric(energy.tdeeCalories)}</Text>
           <Text style={styles.metaText}>TDEE kcal</Text>
         </View>
         <View style={styles.metricCell}>
-          <Text style={styles.metricValue}>{formatNumber(energy.goalAdjustedCalories)}</Text>
+          <Text style={styles.metricValue}>{formatMetric(energy.goalAdjustedCalories)}</Text>
           <Text style={styles.metaText}>Goal target</Text>
         </View>
       </View>
@@ -89,7 +90,8 @@ export function NutritionDeterministicSummaryView({
         <View style={styles.infoRow}>
           <Text style={styles.metaText}>Permissible calorie range</Text>
           <Text style={styles.infoValue}>
-            {formatNumber(energy.permissibleCalories.min)}–{formatNumber(energy.permissibleCalories.max)}
+            {formatMetric(energy.permissibleCalories.min)}–
+            {formatMetric(energy.permissibleCalories.max)}
           </Text>
         </View>
         <View style={styles.infoRow}>
@@ -101,13 +103,13 @@ export function NutritionDeterministicSummaryView({
         <View style={styles.infoRow}>
           <Text style={styles.metaText}>Protein policy range</Text>
           <Text style={styles.infoValue}>
-            {formatNumber(energy.proteinGrams.min)}–{formatNumber(energy.proteinGrams.max)} g
+            {formatMetric(energy.proteinGrams.min)}–{formatMetric(energy.proteinGrams.max)} g
           </Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.metaText}>Fat policy range</Text>
           <Text style={styles.infoValue}>
-            {formatNumber(energy.fatGrams.min)}–{formatNumber(energy.fatGrams.max)} g
+            {formatMetric(energy.fatGrams.min)}–{formatMetric(energy.fatGrams.max)} g
           </Text>
         </View>
       </View>
