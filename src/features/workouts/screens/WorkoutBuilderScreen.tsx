@@ -36,6 +36,8 @@ import { getWorkoutBuilderCopy } from '@/localization/workoutBuilderCopy';
 import type { Workout } from '@/types';
 import type { TrainingProgram } from '@/types/programs';
 
+import { WorkoutBuilderProgramWorkouts } from './WorkoutBuilderProgramWorkouts';
+
 const createDefaultProgramDraft = () => createBlankProgramDraft();
 
 export function WorkoutBuilderScreen() {
@@ -105,18 +107,20 @@ export function WorkoutBuilderScreen() {
         .filter((day) => !day.restDay && day.workoutTemplateId)
         .map((day, index) => {
           const workout = workoutById.get(day.workoutTemplateId!);
+          const exerciseCount = workout?.exercises.length ?? 0;
           return {
             dayId: day.id ?? `${day.weekday}-${index}`,
             workout,
-            workoutId: day.workoutTemplateId!,
             title: workout
               ? getWorkoutsHubWorkoutTitle(t, workout)
               : day.workoutTemplateName ?? copy.workoutUnavailable,
-            exerciseCount: workout?.exercises.length ?? 0,
-            isMissing: !workout,
+            exerciseCountLabel: copy.exerciseCount(
+              exerciseCount,
+              formatNumber(exerciseCount, { maximumFractionDigits: 0 }),
+            ),
           };
         }),
-    [copy.workoutUnavailable, program.days, t, workoutById],
+    [copy, formatNumber, program.days, t, workoutById],
   );
   const availableWorkouts = useMemo(
     () =>
@@ -130,6 +134,9 @@ export function WorkoutBuilderScreen() {
     () => getWorkoutProgramSchedule(program),
     [program],
   );
+  const nextWorkout = programSchedule?.nextWorkout
+    ? workoutById.get(programSchedule.nextWorkout.workoutTemplateId ?? '')
+    : undefined;
 
   const handleDiscardAndLeave = () => {
     if (!isDirty) {
@@ -313,128 +320,19 @@ export function WorkoutBuilderScreen() {
               />
             </View>
 
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>{copy.workouts}</Text>
-              {programSchedule?.nextWorkout &&
-              workoutById.get(programSchedule.nextWorkout.workoutTemplateId ?? '') ? (
-                <Pressable
-                  accessibilityLabel={copy.startNextWorkout}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    const nextWorkout = workoutById.get(
-                      programSchedule.nextWorkout?.workoutTemplateId ?? '',
-                    );
-                    if (!nextWorkout) return;
-                    router.push({
-                      pathname: '/workouts/template/[workoutId]',
-                      params: { workoutId: nextWorkout.id },
-                    });
-                  }}
-                  style={({ pressed }) => [
-                    styles.startNextButton,
-                    pressed && styles.pressed,
-                  ]}>
-                  <Text style={styles.startNextLabel}>{copy.startNextWorkout}</Text>
-                </Pressable>
-              ) : null}
-            </View>
-
-            {attachedWorkoutRows.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateTitle}>{copy.noWorkoutsAdded}</Text>
-                <Text style={styles.emptyStateSubtitle}>{copy.noWorkoutsAddedBody}</Text>
-              </View>
-            ) : (
-              <View style={styles.workoutList}>
-                {attachedWorkoutRows.map((row) => (
-                  <View key={row.dayId} style={styles.workoutRow}>
-                    <Pressable
-                      accessibilityLabel={copy.openWorkout(row.title)}
-                      accessibilityRole="button"
-                      onPress={() => {
-                        if (!row.workout) {
-                          Alert.alert(copy.workoutUnavailable, copy.workoutUnavailableBody);
-                          return;
-                        }
-                        router.push({
-                          pathname: '/workouts/template/[workoutId]',
-                          params: { workoutId: row.workout.id },
-                        });
-                      }}
-                      style={({ pressed }) => [
-                        styles.workoutRowBody,
-                        pressed && styles.pressed,
-                      ]}>
-                      <View style={styles.workoutRowCopy}>
-                        <Text style={styles.workoutRowTitle}>{row.title}</Text>
-                        <Text style={styles.workoutRowMeta}>
-                          {copy.exerciseCount(
-                            row.exerciseCount,
-                            formatNumber(row.exerciseCount, {
-                              maximumFractionDigits: 0,
-                            }),
-                          )}
-                        </Text>
-                      </View>
-                      <Text accessibilityElementsHidden style={styles.workoutRowChevron}>
-                        ›
-                      </Text>
-                    </Pressable>
-
-                    <Pressable
-                      accessibilityLabel={copy.workoutActions(row.title)}
-                      accessibilityRole="button"
-                      onPress={() => {
-                        const workout = row.workout;
-                        if (!workout) {
-                          Alert.alert(copy.workoutUnavailable, copy.workoutMissingBody);
-                          return;
-                        }
-
-                        Alert.alert(row.title, undefined, [
-                          ...(workout.isCustom
-                            ? [
-                                {
-                                  text: copy.editWorkout,
-                                  onPress: () => setWorkoutEditorTarget(workout),
-                                },
-                              ]
-                            : []),
-                          {
-                            text: copy.removeFromProgram,
-                            style: 'destructive' as const,
-                            onPress: () => {
-                              setProgramDraft((current) =>
-                                current
-                                  ? removeWorkoutFromProgramDraft(current, row.dayId)
-                                  : current,
-                              );
-                            },
-                          },
-                          { text: copy.cancel, style: 'cancel' as const },
-                        ]);
-                      }}
-                      style={({ pressed }) => [
-                        styles.overflowButton,
-                        pressed && styles.pressed,
-                      ]}>
-                      <Text style={styles.overflowLabel}>⋯</Text>
-                    </Pressable>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            <Pressable
-              accessibilityLabel={copy.addWorkout}
-              accessibilityRole="button"
-              onPress={() => setPickerOpen(true)}
-              style={({ pressed }) => [
-                styles.addWorkoutButton,
-                pressed && styles.pressed,
-              ]}>
-              <Text style={styles.addWorkoutLabel}>+ {copy.addWorkout}</Text>
-            </Pressable>
+            <WorkoutBuilderProgramWorkouts
+              copy={copy}
+              nextWorkout={nextWorkout}
+              onAddWorkout={() => setPickerOpen(true)}
+              onEditWorkout={setWorkoutEditorTarget}
+              onRemoveWorkout={(dayId) =>
+                setProgramDraft((current) =>
+                  current ? removeWorkoutFromProgramDraft(current, dayId) : current,
+                )
+              }
+              rows={attachedWorkoutRows}
+              styles={styles}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
