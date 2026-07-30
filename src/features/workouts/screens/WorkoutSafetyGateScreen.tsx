@@ -245,8 +245,8 @@ export default function WorkoutSafetyGateScreen({
               disabled={loading || (decision.requiresAcknowledgement && !acknowledged)}
               label={
                 decision.reviewStatus === 'blocked'
-                  ? 'Continue despite hard block'
-                  : 'Enter workout'
+                  ? copy.continueDespiteHardBlock
+                  : copy.enterWorkout
               }
               loading={continuing}
               onPress={() => void continueToWorkout()}
@@ -260,7 +260,7 @@ export default function WorkoutSafetyGateScreen({
               review again before continuing.
             </Text>
             <SecondaryButton
-              label="Open Safety & Recovery"
+              label={copy.openSafetyRecovery}
               onPress={() => router.push('/profile/safety-recovery')}
             />
             <View style={styles.actionRow}>
