@@ -5,6 +5,8 @@ import { AppCard } from '@/components/ui/AppCard';
 import { ListRow } from '@/components/ui/ListRow';
 import type { NutritionLibraryFood } from '@/features/nutrition/nutritionFoodLibrary';
 import { formatFoodMacros, formatFoodServing, formatNumber } from '@/lib/nutrition';
+import { useLocalization } from '@/localization';
+import { getNutritionAddFoodCopy } from '@/localization/nutritionAddFoodCopy';
 import type { FoodCatalogItem } from '@/types';
 import { formatEnergyValue, useUnitPreferences } from '@/units';
 
@@ -36,34 +38,36 @@ export function FavoriteFoodsModeSection({
   styles,
 }: FavoriteFoodsModeSectionProps) {
   const { energy } = useUnitPreferences();
+  const { locale } = useLocalization();
+  const copy = getNutritionAddFoodCopy(locale);
   const hasFoods = foods.length > 0 || libraryFoods.length > 0;
 
   return (
     <AppCard>
       <View style={styles.sectionHeader}>
-        <Text selectable style={styles.sectionTitle}>Favorites &amp; my foods</Text>
+        <Text selectable style={styles.sectionTitle}>{copy.favoritesTitle}</Text>
       </View>
       {hasFoods ? (
         <View style={styles.listGap}>
           {libraryFoods.map((food) => (
             <ListRow
               key={food.libraryId}
-              accessibilityHint="Tap to set a portion before adding"
-              badge={food.kind === 'custom' ? 'My food' : 'Favorite'}
+              accessibilityHint={copy.tapToSetPortion}
+              badge={food.kind === 'custom' ? copy.myFood : copy.favorite}
               detail={`${formatNumber(food.servingSize)} ${food.servingUnit} · ${formatNumber(food.protein)}P · ${formatNumber(food.carbs)}C · ${formatNumber(food.fats)}F`}
               onPress={() => onOpenLibraryFood(food)}
               title={food.name}
               trailing={
                 <View style={styles.rowActions}>
                   <Pressable
-                    accessibilityLabel={`Remove ${food.name} from food library`}
+                    accessibilityLabel={copy.removeFromLibrary(food.name)}
                     hitSlop={10}
                     onPress={() => onRemoveLibraryFood(food.libraryId)}
                     style={styles.iconButton}>
                     <Text style={styles.iconButtonText}>★</Text>
                   </Pressable>
                   <Pressable
-                    accessibilityLabel={`Quick add ${food.name} to ${selectedMealLabel}`}
+                    accessibilityLabel={copy.quickAdd(food.name, selectedMealLabel)}
                     hitSlop={10}
                     onPress={() => onQuickAddLibraryFood(food)}
                     style={styles.iconButton}>
@@ -78,21 +82,21 @@ export function FavoriteFoodsModeSection({
           {foods.map((food) => (
             <ListRow
               key={food.id}
-              accessibilityHint="Tap to set a portion before adding"
+              accessibilityHint={copy.tapToSetPortion}
               detail={`${formatFoodServing(food)} · ${formatFoodMacros(food)}`}
               onPress={() => onOpenFood(food)}
               title={food.name}
               trailing={
                 <View style={styles.rowActions}>
                   <Pressable
-                    accessibilityLabel={`Remove ${food.name} from favorites`}
+                    accessibilityLabel={copy.removeFavorite(food.name)}
                     hitSlop={10}
                     onPress={() => onToggleFavorite(food.id)}
                     style={styles.iconButton}>
                     <Text style={styles.iconButtonText}>★</Text>
                   </Pressable>
                   <Pressable
-                    accessibilityLabel={`Quick add ${food.name} to ${selectedMealLabel}`}
+                    accessibilityLabel={copy.quickAdd(food.name, selectedMealLabel)}
                     hitSlop={10}
                     onPress={() => onQuickAdd(food)}
                     style={styles.iconButton}>
@@ -107,9 +111,9 @@ export function FavoriteFoodsModeSection({
       ) : (
         <View style={styles.emptyBlock}>
           <Text selectable style={styles.emptyStateText}>
-            No favorites or custom foods yet. Add foods with the star button or create your own food.
+            {copy.noFavorites}
           </Text>
-          <AppButton label="Search food" onPress={onSearchFood} variant="secondary" />
+          <AppButton label={copy.searchFood} onPress={onSearchFood} variant="secondary" />
         </View>
       )}
     </AppCard>
