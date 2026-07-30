@@ -2,11 +2,15 @@ import { Pressable, Text, View } from 'react-native';
 
 import { getServingInfo } from '@/lib';
 import { formatNumber } from '@/lib/nutrition';
+import type { getNutritionDiaryCopy } from '@/localization/nutritionDiaryCopy';
 import type { FoodEntry } from '@/types';
+import { formatEnergyValue, type EnergyUnit } from '@/units';
 
 import { NutritionSummaryGrid } from './NutritionSummaryGrid';
 
 type FoodEntryRowProps = {
+  copy: ReturnType<typeof getNutritionDiaryCopy>;
+  energyUnit: EnergyUnit;
   entry: FoodEntry;
   index: number;
   nutritionTargetCalories: number;
@@ -14,15 +18,35 @@ type FoodEntryRowProps = {
   styles: Record<string, any>;
 };
 
-export function FoodEntryRow({ entry, index, nutritionTargetCalories, onEdit, styles }: FoodEntryRowProps) {
-  const foodTargetPercent = nutritionTargetCalories > 0 ? Math.round((entry.calories / nutritionTargetCalories) * 100) : 0;
+export function FoodEntryRow({
+  copy,
+  energyUnit,
+  entry,
+  index,
+  nutritionTargetCalories,
+  onEdit,
+  styles,
+}: FoodEntryRowProps) {
+  const foodTargetPercent =
+    nutritionTargetCalories > 0
+      ? Math.round((entry.calories / nutritionTargetCalories) * 100)
+      : 0;
   const foodTargetPercentLabel = nutritionTargetCalories > 0 ? `${foodTargetPercent}%` : '--';
   const foodMetadata = [entry.brandName, getServingInfo(entry)].filter(Boolean).join(' · ');
-  const foodAccessibilityLabel = `Edit ${entry.name}, ${foodMetadata || 'no metadata'}, ${formatNumber(entry.fats)} fat, ${formatNumber(entry.carbs)} carbs, ${formatNumber(entry.protein)} protein, ${foodTargetPercentLabel} of target, ${formatNumber(entry.calories)} calories`;
+  const foodAccessibilityLabel = copy.editFoodLabel(
+    entry.name,
+    foodMetadata || copy.noMetadata,
+    formatNumber(entry.fats),
+    formatNumber(entry.carbs),
+    formatNumber(entry.protein),
+    foodTargetPercentLabel,
+    formatEnergyValue(entry.calories, energyUnit),
+    energyUnit,
+  );
 
   return (
     <Pressable
-      accessibilityHint="Tap to edit this food entry"
+      accessibilityHint={copy.editFoodHint}
       accessibilityLabel={foodAccessibilityLabel}
       hitSlop={10}
       onPress={() => onEdit(entry)}
@@ -46,7 +70,7 @@ export function FoodEntryRow({ entry, index, nutritionTargetCalories, onEdit, st
           carbs: formatNumber(entry.carbs),
           protein: formatNumber(entry.protein),
           target: foodTargetPercentLabel,
-          calories: formatNumber(entry.calories),
+          calories: formatEnergyValue(entry.calories, energyUnit),
         }}
       />
     </Pressable>
