@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
+import { getWorkoutsHubWorkoutTitle } from '@/features/workouts/workoutsHubLocalization';
+import { useLocalization } from '@/localization';
+import { getWorkoutBuilderCopy } from '@/localization/workoutBuilderCopy';
 import type { Workout } from '@/types';
 
 type ProgramWorkoutPickerModalProps = {
@@ -12,78 +15,125 @@ type ProgramWorkoutPickerModalProps = {
   onAddWorkouts: (workoutIds: string[]) => void;
 };
 
-export function ProgramWorkoutPickerModal({ visible, availableWorkouts, onAddWorkouts, onClose, onCreateNew }: ProgramWorkoutPickerModalProps) {
+export function ProgramWorkoutPickerModal({
+  visible,
+  availableWorkouts,
+  onAddWorkouts,
+  onClose,
+  onCreateNew,
+}: ProgramWorkoutPickerModalProps) {
+  const { formatNumber, locale, t } = useLocalization();
+  const copy = getWorkoutBuilderCopy(locale);
   const [mode, setMode] = useState<'choice' | 'existing'>('choice');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
   const selectedCount = useMemo(() => selectedIds.length, [selectedIds]);
 
   useEffect(() => {
-    if (!visible) {
-      return;
-    }
-
+    if (!visible) return;
     setMode('choice');
     setSelectedIds([]);
   }, [visible]);
 
-  if (!visible) {
-    return null;
-  }
+  if (!visible) return null;
 
   const toggleWorkout = (workoutId: string) => {
-    setSelectedIds((current) => (current.includes(workoutId) ? current.filter((id) => id !== workoutId) : [...current, workoutId]));
+    setSelectedIds((current) =>
+      current.includes(workoutId)
+        ? current.filter((id) => id !== workoutId)
+        : [...current, workoutId],
+    );
   };
+
+  const addLabel =
+    selectedCount > 0
+      ? copy.addWorkoutCount(
+          selectedCount,
+          formatNumber(selectedCount, { maximumFractionDigits: 0 }),
+        )
+      : copy.addSelected;
 
   return (
     <View style={styles.overlay}>
       <View style={styles.panel}>
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <Text style={styles.title}>Add workout</Text>
-            <Text style={styles.subtitle}>Choose an existing template or create a new one.</Text>
+            <Text style={styles.title}>{copy.addWorkout}</Text>
+            <Text style={styles.subtitle}>{copy.addWorkoutSubtitle}</Text>
           </View>
-          <Pressable onPress={onClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
-            <Text style={styles.closeLabel}>Cancel</Text>
+          <Pressable
+            accessibilityLabel={copy.cancel}
+            accessibilityRole="button"
+            onPress={onClose}
+            style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
+            <Text style={styles.closeLabel}>{copy.cancel}</Text>
           </Pressable>
         </View>
 
         {mode === 'choice' ? (
           <View style={styles.choiceGroup}>
-            <Pressable onPress={() => setMode('existing')} style={({ pressed }) => [styles.choiceButton, pressed && styles.pressed]}>
-              <Text style={styles.choiceTitle}>Choose existing workout</Text>
-              <Text style={styles.choiceSubtitle}>Attach one or more saved templates.</Text>
+            <Pressable
+              accessibilityLabel={copy.chooseExistingWorkout}
+              accessibilityRole="button"
+              onPress={() => setMode('existing')}
+              style={({ pressed }) => [styles.choiceButton, pressed && styles.pressed]}>
+              <Text style={styles.choiceTitle}>{copy.chooseExistingWorkout}</Text>
+              <Text style={styles.choiceSubtitle}>{copy.chooseExistingWorkoutBody}</Text>
             </Pressable>
-            <Pressable onPress={onCreateNew} style={({ pressed }) => [styles.choiceButton, pressed && styles.pressed]}>
-              <Text style={styles.choiceTitle}>Create new workout</Text>
-              <Text style={styles.choiceSubtitle}>Build a new template from inside this flow.</Text>
+            <Pressable
+              accessibilityLabel={copy.createNewWorkout}
+              accessibilityRole="button"
+              onPress={onCreateNew}
+              style={({ pressed }) => [styles.choiceButton, pressed && styles.pressed]}>
+              <Text style={styles.choiceTitle}>{copy.createNewWorkout}</Text>
+              <Text style={styles.choiceSubtitle}>{copy.createNewWorkoutBody}</Text>
             </Pressable>
           </View>
         ) : (
           <View style={styles.existingGroup}>
-            <Pressable onPress={() => setMode('choice')} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-              <Text style={styles.backLabel}>Back</Text>
+            <Pressable
+              accessibilityLabel={copy.back}
+              accessibilityRole="button"
+              onPress={() => setMode('choice')}
+              style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+              <Text style={styles.backLabel}>{copy.back}</Text>
             </Pressable>
 
             {availableWorkouts.length === 0 ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>No reusable workouts yet</Text>
-                <Text style={styles.emptySubtitle}>Create a workout template first, then come back to attach it.</Text>
+                <Text style={styles.emptyTitle}>{copy.noReusableWorkouts}</Text>
+                <Text style={styles.emptySubtitle}>{copy.noReusableWorkoutsBody}</Text>
               </View>
             ) : (
               <View style={styles.list}>
                 {availableWorkouts.map((workout) => {
                   const selected = selectedIds.includes(workout.id);
+                  const displayTitle = getWorkoutsHubWorkoutTitle(t, workout);
                   return (
                     <Pressable
+                      accessibilityLabel={displayTitle}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
                       key={workout.id}
                       onPress={() => toggleWorkout(workout.id)}
-                      style={({ pressed }) => [styles.row, selected && styles.rowSelected, pressed && styles.pressed]}>
+                      style={({ pressed }) => [
+                        styles.row,
+                        selected && styles.rowSelected,
+                        pressed && styles.pressed,
+                      ]}>
                       <View style={styles.rowCopy}>
-                        <Text style={styles.rowTitle}>{workout.title}</Text>
-                        <Text style={styles.rowMeta}>{workout.exercises.length} exercises</Text>
+                        <Text style={styles.rowTitle}>{displayTitle}</Text>
+                        <Text style={styles.rowMeta}>
+                          {copy.exerciseCount(
+                            workout.exercises.length,
+                            formatNumber(workout.exercises.length, {
+                              maximumFractionDigits: 0,
+                            }),
+                          )}
+                        </Text>
                       </View>
-                      <Text style={styles.checkmark}>{selected ? '✓' : ''}</Text>
+                      <Text accessibilityElementsHidden style={styles.checkmark}>
+                        {selected ? '✓' : ''}
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -92,13 +142,20 @@ export function ProgramWorkoutPickerModal({ visible, availableWorkouts, onAddWor
 
             <View style={styles.footer}>
               <Pressable
+                accessibilityLabel={addLabel}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: selectedCount === 0 }}
                 disabled={selectedCount === 0}
                 onPress={() => {
                   onAddWorkouts(selectedIds);
                   onClose();
                 }}
-                style={({ pressed }) => [styles.primaryButton, selectedCount === 0 && styles.disabledButton, pressed && selectedCount > 0 && styles.pressed]}>
-                <Text style={styles.primaryLabel}>{selectedCount > 0 ? `Add ${selectedCount} workout${selectedCount === 1 ? '' : 's'}` : 'Add selected'}</Text>
+                style={({ pressed }) => [
+                  styles.primaryButton,
+                  selectedCount === 0 && styles.disabledButton,
+                  pressed && selectedCount > 0 && styles.pressed,
+                ]}>
+                <Text style={styles.primaryLabel}>{addLabel}</Text>
               </Pressable>
             </View>
           </View>
