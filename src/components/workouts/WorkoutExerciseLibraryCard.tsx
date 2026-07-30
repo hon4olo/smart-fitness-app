@@ -4,15 +4,24 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors } from '@/constants/theme';
-import type { Exercise, WorkoutSession } from '@/types';
-import { getRecentExercisesFromWorkoutSessions, getSimilarExercises, searchExercises } from '@/lib/workouts';
 import { loadWorkoutExerciseFavoriteIds, saveWorkoutExerciseFavoriteIds } from '@/features/workouts/exerciseFavoritesStorage';
+import { getRecentExercisesFromWorkoutSessions, getSimilarExercises, searchExercises } from '@/lib/workouts';
+import { getExerciseLibraryCopy } from '@/localization/exerciseLibraryCopy';
+import { useLocalization } from '@/localization';
+import type { Exercise, WorkoutSession } from '@/types';
 
 import { EmptyWorkoutState } from './EmptyWorkoutState';
 import { ExerciseDetailSheet } from './exercise-library/ExerciseDetailSheet';
 import { ExerciseFilterBar } from './exercise-library/ExerciseFilterBar';
 import { ExerciseSection } from './exercise-library/ExerciseSection';
-import { DIFFICULTY_FILTERS, EXERCISE_TYPE_FILTERS, FILTER_ALL, formatFilterLabel, getFacetOptions, matchesFacet, type FilterValue } from './exercise-library/exerciseLibraryUtils';
+import {
+  DIFFICULTY_FILTERS,
+  EXERCISE_TYPE_FILTERS,
+  FILTER_ALL,
+  getFacetOptions,
+  matchesFacet,
+  type FilterValue,
+} from './exercise-library/exerciseLibraryUtils';
 import { styles } from './exercise-library/workoutExerciseLibraryCardStyles';
 
 type WorkoutExerciseLibraryCardProps = {
@@ -50,6 +59,8 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
   searchValue,
   workoutSessions,
 }: WorkoutExerciseLibraryCardProps) {
+  const { locale } = useLocalization();
+  const copy = getExerciseLibraryCopy(locale);
   const [favoriteExerciseIds, setFavoriteExerciseIds] = useState<string[]>([]);
   const [isFavoritesReady, setIsFavoritesReady] = useState(false);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
@@ -58,71 +69,65 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
   const [selectedDifficulty, setSelectedDifficulty] = useState<FilterValue>(FILTER_ALL);
   const [selectedExerciseType, setSelectedExerciseType] = useState<FilterValue>(FILTER_ALL);
   const searchQuery = searchValue.trim();
-  const exerciseIdSet = useMemo(() => new Set(exercises.map((exercise) => exercise.id)), [exercises]);
-  const favoriteIdSet = useMemo(() => new Set(favoriteExerciseIds), [favoriteExerciseIds]);
-
-  const { muscles, equipment } = useMemo(() => getFacetOptions(exercises), [exercises]);
-  const recentExercises = useMemo(() => getRecentExercisesFromWorkoutSessions(workoutSessions, exercises, 10), [exercises, workoutSessions]);
-  const recentIds = useMemo(() => new Set(recentExercises.map((exercise) => exercise.id)), [recentExercises]);
+  const exerciseIdSet = useMemo(
+    () => new Set(exercises.map((exercise) => exercise.id)),
+    [exercises],
+  );
+  const favoriteIdSet = useMemo(
+    () => new Set(favoriteExerciseIds),
+    [favoriteExerciseIds],
+  );
+  const { muscles, equipment } = useMemo(
+    () => getFacetOptions(exercises),
+    [exercises],
+  );
+  const recentExercises = useMemo(
+    () => getRecentExercisesFromWorkoutSessions(workoutSessions, exercises, 10),
+    [exercises, workoutSessions],
+  );
 
   useEffect(() => {
     let active = true;
-
     loadWorkoutExerciseFavoriteIds()
       .then((value) => {
-        if (!active) {
-          return;
-        }
-
-        setFavoriteExerciseIds(Array.from(value).filter((entry) => exerciseIdSet.has(entry)));
+        if (!active) return;
+        setFavoriteExerciseIds(
+          Array.from(value).filter((entry) => exerciseIdSet.has(entry)),
+        );
         setIsFavoritesReady(true);
       })
       .catch(() => {
-        if (!active) {
-          return;
-        }
-
-        setIsFavoritesReady(true);
+        if (active) setIsFavoritesReady(true);
       });
-
     return () => {
       active = false;
     };
   }, [exerciseIdSet]);
 
   useEffect(() => {
-    if (!isFavoritesReady) {
-      return;
-    }
-
-    const filteredFavoriteIds = favoriteExerciseIds.filter((id) => exerciseIdSet.has(id));
-
+    if (!isFavoritesReady) return;
+    const filteredFavoriteIds = favoriteExerciseIds.filter((id) =>
+      exerciseIdSet.has(id),
+    );
     if (filteredFavoriteIds.length !== favoriteExerciseIds.length) {
       setFavoriteExerciseIds(filteredFavoriteIds);
       return;
     }
-
     void saveWorkoutExerciseFavoriteIds(filteredFavoriteIds).catch(() => undefined);
   }, [exerciseIdSet, favoriteExerciseIds, isFavoritesReady]);
 
   useEffect(() => {
-    if (!selectedExerciseId) {
-      return;
-    }
-
-    if (!exerciseIdSet.has(selectedExerciseId)) {
+    if (selectedExerciseId && !exerciseIdSet.has(selectedExerciseId)) {
       setSelectedExerciseId(null);
     }
   }, [exerciseIdSet, selectedExerciseId]);
 
   const toggleFavorite = useCallback((exerciseId: string) => {
-    setFavoriteExerciseIds((currentFavorites) => {
-      if (currentFavorites.includes(exerciseId)) {
-        return currentFavorites.filter((id) => id !== exerciseId);
-      }
-
-      return [exerciseId, ...currentFavorites].slice(0, 50);
-    });
+    setFavoriteExerciseIds((currentFavorites) =>
+      currentFavorites.includes(exerciseId)
+        ? currentFavorites.filter((id) => id !== exerciseId)
+        : [exerciseId, ...currentFavorites].slice(0, 50),
+    );
   }, []);
 
   const filteredExercises = useMemo(() => {
@@ -134,41 +139,59 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
         matchesFacet(exercise, selectedDifficulty, 'difficulty') &&
         matchesFacet(exercise, selectedExerciseType, 'exerciseType'),
     );
-
-    if (!searchQuery) {
-      return [...filtered].sort((left, right) => left.name.localeCompare(right.name));
-    }
-
-    return filtered;
-  }, [exercises, searchQuery, selectedDifficulty, selectedEquipment, selectedExerciseType, selectedMuscle]);
+    return searchQuery
+      ? filtered
+      : [...filtered].sort((left, right) => left.name.localeCompare(right.name));
+  }, [
+    exercises,
+    searchQuery,
+    selectedDifficulty,
+    selectedEquipment,
+    selectedExerciseType,
+    selectedMuscle,
+  ]);
 
   const favoriteExercises = useMemo(
-    () => favoriteExerciseIds.map((id) => filteredExercises.find((exercise) => exercise.id === id)).filter((exercise): exercise is Exercise => Boolean(exercise)),
+    () =>
+      favoriteExerciseIds
+        .map((id) => filteredExercises.find((exercise) => exercise.id === id))
+        .filter((exercise): exercise is Exercise => Boolean(exercise)),
     [favoriteExerciseIds, filteredExercises],
   );
   const recentFilteredExercises = useMemo(
-    () => recentExercises.filter((exercise) => filteredExercises.some((filteredExercise) => filteredExercise.id === exercise.id)),
+    () =>
+      recentExercises.filter((exercise) =>
+        filteredExercises.some((filteredExercise) => filteredExercise.id === exercise.id),
+      ),
     [filteredExercises, recentExercises],
   );
   const sectionedExerciseIds = useMemo(
-    () => new Set([...favoriteExercises.map((exercise) => exercise.id), ...recentFilteredExercises.map((exercise) => exercise.id)]),
+    () =>
+      new Set([
+        ...favoriteExercises.map((exercise) => exercise.id),
+        ...recentFilteredExercises.map((exercise) => exercise.id),
+      ]),
     [favoriteExercises, recentFilteredExercises],
   );
   const mainExercises = useMemo(
-    () => filteredExercises.filter((exercise) => !sectionedExerciseIds.has(exercise.id)),
+    () =>
+      filteredExercises.filter((exercise) => !sectionedExerciseIds.has(exercise.id)),
     [filteredExercises, sectionedExerciseIds],
   );
   const selectedExercise = useMemo(
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
-    [exerciseIdSet, exercises, selectedExerciseId],
+    [exercises, selectedExerciseId],
   );
   const selectedSimilarExercises = useMemo(
     () => (selectedExercise ? getSimilarExercises(selectedExercise, exercises, 5) : []),
     [exercises, selectedExercise],
   );
-  const isFiltersActive = selectedMuscle !== FILTER_ALL || selectedEquipment !== FILTER_ALL || selectedDifficulty !== FILTER_ALL || selectedExerciseType !== FILTER_ALL;
+  const isFiltersActive =
+    selectedMuscle !== FILTER_ALL ||
+    selectedEquipment !== FILTER_ALL ||
+    selectedDifficulty !== FILTER_ALL ||
+    selectedExerciseType !== FILTER_ALL;
   const hasActiveSearch = searchQuery.length > 0;
-  const hasAnyResults = filteredExercises.length > 0;
 
   const handleClearFilters = useCallback(() => {
     setSelectedMuscle(FILTER_ALL);
@@ -180,37 +203,26 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
 
   const handleDeleteExercise = useCallback(
     (exerciseId: string) => {
-      if (selectedExerciseId === exerciseId) {
-        setSelectedExerciseId(null);
-      }
-
-      setFavoriteExerciseIds((currentFavorites) => currentFavorites.filter((id) => id !== exerciseId));
+      if (selectedExerciseId === exerciseId) setSelectedExerciseId(null);
+      setFavoriteExerciseIds((currentFavorites) =>
+        currentFavorites.filter((id) => id !== exerciseId),
+      );
       onDeleteExercise(exerciseId);
     },
     [onDeleteExercise, selectedExerciseId],
   );
 
-  const handleCloseSelectedExercise = useCallback(() => {
-    setSelectedExerciseId(null);
-  }, []);
-
-  const handleAddExercise = useCallback(
-    (name: string) => {
-      onAddDatabaseExercise(name);
-    },
-    [onAddDatabaseExercise],
-  );
   return (
     <AppCard>
       <Pressable
-        accessibilityLabel="Toggle exercise browser"
+        accessibilityLabel={copy.toggleBrowser}
         accessibilityRole="button"
         onPress={onToggleExpanded}
         style={styles.collapsibleHeader}>
         <View style={styles.headerRow}>
           <View style={styles.headerContent}>
-            <Text style={styles.sectionTitle}>{`Exercise browser ${isExpanded ? '−' : '+'}`}</Text>
-            <Text style={styles.subtitle}>Search aliases, tags, equipment, muscles, and similar movements.</Text>
+            <Text style={styles.sectionTitle}>{`${copy.browserTitle} ${isExpanded ? '−' : '+'}`}</Text>
+            <Text style={styles.subtitle}>{copy.browserSubtitle}</Text>
           </View>
           <Text style={styles.toggle}>{isExpanded ? '−' : '+'}</Text>
         </View>
@@ -219,24 +231,22 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
       {isExpanded ? (
         <>
           <View style={styles.searchSection}>
-            <Text selectable style={styles.inputLabel}>
-              Search exercises
-            </Text>
+            <Text selectable style={styles.inputLabel}>{copy.searchLabel}</Text>
             <TextInput
               onChangeText={onSearchChange}
-              placeholder="Search aliases, tags, equipment, muscles..."
+              placeholder={copy.searchPlaceholder}
               placeholderTextColor={Colors.dark.textSecondary}
               style={styles.input}
               value={searchValue}
             />
-            <Text style={styles.searchHint}>Partial matches are supported across names, aliases, tags, equipment, and muscle names.</Text>
+            <Text style={styles.searchHint}>{copy.searchHint}</Text>
           </View>
 
           <ExerciseFilterBar
             difficultyFilters={DIFFICULTY_FILTERS}
             equipment={equipment}
             exerciseTypeFilters={EXERCISE_TYPE_FILTERS}
-            formatFilterLabel={formatFilterLabel}
+            formatFilterLabel={copy.facetLabel}
             muscles={muscles}
             onClearFilters={handleClearFilters}
             onSelectDifficulty={setSelectedDifficulty}
@@ -252,120 +262,118 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
 
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionHeading}>Favorites</Text>
+              <Text style={styles.sectionHeading}>{copy.favorites}</Text>
               <Text style={styles.sectionCount}>{favoriteExercises.length}</Text>
             </View>
             {isFavoritesReady && favoriteExercises.length === 0 ? (
-              <Text style={styles.sectionHint}>Tap the star on any exercise to pin it here.</Text>
+              <Text style={styles.sectionHint}>{copy.favoriteHint}</Text>
             ) : (
               <ExerciseSection
                 exercises={favoriteExercises}
                 favoriteIdSet={favoriteIdSet}
                 isExerciseAdded={isExerciseAdded}
-                onAdd={handleAddExercise}
+                onAdd={onAddDatabaseExercise}
                 onDelete={handleDeleteExercise}
                 onOpenDetail={setSelectedExerciseId}
                 onToggleFavorite={toggleFavorite}
                 query={searchQuery}
-                sectionLabel="Saved"
+                sectionLabel={copy.favoriteSection}
                 styles={styles}
-                title="Favorite exercises"
+                title={copy.favoriteExercises}
               />
             )}
           </View>
 
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionHeading}>Recently used</Text>
+              <Text style={styles.sectionHeading}>{copy.recentlyUsed}</Text>
               <Text style={styles.sectionCount}>{recentFilteredExercises.length}</Text>
             </View>
             {recentFilteredExercises.length === 0 ? (
-              <Text style={styles.sectionHint}>Your last 10 unique exercises from workout history will appear here.</Text>
+              <Text style={styles.sectionHint}>{copy.recentHint}</Text>
             ) : (
               <ExerciseSection
                 exercises={recentFilteredExercises}
                 favoriteIdSet={favoriteIdSet}
                 isExerciseAdded={isExerciseAdded}
-                onAdd={handleAddExercise}
+                onAdd={onAddDatabaseExercise}
                 onDelete={handleDeleteExercise}
                 onOpenDetail={setSelectedExerciseId}
                 onToggleFavorite={toggleFavorite}
                 query={searchQuery}
-                sectionLabel="Recent"
+                sectionLabel={copy.recentSection}
                 styles={styles}
-                title="Recently used exercises"
+                title={copy.recentlyUsedExercises}
               />
             )}
           </View>
 
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionHeading}>Browse results</Text>
+              <Text style={styles.sectionHeading}>{copy.browseResults}</Text>
               <Text style={styles.sectionCount}>{filteredExercises.length}</Text>
             </View>
-
-            {hasAnyResults ? (
+            {filteredExercises.length > 0 ? (
               mainExercises.length > 0 ? (
                 <ExerciseSection
                   exercises={mainExercises}
                   favoriteIdSet={favoriteIdSet}
                   isExerciseAdded={isExerciseAdded}
-                  onAdd={handleAddExercise}
+                  onAdd={onAddDatabaseExercise}
                   onDelete={handleDeleteExercise}
                   onOpenDetail={setSelectedExerciseId}
                   onToggleFavorite={toggleFavorite}
                   query={searchQuery}
-                  sectionLabel="Browse"
+                  sectionLabel={copy.browseSection}
                   styles={styles}
-                  title="All exercises"
+                  title={copy.allExercises}
                 />
               ) : (
-                <Text style={styles.sectionHint}>Everything matching the current search already appears in Favorites or Recently Used.</Text>
+                <Text style={styles.sectionHint}>{copy.alreadySectioned}</Text>
               )
             ) : (
               <EmptyWorkoutState
-                actionLabel={hasActiveSearch || isFiltersActive ? 'Clear Filters' : undefined}
-                description={hasActiveSearch || isFiltersActive ? 'Broaden the search or reset the filter bar to see more exercises.' : 'Add the first exercise to your library to make browsing faster.'}
-                message={hasActiveSearch || isFiltersActive ? 'No exercises match your current search and filters.' : 'No exercises found.'}
+                actionLabel={hasActiveSearch || isFiltersActive ? copy.clearFilters : undefined}
+                description={hasActiveSearch || isFiltersActive ? copy.broadenSearch : copy.addFirst}
+                message={hasActiveSearch || isFiltersActive ? copy.noFilteredMatches : copy.noExercises}
                 onActionPress={hasActiveSearch || isFiltersActive ? handleClearFilters : undefined}
-                title="Nothing matches"
+                title={copy.noMatchesTitle}
               />
             )}
           </View>
 
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionHeading}>Add custom exercise</Text>
+              <Text style={styles.sectionHeading}>{copy.addCustom}</Text>
             </View>
             <View style={styles.customForm}>
               <View style={styles.inputGroup}>
-                <Text selectable style={styles.inputLabel}>
-                  Exercise name
-                </Text>
+                <Text selectable style={styles.inputLabel}>{copy.exerciseName}</Text>
                 <TextInput
                   onChangeText={onExerciseNameChange}
-                  placeholder="Bench press"
+                  placeholder={copy.exerciseNamePlaceholder}
                   placeholderTextColor={Colors.dark.textSecondary}
                   style={styles.input}
                   value={exerciseName}
                 />
               </View>
-
               <View style={styles.inputGroup}>
-                <Text selectable style={styles.inputLabel}>
-                  Muscle group
-                </Text>
+                <Text selectable style={styles.inputLabel}>{copy.muscleGroup}</Text>
                 <TextInput
                   onChangeText={onExerciseMuscleGroupChange}
-                  placeholder="Chest"
+                  placeholder={copy.muscleGroupPlaceholder}
                   placeholderTextColor={Colors.dark.textSecondary}
                   style={styles.input}
                   value={exerciseMuscleGroup}
                 />
               </View>
-
               <View style={styles.customActions}>
-                <AppButton disabled={isSaveExerciseDisabled} label="Save exercise" onPress={onSaveExercise} variant="secondary" />
+                <AppButton
+                  disabled={isSaveExerciseDisabled}
+                  label={copy.saveExercise}
+                  onPress={onSaveExercise}
+                  variant="secondary"
+                />
               </View>
             </View>
           </View>
@@ -374,8 +382,8 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
             <ExerciseDetailSheet
               exercise={selectedExercise}
               isFavorite={favoriteIdSet.has(selectedExercise.id)}
-              onAdd={handleAddExercise}
-              onClose={handleCloseSelectedExercise}
+              onAdd={onAddDatabaseExercise}
+              onClose={() => setSelectedExerciseId(null)}
               onToggleFavorite={toggleFavorite}
               similarExercises={selectedSimilarExercises}
               styles={styles}
@@ -386,4 +394,3 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
     </AppCard>
   );
 });
-
