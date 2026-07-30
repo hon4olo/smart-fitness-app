@@ -234,10 +234,7 @@ export default function WorkoutSafetyGateScreen({
                 <View style={[styles.checkbox, acknowledged && styles.checkboxSelected]}>
                   <Text style={styles.checkboxLabel}>{acknowledged ? '✓' : ''}</Text>
                 </View>
-                <Text style={styles.acknowledgementText}>
-                  I reviewed this result and understand that the app will not automatically change the
-                  exercises, sets, reps, or load.
-                </Text>
+                <Text style={styles.acknowledgementText}>{copy.acknowledgement}</Text>
               </Pressable>
             ) : null}
 
@@ -267,12 +264,12 @@ export default function WorkoutSafetyGateScreen({
               <Pressable
                 onPress={() => router.push('/profile/recovery-check-in')}
                 style={({ pressed }) => [styles.smallAction, pressed && styles.pressed]}>
-                <Text style={styles.smallActionLabel}>Recovery check-in</Text>
+                <Text style={styles.smallActionLabel}>{copy.recoveryCheckIn}</Text>
               </Pressable>
               <Pressable
                 onPress={() => router.push('/profile/limitations')}
                 style={({ pressed }) => [styles.smallAction, pressed && styles.pressed]}>
-                <Text style={styles.smallActionLabel}>Limitations</Text>
+                <Text style={styles.smallActionLabel}>{copy.limitations}</Text>
               </Pressable>
             </View>
           </AppCard>
