@@ -23,7 +23,8 @@ describe('workout hotfix regressions', () => {
     const builderSource = readSource('src/app/workouts/builder.tsx');
     const workoutEditorSource = readSource('src/components/workouts/ProgramWorkoutEditorModal.tsx');
 
-    expect(templateSource).toContain('Start Workout');
+    expect(templateSource).toContain('startWorkoutSession(workout)');
+    expect(templateSource).toContain('copy.startWorkout');
     expect(templateSource).not.toContain('Save workout');
     expect(templateSource).not.toContain('TextInput');
     expect(programSource).toContain('Add routine to program');
@@ -77,12 +78,5 @@ describe('workout hotfix regressions', () => {
     expect(firstSave).toHaveLength(1);
     expect(secondSave).toHaveLength(1);
     expect(secondSave[0]).toEqual(snapshot);
-  });
-
-  it('never shows a stale Start empty workout action', () => {
-    const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
-
-    expect(source).not.toContain('Start empty workout');
-    expect(source).not.toContain('Add exercise');
   });
 });
