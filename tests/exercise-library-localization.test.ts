@@ -65,3 +65,5 @@ describe('exercise library localization', () => {
     expect(row).not.toContain('localizedExerciseName');
   });
 });
+
+// Revalidate this contract against the current main regression baseline.
