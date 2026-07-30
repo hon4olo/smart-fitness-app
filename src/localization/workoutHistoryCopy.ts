@@ -44,6 +44,10 @@ export const getWorkoutHistoryCopy = (locale: SupportedLocale) => ({
   exercisePlaceholder: locale === 'ru' ? 'Жим лёжа' : 'Bench press',
   weight: locale === 'ru' ? 'Вес' : 'Weight',
   reps: locale === 'ru' ? 'Повторения' : 'Reps',
+  sessions: (count: number, formatted: string) =>
+    locale === 'ru'
+      ? `${formatted} ${pluralRu(count, ['тренировка', 'тренировки', 'тренировок'])}`
+      : `${formatted} ${count === 1 ? 'session' : 'sessions'}`,
   sets: (count: number, formatted: string) =>
     locale === 'ru'
       ? `${formatted} ${pluralRu(count, ['подход', 'подхода', 'подходов'])}`
@@ -51,9 +55,7 @@ export const getWorkoutHistoryCopy = (locale: SupportedLocale) => ({
   volume: (value: string, unit: string) =>
     locale === 'ru' ? `Объём ${value} ${unit}` : `${value} ${unit} volume`,
   setMeta: (weight: string, unit: string, reps: string) =>
-    locale === 'ru'
-      ? `${weight} ${unit} × ${reps}`
-      : `${weight} ${unit} × ${reps}`,
+    `${weight} ${unit} × ${reps}`,
   exerciseRequired:
     locale === 'ru' ? 'Введите название упражнения.' : 'Enter an exercise name.',
   validWeightReps:
