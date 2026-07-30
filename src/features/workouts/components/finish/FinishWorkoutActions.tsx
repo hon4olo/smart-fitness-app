@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { Colors, Spacing } from '@/constants/theme';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
+import { useLocalization } from '@/localization';
+import { getWorkoutFinishCopy } from '@/localization/workoutFinishCopy';
 
 type FinishWorkoutActionsProps = {
   disabled?: boolean;
@@ -13,13 +15,15 @@ type FinishWorkoutActionsProps = {
 
 export const FinishWorkoutActions = memo(function FinishWorkoutActions({ disabled = false, onDiscard, onSave }: FinishWorkoutActionsProps) {
   const { colors } = useWorkoutTheme();
+  const { locale } = useLocalization();
+  const copy = useMemo(() => getWorkoutFinishCopy(locale), [locale]);
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <View style={styles.actions}>
-      <AppButton disabled={disabled} label="Save" onPress={onSave} />
+      <AppButton disabled={disabled} label={copy.save} onPress={onSave} />
       <Pressable accessibilityRole="button" onPress={onDiscard} style={({ pressed }) => [styles.discardButton, pressed && styles.pressed]}>
-        <Text style={styles.discardLabel}>Discard workout</Text>
+        <Text style={styles.discardLabel}>{copy.discard}</Text>
       </Pressable>
     </View>
   );
