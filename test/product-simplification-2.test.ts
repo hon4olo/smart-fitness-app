@@ -186,7 +186,8 @@ describe('product simplification 2.0', () => {
     expect(template).toContain('toggleWorkoutTemplateFavorite(workout.id)');
     expect(template).toContain('copy.addFavorite');
     expect(template).toContain('copy.removeFavorite');
-    expect(program).toContain('Add routine to program');
+    expect(program).toContain("pathname: '/workouts/routine/new'");
+    expect(program).toContain('copy.addRoutine');
     expect(program).toContain('playButton');
     expect(program).not.toContain('styles.startChip');
     expect(nutrition).toContain("router.push({ pathname: '/nutrition/add-food'");
