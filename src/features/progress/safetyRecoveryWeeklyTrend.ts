@@ -11,7 +11,6 @@ export type SafetyRecoveryWeeklyStatusCounts = Record<WorkoutSafetyReviewStatus,
 
 export type SafetyRecoveryWeeklyTrendPoint = {
   key: string;
-  label: string;
   startAt: string;
   endAt: string;
   totalWorkouts: number;
@@ -23,7 +22,6 @@ export type SafetyRecoveryWeeklyTrendPoint = {
 
 export type SafetyRecoveryWeeklyTrend = {
   period: SafetyRecoveryProgressPeriod;
-  windowLabel: string;
   points: SafetyRecoveryWeeklyTrendPoint[];
   reviewedWorkoutCount: number;
   loadCeilingPointCount: number;
@@ -42,12 +40,6 @@ const TREND_WINDOW_DAYS: Record<SafetyRecoveryProgressPeriod, number> = {
   '30d': 30,
   '90d': 90,
   all: 84,
-};
-
-const TREND_WINDOW_LABELS: Record<SafetyRecoveryProgressPeriod, string> = {
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
-  all: 'Latest 12 weeks',
 };
 
 const emptyStatusCounts = (): SafetyRecoveryWeeklyStatusCounts => ({
@@ -71,16 +63,8 @@ const isFreshReviewedContext = (
 const isValidMultiplier = (value: number | null): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
 
-const formatWeekLabel = (timestamp: number): string =>
-  new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-  }).format(new Date(timestamp));
-
 const createPoint = (start: number, end: number): MutableWeeklyTrendPoint => ({
   key: new Date(start).toISOString(),
-  label: formatWeekLabel(start),
   startAt: new Date(start).toISOString(),
   endAt: new Date(end).toISOString(),
   totalWorkouts: 0,
@@ -158,7 +142,6 @@ export const buildSafetyRecoveryWeeklyTrend = (
 
   return {
     period,
-    windowLabel: TREND_WINDOW_LABELS[period],
     points: publicPoints,
     reviewedWorkoutCount,
     loadCeilingPointCount,
