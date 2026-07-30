@@ -16,6 +16,7 @@ const validationKeys: Record<string, MessageKey> = {
   'Enter a new password.': 'auth.validation.newPasswordRequired',
   'Use a password different from your current password.': 'auth.validation.newPasswordDifferent',
   'Confirm your new password.': 'auth.validation.confirmNewPasswordRequired',
+  'This reset link is invalid or incomplete.': 'passwordReset.validation.token',
 };
 
 const submissionKeys: Record<string, MessageKey> = {
@@ -36,6 +37,18 @@ const changePasswordKeys: Record<string, MessageKey> = {
   'Connect to the internet and try again.': 'changePassword.error.offline',
   'Too many attempts. Wait a moment and try again.': 'changePassword.error.rateLimit',
   'Unable to change your password right now. Try again.': 'changePassword.error.generic',
+};
+
+const passwordResetKeys: Record<string, MessageKey> = {
+  'Connect to the internet and try again.': 'passwordReset.error.offline',
+  'Too many attempts. Wait a moment and try again.': 'passwordReset.error.rateLimit',
+  'This reset link is invalid or expired. Request a new one.': 'passwordReset.error.invalid',
+  'The account service is unavailable right now. Try again later.':
+    'passwordReset.error.unavailable',
+  'Unable to request a reset link right now. Try again.':
+    'passwordReset.error.forgotGeneric',
+  'Unable to reset your password right now. Try again.':
+    'passwordReset.error.resetGeneric',
 };
 
 const deletionKeys: Record<string, MessageKey> = {
@@ -73,6 +86,12 @@ export const localizeAuthSubmission = (message: string | null, t: Translate) =>
 
 export const localizeChangePasswordMessage = (message: string | null | undefined, t: Translate) =>
   localize(message, { ...validationKeys, ...changePasswordKeys }, 'changePassword.error.generic', t);
+
+export const localizePasswordResetMessage = (
+  message: string | null | undefined,
+  t: Translate,
+  fallback: 'passwordReset.error.forgotGeneric' | 'passwordReset.error.resetGeneric',
+) => localize(message, { ...validationKeys, ...passwordResetKeys }, fallback, t);
 
 export const localizeAccountDeletionMessage = (
   message: string | null | undefined,
