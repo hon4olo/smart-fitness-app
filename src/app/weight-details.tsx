@@ -9,13 +9,15 @@ import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
-import { useLocalization } from '@/localization';
 import { getProgressAnalytics } from '@/lib/progress';
+import { useLocalization } from '@/localization';
+import { getWeightDetailsCopy } from '@/localization/weightDetailsCopy';
 import { useUnitPreferences, weightFromKg } from '@/units';
 
 export default function WeightDetailsScreen() {
   const { bodyMeasurements, exercises, weightHistory, workoutSessions } = useAppContext();
-  const { formatDate, formatNumber } = useLocalization();
+  const { formatDate, formatNumber, locale } = useLocalization();
+  const copy = getWeightDetailsCopy(locale);
   const { formatWeightValue, weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
 
@@ -38,7 +40,7 @@ export default function WeightDetailsScreen() {
         key: entry.id,
         label: toDateLabel(entry.createdAt),
         value: weightFromKg(entry.weight, weightUnit),
-        displayValue: formatWeightValue(entry.weight),
+        displayValue: formatWeightValue(entry.weight, weightUnit),
       })),
     [analytics.weight.recentEntries, formatDate, formatWeightValue, weightUnit],
   );
@@ -48,86 +50,88 @@ export default function WeightDetailsScreen() {
   );
 
   const latestWeight = analytics.weight.currentWeight !== null
-    ? `${formatWeightValue(analytics.weight.currentWeight)} ${weightUnit}`
+    ? `${formatWeightValue(analytics.weight.currentWeight, weightUnit)} ${weightUnit}`
     : '—';
   const convertedDelta30Days = analytics.weight.delta30Days !== null
     ? weightFromKg(analytics.weight.delta30Days, weightUnit)
     : null;
   const trend = convertedDelta30Days !== null
-    ? `${convertedDelta30Days > 0 ? '+' : ''}${formatNumber(convertedDelta30Days, { maximumFractionDigits: 1 })} ${weightUnit} over 30 days`
-    : 'No 30-day comparison yet';
+    ? copy.trend30Days(
+        `${convertedDelta30Days > 0 ? '+' : ''}${formatNumber(convertedDelta30Days, {
+          maximumFractionDigits: 1,
+        })}`,
+        weightUnit,
+      )
+    : copy.noComparison;
   const chartValues = points.map((point) => point.value);
 
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: safeAreaInsets.bottom + 120 }]} style={styles.screen}>
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: safeAreaInsets.bottom + 120 },
+      ]}
+      style={styles.screen}>
       <View style={styles.container}>
-        <SectionHeader title="Weight details" subtitle="Detailed trend view." />
+        <SectionHeader title={copy.title} subtitle={copy.subtitle} />
 
         <AppCard>
-          <Text selectable style={styles.title}>
-            Current weight
-          </Text>
-          <Text selectable style={styles.value}>
-            {latestWeight}
-          </Text>
-          <Text selectable style={styles.detail}>
-            {trend}
-          </Text>
+          <Text selectable style={styles.title}>{copy.currentWeight}</Text>
+          <Text selectable style={styles.value}>{latestWeight}</Text>
+          <Text selectable style={styles.detail}>{trend}</Text>
         </AppCard>
 
         <AppCard>
-          <Text selectable style={styles.title}>
-            Trend
-          </Text>
+          <Text selectable style={styles.title}>{copy.trend}</Text>
           {points.length > 1 ? (
             <ProgressTrendChart
-              emptyLabel="Add a few weigh-ins to see the trend."
-              maxLabel={`${formatNumber(Math.max(...chartValues), { maximumFractionDigits: 1 })} ${weightUnit}`}
-              minLabel={`${formatNumber(Math.min(...chartValues), { maximumFractionDigits: 1 })} ${weightUnit}`}
+              emptyLabel={copy.chartEmpty}
+              maxLabel={`${formatNumber(Math.max(...chartValues), {
+                maximumFractionDigits: 1,
+              })} ${weightUnit}`}
+              minLabel={`${formatNumber(Math.min(...chartValues), {
+                maximumFractionDigits: 1,
+              })} ${weightUnit}`}
               points={points}
             />
           ) : (
-            <Text selectable style={styles.detail}>
-              Add another weigh-in to reveal the chart.
-            </Text>
+            <Text selectable style={styles.detail}>{copy.addAnother}</Text>
           )}
         </AppCard>
 
         <AppCard>
-          <Text selectable style={styles.title}>
-            Recent weigh-ins
-          </Text>
+          <Text selectable style={styles.title}>{copy.recentWeighIns}</Text>
           {recentEntries.length > 0 ? (
             <View style={styles.historyList}>
               {recentEntries.map((entry, index) => (
-                <View key={entry.id} style={[styles.historyRow, index > 0 && styles.historyRowWithBorder]}>
+                <View
+                  key={entry.id}
+                  style={[styles.historyRow, index > 0 && styles.historyRowWithBorder]}>
                   <Text selectable style={styles.historyDate}>
                     {toDateLabel(entry.createdAt)}
                   </Text>
                   <Text selectable style={styles.historyValue}>
-                    {formatWeightValue(entry.weight)} {weightUnit}
+                    {formatWeightValue(entry.weight, weightUnit)} {weightUnit}
                   </Text>
                 </View>
               ))}
             </View>
           ) : (
-            <Text selectable style={styles.detail}>
-              No weigh-ins recorded yet.
-            </Text>
+            <Text selectable style={styles.detail}>{copy.noWeighIns}</Text>
           )}
         </AppCard>
 
         <AppCard>
-          <Text selectable style={styles.title}>
-            Training history
-          </Text>
-          <Text selectable style={styles.detail}>
-            Open completed workouts, logged sets, RPE values and the Safety & Recovery context recorded before each session.
-          </Text>
-          <AppButton label="Open workout history" onPress={() => router.push('/workout-history')} />
+          <Text selectable style={styles.title}>{copy.trainingHistory}</Text>
+          <Text selectable style={styles.detail}>{copy.trainingHistoryBody}</Text>
+          <AppButton
+            label={copy.openWorkoutHistory}
+            onPress={() => router.push('/workout-history')}
+          />
         </AppCard>
 
-        <AppButton label="Back" onPress={() => router.back()} variant="secondary" />
+        <AppButton label={copy.back} onPress={() => router.back()} variant="secondary" />
       </View>
     </ScrollView>
   );
