@@ -16,6 +16,7 @@ import { useAppContext } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
+import { getCombinedCoachTrustCopy } from '@/localization/combinedCoachTrustCopy';
 import { getCombinedProposalCopy } from '@/localization/combinedProposalCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { WorkoutSession } from '@/types';
@@ -45,6 +46,7 @@ export default function CombinedCoachProposalScreen() {
   const { ready, refresh, session } = useAuthSession();
   const { locale } = useLocalization();
   const copy = getCombinedProposalCopy(locale);
+  const trustCopy = getCombinedCoachTrustCopy(locale);
   const [capabilities, setCapabilities] = useState<CoachCapabilities | null>(null);
   const [run, setRun] = useState<CoachRunEnvelope | null>(null);
   const [busy, setBusy] = useState(false);
@@ -68,6 +70,13 @@ export default function CombinedCoachProposalScreen() {
     capabilities?.schemaVersion === 9 &&
     capabilities.combined?.nutritionConfirmation === true &&
     capabilities.combined.automaticApplication === false;
+  const capabilityPresentation = !ready
+    ? 'checking'
+    : !isAuthenticated
+      ? 'sign_in'
+      : proposalAvailable
+        ? 'available'
+        : 'unavailable';
   const primarySession = useMemo(
     () => latestSession(app.workoutSessions),
     [app.workoutSessions],
@@ -219,12 +228,12 @@ export default function CombinedCoachProposalScreen() {
 
   return (
     <View style={themed.screen}>
-      <View style={[themed.header, { paddingTop: insets.top + Spacing.two }]}> 
+      <View style={[themed.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
           accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
-          style={themed.backButton}> 
+          style={themed.backButton}>
           <Text style={themed.backLabel}>‹</Text>
         </Pressable>
         <View style={themed.flexCopy}>
@@ -235,14 +244,14 @@ export default function CombinedCoachProposalScreen() {
 
       <ScrollView
         contentContainerStyle={[themed.content, { paddingBottom: insets.bottom + Spacing.eight }]}
-        showsVerticalScrollIndicator={false}> 
+        showsVerticalScrollIndicator={false}>
         <View style={themed.container}>
           <AppCard>
             <Text style={themed.cardTitle}>{copy.explicitProposal}</Text>
             <Text style={themed.body}>{copy.explanation}</Text>
-            <Text style={themed.meta}> 
-              {copy.capability}: {capabilities ? `v${capabilities.schemaVersion}` : copy.notEnabled} ·{' '}
-              {copy.sync}: {copy.syncLabels[syncStatus] ?? syncStatus}
+            <Text style={themed.meta}>
+              {copy.capability}: {trustCopy.capabilityLabel(capabilityPresentation)} ·{' '}
+              {copy.sync}: {trustCopy.syncLabel(syncStatus)}
             </Text>
             {!ready ? null : !isAuthenticated ? (
               <PrimaryButton label={copy.signIn} onPress={() => router.push('/auth/sign-in')} />
