@@ -73,9 +73,12 @@ Completed:
 - Safety & Recovery history and weekly-trend cards;
 - central locale formatting for Progress chart bounds, midpoint and body-fat values;
 - selected `kg/lb` workout-volume summaries converted from canonical kilogram volume;
-- selected units in Progress and Weight Details chart latest-value presentation.
+- selected units in Progress and Weight Details chart latest-value presentation;
+- Exercise Detail tabs, loading/error/empty states, history and progress metrics in EN/RU;
+- selected `kg/lb`, locale-aware dates/counts and volume-trend values on Exercise Detail;
+- bounded Exercise Detail errors and removal of raw provider/source/media diagnostics from user presentation.
 
-The first Secondary Progress analytics-formatting slice is implemented in PR #231 with source-contract coverage and must merge only from an exact-green Mobile CI head.
+The first Secondary Progress analytics-formatting slice merged in PR #231. Exercise Detail progress localization is implemented in PR #232 with source-contract coverage and must merge only from an exact-green Mobile CI head.
 
 ### Coach history and trust
 
@@ -123,14 +126,14 @@ Completed and merged in PR #226:
 
 ## Current next task
 
-### Secondary Progress — remaining detail and exercise analytics surfaces
+### Secondary Progress — final reachable-surface audit
 
-After PR #231, run a repository-backed audit and implement the next real linked slice covering reachable secondary Progress presentation that still bypasses established boundaries, prioritizing:
+After PR #232, run a repository-backed audit of remaining reachable Progress presentation, prioritizing:
 
-- measurement-detail or measurement-history editors if reachable production routes exist;
-- exercise-progression and inactive-exercise summaries;
+- measurement-history or measurement-editor surfaces beyond the localized overview;
+- exercise-progression and inactive-exercise summaries outside Exercise Detail;
 - workout-volume details or filters beyond the localized overview;
-- secondary charts and accessibility descriptions not covered by the shared trend chart.
+- remaining secondary charts and accessibility descriptions.
 
 The selected slice must remove directly rendered:
 
@@ -145,10 +148,10 @@ Must preserve:
 - measurement, workout-session and exercise IDs;
 - canonical `kg`/`cm` persistence and conversion back from selected display units;
 - chart ranges, aggregation and ordering;
-- add/edit/delete and navigation contracts;
+- add/edit/delete, favorites, media, share and navigation contracts;
 - sync schemas, revision behavior and completed workout history.
 
-If an audited category has no reachable production surface, continue directly to the next category rather than creating a no-op PR.
+If no additional reachable Progress surface remains, advance directly to Remaining Coach rather than creating a no-op PR.
 
 ## Remaining source work
 
