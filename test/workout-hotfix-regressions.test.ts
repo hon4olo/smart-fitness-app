@@ -27,7 +27,8 @@ describe('workout hotfix regressions', () => {
     expect(templateSource).toContain('copy.startWorkout');
     expect(templateSource).not.toContain('Save workout');
     expect(templateSource).not.toContain('TextInput');
-    expect(programSource).toContain('Add routine to program');
+    expect(programSource).toContain("pathname: '/workouts/routine/new'");
+    expect(programSource).toContain('copy.addRoutine');
     expect(programSource).not.toContain('styles.startChip');
     expect(programSource).not.toContain('Save Program');
     expect(programSource).not.toContain('TextInput');
