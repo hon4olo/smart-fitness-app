@@ -17,7 +17,7 @@ Completed:
 - weight, length and energy display-unit preferences;
 - canonical persistence in `kg`, `cm` and `kcal`;
 - English fallback and EN/RU catalog parity checks;
-- Account & Security inside dedicated Settings;
+- Account & Security entry and flows inside dedicated Settings;
 - pre-provider root recovery localization;
 - password-reset source flow localization;
 - privacy-safe local storage/API diagnostics without raw payloads, tokens, email addresses or health values.
