@@ -48,4 +48,19 @@ describe('support-only local performance diagnostics', () => {
     expect(copy).toContain('Локальная производительность');
     expect(copy).toContain('Local performance');
   });
+
+  it('describes the current local-only privacy boundary instead of removed crash reporting', () => {
+    const privacyCard = readSource(
+      'src/features/settings/PrivacyAboutCards.tsx',
+    );
+    const privacyCopy = readSource(
+      'src/localization/privacyCurrentCopy.ts',
+    );
+
+    expect(privacyCard).toContain('getPrivacyCurrentCopy');
+    expect(privacyCard).not.toContain("t('privacy.crashBody')");
+    expect(privacyCopy).toContain('External crash reporting is not enabled');
+    expect(privacyCopy).toContain('Внешняя отправка отчётов о сбоях не включена');
+    expect(privacyCopy).not.toContain('DSN');
+  });
 });
