@@ -30,17 +30,21 @@ describe('Nutrition Coach localization', () => {
     expect(copy).toContain('Применить strategy к целям');
   });
 
-  it('uses selected locale and unit boundaries without direct Intl', () => {
+  it('uses selected locale and central unit boundaries without direct Intl', () => {
     const source = [
       readSource('src/features/coach/screens/NutritionCoachScreen.tsx'),
       readSource('src/features/coach/components/NutritionCoachReviewMetrics.tsx'),
       readSource('src/features/coach/components/NutritionStrategyProposalView.tsx'),
     ].join('\n');
+    const units = readSource('src/units/unitPreferences.ts');
 
     expect(source).toContain('formatEnergyValue');
     expect(source).toContain('formatWeightValue');
     expect(source).toContain('useUnitPreferences');
-    expect(source).toContain("weight === 'lb'");
+    expect(source).toContain('proteinRatioUnitForWeight');
+    expect(source).toContain('proteinRatioFromPerKg');
+    expect(units).toContain("export type ProteinRatioUnit = 'g/kg' | 'g/lb'");
+    expect(source).not.toContain("weight === 'lb'");
     expect(source).not.toContain('new Intl.NumberFormat');
     expect(source).not.toContain('new Intl.DateTimeFormat');
   });
