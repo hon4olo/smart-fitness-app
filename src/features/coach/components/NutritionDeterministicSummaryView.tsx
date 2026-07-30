@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useLocalization } from '@/localization';
+import { energyFromKcal, useUnitPreferences } from '@/units';
 import type { NutritionDeterministicSummary } from '../nutritionDeterministicSummary';
 
 const FIELD_LABELS: Record<string, string> = {
@@ -22,10 +23,15 @@ export function NutritionDeterministicSummaryView({
   summary: NutritionDeterministicSummary;
 }) {
   const { formatNumber } = useLocalization();
+  const { energy } = useUnitPreferences();
   const formatMetric = (value: number, maximumFractionDigits = 0): string =>
     formatNumber(value, { maximumFractionDigits });
-  const formatSigned = (value: number): string =>
-    `${value > 0 ? '+' : ''}${formatMetric(value)}`;
+  const formatEnergyMetric = (valueKcal: number): string =>
+    formatMetric(energyFromKcal(valueKcal, energy));
+  const formatSignedEnergy = (valueKcal: number): string => {
+    const value = energyFromKcal(valueKcal, energy);
+    return `${value > 0 ? '+' : ''}${formatMetric(value)}`;
+  };
 
   if (summary.readiness.status === 'needs_input') {
     return (
@@ -56,8 +62,8 @@ export function NutritionDeterministicSummaryView({
     );
   }
 
-  const energy = summary.energy;
-  if (!energy) return null;
+  const energyMetrics = summary.energy;
+  if (!energyMetrics) return null;
 
   return (
     <View style={styles.stack}>
@@ -73,16 +79,18 @@ export function NutritionDeterministicSummaryView({
 
       <View style={styles.metricGrid}>
         <View style={styles.metricCell}>
-          <Text style={styles.metricValue}>{formatMetric(energy.bmrCalories)}</Text>
-          <Text style={styles.metaText}>BMR kcal</Text>
+          <Text style={styles.metricValue}>{formatEnergyMetric(energyMetrics.bmrCalories)}</Text>
+          <Text style={styles.metaText}>BMR {energy}</Text>
         </View>
         <View style={styles.metricCell}>
-          <Text style={styles.metricValue}>{formatMetric(energy.tdeeCalories)}</Text>
-          <Text style={styles.metaText}>TDEE kcal</Text>
+          <Text style={styles.metricValue}>{formatEnergyMetric(energyMetrics.tdeeCalories)}</Text>
+          <Text style={styles.metaText}>TDEE {energy}</Text>
         </View>
         <View style={styles.metricCell}>
-          <Text style={styles.metricValue}>{formatMetric(energy.goalAdjustedCalories)}</Text>
-          <Text style={styles.metaText}>Goal target</Text>
+          <Text style={styles.metricValue}>
+            {formatEnergyMetric(energyMetrics.goalAdjustedCalories)}
+          </Text>
+          <Text style={styles.metaText}>Goal target · {energy}</Text>
         </View>
       </View>
 
@@ -90,31 +98,33 @@ export function NutritionDeterministicSummaryView({
         <View style={styles.infoRow}>
           <Text style={styles.metaText}>Permissible calorie range</Text>
           <Text style={styles.infoValue}>
-            {formatMetric(energy.permissibleCalories.min)}–
-            {formatMetric(energy.permissibleCalories.max)}
+            {formatEnergyMetric(energyMetrics.permissibleCalories.min)}–
+            {formatEnergyMetric(energyMetrics.permissibleCalories.max)} {energy}
           </Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.metaText}>Applied daily energy delta</Text>
           <Text style={styles.infoValue}>
-            {formatSigned(energy.appliedDailyEnergyDeltaKcal)} kcal
+            {formatSignedEnergy(energyMetrics.appliedDailyEnergyDeltaKcal)} {energy}
           </Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.metaText}>Protein policy range</Text>
           <Text style={styles.infoValue}>
-            {formatMetric(energy.proteinGrams.min)}–{formatMetric(energy.proteinGrams.max)} g
+            {formatMetric(energyMetrics.proteinGrams.min)}–
+            {formatMetric(energyMetrics.proteinGrams.max)} g
           </Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.metaText}>Fat policy range</Text>
           <Text style={styles.infoValue}>
-            {formatMetric(energy.fatGrams.min)}–{formatMetric(energy.fatGrams.max)} g
+            {formatMetric(energyMetrics.fatGrams.min)}–
+            {formatMetric(energyMetrics.fatGrams.max)} g
           </Text>
         </View>
       </View>
 
-      {energy.deltaWasClamped ? (
+      {energyMetrics.deltaWasClamped ? (
         <Text style={styles.clampText}>
           Requested weekly rate exceeded the configured policy. The displayed energy delta was clamped deterministically.
         </Text>
