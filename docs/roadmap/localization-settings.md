@@ -1,6 +1,6 @@
 # Localization and Settings Roadmap
 
-Updated: 2026-07-30
+Updated: 2026-07-31
 
 ## Localization and regional formatting
 
@@ -59,9 +59,11 @@ Completed:
 - session-header metrics using selected `kg/lb` and locale-aware numbers;
 - collapsed exercise previews with localized repetitions, selected units and Add Set controls;
 - semantic set-input, RPE and completion accessibility states;
-- display-only localization for empty and built-in workout titles without changing persisted draft values.
+- display-only localization for empty and built-in workout titles without changing persisted draft values;
+- active-workout exercise picker controls, loading/error/empty states and count actions in EN/RU;
+- removal of raw provider/source/error diagnostics from the active-workout picker while retaining bounded source attribution.
 
-Program/routine details merged in PR #228. Builder/picker/editor localization merged in PR #229. Session-preview boundaries merged in PR #230.
+Program/routine details merged in PR #228. Builder/picker/editor localization merged in PR #229. Session-preview boundaries merged in PR #230. Active-workout picker localization and obsolete parallel builder cleanup merged in PR #251.
 
 ### Progress
 
@@ -96,9 +98,10 @@ Completed:
 - bounded request and snapshot errors;
 - bounded preflight sync statuses and review run statuses;
 - bounded unknown limitation enums without humanized internal-code fallbacks;
-- capability copy without user-visible internal schema versions.
+- capability copy without user-visible internal schema versions;
+- localized pre-workout acknowledgement and Safety navigation controls.
 
-The remaining Safety & Recovery retry/status presentation merged in PR #234.
+The remaining Safety & Recovery retry/status presentation merged in PR #234. Pre-workout Pressable controls were completed in PR #251.
 
 ### Combined Coach
 
@@ -149,23 +152,26 @@ Completed:
 - presentation-level `.toFixed` audit while preserving calculation and serialization rounding;
 - fixed display-unit literal audit with central selected-energy and protein-ratio conversion;
 - static accessibility-label and hint audit with dynamic-template classification;
+- static `Alert.alert` action-label audit;
+- static `Pressable` control-copy audit with glyph, technical-token and numeric-unit classification;
 - removal of unreachable diagnostic and obsolete formatted presentation helpers;
+- removal of two obsolete parallel Workouts builder components;
 - bounded standalone Nutrition Target Proposal and Workout History list/detail presentation;
 - central selected-locale and selected-unit formatting on reachable presentation surfaces;
 - permanent source contracts preventing regression.
 
-The `.tsx` presentation boundary audit merged in PR #235. The `.ts` helper/view-model boundary audit merged in PR #236. Presentation-level `.toFixed` auditing merged in PR #237. Fixed display-unit auditing merged in PR #238. Accessibility copy auditing is implemented in PR #239 and must merge only from an exact-green Mobile CI head.
+The `.tsx` presentation boundary audit merged in PR #235. The `.ts` helper/view-model boundary audit merged in PR #236. Presentation-level `.toFixed` auditing merged in PR #237. Fixed display-unit auditing merged in PR #238. Accessibility copy auditing merged in PR #239. Static Alert action auditing merged in PR #250. Pressable control-copy auditing and its confirmed fixes merged in PR #251.
 
 ## Current next task
 
-### Repository-wide visible control-copy and raw-status audit
+### Remaining menu, tab, state-control and raw-status audit
 
-After PR #239, audit remaining reachable source with context-sensitive checks for:
+After PR #251, audit remaining reachable source with context-sensitive checks for:
 
-- fixed English button, menu, tab and state-control copy outside localization boundaries;
+- fixed English menu, tab and state-control copy outside localization boundaries;
 - raw provider/backend/status/enum fallbacks not matched by the bounded status guards;
 - reachable screens that still expose internal diagnostic or policy wording;
-- literal-English source tests that should assert semantic behavior.
+- literal-English source tests that should assert semantic behavior rather than physical file placement.
 
 Preserve accessibility roles/states, touch handlers, routes, IDs, persisted canonical units, calculations, API and sync schemas, business logic, polling, idempotency, explicit confirmations and completed history.
 
