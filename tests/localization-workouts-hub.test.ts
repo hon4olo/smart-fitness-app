@@ -21,6 +21,7 @@ const readSource = (path: string) => readFileSync(resolve(projectRoot, path), 'u
 const WORKOUTS_HUB_FILES = [
   'src/app/(tabs)/workouts.tsx',
   'src/features/workouts/screens/WorkoutsScreen.tsx',
+  'src/features/workouts/screens/WorkoutsScreenComponents.tsx',
   'src/features/workouts/workoutsHubLocalization.ts',
 ] as const;
 
@@ -58,7 +59,8 @@ describe('localized Workouts hub contract', () => {
   it('does not render the audited fixed English hub copy directly', () => {
     const route = readSource('src/app/(tabs)/workouts.tsx');
     const screen = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
-    const source = `${route}\n${screen}`;
+    const components = readSource('src/features/workouts/screens/WorkoutsScreenComponents.tsx');
+    const source = `${route}\n${screen}\n${components}`;
 
     for (const copy of [
       'Workout history',
@@ -116,9 +118,9 @@ describe('localized Workouts hub contract', () => {
   });
 
   it('keeps a visible explanation next to the disabled program-create action', () => {
-    const screen = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
+    const components = readSource('src/features/workouts/screens/WorkoutsScreenComponents.tsx');
 
-    expect(screen).toContain("t('workouts.programNameRequired')");
-    expect(screen).toContain('accessibilityState={{ disabled: !canCreate }}');
+    expect(components).toContain("t('workouts.programNameRequired')");
+    expect(components).toContain('accessibilityState={{ disabled: !canCreate }}');
   });
 });

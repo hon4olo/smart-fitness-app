@@ -9,6 +9,11 @@ const { resolve } = require('path') as { resolve: (...parts: string[]) => string
 const projectRoot = resolve(__dirname, '..');
 const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 const count = (source: string, needle: string) => (source.match(new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) ?? []).length;
+const readWorkoutsSource = () =>
+  [
+    readSource('src/features/workouts/screens/WorkoutsScreen.tsx'),
+    readSource('src/features/workouts/screens/WorkoutsScreenComponents.tsx'),
+  ].join('\n');
 
 describe('navigation repair and UX cleanup 3.0', () => {
   test('tab layout exposes exactly five public tabs and hides internal routes', () => {
@@ -44,7 +49,7 @@ describe('navigation repair and UX cleanup 3.0', () => {
   });
 
   test('workouts keeps one start-now action and one program creation action', () => {
-    const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
+    const source = readWorkoutsSource();
 
     expect(source).toContain("messageKey: 'workouts.tabs.startNow'");
     expect(source).toContain("messageKey: 'workouts.tabs.programs'");
@@ -87,7 +92,7 @@ describe('navigation repair and UX cleanup 3.0', () => {
     expect(progress).not.toContain('ProgressPlanningSections');
     expect(profileGoals).toContain('ProfileGoalsCard');
     expect(profileGoals).toContain("t('goals.recalculateBody')");
-    expect(coach).toContain("router.push(action.route)");
+    expect(coach).toContain('router.push(action.route)');
     expect(coach).toContain('/profile/combined-review');
     expect(coach).toContain('/profile/combined-proposal');
     expect(preferences).not.toContain('SegmentedControl');
@@ -107,7 +112,7 @@ describe('navigation repair and UX cleanup 3.0', () => {
   });
 
   test('business actions remain reachable through public and secondary routes', () => {
-    const workouts = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
+    const workouts = readWorkoutsSource();
     const template = readSource('src/features/workouts/screens/WorkoutTemplateDetailScreen.tsx');
     const program = readSource('src/features/workouts/screens/ProgramDetailScreen.tsx');
     const progress = readSource('src/app/(tabs)/progress.tsx');
