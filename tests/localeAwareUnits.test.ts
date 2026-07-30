@@ -22,7 +22,7 @@ describe('locale-aware unit formatting', () => {
   it('uses locale-aware numbers and dates on weight details', () => {
     const screen = readSource('src/app/weight-details.tsx');
 
-    expect(screen).toContain('const { formatDate, formatNumber } = useLocalization()');
+    expect(screen).toContain('const { formatDate, formatNumber, locale } = useLocalization()');
     expect(screen).toContain('formatWeightValue(entry.weight)');
     expect(screen).toContain("formatDate(value, { day: 'numeric', month: 'short' })");
     expect(screen).not.toContain('.toFixed(1)');
