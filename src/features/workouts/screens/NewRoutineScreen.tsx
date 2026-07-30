@@ -1,10 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import {
+  RoutineExerciseMenuModal,
+  RoutineExercisePickerModal,
+  type RoutinePickerMode,
+} from '@/features/workouts/components/NewRoutineModals';
 import { attachWorkoutsToProgramDraft } from '@/features/workouts/programEditorModel';
 import { createStyles } from '@/features/workouts/styles/newRoutineScreenStyles';
 import { formatWorkoutPlanDescription, getWorkoutProgramById } from '@/lib/workouts';
@@ -21,13 +26,6 @@ type RoutinePlanExercise = {
   targetReps: number;
   targetSets: number;
 };
-
-type PickerMode =
-  | { type: 'add' }
-  | { type: 'replace'; exerciseId: string };
-
-const getExerciseSubtitle = (exercise: Exercise, fallback: string) =>
-  exercise.muscleGroup ?? exercise.category ?? exercise.primaryMuscles?.[0] ?? fallback;
 
 export function NewRoutineScreen() {
   const params = useLocalSearchParams<{ programId?: string }>();
@@ -58,8 +56,8 @@ export function NewRoutineScreen() {
   const [notes, setNotes] = useState('');
   const [planExercises, setPlanExercises] = useState<RoutinePlanExercise[]>([]);
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
-  const [pickerMode, setPickerMode] = useState<PickerMode | null>(null);
-  const [exerciseMenu, setExerciseMenu] = useState<RoutinePlanExercise | null>(null);
+  const [pickerMode, setPickerMode] = useState<RoutinePickerMode | null>(null);
+  const [exerciseMenu, setExerciseMenu] = useState<Exercise | null>(null);
 
   const canSave = Boolean(program && title.trim().length > 0);
   const selectedExerciseIds = useMemo(
@@ -282,7 +280,7 @@ export function NewRoutineScreen() {
                         accessibilityLabel={copy.exerciseOptions(item.exercise.name)}
                         accessibilityRole="button"
                         hitSlop={12}
-                        onPress={() => setExerciseMenu(item)}
+                        onPress={() => setExerciseMenu(item.exercise)}
                         style={({ pressed }) => [
                           styles.exerciseMenuButton,
                           pressed && styles.pressed,
@@ -388,114 +386,25 @@ export function NewRoutineScreen() {
         </View>
       </ScrollView>
 
-      <Modal
-        animationType="slide"
-        transparent
-        visible={Boolean(pickerMode)}
-        onRequestClose={() => setPickerMode(null)}>
-        <View style={styles.pickerOverlay}>
-          <View style={styles.pickerPanel}>
-            <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>
-                {pickerMode?.type === 'replace'
-                  ? copy.replaceExercise
-                  : copy.addExercises}
-              </Text>
-              <Pressable
-                accessibilityLabel={copy.done}
-                accessibilityRole="button"
-                onPress={() => setPickerMode(null)}
-                style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}>
-                <Text style={styles.textButtonLabel}>{copy.done}</Text>
-              </Pressable>
-            </View>
-            <ScrollView
-              contentInsetAdjustmentBehavior="automatic"
-              showsVerticalScrollIndicator={false}>
-              {exercises.slice(0, 100).map((exercise) => {
-                const selected = selectedExerciseIds.has(exercise.id);
-                return (
-                  <Pressable
-                    accessibilityLabel={exercise.name}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: selected && pickerMode?.type === 'add' }}
-                    key={exercise.id}
-                    onPress={() => {
-                      if (pickerMode?.type === 'replace') {
-                        replaceExercise(pickerMode.exerciseId, exercise);
-                        setPickerMode(null);
-                        return;
-                      }
-                      addExercise(exercise);
-                    }}
-                    style={({ pressed }) => [
-                      styles.pickerRow,
-                      pressed && styles.pressed,
-                    ]}>
-                    <View style={styles.pickerRowCopy}>
-                      <Text numberOfLines={1} style={styles.pickerRowTitle}>
-                        {exercise.name}
-                      </Text>
-                      <Text numberOfLines={1} style={styles.pickerRowMeta}>
-                        {getExerciseSubtitle(exercise, copy.exerciseFallback)}
-                      </Text>
-                    </View>
-                    <Text style={styles.check}>
-                      {selected && pickerMode?.type === 'add' ? '✓' : ''}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        animationType="fade"
-        transparent
-        visible={Boolean(exerciseMenu)}
-        onRequestClose={() => setExerciseMenu(null)}>
-        <Pressable
-          accessibilityLabel={copy.cancel}
-          accessibilityRole="button"
-          onPress={() => setExerciseMenu(null)}
-          style={[styles.menuOverlay, { paddingBottom: insets.bottom + Spacing.three }]}>
-          <Pressable onPress={() => undefined} style={styles.menuPanel}>
-            <Text style={styles.menuTitle}>{exerciseMenu?.exercise.name}</Text>
-            <Pressable
-              accessibilityLabel={copy.replaceExercise}
-              accessibilityRole="button"
-              onPress={() => {
-                if (!exerciseMenu) return;
-                setPickerMode({ type: 'replace', exerciseId: exerciseMenu.exercise.id });
-                setExerciseMenu(null);
-              }}
-              style={({ pressed }) => [styles.menuAction, pressed && styles.pressed]}>
-              <Text style={styles.menuActionLabel}>{copy.replaceExercise}</Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel={copy.deleteExercise}
-              accessibilityRole="button"
-              onPress={() => {
-                if (!exerciseMenu) return;
-                Alert.alert(copy.deleteExerciseTitle, copy.deleteExerciseBody, [
-                  { text: copy.cancel, style: 'cancel' },
-                  {
-                    text: copy.deleteExercise,
-                    style: 'destructive',
-                    onPress: () => deleteExercise(exerciseMenu.exercise.id),
-                  },
-                ]);
-              }}
-              style={({ pressed }) => [styles.menuAction, pressed && styles.pressed]}>
-              <Text style={[styles.menuActionLabel, styles.deleteLabel]}>
-                {copy.deleteExercise}
-              </Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <RoutineExercisePickerModal
+        copy={copy}
+        exercises={exercises}
+        mode={pickerMode}
+        onAdd={addExercise}
+        onClose={() => setPickerMode(null)}
+        onReplace={replaceExercise}
+        selectedExerciseIds={selectedExerciseIds}
+      />
+      <RoutineExerciseMenuModal
+        copy={copy}
+        exercise={exerciseMenu}
+        onClose={() => setExerciseMenu(null)}
+        onDelete={deleteExercise}
+        onReplace={(exerciseId) => {
+          setPickerMode({ type: 'replace', exerciseId });
+          setExerciseMenu(null);
+        }}
+      />
     </View>
   );
 }
