@@ -1,6 +1,6 @@
+import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -13,59 +13,41 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useLocalization } from '@/localization';
+import { getSafetyRecoveryReviewCopy } from '@/localization/safetyRecoveryReviewCopy';
+import { getUserLimitationsCopy } from '@/localization/userLimitationsCopy';
 import {
   createAsyncStorageAdapter,
   createSafetyRecoveryReviewStore,
 } from '@/storage';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { buildSafetyRecoveryReviewSnapshot } from '../safetyRecoveryReviewSnapshot';
-import {
-  buildSafetyRecoveryViewModel,
-  type SafetyRecoveryIssueSeverity,
-  type SafetyRecoveryRestrictionAction,
-} from '../safetyRecoveryViewModel';
+import { buildSafetyRecoveryViewModel } from '../safetyRecoveryViewModel';
 import { createSafetyRecoveryCoachStyles } from './safetyRecoveryCoachScreen.styles';
 
 const LOOKBACK_OPTIONS = [7, 14, 30] as const;
-
-const ACTION_LABELS: Record<SafetyRecoveryRestrictionAction, string> = {
-  monitor: 'Monitor',
-  reduce_load: 'Reduce load',
-  avoid_movement: 'Avoid movement',
-  pause_training: 'Pause training',
-};
-
-const SEVERITY_LABELS: Record<SafetyRecoveryIssueSeverity, string> = {
-  input_required: 'Input required',
-  warning: 'Warning',
-  modify: 'Modify',
-  hard_block: 'Hard block',
-};
 
 const createIdempotencyKey = (lookbackDays: number): string =>
   `mobile-safety-recovery-review-${lookbackDays}-${Date.now().toString(36)}-${Math.random()
     .toString(16)
     .slice(2)}`;
 
-const formatCode = (value: string): string =>
+const humanizeCode = (value: string): string =>
   value
+    .toLowerCase()
     .split('_')
+    .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
-const formatCheckIn = (value: string | null, ageHours: number | null): string => {
-  if (!value) return 'Not available';
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return 'Not available';
-  const dateLabel = new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-  return ageHours === null ? dateLabel : `${dateLabel} · ${ageHours} h ago`;
-};
+const lookupLabel = (labels: Record<string, string>, value: string): string =>
+  labels[value] ?? humanizeCode(value);
 
 export default function SafetyRecoveryCoachScreen() {
   const { colors } = useAppTheme();
+  const { formatDate, formatNumber, locale } = useLocalization();
+  const copy = getSafetyRecoveryReviewCopy(locale);
+  const limitationCopy = getUserLimitationsCopy(locale);
   const styles = useMemo(() => createSafetyRecoveryCoachStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const app = useAppContext();
@@ -88,6 +70,7 @@ export default function SafetyRecoveryCoachScreen() {
     () => (run ? buildSafetyRecoveryViewModel(run) : null),
     [run],
   );
+  const presentation = viewModel ? copy.viewModelCopy(viewModel) : null;
 
   const coachApi = useMemo(
     () =>
@@ -119,14 +102,10 @@ export default function SafetyRecoveryCoachScreen() {
       .then((nextCapabilities) => {
         if (!cancelled) setCapabilities(nextCapabilities);
       })
-      .catch((capabilityError: unknown) => {
+      .catch(() => {
         if (cancelled) return;
         setCapabilities(null);
-        setError(
-          capabilityError instanceof Error
-            ? capabilityError.message
-            : 'Safety & Recovery capabilities could not be verified.',
-        );
+        setError(copy.requestErrorBody);
       })
       .finally(() => {
         if (!cancelled) setCapabilitiesLoading(false);
@@ -135,7 +114,7 @@ export default function SafetyRecoveryCoachScreen() {
     return () => {
       cancelled = true;
     };
-  }, [coachApi, isAuthenticated, ready]);
+  }, [coachApi, copy.requestErrorBody, isAuthenticated, ready]);
 
   const startReview = async () => {
     if (busy || !safetyAvailable) return;
@@ -171,20 +150,14 @@ export default function SafetyRecoveryCoachScreen() {
       if (snapshot && session?.user.id === snapshot.userId) {
         try {
           await reviewStore.set(snapshot);
-          setSnapshotMessage('Saved for the pre-workout Safety & Recovery check.');
+          setSnapshotMessage(copy.snapshotSaved);
         } catch {
-          setSnapshotMessage(
-            'Review completed, but the local pre-workout snapshot could not be saved.',
-          );
+          setSnapshotMessage(copy.snapshotFailed);
         }
       }
     } catch (requestError) {
       if (requestError instanceof Error && requestError.name === 'AbortError') return;
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Safety & Recovery could not complete the review.',
-      );
+      setError(copy.requestErrorBody);
     } finally {
       if (abortControllerRef.current === abortController) {
         abortControllerRef.current = null;
@@ -194,20 +167,32 @@ export default function SafetyRecoveryCoachScreen() {
   };
 
   const loading = !ready || isRestoringState;
+  const formatCheckIn = (value: string | null, ageHours: number | null): string => {
+    if (!value) return copy.notAvailable;
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return copy.notAvailable;
+    const dateLabel = formatDate(date, { dateStyle: 'medium', timeStyle: 'short' });
+    return ageHours === null
+      ? dateLabel
+      : `${dateLabel} · ${copy.hoursAgo(
+          ageHours,
+          formatNumber(ageHours, { maximumFractionDigits: 0 }),
+        )}`;
+  };
 
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
-          accessibilityLabel="Back"
+          accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>Safety & Recovery</Text>
-          <Text style={styles.subtitle}>Deterministic self-reported readiness</Text>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.subtitle}>{copy.subtitle}</Text>
         </View>
       </View>
 
@@ -220,43 +205,42 @@ export default function SafetyRecoveryCoachScreen() {
         <View style={styles.container}>
           <AppCard>
             <View style={styles.badgeRow}>
-              <Text style={styles.previewBadge}>Deterministic</Text>
+              <Text style={styles.previewBadge}>{copy.deterministic}</Text>
               <Text style={styles.statusText}>
                 {capabilitiesLoading
-                  ? 'Checking backend capability'
+                  ? copy.checkingCapability
                   : safetyAvailable
-                    ? 'Safety Recovery v5 available'
-                    : 'Safety Recovery unavailable'}
+                    ? copy.available
+                    : copy.unavailable}
               </Text>
             </View>
-            <Text style={styles.cardTitle}>Readiness review</Text>
-            <Text style={styles.bodyText}>
-              The backend evaluates synchronized self-reported limitations and recovery check-ins.
-              It does not diagnose a condition, read free-text notes, or apply changes automatically.
-            </Text>
+            <Text style={styles.cardTitle}>{copy.readinessReview}</Text>
+            <Text style={styles.bodyText}>{copy.introduction}</Text>
           </AppCard>
 
           {loading ? (
             <AppCard>
-              <Text style={styles.cardTitle}>Preparing account and recovery data…</Text>
+              <Text style={styles.cardTitle}>{copy.preparing}</Text>
             </AppCard>
           ) : !isAuthenticated ? (
             <AppCard>
-              <Text style={styles.cardTitle}>Sign in required</Text>
-              <Text style={styles.bodyText}>
-                Safety & Recovery reads only records synchronized to your protected backend account.
-              </Text>
-              <PrimaryButton label="Sign in" onPress={() => router.push('/auth/sign-in')} />
+              <Text style={styles.cardTitle}>{copy.signInRequired}</Text>
+              <Text style={styles.bodyText}>{copy.signInBody}</Text>
+              <PrimaryButton label={copy.signIn} onPress={() => router.push('/auth/sign-in')} />
             </AppCard>
           ) : (
             <AppCard>
-              <Text style={styles.cardTitle}>Review period</Text>
+              <Text style={styles.cardTitle}>{copy.reviewPeriod}</Text>
               <View style={styles.periodRow}>
                 {LOOKBACK_OPTIONS.map((days) => {
                   const selected = days === lookbackDays;
                   return (
                     <Pressable
                       key={days}
+                      accessibilityLabel={copy.days(
+                        days,
+                        formatNumber(days, { maximumFractionDigits: 0 }),
+                      )}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
                       disabled={busy}
@@ -272,7 +256,7 @@ export default function SafetyRecoveryCoachScreen() {
                         pressed && !busy && styles.pressed,
                       ]}>
                       <Text style={[styles.periodLabel, selected && styles.periodLabelSelected]}>
-                        {days} days
+                        {copy.days(days, formatNumber(days, { maximumFractionDigits: 0 }))}
                       </Text>
                     </Pressable>
                   );
@@ -280,55 +264,63 @@ export default function SafetyRecoveryCoachScreen() {
               </View>
               <PrimaryButton
                 disabled={!safetyAvailable || busy || capabilitiesLoading}
-                label="Run readiness review"
+                label={copy.runReview}
                 loading={busy}
                 onPress={() => void startReview()}
               />
               {!capabilitiesLoading && !safetyAvailable ? (
-                <Text style={styles.disclaimer}>
-                  This control remains disabled until the authenticated backend returns the exact
-                  capability v5 safety contract.
-                </Text>
+                <Text style={styles.disclaimer}>{copy.capabilityHint}</Text>
               ) : null}
             </AppCard>
           )}
 
           {error ? (
             <AppCard style={styles.errorCard}>
-              <Text style={styles.errorTitle}>Request error</Text>
+              <Text style={styles.errorTitle}>{copy.requestError}</Text>
               <Text style={styles.bodyText}>{error}</Text>
             </AppCard>
           ) : null}
 
-          {viewModel ? (
+          {viewModel && presentation ? (
             <AppCard>
               <View style={styles.resultHeader}>
-                <Text style={styles.cardTitle}>{viewModel.title}</Text>
-                <Text style={styles.resultStatus}>{run?.run.status.toUpperCase()}</Text>
+                <Text style={styles.cardTitle}>{presentation.title}</Text>
+                <Text style={styles.resultStatus}>
+                  {run ? copy.runStatusLabels[run.run.status] ?? run.run.status : ''}
+                </Text>
               </View>
-              <Text style={styles.bodyText}>{viewModel.message}</Text>
+              <Text style={styles.bodyText}>{presentation.message}</Text>
 
               {viewModel.kind === 'result' ? (
                 <View style={styles.resultStack}>
                   <View style={styles.metricGrid}>
                     <View style={styles.metricCell}>
                       <Text style={styles.metricValue}>
-                        {Math.round(viewModel.readiness.recommendedLoadMultiplier * 100)}%
+                        {formatNumber(
+                          Math.round(viewModel.readiness.recommendedLoadMultiplier * 100),
+                          { maximumFractionDigits: 0 },
+                        )}%
                       </Text>
-                      <Text style={styles.metricLabel}>Recommended load</Text>
+                      <Text style={styles.metricLabel}>{copy.recommendedLoad}</Text>
                     </View>
                     <View style={styles.metricCell}>
-                      <Text style={styles.metricValue}>{viewModel.readiness.signalCount}</Text>
-                      <Text style={styles.metricLabel}>Recovery signals</Text>
+                      <Text style={styles.metricValue}>
+                        {formatNumber(viewModel.readiness.signalCount, {
+                          maximumFractionDigits: 0,
+                        })}
+                      </Text>
+                      <Text style={styles.metricLabel}>{copy.recoverySignals}</Text>
                     </View>
                   </View>
 
                   <View style={styles.infoRow}>
-                    <Text style={styles.metaText}>Readiness status</Text>
-                    <Text style={styles.infoValue}>{formatCode(viewModel.readiness.status)}</Text>
+                    <Text style={styles.metaText}>{copy.readinessStatus}</Text>
+                    <Text style={styles.infoValue}>
+                      {copy.readinessStatusLabels[viewModel.readiness.status]}
+                    </Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.metaText}>Latest check-in</Text>
+                    <Text style={styles.metaText}>{copy.latestCheckIn}</Text>
                     <Text style={styles.infoValue}>
                       {formatCheckIn(
                         viewModel.readiness.latestCheckInAt,
@@ -337,37 +329,62 @@ export default function SafetyRecoveryCoachScreen() {
                     </Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.metaText}>Explicit confirmation</Text>
+                    <Text style={styles.metaText}>{copy.explicitConfirmation}</Text>
                     <Text style={styles.infoValue}>
-                      {viewModel.readiness.requiresExplicitConfirmation ? 'Required' : 'Not required'}
+                      {viewModel.readiness.requiresExplicitConfirmation
+                        ? copy.required
+                        : copy.notRequired}
                     </Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.metaText}>Automatic application</Text>
-                    <Text style={styles.infoValue}>Never approved</Text>
+                    <Text style={styles.metaText}>{copy.automaticApplication}</Text>
+                    <Text style={styles.infoValue}>{copy.neverApproved}</Text>
                   </View>
 
                   {viewModel.readiness.restrictions.length > 0 ? (
                     <View style={styles.sectionBlock}>
-                      <Text style={styles.sectionTitle}>Active restrictions</Text>
+                      <Text style={styles.sectionTitle}>{copy.activeRestrictions}</Text>
                       {viewModel.readiness.restrictions.map((restriction) => (
                         <View key={restriction.limitationId} style={styles.listRow}>
                           <View style={styles.listCopy}>
                             <Text style={styles.listTitle}>
-                              {formatCode(restriction.bodyRegion)} · {formatCode(restriction.side)}
+                              {lookupLabel(
+                                limitationCopy.bodyRegionLabels as Record<string, string>,
+                                restriction.bodyRegion,
+                              )}{' '}
+                              · {lookupLabel(
+                                limitationCopy.sideLabels as Record<string, string>,
+                                restriction.side,
+                              )}
                             </Text>
                             <Text style={styles.bodyText}>
-                              {ACTION_LABELS[restriction.action]} · maximum affected load{' '}
-                              {Math.round(restriction.maximumLoadMultiplier * 100)}%
+                              {copy.actionLabels[restriction.action]} ·{' '}
+                              {copy.maximumAffectedLoad(
+                                formatNumber(
+                                  Math.round(restriction.maximumLoadMultiplier * 100),
+                                  { maximumFractionDigits: 0 },
+                                ),
+                              )}
                             </Text>
                             {restriction.movementPatterns.length > 0 ? (
                               <Text style={styles.metaText}>
-                                Movements: {restriction.movementPatterns.map(formatCode).join(', ')}
+                                {copy.movements}:{' '}
+                                {restriction.movementPatterns
+                                  .map((value) =>
+                                    lookupLabel(
+                                      limitationCopy.movementLabels as Record<string, string>,
+                                      value,
+                                    ),
+                                  )
+                                  .join(', ')}
                               </Text>
                             ) : null}
                           </View>
                           <Text style={styles.restrictionSeverity}>
-                            {restriction.severity.toUpperCase()}
+                            {lookupLabel(
+                              limitationCopy.severityLabels as Record<string, string>,
+                              restriction.severity,
+                            )}
                           </Text>
                         </View>
                       ))}
@@ -376,28 +393,28 @@ export default function SafetyRecoveryCoachScreen() {
 
                   {viewModel.readiness.issues.length > 0 ? (
                     <View style={styles.sectionBlock}>
-                      <Text style={styles.sectionTitle}>Review findings</Text>
-                      {viewModel.readiness.issues.map((issue, index) => (
-                        <View key={`${issue.code}-${index}`} style={styles.issueRow}>
-                          <Text style={styles.issueBadge}>{SEVERITY_LABELS[issue.severity]}</Text>
-                          <View style={styles.listCopy}>
-                            <Text style={styles.listTitle}>{formatCode(issue.code)}</Text>
-                            <Text style={styles.bodyText}>{issue.message}</Text>
+                      <Text style={styles.sectionTitle}>{copy.reviewFindings}</Text>
+                      {viewModel.readiness.issues.map((issue, index) => {
+                        const issuePresentation = copy.issueCopy(issue.code);
+                        return (
+                          <View key={`${issue.code}-${index}`} style={styles.issueRow}>
+                            <Text style={styles.issueBadge}>
+                              {copy.issueSeverityLabels[issue.severity]}
+                            </Text>
+                            <View style={styles.listCopy}>
+                              <Text style={styles.listTitle}>{issuePresentation.title}</Text>
+                              <Text style={styles.bodyText}>{issuePresentation.message}</Text>
+                            </View>
                           </View>
-                        </View>
-                      ))}
+                        );
+                      })}
                     </View>
                   ) : (
-                    <Text style={styles.successText}>
-                      No deterministic recovery or limitation findings were returned.
-                    </Text>
+                    <Text style={styles.successText}>{copy.noFindings}</Text>
                   )}
 
                   {snapshotMessage ? <Text style={styles.metaText}>{snapshotMessage}</Text> : null}
-                  <Text style={styles.disclaimer}>
-                    This product result is based on self-reported data and is not a medical diagnosis
-                    or treatment recommendation.
-                  </Text>
+                  <Text style={styles.disclaimer}>{copy.disclaimer}</Text>
                 </View>
               ) : null}
             </AppCard>
