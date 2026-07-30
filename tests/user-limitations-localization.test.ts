@@ -49,7 +49,9 @@ describe('user limitations localization', () => {
     expect(model).toContain("status: 'active'");
     expect(model).toContain("input.draft.trainingImpact === 'avoid_movement'");
     expect(model).toContain('Select a limitation type.');
-    expect(copy).toContain('copy');
+    expect(copy).toContain('kindLabels');
+    expect(copy).toContain('movementLabels');
+    expect(copy).toContain('statusLabels');
   });
 
   it('removes audited fixed English controls from screen components', () => {
