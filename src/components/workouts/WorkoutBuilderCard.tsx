@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import { getWorkoutBuilderCopy } from '@/localization/workoutBuilderCopy';
 
 import { EmptyWorkoutState } from './EmptyWorkoutState';
 import type { DraftWorkoutExercise } from './workout-builder-types';
@@ -29,14 +31,11 @@ type WorkoutBuilderCardProps = {
   workoutTitle: string;
 };
 
-const getSectionTitle = (title: string, isExpanded: boolean) => `${title} ${isExpanded ? '−' : '+'}`;
-
 export function WorkoutBuilderCard({
   draftExerciseName,
   draftExercises,
   editingWorkoutId,
   isExpanded,
-  isSaveWorkoutDisabled,
   onAddExercise,
   onCancelEdit,
   onDraftExerciseNameChange,
@@ -44,22 +43,32 @@ export function WorkoutBuilderCard({
   onExerciseChange,
   onMoveExercise,
   onRemoveDraftExercise,
-  onSaveWorkout,
   onToggleExpanded,
   onWorkoutDescriptionChange,
   onWorkoutTitleChange,
   workoutDescription,
   workoutTitle,
 }: WorkoutBuilderCardProps) {
+  const { locale } = useLocalization();
+  const copy = getWorkoutBuilderCopy(locale);
+  const sectionTitle = editingWorkoutId ? copy.editWorkout : copy.workoutBuilder;
+
   return (
     <AppCard>
-      <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
+      <Pressable
+        accessibilityLabel={isExpanded ? copy.collapseBuilder : copy.expandBuilder}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isExpanded }}
+        onPress={onToggleExpanded}
+        style={styles.collapsibleHeader}>
         <View style={styles.headerRow}>
           <View style={styles.headerContent}>
-            <Text style={styles.sectionTitle}>{getSectionTitle(editingWorkoutId ? 'Edit workout' : 'Workout builder', isExpanded)}</Text>
-            <Text style={styles.subtitle}>Create templates with targets, rest, notes, and quick reorder controls.</Text>
+            <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+            <Text style={styles.subtitle}>{copy.workoutBuilderSubtitle}</Text>
           </View>
-          <Text style={styles.toggle}>{isExpanded ? '−' : '+'}</Text>
+          <Text accessibilityElementsHidden style={styles.toggle}>
+            {isExpanded ? '−' : '+'}
+          </Text>
         </View>
       </Pressable>
 
@@ -67,11 +76,12 @@ export function WorkoutBuilderCard({
         <>
           <View style={styles.inputGroup}>
             <Text selectable style={styles.inputLabel}>
-              Workout title
+              {copy.workoutTitle}
             </Text>
             <TextInput
+              accessibilityLabel={copy.workoutTitle}
               onChangeText={onWorkoutTitleChange}
-              placeholder="Push day"
+              placeholder={copy.workoutTitlePlaceholder}
               placeholderTextColor={Colors.dark.textSecondary}
               style={styles.input}
               value={workoutTitle}
@@ -80,12 +90,13 @@ export function WorkoutBuilderCard({
 
           <View style={styles.inputGroup}>
             <Text selectable style={styles.inputLabel}>
-              Workout notes
+              {copy.workoutNotes}
             </Text>
             <TextInput
+              accessibilityLabel={copy.workoutNotes}
               multiline
               onChangeText={onWorkoutDescriptionChange}
-              placeholder="Optional training intent or coaching cues"
+              placeholder={copy.workoutNotesPlaceholder}
               placeholderTextColor={Colors.dark.textSecondary}
               style={styles.notesInput}
               value={workoutDescription}
@@ -95,26 +106,32 @@ export function WorkoutBuilderCard({
           <View style={styles.quickAddRow}>
             <View style={styles.quickAddField}>
               <Text selectable style={styles.inputLabel}>
-                Quick add exercise
+                {copy.quickAddExercise}
               </Text>
               <TextInput
+                accessibilityLabel={copy.quickAddExercise}
                 onChangeText={onDraftExerciseNameChange}
-                placeholder="Bench press"
+                placeholder={copy.exercisePlaceholder}
                 placeholderTextColor={Colors.dark.textSecondary}
                 style={styles.input}
                 value={draftExerciseName}
               />
             </View>
             <View style={styles.quickAddAction}>
-              <AppButton disabled={draftExerciseName.trim().length === 0} label="Add" onPress={onAddExercise} variant="secondary" />
+              <AppButton
+                disabled={draftExerciseName.trim().length === 0}
+                label={copy.add}
+                onPress={onAddExercise}
+                variant="secondary"
+              />
             </View>
           </View>
 
           {draftExercises.length === 0 ? (
             <EmptyWorkoutState
-              description="Add exercises from the library or manually build a new template above."
-              message="No exercises in this workout yet."
-              title="Start building"
+              description={copy.noExercisesInWorkoutBody}
+              message={copy.noExercisesInWorkout}
+              title={copy.startBuilding}
             />
           ) : (
             <View style={styles.exerciseList}>
@@ -135,7 +152,11 @@ export function WorkoutBuilderCard({
 
           <View style={styles.footer}>
             {editingWorkoutId ? (
-              <AppButton label="Cancel edit" onPress={onCancelEdit} variant="secondary" />
+              <AppButton
+                label={copy.cancelEdit}
+                onPress={onCancelEdit}
+                variant="secondary"
+              />
             ) : null}
           </View>
         </>

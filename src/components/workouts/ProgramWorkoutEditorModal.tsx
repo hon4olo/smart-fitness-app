@@ -1,10 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
-import { WorkoutBuilderCard } from './WorkoutBuilderCard';
 import { createWorkoutDraftFromWorkout } from '@/features/workouts/programEditorModel';
+import { useLocalization } from '@/localization';
+import { getWorkoutBuilderCopy } from '@/localization/workoutBuilderCopy';
 import type { Workout } from '@/types';
+
+import { WorkoutBuilderCard } from './WorkoutBuilderCard';
 import type { DraftWorkoutExercise } from './workout-builder-types';
 
 type ProgramWorkoutEditorModalProps = {
@@ -18,19 +29,25 @@ type ProgramWorkoutEditorModalProps = {
   }) => void;
 };
 
-export function ProgramWorkoutEditorModal({ visible, workout, onClose, onSaveWorkout }: ProgramWorkoutEditorModalProps) {
+export function ProgramWorkoutEditorModal({
+  visible,
+  workout,
+  onClose,
+  onSaveWorkout,
+}: ProgramWorkoutEditorModalProps) {
+  const { locale } = useLocalization();
+  const copy = getWorkoutBuilderCopy(locale);
   const initialDraft = useMemo(() => createWorkoutDraftFromWorkout(workout), [workout]);
   const [workoutTitle, setWorkoutTitle] = useState(initialDraft.title);
   const [workoutDescription, setWorkoutDescription] = useState(initialDraft.description);
   const [draftExerciseName, setDraftExerciseName] = useState('');
-  const [draftExercises, setDraftExercises] = useState<DraftWorkoutExercise[]>(initialDraft.exercises);
+  const [draftExercises, setDraftExercises] = useState<DraftWorkoutExercise[]>(
+    initialDraft.exercises,
+  );
   const [isExpanded, setExpanded] = useState(true);
 
   useEffect(() => {
-    if (!visible) {
-      return;
-    }
-
+    if (!visible) return;
     setWorkoutTitle(initialDraft.title);
     setWorkoutDescription(initialDraft.description);
     setDraftExercises(initialDraft.exercises);
@@ -38,15 +55,11 @@ export function ProgramWorkoutEditorModal({ visible, workout, onClose, onSaveWor
     setExpanded(true);
   }, [initialDraft, visible]);
 
-  if (!visible) {
-    return null;
-  }
+  if (!visible) return null;
 
   const addExercise = () => {
     const trimmed = draftExerciseName.trim();
-    if (!trimmed) {
-      return;
-    }
+    if (!trimmed) return;
 
     setDraftExercises((current) => [
       ...current,
@@ -63,20 +76,23 @@ export function ProgramWorkoutEditorModal({ visible, workout, onClose, onSaveWor
   };
 
   const updateExercise = (exerciseId: string, patch: Partial<DraftWorkoutExercise>) => {
-    setDraftExercises((current) => current.map((exercise) => (exercise.id === exerciseId ? { ...exercise, ...patch } : exercise)));
+    setDraftExercises((current) =>
+      current.map((exercise) =>
+        exercise.id === exerciseId ? { ...exercise, ...patch } : exercise,
+      ),
+    );
   };
 
   const removeExercise = (exerciseId: string) => {
-    setDraftExercises((current) => current.filter((exercise) => exercise.id !== exerciseId));
+    setDraftExercises((current) =>
+      current.filter((exercise) => exercise.id !== exerciseId),
+    );
   };
 
   const duplicateExercise = (exerciseId: string) => {
     setDraftExercises((current) => {
       const index = current.findIndex((exercise) => exercise.id === exerciseId);
-      if (index === -1) {
-        return current;
-      }
-
+      if (index === -1) return current;
       const source = current[index];
       const next = [...current];
       next.splice(index + 1, 0, {
@@ -90,15 +106,9 @@ export function ProgramWorkoutEditorModal({ visible, workout, onClose, onSaveWor
   const moveExercise = (exerciseId: string, direction: -1 | 1) => {
     setDraftExercises((current) => {
       const index = current.findIndex((exercise) => exercise.id === exerciseId);
-      if (index === -1) {
-        return current;
-      }
-
+      if (index === -1) return current;
       const targetIndex = index + direction;
-      if (targetIndex < 0 || targetIndex >= current.length) {
-        return current;
-      }
-
+      if (targetIndex < 0 || targetIndex >= current.length) return current;
       const next = [...current];
       const [item] = next.splice(index, 1);
       next.splice(targetIndex, 0, item);
@@ -107,31 +117,56 @@ export function ProgramWorkoutEditorModal({ visible, workout, onClose, onSaveWor
   };
 
   const saveDisabled = workoutTitle.trim().length === 0 || draftExercises.length === 0;
+  const saveWorkout = () => {
+    if (saveDisabled) return;
+    onSaveWorkout({
+      title: workoutTitle.trim(),
+      description: workoutDescription.trim() || undefined,
+      exercises: draftExercises.map((exercise) => exercise.name.trim()).filter(Boolean),
+    });
+  };
 
   return (
     <View style={styles.overlay}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.fill}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.fill}>
         <View style={styles.panel}>
           <View style={styles.header}>
             <View style={styles.headerCopy}>
-              <Text style={styles.title}>{workout ? 'Edit workout' : 'Create workout'}</Text>
-              <Text style={styles.subtitle}>Build the template here, then return to the program draft.</Text>
+              <Text style={styles.title}>
+                {workout ? copy.editWorkout : copy.createNewWorkout}
+              </Text>
+              <Text style={styles.subtitle}>{copy.editorSubtitle}</Text>
             </View>
             <View style={styles.headerActions}>
-              <Pressable onPress={onClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
-                <Text style={styles.closeLabel}>{workout ? 'Back' : 'Cancel'}</Text>
+              <Pressable
+                accessibilityLabel={workout ? copy.back : copy.cancel}
+                accessibilityRole="button"
+                onPress={onClose}
+                style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
+                <Text style={styles.closeLabel}>{workout ? copy.back : copy.cancel}</Text>
               </Pressable>
-              <Pressable disabled={saveDisabled} onPress={saveDisabled ? undefined : () => onSaveWorkout({
-                title: workoutTitle.trim(),
-                description: workoutDescription.trim() || undefined,
-                exercises: draftExercises.map((exercise) => exercise.name.trim()).filter(Boolean),
-              })} style={({ pressed }) => [styles.saveButton, saveDisabled && styles.saveButtonDisabled, pressed && !saveDisabled && styles.pressed]}>
-                <Text style={styles.saveLabel}>Save</Text>
+              <Pressable
+                accessibilityLabel={copy.save}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: saveDisabled }}
+                disabled={saveDisabled}
+                onPress={saveWorkout}
+                style={({ pressed }) => [
+                  styles.saveButton,
+                  saveDisabled && styles.saveButtonDisabled,
+                  pressed && !saveDisabled && styles.pressed,
+                ]}>
+                <Text style={styles.saveLabel}>{copy.save}</Text>
               </Pressable>
             </View>
           </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
             <WorkoutBuilderCard
               draftExerciseName={draftExerciseName}
               draftExercises={draftExercises}
@@ -145,13 +180,7 @@ export function ProgramWorkoutEditorModal({ visible, workout, onClose, onSaveWor
               onExerciseChange={updateExercise}
               onMoveExercise={moveExercise}
               onRemoveDraftExercise={removeExercise}
-              onSaveWorkout={() => {
-                onSaveWorkout({
-                  title: workoutTitle.trim(),
-                  description: workoutDescription.trim() || undefined,
-                  exercises: draftExercises.map((exercise) => exercise.name.trim()).filter(Boolean),
-                });
-              }}
+              onSaveWorkout={saveWorkout}
               onToggleExpanded={() => setExpanded((current) => !current)}
               onWorkoutDescriptionChange={setWorkoutDescription}
               onWorkoutTitleChange={setWorkoutTitle}
