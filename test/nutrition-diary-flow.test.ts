@@ -146,13 +146,15 @@ describe('nutrition compact diary 5.0', () => {
 
   test('calendar date picker marks logged dates without changing layout', () => {
     const source = readSource('src/app/nutrition/date-picker.tsx');
+    const copy = readSource('src/localization/nutritionCalendarCopy.ts');
 
     expect(source).toContain('useAppContext');
     expect(source).toContain('getLoggedFoodDates');
     expect(source).toContain('dayCellLogged');
     expect(source).toContain('dayCellCheck');
-    expect(source).toContain('food logged');
-    expect(source).toContain('no food logged');
+    expect(source).toContain('copy.dayAccessibility');
+    expect(copy).toContain(', food logged');
+    expect(copy).toContain(', no food logged');
     expect(source).not.toContain('new dependency');
   });
 

@@ -8,35 +8,9 @@ import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { addDays, formatLocalDate } from '@/lib';
 import { getLoggedFoodDates } from '@/lib/nutrition';
+import { useLocalization } from '@/localization';
+import { getNutritionCalendarCopy } from '@/localization/nutritionCalendarCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
-
-const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-
-const formatMonthTitle = (date: Date) =>
-  new Intl.DateTimeFormat(undefined, {
-    month: 'long',
-    year: 'numeric',
-  }).format(date);
-
-const formatDayLabel = (dateLabel: string) => {
-  const parsedDate = new Date(`${dateLabel}T12:00:00`);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return dateLabel.slice(-2);
-  }
-
-  return new Intl.DateTimeFormat(undefined, { day: 'numeric' }).format(parsedDate);
-};
-
-const formatWeekday = (dateLabel: string) => {
-  const parsedDate = new Date(`${dateLabel}T12:00:00`);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return dateLabel.slice(0, 3);
-  }
-
-  return new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(parsedDate);
-};
 
 const getMonthGridStart = (year: number, monthIndex: number) => {
   const firstOfMonth = new Date(year, monthIndex, 1, 12, 0, 0);
@@ -47,6 +21,8 @@ const getMonthGridStart = (year: number, monthIndex: number) => {
 
 export default function NutritionDatePickerScreen() {
   const { colors } = useAppTheme();
+  const { formatDate, locale } = useLocalization();
+  const copy = getNutritionCalendarCopy(locale);
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { foodEntries } = useAppContext();
@@ -65,7 +41,7 @@ export default function NutritionDatePickerScreen() {
     return parsed;
   }, [monthAnchor, todayKey]);
 
-  const monthTitle = useMemo(() => formatMonthTitle(monthDate), [monthDate]);
+  const monthTitle = formatDate(monthDate, { month: 'long', year: 'numeric' });
   const loggedDaySet = useMemo(() => getLoggedFoodDates(foodEntries), [foodEntries]);
   const dayCells = useMemo(() => {
     const gridStart = getMonthGridStart(monthDate.getFullYear(), monthDate.getMonth());
@@ -74,15 +50,15 @@ export default function NutritionDatePickerScreen() {
       const cellDate = new Date(`${dateKey}T12:00:00`);
       return {
         dateKey,
-        dayLabel: formatDayLabel(dateKey),
-        weekdayLabel: formatWeekday(dateKey),
+        dayLabel: formatDate(cellDate, { day: 'numeric' }),
+        weekdayLabel: formatDate(cellDate, { weekday: 'short' }),
         inMonth: cellDate.getMonth() === monthDate.getMonth(),
         isSelected: dateKey === selectedDate,
         isToday: dateKey === todayKey,
         isLogged: loggedDaySet.has(dateKey),
       };
     });
-  }, [monthDate, selectedDate, todayKey, loggedDaySet]);
+  }, [formatDate, loggedDaySet, monthDate, selectedDate, todayKey]);
 
   const goToPreviousMonth = () => {
     const previousMonth = new Date(
@@ -132,43 +108,37 @@ export default function NutritionDatePickerScreen() {
         <View style={styles.container}>
           <View style={styles.headerRow}>
             <Pressable
-              accessibilityLabel="Cancel"
+              accessibilityLabel={copy.cancel}
               hitSlop={10}
               onPress={() => router.back()}
               style={styles.headerButton}>
-              <Text style={styles.headerButtonText}>Cancel</Text>
+              <Text style={styles.headerButtonText}>{copy.cancel}</Text>
             </Pressable>
             <View style={styles.headerCopy}>
-              <Text selectable style={styles.title}>
-                Calendar
-              </Text>
-              <Text selectable style={styles.subtitle}>
-                Jump to any day
-              </Text>
+              <Text selectable style={styles.title}>{copy.title}</Text>
+              <Text selectable style={styles.subtitle}>{copy.subtitle}</Text>
             </View>
             <Pressable
-              accessibilityLabel="Done"
+              accessibilityLabel={copy.done}
               hitSlop={10}
               onPress={confirmDate}
               style={styles.headerButton}>
-              <Text style={styles.headerButtonText}>Done</Text>
+              <Text style={styles.headerButtonText}>{copy.done}</Text>
             </Pressable>
           </View>
 
           <AppCard style={styles.calendarCard}>
             <View style={styles.monthRow}>
               <Pressable
-                accessibilityLabel="Previous month"
+                accessibilityLabel={copy.previousMonth}
                 hitSlop={10}
                 onPress={goToPreviousMonth}
                 style={styles.monthNavButton}>
                 <Text style={styles.monthNavText}>‹</Text>
               </Pressable>
-              <Text selectable style={styles.monthTitle}>
-                {monthTitle}
-              </Text>
+              <Text selectable style={styles.monthTitle}>{monthTitle}</Text>
               <Pressable
-                accessibilityLabel="Next month"
+                accessibilityLabel={copy.nextMonth}
                 hitSlop={10}
                 onPress={goToNextMonth}
                 style={styles.monthNavButton}>
@@ -177,11 +147,9 @@ export default function NutritionDatePickerScreen() {
             </View>
 
             <View style={styles.weekHeader}>
-              {weekDays.map((day) => (
+              {copy.weekDays.map((day) => (
                 <View key={day} style={styles.weekHeaderCell}>
-                  <Text selectable style={styles.weekHeaderLabel}>
-                    {day}
-                  </Text>
+                  <Text selectable style={styles.weekHeaderLabel}>{day}</Text>
                 </View>
               ))}
             </View>
@@ -190,7 +158,12 @@ export default function NutritionDatePickerScreen() {
               {dayCells.map((day) => (
                 <View key={day.dateKey} style={styles.daySlot}>
                   <Pressable
-                    accessibilityLabel={`${day.weekdayLabel} ${day.dayLabel}${day.isToday ? ', today' : ''}${day.isLogged ? ', food logged' : ', no food logged'}`}
+                    accessibilityLabel={copy.dayAccessibility({
+                      day: day.dayLabel,
+                      isLogged: day.isLogged,
+                      isToday: day.isToday,
+                      weekday: day.weekdayLabel,
+                    })}
                     accessibilityState={{ selected: day.isSelected }}
                     hitSlop={4}
                     onPress={() => applyDate(day.dateKey)}
