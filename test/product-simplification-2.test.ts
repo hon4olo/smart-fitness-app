@@ -197,13 +197,14 @@ describe('product simplification 2.0', () => {
     expect(settings).toContain('settings.appearance');
     expect(settings).toContain('settings.language');
     expect(settings).toContain('setWeightUnit');
-    expect(sessionTable).toContain('Set');
-    expect(sessionTable).toContain('Previous');
+    expect(sessionTable).toContain("t('workouts.session.set')");
+    expect(sessionTable).toContain("t('workouts.session.previous')");
     expect(sessionTable).toContain('weightUnit');
-    expect(sessionTable).toContain('Reps');
+    expect(sessionTable).toContain("t('workouts.session.reps')");
     expect(sessionTable).toContain('✓');
     expect(sessionTable).not.toContain('colOverflow');
-    expect(exerciseSection).toContain('Add set');
+    expect(exerciseSection).toContain("t('workouts.session.addSet')");
+    expect(exerciseSection).toContain('useUnitPreferences');
     expect(builder).toContain('handleSaveProgram');
     expect(builder).toContain('copy.discardChanges');
     expect(builder).toContain('ProgramWorkoutPickerModal');
