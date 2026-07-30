@@ -32,16 +32,11 @@ const createIdempotencyKey = (lookbackDays: number): string =>
     .toString(16)
     .slice(2)}`;
 
-const humanizeCode = (value: string): string =>
-  value
-    .toLowerCase()
-    .split('_')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-
-const lookupLabel = (labels: Record<string, string>, value: string): string =>
-  labels[value] ?? humanizeCode(value);
+const lookupLabel = (
+  labels: Record<string, string>,
+  value: string,
+  fallback: string,
+): string => labels[value] ?? fallback;
 
 export default function SafetyRecoveryCoachScreen() {
   const { colors } = useAppTheme();
@@ -286,7 +281,7 @@ export default function SafetyRecoveryCoachScreen() {
               <View style={styles.resultHeader}>
                 <Text style={styles.cardTitle}>{presentation.title}</Text>
                 <Text style={styles.resultStatus}>
-                  {run ? copy.runStatusLabels[run.run.status] ?? run.run.status : ''}
+                  {run ? copy.runStatusLabel(run.run.status) : ''}
                 </Text>
               </View>
               <Text style={styles.bodyText}>{presentation.message}</Text>
@@ -351,10 +346,13 @@ export default function SafetyRecoveryCoachScreen() {
                               {lookupLabel(
                                 limitationCopy.bodyRegionLabels as Record<string, string>,
                                 restriction.bodyRegion,
+                                copy.unknownValue,
                               )}{' '}
-                              · {lookupLabel(
+                              ·{' '}
+                              {lookupLabel(
                                 limitationCopy.sideLabels as Record<string, string>,
                                 restriction.side,
+                                copy.unknownValue,
                               )}
                             </Text>
                             <Text style={styles.bodyText}>
@@ -374,6 +372,7 @@ export default function SafetyRecoveryCoachScreen() {
                                     lookupLabel(
                                       limitationCopy.movementLabels as Record<string, string>,
                                       value,
+                                      copy.unknownValue,
                                     ),
                                   )
                                   .join(', ')}
@@ -384,6 +383,7 @@ export default function SafetyRecoveryCoachScreen() {
                             {lookupLabel(
                               limitationCopy.severityLabels as Record<string, string>,
                               restriction.severity,
+                              copy.unknownValue,
                             )}
                           </Text>
                         </View>

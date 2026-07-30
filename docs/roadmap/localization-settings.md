@@ -86,7 +86,19 @@ Completed immutable run history/detail, trust states, provenance, Nutrition/Stre
 
 ### Safety and Recovery
 
-Completed Recovery Check-In, User Limitations, typed enum display mappings, selected-locale dates, Safety & Recovery preflight/review, deterministic readiness gates, restrictions, findings, load recommendations and bounded errors.
+Completed:
+
+- Recovery Check-In and User Limitations;
+- typed enum display mappings and selected-locale dates;
+- preflight and deterministic readiness review;
+- readiness, pending-operation and conflict gates;
+- restrictions, findings and load recommendations;
+- bounded request and snapshot errors;
+- bounded preflight sync statuses and review run statuses;
+- bounded unknown limitation enums without humanized internal-code fallbacks;
+- capability copy without user-visible internal schema versions.
+
+The remaining Safety & Recovery retry/status presentation is implemented in PR #234 and must merge only from an exact-green Mobile CI head.
 
 ### Combined Coach
 
@@ -101,7 +113,7 @@ Completed:
 - bounded standalone capability states without user-visible schema versions;
 - bounded EN/RU sync presentation with a safe unknown-status fallback.
 
-Standalone Combined Review/Proposal trust presentation is implemented in PR #233 and must merge only from an exact-green Mobile CI head.
+Standalone Combined Review/Proposal trust presentation merged in PR #233.
 
 ### Nutrition Coach
 
@@ -130,30 +142,23 @@ Completed and merged in PR #226:
 
 ## Current next task
 
-### Remaining Coach — retry and compensating-revert audit
+### Repository-wide localization final pass
 
-After PR #233, audit the remaining reachable Coach flows for:
+After PR #234, run a repository-wide source audit for remaining reachable production presentation that bypasses completed boundaries:
 
-- stale/offline/retry states that still bypass bounded copy;
-- raw provider/backend/status fallbacks outside the completed Strength, Nutrition and Combined surfaces;
-- standalone proposal or confirmation routes that duplicate completed flows;
-- compensating-revert UX for Coach-applied changes, if a reversible product contract exists in the current code and backend API.
+- direct `Intl`, `toLocaleString` and presentation-level `toFixed`;
+- fixed `kg`, `cm`, `kcal` or English-only date/count strings;
+- hard-coded accessibility labels and controls;
+- raw provider/backend/status/enum fallbacks;
+- literal-English source tests that should assert semantic behavior.
 
-Must preserve:
+Use separate bounded PRs for real findings and do not create no-op changes.
 
-- request types, capability gates, abort lifecycle, polling and idempotency;
-- explicit confirmations and `automaticApplication: false`;
-- revisioned writes and post-confirmation synchronization;
-- completed workout history and canonical Nutrition targets;
-- existing API and sync schemas.
+Must preserve routes, IDs, persisted canonical units, API and sync schemas, business logic, polling, idempotency, explicit confirmations and completed history.
 
-If compensating revert is not supported by the current backend/API contract, document it as an external or future product dependency rather than inventing a client-only rollback.
+## Product/API dependency
 
-## Remaining source work
-
-### Repository-wide final pass
-
-Remove remaining direct `Intl`/`toLocaleString`, fixed English accessibility labels, fixed `kg`/`cm`/`kcal` copy, visible internal enums/statuses and obsolete literal-English source tests.
+Compensating revert for Coach-applied changes is not implemented because the current Mobile `CoachApi` exposes confirm operations but no revert mutation or reversal contract. A safe implementation requires an explicit backend/API product contract with ownership, revision, idempotency, conflict and audit semantics; do not invent a client-only rollback.
 
 ## External validation still required
 
