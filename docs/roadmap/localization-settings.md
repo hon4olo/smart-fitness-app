@@ -50,7 +50,8 @@ Completed:
 - Exercise Library, filters, favourites, recently used and custom exercise;
 - exercise detail sheet;
 - Workout History list/edit/delete;
-- selected `kg/lb` with conversion back to canonical kilograms on edit.
+- selected `kg/lb` with conversion back to canonical kilograms on edit;
+- workout-template detail loading/not-found states, menu, favourite toggle, deletion confirmation, pluralized set counts, accessibility and start action.
 
 ### Progress
 
@@ -88,49 +89,50 @@ Completed and merged in PR #224:
 - bounded capability, request, confirmation, rejection and issue presentation;
 - full Mobile CI.
 
+### Strength Coach
+
+Completed and merged in PR #226:
+
+- account/loading/capability and latest-workout states;
+- deterministic review, next-workout proposal and structured Strength Strategy preview;
+- localized metrics, mapped sets, guardrail states, rationale/caveat codes and confirmation alert;
+- selected `kg/lb`, locale-aware dates/numbers and count-dependent copy;
+- bounded request, confirmation, view-model, issue and provider-audit presentation;
+- preserved abort, polling, idempotency, explicit `confirmRun`, post-confirmation sync and new-template-only application;
+- full Mobile CI.
+
 ## Current next task
 
-### Strength Coach localization
+### Secondary Workouts — program and routine details
 
-Existing branch: `agent/localize-strength-coach`.
+Immediate linked slice after workout-template detail:
 
-Current state:
+- `src/features/workouts/screens/ProgramDetailScreen.tsx`;
+- routine creation/editor routes reached from the program detail screen;
+- directly required typed copy modules and source-contract tests.
 
-- created from `main`;
-- audit complete;
-- no product commits and no PR yet.
+Confirmed remaining issues include:
 
-Required linked slice:
-
-- `src/features/coach/screens/StrengthCoachScreen.tsx`;
-- `src/features/coach/components/StrengthStrategyProposalView.tsx`;
-- directly required typed copy module and source-contract tests.
-
-Confirmed issues:
-
-- direct `Intl.DateTimeFormat` and `toLocaleString`;
-- fixed `kg` presentation;
-- hard-coded metrics, controls, alerts and accessibility labels;
-- uppercase/internal statuses and guardrail codes;
-- raw request, confirmation, view-model and issue messages;
-- direct provider/model audit details not intended as user-facing copy.
+- hard-coded loading/not-found, menu, favourite, delete, unavailable-workout and saved-toast copy;
+- direct English exercise/workout counts;
+- hard-coded accessibility boundaries and uppercase presentation controls;
+- user-facing built-in program/workout titles bypassing stable-ID localization;
+- remaining builder, picker, preview and discard-confirmation copy outside the localization boundary.
 
 Must preserve:
 
-- `session_review`, `next_workout_proposal` and `strength_strategy_proposal`;
-- latest/source-session mapping;
-- abort and polling behavior;
-- proposal/confirmation capability gates;
-- idempotency keys and explicit `coachApi.confirmRun`;
-- post-confirmation sync;
-- deterministic source-set, load, repetition, RPE and volume validation;
-- creation of a new template without changing completed history.
+- program IDs, workout-template IDs, day IDs and schedule ordering;
+- custom vs built-in program behavior;
+- favourite, delete and remove-from-program actions;
+- routine creation navigation and saved-workout return state;
+- training-program persistence and revisioned sync contracts;
+- completed workout history.
 
-## Remaining source work after Strength Coach
+## Remaining source work
 
-### Secondary Workouts
+### Secondary Workouts after program/routine details
 
-Audit/localize program and routine details, template details/builders, workout picker/editor modals, preview/discard surfaces and remaining Safety gate/session-preview copy.
+Audit/localize remaining workout-template builders, workout picker/editor modals, preview/discard surfaces and remaining Safety gate/session-preview copy.
 
 ### Secondary Progress
 
