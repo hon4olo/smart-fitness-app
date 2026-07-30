@@ -2,47 +2,10 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import type { NutritionCoachCopy } from '@/localization/nutritionCoachCopy';
+import { formatEnergyValue, useUnitPreferences } from '@/units';
 import type { NutritionStrategyViewModel } from '../nutritionStrategyViewModel';
-
-const STRATEGY_LABELS = {
-  maintain: 'Maintain',
-  reduce: 'Reduce',
-  increase: 'Increase',
-  recompose: 'Recompose',
-} as const;
-
-const RATIONALE_LABELS: Record<string, string> = {
-  goal_energy_delta: 'Goal-based energy range',
-  weight_trend: 'Observed weight trend',
-  tracked_intake: 'Tracked intake',
-  protein_floor: 'Protein policy floor',
-  fat_floor: 'Fat policy floor',
-  adherence_stability: 'Adherence stability',
-  current_target_continuity: 'Current target continuity',
-};
-
-const CAVEAT_LABELS: Record<string, string> = {
-  limited_tracking_coverage: 'Tracking coverage is limited',
-  weight_trend_unavailable: 'Weight trend is unavailable',
-  short_observation_window: 'Observation window is short',
-  target_requires_confirmation: 'Any target change requires confirmation',
-};
-
-const formatNumber = (value: number, maximumFractionDigits = 0): string =>
-  new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value);
-
-const formatConfidence = (value: number): string =>
-  `${formatNumber(value * 100)}%`;
-
-const formatTimestamp = (value: string): string => {
-  const date = new Date(value);
-  return Number.isFinite(date.getTime())
-    ? new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      }).format(date)
-    : value;
-};
 
 type StrategyResultView = Extract<
   NutritionStrategyViewModel,
@@ -52,111 +15,158 @@ type StrategyResultView = Extract<
 export function NutritionStrategyProposalView({
   confirmationSupported,
   confirming,
+  copy,
   onConfirm,
   viewModel,
 }: {
   confirmationSupported: boolean;
   confirming: boolean;
+  copy: NutritionCoachCopy;
   onConfirm: () => void;
   viewModel: StrategyResultView;
 }) {
+  const { formatDate, formatNumber, locale } = useLocalization();
+  const { energy } = useUnitPreferences();
   const { proposal } = viewModel;
   const applied = viewModel.kind === 'applied';
+  const rationaleLabels: Record<string, string> = {
+    goal_energy_delta: locale === 'ru' ? 'Диапазон энергии по цели' : 'Goal-based energy range',
+    weight_trend: locale === 'ru' ? 'Наблюдаемая динамика веса' : 'Observed weight trend',
+    tracked_intake: locale === 'ru' ? 'Отслеживаемое потребление' : 'Tracked intake',
+    protein_floor: locale === 'ru' ? 'Минимум белка по политике' : 'Protein policy floor',
+    fat_floor: locale === 'ru' ? 'Минимум жиров по политике' : 'Fat policy floor',
+    adherence_stability: locale === 'ru' ? 'Стабильность соблюдения' : 'Adherence stability',
+    current_target_continuity: locale === 'ru' ? 'Непрерывность текущей цели' : 'Current target continuity',
+  };
+  const caveatLabels: Record<string, string> = {
+    limited_tracking_coverage:
+      locale === 'ru' ? 'Покрытие отслеживания ограничено' : 'Tracking coverage is limited',
+    weight_trend_unavailable:
+      locale === 'ru' ? 'Динамика веса недоступна' : 'Weight trend is unavailable',
+    short_observation_window:
+      locale === 'ru' ? 'Короткий период наблюдения' : 'Observation window is short',
+    target_requires_confirmation:
+      locale === 'ru' ? 'Изменение цели требует подтверждения' : 'Any target change requires confirmation',
+  };
+  const dataQualityLabels: Record<string, string> = {
+    high: locale === 'ru' ? 'Высокое' : 'High',
+    medium: locale === 'ru' ? 'Среднее' : 'Medium',
+    low: locale === 'ru' ? 'Низкое' : 'Low',
+  };
+  const formatTimestamp = (value: string): string =>
+    formatDate(value, { dateStyle: 'medium', timeStyle: 'short' });
+  const energyValue = (value: number): string =>
+    `${formatEnergyValue(value, energy)} ${energy}`;
 
   return (
     <View style={styles.stack}>
       <View style={applied ? styles.appliedBanner : styles.previewBanner}>
         <Text style={applied ? styles.appliedTitle : styles.previewTitle}>
-          {applied ? 'Applied to active target' : 'Preview · not applied'}
+          {applied ? copy.applied : copy.previewNotApplied}
         </Text>
         <Text style={styles.previewText}>
           {applied
-            ? `Revision ${viewModel.appliedRevision} · ${formatTimestamp(viewModel.appliedAt)}`
+            ? `${copy.revision} ${formatNumber(viewModel.appliedRevision, {
+                maximumFractionDigits: 0,
+              })} · ${formatTimestamp(viewModel.appliedAt)}`
             : confirmationSupported
-              ? 'Applying requires a separate confirmation. The backend will reload the run, verify the target revision and rerun deterministic guardrails.'
-              : 'This backend supports strategy preview but does not advertise strategy confirmation.'}
+              ? copy.confirmationBody
+              : copy.previewOnly}
         </Text>
       </View>
 
       <View style={styles.headerRow}>
         <View style={styles.headerCopy}>
-          <Text style={styles.sectionLabel}>Strategy</Text>
-          <Text style={styles.strategyValue}>{STRATEGY_LABELS[proposal.strategy]}</Text>
+          <Text style={styles.sectionLabel}>{copy.strategy}</Text>
+          <Text style={styles.strategyValue}>
+            {copy.strategyLabels[proposal.strategy] ?? proposal.strategy}
+          </Text>
         </View>
         <View style={styles.validBadge}>
-          <Text style={styles.validBadgeText}>GUARDRAIL VALID</Text>
+          <Text style={styles.validBadgeText}>{copy.guardrailValid}</Text>
         </View>
       </View>
 
       <View style={styles.metricGrid}>
         <View style={styles.metricCell}>
-          <Text style={styles.metricValue}>{formatNumber(proposal.calorieTarget)}</Text>
-          <Text style={styles.metricLabel}>Calories</Text>
+          <Text style={styles.metricValue}>{energyValue(proposal.calorieTarget)}</Text>
+          <Text style={styles.metricLabel}>{copy.calories}</Text>
         </View>
         <View style={styles.metricCell}>
           <Text style={styles.metricValue}>{formatNumber(proposal.macros.protein)} g</Text>
-          <Text style={styles.metricLabel}>Protein</Text>
+          <Text style={styles.metricLabel}>{copy.protein}</Text>
         </View>
         <View style={styles.metricCell}>
           <Text style={styles.metricValue}>{formatNumber(proposal.macros.carbs)} g</Text>
-          <Text style={styles.metricLabel}>Carbs</Text>
+          <Text style={styles.metricLabel}>{copy.carbs}</Text>
         </View>
         <View style={styles.metricCell}>
           <Text style={styles.metricValue}>{formatNumber(proposal.macros.fats)} g</Text>
-          <Text style={styles.metricLabel}>Fats</Text>
+          <Text style={styles.metricLabel}>{copy.fats}</Text>
         </View>
       </View>
 
       <View style={styles.infoStack}>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Confidence</Text>
-          <Text style={styles.infoValue}>{formatConfidence(proposal.confidence)}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Data quality</Text>
-          <Text style={styles.infoValue}>{proposal.dataQuality}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Adjustment cadence</Text>
-          <Text style={styles.infoValue}>{proposal.adjustmentCadenceDays} days</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Macro calories</Text>
-          <Text style={styles.infoValue}>{formatNumber(viewModel.calculatedMacroCalories)} kcal</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Calorie math mismatch</Text>
+          <Text style={styles.infoLabel}>{copy.confidence}</Text>
           <Text style={styles.infoValue}>
-            {viewModel.calorieMathMismatch > 0 ? '+' : ''}
-            {formatNumber(viewModel.calorieMathMismatch)} kcal
+            {formatNumber(proposal.confidence * 100, { maximumFractionDigits: 0 })}%
           </Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Validation attempts</Text>
-          <Text style={styles.infoValue}>{viewModel.modelAttempts}</Text>
+          <Text style={styles.infoLabel}>{copy.dataQuality}</Text>
+          <Text style={styles.infoValue}>
+            {dataQualityLabels[proposal.dataQuality] ?? proposal.dataQuality}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>{copy.cadence}</Text>
+          <Text style={styles.infoValue}>
+            {copy.days(
+              proposal.adjustmentCadenceDays,
+              formatNumber(proposal.adjustmentCadenceDays, { maximumFractionDigits: 0 }),
+            )}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>{copy.macroCalories}</Text>
+          <Text style={styles.infoValue}>{energyValue(viewModel.calculatedMacroCalories)}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>{copy.mismatch}</Text>
+          <Text style={styles.infoValue}>
+            {viewModel.calorieMathMismatch > 0 ? '+' : ''}
+            {energyValue(viewModel.calorieMathMismatch)}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>{copy.attempts}</Text>
+          <Text style={styles.infoValue}>
+            {formatNumber(viewModel.modelAttempts, { maximumFractionDigits: 0 })}
+          </Text>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Summary</Text>
+        <Text style={styles.sectionTitle}>{copy.summary}</Text>
         <Text style={styles.bodyText}>{proposal.userSummary}</Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Rationale</Text>
+        <Text style={styles.sectionTitle}>{copy.rationale}</Text>
         {proposal.rationaleCodes.map((code) => (
           <Text key={code} style={styles.listItem}>
-            • {RATIONALE_LABELS[code] ?? code}
+            • {rationaleLabels[code] ?? copy.typedIssue}
           </Text>
         ))}
       </View>
 
       {proposal.caveatCodes.length > 0 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Caveats</Text>
+          <Text style={styles.sectionTitle}>{copy.caveats}</Text>
           {proposal.caveatCodes.map((code) => (
             <Text key={code} style={styles.listItem}>
-              • {CAVEAT_LABELS[code] ?? code}
+              • {caveatLabels[code] ?? copy.typedIssue}
             </Text>
           ))}
         </View>
@@ -164,10 +174,10 @@ export function NutritionStrategyProposalView({
 
       {viewModel.issues.length > 0 ? (
         <View style={styles.issueBox}>
-          <Text style={styles.issueTitle}>Deterministic issues</Text>
+          <Text style={styles.issueTitle}>{copy.deterministicIssues}</Text>
           {viewModel.issues.map((issue) => (
             <Text key={`${issue.code}:${issue.path}`} style={styles.issueText}>
-              • {issue.message}
+              • {copy.typedIssue}
             </Text>
           ))}
         </View>
@@ -175,12 +185,10 @@ export function NutritionStrategyProposalView({
 
       {!applied && confirmationSupported ? (
         <View style={styles.confirmationSection}>
-          <Text style={styles.confirmationText}>
-            Confirmation replaces the active calorie and macro target with the values shown above.
-          </Text>
+          <Text style={styles.confirmationText}>{copy.confirmationText}</Text>
           <PrimaryButton
             disabled={confirming}
-            label="Apply strategy to targets"
+            label={copy.applyTargets}
             loading={confirming}
             onPress={onConfirm}
           />
@@ -220,11 +228,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.caption.fontSize,
     lineHeight: Typography.caption.lineHeight,
   },
-  headerCopy: {
-    flex: 1,
-    gap: 2,
-    minWidth: 0,
-  },
+  headerCopy: { flex: 1, gap: 2, minWidth: 0 },
   headerRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -243,9 +247,7 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     justifyContent: 'space-between',
   },
-  infoStack: {
-    gap: Spacing.two,
-  },
+  infoStack: { gap: Spacing.two },
   infoValue: {
     color: Colors.dark.textPrimary,
     fontSize: Typography.bodyEmphasized.fontSize,
@@ -276,15 +278,8 @@ const styles = StyleSheet.create({
     fontSize: Typography.body.fontSize,
     lineHeight: Typography.body.lineHeight,
   },
-  metricCell: {
-    flexBasis: '47%',
-    gap: 2,
-  },
-  metricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.four,
-  },
+  metricCell: { flexBasis: '47%', gap: 2 },
+  metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.four },
   metricLabel: {
     color: Colors.dark.textMuted,
     fontSize: Typography.caption.fontSize,
@@ -314,9 +309,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.label.fontSize,
     fontWeight: '800',
   },
-  section: {
-    gap: Spacing.one,
-  },
+  section: { gap: Spacing.one },
   sectionLabel: {
     color: Colors.dark.textMuted,
     fontSize: Typography.caption.fontSize,
@@ -328,9 +321,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.label.fontWeight,
     lineHeight: Typography.label.lineHeight,
   },
-  stack: {
-    gap: Spacing.four,
-  },
+  stack: { gap: Spacing.four },
   strategyValue: {
     color: Colors.dark.textPrimary,
     fontSize: Typography.cardTitle.fontSize,
