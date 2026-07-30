@@ -21,11 +21,11 @@ import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { TrainingProgram } from '@/types';
 
 import {
-  CreateWorkoutProgramModal,
-  WorkoutProgramRow,
-  WorkoutRoutineCard,
-  WorkoutsTopTabs,
-  type WorkoutsTabKey,
+  CreateProgramModal,
+  ProgramRow,
+  RoutineCard,
+  TopTabs,
+  type TabKey,
 } from './WorkoutsScreenComponents';
 import { createWorkoutsScreenStyles } from './workoutsScreen.styles';
 
@@ -41,7 +41,7 @@ export default function WorkoutsScreen() {
     workoutSessions,
     workouts,
   } = useAppContext();
-  const [activeTab, setActiveTab] = useState<WorkoutsTabKey>('start-now');
+  const [activeTab, setActiveTab] = useState<TabKey>('start-now');
   const [activeDraft, setActiveDraft] = useState<WorkoutSessionDraft | null>(null);
   const [draftReady, setDraftReady] = useState(false);
   const [createProgramOpen, setCreateProgramOpen] = useState(false);
@@ -141,7 +141,7 @@ export default function WorkoutsScreen() {
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <WorkoutsTopTabs activeTab={activeTab} onChange={setActiveTab} />
+            <TopTabs activeTab={activeTab} onChange={setActiveTab} />
             <Pressable
               accessibilityHint={t('workouts.searchExercisesHint')}
               accessibilityLabel={t('workouts.searchExercisesAccessibility')}
@@ -157,7 +157,7 @@ export default function WorkoutsScreen() {
               {suggested.length > 0 ? (
                 <View style={styles.grid}>
                   {suggested.map((summary, index) => (
-                    <WorkoutRoutineCard key={summary.workout.id} index={index} summary={summary} />
+                    <RoutineCard key={summary.workout.id} index={index} summary={summary} />
                   ))}
                 </View>
               ) : (
@@ -170,20 +170,20 @@ export default function WorkoutsScreen() {
                 contentContainerStyle={styles.horizontalList}>
                 {(recent.length > 0 ? recent : suggested).map((summary, index) => (
                   <View key={summary.workout.id} style={styles.horizontalCard}>
-                    <WorkoutRoutineCard index={index} summary={summary} />
+                    <RoutineCard index={index} summary={summary} />
                   </View>
                 ))}
               </ScrollView>
             </View>
           ) : (
             <View style={styles.programList}>
-              <WorkoutProgramRow
+              <ProgramRow
                 icon="add"
                 title={t('workouts.addProgram')}
                 workoutCount={0}
                 onPress={() => setCreateProgramOpen(true)}
               />
-              <WorkoutProgramRow
+              <ProgramRow
                 favoriteMode={favoritesOnly ? 'show-all' : 'show-favorites'}
                 icon="favorite"
                 title={favoritesOnly ? t('workouts.allPrograms') : t('workouts.favorites')}
@@ -194,7 +194,7 @@ export default function WorkoutsScreen() {
                 <Text style={styles.emptyProgramText}>{t('workouts.noFavorites')}</Text>
               ) : null}
               {visibleProgramSummaries.map((summary) => (
-                <WorkoutProgramRow
+                <ProgramRow
                   key={summary.program.id}
                   icon="program"
                   summary={summary}
@@ -233,7 +233,7 @@ export default function WorkoutsScreen() {
         </View>
       </View>
 
-      <CreateWorkoutProgramModal
+      <CreateProgramModal
         visible={createProgramOpen}
         onClose={() => setCreateProgramOpen(false)}
         onCreate={createProgram}

@@ -9,12 +9,18 @@ const { resolve } = require('path') as { resolve: (...parts: string[]) => string
 const projectRoot = resolve(__dirname, '..');
 const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 const count = (source: string, needle: string) => (source.match(new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) ?? []).length;
+const readWorkoutsSource = () =>
+  [
+    readSource('src/features/workouts/screens/WorkoutsScreen.tsx'),
+    readSource('src/features/workouts/screens/WorkoutsScreenComponents.tsx'),
+  ].join('\n');
 
 describe('product simplification 2.0', () => {
   test('workouts screen keeps the start-now section order and one visible create action', () => {
-    const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
-    const startNowBlock = source.slice(source.indexOf("activeTab === 'start-now'"), source.indexOf('<View style={styles.programList}>'));
-    const programsBlock = source.slice(source.indexOf('<View style={styles.programList}>'), source.indexOf('</View>', source.indexOf('<View style={styles.programList}>')));
+    const screen = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
+    const source = readWorkoutsSource();
+    const startNowBlock = screen.slice(screen.indexOf("activeTab === 'start-now'"), screen.indexOf('<View style={styles.programList}>'));
+    const programsBlock = screen.slice(screen.indexOf('<View style={styles.programList}>'), screen.indexOf('</View>', screen.indexOf('<View style={styles.programList}>')));
     expect(startNowBlock).toContain('suggested.map');
     expect(startNowBlock).toContain("t('workouts.recentlyAdded')");
     expect(programsBlock).not.toContain('title="Programs"');
@@ -27,7 +33,7 @@ describe('product simplification 2.0', () => {
   });
 
   test('workouts screen uses a consistent card and program metadata model', () => {
-    const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
+    const source = readWorkoutsSource();
     expect(source).toContain('displaySubtitle');
     expect(source).toContain('getWorkoutsHubWorkoutTitle');
     expect(source).toContain('getWorkoutsHubProgramTitle');
@@ -104,10 +110,10 @@ describe('product simplification 2.0', () => {
     const copy = readSource('src/localization/nutritionAddFoodCopy.ts');
     const source = [route, view, copy].join('\n');
 
-    expect(view).toContain("label: copy.modes.food");
-    expect(view).toContain("label: copy.modes.recent");
-    expect(view).toContain("label: copy.modes.favorites");
-    expect(view).toContain("label: copy.modes.meals");
+    expect(view).toContain('label: copy.modes.food');
+    expect(view).toContain('label: copy.modes.recent');
+    expect(view).toContain('label: copy.modes.favorites');
+    expect(view).toContain('label: copy.modes.meals');
     expect(view).toContain('copy.createFood');
     expect(view).toContain('copy.createMeal');
     expect(source).toContain('onQuickAdd');
@@ -150,8 +156,8 @@ describe('product simplification 2.0', () => {
     expect(tabBar).toContain('BlurView');
     expect(tabBar).toContain('Canvas');
     expect(tabBar).toContain('usePathInterpolation');
-    expect(tabBar).toContain("selectionAsync()");
-    expect(tabBar).toContain("impactAsync(Haptics.ImpactFeedbackStyle.Light)");
+    expect(tabBar).toContain('selectionAsync()');
+    expect(tabBar).toContain('impactAsync(Haptics.ImpactFeedbackStyle.Light)');
   });
 
   test('theme tokens remain valid', () => {
@@ -164,7 +170,7 @@ describe('product simplification 2.0', () => {
   });
 
   test('business actions remain reachable in source', () => {
-    const workouts = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
+    const workouts = readWorkoutsSource();
     const template = readSource('src/features/workouts/screens/WorkoutTemplateDetailScreen.tsx');
     const program = readSource('src/features/workouts/screens/ProgramDetailScreen.tsx');
     const nutrition = readSource('src/app/(tabs)/nutrition.tsx');

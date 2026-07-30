@@ -11,6 +11,11 @@ import { addWorkoutSessionSet, buildCompletedWorkoutSessionSnapshotFromDraft, cr
 
 const projectRoot = resolve(__dirname, '..');
 const readSource = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
+const readWorkoutsSource = () =>
+  [
+    readSource('src/features/workouts/screens/WorkoutsScreen.tsx'),
+    readSource('src/features/workouts/screens/WorkoutsScreenComponents.tsx'),
+  ].join('\n');
 
 const workout = defaultState.workouts.find((item) => item.id === 'push-a') ?? defaultState.workouts[0]!;
 
@@ -75,7 +80,7 @@ describe('workout session redesign', () => {
   });
 
   it('hides the empty workout CTA when add exercise is not implemented', () => {
-    const source = readSource('src/features/workouts/screens/WorkoutsScreen.tsx');
+    const source = readWorkoutsSource();
 
     expect(source).toContain("messageKey: 'workouts.tabs.startNow'");
     expect(source).toContain("messageKey: 'workouts.tabs.programs'");

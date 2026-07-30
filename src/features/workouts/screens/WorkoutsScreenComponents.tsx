@@ -25,7 +25,7 @@ const tabs = [
   { key: 'programs', messageKey: 'workouts.tabs.programs' },
 ] as const;
 
-export type WorkoutsTabKey = (typeof tabs)[number]['key'];
+export type TabKey = (typeof tabs)[number]['key'];
 
 const cardTints = ['#EB737D', '#6BBFC2', '#8C83D8', '#E4A65A'];
 
@@ -38,12 +38,12 @@ const getInitials = (value: string) =>
     .join('')
     .toUpperCase() || '+';
 
-export function WorkoutsTopTabs({
+export function TopTabs({
   activeTab,
   onChange,
 }: {
-  activeTab: WorkoutsTabKey;
-  onChange: (tab: WorkoutsTabKey) => void;
+  activeTab: TabKey;
+  onChange: (tab: TabKey) => void;
 }) {
   const { colors } = useAppTheme();
   const { t } = useLocalization();
@@ -67,7 +67,7 @@ export function WorkoutsTopTabs({
   );
 }
 
-export function WorkoutRoutineCard({
+export function RoutineCard({
   index,
   summary,
 }: {
@@ -113,7 +113,7 @@ export function WorkoutRoutineCard({
   );
 }
 
-export function WorkoutProgramRow({
+export function ProgramRow({
   favoriteMode,
   icon,
   onPress,
@@ -175,7 +175,7 @@ export function WorkoutProgramRow({
   );
 }
 
-export function CreateWorkoutProgramModal({
+export function CreateProgramModal({
   onClose,
   onCreate,
   visible,
