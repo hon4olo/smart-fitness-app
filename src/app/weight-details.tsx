@@ -3,7 +3,10 @@ import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ProgressTrendChart, type ProgressTrendPoint } from '@/components/progress/ProgressTrendChart';
+import {
+  ProgressTrendChart,
+  type ProgressTrendPoint,
+} from '@/components/progress/ProgressTrendChart';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -38,9 +41,9 @@ export default function WeightDetailsScreen() {
     () =>
       analytics.weight.recentEntries.map((entry) => ({
         key: entry.id,
-        label: toDateLabel(entry.createdAt),
+        label: formatDate(entry.createdAt, { day: 'numeric', month: 'short' }),
         value: weightFromKg(entry.weight, weightUnit),
-        displayValue: formatWeightValue(entry.weight),
+        displayValue: `${formatWeightValue(entry.weight)} ${weightUnit}`,
       })),
     [analytics.weight.recentEntries, formatDate, formatWeightValue, weightUnit],
   );
@@ -49,20 +52,26 @@ export default function WeightDetailsScreen() {
     [analytics.weight.recentEntries],
   );
 
-  const latestWeight = analytics.weight.currentWeight !== null
-    ? `${formatWeightValue(analytics.weight.currentWeight)} ${weightUnit}`
-    : '—';
-  const convertedDelta30Days = analytics.weight.delta30Days !== null
-    ? weightFromKg(analytics.weight.delta30Days, weightUnit)
-    : null;
-  const trend = convertedDelta30Days !== null
-    ? copy.trend30Days(
-        `${convertedDelta30Days > 0 ? '+' : ''}${formatNumber(convertedDelta30Days, {
-          maximumFractionDigits: 1,
-        })}`,
-        weightUnit,
-      )
-    : copy.noComparison;
+  const latestWeight =
+    analytics.weight.currentWeight !== null
+      ? `${formatWeightValue(analytics.weight.currentWeight)} ${weightUnit}`
+      : '—';
+  const convertedDelta30Days =
+    analytics.weight.delta30Days !== null
+      ? weightFromKg(analytics.weight.delta30Days, weightUnit)
+      : null;
+  const trend =
+    convertedDelta30Days !== null
+      ? copy.trend30Days(
+          `${convertedDelta30Days > 0 ? '+' : ''}${formatNumber(
+            convertedDelta30Days,
+            {
+              maximumFractionDigits: 1,
+            },
+          )}`,
+          weightUnit,
+        )
+      : copy.noComparison;
   const chartValues = points.map((point) => point.value);
 
   return (
@@ -77,13 +86,21 @@ export default function WeightDetailsScreen() {
         <SectionHeader title={copy.title} subtitle={copy.subtitle} />
 
         <AppCard>
-          <Text selectable style={styles.title}>{copy.currentWeight}</Text>
-          <Text selectable style={styles.value}>{latestWeight}</Text>
-          <Text selectable style={styles.detail}>{trend}</Text>
+          <Text selectable style={styles.title}>
+            {copy.currentWeight}
+          </Text>
+          <Text selectable style={styles.value}>
+            {latestWeight}
+          </Text>
+          <Text selectable style={styles.detail}>
+            {trend}
+          </Text>
         </AppCard>
 
         <AppCard>
-          <Text selectable style={styles.title}>{copy.trend}</Text>
+          <Text selectable style={styles.title}>
+            {copy.trend}
+          </Text>
           {points.length > 1 ? (
             <ProgressTrendChart
               emptyLabel={copy.chartEmpty}
@@ -96,12 +113,16 @@ export default function WeightDetailsScreen() {
               points={points}
             />
           ) : (
-            <Text selectable style={styles.detail}>{copy.addAnother}</Text>
+            <Text selectable style={styles.detail}>
+              {copy.addAnother}
+            </Text>
           )}
         </AppCard>
 
         <AppCard>
-          <Text selectable style={styles.title}>{copy.recentWeighIns}</Text>
+          <Text selectable style={styles.title}>
+            {copy.recentWeighIns}
+          </Text>
           {recentEntries.length > 0 ? (
             <View style={styles.historyList}>
               {recentEntries.map((entry, index) => (
@@ -118,13 +139,19 @@ export default function WeightDetailsScreen() {
               ))}
             </View>
           ) : (
-            <Text selectable style={styles.detail}>{copy.noWeighIns}</Text>
+            <Text selectable style={styles.detail}>
+              {copy.noWeighIns}
+            </Text>
           )}
         </AppCard>
 
         <AppCard>
-          <Text selectable style={styles.title}>{copy.trainingHistory}</Text>
-          <Text selectable style={styles.detail}>{copy.trainingHistoryBody}</Text>
+          <Text selectable style={styles.title}>
+            {copy.trainingHistory}
+          </Text>
+          <Text selectable style={styles.detail}>
+            {copy.trainingHistoryBody}
+          </Text>
           <AppButton
             label={copy.openWorkoutHistory}
             onPress={() => router.push('/workout-history')}
