@@ -1,3 +1,5 @@
+import type { CoachRunInputSummary } from './inputSummary';
+
 export type CoachRunStatus = 'queued' | 'running' | 'completed' | 'rejected' | 'failed';
 export type CoachDomain = 'strength' | 'nutrition' | 'safety_recovery' | 'combined';
 export type StrengthCoachRequestType =
@@ -125,6 +127,8 @@ export type CoachRunEnvelope = {
   agentRuns: CoachAgentRunRecord[];
   trust?: CoachRunTrustState;
   trustValidationFailed?: true;
+  inputSummary?: CoachRunInputSummary;
+  inputSummaryValidationFailed?: true;
 };
 
 export type StartStrengthCoachRunInput = {

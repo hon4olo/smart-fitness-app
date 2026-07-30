@@ -1,5 +1,6 @@
 export { createCoachApi } from './coach/client';
 export { parseCoachCapabilities, parseCoachRunEnvelope } from './coach/parsers';
+export { parseCoachRunInputSummary } from './coach/inputSummary';
 export type {
   CoachAgentRunRecord,
   CoachApi,
@@ -25,3 +26,10 @@ export type {
   StartStrengthCoachRunInput,
   StrengthCoachRequestType,
 } from './coach/contracts';
+export type {
+  CoachInputCoverage,
+  CoachRunInputSummary,
+  NutritionInputCoverage,
+  SafetyRecoveryInputCoverage,
+  StrengthInputCoverage,
+} from './coach/inputSummary';

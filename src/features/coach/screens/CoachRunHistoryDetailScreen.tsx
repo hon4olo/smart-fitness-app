@@ -14,6 +14,7 @@ import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { getCoachHistoryCopy } from '../coachHistoryCopy';
 import { CoachAppliedChangeCard } from '../components/CoachAppliedChangeCard';
+import { CoachInputSummaryCard } from '../components/CoachInputSummaryCard';
 import { CoachRunTrustCard } from '../components/CoachRunTrustCard';
 
 export default function CoachRunHistoryDetailScreen() {
@@ -158,6 +159,11 @@ export default function CoachRunHistoryDetailScreen() {
               </AppCard>
 
               <CoachRunTrustCard run={run} locale={locale} />
+
+              <CoachInputSummaryCard
+                summary={run.inputSummary}
+                invalid={run.inputSummaryValidationFailed}
+              />
 
               <CoachAppliedChangeCard
                 changes={appliedChangeState.items}

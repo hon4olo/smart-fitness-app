@@ -9,6 +9,7 @@ import type {
   StartNutritionCoachRunInput,
   StartSafetyRecoveryRunInput,
 } from './contracts';
+import { parseCoachRunInputSummary } from './inputSummary';
 import { parseCoachCapabilities, parseCoachRunEnvelope } from './parsers';
 import { parseCoachRunTrustState } from './trust';
 
@@ -33,13 +34,26 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const parseCoachRunDetailEnvelope = (value: unknown): CoachRunEnvelope => {
-  const envelope = parseCoachRunEnvelope(value);
-  if (!isRecord(value) || value.trust === undefined) return envelope;
-  try {
-    return { ...envelope, trust: parseCoachRunTrustState(value.trust) };
-  } catch {
-    return { ...envelope, trustValidationFailed: true };
+  let envelope = parseCoachRunEnvelope(value);
+  if (!isRecord(value)) return envelope;
+  if (value.trust !== undefined) {
+    try {
+      envelope = { ...envelope, trust: parseCoachRunTrustState(value.trust) };
+    } catch {
+      envelope = { ...envelope, trustValidationFailed: true };
+    }
   }
+  if (value.inputSummary !== undefined) {
+    try {
+      envelope = {
+        ...envelope,
+        inputSummary: parseCoachRunInputSummary(value.inputSummary),
+      };
+    } catch {
+      envelope = { ...envelope, inputSummaryValidationFailed: true };
+    }
+  }
+  return envelope;
 };
 
 const sleep = (ms: number, signal?: AbortSignal): Promise<void> =>
