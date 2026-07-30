@@ -1,6 +1,6 @@
-import type { FoodEntry, TrainingProgram, WeightEntry, Workout, WorkoutSession } from '@/types';
+import type { FoodEntry, TrainingProgram, Workout, WorkoutSession } from '@/types';
 
-import { addDays, formatLocalDate, formatShortDate } from '@/lib';
+import { addDays, formatLocalDate } from '@/lib';
 import { sumNutritionTotals } from '@/lib/nutrition';
 import { formatWorkoutSessionElapsedLabel } from './sessionModel';
 import { getActiveWorkoutSessionDraft } from './storage';
@@ -23,25 +23,7 @@ export type HomeSnapshotItem = {
   value: string;
 };
 
-type LatestPrItem = {
-  label: string;
-  value: string;
-};
-
-type HomeMotivationInput = {
-  currentStreak: number | null;
-  latestPr?: LatestPrItem;
-  trainingGoal: number;
-  weightDelta30Days: number | null;
-  workoutsThisWeek: number;
-  yesterdayProteinMet: boolean;
-};
-
 const toDateKey = (value: string) => formatLocalDate(new Date(value));
-
-const sortByCreatedAtDesc = <T extends { createdAt: string }>(entries: T[]) => {
-  return [...entries].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
-};
 
 const dedupeWorkoutSessions = (workoutSessions: WorkoutSession[]) => {
   const seen = new Set<string>();
@@ -138,78 +120,10 @@ export const getWeeklyWorkoutVolumeTrend = (workoutSessions: WorkoutSession[], t
     return total;
   }, 0);
 
-  const delta = currentWeekVolume - previousWeekVolume;
-  const formattedCurrent = Math.round(currentWeekVolume).toLocaleString();
-  const formattedPrevious = Math.round(previousWeekVolume).toLocaleString();
-
   return {
     currentVolume: currentWeekVolume,
-    detail:
-      previousWeekVolume > 0
-        ? `${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString()} kg vs last week`
-        : currentWeekVolume > 0
-          ? `${formattedCurrent} kg this week`
-          : 'No workout volume yet',
-    label:
-      previousWeekVolume > 0
-        ? `${delta >= 0 ? '+' : ''}${Math.round((delta / previousWeekVolume) * 100)}% vs last week`
-        : currentWeekVolume > 0
-          ? `${formattedCurrent} kg`
-          : '—',
     previousVolume: previousWeekVolume,
-    summary: previousWeekVolume > 0 ? `${formattedCurrent} kg vs ${formattedPrevious} kg` : formattedCurrent,
   };
-};
-
-export const getRecentActivityItems = (args: {
-  foodEntries: FoodEntry[];
-  latestPrs: LatestPrItem[];
-  weightHistory: WeightEntry[];
-  workoutSessions: WorkoutSession[];
-}): HomeActivityItem[] => {
-  const items: HomeActivityItem[] = [];
-  const latestWorkoutSession = [...dedupeWorkoutSessions(args.workoutSessions)].sort((left, right) => new Date(left.finishedAt).getTime() - new Date(right.finishedAt).getTime()).at(-1) ?? null;
-  const latestWeightEntry = sortByCreatedAtDesc(args.weightHistory).at(0) ?? null;
-  const latestMeal = sortByCreatedAtDesc(args.foodEntries).at(0) ?? null;
-  const latestPr = args.latestPrs.at(0) ?? null;
-
-  if (latestWorkoutSession) {
-    items.push({
-      id: 'workout',
-      label: 'Latest workout',
-      value: latestWorkoutSession.workoutTitle,
-      detail: `${formatShortDate(latestWorkoutSession.finishedAt)} · ${latestWorkoutSession.sets.length} sets · ${Math.round(getSessionVolume(latestWorkoutSession)).toLocaleString()} kg`,
-    });
-  }
-
-  if (latestWeightEntry) {
-    items.push({
-      id: 'weight',
-      label: 'Latest weight',
-      value: `${latestWeightEntry.weight.toFixed(1)} kg`,
-      detail: `${formatShortDate(latestWeightEntry.createdAt)} · Check-in`,
-    });
-  }
-
-  if (latestMeal) {
-    items.push({
-      id: 'meal',
-      label: 'Latest meal',
-      value: latestMeal.name,
-      detail: `${formatShortDate(latestMeal.createdAt)} · ${Math.round(latestMeal.calories)} kcal · ${Math.round(latestMeal.protein)}P · ${Math.round(latestMeal.carbs)}C · ${Math.round(latestMeal.fats)}F`,
-    });
-  }
-
-  if (latestPr) {
-    items.push({
-      id: 'pr',
-      label: 'Latest PR',
-      value: latestPr.label,
-      detail: latestPr.value,
-    });
-  }
-
-  return items;
 };
 
 export const getWorkoutHubViewModel = (input: { activeProgram?: TrainingProgram | null; workouts: Workout[]; workoutSessions: WorkoutSession[] }) => {

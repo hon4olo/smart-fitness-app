@@ -65,17 +65,6 @@ export const getFoodAttributionLabel = (
     ? 'Food data provided by FatSecret'
     : food.attribution?.text ?? `Source: ${formatProviderLabel(food.source.provider)}`;
 
-export const formatScreenDate = (dateLabel: string): string => {
-  const parsedDate = new Date(`${dateLabel}T12:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return dateLabel;
-
-  return new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    month: 'short',
-    weekday: 'short',
-  }).format(parsedDate);
-};
-
 export const parseFoodNumber = (value: string, fallback = 0): number => {
   const parsed = Number.parseFloat(value.trim().replace(',', '.'));
   return Number.isFinite(parsed) ? parsed : fallback;

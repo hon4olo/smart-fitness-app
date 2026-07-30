@@ -1,7 +1,6 @@
 import type {
   TrainingProgram,
   WorkoutSafetyMetadata,
-  WorkoutSafetyReviewStatus,
   WorkoutSession,
   WorkoutSet,
 } from '@/types';
@@ -45,13 +44,9 @@ export type WorkoutHistoryProgramOption = {
 
 export type WorkoutHistoryItemView = {
   session: WorkoutSession;
-  dateLabel: string;
-  durationLabel: string;
   exerciseCount: number;
   setCount: number;
   volume: number;
-  volumeLabel: string;
-  safetyLabel: string;
   safetyTone: WorkoutHistorySafetyTone;
   hasSafetyContext: boolean;
 };
@@ -93,15 +88,6 @@ const parseRouteTimestamp = (value: string | string[] | undefined): number => {
   return Date.parse(normalized);
 };
 
-const formatDate = (value: string): string => {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return 'Unknown date';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-};
-
 export const isValidWorkoutHistoryDateRange = (
   range: WorkoutHistoryDateRange | null | undefined,
 ): range is WorkoutHistoryDateRange =>
@@ -128,17 +114,6 @@ export const parseWorkoutHistoryRouteFilters = (
   };
 };
 
-export const formatWorkoutHistoryDateRange = (range: WorkoutHistoryDateRange): string => {
-  const formatter = new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-  const inclusiveEnd = Math.max(range.startAt, range.endAt - 1);
-  return `${formatter.format(new Date(range.startAt))}–${formatter.format(new Date(inclusiveEnd))}`;
-};
-
 export const getWorkoutDurationMinutes = (session: WorkoutSession): number => {
   const startedAt = Date.parse(session.startedAt);
   const finishedAt = Date.parse(session.finishedAt);
@@ -148,56 +123,32 @@ export const getWorkoutDurationMinutes = (session: WorkoutSession): number => {
   return Math.max(0, Math.round((finishedAt - startedAt) / 60_000));
 };
 
-export const formatWorkoutDuration = (minutes: number): string => {
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-  return remainder === 0 ? `${hours} h` : `${hours} h ${remainder} min`;
-};
-
-export const formatWorkoutVolume = (volume: number): string =>
-  `${Math.round(volume).toLocaleString()} kg`;
-
-const safetyCopy = (
+const getSafetyTone = (
   metadata: WorkoutSafetyMetadata | undefined,
-): { label: string; tone: WorkoutHistorySafetyTone } => {
-  if (!metadata) return { label: 'No recorded review', tone: 'neutral' };
-  if (metadata.gateKind === 'review_missing') {
-    return { label: 'Continued without review', tone: 'warning' };
+): WorkoutHistorySafetyTone => {
+  if (!metadata) return 'neutral';
+  if (metadata.reviewStatus === 'blocked') return 'critical';
+  if (
+    metadata.gateKind === 'review_missing' ||
+    metadata.gateKind === 'review_stale' ||
+    metadata.reviewStatus === 'modify' ||
+    metadata.reviewStatus === 'needs_input'
+  ) {
+    return 'warning';
   }
-  if (metadata.gateKind === 'review_stale') {
-    return { label: 'Continued with stale review', tone: 'warning' };
-  }
-  if (metadata.reviewStatus === 'blocked') {
-    return { label: 'Hard block acknowledged', tone: 'critical' };
-  }
-  if (metadata.reviewStatus === 'modify') {
-    return { label: 'Modifications acknowledged', tone: 'warning' };
-  }
-  if (metadata.reviewStatus === 'needs_input') {
-    return { label: 'Incomplete review acknowledged', tone: 'warning' };
-  }
-  if (metadata.reviewStatus === 'ready') {
-    return { label: 'Ready review', tone: 'positive' };
-  }
-  return { label: 'Safety context recorded', tone: 'neutral' };
+  if (metadata.reviewStatus === 'ready') return 'positive';
+  return 'neutral';
 };
 
 export const buildWorkoutHistoryItemView = (
   session: WorkoutSession,
 ): WorkoutHistoryItemView => {
-  const volume = getSessionVolume(session);
-  const safety = safetyCopy(session.safetyRecovery);
   return {
     session,
-    dateLabel: formatDate(session.finishedAt),
-    durationLabel: formatWorkoutDuration(getWorkoutDurationMinutes(session)),
     exerciseCount: getSessionExercises(session).length,
     setCount: session.sets.length,
-    volume,
-    volumeLabel: formatWorkoutVolume(volume),
-    safetyLabel: safety.label,
-    safetyTone: safety.tone,
+    volume: getSessionVolume(session),
+    safetyTone: getSafetyTone(session.safetyRecovery),
     hasSafetyContext: Boolean(session.safetyRecovery),
   };
 };
@@ -301,19 +252,4 @@ export const groupWorkoutSessionSets = (
     groups.set(key, current);
   });
   return [...groups.values()];
-};
-
-export const formatWorkoutSafetyStatus = (
-  status: WorkoutSafetyReviewStatus | null,
-): string => {
-  if (!status) return 'No review status';
-  if (status === 'needs_input') return 'Needs input';
-  return status.charAt(0).toUpperCase() + status.slice(1);
-};
-
-export const formatWorkoutSafetyGate = (metadata: WorkoutSafetyMetadata): string => {
-  if (metadata.gateKind === 'review_missing') return 'Review missing';
-  if (metadata.gateKind === 'review_stale') return 'Review stale';
-  if (metadata.gateKind === 'confirmation_required') return 'Explicit confirmation required';
-  return 'Ready without confirmation';
 };

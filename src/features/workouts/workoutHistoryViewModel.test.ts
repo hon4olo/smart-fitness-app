@@ -6,7 +6,6 @@ import {
   buildWorkoutHistoryItemView,
   buildWorkoutHistoryProgramOptions,
   filterWorkoutHistory,
-  formatWorkoutSafetyGate,
   groupWorkoutSessionSets,
 } from './workoutHistoryViewModel';
 
@@ -109,14 +108,11 @@ const lowerProgram: TrainingProgram = {
 };
 
 describe('workout history view model', () => {
-  it('summarizes session metrics and recorded Safety Recovery context', () => {
+  it('summarizes raw session metrics and recorded Safety Recovery context', () => {
     expect(buildWorkoutHistoryItemView(baseSession)).toMatchObject({
-      durationLabel: '1 h 5 min',
       exerciseCount: 2,
       setCount: 3,
       volume: 1835,
-      volumeLabel: '1,835 kg',
-      safetyLabel: 'Modifications acknowledged',
       safetyTone: 'warning',
       hasSafetyContext: true,
     });
@@ -153,14 +149,10 @@ describe('workout history view model', () => {
     });
   });
 
-  it('describes the historical gate without treating it as a current recommendation', () => {
-    expect(formatWorkoutSafetyGate(baseSession.safetyRecovery!)).toBe(
-      'Explicit confirmation required',
-    );
+  it('keeps historical Safety state raw for the presentation boundary', () => {
     expect(
       buildWorkoutHistoryItemView({ ...baseSession, safetyRecovery: undefined }),
     ).toMatchObject({
-      safetyLabel: 'No recorded review',
       safetyTone: 'neutral',
       hasSafetyContext: false,
     });

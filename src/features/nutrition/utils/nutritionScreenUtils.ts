@@ -32,34 +32,6 @@ export type MealSummary = {
   subtotal: ReturnType<typeof sumNutritionTotals>;
 };
 
-export const formatDisplayDate = (dateLabel: string) => {
-  const parsedDate = new Date(`${dateLabel}T12:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return dateLabel;
-
-  return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', weekday: 'short' }).format(parsedDate);
-};
-
-export const formatWeekdayLabel = (dateLabel: string) => {
-  const parsedDate = new Date(`${dateLabel}T12:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return dateLabel.slice(5, 10);
-
-  return new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(parsedDate);
-};
-
-export const formatWeekdayLong = (dateLabel: string) => {
-  const parsedDate = new Date(`${dateLabel}T12:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return dateLabel;
-
-  return new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(parsedDate);
-};
-
-export const formatDayNumber = (dateLabel: string) => {
-  const parsedDate = new Date(`${dateLabel}T12:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return dateLabel.slice(-2);
-
-  return new Intl.DateTimeFormat(undefined, { day: 'numeric' }).format(parsedDate);
-};
-
 export const getWeekStart = (dateLabel: string) => {
   const parsedDate = new Date(`${dateLabel}T12:00:00`);
   const dayOfWeek = parsedDate.getDay();

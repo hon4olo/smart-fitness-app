@@ -110,7 +110,6 @@ describe('Safety Recovery weekly trend', () => {
 
     expect(trend).toMatchObject({
       period: '30d',
-      windowLabel: 'Last 30 days',
       reviewedWorkoutCount: 5,
       loadCeilingPointCount: 3,
       hasStatusData: true,
@@ -143,9 +142,9 @@ describe('Safety Recovery weekly trend', () => {
     const allTime = buildSafetyRecoveryWeeklyTrend([], 'all', NOW);
 
     expect(ninetyDays.points).toHaveLength(13);
-    expect(ninetyDays.windowLabel).toBe('Last 90 days');
     expect(allTime.points).toHaveLength(12);
-    expect(allTime.windowLabel).toBe('Latest 12 weeks');
+    expect(ninetyDays.points[0]).toHaveProperty('startAt');
+    expect(allTime.points[0]).toHaveProperty('endAt');
   });
 
   it('returns explicit empty chart state without inferring readiness', () => {

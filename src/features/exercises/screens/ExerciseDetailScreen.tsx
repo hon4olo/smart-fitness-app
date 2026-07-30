@@ -125,12 +125,13 @@ export default function ExerciseDetailScreen() {
       progressMetrics.volumeTrend.map((point) => {
         const value = weightFromKg(point.value, weightUnit);
         return {
-          ...point,
+          key: point.key,
+          label: formatDate(point.finishedAt, { month: 'short', day: 'numeric' }),
           value,
           displayValue: `${formatNumber(value, { maximumFractionDigits: 0 })} ${weightUnit}`,
         };
       }),
-    [formatNumber, progressMetrics.volumeTrend, weightUnit],
+    [formatDate, formatNumber, progressMetrics.volumeTrend, weightUnit],
   );
   const highlights = useMemo(
     () =>
