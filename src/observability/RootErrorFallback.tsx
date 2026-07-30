@@ -1,5 +1,5 @@
 import * as Updates from 'expo-updates';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,6 +8,14 @@ import {
   View,
 } from 'react-native';
 
+import { detectSystemLocale } from '@/localization';
+
+import {
+  getRootErrorCopy,
+  loadRootErrorCopy,
+  type RootErrorCopy,
+} from './rootErrorLocalization';
+
 type RootErrorFallbackProps = {
   error: Error;
   retry(): void;
@@ -15,6 +23,19 @@ type RootErrorFallbackProps = {
 
 export function RootErrorFallback({ retry }: RootErrorFallbackProps) {
   const [restarting, setRestarting] = useState(false);
+  const [copy, setCopy] = useState<RootErrorCopy>(() =>
+    getRootErrorCopy(detectSystemLocale()),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadRootErrorCopy().then((nextCopy) => {
+      if (!cancelled) setCopy(nextCopy);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const restart = async () => {
     if (restarting) return;
@@ -30,19 +51,19 @@ export function RootErrorFallback({ retry }: RootErrorFallbackProps) {
   return (
     <View accessibilityRole="alert" style={styles.screen}>
       <View style={styles.card}>
-        <Text selectable style={styles.eyebrow}>SMART FITNESS</Text>
-        <Text selectable style={styles.title}>Something went wrong</Text>
-        <Text selectable style={styles.body}>
-          Your saved data has not been intentionally removed. Try reopening this screen or restart the app.
-        </Text>
+        <Text selectable style={styles.eyebrow}>{copy.eyebrow}</Text>
+        <Text selectable style={styles.title}>{copy.title}</Text>
+        <Text selectable style={styles.body}>{copy.body}</Text>
         <Pressable
+          accessibilityLabel={copy.retry}
           accessibilityRole="button"
           disabled={restarting}
           onPress={retry}
           style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}>
-          <Text style={styles.primaryButtonText}>Try again</Text>
+          <Text style={styles.primaryButtonText}>{copy.retry}</Text>
         </Pressable>
         <Pressable
+          accessibilityLabel={copy.restart}
           accessibilityRole="button"
           disabled={restarting}
           onPress={() => void restart()}
@@ -50,7 +71,7 @@ export function RootErrorFallback({ retry }: RootErrorFallbackProps) {
           {restarting ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.secondaryButtonText}>Restart app</Text>
+            <Text style={styles.secondaryButtonText}>{copy.restart}</Text>
           )}
         </Pressable>
       </View>
