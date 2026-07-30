@@ -17,6 +17,12 @@ const pluralRu = (
   return forms[2];
 };
 
+const RUN_STATUSES = ['queued', 'running', 'completed', 'rejected', 'failed'] as const;
+type RunStatus = (typeof RUN_STATUSES)[number];
+
+const isRunStatus = (value: string): value is RunStatus =>
+  RUN_STATUSES.some((status) => status === value);
+
 export const getSafetyRecoveryReviewCopy = (locale: SupportedLocale) => {
   const actionLabels: Record<SafetyRecoveryRestrictionAction, string> = {
     monitor: locale === 'ru' ? 'Наблюдать' : 'Monitor',
@@ -35,6 +41,13 @@ export const getSafetyRecoveryReviewCopy = (locale: SupportedLocale) => {
     needs_input: locale === 'ru' ? 'Нужны данные' : 'Needs input',
     modify: locale === 'ru' ? 'Нужна модификация' : 'Modify',
     blocked: locale === 'ru' ? 'Тренировка заблокирована' : 'Blocked',
+  };
+  const runStatusLabels: Record<RunStatus, string> = {
+    queued: locale === 'ru' ? 'В очереди' : 'Queued',
+    running: locale === 'ru' ? 'Выполняется' : 'Running',
+    completed: locale === 'ru' ? 'Завершено' : 'Completed',
+    rejected: locale === 'ru' ? 'Отклонено' : 'Rejected',
+    failed: locale === 'ru' ? 'Ошибка' : 'Failed',
   };
   const resultCopy: Record<SafetyRecoveryStatus, { title: string; message: string }> = {
     blocked: {
@@ -124,6 +137,12 @@ export const getSafetyRecoveryReviewCopy = (locale: SupportedLocale) => {
     resultCopy,
     viewModelCopy,
     issueCopy,
+    runStatusLabel: (status: string) =>
+      isRunStatus(status)
+        ? runStatusLabels[status]
+        : locale === 'ru'
+          ? 'Статус недоступен'
+          : 'Status unavailable',
     back: locale === 'ru' ? 'Назад' : 'Back',
     title: locale === 'ru' ? 'Безопасность и восстановление' : 'Safety & Recovery',
     subtitle:
@@ -132,9 +151,9 @@ export const getSafetyRecoveryReviewCopy = (locale: SupportedLocale) => {
         : 'Deterministic self-reported readiness',
     deterministic: locale === 'ru' ? 'Детерминированный' : 'Deterministic',
     checkingCapability:
-      locale === 'ru' ? 'Проверка возможностей backend' : 'Checking backend capability',
-    available: locale === 'ru' ? 'Safety Recovery v5 доступен' : 'Safety Recovery v5 available',
-    unavailable: locale === 'ru' ? 'Safety Recovery недоступен' : 'Safety Recovery unavailable',
+      locale === 'ru' ? 'Проверка доступности' : 'Checking availability',
+    available: locale === 'ru' ? 'Доступно' : 'Available',
+    unavailable: locale === 'ru' ? 'Недоступно' : 'Unavailable',
     readinessReview: locale === 'ru' ? 'Анализ готовности' : 'Readiness review',
     introduction:
       locale === 'ru'
@@ -156,25 +175,19 @@ export const getSafetyRecoveryReviewCopy = (locale: SupportedLocale) => {
     runReview: locale === 'ru' ? 'Запустить анализ готовности' : 'Run readiness review',
     capabilityHint:
       locale === 'ru'
-        ? 'Кнопка остаётся недоступной, пока авторизованный backend не вернёт точный safety-контракт v5.'
-        : 'This control remains disabled until the authenticated backend returns the exact capability v5 safety contract.',
+        ? 'Анализ пока недоступен для текущей конфигурации аккаунта и сервера.'
+        : 'The review is not available for the current account and server configuration.',
     requestError: locale === 'ru' ? 'Ошибка запроса' : 'Request error',
     requestErrorBody:
       locale === 'ru'
         ? 'Safety & Recovery не смог завершить запрос. Повторите попытку после проверки подключения и синхронизации.'
         : 'Safety & Recovery could not complete the request. Try again after checking connectivity and synchronization.',
-    runStatusLabels: {
-      queued: locale === 'ru' ? 'В очереди' : 'Queued',
-      running: locale === 'ru' ? 'Выполняется' : 'Running',
-      completed: locale === 'ru' ? 'Завершено' : 'Completed',
-      rejected: locale === 'ru' ? 'Отклонено' : 'Rejected',
-      failed: locale === 'ru' ? 'Ошибка' : 'Failed',
-    } as Record<string, string>,
     recommendedLoad: locale === 'ru' ? 'Рекомендуемая нагрузка' : 'Recommended load',
     recoverySignals: locale === 'ru' ? 'Показатели восстановления' : 'Recovery signals',
     readinessStatus: locale === 'ru' ? 'Статус готовности' : 'Readiness status',
     latestCheckIn: locale === 'ru' ? 'Последняя проверка' : 'Latest check-in',
     notAvailable: locale === 'ru' ? 'Недоступно' : 'Not available',
+    unknownValue: locale === 'ru' ? 'Не указано' : 'Not specified',
     hoursAgo: (count: number, formatted: string) =>
       locale === 'ru'
         ? `${formatted} ${pluralRu(count, ['час', 'часа', 'часов'])} назад`
