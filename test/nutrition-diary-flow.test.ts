@@ -96,7 +96,7 @@ describe('nutrition compact diary 5.0', () => {
     expect(nutritionUi).toContain('macroGridRow');
     expect(nutritionUi).toContain('macroGridValue');
     expect(nutritionUi).toContain('mealHeaderMeta');
-    expect(nutritionUi).toContain('formatMealItemCount');
+    expect(nutritionUi).toContain('copy.itemCount');
     expect(nutritionUi).toContain('mealHeaderActions');
     expect(nutritionUi).toContain('mealActionButton');
     expect(nutritionUi).toContain('chevronText');
@@ -117,13 +117,14 @@ describe('nutrition compact diary 5.0', () => {
   test('picker returns to the selected meal and exposes a quiet delete action for edited entries', () => {
     const route = readSource('src/app/nutrition/add-food.tsx');
     const view = readSource('src/features/nutrition/components/NutritionAddFoodView.tsx');
-    const source = [route, view].join('\n');
+    const copy = readSource('src/localization/nutritionAddFoodCopy.ts');
 
     expect(route.replace(/\s+/g, ' ')).toContain("router.replace({ pathname: '/nutrition', params: { date: selectedDate, openMeal: selectedMeal }, })");
-    expect(source).toContain('Delete entry');
+    expect(view).toContain('deleteLabel={copy.deleteEntry}');
     expect(route).toContain('deleteSelectedDraft');
-    expect(source).toContain('Save changes');
-    expect(route).toContain('Add to ${selectedMealLabel}');
+    expect(route).toContain('copy.saveChanges');
+    expect(route).toContain('copy.addToMeal(selectedMealLabel)');
+    expect(copy).toContain("deleteEntry: locale === 'ru'");
     expect(route).toContain('selectedMeal');
     expect(route).toContain('selectedDate');
   });
@@ -131,9 +132,14 @@ describe('nutrition compact diary 5.0', () => {
   test('nutrient breakdown is compact and only renders useful nutrient data', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
     const detailsSection = readSource('src/features/nutrition/components/NutritionDetailsSection.tsx');
+    const copy = readSource('src/localization/nutritionDiaryCopy.ts');
 
     expect(source).toContain('fiberBreakdown.hasFiberData');
-    expect(detailsSection).toContain('Nutrition details');
+    expect(detailsSection).toContain('copy.nutritionDetails');
+    expect(detailsSection).toContain('copy.fiber');
+    expect(copy).toContain("nutritionDetails: locale === 'ru'");
+    expect(copy).toContain('Подробности питания');
+    expect(copy).toContain('Nutrition details');
     expect([source, detailsSection].join('\n')).not.toContain('Sodium, cholesterol, sugar');
     expect([source, detailsSection].join('\n')).not.toContain('Not available yet');
   });
