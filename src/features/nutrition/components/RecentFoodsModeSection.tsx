@@ -3,6 +3,8 @@ import { Pressable, Text, View } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { ListRow } from '@/components/ui/ListRow';
+import { useLocalization } from '@/localization';
+import { getNutritionAddFoodCopy } from '@/localization/nutritionAddFoodCopy';
 import type { FoodCatalogItem, FoodEntry } from '@/types';
 import { formatEnergyValue, useUnitPreferences } from '@/units';
 
@@ -24,14 +26,23 @@ type RecentFoodsModeSectionProps = {
   styles: Record<string, any>;
 };
 
-export function RecentFoodsModeSection({ items, onOpenFood, onQuickAdd, onSearchFood, selectedMealLabel, styles }: RecentFoodsModeSectionProps) {
+export function RecentFoodsModeSection({
+  items,
+  onOpenFood,
+  onQuickAdd,
+  onSearchFood,
+  selectedMealLabel,
+  styles,
+}: RecentFoodsModeSectionProps) {
   const { energy } = useUnitPreferences();
+  const { locale } = useLocalization();
+  const copy = getNutritionAddFoodCopy(locale);
 
   return (
     <AppCard>
       <View style={styles.sectionHeader}>
         <Text selectable style={styles.sectionTitle}>
-          Recent foods
+          {copy.recentFoods}
         </Text>
       </View>
       {items.length > 0 ? (
@@ -39,12 +50,16 @@ export function RecentFoodsModeSection({ items, onOpenFood, onQuickAdd, onSearch
           {items.map((item) => (
             <ListRow
               key={item.key}
-              accessibilityHint="Tap to adjust the portion"
-              detail={`${item.portionLabel} · ${item.entry.brandName ?? 'recent'} `}
+              accessibilityHint={copy.adjustPortion}
+              detail={`${item.portionLabel} · ${item.entry.brandName ?? copy.recentFallback} `}
               onPress={() => onOpenFood(item)}
               title={item.label}
               trailing={
-                <Pressable accessibilityLabel={`Quick add ${item.label} to ${selectedMealLabel}`} hitSlop={10} onPress={() => onQuickAdd(item)} style={styles.iconButton}>
+                <Pressable
+                  accessibilityLabel={copy.quickAdd(item.label, selectedMealLabel)}
+                  hitSlop={10}
+                  onPress={() => onQuickAdd(item)}
+                  style={styles.iconButton}>
                   <Text style={styles.iconButtonText}>+</Text>
                 </Pressable>
               }
@@ -55,9 +70,9 @@ export function RecentFoodsModeSection({ items, onOpenFood, onQuickAdd, onSearch
       ) : (
         <View style={styles.emptyBlock}>
           <Text selectable style={styles.emptyStateText}>
-            No recent foods yet.
+            {copy.noRecentFoods}
           </Text>
-          <AppButton label="Search food" onPress={onSearchFood} variant="secondary" />
+          <AppButton label={copy.searchFood} onPress={onSearchFood} variant="secondary" />
         </View>
       )}
     </AppCard>
