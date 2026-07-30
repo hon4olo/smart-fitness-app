@@ -12,8 +12,14 @@ import { MetricCard } from '@/components/ui/MetricCard';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import {
+  getExerciseDetailCopy,
+  type ExerciseDetailErrorCode,
+} from '@/localization/exerciseDetailCopy';
+import { getExerciseLibraryCopy } from '@/localization/exerciseLibraryCopy';
+import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
-import { formatWeightValue, useUnitPreferences, weightFromKg } from '@/units';
+import { useUnitPreferences, weightFromKg } from '@/units';
 
 import { ExerciseMediaPreview } from '../components/ExerciseMediaPreview';
 import { MuscleMap } from '../components/MuscleMap';
@@ -27,18 +33,9 @@ import type { Exercise } from '../types';
 
 type DetailTab = 'about' | 'history' | 'progress';
 
-const DETAIL_TABS = [
-  { label: 'About', value: 'about' },
-  { label: 'History', value: 'history' },
-  { label: 'Progress', value: 'progress' },
-] as const;
-
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
-
-function TextList({ items }: { items: string[] }) {
+function TextList({ emptyLabel, items }: { emptyLabel: string; items: string[] }) {
   if (items.length === 0) {
-    return <Text style={styles.secondaryText}>No entries yet.</Text>;
+    return <Text style={styles.secondaryText}>{emptyLabel}</Text>;
   }
 
   return (
@@ -57,16 +54,25 @@ export default function ExerciseDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
-  const { weight: weightUnit } = useUnitPreferences();
+  const { formatDate, formatNumber, locale } = useLocalization();
+  const { formatWeightValue, weight: weightUnit } = useUnitPreferences();
+  const copy = useMemo(() => getExerciseDetailCopy(locale), [locale]);
+  const libraryCopy = useMemo(() => getExerciseLibraryCopy(locale), [locale]);
+  const detailTabs = useMemo<Array<{ label: string; value: DetailTab }>>(
+    () => [
+      { label: copy.tabs.about, value: 'about' },
+      { label: copy.tabs.history, value: 'history' },
+      { label: copy.tabs.progress, value: 'progress' },
+    ],
+    [copy],
+  );
   const { workoutSessions } = useAppContext();
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<ExerciseDetailErrorCode | null>(null);
   const [tab, setTab] = useState<DetailTab>('about');
   const [playing, setPlaying] = useState(true);
   const [mediaFailed, setMediaFailed] = useState(false);
-  const [mediaStatus, setMediaStatus] = useState<'missing' | 'loading' | 'loaded' | 'failed'>('missing');
-  const [nativeImageError, setNativeImageError] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -74,7 +80,7 @@ export default function ExerciseDetailScreen() {
 
     const loadExercise = async () => {
       if (!exerciseId) {
-        setError('Missing exercise.');
+        setErrorCode('missing');
         setLoading(false);
         return;
       }
@@ -88,9 +94,9 @@ export default function ExerciseDetailScreen() {
         if (cancelled) return;
         setExercise(nextExercise);
         setFavoriteIds(nextFavoriteIds);
-        setError(nextExercise ? null : 'Exercise not found.');
+        setErrorCode(nextExercise ? null : 'not_found');
       } catch {
-        if (!cancelled) setError('Could not load exercise details.');
+        if (!cancelled) setErrorCode('load_failed');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -104,36 +110,46 @@ export default function ExerciseDetailScreen() {
 
   useEffect(() => {
     setMediaFailed(false);
-    setNativeImageError(null);
   }, [exerciseId, playing]);
 
   const historyGroups = useMemo(
     () => (exercise ? selectCompletedSetsByExerciseId(workoutSessions, exercise.id) : []),
     [exercise, workoutSessions],
   );
-  const progressMetrics = useMemo(() => calculateExerciseProgressMetrics(historyGroups), [historyGroups]);
+  const progressMetrics = useMemo(
+    () => calculateExerciseProgressMetrics(historyGroups),
+    [historyGroups],
+  );
   const displayVolumeTrend = useMemo(
     () =>
       progressMetrics.volumeTrend.map((point) => {
         const value = weightFromKg(point.value, weightUnit);
-        return { ...point, value, displayValue: Math.round(value).toLocaleString() };
+        return {
+          ...point,
+          value,
+          displayValue: `${formatNumber(value, { maximumFractionDigits: 0 })} ${weightUnit}`,
+        };
       }),
-    [progressMetrics.volumeTrend, weightUnit],
+    [formatNumber, progressMetrics.volumeTrend, weightUnit],
   );
   const highlights = useMemo(
-    () => (exercise ? buildMuscleHighlights(exercise.primaryMuscles, exercise.secondaryMuscles) : {}),
+    () =>
+      exercise
+        ? buildMuscleHighlights(exercise.primaryMuscles, exercise.secondaryMuscles)
+        : {},
     [exercise],
   );
   const isFavorite = Boolean(exercise && favoriteIds.has(exercise.id));
   const hasAnimation = Boolean(exercise?.media.animationUrl ?? exercise?.media.gifUri);
-  const resolvedMediaUri = exercise ? getExerciseMediaUri(exercise, { playing }) : undefined;
-  const formatWeight = (valueKg: number) => `${formatWeightValue(valueKg, weightUnit)} ${weightUnit}`;
+  const resolvedMediaUri = exercise
+    ? getExerciseMediaUri(exercise, { playing })
+    : undefined;
+  const formatWeight = (valueKg: number) =>
+    `${formatWeightValue(valueKg)} ${weightUnit}`;
   const formatVolume = (valueKg: number) =>
-    `${Math.round(weightFromKg(valueKg, weightUnit)).toLocaleString()} ${weightUnit}`;
-
-  useEffect(() => {
-    setMediaStatus(resolvedMediaUri ? 'loading' : 'missing');
-  }, [resolvedMediaUri]);
+    `${formatNumber(weightFromKg(valueKg, weightUnit), {
+      maximumFractionDigits: 0,
+    })} ${weightUnit}`;
 
   const toggleFavorite = () => {
     if (!exercise) return;
@@ -146,59 +162,73 @@ export default function ExerciseDetailScreen() {
 
   const shareExercise = () => {
     if (!exercise) return;
+    const equipment =
+      exercise.equipment.map(libraryCopy.facetLabel).join(', ') || copy.none;
+    const primaryMuscles = exercise.primaryMuscles.join(', ') || copy.notSpecified;
     void Share.share({
-      message: `${exercise.name}\nEquipment: ${exercise.equipment.join(', ') || 'None'}\nPrimary: ${exercise.primaryMuscles.join(', ') || 'Not specified'}`,
+      message: copy.shareMessage(exercise.name, equipment, primaryMuscles),
       title: exercise.name,
     });
   };
 
-  if (loading) return <LoadingState label="Loading exercise" />;
+  if (loading) return <LoadingState label={copy.loading} />;
 
-  if (error || !exercise) {
+  if (errorCode || !exercise) {
+    const boundedError = errorCode ?? 'not_found';
     return (
       <View style={[styles.centeredState, { backgroundColor: colors.background }]}>
-        <EmptyState title={error ?? 'Exercise not found'} description="The selected exercise could not be loaded from the local catalog." />
-        <AppButton label="Back" onPress={() => router.back()} variant="secondary" />
+        <EmptyState
+          title={copy.errorTitle(boundedError)}
+          description={copy.errorDescription}
+        />
+        <AppButton label={copy.back} onPress={() => router.back()} variant="secondary" />
       </View>
     );
   }
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.eight, paddingTop: insets.top + Spacing.three }]}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingBottom: insets.bottom + Spacing.eight,
+          paddingTop: insets.top + Spacing.three,
+        },
+      ]}
       keyboardShouldPersistTaps="handled"
       style={[styles.screen, { backgroundColor: colors.background }]}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.headerControl}>
-            <Text style={styles.headerControlText}>Back</Text>
+          <Pressable
+            accessibilityLabel={copy.back}
+            accessibilityRole="button"
+            onPress={() => router.back()}
+            style={styles.headerControl}>
+            <Text style={styles.headerControlText}>{copy.back}</Text>
           </Pressable>
-          <Text numberOfLines={2} style={styles.title}>{exercise.name}</Text>
-          <Pressable accessibilityRole="button" style={styles.headerControl}>
-            <Text style={styles.headerControlText}>More</Text>
+          <Text numberOfLines={2} style={styles.title}>
+            {exercise.name}
+          </Text>
+          <Pressable
+            accessibilityLabel={copy.more}
+            accessibilityRole="button"
+            style={styles.headerControl}>
+            <Text style={styles.headerControlText}>{copy.more}</Text>
           </Pressable>
         </View>
 
-        <SegmentedControl accessibilityLabel="Exercise detail sections" options={DETAIL_TABS} value={tab} onChange={setTab} />
+        <SegmentedControl
+          accessibilityLabel={copy.sectionsAccessibility}
+          options={detailTabs}
+          value={tab}
+          onChange={setTab}
+        />
 
         <AppCard style={styles.mediaCard}>
           <ExerciseMediaPreview
             colors={colors}
             exercise={exercise}
-            onMediaError={(nextError) => {
-              setMediaFailed(true);
-              setMediaStatus('failed');
-              setNativeImageError(nextError ?? 'unknown native Image error');
-            }}
-            onMediaLoad={() => {
-              setMediaStatus('loaded');
-              setNativeImageError(null);
-            }}
-            onMediaDisplay={() => setMediaStatus('loaded')}
-            onMediaLoadStart={() => {
-              setMediaStatus('loading');
-              setNativeImageError(null);
-            }}
+            onMediaError={() => setMediaFailed(true)}
             contentFit="contain"
             playing={playing}
             resizeMode="contain"
@@ -206,30 +236,34 @@ export default function ExerciseDetailScreen() {
             style={styles.media}
           />
           {hasAnimation && !mediaFailed ? (
-            <Pressable accessibilityRole="button" onPress={() => setPlaying((current) => !current)} style={styles.playButton}>
-              <Text style={styles.playButtonText}>{playing ? 'Pause' : 'Play'}</Text>
+            <Pressable
+              accessibilityLabel={playing ? copy.pauseMedia : copy.playMedia}
+              accessibilityRole="button"
+              onPress={() => setPlaying((current) => !current)}
+              style={styles.playButton}>
+              <Text style={styles.playButtonText}>
+                {playing ? copy.pause : copy.play}
+              </Text>
             </Pressable>
           ) : null}
         </AppCard>
-        <AppCard>
-          <Text style={styles.cardTitle}>Exercise media diagnostics</Text>
-          <Text selectable style={styles.diagnosticText}>exercise.id: {exercise.id}</Text>
-          <Text selectable style={styles.diagnosticText}>exercise.name: {exercise.name}</Text>
-          <Text selectable style={styles.diagnosticText}>exercise.source.provider: {exercise.source.provider}</Text>
-          <Text selectable style={styles.diagnosticText}>exercise.source.sourceId: {exercise.source.sourceId ?? 'none'}</Text>
-          <Text selectable style={styles.diagnosticText}>exercise.media.animationUrl: {exercise.media.animationUrl ?? 'none'}</Text>
-          <Text selectable style={styles.diagnosticText}>exercise.media.gifUri: {exercise.media.gifUri ?? 'none'}</Text>
-          <Text selectable style={styles.diagnosticText}>resolvedMediaUri from getExerciseMediaUri(): {resolvedMediaUri ?? 'none'}</Text>
-          <Text selectable style={styles.diagnosticText}>mediaStatus: {mediaStatus}</Text>
-          <Text selectable style={styles.diagnosticText}>nativeImageError: {nativeImageError ?? 'none'}</Text>
-        </AppCard>
+
         {isOssExerciseDbEnabled() && exercise.source.provider === 'oss-exercisedb' ? (
-          <Text style={styles.attribution}>Exercise data and GIFs provided by AscendAPI / ExerciseDB.</Text>
+          <Text style={styles.attribution}>{copy.attribution}</Text>
         ) : null}
 
         <View style={styles.actionRow}>
-          <AppButton label="Share Exercise" onPress={shareExercise} variant="secondary" style={styles.actionButton} />
-          <AppButton label={isFavorite ? 'Favorited' : 'Add to Favorites'} onPress={toggleFavorite} style={styles.actionButton} />
+          <AppButton
+            label={copy.shareExercise}
+            onPress={shareExercise}
+            variant="secondary"
+            style={styles.actionButton}
+          />
+          <AppButton
+            label={isFavorite ? copy.favorite : copy.addFavorite}
+            onPress={toggleFavorite}
+            style={styles.actionButton}
+          />
         </View>
 
         {tab === 'about' ? (
@@ -239,22 +273,29 @@ export default function ExerciseDetailScreen() {
               <MuscleMap side="back" highlights={highlights} />
             </View>
             <AppCard>
-              <Text style={styles.cardTitle}>Primary muscles</Text>
-              <TextList items={exercise.primaryMuscles} />
-              <Text style={styles.cardTitle}>Secondary muscles</Text>
-              <TextList items={exercise.secondaryMuscles} />
+              <Text style={styles.cardTitle}>{copy.primaryMuscles}</Text>
+              <TextList emptyLabel={copy.noEntries} items={exercise.primaryMuscles} />
+              <Text style={styles.cardTitle}>{copy.secondaryMuscles}</Text>
+              <TextList emptyLabel={copy.noEntries} items={exercise.secondaryMuscles} />
             </AppCard>
             <AppCard>
-              <Text style={styles.cardTitle}>Details</Text>
-              <Text style={styles.secondaryText}>Body part: {exercise.bodyPart}</Text>
-              <Text style={styles.secondaryText}>Equipment: {exercise.equipment.join(', ') || 'None'}</Text>
-              <Text style={styles.secondaryText}>Aliases: {exercise.aliases.join(', ') || 'None'}</Text>
+              <Text style={styles.cardTitle}>{copy.details}</Text>
+              <Text style={styles.secondaryText}>
+                {copy.bodyPart}: {libraryCopy.facetLabel(exercise.bodyPart)}
+              </Text>
+              <Text style={styles.secondaryText}>
+                {copy.equipment}:{' '}
+                {exercise.equipment.map(libraryCopy.facetLabel).join(', ') || copy.none}
+              </Text>
+              <Text style={styles.secondaryText}>
+                {copy.aliases}: {exercise.aliases.join(', ') || copy.none}
+              </Text>
             </AppCard>
             <AppCard>
-              <Text style={styles.cardTitle}>Instructions</Text>
-              <TextList items={exercise.instructions} />
-              <Text style={styles.cardTitle}>Coaching tips</Text>
-              <TextList items={exercise.coachingTips} />
+              <Text style={styles.cardTitle}>{copy.instructions}</Text>
+              <TextList emptyLabel={copy.noEntries} items={exercise.instructions} />
+              <Text style={styles.cardTitle}>{copy.coachingTips}</Text>
+              <TextList emptyLabel={copy.noEntries} items={exercise.coachingTips} />
             </AppCard>
           </View>
         ) : null}
@@ -262,16 +303,32 @@ export default function ExerciseDetailScreen() {
         {tab === 'history' ? (
           <View style={styles.stack}>
             {historyGroups.length === 0 ? (
-              <EmptyState title="No history yet" description="Completed sets for this exercise will appear here." />
+              <EmptyState
+                title={copy.noHistoryTitle}
+                description={copy.noHistoryDescription}
+              />
             ) : (
               historyGroups.map((group) => (
                 <AppCard key={group.sessionId}>
                   <Text style={styles.cardTitle}>{group.workoutTitle}</Text>
-                  <Text style={styles.secondaryText}>{formatDate(group.finishedAt)}</Text>
+                  <Text style={styles.secondaryText}>
+                    {formatDate(group.finishedAt, {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </Text>
                   {group.sets.map((set) => (
                     <View key={set.id} style={styles.setRow}>
-                      <Text style={styles.bodyText}>{formatWeight(set.weight)} x {set.reps}</Text>
-                      {set.actualRpe ? <Text style={styles.secondaryText}>RPE {set.actualRpe}</Text> : null}
+                      <Text style={styles.bodyText}>
+                        {formatWeight(set.weight)} ×{' '}
+                        {formatNumber(set.reps, { maximumFractionDigits: 0 })}
+                      </Text>
+                      {set.actualRpe ? (
+                        <Text style={styles.secondaryText}>
+                          RPE {formatNumber(set.actualRpe, { maximumFractionDigits: 0 })}
+                        </Text>
+                      ) : null}
                     </View>
                   ))}
                 </AppCard>
@@ -283,21 +340,38 @@ export default function ExerciseDetailScreen() {
         {tab === 'progress' ? (
           <View style={styles.stack}>
             {historyGroups.length === 0 ? (
-              <EmptyState title="No progress yet" description="Complete sets for this exercise to calculate best weight, reps, volume and estimated 1RM." />
+              <EmptyState
+                title={copy.noProgressTitle}
+                description={copy.noProgressDescription}
+              />
             ) : (
               <>
                 <View style={styles.metricsGrid}>
-                  <MetricCard label="Best weight" value={formatWeight(progressMetrics.bestWeight)} />
-                  <MetricCard label="Best reps" value={`${progressMetrics.bestReps}`} />
-                  <MetricCard label="Volume" value={formatVolume(progressMetrics.totalVolume)} />
-                  <MetricCard label="Est. 1RM" value={formatWeight(progressMetrics.estimatedOneRepMax)} />
+                  <MetricCard
+                    label={copy.bestWeight}
+                    value={formatWeight(progressMetrics.bestWeight)}
+                  />
+                  <MetricCard
+                    label={copy.bestReps}
+                    value={formatNumber(progressMetrics.bestReps, {
+                      maximumFractionDigits: 0,
+                    })}
+                  />
+                  <MetricCard
+                    label={copy.volume}
+                    value={formatVolume(progressMetrics.totalVolume)}
+                  />
+                  <MetricCard
+                    label={copy.estimatedOneRepMax}
+                    value={formatWeight(progressMetrics.estimatedOneRepMax)}
+                  />
                 </View>
                 <AppCard>
-                  <Text style={styles.cardTitle}>Volume trend</Text>
+                  <Text style={styles.cardTitle}>{copy.volumeTrend}</Text>
                   <ProgressTrendChart
-                    emptyLabel="Log this exercise in at least two workouts to show a trend."
-                    maxLabel={`High · ${weightUnit}`}
-                    minLabel={`Low · ${weightUnit}`}
+                    emptyLabel={copy.volumeTrendEmpty}
+                    maxLabel={copy.high(weightUnit)}
+                    minLabel={copy.low(weightUnit)}
                     points={displayVolumeTrend}
                   />
                 </AppCard>
@@ -319,7 +393,6 @@ const styles = StyleSheet.create({
   centeredState: { flex: 1, gap: Spacing.four, justifyContent: 'center', padding: Spacing.four },
   container: { alignSelf: 'center', gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
   content: { paddingHorizontal: Spacing.four },
-  diagnosticText: { color: Colors.dark.textSecondary, fontSize: 11, fontWeight: '700', lineHeight: 16 },
   header: { alignItems: 'center', flexDirection: 'row', gap: Spacing.three },
   headerControl: { alignItems: 'center', borderColor: Colors.dark.borderSubtle, borderRadius: Radii.pill, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', minHeight: 40, minWidth: 64, paddingHorizontal: Spacing.three },
   headerControlText: { color: Colors.dark.textPrimary, fontSize: Typography.label.fontSize, fontWeight: Typography.label.fontWeight },
