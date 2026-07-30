@@ -101,11 +101,7 @@ export default function NutritionScreen() {
       ? Math.round((nutritionSummary.consumed.calories / nutritionTargets.calories) * 100)
       : 0;
   const targetPercentLabel = nutritionTargets.calories > 0 ? `${targetPercent}%` : '--';
-  const selectedDateAccessibility = formatDate(`${selectedDateLabel}T12:00:00`, {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  const selectedDateAccessibility = selectedDateLabel;
   const formatWeekdayLong = (dateLabel: string) =>
     formatDate(`${dateLabel}T12:00:00`, { weekday: 'long' });
 
