@@ -117,13 +117,14 @@ describe('nutrition compact diary 5.0', () => {
   test('picker returns to the selected meal and exposes a quiet delete action for edited entries', () => {
     const route = readSource('src/app/nutrition/add-food.tsx');
     const view = readSource('src/features/nutrition/components/NutritionAddFoodView.tsx');
-    const source = [route, view].join('\n');
+    const copy = readSource('src/localization/nutritionAddFoodCopy.ts');
 
     expect(route.replace(/\s+/g, ' ')).toContain("router.replace({ pathname: '/nutrition', params: { date: selectedDate, openMeal: selectedMeal }, })");
-    expect(source).toContain('Delete entry');
+    expect(view).toContain('deleteLabel={copy.deleteEntry}');
     expect(route).toContain('deleteSelectedDraft');
-    expect(source).toContain('Save changes');
-    expect(route).toContain('Add to ${selectedMealLabel}');
+    expect(route).toContain('copy.saveChanges');
+    expect(route).toContain('copy.addToMeal(selectedMealLabel)');
+    expect(copy).toContain("deleteEntry: locale === 'ru'");
     expect(route).toContain('selectedMeal');
     expect(route).toContain('selectedDate');
   });

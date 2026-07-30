@@ -40,7 +40,8 @@ describe('nutrition energy display boundaries', () => {
     expect(screen).toContain('previousEnergyUnitRef');
     expect(screen).toContain('formatEnergyValue(selectedMealTotals.calories, energyUnit)');
     expect(form).toContain('useUnitPreferences');
-    expect(form).toContain('Energy, {energy}');
+    expect(form).toContain('{copy.energy}, {energy}');
+    expect(form).toContain('getNutritionAddFoodCopy');
     expect(form).not.toContain('>Calories<');
   });
 });

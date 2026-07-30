@@ -1,11 +1,34 @@
-import { CameraView, useCameraPermissions, type BarcodeScanningResult, type BarcodeType } from 'expo-camera';
+import {
+  CameraView,
+  useCameraPermissions,
+  type BarcodeScanningResult,
+  type BarcodeType,
+} from 'expo-camera';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
-import { createCustomBarcodeFood, lookupFoodByBarcode, type CreateCustomBarcodeFoodPayload, type FoodItem } from '@/api/foods';
-import { isApiError } from '@/api/client/errors';
+import {
+  createCustomBarcodeFood,
+  lookupFoodByBarcode,
+  type CreateCustomBarcodeFoodPayload,
+  type FoodItem,
+} from '@/api/foods';
 import { AppButton } from '@/components/ui/AppButton';
 import { Spacing } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import {
+  getNutritionAddFoodCopy,
+  type NutritionAddFoodCopy,
+} from '@/localization/nutritionAddFoodCopy';
 
 const FOOD_BARCODE_TYPES: BarcodeType[] = ['ean13', 'ean8', 'upc_a', 'upc_e'];
 
@@ -33,6 +56,8 @@ type ManualFormState = {
 
 type ManualFormErrors = Partial<Record<keyof ManualFormState | 'form', string>>;
 
+type NutritionFieldKey = 'calories' | 'protein' | 'fat' | 'carbs';
+
 const emptyManualForm: ManualFormState = {
   name: '',
   brand: '',
@@ -43,38 +68,37 @@ const emptyManualForm: ManualFormState = {
   carbs: '',
 };
 
-const manualNutritionFields: Array<{ key: 'calories' | 'protein' | 'fat' | 'carbs'; label: string; max: number }> = [
-  { key: 'calories', label: 'Calories', max: 1000 },
-  { key: 'protein', label: 'Protein', max: 100 },
-  { key: 'fat', label: 'Fat', max: 100 },
-  { key: 'carbs', label: 'Carbs', max: 100 },
+const manualNutritionFields: Array<{ key: NutritionFieldKey; max: number }> = [
+  { key: 'calories', max: 1000 },
+  { key: 'protein', max: 100 },
+  { key: 'fat', max: 100 },
+  { key: 'carbs', max: 100 },
 ];
 
 const parseRequiredNumber = (value: string): number | null => {
   const normalized = value.trim().replace(',', '.');
-  if (!normalized) {
-    return null;
-  }
-
+  if (!normalized) return null;
   const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const validateManualForm = (form: ManualFormState): ManualFormErrors => {
+const validateManualForm = (
+  form: ManualFormState,
+  copy: NutritionAddFoodCopy,
+): ManualFormErrors => {
   const errors: ManualFormErrors = {};
 
-  if (!form.name.trim()) {
-    errors.name = 'Required';
-  }
+  if (!form.name.trim()) errors.name = copy.scanner.required;
 
   for (const field of manualNutritionFields) {
     const value = parseRequiredNumber(form[field.key]);
+    const label = copy.scanner.fieldLabels[field.key];
     if (value === null) {
-      errors[field.key] = 'Required';
+      errors[field.key] = copy.scanner.required;
     } else if (value < 0) {
-      errors[field.key] = 'Must be 0 or more';
+      errors[field.key] = copy.scanner.zeroOrMore;
     } else if (value > field.max) {
-      errors[field.key] = `${field.label} max ${field.max}`;
+      errors[field.key] = copy.scanner.max(label, field.max);
     }
   }
 
@@ -83,7 +107,16 @@ const validateManualForm = (form: ManualFormState): ManualFormErrors => {
 
 const hasErrors = (errors: ManualFormErrors): boolean => Object.keys(errors).length > 0;
 
-export function BarcodeScannerModal({ colors, onClose, onFoodFound, onSearchByName, styles, visible }: BarcodeScannerModalProps) {
+export function BarcodeScannerModal({
+  colors,
+  onClose,
+  onFoodFound,
+  onSearchByName,
+  styles,
+  visible,
+}: BarcodeScannerModalProps) {
+  const { locale } = useLocalization();
+  const copy = getNutritionAddFoodCopy(locale);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanStatus, setScanStatus] = useState<ScanStatus>('idle');
   const [lastBarcode, setLastBarcode] = useState('');
@@ -109,19 +142,20 @@ export function BarcodeScannerModal({ colors, onClose, onFoodFound, onSearchByNa
     }
   }, [visible]);
 
-  const manualErrors = useMemo(() => validateManualForm(manualForm), [manualForm]);
+  const manualErrors = useMemo(
+    () => validateManualForm(manualForm, copy),
+    [copy, manualForm],
+  );
   const manualSaveDisabled = manualSaving || hasErrors(manualErrors);
 
   const handleBarcodeScanned = async (result: BarcodeScanningResult) => {
     const barcode = result.data.trim();
-    if (!barcode || lookupBarcodeRef.current) {
-      return;
-    }
+    if (!barcode || lookupBarcodeRef.current) return;
 
     lookupBarcodeRef.current = barcode;
     setLastBarcode(barcode);
     setScanStatus('looking-up');
-    setScanMessage('Looking up food...');
+    setScanMessage(copy.scanner.lookingUp);
 
     try {
       const food = await lookupFoodByBarcode(barcode);
@@ -131,14 +165,14 @@ export function BarcodeScannerModal({ colors, onClose, onFoodFound, onSearchByNa
       }
 
       setScanStatus('not-found');
-      setScanMessage('Product not found');
+      setScanMessage(copy.scanner.productNotFound);
       setManualForm(emptyManualForm);
       setManualTouched(false);
       setManualError('');
       setManualFormOpen(false);
     } catch {
       setScanStatus('error');
-      setScanMessage('Could not look up this barcode. Check your connection and try again.');
+      setScanMessage(copy.scanner.lookupError);
     } finally {
       lookupBarcodeRef.current = null;
     }
@@ -164,10 +198,8 @@ export function BarcodeScannerModal({ colors, onClose, onFoodFound, onSearchByNa
     setManualTouched(true);
     setManualError('');
 
-    const errors = validateManualForm(manualForm);
-    if (hasErrors(errors) || !lastBarcode) {
-      return;
-    }
+    const errors = validateManualForm(manualForm, copy);
+    if (hasErrors(errors) || !lastBarcode) return;
 
     const payload: CreateCustomBarcodeFoodPayload = {
       name: manualForm.name.trim(),
@@ -184,8 +216,8 @@ export function BarcodeScannerModal({ colors, onClose, onFoodFound, onSearchByNa
       const food = await createCustomBarcodeFood(lastBarcode, payload);
       setManualFormOpen(false);
       onFoodFound(food);
-    } catch (error) {
-      setManualError(isApiError(error) ? error.message : 'Could not save this product. Try again.');
+    } catch {
+      setManualError(copy.scanner.saveError);
     } finally {
       setManualSaving(false);
     }
@@ -196,31 +228,42 @@ export function BarcodeScannerModal({ colors, onClose, onFoodFound, onSearchByNa
   const visibleManualErrors = manualTouched ? manualErrors : {};
 
   return (
-    <Modal animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen" visible={visible}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.scannerScreen}>
+    <Modal
+      animationType="slide"
+      onRequestClose={onClose}
+      presentationStyle="fullScreen"
+      visible={visible}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.scannerScreen}>
         <View style={styles.scannerHeader}>
-          <Pressable accessibilityLabel="Close barcode scanner" hitSlop={10} onPress={onClose} style={styles.scannerCloseButton}>
-            <Text style={styles.scannerCloseText}>Close</Text>
+          <Pressable
+            accessibilityLabel={copy.scanner.closeScanner}
+            hitSlop={10}
+            onPress={onClose}
+            style={styles.scannerCloseButton}>
+            <Text style={styles.scannerCloseText}>{copy.scanner.close}</Text>
           </Pressable>
-          <Text selectable style={styles.scannerTitle}>
-            Scan barcode
-          </Text>
+          <Text selectable style={styles.scannerTitle}>{copy.scanner.title}</Text>
           <View style={styles.scannerHeaderSpacer} />
         </View>
 
         {manualFormOpen ? (
-          <ScrollView contentContainerStyle={styles.scannerManualForm} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={styles.scannerManualForm}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
             <View style={styles.scannerManualHeader}>
               <View>
                 <Text selectable style={styles.scannerPermissionTitle}>
-                  Add product
+                  {copy.scanner.addProduct}
                 </Text>
                 <Text selectable style={styles.scannerPermissionText}>
-                  Nutrition per 100{manualForm.servingUnit}
+                  {copy.scanner.nutritionPer(manualForm.servingUnit)}
                 </Text>
               </View>
               <Pressable
-                accessibilityLabel="Close manual product form"
+                accessibilityLabel={copy.scanner.closeManualForm}
                 hitSlop={10}
                 onPress={() => setManualFormOpen(false)}
                 style={styles.sheetClose}>
@@ -229,36 +272,36 @@ export function BarcodeScannerModal({ colors, onClose, onFoodFound, onSearchByNa
             </View>
 
             <View style={styles.sheetField}>
-              <Text selectable style={styles.sheetLabel}>
-                Barcode
-              </Text>
-              <TextInput editable={false} style={[styles.sheetInput, styles.readOnlyInput]} value={lastBarcode} />
+              <Text selectable style={styles.sheetLabel}>{copy.scanner.barcode}</Text>
+              <TextInput
+                editable={false}
+                style={[styles.sheetInput, styles.readOnlyInput]}
+                value={lastBarcode}
+              />
             </View>
 
             <View style={styles.sheetField}>
-              <Text selectable style={styles.sheetLabel}>
-                Product name
-              </Text>
+              <Text selectable style={styles.sheetLabel}>{copy.scanner.productName}</Text>
               <TextInput
                 autoCapitalize="words"
                 onBlur={() => setManualTouched(true)}
                 onChangeText={(value) => updateManualField('name', value)}
-                placeholder="Name"
+                placeholder={copy.scanner.namePlaceholder}
                 placeholderTextColor={colors.textSecondary}
                 style={styles.sheetInput}
                 value={manualForm.name}
               />
-              {visibleManualErrors.name ? <Text style={styles.formErrorText}>{visibleManualErrors.name}</Text> : null}
+              {visibleManualErrors.name ? (
+                <Text style={styles.formErrorText}>{visibleManualErrors.name}</Text>
+              ) : null}
             </View>
 
             <View style={styles.sheetField}>
-              <Text selectable style={styles.sheetLabel}>
-                Brand
-              </Text>
+              <Text selectable style={styles.sheetLabel}>{copy.brand}</Text>
               <TextInput
                 autoCapitalize="words"
                 onChangeText={(value) => updateManualField('brand', value)}
-                placeholder="Optional"
+                placeholder={copy.optional}
                 placeholderTextColor={colors.textSecondary}
                 style={styles.sheetInput}
                 value={manualForm.brand}
@@ -267,16 +310,34 @@ export function BarcodeScannerModal({ colors, onClose, onFoodFound, onSearchByNa
 
             <View style={styles.unitToggle}>
               <Pressable
-                accessibilityLabel="Use 100 grams"
+                accessibilityLabel={copy.scanner.useGrams}
                 onPress={() => updateManualField('servingUnit', 'g')}
-                style={[styles.unitToggleOption, manualForm.servingUnit === 'g' ? styles.unitToggleOptionActive : null]}>
-                <Text style={[styles.unitToggleText, manualForm.servingUnit === 'g' ? styles.unitToggleTextActive : null]}>100g</Text>
+                style={[
+                  styles.unitToggleOption,
+                  manualForm.servingUnit === 'g' ? styles.unitToggleOptionActive : null,
+                ]}>
+                <Text
+                  style={[
+                    styles.unitToggleText,
+                    manualForm.servingUnit === 'g' ? styles.unitToggleTextActive : null,
+                  ]}>
+                  100g
+                </Text>
               </Pressable>
               <Pressable
-                accessibilityLabel="Use 100 milliliters"
+                accessibilityLabel={copy.scanner.useMilliliters}
                 onPress={() => updateManualField('servingUnit', 'ml')}
-                style={[styles.unitToggleOption, manualForm.servingUnit === 'ml' ? styles.unitToggleOptionActive : null]}>
-                <Text style={[styles.unitToggleText, manualForm.servingUnit === 'ml' ? styles.unitToggleTextActive : null]}>100ml</Text>
+                style={[
+                  styles.unitToggleOption,
+                  manualForm.servingUnit === 'ml' ? styles.unitToggleOptionActive : null,
+                ]}>
+                <Text
+                  style={[
+                    styles.unitToggleText,
+                    manualForm.servingUnit === 'ml' ? styles.unitToggleTextActive : null,
+                  ]}>
+                  100ml
+                </Text>
               </Pressable>
             </View>
 
@@ -284,7 +345,7 @@ export function BarcodeScannerModal({ colors, onClose, onFoodFound, onSearchByNa
               {manualNutritionFields.map((field) => (
                 <View key={field.key} style={styles.sheetField}>
                   <Text selectable style={styles.sheetLabel}>
-                    {field.label}
+                    {copy.scanner.fieldLabels[field.key]}
                   </Text>
                   <TextInput
                     keyboardType="decimal-pad"
@@ -295,13 +356,20 @@ export function BarcodeScannerModal({ colors, onClose, onFoodFound, onSearchByNa
                     style={styles.sheetInput}
                     value={manualForm[field.key]}
                   />
-                  {visibleManualErrors[field.key] ? <Text style={styles.formErrorText}>{visibleManualErrors[field.key]}</Text> : null}
+                  {visibleManualErrors[field.key] ? (
+                    <Text style={styles.formErrorText}>{visibleManualErrors[field.key]}</Text>
+                  ) : null}
                 </View>
               ))}
             </View>
 
             {manualError ? <Text style={styles.formErrorText}>{manualError}</Text> : null}
-            <AppButton disabled={manualSaveDisabled} label="Save product" loading={manualSaving} onPress={saveManualFood} />
+            <AppButton
+              disabled={manualSaveDisabled}
+              label={copy.scanner.saveProduct}
+              loading={manualSaving}
+              onPress={saveManualFood}
+            />
           </ScrollView>
         ) : cameraGranted ? (
           <View style={styles.scannerCameraWrap}>
@@ -315,49 +383,60 @@ export function BarcodeScannerModal({ colors, onClose, onFoodFound, onSearchByNa
             <View pointerEvents="none" style={styles.scannerOverlay}>
               <View style={styles.scannerFrame} />
               <Text selectable style={styles.scannerInstruction}>
-                Align the barcode inside the frame
+                {copy.scanner.alignBarcode}
               </Text>
             </View>
           </View>
         ) : (
           <View style={styles.scannerPermissionCard}>
             <Text selectable style={styles.scannerPermissionTitle}>
-              Camera access needed
+              {copy.scanner.cameraNeeded}
             </Text>
             <Text selectable style={styles.scannerPermissionText}>
-              {permission?.granted === false
-                ? 'Camera permission is off. Allow camera access to scan barcodes, or return to manual search.'
-                : 'We use the camera to scan food barcodes.'}
+              {permission?.granted === false ? copy.scanner.cameraOff : copy.scanner.cameraUse}
             </Text>
-            {permission?.canAskAgain === false ? null : <AppButton label="Allow camera" onPress={requestPermission} />}
-            <Pressable accessibilityLabel="Return to manual food search" hitSlop={10} onPress={onClose} style={styles.scannerManualButton}>
-              <Text style={styles.scannerManualText}>Manual search</Text>
+            {permission?.canAskAgain === false ? null : (
+              <AppButton label={copy.scanner.allowCamera} onPress={requestPermission} />
+            )}
+            <Pressable
+              accessibilityLabel={copy.scanner.returnManualSearch}
+              hitSlop={10}
+              onPress={onClose}
+              style={styles.scannerManualButton}>
+              <Text style={styles.scannerManualText}>{copy.scanner.manualSearch}</Text>
             </Pressable>
           </View>
         )}
 
         {scanStatus !== 'idle' && !manualFormOpen ? (
           <View style={styles.scannerStatusCard}>
-            <Text selectable style={styles.scannerStatusText}>
-              {scanMessage}
-            </Text>
+            <Text selectable style={styles.scannerStatusText}>{scanMessage}</Text>
             {lastBarcode ? (
-              <Text selectable style={styles.scannerBarcodeText}>
-                {lastBarcode}
-              </Text>
+              <Text selectable style={styles.scannerBarcodeText}>{lastBarcode}</Text>
             ) : null}
             {scanStatus === 'not-found' || scanStatus === 'error' ? (
               <View style={styles.scannerActions}>
                 {scanStatus === 'not-found' ? (
                   <>
                     <Text selectable style={styles.scannerPermissionText}>
-                      Add it once and future scans will find it automatically.
+                      {copy.scanner.futureScans}
                     </Text>
-                    <AppButton label="Add manually" onPress={() => setManualFormOpen(true)} />
-                    <AppButton label="Search by name" onPress={onSearchByName} variant="secondary" />
+                    <AppButton
+                      label={copy.scanner.addManually}
+                      onPress={() => setManualFormOpen(true)}
+                    />
+                    <AppButton
+                      label={copy.scanner.searchByName}
+                      onPress={onSearchByName}
+                      variant="secondary"
+                    />
                   </>
                 ) : null}
-                <AppButton label="Try again" onPress={retryScan} variant="secondary" />
+                <AppButton
+                  label={copy.scanner.tryAgain}
+                  onPress={retryScan}
+                  variant="secondary"
+                />
               </View>
             ) : null}
           </View>

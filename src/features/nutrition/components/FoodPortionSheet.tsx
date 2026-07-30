@@ -11,6 +11,8 @@ import {
 
 import { AppButton } from '@/components/ui/AppButton';
 import { Spacing } from '@/constants/theme';
+import { useLocalization } from '@/localization';
+import { getNutritionAddFoodCopy } from '@/localization/nutritionAddFoodCopy';
 import type { FoodAttribution, FoodEntry } from '@/types';
 import { formatEnergyValue, parseDisplayNumber, useUnitPreferences } from '@/units';
 
@@ -62,6 +64,8 @@ export function FoodPortionSheet({
   styles,
 }: FoodPortionSheetProps) {
   const { energy } = useUnitPreferences();
+  const { locale } = useLocalization();
+  const copy = getNutritionAddFoodCopy(locale);
   const parsedQuantity = parseDisplayNumber(draft.quantity);
   const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0
     ? parsedQuantity
@@ -81,7 +85,7 @@ export function FoodPortionSheet({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.sheetBackdrop}>
         <Pressable
-          accessibilityLabel="Close portion editor"
+          accessibilityLabel={copy.closePortionEditor}
           onPress={onClose}
           style={styles.sheetScrim}
         />
@@ -103,7 +107,7 @@ export function FoodPortionSheet({
                 </Text>
               </View>
               <Pressable
-                accessibilityLabel="Close portion editor"
+                accessibilityLabel={copy.closePortionEditor}
                 hitSlop={10}
                 onPress={onClose}
                 style={styles.sheetClose}>
@@ -120,15 +124,13 @@ export function FoodPortionSheet({
               {servingLabel}
             </Text>
             <View style={styles.sheetField}>
-              <Text selectable style={styles.sheetLabel}>
-                Quantity
-              </Text>
+              <Text selectable style={styles.sheetLabel}>{copy.quantity}</Text>
               <TextInput
-                accessibilityLabel="Quantity"
+                accessibilityLabel={copy.quantity}
                 autoFocus
                 keyboardType="decimal-pad"
                 onChangeText={onChangeQuantity}
-                placeholder="Quantity"
+                placeholder={copy.quantity}
                 placeholderTextColor={colors.textSecondary}
                 returnKeyType="done"
                 style={styles.sheetInput}
@@ -143,9 +145,7 @@ export function FoodPortionSheet({
             </View>
 
             <Text selectable style={styles.sheetHint}>
-              {draft.originalEntryId
-                ? 'Update the selected entry and keep the diary context unchanged.'
-                : 'Add this food to the selected meal without leaving the picker.'}
+              {draft.originalEntryId ? copy.updateEntryHint : copy.addEntryHint}
             </Text>
 
             {attributionLabel ? (
