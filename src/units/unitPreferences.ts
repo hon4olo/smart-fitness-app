@@ -1,6 +1,7 @@
 export type WeightUnit = 'kg' | 'lb';
 export type LengthUnit = 'cm' | 'in';
 export type EnergyUnit = 'kcal' | 'kJ';
+export type ProteinRatioUnit = 'g/kg' | 'g/lb';
 
 export type UnitPreferences = {
   weight: WeightUnit;
@@ -40,6 +41,12 @@ export const energyFromKcal = (valueKcal: number, unit: EnergyUnit): number =>
 
 export const energyToKcal = (value: number, unit: EnergyUnit): number =>
   unit === 'kJ' ? value / KCAL_TO_KJ : value;
+
+export const proteinRatioUnitForWeight = (unit: WeightUnit): ProteinRatioUnit =>
+  unit === 'lb' ? 'g/lb' : 'g/kg';
+
+export const proteinRatioFromPerKg = (valuePerKg: number, unit: WeightUnit): number =>
+  unit === 'lb' ? valuePerKg / KG_TO_LB : valuePerKg;
 
 export const formatWeightValue = (valueKg: number, unit: WeightUnit): string =>
   `${round(weightFromKg(valueKg, unit))}`;
