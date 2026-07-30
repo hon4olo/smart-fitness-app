@@ -9,23 +9,14 @@ import type {
 } from '@/api/coach';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Spacing, Typography } from '@/constants/theme';
-import type { SupportedLocale } from '@/localization';
+import { useLocalization } from '@/localization';
 
-import { getCoachHistoryCopy } from '../coachHistoryCopy';
+import { getCoachInputSummaryCopy } from '../coachInputSummaryCopy';
 
 type CoachInputSummaryCardProps = {
   summary?: CoachRunInputSummary;
   invalid?: boolean;
-  locale: SupportedLocale;
 };
-
-const yesNo = (value: boolean, locale: SupportedLocale): string =>
-  locale === 'ru' ? (value ? 'Да' : 'Нет') : value ? 'Yes' : 'No';
-
-const count = (value: number, locale: SupportedLocale): string =>
-  new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : 'en-US', {
-    maximumFractionDigits: 0,
-  }).format(value);
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -38,85 +29,88 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function NutritionRows({
   source,
-  locale,
+  copy,
+  formatCount,
 }: {
   source: NutritionInputCoverage;
-  locale: SupportedLocale;
+  copy: ReturnType<typeof getCoachInputSummaryCopy>;
+  formatCount: (value: number) => string;
 }) {
-  const copy = getCoachHistoryCopy(locale);
   return (
     <>
       <Row
-        label={copy.inputLookback}
+        label={copy.lookback}
         value={source.lookbackDays === null ? copy.notRecorded : copy.days(source.lookbackDays)}
       />
-      <Row label={copy.inputFoodEntries} value={count(source.foodEntryCount, locale)} />
-      <Row label={copy.inputLoggedDays} value={count(source.loggedDayCount, locale)} />
-      <Row label={copy.inputWeightEntries} value={count(source.weightEntryCount, locale)} />
-      <Row label={copy.inputLatestWeight} value={yesNo(source.hasLatestWeight, locale)} />
-      <Row label={copy.inputActiveTarget} value={yesNo(source.hasActiveTarget, locale)} />
-      <Row label={copy.inputFitnessProfile} value={yesNo(source.hasFitnessProfile, locale)} />
+      <Row label={copy.foodEntries} value={formatCount(source.foodEntryCount)} />
+      <Row label={copy.loggedDays} value={formatCount(source.loggedDayCount)} />
+      <Row label={copy.weightEntries} value={formatCount(source.weightEntryCount)} />
+      <Row label={copy.latestWeight} value={source.hasLatestWeight ? copy.yes : copy.no} />
+      <Row label={copy.activeTarget} value={source.hasActiveTarget ? copy.yes : copy.no} />
+      <Row label={copy.fitnessProfile} value={source.hasFitnessProfile ? copy.yes : copy.no} />
     </>
   );
 }
 
 function StrengthRows({
   source,
-  locale,
+  copy,
+  formatCount,
 }: {
   source: StrengthInputCoverage;
-  locale: SupportedLocale;
+  copy: ReturnType<typeof getCoachInputSummaryCopy>;
+  formatCount: (value: number) => string;
 }) {
-  const copy = getCoachHistoryCopy(locale);
   return (
     <>
       <Row
-        label={copy.inputSpecificSession}
-        value={yesNo(source.requestedSpecificSession, locale)}
+        label={copy.specificSession}
+        value={source.requestedSpecificSession ? copy.yes : copy.no}
       />
       <Row
-        label={copy.inputHistoryLimit}
+        label={copy.historyLimit}
         value={
           source.requestedHistoryLimit === null
             ? copy.notRecorded
-            : count(source.requestedHistoryLimit, locale)
+            : formatCount(source.requestedHistoryLimit)
         }
       />
-      <Row label={copy.inputSessions} value={count(source.sessionCount, locale)} />
-      <Row label={copy.inputCompletedSets} value={count(source.completedSetCount, locale)} />
-      <Row label={copy.inputExercises} value={count(source.distinctExerciseCount, locale)} />
-      <Row label={copy.inputRpeSets} value={count(source.setsWithActualRpeCount, locale)} />
-      <Row label={copy.inputLatestWeight} value={yesNo(source.hasLatestWeight, locale)} />
+      <Row label={copy.sessions} value={formatCount(source.sessionCount)} />
+      <Row label={copy.completedSets} value={formatCount(source.completedSetCount)} />
+      <Row label={copy.exercises} value={formatCount(source.distinctExerciseCount)} />
+      <Row label={copy.rpeSets} value={formatCount(source.setsWithActualRpeCount)} />
+      <Row label={copy.latestWeight} value={source.hasLatestWeight ? copy.yes : copy.no} />
     </>
   );
 }
 
 function SafetyRows({
   source,
-  locale,
+  copy,
+  formatCount,
 }: {
   source: SafetyRecoveryInputCoverage;
-  locale: SupportedLocale;
+  copy: ReturnType<typeof getCoachInputSummaryCopy>;
+  formatCount: (value: number) => string;
 }) {
-  const copy = getCoachHistoryCopy(locale);
   return (
     <>
       <Row
-        label={copy.inputLookback}
+        label={copy.lookback}
         value={source.lookbackDays === null ? copy.notRecorded : copy.days(source.lookbackDays)}
       />
-      <Row label={copy.inputLimitations} value={count(source.activeLimitationCount, locale)} />
-      <Row label={copy.inputPauseTraining} value={count(source.pauseTrainingCount, locale)} />
-      <Row label={copy.inputAvoidMovement} value={count(source.avoidMovementCount, locale)} />
-      <Row label={copy.inputReduceLoad} value={count(source.reduceLoadCount, locale)} />
-      <Row label={copy.inputCheckIns} value={count(source.recoveryCheckInCount, locale)} />
+      <Row label={copy.limitations} value={formatCount(source.activeLimitationCount)} />
+      <Row label={copy.pauseTraining} value={formatCount(source.pauseTrainingCount)} />
+      <Row label={copy.avoidMovement} value={formatCount(source.avoidMovementCount)} />
+      <Row label={copy.reduceLoad} value={formatCount(source.reduceLoadCount)} />
+      <Row label={copy.checkIns} value={formatCount(source.recoveryCheckInCount)} />
       <Row
-        label={copy.inputLimitationNotes}
-        value={count(source.limitationNotesPresentCount, locale)}
+        label={copy.limitationNotes}
+        value={formatCount(source.limitationNotesPresentCount)}
       />
       <Row
-        label={copy.inputCheckInNotes}
-        value={count(source.checkInNotesPresentCount, locale)}
+        label={copy.checkInNotes}
+        value={formatCount(source.checkInNotesPresentCount)}
       />
     </>
   );
@@ -124,43 +118,47 @@ function SafetyRows({
 
 function SourceRows({
   source,
-  locale,
+  copy,
+  formatCount,
 }: {
   source: CoachInputCoverage;
-  locale: SupportedLocale;
+  copy: ReturnType<typeof getCoachInputSummaryCopy>;
+  formatCount: (value: number) => string;
 }) {
-  const copy = getCoachHistoryCopy(locale);
   if (!source.available) {
-    return <Text style={styles.notice}>{copy.inputSourceUnavailable}</Text>;
+    return <Text style={styles.notice}>{copy.sourceUnavailable}</Text>;
   }
   if (source.domain === 'nutrition') {
-    return <NutritionRows source={source} locale={locale} />;
+    return <NutritionRows source={source} copy={copy} formatCount={formatCount} />;
   }
   if (source.domain === 'strength') {
-    return <StrengthRows source={source} locale={locale} />;
+    return <StrengthRows source={source} copy={copy} formatCount={formatCount} />;
   }
-  return <SafetyRows source={source} locale={locale} />;
+  return <SafetyRows source={source} copy={copy} formatCount={formatCount} />;
 }
 
 export function CoachInputSummaryCard({
   summary,
   invalid = false,
-  locale,
 }: CoachInputSummaryCardProps) {
-  const copy = getCoachHistoryCopy(locale);
+  const { locale, formatNumber } = useLocalization();
+  const copy = getCoachInputSummaryCopy(locale);
   if (!invalid && (!summary || summary.sources.length === 0)) return null;
+
+  const formatCount = (value: number) =>
+    formatNumber(value, { maximumFractionDigits: 0 });
 
   return (
     <AppCard>
-      <Text style={styles.title}>{copy.inputSummary}</Text>
-      <Text style={styles.description}>{copy.inputSummaryDescription}</Text>
+      <Text style={styles.title}>{copy.title}</Text>
+      <Text style={styles.description}>{copy.description}</Text>
       {invalid ? (
-        <Text style={styles.notice}>{copy.inputSummaryUnavailable}</Text>
+        <Text style={styles.notice}>{copy.unavailable}</Text>
       ) : (
         summary?.sources.map((source) => (
           <View key={source.domain} style={styles.sourceBlock}>
-            <Text style={styles.sourceTitle}>{copy.inputDomain(source.domain)}</Text>
-            <SourceRows source={source} locale={locale} />
+            <Text style={styles.sourceTitle}>{copy.domain(source.domain)}</Text>
+            <SourceRows source={source} copy={copy} formatCount={formatCount} />
           </View>
         ))
       )}
