@@ -34,7 +34,8 @@ describe('workout hotfix regressions', () => {
     expect(programSource).not.toContain('TextInput');
     expect(programSource).not.toContain('Save program');
     expect(builderSource).not.toContain('[existingProgram, workouts]');
-    expect(workoutEditorSource).toContain('Save');
+    expect(workoutEditorSource).toContain('copy.save');
+    expect(workoutEditorSource).toContain('onSaveWorkout({');
     expect(workoutEditorSource).toContain('headerActions');
   });
 
