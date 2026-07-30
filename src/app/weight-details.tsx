@@ -40,7 +40,7 @@ export default function WeightDetailsScreen() {
         key: entry.id,
         label: toDateLabel(entry.createdAt),
         value: weightFromKg(entry.weight, weightUnit),
-        displayValue: formatWeightValue(entry.weight, weightUnit),
+        displayValue: formatWeightValue(entry.weight),
       })),
     [analytics.weight.recentEntries, formatDate, formatWeightValue, weightUnit],
   );
@@ -50,7 +50,7 @@ export default function WeightDetailsScreen() {
   );
 
   const latestWeight = analytics.weight.currentWeight !== null
-    ? `${formatWeightValue(analytics.weight.currentWeight, weightUnit)} ${weightUnit}`
+    ? `${formatWeightValue(analytics.weight.currentWeight)} ${weightUnit}`
     : '—';
   const convertedDelta30Days = analytics.weight.delta30Days !== null
     ? weightFromKg(analytics.weight.delta30Days, weightUnit)
@@ -112,7 +112,7 @@ export default function WeightDetailsScreen() {
                     {toDateLabel(entry.createdAt)}
                   </Text>
                   <Text selectable style={styles.historyValue}>
-                    {formatWeightValue(entry.weight, weightUnit)} {weightUnit}
+                    {formatWeightValue(entry.weight)} {weightUnit}
                   </Text>
                 </View>
               ))}
