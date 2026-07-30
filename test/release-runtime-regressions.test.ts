@@ -56,10 +56,12 @@ describe('release runtime regressions', () => {
     const source = readSource('src/components/progress/ProgressTrendChart.tsx');
 
     expect(source).toContain("{ key: 'maximum', value: maxLabel }");
-    expect(source).toContain("{ key: 'midpoint', value: midpoint.toFixed(1) }");
+    expect(source).toContain("key: 'midpoint'");
+    expect(source).toContain('value: formatNumber(midpoint');
     expect(source).toContain("{ key: 'minimum', value: minLabel }");
     expect(source).toContain('key={axisLabel.key}');
     expect(source).not.toContain('key={label}');
+    expect(source).not.toContain('midpoint.toFixed');
   });
 
   it('keeps every installable EAS profile standalone and isolates the native runtime', () => {
