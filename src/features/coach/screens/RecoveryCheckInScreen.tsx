@@ -1,12 +1,12 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
-import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { upsertRecoveryCheckInInState } from '@/context/appContext/safetyRecoveryActions';
@@ -17,6 +17,7 @@ import {
   getRecoveryCheckInCopy,
   type RecoveryCheckInCopy,
 } from '@/localization/recoveryCheckInCopy';
+import { getBoundedSyncStatusLabel } from '@/localization/statusPresentation';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type {
   AppContextType,
@@ -30,6 +31,7 @@ import {
   emptyRecoveryCheckInDraft,
   type RecoveryCheckInDraft,
 } from '../recoveryCheckInForm';
+import { createRecoveryCheckInScreenStyles } from './recoveryCheckInScreen.styles';
 
 const ONE_TO_FIVE: readonly RecoveryScaleOneToFive[] = [1, 2, 3, 4, 5];
 const ZERO_TO_FIVE: readonly RecoveryScaleZeroToFive[] = [0, 1, 2, 3, 4, 5];
@@ -72,14 +74,14 @@ const localizeValidationMessage = (message: string, copy: RecoveryCheckInCopy) =
   if (message === 'The check-in timestamp is invalid.') {
     return copy.validation.timestamp;
   }
-  return message;
+  return copy.localValidationFailed;
 };
 
 export default function RecoveryCheckInScreen() {
   const { colors } = useAppTheme();
   const { formatDate, formatNumber, locale } = useLocalization();
   const copy = getRecoveryCheckInCopy(locale);
-  const themedStyles = useMemo(() => createStyles(colors), [colors]);
+  const themedStyles = useMemo(() => createRecoveryCheckInScreenStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const app = useAppContext();
   const { error: syncError, pendingOperations, status: syncStatus, syncNow } = useWeightSync();
@@ -95,7 +97,7 @@ export default function RecoveryCheckInScreen() {
     if (!Number.isFinite(parsed.getTime())) return copy.unknownTime;
     return formatDate(parsed, { dateStyle: 'medium', timeStyle: 'short' });
   };
-  const syncStatusLabel = copy.syncLabels[String(syncStatus)] ?? String(syncStatus);
+  const syncStatusLabel = getBoundedSyncStatusLabel(locale, String(syncStatus));
 
   useEffect(() => {
     if (
@@ -223,48 +225,12 @@ export default function RecoveryCheckInScreen() {
               />
             </View>
 
-            <RecoveryScorePicker
-              helperText={copy.veryPoorToVeryGood}
-              label={copy.sleepQuality}
-              onChange={(value) => updateDraft('sleepQuality', value)}
-              options={ONE_TO_FIVE}
-              value={draft.sleepQuality}
-            />
-            <RecoveryScorePicker
-              helperText={copy.lowToMaximum}
-              label={copy.fatigue}
-              onChange={(value) => updateDraft('fatigue', value)}
-              options={ONE_TO_FIVE}
-              value={draft.fatigue}
-            />
-            <RecoveryScorePicker
-              helperText={copy.noneToMaximum}
-              label={copy.soreness}
-              onChange={(value) => updateDraft('soreness', value)}
-              options={ZERO_TO_FIVE}
-              value={draft.soreness}
-            />
-            <RecoveryScorePicker
-              helperText={copy.lowToMaximum}
-              label={copy.stress}
-              onChange={(value) => updateDraft('stress', value)}
-              options={ONE_TO_FIVE}
-              value={draft.stress}
-            />
-            <RecoveryScorePicker
-              helperText={copy.noneToMaximum}
-              label={copy.painInterference}
-              onChange={(value) => updateDraft('painInterference', value)}
-              options={ZERO_TO_FIVE}
-              value={draft.painInterference}
-            />
-            <RecoveryScorePicker
-              helperText={copy.veryLowToVeryHigh}
-              label={copy.readiness}
-              onChange={(value) => updateDraft('readiness', value)}
-              options={ONE_TO_FIVE}
-              value={draft.readiness}
-            />
+            <RecoveryScorePicker helperText={copy.veryPoorToVeryGood} label={copy.sleepQuality} onChange={(value) => updateDraft('sleepQuality', value)} options={ONE_TO_FIVE} value={draft.sleepQuality} />
+            <RecoveryScorePicker helperText={copy.lowToMaximum} label={copy.fatigue} onChange={(value) => updateDraft('fatigue', value)} options={ONE_TO_FIVE} value={draft.fatigue} />
+            <RecoveryScorePicker helperText={copy.noneToMaximum} label={copy.soreness} onChange={(value) => updateDraft('soreness', value)} options={ZERO_TO_FIVE} value={draft.soreness} />
+            <RecoveryScorePicker helperText={copy.lowToMaximum} label={copy.stress} onChange={(value) => updateDraft('stress', value)} options={ONE_TO_FIVE} value={draft.stress} />
+            <RecoveryScorePicker helperText={copy.noneToMaximum} label={copy.painInterference} onChange={(value) => updateDraft('painInterference', value)} options={ZERO_TO_FIVE} value={draft.painInterference} />
+            <RecoveryScorePicker helperText={copy.veryLowToVeryHigh} label={copy.readiness} onChange={(value) => updateDraft('readiness', value)} options={ONE_TO_FIVE} value={draft.readiness} />
 
             <Text style={themedStyles.metaText}>
               {copy.selectedSignals(
@@ -299,90 +265,3 @@ export default function RecoveryCheckInScreen() {
     </View>
   );
 }
-
-const createStyles = (colors: typeof Colors.light) =>
-  StyleSheet.create({
-    backButton: {
-      alignItems: 'center',
-      height: 42,
-      justifyContent: 'center',
-      width: 42,
-    },
-    backLabel: {
-      color: colors.textPrimary,
-      fontSize: 42,
-      fontWeight: '300',
-      lineHeight: 42,
-    },
-    bodyText: {
-      color: colors.textSecondary,
-      fontSize: Typography.body.fontSize,
-      lineHeight: Typography.body.lineHeight,
-    },
-    cardTitle: {
-      color: colors.textPrimary,
-      fontSize: Typography.cardTitle.fontSize,
-      fontWeight: Typography.cardTitle.fontWeight,
-      lineHeight: Typography.cardTitle.lineHeight,
-    },
-    container: {
-      gap: Spacing.four,
-      maxWidth: MaxContentWidth,
-      width: '100%',
-    },
-    content: {
-      alignItems: 'center',
-      paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.three,
-    },
-    errorText: {
-      color: colors.error,
-      fontSize: Typography.callout.fontSize,
-      lineHeight: Typography.callout.lineHeight,
-    },
-    fieldGroup: { gap: Spacing.one },
-    fieldLabel: {
-      color: colors.textPrimary,
-      fontSize: Typography.label.fontSize,
-      fontWeight: Typography.label.fontWeight,
-      lineHeight: Typography.label.lineHeight,
-    },
-    header: {
-      alignItems: 'center',
-      backgroundColor: colors.background,
-      flexDirection: 'row',
-      gap: Spacing.one,
-      paddingBottom: Spacing.two,
-      paddingHorizontal: Spacing.two,
-    },
-    headerCopy: { flex: 1, minWidth: 0 },
-    input: {
-      backgroundColor: colors.surfaceElevated,
-      borderColor: colors.borderSubtle,
-      borderRadius: Radii.medium,
-      borderWidth: StyleSheet.hairlineWidth,
-      color: colors.textPrimary,
-      fontSize: Typography.body.fontSize,
-      minHeight: 46,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
-    },
-    metaText: {
-      color: colors.textMuted,
-      fontSize: Typography.caption.fontSize,
-      lineHeight: Typography.caption.lineHeight,
-    },
-    pressed: { opacity: 0.68 },
-    screen: { backgroundColor: colors.background, flex: 1 },
-    subtitle: {
-      color: colors.textSecondary,
-      fontSize: Typography.caption.fontSize,
-      lineHeight: Typography.caption.lineHeight,
-    },
-    title: {
-      color: colors.textPrimary,
-      fontSize: 24,
-      fontWeight: '900',
-      lineHeight: 30,
-    },
-  });
