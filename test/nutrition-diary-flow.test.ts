@@ -96,7 +96,7 @@ describe('nutrition compact diary 5.0', () => {
     expect(nutritionUi).toContain('macroGridRow');
     expect(nutritionUi).toContain('macroGridValue');
     expect(nutritionUi).toContain('mealHeaderMeta');
-    expect(nutritionUi).toContain('formatMealItemCount');
+    expect(nutritionUi).toContain('copy.itemCount');
     expect(nutritionUi).toContain('mealHeaderActions');
     expect(nutritionUi).toContain('mealActionButton');
     expect(nutritionUi).toContain('chevronText');
@@ -131,9 +131,14 @@ describe('nutrition compact diary 5.0', () => {
   test('nutrient breakdown is compact and only renders useful nutrient data', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
     const detailsSection = readSource('src/features/nutrition/components/NutritionDetailsSection.tsx');
+    const copy = readSource('src/localization/nutritionDiaryCopy.ts');
 
     expect(source).toContain('fiberBreakdown.hasFiberData');
-    expect(detailsSection).toContain('Nutrition details');
+    expect(detailsSection).toContain('copy.nutritionDetails');
+    expect(detailsSection).toContain('copy.fiber');
+    expect(copy).toContain("nutritionDetails: locale === 'ru'");
+    expect(copy).toContain('Пищевая ценность');
+    expect(copy).toContain('Nutrition details');
     expect([source, detailsSection].join('\n')).not.toContain('Sodium, cholesterol, sugar');
     expect([source, detailsSection].join('\n')).not.toContain('Not available yet');
   });
