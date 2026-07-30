@@ -1,6 +1,6 @@
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/ui/AppCard';
@@ -10,48 +10,15 @@ import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants
 import { useAppContext } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useLocalization } from '@/localization';
+import { getSafetyRecoveryPreflightCopy } from '@/localization/safetyRecoveryPreflightCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import { buildSafetyRecoveryLocalSummary } from '../safetyRecoveryLocalSummary';
 
-const formatTimestamp = (value: string | null): string => {
-  if (!value) return 'Not available';
-  const parsed = new Date(value);
-  if (!Number.isFinite(parsed.getTime())) return 'Not available';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(parsed);
-};
-
-const getReadinessCopy = (
-  readiness: ReturnType<typeof buildSafetyRecoveryLocalSummary>['readiness'],
-): { title: string; message: string } => {
-  if (readiness === 'missing_check_in') {
-    return {
-      title: 'Recovery check-in required',
-      message: 'Add at least two explicit recovery signals before requesting a readiness review.',
-    };
-  }
-  if (readiness === 'stale_check_in') {
-    return {
-      title: 'Recovery check-in is stale',
-      message: 'The latest check-in is older than 72 hours. Add a current check-in before reviewing.',
-    };
-  }
-  if (readiness === 'insufficient_signals') {
-    return {
-      title: 'More recovery signals required',
-      message: 'The latest local check-in has fewer than two usable signals.',
-    };
-  }
-  return {
-    title: 'Local data is ready',
-    message: 'The latest check-in is recent and contains enough explicit recovery signals.',
-  };
-};
-
 export default function SafetyRecoveryPreflightScreen() {
   const { colors } = useAppTheme();
+  const { formatDate, formatNumber, locale } = useLocalization();
+  const copy = getSafetyRecoveryPreflightCopy(locale);
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { ready, session } = useAuthSession();
@@ -73,7 +40,7 @@ export default function SafetyRecoveryPreflightScreen() {
       }),
     [app.recoveryCheckIns, app.userLimitations],
   );
-  const copy = getReadinessCopy(summary.readiness);
+  const readinessCopy = copy.readiness[summary.readiness] ?? copy.readiness.ready;
   const isAuthenticated = Boolean(session?.tokens.accessToken);
   const syncBlocked =
     pendingOperations > 0 ||
@@ -88,29 +55,41 @@ export default function SafetyRecoveryPreflightScreen() {
     isAuthenticated &&
     summary.reviewReady &&
     !syncBlocked;
+  const syncStatusLabel = copy.syncLabels[String(status)] ?? String(status);
+  const formatTimestamp = (value: string | null) => {
+    if (!value) return copy.notAvailable;
+    const parsed = new Date(value);
+    if (!Number.isFinite(parsed.getTime())) return copy.notAvailable;
+    return formatDate(parsed, { dateStyle: 'medium', timeStyle: 'short' });
+  };
 
   const synchronize = async () => {
     if (syncing || !isAuthenticated) return;
     setSyncing(true);
     setSyncMessage(null);
-    await syncNow();
-    setSyncing(false);
-    setSyncMessage('Synchronization attempt completed. Review the status below.');
+    try {
+      await syncNow();
+      setSyncMessage(copy.syncAttemptCompleted);
+    } catch {
+      setSyncMessage(copy.syncAttemptFailed);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
-          accessibilityLabel="Back"
+          accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>Safety & Recovery</Text>
-          <Text style={styles.subtitle}>Prepare synchronized data before review</Text>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.subtitle}>{copy.subtitle}</Text>
         </View>
       </View>
 
@@ -124,89 +103,101 @@ export default function SafetyRecoveryPreflightScreen() {
           <AppCard>
             <View style={styles.statusHeader}>
               <View style={styles.headerCopy}>
-                <Text style={styles.cardTitle}>{copy.title}</Text>
-                <Text style={styles.bodyText}>{copy.message}</Text>
+                <Text style={styles.cardTitle}>{readinessCopy.title}</Text>
+                <Text style={styles.bodyText}>{readinessCopy.message}</Text>
               </View>
               <Text
                 style={[
                   styles.readinessBadge,
                   summary.reviewReady ? styles.readyBadge : styles.inputBadge,
                 ]}>
-                {summary.reviewReady ? 'READY' : 'INPUT'}
+                {summary.reviewReady ? copy.readyBadge : copy.inputBadge}
               </Text>
             </View>
 
             <View style={styles.metricGrid}>
               <View style={styles.metricCell}>
-                <Text style={styles.metricValue}>{summary.latestSignalCount}</Text>
-                <Text style={styles.metaText}>Latest signals</Text>
+                <Text style={styles.metricValue}>
+                  {formatNumber(summary.latestSignalCount, { maximumFractionDigits: 0 })}
+                </Text>
+                <Text style={styles.metaText}>{copy.latestSignals}</Text>
               </View>
               <View style={styles.metricCell}>
-                <Text style={styles.metricValue}>{summary.activeLimitationCount}</Text>
-                <Text style={styles.metaText}>Active limitations</Text>
+                <Text style={styles.metricValue}>
+                  {formatNumber(summary.activeLimitationCount, { maximumFractionDigits: 0 })}
+                </Text>
+                <Text style={styles.metaText}>{copy.activeLimitations}</Text>
               </View>
             </View>
 
             <View style={styles.infoRow}>
-              <Text style={styles.metaText}>Latest check-in</Text>
+              <Text style={styles.metaText}>{copy.latestCheckIn}</Text>
               <Text style={styles.infoValue}>{formatTimestamp(summary.latestCheckInAt)}</Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.metaText}>Check-in age</Text>
+              <Text style={styles.metaText}>{copy.checkInAge}</Text>
               <Text style={styles.infoValue}>
                 {summary.latestCheckInAgeHours === null
                   ? '—'
-                  : `${summary.latestCheckInAgeHours} hours`}
+                  : copy.hours(
+                      summary.latestCheckInAgeHours,
+                      formatNumber(summary.latestCheckInAgeHours, { maximumFractionDigits: 0 }),
+                    )}
               </Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.metaText}>Resolved limitations</Text>
-              <Text style={styles.infoValue}>{summary.resolvedLimitationCount}</Text>
+              <Text style={styles.metaText}>{copy.resolvedLimitations}</Text>
+              <Text style={styles.infoValue}>
+                {formatNumber(summary.resolvedLimitationCount, { maximumFractionDigits: 0 })}
+              </Text>
             </View>
 
             <PrimaryButton
-              label={summary.reviewReady ? 'Add another recovery check-in' : 'Add recovery check-in'}
+              label={summary.reviewReady ? copy.addAnotherCheckIn : copy.addCheckIn}
               onPress={() => router.push('/profile/recovery-check-in')}
             />
             <SecondaryButton
-              label="Manage training limitations"
+              label={copy.manageLimitations}
               onPress={() => router.push('/profile/limitations')}
             />
           </AppCard>
 
           <AppCard>
-            <Text style={styles.cardTitle}>Synchronization gate</Text>
-            <Text style={styles.bodyText}>
-              The backend review reads synchronized records, not unsent local changes. Pending or
-              conflicted records must be resolved before the review starts.
-            </Text>
+            <Text style={styles.cardTitle}>{copy.syncGate}</Text>
+            <Text style={styles.bodyText}>{copy.syncGateBody}</Text>
 
             <View style={styles.infoRow}>
-              <Text style={styles.metaText}>Account</Text>
-              <Text style={styles.infoValue}>{isAuthenticated ? 'Signed in' : 'Sign in required'}</Text>
+              <Text style={styles.metaText}>{copy.account}</Text>
+              <Text style={styles.infoValue}>
+                {isAuthenticated ? copy.signedIn : copy.signInRequired}
+              </Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.metaText}>Sync status</Text>
-              <Text style={styles.infoValue}>{status}</Text>
+              <Text style={styles.metaText}>{copy.syncStatus}</Text>
+              <Text style={styles.infoValue}>{syncStatusLabel}</Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.metaText}>Pending operations</Text>
-              <Text style={styles.infoValue}>{pendingOperations}</Text>
+              <Text style={styles.metaText}>{copy.pendingOperations}</Text>
+              <Text style={styles.infoValue}>
+                {formatNumber(pendingOperations, { maximumFractionDigits: 0 })}
+              </Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.metaText}>Conflicts</Text>
-              <Text style={styles.infoValue}>{conflictCount}</Text>
+              <Text style={styles.metaText}>{copy.conflicts}</Text>
+              <Text style={styles.infoValue}>
+                {formatNumber(conflictCount, { maximumFractionDigits: 0 })}
+              </Text>
             </View>
 
-            {error ? <Text style={styles.warningText}>{error}</Text> : null}
+            {error ? <Text style={styles.warningText}>{copy.syncIssue}</Text> : null}
             {syncMessage ? <Text style={styles.metaText}>{syncMessage}</Text> : null}
 
             {!isAuthenticated ? (
-              <PrimaryButton label="Sign in" onPress={() => router.push('/auth/sign-in')} />
+              <PrimaryButton label={copy.signIn} onPress={() => router.push('/auth/sign-in')} />
             ) : (
               <SecondaryButton
                 disabled={syncing || status === 'syncing'}
-                label="Synchronize records"
+                label={copy.synchronize}
                 loading={syncing || status === 'syncing'}
                 onPress={() => void synchronize()}
               />
@@ -214,20 +205,15 @@ export default function SafetyRecoveryPreflightScreen() {
           </AppCard>
 
           <AppCard>
-            <Text style={styles.cardTitle}>Deterministic readiness review</Text>
-            <Text style={styles.bodyText}>
-              The review can recommend normal training, modification, more input, or a block. It never
-              diagnoses a condition or applies workout changes automatically.
-            </Text>
+            <Text style={styles.cardTitle}>{copy.reviewTitle}</Text>
+            <Text style={styles.bodyText}>{copy.reviewBody}</Text>
             <PrimaryButton
               disabled={!reviewEnabled}
-              label="Continue to readiness review"
+              label={copy.continueReview}
               onPress={() => router.push('/profile/safety-recovery/review')}
             />
             {!reviewEnabled ? (
-              <Text style={styles.metaText}>
-                Complete the local data and synchronization requirements above to continue.
-              </Text>
+              <Text style={styles.metaText}>{copy.requirementsHint}</Text>
             ) : null}
           </AppCard>
         </View>
@@ -300,7 +286,6 @@ const createStyles = (colors: typeof Colors.light) =>
       fontWeight: Typography.callout.fontWeight,
       lineHeight: Typography.callout.lineHeight,
       textAlign: 'right',
-      textTransform: 'capitalize',
     },
     inputBadge: {
       backgroundColor: colors.warningSoft,
