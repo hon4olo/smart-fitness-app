@@ -3,7 +3,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useLocalization } from '@/localization';
 import type { NutritionCoachCopy } from '@/localization/nutritionCoachCopy';
-import { formatEnergyValue, useUnitPreferences } from '@/units';
+import {
+  formatEnergyValue,
+  proteinRatioFromPerKg,
+  proteinRatioUnitForWeight,
+  useUnitPreferences,
+} from '@/units';
 
 import type {
   NutritionCoachMetricSummary,
@@ -54,8 +59,8 @@ export function NutritionCoachReviewMetrics({
   const { formatDate, formatNumber } = useLocalization();
   const { energy, formatWeightValue, weight } = useUnitPreferences();
   const trackedAverage = metrics.averages.perTrackedDay;
-  const ratioUnit = weight === 'lb' ? 'g/lb' : 'g/kg';
-  const ratioValue = (value: number) => (weight === 'lb' ? value / 2.2046226218 : value);
+  const ratioUnit = proteinRatioUnitForWeight(weight);
+  const ratioValue = (value: number) => proteinRatioFromPerKg(value, weight);
 
   return (
     <View style={styles.resultStack}>
