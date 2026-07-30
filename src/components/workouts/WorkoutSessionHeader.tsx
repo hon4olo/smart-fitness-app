@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AppCard } from '@/components/ui/AppCard';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useLocalization } from '@/localization';
+import { getWorkoutSessionHeaderCopy } from '@/localization/workoutSessionHeaderCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 type WorkoutSessionHeaderProps = {
@@ -16,7 +17,8 @@ type WorkoutSessionHeaderProps = {
 
 export function WorkoutSessionHeader({ completedLabel, elapsedLabel, nextExerciseName, progressPercent, workoutTitle }: WorkoutSessionHeaderProps) {
   const { colors } = useAppTheme();
-  const { formatNumber } = useLocalization();
+  const { formatNumber, locale } = useLocalization();
+  const copy = useMemo(() => getWorkoutSessionHeaderCopy(locale), [locale]);
   const styles = useMemo(() => createStyles(colors), [colors]);
   const clampedProgress = Math.max(0, Math.min(100, progressPercent));
   const progressLabel = formatNumber(clampedProgress, { maximumFractionDigits: 0 });
@@ -38,12 +40,12 @@ export function WorkoutSessionHeader({ completedLabel, elapsedLabel, nextExercis
         </Text>
         {nextExerciseName ? (
           <Text numberOfLines={1} selectable style={styles.nextLabel}>
-            Next: {nextExerciseName}
+            {copy.nextExercise(nextExerciseName)}
           </Text>
         ) : null}
       </View>
 
-      <View accessibilityLabel={`${progressLabel} percent complete`} style={styles.progressTrack}>
+      <View accessibilityLabel={copy.progressAccessibility(progressLabel)} style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${clampedProgress}%` }]} />
       </View>
     </AppCard>
