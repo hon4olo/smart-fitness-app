@@ -1,9 +1,13 @@
 import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { getExerciseLibraryCopy } from '@/localization/exerciseLibraryCopy';
+import { useLocalization } from '@/localization';
+
 type FilterValue = 'all' | string;
 
 type FilterChipProps = {
+  hint: string;
   label: string;
   onPress: () => void;
   selected?: boolean;
@@ -28,16 +32,28 @@ type ExerciseFilterBarProps = {
   styles: Record<string, any>;
 };
 
-const FilterChip = memo(function FilterChip({ label, onPress, selected = false, styles }: FilterChipProps) {
+const FilterChip = memo(function FilterChip({
+  hint,
+  label,
+  onPress,
+  selected = false,
+  styles,
+}: FilterChipProps) {
   return (
     <Pressable
+      accessibilityHint={hint}
       accessibilityLabel={label}
-      accessibilityHint="Toggle this exercise filter"
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={({ pressed }) => [styles.filterChip, selected && styles.filterChipSelected, pressed && styles.pressed]}>
-      <Text style={[styles.filterChipLabel, selected && styles.filterChipLabelSelected]}>{label}</Text>
+      style={({ pressed }) => [
+        styles.filterChip,
+        selected && styles.filterChipSelected,
+        pressed && styles.pressed,
+      ]}>
+      <Text style={[styles.filterChipLabel, selected && styles.filterChipLabelSelected]}>
+        {label}
+      </Text>
     </Pressable>
   );
 });
@@ -59,56 +75,84 @@ export function ExerciseFilterBar({
   selectedMuscle,
   styles,
 }: ExerciseFilterBarProps) {
+  const { locale } = useLocalization();
+  const copy = getExerciseLibraryCopy(locale);
+  const chip = (
+    label: string,
+    onPress: () => void,
+    selected: boolean,
+    key?: string,
+  ) => (
+    <FilterChip
+      key={key}
+      hint={copy.filterHint}
+      label={label}
+      onPress={onPress}
+      selected={selected}
+      styles={styles}
+    />
+  );
+
   return (
     <View style={styles.filterSection}>
       <View style={styles.filterHeaderRow}>
-        <Text style={styles.sectionHeading}>Filter bar</Text>
+        <Text style={styles.sectionHeading}>{copy.filterBar}</Text>
         <Pressable
-          accessibilityLabel="Clear exercise filters"
+          accessibilityLabel={copy.clearFiltersAccessibility}
           accessibilityRole="button"
           onPress={onClearFilters}
           style={({ pressed }) => [styles.clearFiltersButton, pressed && styles.pressed]}>
-          <Text style={styles.clearFiltersText}>Clear Filters</Text>
+          <Text style={styles.clearFiltersText}>{copy.clearFilters}</Text>
         </Pressable>
       </View>
 
       <View style={styles.filterGroup}>
-        <Text style={styles.filterGroupTitle}>Muscle</Text>
+        <Text style={styles.filterGroupTitle}>{copy.muscle}</Text>
         <View style={styles.filterChips}>
-          <FilterChip label="All" onPress={() => onSelectMuscle('all')} selected={selectedMuscle === 'all'} styles={styles} />
-          {muscles.map((muscle) => (
-            <FilterChip key={muscle} label={muscle} onPress={() => onSelectMuscle(muscle)} selected={selectedMuscle === muscle} styles={styles} />
-          ))}
+          {chip(copy.all, () => onSelectMuscle('all'), selectedMuscle === 'all')}
+          {muscles.map((muscle) =>
+            chip(muscle, () => onSelectMuscle(muscle), selectedMuscle === muscle, muscle),
+          )}
         </View>
       </View>
 
       <View style={styles.filterGroup}>
-        <Text style={styles.filterGroupTitle}>Equipment</Text>
+        <Text style={styles.filterGroupTitle}>{copy.equipment}</Text>
         <View style={styles.filterChips}>
-          <FilterChip label="All" onPress={() => onSelectEquipment('all')} selected={selectedEquipment === 'all'} styles={styles} />
-          {equipment.map((item) => (
-            <FilterChip key={item} label={item} onPress={() => onSelectEquipment(item)} selected={selectedEquipment === item} styles={styles} />
-          ))}
+          {chip(copy.all, () => onSelectEquipment('all'), selectedEquipment === 'all')}
+          {equipment.map((item) =>
+            chip(item, () => onSelectEquipment(item), selectedEquipment === item, item),
+          )}
         </View>
       </View>
 
       <View style={styles.filterGroup}>
-        <Text style={styles.filterGroupTitle}>Difficulty</Text>
+        <Text style={styles.filterGroupTitle}>{copy.difficulty}</Text>
         <View style={styles.filterChips}>
-          <FilterChip label="All" onPress={() => onSelectDifficulty('all')} selected={selectedDifficulty === 'all'} styles={styles} />
-          {difficultyFilters.map((difficulty) => (
-            <FilterChip key={difficulty} label={formatFilterLabel(difficulty)} onPress={() => onSelectDifficulty(difficulty)} selected={selectedDifficulty === difficulty} styles={styles} />
-          ))}
+          {chip(copy.all, () => onSelectDifficulty('all'), selectedDifficulty === 'all')}
+          {difficultyFilters.map((difficulty) =>
+            chip(
+              formatFilterLabel(difficulty),
+              () => onSelectDifficulty(difficulty),
+              selectedDifficulty === difficulty,
+              difficulty,
+            ),
+          )}
         </View>
       </View>
 
       <View style={styles.filterGroup}>
-        <Text style={styles.filterGroupTitle}>Exercise type</Text>
+        <Text style={styles.filterGroupTitle}>{copy.exerciseType}</Text>
         <View style={styles.filterChips}>
-          <FilterChip label="All" onPress={() => onSelectExerciseType('all')} selected={selectedExerciseType === 'all'} styles={styles} />
-          {exerciseTypeFilters.map((exerciseType) => (
-            <FilterChip key={exerciseType} label={formatFilterLabel(exerciseType)} onPress={() => onSelectExerciseType(exerciseType)} selected={selectedExerciseType === exerciseType} styles={styles} />
-          ))}
+          {chip(copy.all, () => onSelectExerciseType('all'), selectedExerciseType === 'all')}
+          {exerciseTypeFilters.map((exerciseType) =>
+            chip(
+              formatFilterLabel(exerciseType),
+              () => onSelectExerciseType(exerciseType),
+              selectedExerciseType === exerciseType,
+              exerciseType,
+            ),
+          )}
         </View>
       </View>
     </View>
