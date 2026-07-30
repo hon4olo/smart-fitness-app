@@ -6,10 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
 import { attachWorkoutsToProgramDraft } from '@/features/workouts/programEditorModel';
-import { formatWorkoutPlanDescription, getWorkoutProgramById } from '@/lib/workouts';
 import { createStyles } from '@/features/workouts/styles/newRoutineScreenStyles';
+import { formatWorkoutPlanDescription, getWorkoutProgramById } from '@/lib/workouts';
+import { useLocalization } from '@/localization';
+import { getProgramRoutineCopy } from '@/localization/programRoutineCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { Exercise, Workout } from '@/types';
+import { useUnitPreferences } from '@/units';
 
 type RoutinePlanExercise = {
   exercise: Exercise;
@@ -23,20 +26,35 @@ type PickerMode =
   | { type: 'add' }
   | { type: 'replace'; exerciseId: string };
 
-const getExerciseSubtitle = (exercise: Exercise) => exercise.muscleGroup ?? exercise.category ?? exercise.primaryMuscles?.[0] ?? 'Exercise';
+const getExerciseSubtitle = (exercise: Exercise, fallback: string) =>
+  exercise.muscleGroup ?? exercise.category ?? exercise.primaryMuscles?.[0] ?? fallback;
 
 export function NewRoutineScreen() {
   const params = useLocalSearchParams<{ programId?: string }>();
   const programId = Array.isArray(params.programId) ? params.programId[0] : params.programId;
   const { colors } = useAppTheme();
+  const { formatNumber, locale } = useLocalization();
+  const copy = getProgramRoutineCopy(locale);
+  const { weight } = useUnitPreferences();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { addWorkoutTemplate, exercises, saveTrainingProgram, trainingPrograms, workouts } = useAppContext();
+  const {
+    addWorkoutTemplate,
+    exercises,
+    saveTrainingProgram,
+    trainingPrograms,
+    workouts,
+  } = useAppContext();
   const program = useMemo(
     () => (programId ? getWorkoutProgramById(programId, workouts, trainingPrograms) : null),
     [programId, trainingPrograms, workouts],
   );
-  const [title, setTitle] = useState(`My routine #${workouts.filter((workout) => workout.isCustom).length + 1}`);
+  const nextRoutineNumber = workouts.filter((workout) => workout.isCustom).length + 1;
+  const [title, setTitle] = useState(
+    copy.defaultRoutineTitle(
+      formatNumber(nextRoutineNumber, { maximumFractionDigits: 0 }),
+    ),
+  );
   const [notes, setNotes] = useState('');
   const [planExercises, setPlanExercises] = useState<RoutinePlanExercise[]>([]);
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
@@ -44,14 +62,14 @@ export function NewRoutineScreen() {
   const [exerciseMenu, setExerciseMenu] = useState<RoutinePlanExercise | null>(null);
 
   const canSave = Boolean(program && title.trim().length > 0);
-  const selectedExerciseIds = useMemo(() => new Set(planExercises.map((item) => item.exercise.id)), [planExercises]);
+  const selectedExerciseIds = useMemo(
+    () => new Set(planExercises.map((item) => item.exercise.id)),
+    [planExercises],
+  );
 
   const addExercise = (exercise: Exercise) => {
     setPlanExercises((current) => {
-      if (current.some((item) => item.exercise.id === exercise.id)) {
-        return current;
-      }
-
+      if (current.some((item) => item.exercise.id === exercise.id)) return current;
       return [
         ...current,
         {
@@ -70,30 +88,34 @@ export function NewRoutineScreen() {
     setPlanExercises((current) =>
       current.map((item) =>
         item.exercise.id === targetExerciseId
-          ? {
-              ...item,
-              exercise: replacement,
-            }
+          ? { ...item, exercise: replacement }
           : item,
       ),
     );
     setExpandedExerciseId(replacement.id);
   };
 
-  const updatePlanExercise = (exerciseId: string, patch: Partial<Omit<RoutinePlanExercise, 'exercise'>>) => {
-    setPlanExercises((current) => current.map((item) => (item.exercise.id === exerciseId ? { ...item, ...patch } : item)));
+  const updatePlanExercise = (
+    exerciseId: string,
+    patch: Partial<Omit<RoutinePlanExercise, 'exercise'>>,
+  ) => {
+    setPlanExercises((current) =>
+      current.map((item) =>
+        item.exercise.id === exerciseId ? { ...item, ...patch } : item,
+      ),
+    );
   };
 
   const deleteExercise = (exerciseId: string) => {
-    setPlanExercises((current) => current.filter((item) => item.exercise.id !== exerciseId));
+    setPlanExercises((current) =>
+      current.filter((item) => item.exercise.id !== exerciseId),
+    );
     setExpandedExerciseId((current) => (current === exerciseId ? null : current));
     setExerciseMenu(null);
   };
 
   const saveRoutine = () => {
-    if (!program || !canSave) {
-      return;
-    }
+    if (!program || !canSave) return;
 
     const now = new Date().toISOString();
     const workoutId = `workout-${Date.now()}`;
@@ -126,16 +148,25 @@ export function NewRoutineScreen() {
       isCustom: true,
     };
 
-    saveTrainingProgram(attachWorkoutsToProgramDraft(program, [...workouts, syntheticWorkout], [workoutId]));
-    router.replace({ pathname: '/workouts/program/[programId]', params: { programId: program.id, savedWorkout: '1' } });
+    saveTrainingProgram(
+      attachWorkoutsToProgramDraft(program, [...workouts, syntheticWorkout], [workoutId]),
+    );
+    router.replace({
+      pathname: '/workouts/program/[programId]',
+      params: { programId: program.id, savedWorkout: '1' },
+    });
   };
 
   if (!program) {
     return (
       <View style={[styles.screen, styles.centerState]}>
-        <Text style={styles.emptyTitle}>Program not found</Text>
-        <Pressable onPress={() => router.replace('/workouts')} style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}>
-          <Text style={styles.textButtonLabel}>Back to Workouts</Text>
+        <Text style={styles.emptyTitle}>{copy.programNotFound}</Text>
+        <Pressable
+          accessibilityLabel={copy.backToWorkouts}
+          accessibilityRole="button"
+          onPress={() => router.replace('/workouts')}
+          style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}>
+          <Text style={styles.textButtonLabel}>{copy.backToWorkouts}</Text>
         </Pressable>
       </View>
     );
@@ -144,34 +175,53 @@ export function NewRoutineScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.navButton, pressed && styles.pressed]}>
-          <Text style={styles.navButtonLabel}>Cancel</Text>
+        <Pressable
+          accessibilityLabel={copy.cancel}
+          accessibilityRole="button"
+          onPress={() => router.back()}
+          style={({ pressed }) => [styles.navButton, pressed && styles.pressed]}>
+          <Text style={styles.navButtonLabel}>{copy.cancel}</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>New Routine</Text>
-        <Pressable disabled={!canSave} onPress={saveRoutine} style={({ pressed }) => [styles.navButton, !canSave && styles.disabled, pressed && canSave && styles.pressed]}>
-          <Text style={styles.navButtonLabel}>Save</Text>
+        <Text style={styles.headerTitle}>{copy.newRoutine}</Text>
+        <Pressable
+          accessibilityLabel={copy.save}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canSave }}
+          disabled={!canSave}
+          onPress={saveRoutine}
+          style={({ pressed }) => [
+            styles.navButton,
+            !canSave && styles.disabled,
+            pressed && canSave && styles.pressed,
+          ]}>
+          <Text style={styles.navButtonLabel}>{copy.save}</Text>
         </Pressable>
       </View>
 
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + Spacing.six }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + BottomTabInset + Spacing.six },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <TextInput
+            accessibilityLabel={copy.routineName}
             autoCapitalize="words"
             onChangeText={setTitle}
-            placeholder="Routine name"
+            placeholder={copy.routineName}
             placeholderTextColor={colors.textMuted}
             selectionColor={colors.accent}
             style={styles.titleInput}
             value={title}
           />
           <TextInput
+            accessibilityLabel={copy.routineNotes}
             multiline
             onChangeText={setNotes}
-            placeholder="Notes..."
+            placeholder={copy.routineNotes}
             placeholderTextColor={colors.textMuted}
             selectionColor={colors.accent}
             style={styles.notesInput}
@@ -180,39 +230,63 @@ export function NewRoutineScreen() {
 
           {planExercises.length === 0 ? (
             <View style={styles.emptyBlock}>
-              <Text style={styles.emptyTitle}>No Exercises Added</Text>
-              <Text style={styles.emptyText}>Tap the button below to start adding exercises to your workout.</Text>
+              <Text style={styles.emptyTitle}>{copy.noExercises}</Text>
+              <Text style={styles.emptyText}>{copy.noExercisesBody}</Text>
             </View>
           ) : (
             <View style={styles.exerciseList}>
               {planExercises.map((item) => {
                 const expanded = expandedExerciseId === item.exercise.id;
-
                 return (
                   <View key={item.exercise.id} style={styles.exerciseBlock}>
                     <Pressable
-                      onPress={() => setExpandedExerciseId(expanded ? null : item.exercise.id)}
-                      style={({ pressed }) => [styles.exerciseHeaderRow, pressed && styles.pressed]}>
+                      accessibilityLabel={
+                        expanded
+                          ? copy.collapseExercise(item.exercise.name)
+                          : copy.expandExercise(item.exercise.name)
+                      }
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded }}
+                      onPress={() =>
+                        setExpandedExerciseId(expanded ? null : item.exercise.id)
+                      }
+                      style={({ pressed }) => [
+                        styles.exerciseHeaderRow,
+                        pressed && styles.pressed,
+                      ]}>
                       <View style={styles.exerciseThumb}>
-                        <Text style={styles.exerciseThumbLabel}>{item.exercise.name.slice(0, 1).toUpperCase()}</Text>
+                        <Text style={styles.exerciseThumbLabel}>
+                          {item.exercise.name.slice(0, 1).toUpperCase()}
+                        </Text>
                         <Text style={styles.exerciseHelp}>?</Text>
                       </View>
                       <View style={styles.exerciseCopy}>
                         <Text numberOfLines={1} style={styles.exerciseTitle}>
                           {item.exercise.name}
                         </Text>
-                        {!expanded ? (
-                          Array.from({ length: item.targetSets }, (_, index) => (
-                            <Text key={`${item.exercise.id}-${index}`} numberOfLines={1} style={styles.collapsedSetLine}>
-                              {index + 1}   - kg  ·  - Reps
-                            </Text>
-                          ))
-                        ) : null}
+                        {!expanded
+                          ? Array.from({ length: item.targetSets }, (_, index) => (
+                              <Text
+                                key={`${item.exercise.id}-${index}`}
+                                numberOfLines={1}
+                                style={styles.collapsedSetLine}>
+                                {copy.emptySetLine(
+                                  formatNumber(index + 1, { maximumFractionDigits: 0 }),
+                                  weight,
+                                )}
+                              </Text>
+                            ))
+                          : null}
                       </View>
                       <Pressable
+                        accessibilityLabel={copy.exerciseOptions(item.exercise.name)}
+                        accessibilityRole="button"
                         hitSlop={12}
                         onPress={() => setExerciseMenu(item)}
-                        style={({ pressed }) => [styles.exerciseMenuButton, pressed && styles.pressed]}>
+                        style={({ pressed }) => [
+                          styles.exerciseMenuButton,
+                          pressed && styles.pressed,
+                        ]}>
                         <Text style={styles.exerciseMenuLabel}>•••</Text>
                       </Pressable>
                     </Pressable>
@@ -220,44 +294,81 @@ export function NewRoutineScreen() {
                     {expanded ? (
                       <View style={styles.expandedPanel}>
                         <TextInput
+                          accessibilityLabel={copy.exerciseNotes}
                           multiline
-                          onChangeText={(value) => updatePlanExercise(item.exercise.id, { notes: value })}
-                          placeholder="Notes..."
+                          onChangeText={(value) =>
+                            updatePlanExercise(item.exercise.id, { notes: value })
+                          }
+                          placeholder={copy.exerciseNotes}
                           placeholderTextColor={colors.textMuted}
                           selectionColor={colors.accent}
                           style={styles.exerciseNotesInput}
                           value={item.notes}
                         />
-                        <Text style={styles.restTimer}>⏱ Rest Timer: Off</Text>
+                        <Text style={styles.restTimer}>{copy.restTimerOff}</Text>
                         <View style={styles.planTableHeader}>
-                          <Text style={[styles.tableHeaderText, styles.colSet]}>Set</Text>
-                          <Text style={[styles.tableHeaderText, styles.colPrevious]}>Previous</Text>
-                          <Text style={[styles.tableHeaderText, styles.colWeight]}>kg</Text>
-                          <Text style={[styles.tableHeaderText, styles.colReps]}>Reps</Text>
+                          <Text style={[styles.tableHeaderText, styles.colSet]}>
+                            {copy.set}
+                          </Text>
+                          <Text style={[styles.tableHeaderText, styles.colPrevious]}>
+                            {copy.previous}
+                          </Text>
+                          <Text style={[styles.tableHeaderText, styles.colWeight]}>
+                            {weight}
+                          </Text>
+                          <Text style={[styles.tableHeaderText, styles.colReps]}>
+                            {copy.repsHeader}
+                          </Text>
                         </View>
                         {Array.from({ length: item.targetSets }, (_, index) => (
-                          <View key={`${item.exercise.id}-row-${index}`} style={styles.planSetRow}>
-                            <Text style={[styles.planSetText, styles.colSet]}>{index + 1}</Text>
-                            <Text style={[styles.planPrevious, styles.colPrevious]}>{index === 0 ? '—' : `${item.targetReps} reps`}</Text>
+                          <View
+                            key={`${item.exercise.id}-row-${index}`}
+                            style={styles.planSetRow}>
+                            <Text style={[styles.planSetText, styles.colSet]}>
+                              {formatNumber(index + 1, { maximumFractionDigits: 0 })}
+                            </Text>
+                            <Text style={[styles.planPrevious, styles.colPrevious]}>
+                              {index === 0
+                                ? '—'
+                                : copy.reps(
+                                    item.targetReps,
+                                    formatNumber(item.targetReps, {
+                                      maximumFractionDigits: 0,
+                                    }),
+                                  )}
+                            </Text>
                             <TextInput
+                              accessibilityLabel={`${item.exercise.name} ${weight}`}
                               keyboardType="decimal-pad"
-                              placeholder=""
                               selectionColor={colors.accent}
                               style={[styles.planInput, styles.colWeight]}
                             />
                             <TextInput
+                              accessibilityLabel={`${item.exercise.name} ${copy.repsHeader}`}
                               keyboardType="number-pad"
-                              onChangeText={(value) => updatePlanExercise(item.exercise.id, { targetReps: Number.parseInt(value, 10) || 8 })}
-                              placeholder=""
+                              onChangeText={(value) =>
+                                updatePlanExercise(item.exercise.id, {
+                                  targetReps: Number.parseInt(value, 10) || 8,
+                                })
+                              }
                               selectionColor={colors.accent}
                               style={[styles.planInput, styles.colReps]}
                             />
                           </View>
                         ))}
                         <Pressable
-                          onPress={() => updatePlanExercise(item.exercise.id, { targetSets: item.targetSets + 1 })}
-                          style={({ pressed }) => [styles.addSetButton, pressed && styles.pressed]}>
-                          <Text style={styles.addSetLabel}>+ Add set</Text>
+                          accessibilityLabel={copy.addSetForExercise(item.exercise.name)}
+                          accessibilityRole="button"
+                          onPress={() =>
+                            updatePlanExercise(item.exercise.id, {
+                              targetSets: item.targetSets + 1,
+                            })
+                          }
+                          style={({ pressed }) => [
+                            styles.addSetButton,
+                            pressed && styles.pressed,
+                          ]}>
+                          <Text style={styles.addSetLabel}>{copy.addSet}</Text>
                         </Pressable>
                       </View>
                     ) : null}
@@ -267,26 +378,47 @@ export function NewRoutineScreen() {
             </View>
           )}
 
-          <Pressable onPress={() => setPickerMode({ type: 'add' })} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
-            <Text style={styles.addButtonLabel}>Add exercises</Text>
+          <Pressable
+            accessibilityLabel={copy.addExercises}
+            accessibilityRole="button"
+            onPress={() => setPickerMode({ type: 'add' })}
+            style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
+            <Text style={styles.addButtonLabel}>{copy.addExercises}</Text>
           </Pressable>
         </View>
       </ScrollView>
 
-      <Modal animationType="slide" transparent visible={Boolean(pickerMode)} onRequestClose={() => setPickerMode(null)}>
+      <Modal
+        animationType="slide"
+        transparent
+        visible={Boolean(pickerMode)}
+        onRequestClose={() => setPickerMode(null)}>
         <View style={styles.pickerOverlay}>
           <View style={styles.pickerPanel}>
             <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>{pickerMode?.type === 'replace' ? 'Replace exercise' : 'Add exercises'}</Text>
-              <Pressable onPress={() => setPickerMode(null)} style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}>
-                <Text style={styles.textButtonLabel}>Done</Text>
+              <Text style={styles.pickerTitle}>
+                {pickerMode?.type === 'replace'
+                  ? copy.replaceExercise
+                  : copy.addExercises}
+              </Text>
+              <Pressable
+                accessibilityLabel={copy.done}
+                accessibilityRole="button"
+                onPress={() => setPickerMode(null)}
+                style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}>
+                <Text style={styles.textButtonLabel}>{copy.done}</Text>
               </Pressable>
             </View>
-            <ScrollView contentInsetAdjustmentBehavior="automatic" showsVerticalScrollIndicator={false}>
+            <ScrollView
+              contentInsetAdjustmentBehavior="automatic"
+              showsVerticalScrollIndicator={false}>
               {exercises.slice(0, 100).map((exercise) => {
                 const selected = selectedExerciseIds.has(exercise.id);
                 return (
                   <Pressable
+                    accessibilityLabel={exercise.name}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: selected && pickerMode?.type === 'add' }}
                     key={exercise.id}
                     onPress={() => {
                       if (pickerMode?.type === 'replace') {
@@ -294,19 +426,23 @@ export function NewRoutineScreen() {
                         setPickerMode(null);
                         return;
                       }
-
                       addExercise(exercise);
                     }}
-                    style={({ pressed }) => [styles.pickerRow, pressed && styles.pressed]}>
+                    style={({ pressed }) => [
+                      styles.pickerRow,
+                      pressed && styles.pressed,
+                    ]}>
                     <View style={styles.pickerRowCopy}>
                       <Text numberOfLines={1} style={styles.pickerRowTitle}>
                         {exercise.name}
                       </Text>
                       <Text numberOfLines={1} style={styles.pickerRowMeta}>
-                        {getExerciseSubtitle(exercise)}
+                        {getExerciseSubtitle(exercise, copy.exerciseFallback)}
                       </Text>
                     </View>
-                    <Text style={styles.check}>{selected && pickerMode?.type === 'add' ? '✓' : ''}</Text>
+                    <Text style={styles.check}>
+                      {selected && pickerMode?.type === 'add' ? '✓' : ''}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -315,35 +451,47 @@ export function NewRoutineScreen() {
         </View>
       </Modal>
 
-      <Modal animationType="fade" transparent visible={Boolean(exerciseMenu)} onRequestClose={() => setExerciseMenu(null)}>
-        <Pressable onPress={() => setExerciseMenu(null)} style={[styles.menuOverlay, { paddingBottom: insets.bottom + Spacing.three }]}>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={Boolean(exerciseMenu)}
+        onRequestClose={() => setExerciseMenu(null)}>
+        <Pressable
+          accessibilityLabel={copy.cancel}
+          accessibilityRole="button"
+          onPress={() => setExerciseMenu(null)}
+          style={[styles.menuOverlay, { paddingBottom: insets.bottom + Spacing.three }]}>
           <Pressable onPress={() => undefined} style={styles.menuPanel}>
             <Text style={styles.menuTitle}>{exerciseMenu?.exercise.name}</Text>
             <Pressable
+              accessibilityLabel={copy.replaceExercise}
+              accessibilityRole="button"
               onPress={() => {
-                if (!exerciseMenu) {
-                  return;
-                }
-
+                if (!exerciseMenu) return;
                 setPickerMode({ type: 'replace', exerciseId: exerciseMenu.exercise.id });
                 setExerciseMenu(null);
               }}
               style={({ pressed }) => [styles.menuAction, pressed && styles.pressed]}>
-              <Text style={styles.menuActionLabel}>Replace exercise</Text>
+              <Text style={styles.menuActionLabel}>{copy.replaceExercise}</Text>
             </Pressable>
             <Pressable
+              accessibilityLabel={copy.deleteExercise}
+              accessibilityRole="button"
               onPress={() => {
-                if (!exerciseMenu) {
-                  return;
-                }
-
-                Alert.alert('Delete exercise?', 'This removes it from this routine.', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Delete exercise', style: 'destructive', onPress: () => deleteExercise(exerciseMenu.exercise.id) },
+                if (!exerciseMenu) return;
+                Alert.alert(copy.deleteExerciseTitle, copy.deleteExerciseBody, [
+                  { text: copy.cancel, style: 'cancel' },
+                  {
+                    text: copy.deleteExercise,
+                    style: 'destructive',
+                    onPress: () => deleteExercise(exerciseMenu.exercise.id),
+                  },
                 ]);
               }}
               style={({ pressed }) => [styles.menuAction, pressed && styles.pressed]}>
-              <Text style={[styles.menuActionLabel, styles.deleteLabel]}>Delete exercise</Text>
+              <Text style={[styles.menuActionLabel, styles.deleteLabel]}>
+                {copy.deleteExercise}
+              </Text>
             </Pressable>
           </Pressable>
         </Pressable>
