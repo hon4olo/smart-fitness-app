@@ -61,7 +61,7 @@ describe('exercise library localization', () => {
     );
     expect(card).toContain('onAddDatabaseExercise');
     expect(card).toContain('onExerciseNameChange');
-    expect(row).toContain('{exercise.name}');
+    expect(row).toContain('buildQueryHighlight(exercise.name');
     expect(row).not.toContain('localizedExerciseName');
   });
 });
