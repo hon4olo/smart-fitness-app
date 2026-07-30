@@ -1,6 +1,6 @@
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/ui/AppCard';
@@ -14,6 +14,11 @@ import {
   upsertUserLimitationInState,
 } from '@/context/appContext/safetyRecoveryActions';
 import { createUuid } from '@/lib/ids';
+import { useLocalization } from '@/localization';
+import {
+  getUserLimitationsCopy,
+  type UserLimitationsCopy,
+} from '@/localization/userLimitationsCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type {
   AppContextType,
@@ -28,14 +33,10 @@ import {
   type UserLimitationDraft,
 } from '../userLimitationForm';
 import {
-  BODY_REGION_OPTIONS,
   ChoiceGrid,
-  IMPACT_OPTIONS,
-  KIND_OPTIONS,
+  getLimitationOptions,
   LimitationRow,
   MovementGrid,
-  SEVERITY_OPTIONS,
-  SIDE_OPTIONS,
 } from './UserLimitationFormFields';
 import {
   createUserLimitationScreenStyles,
@@ -64,8 +65,26 @@ const toAppState = (app: AppContextType): AppState => ({
   onboardingCompleted: app.onboardingCompleted,
 });
 
+const localizeValidationMessage = (message: string, copy: UserLimitationsCopy) => {
+  const messages: Record<string, string> = {
+    'The limitation timestamp is invalid.': copy.validation.timestamp,
+    'Onset date must be a valid past or current YYYY-MM-DD date.': copy.validation.onsetDate,
+    'Select a limitation type.': copy.validation.type,
+    'Select a body region.': copy.validation.bodyRegion,
+    'Select the affected side.': copy.validation.side,
+    'Select a severity.': copy.validation.severity,
+    'Select the training impact.': copy.validation.impact,
+    'Select at least one movement pattern to avoid.': copy.validation.movement,
+    'Resolved date cannot be before the onset date.': copy.validation.resolvedBeforeOnset,
+  };
+  return messages[message] ?? message;
+};
+
 export default function UserLimitationScreen() {
   const { colors } = useAppTheme();
+  const { formatNumber, locale } = useLocalization();
+  const copy = getUserLimitationsCopy(locale);
+  const options = getLimitationOptions(copy);
   const themedStyles = useMemo(() => createUserLimitationScreenStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const app = useAppContext();
@@ -76,6 +95,7 @@ export default function UserLimitationScreen() {
   const [message, setMessage] = useState<string | null>(null);
 
   const activeCount = app.userLimitations.filter((item) => item.status === 'active').length;
+  const syncStatusLabel = copy.syncLabels[String(syncStatus)] ?? String(syncStatus);
 
   useEffect(() => {
     if (!pendingChange) return;
@@ -90,12 +110,10 @@ export default function UserLimitationScreen() {
     let cancelled = false;
     void syncNow()
       .then(() => {
-        if (!cancelled) setMessage('Limitation change saved and synchronized.');
+        if (!cancelled) setMessage(copy.savedAndSynced);
       })
       .catch(() => {
-        if (!cancelled) {
-          setMessage('Limitation change saved locally. Sync will retry when available.');
-        }
+        if (!cancelled) setMessage(copy.savedLocallyRetry);
       })
       .finally(() => {
         if (!cancelled) setPendingChange(null);
@@ -104,7 +122,7 @@ export default function UserLimitationScreen() {
     return () => {
       cancelled = true;
     };
-  }, [app.userLimitations, pendingChange, syncNow]);
+  }, [app.userLimitations, copy.savedAndSynced, copy.savedLocallyRetry, pendingChange, syncNow]);
 
   const updateDraft = <Key extends keyof UserLimitationDraft>(
     key: Key,
@@ -134,20 +152,20 @@ export default function UserLimitationScreen() {
       now: new Date().toISOString(),
     });
     if (!result.ok) {
-      setFormError(result.message);
+      setFormError(localizeValidationMessage(result.message, copy));
       return;
     }
 
     const nextState = upsertUserLimitationInState(toAppState(app), result.limitation);
     if (!nextState.userLimitations.some((item) => item.id === result.limitation.id)) {
-      setFormError('The limitation did not pass local validation.');
+      setFormError(copy.localValidationFailed);
       return;
     }
     void app.replaceState(nextState);
     setPendingChange({ id: result.limitation.id, operation: 'upsert' });
     setDraft(emptyUserLimitationDraft());
     setFormError(null);
-    setMessage('Limitation saved locally.');
+    setMessage(copy.savedLocally);
   };
 
   const changeStatus = (limitation: UserLimitation) => {
@@ -158,34 +176,34 @@ export default function UserLimitationScreen() {
       now: new Date().toISOString(),
     });
     if (!result.ok) {
-      setFormError(result.message);
+      setFormError(localizeValidationMessage(result.message, copy));
       return;
     }
     void app.replaceState(upsertUserLimitationInState(toAppState(app), result.limitation));
     setPendingChange({ id: limitation.id, operation: 'upsert' });
-    setMessage('Limitation status updated locally.');
+    setMessage(copy.statusUpdated);
   };
 
   const deleteLimitation = (limitation: UserLimitation) => {
     if (pendingChange) return;
     void app.replaceState(deleteUserLimitationFromState(toAppState(app), limitation.id));
     setPendingChange({ id: limitation.id, operation: 'delete' });
-    setMessage('Limitation deleted locally.');
+    setMessage(copy.deletedLocally);
   };
 
   return (
     <View style={themedStyles.screen}>
       <View style={[themedStyles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
-          accessibilityLabel="Back"
+          accessibilityLabel={copy.back}
           accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [themedStyles.backButton, pressed && styles.pressed]}>
           <Text style={themedStyles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.rowCopy}>
-          <Text style={themedStyles.title}>Training limitations</Text>
-          <Text style={themedStyles.subtitle}>Explicit self-reported restrictions</Text>
+          <Text style={themedStyles.title}>{copy.title}</Text>
+          <Text style={themedStyles.subtitle}>{copy.subtitle}</Text>
         </View>
       </View>
 
@@ -198,20 +216,28 @@ export default function UserLimitationScreen() {
         showsVerticalScrollIndicator={false}>
         <View style={themedStyles.container}>
           <AppCard>
-            <Text style={themedStyles.cardTitle}>Current records</Text>
+            <Text style={themedStyles.cardTitle}>{copy.currentRecords}</Text>
             <Text style={themedStyles.bodyText}>
-              Active: {activeCount} · total: {app.userLimitations.length}
+              {copy.recordCounts(
+                activeCount,
+                formatNumber(activeCount, { maximumFractionDigits: 0 }),
+                app.userLimitations.length,
+                formatNumber(app.userLimitations.length, { maximumFractionDigits: 0 }),
+              )}
             </Text>
             <Text style={themedStyles.metaText}>
-              Sync: {syncStatus} · pending operations: {pendingOperations}
+              {copy.syncStatus(
+                syncStatusLabel,
+                formatNumber(pendingOperations, { maximumFractionDigits: 0 }),
+              )}
             </Text>
             {syncError ? (
               <Text style={[themedStyles.metaText, { color: colors.warning }]}>
-                {syncError}
+                {copy.syncIssue}
               </Text>
             ) : null}
             {app.userLimitations.length === 0 ? (
-              <Text style={themedStyles.bodyText}>No limitations have been added.</Text>
+              <Text style={themedStyles.bodyText}>{copy.noLimitations}</Text>
             ) : (
               <View style={styles.listStack}>
                 {app.userLimitations.map((limitation) => (
@@ -228,52 +254,49 @@ export default function UserLimitationScreen() {
           </AppCard>
 
           <AppCard>
-            <Text style={themedStyles.cardTitle}>Add limitation</Text>
-            <Text style={themedStyles.bodyText}>
-              Record only what you explicitly know. The app does not infer a diagnosis or select an
-              impact for you.
-            </Text>
+            <Text style={themedStyles.cardTitle}>{copy.addLimitation}</Text>
+            <Text style={themedStyles.bodyText}>{copy.addExplanation}</Text>
 
             <ChoiceGrid
-              label="Type"
+              label={copy.type}
               onChange={(value) => updateDraft('kind', value)}
-              options={KIND_OPTIONS}
+              options={options.kinds}
               value={draft.kind}
             />
             <ChoiceGrid
               columns={3}
-              label="Body region"
+              label={copy.bodyRegion}
               onChange={(value) => updateDraft('bodyRegion', value)}
-              options={BODY_REGION_OPTIONS}
+              options={options.bodyRegions}
               value={draft.bodyRegion}
             />
             <ChoiceGrid
               columns={3}
-              label="Affected side"
+              label={copy.affectedSide}
               onChange={(value) => updateDraft('side', value)}
-              options={SIDE_OPTIONS}
+              options={options.sides}
               value={draft.side}
             />
             <ChoiceGrid
               columns={3}
-              label="Severity"
+              label={copy.severity}
               onChange={(value) => updateDraft('severity', value)}
-              options={SEVERITY_OPTIONS}
+              options={options.severities}
               value={draft.severity}
             />
             <ChoiceGrid
-              label="Training impact"
+              label={copy.trainingImpact}
               onChange={(value) => updateDraft('trainingImpact', value)}
-              options={IMPACT_OPTIONS}
+              options={options.impacts}
               value={draft.trainingImpact}
             />
             <MovementGrid onToggle={toggleMovement} values={draft.movementPatterns} />
 
             <View style={styles.fieldGroup}>
-              <Text style={themedStyles.fieldLabel}>Onset date</Text>
-              <Text style={themedStyles.metaText}>Optional · YYYY-MM-DD · no future dates</Text>
+              <Text style={themedStyles.fieldLabel}>{copy.onsetDate}</Text>
+              <Text style={themedStyles.metaText}>{copy.onsetHelper}</Text>
               <TextInput
-                accessibilityLabel="Limitation onset date"
+                accessibilityLabel={copy.onsetAccessibility}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="numbers-and-punctuation"
@@ -292,24 +315,20 @@ export default function UserLimitationScreen() {
             ) : null}
             <PrimaryButton
               disabled={app.isRestoringState || Boolean(pendingChange)}
-              label="Save limitation"
+              label={copy.save}
               loading={Boolean(pendingChange)}
               onPress={saveLimitation}
             />
             <SecondaryButton
-              accessibilityHint="Opens the deterministic Safety and Recovery readiness review"
-              label="Open Safety & Recovery review"
+              accessibilityHint={copy.openReviewHint}
+              label={copy.openReview}
               onPress={() => router.push('/profile/safety-recovery')}
             />
           </AppCard>
 
           <AppCard>
-            <Text style={themedStyles.cardTitle}>Boundary</Text>
-            <Text style={themedStyles.bodyText}>
-              This list is self-reported and is not medical advice. Free-text medical notes are not
-              collected here. The Coach context receives only the typed restriction fields and cannot
-              apply a workout change automatically.
-            </Text>
+            <Text style={themedStyles.cardTitle}>{copy.boundary}</Text>
+            <Text style={themedStyles.bodyText}>{copy.boundaryBody}</Text>
           </AppCard>
         </View>
       </ScrollView>

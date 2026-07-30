@@ -1,6 +1,11 @@
 import { Pressable, Text, View } from 'react-native';
 
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
+import { useLocalization } from '@/localization';
+import {
+  getUserLimitationsCopy,
+  type UserLimitationsCopy,
+} from '@/localization/userLimitationsCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 import type {
   UserLimitation,
@@ -19,87 +24,85 @@ type Option<Value extends string> = {
   value: Value;
 };
 
-export const KIND_OPTIONS: readonly Option<UserLimitationKind>[] = [
-  { label: 'Injury', value: 'injury' },
-  { label: 'Pain', value: 'pain' },
-  { label: 'Mobility', value: 'mobility' },
-  { label: 'Medical restriction', value: 'medical_restriction' },
-  { label: 'Other', value: 'other' },
+const KIND_VALUES: readonly UserLimitationKind[] = [
+  'injury',
+  'pain',
+  'mobility',
+  'medical_restriction',
+  'other',
+];
+const BODY_REGION_VALUES: readonly UserLimitationBodyRegion[] = [
+  'neck',
+  'shoulder',
+  'elbow',
+  'wrist_hand',
+  'upper_back',
+  'lower_back',
+  'hip',
+  'knee',
+  'ankle_foot',
+  'chest',
+  'abdomen',
+  'systemic',
+  'other',
+];
+const SIDE_VALUES: readonly UserLimitationSide[] = [
+  'left',
+  'right',
+  'bilateral',
+  'midline',
+  'not_applicable',
+];
+const SEVERITY_VALUES: readonly UserLimitationSeverity[] = ['mild', 'moderate', 'severe'];
+const IMPACT_VALUES: readonly UserLimitationTrainingImpact[] = [
+  'monitor',
+  'reduce_load',
+  'avoid_movement',
+  'pause_training',
+];
+const MOVEMENT_VALUES: readonly UserLimitationMovementPattern[] = [
+  'squat',
+  'hinge',
+  'lunge',
+  'horizontal_push',
+  'vertical_push',
+  'horizontal_pull',
+  'vertical_pull',
+  'carry',
+  'rotation',
+  'locomotion',
+  'impact',
+  'overhead',
+  'spinal_flexion',
+  'spinal_extension',
+  'other',
 ];
 
-export const BODY_REGION_OPTIONS: readonly Option<UserLimitationBodyRegion>[] = [
-  { label: 'Neck', value: 'neck' },
-  { label: 'Shoulder', value: 'shoulder' },
-  { label: 'Elbow', value: 'elbow' },
-  { label: 'Wrist / hand', value: 'wrist_hand' },
-  { label: 'Upper back', value: 'upper_back' },
-  { label: 'Lower back', value: 'lower_back' },
-  { label: 'Hip', value: 'hip' },
-  { label: 'Knee', value: 'knee' },
-  { label: 'Ankle / foot', value: 'ankle_foot' },
-  { label: 'Chest', value: 'chest' },
-  { label: 'Abdomen', value: 'abdomen' },
-  { label: 'Systemic', value: 'systemic' },
-  { label: 'Other', value: 'other' },
-];
+const toOptions = <Value extends string>(
+  values: readonly Value[],
+  labels: Record<Value, string>,
+): readonly Option<Value>[] => values.map((value) => ({ label: labels[value], value }));
 
-export const SIDE_OPTIONS: readonly Option<UserLimitationSide>[] = [
-  { label: 'Left', value: 'left' },
-  { label: 'Right', value: 'right' },
-  { label: 'Both', value: 'bilateral' },
-  { label: 'Midline', value: 'midline' },
-  { label: 'N/A', value: 'not_applicable' },
-];
-
-export const SEVERITY_OPTIONS: readonly Option<UserLimitationSeverity>[] = [
-  { label: 'Mild', value: 'mild' },
-  { label: 'Moderate', value: 'moderate' },
-  { label: 'Severe', value: 'severe' },
-];
-
-export const IMPACT_OPTIONS: readonly Option<UserLimitationTrainingImpact>[] = [
-  { label: 'Monitor', value: 'monitor' },
-  { label: 'Reduce load', value: 'reduce_load' },
-  { label: 'Avoid movement', value: 'avoid_movement' },
-  { label: 'Pause training', value: 'pause_training' },
-];
-
-const MOVEMENT_OPTIONS: readonly Option<UserLimitationMovementPattern>[] = [
-  { label: 'Squat', value: 'squat' },
-  { label: 'Hinge', value: 'hinge' },
-  { label: 'Lunge', value: 'lunge' },
-  { label: 'Horizontal push', value: 'horizontal_push' },
-  { label: 'Vertical push', value: 'vertical_push' },
-  { label: 'Horizontal pull', value: 'horizontal_pull' },
-  { label: 'Vertical pull', value: 'vertical_pull' },
-  { label: 'Carry', value: 'carry' },
-  { label: 'Rotation', value: 'rotation' },
-  { label: 'Locomotion', value: 'locomotion' },
-  { label: 'Impact', value: 'impact' },
-  { label: 'Overhead', value: 'overhead' },
-  { label: 'Spinal flexion', value: 'spinal_flexion' },
-  { label: 'Spinal extension', value: 'spinal_extension' },
-  { label: 'Other', value: 'other' },
-];
-
-const formatCode = (value: string): string =>
-  value
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
+export const getLimitationOptions = (copy: UserLimitationsCopy) => ({
+  kinds: toOptions(KIND_VALUES, copy.kindLabels),
+  bodyRegions: toOptions(BODY_REGION_VALUES, copy.bodyRegionLabels),
+  sides: toOptions(SIDE_VALUES, copy.sideLabels),
+  severities: toOptions(SEVERITY_VALUES, copy.severityLabels),
+  impacts: toOptions(IMPACT_VALUES, copy.impactLabels),
+});
 
 export function ChoiceGrid<Value extends string>({
+  columns = 2,
   label,
+  onChange,
   options,
   value,
-  onChange,
-  columns = 2,
 }: {
+  columns?: number;
   label: string;
+  onChange(value: Value): void;
   options: readonly Option<Value>[];
   value: Value | null;
-  onChange(value: Value): void;
-  columns?: number;
 }) {
   const { colors } = useAppTheme();
   return (
@@ -111,6 +114,7 @@ export function ChoiceGrid<Value extends string>({
           return (
             <Pressable
               key={option.value}
+              accessibilityLabel={option.label}
               accessibilityRole="radio"
               accessibilityState={{ checked: selected }}
               onPress={() => onChange(option.value)}
@@ -139,24 +143,33 @@ export function ChoiceGrid<Value extends string>({
 }
 
 export function MovementGrid({
-  values,
   onToggle,
+  values,
 }: {
-  values: UserLimitationMovementPattern[];
   onToggle(value: UserLimitationMovementPattern): void;
+  values: UserLimitationMovementPattern[];
 }) {
   const { colors } = useAppTheme();
+  const { locale } = useLocalization();
+  const copy = getUserLimitationsCopy(locale);
   const selected = new Set(values);
+  const options = toOptions(MOVEMENT_VALUES, copy.movementLabels);
+
   return (
     <View style={styles.fieldGroup}>
-      <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>Movement patterns</Text>
-      <Text style={[styles.helperText, { color: colors.textMuted }]}>Required for “Avoid movement”. Optional context for other impacts.</Text>
-      <View style={styles.choiceGrid}>
-        {MOVEMENT_OPTIONS.map((option) => {
+      <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
+        {copy.movementPatterns}
+      </Text>
+      <Text style={[styles.helperText, { color: colors.textMuted }]}>
+        {copy.movementHelper}
+      </Text>
+      <View accessibilityLabel={copy.movementPatterns} style={styles.choiceGrid}>
+        {options.map((option) => {
           const active = selected.has(option.value);
           return (
             <Pressable
               key={option.value}
+              accessibilityLabel={option.label}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: active }}
               onPress={() => onToggle(option.value)}
@@ -184,27 +197,32 @@ export function MovementGrid({
 }
 
 export function LimitationRow({
-  limitation,
   disabled,
+  limitation,
   onDelete,
   onStatusChange,
 }: {
-  limitation: UserLimitation;
   disabled: boolean;
+  limitation: UserLimitation;
   onDelete(): void;
   onStatusChange(): void;
 }) {
   const { colors } = useAppTheme();
+  const { formatDate, locale } = useLocalization();
+  const copy = getUserLimitationsCopy(locale);
+  const formatDateOnly = (value: string) =>
+    formatDate(`${value}T12:00:00`, { day: 'numeric', month: 'short', year: 'numeric' });
+
   return (
     <View style={[styles.limitationRow, { borderColor: colors.borderSubtle }]}>
       <View style={styles.rowHeader}>
         <View style={styles.rowCopy}>
           <Text style={[styles.rowTitle, { color: colors.textPrimary }]}>
-            {formatCode(limitation.bodyRegion)} · {formatCode(limitation.side)}
+            {copy.bodyRegionLabels[limitation.bodyRegion]} · {copy.sideLabels[limitation.side]}
           </Text>
           <Text style={[styles.helperText, { color: colors.textMuted }]}>
-            {formatCode(limitation.kind)} · {formatCode(limitation.severity)} ·{' '}
-            {formatCode(limitation.trainingImpact)}
+            {copy.kindLabels[limitation.kind]} · {copy.severityLabels[limitation.severity]} ·{' '}
+            {copy.impactLabels[limitation.trainingImpact]}
           </Text>
         </View>
         <Text
@@ -216,25 +234,28 @@ export function LimitationRow({
               color: limitation.status === 'active' ? colors.warning : colors.success,
             },
           ]}>
-          {limitation.status.toUpperCase()}
+          {copy.statusLabels[limitation.status]}
         </Text>
       </View>
       {limitation.movementPatterns.length > 0 ? (
         <Text style={[styles.helperText, { color: colors.textSecondary }]}>
-          Movements: {limitation.movementPatterns.map(formatCode).join(', ')}
+          {copy.movements}: {limitation.movementPatterns.map((value) => copy.movementLabels[value]).join(', ')}
         </Text>
       ) : null}
       <Text style={[styles.helperText, { color: colors.textMuted }]}>
-        Onset: {limitation.onsetDate ?? 'not specified'}
-        {limitation.resolvedDate ? ` · resolved ${limitation.resolvedDate}` : ''}
+        {copy.onset}: {limitation.onsetDate ? formatDateOnly(limitation.onsetDate) : copy.notSpecified}
+        {limitation.resolvedDate
+          ? ` · ${copy.resolved} ${formatDateOnly(limitation.resolvedDate)}`
+          : ''}
       </Text>
       <View style={styles.rowActions}>
         <SecondaryButton
           disabled={disabled}
-          label={limitation.status === 'active' ? 'Mark resolved' : 'Reactivate'}
+          label={limitation.status === 'active' ? copy.markResolved : copy.reactivate}
           onPress={onStatusChange}
         />
         <Pressable
+          accessibilityLabel={copy.delete}
           accessibilityRole="button"
           disabled={disabled}
           onPress={onDelete}
@@ -244,7 +265,7 @@ export function LimitationRow({
             pressed && styles.pressed,
             disabled && styles.disabled,
           ]}>
-          <Text style={[styles.deleteLabel, { color: colors.error }]}>Delete</Text>
+          <Text style={[styles.deleteLabel, { color: colors.error }]}>{copy.delete}</Text>
         </Pressable>
       </View>
     </View>
