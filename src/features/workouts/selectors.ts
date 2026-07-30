@@ -8,6 +8,13 @@ import { getWorkoutPrograms, getWorkoutProgramSummary } from './programModel';
 import { getWorkoutTemplateSummary, getSuggestedWorkoutTemplates, getRecentlyUsedWorkoutTemplates } from './workoutModel';
 import type { WorkoutHubViewModel } from './types';
 
+export type HomeActivityItem = {
+  detail: string;
+  id: string;
+  label: string;
+  value: string;
+};
+
 export type HomeSnapshotItem = {
   detail: string;
   id: string;
