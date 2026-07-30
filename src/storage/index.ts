@@ -130,3 +130,15 @@ export type {
 export { createSyncCursorStore, SYNC_CURSOR_STORAGE_KEY } from './SyncCursorStore';
 export type { SyncCursor, SyncCursorStore } from './SyncCursorStore';
 export { getDefaultSyncCursorStore } from './defaultSyncCursorStore';
+export {
+  countLocalStateEntities,
+  createLocalStateDiagnosticsRecorder,
+  LOCAL_STATE_DIAGNOSTICS_STORAGE_KEY,
+  utf8ByteLength,
+} from './LocalStateDiagnostics';
+export type {
+  LocalStateDiagnosticEvent,
+  LocalStateDiagnostics,
+  LocalStateDiagnosticsRecorder,
+  LocalStateEntityCounts,
+} from './LocalStateDiagnostics';
