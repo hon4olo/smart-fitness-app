@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
@@ -24,85 +23,15 @@ import {
   getActiveWorkoutSessionDraft,
   setActiveWorkoutSessionDraft,
 } from '@/features/workouts/storage';
-import {
-  createFilterStyles,
-  createRowStyles,
-  createStyles,
-} from '@/features/workouts/styles/workoutExerciseLibraryScreenStyles';
+import { createStyles } from '@/features/workouts/styles/workoutExerciseLibraryScreenStyles';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 import { useLocalization } from '@/localization';
+import { getWorkoutSessionExercisePickerCopy } from '@/localization/workoutSessionExercisePickerCopy';
+
 import {
-  getWorkoutSessionExercisePickerCopy,
-  type WorkoutSessionExercisePickerCopy,
-} from '@/localization/workoutSessionExercisePickerCopy';
-
-type ExerciseRowProps = {
-  copy: WorkoutSessionExercisePickerCopy;
-  exercise: Exercise;
-  onInfoPress: () => void;
-  onPress: () => void;
-  selected: boolean;
-};
-
-function ExerciseRow({
-  copy,
-  exercise,
-  onInfoPress,
-  onPress,
-  selected,
-}: ExerciseRowProps) {
-  const { colors } = useWorkoutTheme();
-  const styles = useMemo(() => createRowStyles(colors), [colors]);
-  const equipment = exercise.equipment.join(', ') || copy.noEquipment;
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        selected && styles.rowSelected,
-        pressed && styles.pressed,
-      ]}>
-      <View style={styles.thumbnail}>
-        <Text style={styles.thumbnailLabel}>
-          {exercise.name.slice(0, 1).toUpperCase()}
-        </Text>
-      </View>
-      <View style={styles.copy}>
-        <Text numberOfLines={1} style={styles.name}>
-          {exercise.name}
-        </Text>
-        <Text numberOfLines={1} style={styles.meta}>
-          {exercise.primaryMuscles[0] ?? exercise.bodyPart}
-        </Text>
-        <Text numberOfLines={1} style={styles.meta}>
-          {equipment} · {exercise.bodyPart}
-        </Text>
-        {exercise.secondaryMuscles.length > 0 ? (
-          <Text numberOfLines={1} style={styles.meta}>
-            {copy.secondaryMuscles(exercise.secondaryMuscles.slice(0, 2).join(', '))}
-          </Text>
-        ) : null}
-      </View>
-      <Pressable
-        accessibilityLabel={copy.openDetails(exercise.name)}
-        accessibilityRole="button"
-        onPress={onInfoPress}
-        style={({ pressed }) => [styles.infoButton, pressed && styles.pressed]}>
-        <Text style={styles.infoLabel}>{copy.details}</Text>
-      </Pressable>
-      <View style={[styles.selection, selected && styles.selectionSelected]}>
-        <Text
-          style={[
-            styles.selectionLabel,
-            selected && styles.selectionLabelSelected,
-          ]}>
-          {selected ? '✓' : '+'}
-        </Text>
-      </View>
-    </Pressable>
-  );
-}
+  ExerciseRow,
+  FilterChips,
+} from './WorkoutExerciseLibraryControls';
 
 const getOptionsFromExercises = (
   exercises: Exercise[],
@@ -111,77 +40,6 @@ const getOptionsFromExercises = (
   Array.from(new Set(exercises.flatMap((exercise) => exercise[field]))).sort(
     (left, right) => left.localeCompare(right),
   );
-
-function FilterChips({
-  activeValue,
-  allLabel,
-  label,
-  onChange,
-  options,
-}: {
-  activeValue?: string;
-  allLabel: string;
-  label: string;
-  onChange: (value?: string) => void;
-  options: string[];
-}) {
-  const { colors } = useWorkoutTheme();
-  const styles = useMemo(() => createFilterStyles(colors), [colors]);
-
-  if (options.length === 0) return null;
-
-  return (
-    <View style={styles.section}>
-      <Text style={styles.label}>{label}</Text>
-      <ScrollView
-        contentContainerStyle={styles.chips}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.chipScroll}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ selected: !activeValue }}
-          onPress={() => onChange(undefined)}
-          style={({ pressed }) => [
-            styles.chip,
-            !activeValue && styles.chipActive,
-            pressed && styles.pressed,
-          ]}>
-          <Text
-            style={[
-              styles.chipLabel,
-              !activeValue && styles.chipLabelActive,
-            ]}>
-            {allLabel}
-          </Text>
-        </Pressable>
-        {options.map((option) => {
-          const active = activeValue === option;
-          return (
-            <Pressable
-              key={option}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              onPress={() => onChange(active ? undefined : option)}
-              style={({ pressed }) => [
-                styles.chip,
-                active && styles.chipActive,
-                pressed && styles.pressed,
-              ]}>
-              <Text
-                style={[
-                  styles.chipLabel,
-                  active && styles.chipLabelActive,
-                ]}>
-                {option}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
 
 export default function WorkoutExerciseLibraryScreen() {
   const { workoutSessions } = useAppContext();
