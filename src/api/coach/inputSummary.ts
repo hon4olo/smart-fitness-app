@@ -48,6 +48,21 @@ export type CoachRunInputSummary = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const assertExactKeys = (
+  record: Record<string, unknown>,
+  expected: readonly string[],
+  field: string,
+) => {
+  const actual = Object.keys(record).sort();
+  const allowed = [...expected].sort();
+  if (
+    actual.length !== allowed.length ||
+    actual.some((key, index) => key !== allowed[index])
+  ) {
+    throw new Error(`Invalid Coach input summary fields: ${field}`);
+  }
+};
+
 const readBoolean = (
   record: Record<string, unknown>,
   key: string,
@@ -96,53 +111,105 @@ const readNullablePositiveInteger = (
 
 const parseNutrition = (
   value: Record<string, unknown>,
-): NutritionInputCoverage => ({
-  domain: 'nutrition',
-  available: readBoolean(value, 'available'),
-  lookbackDays: readNullablePositiveInteger(value, 'lookbackDays', 31),
-  foodEntryCount: readCount(value, 'foodEntryCount'),
-  loggedDayCount: readCount(value, 'loggedDayCount', 31),
-  weightEntryCount: readCount(value, 'weightEntryCount'),
-  hasLatestWeight: readBoolean(value, 'hasLatestWeight'),
-  hasActiveTarget: readBoolean(value, 'hasActiveTarget'),
-  hasFitnessProfile: readBoolean(value, 'hasFitnessProfile'),
-});
+): NutritionInputCoverage => {
+  assertExactKeys(
+    value,
+    [
+      'domain',
+      'available',
+      'lookbackDays',
+      'foodEntryCount',
+      'loggedDayCount',
+      'weightEntryCount',
+      'hasLatestWeight',
+      'hasActiveTarget',
+      'hasFitnessProfile',
+    ],
+    'nutrition',
+  );
+  return {
+    domain: 'nutrition',
+    available: readBoolean(value, 'available'),
+    lookbackDays: readNullablePositiveInteger(value, 'lookbackDays', 31),
+    foodEntryCount: readCount(value, 'foodEntryCount'),
+    loggedDayCount: readCount(value, 'loggedDayCount', 31),
+    weightEntryCount: readCount(value, 'weightEntryCount'),
+    hasLatestWeight: readBoolean(value, 'hasLatestWeight'),
+    hasActiveTarget: readBoolean(value, 'hasActiveTarget'),
+    hasFitnessProfile: readBoolean(value, 'hasFitnessProfile'),
+  };
+};
 
 const parseStrength = (
   value: Record<string, unknown>,
-): StrengthInputCoverage => ({
-  domain: 'strength',
-  available: readBoolean(value, 'available'),
-  requestedSpecificSession: readBoolean(value, 'requestedSpecificSession'),
-  requestedHistoryLimit: readNullablePositiveInteger(
+): StrengthInputCoverage => {
+  assertExactKeys(
     value,
-    'requestedHistoryLimit',
-    20,
-  ),
-  sessionCount: readCount(value, 'sessionCount'),
-  completedSetCount: readCount(value, 'completedSetCount'),
-  distinctExerciseCount: readCount(value, 'distinctExerciseCount'),
-  setsWithActualRpeCount: readCount(value, 'setsWithActualRpeCount'),
-  hasLatestWeight: readBoolean(value, 'hasLatestWeight'),
-});
+    [
+      'domain',
+      'available',
+      'requestedSpecificSession',
+      'requestedHistoryLimit',
+      'sessionCount',
+      'completedSetCount',
+      'distinctExerciseCount',
+      'setsWithActualRpeCount',
+      'hasLatestWeight',
+    ],
+    'strength',
+  );
+  return {
+    domain: 'strength',
+    available: readBoolean(value, 'available'),
+    requestedSpecificSession: readBoolean(value, 'requestedSpecificSession'),
+    requestedHistoryLimit: readNullablePositiveInteger(
+      value,
+      'requestedHistoryLimit',
+      20,
+    ),
+    sessionCount: readCount(value, 'sessionCount'),
+    completedSetCount: readCount(value, 'completedSetCount'),
+    distinctExerciseCount: readCount(value, 'distinctExerciseCount'),
+    setsWithActualRpeCount: readCount(value, 'setsWithActualRpeCount'),
+    hasLatestWeight: readBoolean(value, 'hasLatestWeight'),
+  };
+};
 
 const parseSafetyRecovery = (
   value: Record<string, unknown>,
-): SafetyRecoveryInputCoverage => ({
-  domain: 'safety_recovery',
-  available: readBoolean(value, 'available'),
-  lookbackDays: readNullablePositiveInteger(value, 'lookbackDays', 31),
-  activeLimitationCount: readCount(value, 'activeLimitationCount'),
-  pauseTrainingCount: readCount(value, 'pauseTrainingCount'),
-  avoidMovementCount: readCount(value, 'avoidMovementCount'),
-  reduceLoadCount: readCount(value, 'reduceLoadCount'),
-  recoveryCheckInCount: readCount(value, 'recoveryCheckInCount'),
-  limitationNotesPresentCount: readCount(
+): SafetyRecoveryInputCoverage => {
+  assertExactKeys(
     value,
-    'limitationNotesPresentCount',
-  ),
-  checkInNotesPresentCount: readCount(value, 'checkInNotesPresentCount'),
-});
+    [
+      'domain',
+      'available',
+      'lookbackDays',
+      'activeLimitationCount',
+      'pauseTrainingCount',
+      'avoidMovementCount',
+      'reduceLoadCount',
+      'recoveryCheckInCount',
+      'limitationNotesPresentCount',
+      'checkInNotesPresentCount',
+    ],
+    'safety_recovery',
+  );
+  return {
+    domain: 'safety_recovery',
+    available: readBoolean(value, 'available'),
+    lookbackDays: readNullablePositiveInteger(value, 'lookbackDays', 31),
+    activeLimitationCount: readCount(value, 'activeLimitationCount'),
+    pauseTrainingCount: readCount(value, 'pauseTrainingCount'),
+    avoidMovementCount: readCount(value, 'avoidMovementCount'),
+    reduceLoadCount: readCount(value, 'reduceLoadCount'),
+    recoveryCheckInCount: readCount(value, 'recoveryCheckInCount'),
+    limitationNotesPresentCount: readCount(
+      value,
+      'limitationNotesPresentCount',
+    ),
+    checkInNotesPresentCount: readCount(value, 'checkInNotesPresentCount'),
+  };
+};
 
 const parseSource = (value: unknown): CoachInputCoverage => {
   if (!isRecord(value)) throw new Error('Invalid Coach input summary source');
@@ -155,8 +222,9 @@ const parseSource = (value: unknown): CoachInputCoverage => {
 export const parseCoachRunInputSummary = (
   value: unknown,
 ): CoachRunInputSummary => {
+  if (!isRecord(value)) throw new Error('Invalid Coach input summary');
+  assertExactKeys(value, ['schemaVersion', 'sources'], 'root');
   if (
-    !isRecord(value) ||
     value.schemaVersion !== 1 ||
     !Array.isArray(value.sources) ||
     value.sources.length > 3
