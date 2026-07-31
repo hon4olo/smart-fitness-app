@@ -2,7 +2,10 @@ import { Pressable, Text, View } from 'react-native';
 
 import type { SocialWorkoutPostDto } from '@/api/social';
 import { AppCard } from '@/components/ui/AppCard';
-import type { SupportedLocale } from '@/localization';
+import {
+  formatLocalizedNumber,
+  type SupportedLocale,
+} from '@/localization';
 
 import type { SocialWorkoutPostSurfaceCopy } from './socialWorkoutPostSurfaceCopy';
 import {
@@ -68,9 +71,7 @@ export function SocialWorkoutPostCard({
             <Metric
               label={copy.volume}
               styles={styles}
-              value={new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : 'en-US', {
-                maximumFractionDigits: 1,
-              }).format(post.workout.totalVolume)}
+              value={formatLocalizedNumber(post.workout.totalVolume, locale)}
             />
           ) : null}
         </View>
