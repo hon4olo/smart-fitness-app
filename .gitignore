@@ -21,10 +21,14 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
-# debug
+# debug and reports
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
+coverage/
+repomix-output.*
+connect.txt
 
 # macOS
 .DS_Store

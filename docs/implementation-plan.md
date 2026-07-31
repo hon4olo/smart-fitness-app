@@ -1,206 +1,347 @@
-# Smart Fitness Implementation Completion Plan
+# Smart Fitness Active Refactor Roadmap
 
-Updated: 2026-07-31
+Updated: 2026-08-01
 
-This is the canonical cross-repository execution plan for:
+This is the canonical active execution plan for:
 
 - `hon4olo/smart-fitness-app`;
-- `hon4olo/smart-fitness-backend`.
+- `hon4olo/smart-fitness-backend` where a mobile change requires a backend contract change.
 
-It covers the approved product scope only. It does not add lab analysis, diagnosis, pharmacology, social, marketplace, payment, or subscription features.
+Completed historical implementation detail belongs in Git history and merged PRs, not in this active roadmap. This document contains only the current baseline, approved refactor scope, external blockers, and the next executable slices.
 
-## Current baseline
+## Verified baseline
 
-Implemented:
+Mobile baseline:
 
-- production Fastify/PostgreSQL backend at `https://api.peptonio.com`;
-- offline-first mobile persistence and ordered observable mutations;
-- native SecureStore authentication tokens;
-- revisioned sync for weight history, workout sessions/sets, workout templates, food entries, nutrition targets, fitness profiles, limitations, recovery check-ins, body measurements, training programs, custom exercises, meal templates, and the account-scoped Nutrition library;
-- deterministic Nutrition, Strength, and Safety & Recovery reviews;
-- structured Nutrition and Strength Strategy previews with explicit confirmations;
-- read-only Combined Review and Combined Proposal with effective Safety-capped Strength;
-- separate explicit Combined Strength-template and Nutrition-target confirmations;
-- immutable Coach history, trust metadata, provenance, before/after summaries, and privacy-safe input coverage;
-- blocking Mobile CI for line limits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor;
-- blocking backend lint, build, tests, migration/schema, startup, and health checks;
-- no currently known tracked hand-written source/architecture file above 500 physical lines;
-- repository-wide localization boundaries for formatting, units, accessibility, buttons, Alerts, Pressables, menu/tab/state controls, and raw-status presentation.
+- `main`: `9be1c0d3d547a1468b1da516e84869cac87d5063`;
+- no open mobile pull requests at the start of this roadmap;
+- Expo SDK 56, React Native, Expo Router, TypeScript;
+- offline-first application state persisted through the existing repository boundary;
+- ordered observable mutation queue with explicit local-persistence and outbox stages;
+- revision-aware synchronization for the currently supported domains;
+- `react-native-svg` is already installed;
+- weight progress already has a basic non-SVG chart;
+- source CI, line-size audits, TypeScript, tests, Expo export, and Expo Doctor remain blocking.
 
-## Phase 0 — documentation and audit baseline
+Backend baseline:
 
-Status: complete and maintained continuously.
+- `main`: `3f6c907efcfa503bd4beaf12b072c4e5b4573362`;
+- no open backend pull requests at the start of this roadmap;
+- no backend work is required for the initial cleanup and mobile performance slices.
 
-- [x] create this implementation plan;
-- [x] verify mobile and backend instruction files against actual architecture;
-- [x] record the oversized-file audit and blocking CI baseline;
-- [x] maintain one canonical priority order;
-- [x] remove stale custom-exercise and meal-template “unfinished” wording from secondary instruction documents;
-- [x] refresh localization and sync-hardening roadmaps after completed source audits.
+## Non-negotiable invariants
 
-Acceptance criteria:
+- Preserve routes, IDs, persisted schemas, canonical units, authentication, synchronization revisions, idempotency, conflict handling, completed history, and explicit Coach confirmations unless a bounded task explicitly changes them.
+- Do not introduce a second backend, direct provider calls from mobile, or a new state library without measured justification.
+- Do not apply a generic debounce around outbox-bearing mutations.
+- Do not publish OTA, create native builds, install on devices, deploy backend changes, activate staging or production, or change credentials without explicit authorization.
+- Keep every hand-written source file at or below 500 physical lines.
+- Use small branches and merge only an exact green head.
 
-- completed infrastructure is not listed as pending;
-- active instruction and roadmap files describe remaining work consistently;
-- external validation is not presented as source-code completion.
+# Phase 1 — cleanup and preparation
 
-## Phase 1 — file-size decomposition
+Status: in progress.
 
-Status: initial audited pass complete. Blocking repository and changed-file audits remain active.
+## 1.1 Baseline and inventory
 
-Completed targets include:
+- [x] verify exact mobile and backend `main`;
+- [x] verify open pull requests;
+- [x] inspect `AGENTS.md`, `PROJECT_LEARNINGS.md`, and this roadmap;
+- [ ] record the current full validation result for the first code-bearing slice;
+- [ ] inventory all internal links, deep links, tests, and compatibility consumers before removing legacy routes.
 
-- mobile `src/api/coach.ts`;
-- backend Nutrition Coach orchestrator;
-- mobile Add Food style composition;
-- backend AI Coach architecture documents;
-- mobile `AppContext.tsx` and `SyncContext.tsx` concerns;
-- Safety/Recovery Progress, barcode scanner, Workouts, Workout Builder, cloud queue, sync coordinator, and exercise-picker presentation extractions.
+## 1.2 Repository-root cleanup
+
+- [ ] remove tracked `repomix-output.xml`;
+- [ ] remove tracked empty `connect.txt`;
+- [ ] ignore generated Repomix outputs, local connection notes, coverage output, and generic log files;
+- [ ] confirm no CI or documentation step depends on either removed file.
+
+## 1.3 Legacy Expo Router aliases
+
+Candidates:
+
+- `src/app/(tabs)/labs.tsx`;
+- `src/app/(tabs)/track.tsx`;
+- `src/app/(tabs)/eat.tsx`.
 
 Rules:
 
-- keep every hand-written source file at or below 500 physical lines;
-- extract cohesive components, hooks, styles, parsers, contracts, or helpers;
-- preserve public contracts and runtime behavior;
-- do not create broad abstractions only to satisfy line count.
-
-## Phase 2 — revisioned sync entities
-
-Status: complete across mobile and backend.
-
-### Custom exercises
-
-Implemented in backend PR #29 and mobile PR #49, with pull-accounting aliases completed in mobile PR #51:
-
-- schema-versioned strict payloads;
-- stable UUID entity references;
-- ownership-safe backend materialization and tombstones;
-- mobile planner, metadata store, queue operations, and remote application;
-- references preserved across workouts, programs, and Coach contexts;
-- create/update/delete, malformed-payload, ownership, and materialization tests.
-
-### Meal templates
-
-Implemented in backend PR #30 and mobile PR #50:
-
-- schema-versioned template and nested food snapshot payloads;
-- ownership-safe backend materialization and tombstones;
-- mobile planner, metadata store, legacy-ID normalization, and remote application;
-- strict nested snapshot and item-ID validation;
-- create/update/delete, malformed-payload, and materialization tests.
-
-Do not reimplement these entities or describe them as local-only.
-
-## Phase 3 — sync and persistence hardening
-
-Status: source implementation and automated coverage complete for the current contracts. Physical multi-device validation remains external.
-
-Completed:
-
-- [x] durable restart replay for the eager weight-history save-succeeded/outbox-enqueue-failed path;
-- [x] architecture audit confirming planner-based domains regenerate operations after restart from persisted state, metadata, and pending queue instead of requiring duplicate journals;
-- [x] persisted unresolved conflicts with restart restoration and per-user isolation;
-- [x] deterministic push validation isolation;
-- [x] idempotency-key length migration and targeted key-reuse repair;
-- [x] cursor advancement guarded by supported-entity handling and conflicts;
-- [x] push and pull 401 refresh/retry coverage preserving exact cursor, payload, base revision, and idempotency key;
-- [x] behavioral concurrent local-mutation / remote-materialization coverage using a non-weight entity;
-- [x] source-level two-device conflict coverage for mutable synchronized domains, including independent edits, overlapping edits, duplicate delivery, update-versus-delete, delete-versus-update, and matching deletes;
-- [x] real PostgreSQL Nutrition-library create/update/delete concurrency and replay coverage in backend PR #62;
-- [x] bounded user-visible Data & Sync status, retry, recovery replay, conflict review, and privacy-safe diagnostics.
-
-Recovery boundary:
-
-- weight history creates an eager outbox operation as part of the ordered local mutation and therefore journals the exact operation before queue enqueue;
-- planner-based domains persist canonical local state first and deterministically plan missing operations during synchronization, so a failed enqueue is regenerated on the next sync;
-- do not add duplicate recovery journals to planner-based domains unless a future mutation bypasses deterministic replanning.
-
-External validation still required:
-
-- [ ] physical second-device conflict matrix;
-- [ ] offline termination, restart, queue recovery, reconnect, and eventual synchronization on a matching standalone runtime;
-- [ ] verify user-visible conflict/recovery states during those scenarios.
-
-Acceptance criteria:
-
-- no critical persistence or enqueue failure is silently ignored;
-- retries remain idempotent;
-- conflict state remains visible and recoverable;
-- interrupted mutations cannot silently lose user data;
-- external validation is recorded separately from source test completion.
-
-## Phase 4 — provider-neutral staging configuration
-
-Status: blocked on approved staging credentials/model selection.
+- `src/app/(tabs)/coach.tsx` is a real screen and must not be removed;
+- remove an alias only after repository links, saved navigation state, deep-link compatibility, tests, and older supported clients are checked;
+- use an explicit compatibility redirect instead of silent deletion when an old route must remain supported.
 
 Tasks:
 
-- [ ] use provider-neutral default Coach model configuration with optional domain overrides;
-- [ ] configure credentials on backend staging only;
-- [ ] validate structured-output retry and guardrail rejection for Nutrition and Strength;
-- [ ] record bounded provider/model, latency, attempts, token usage, and validation failure metadata;
-- [ ] preserve deterministic reviews when provider capability is disabled.
+- [ ] inventory alias consumers;
+- [ ] remove unused aliases or replace required aliases with documented redirects;
+- [ ] remove obsolete hidden tab registrations after the route decision;
+- [ ] run navigation and typed-route validation.
 
-No provider key or provider-specific payload may reach the mobile client.
+## 1.4 Empty-state consolidation
 
-## Phase 5 — Combined Coach and compensating actions
+Audit:
 
-Status: core proposal and confirmation product surface is implemented.
+- `EmptyNutritionState.tsx`;
+- `NutritionEmptyState.tsx`;
+- `EmptyWorkoutState.tsx`;
+- `EmptyProgressState.tsx`;
+- the shared `EmptyState.tsx`.
 
-Implemented:
+Tasks:
 
-- read-only Combined Review;
-- Combined Proposal with Safety-adjusted effective Strength;
-- separate explicit Strength-template and Nutrition-target confirmations;
-- strict parsing, revision-safe writes, idempotency, provenance, and no automatic application.
+- [ ] remove wrappers that only forward props;
+- [ ] retain a domain wrapper only when it owns stable localization, domain actions, accessibility semantics, or feature-level API boundaries;
+- [ ] prevent a single global component from accumulating domain-specific conditionals;
+- [ ] update imports and focused tests.
 
-Remaining:
+## 1.5 Cloud and synchronization inventory
 
-- [ ] validate provider-backed/staging execution when Phase 4 is available;
-- [ ] fix only confirmed backend/mobile contract gaps;
-- [ ] design a compensating-revert contract only if separately approved.
+`src/cloud/` is not presumed dead. Current authentication, synchronization, queue recovery, and outbox behavior depend on parts of it.
 
-A revert must be backend-owned and specify ownership, source/applied revisions, idempotency, conflict behavior, and immutable audit history. Do not invent a client-only rollback.
+Tasks:
 
-## Phase 6 — CI and release readiness
+- [ ] classify every cloud module as production-used, feature-gated, test-only, duplicate, or unreachable;
+- [ ] remove only modules with no imports, runtime registration, persisted compatibility role, or test responsibility;
+- [ ] isolate future-only code behind a clear boundary instead of mixing it with active runtime code;
+- [ ] preserve current recovery, revision, cursor, conflict, and idempotency semantics.
 
-Status: source CI complete; environment/device work remains external.
+## 1.6 Sentinel and placeholder timestamps
 
-Completed:
+Tasks:
 
-- [x] complete mobile regression suite is blocking;
-- [x] line audits, TypeScript, Coach/sync contracts, Expo export, and Doctor are blocking;
-- [x] backend lint/build/test/migration/schema/startup/health checks are blocking;
-- [x] rollout, rollback, crash-reporting, and release-validation documents exist;
-- [x] localization source audits are blocking;
-- [x] fixed-SHA cross-repository release workflow exists.
+- [ ] inventory hardcoded placeholder timestamps such as `2000-01-01T00:00:00.000Z`;
+- [ ] classify each occurrence as unknown date, bundled data, migration fallback, or deterministic sort key;
+- [ ] replace ambiguous timestamps with explicit metadata such as nullable dates, source fields, or stable sort order;
+- [ ] add a persisted-state migration when the serialized contract changes;
+- [ ] never replace a stable placeholder with current time during hydration.
 
-Remaining:
+### Phase 1 acceptance
 
-- [ ] configure `BACKEND_REPOSITORY_TOKEN` and run the fixed-SHA cross-repository release gate;
-- [ ] verify matching native runtime includes SecureStore and all native modules;
-- [ ] run physical workout, nutrition, progress, auth, sync, Coach, accessibility, and offline smoke tests;
-- [ ] validate narrow/standard/wide layouts and EN/RU appearance/unit matrices;
-- [ ] publish OTA or create native builds only when explicitly authorized.
+- tracked temporary artifacts are gone;
+- route compatibility is explicitly preserved or intentionally retired;
+- duplicate presentation wrappers are reduced without losing domain semantics;
+- no active sync or recovery path is removed;
+- persisted data remains readable;
+- full blocking CI is green.
 
-Green source CI does not replace device validation.
+# Phase 2 — state and persistence architecture
 
-## Immediate next actions
+Status: pending Phase 1.
 
-No currently known autonomous source-level Phase 0–3 gap remains.
+The existing `AppContext` is already partially decomposed internally into infrastructure and domain action hooks. This phase completes the public subscription boundary instead of rewriting the application from zero.
 
-1. Configure and run the fixed-SHA cross-repository release gate when repository-token access is explicitly authorized.
-2. Configure provider-neutral Coach staging credentials/model selection and validate structured outputs when explicitly authorized.
-3. Create matching native builds and complete physical release-device, offline-restart, accessibility, and second-device validation when explicitly authorized.
-4. Define an explicit local-versus-account conflict-choice contract before adding destructive conflict controls.
-5. Define privacy, consent, identity, retention, and deletion requirements before product analytics.
-6. Measure local-state size and restore/save duration before any SQLite migration decision.
-7. Continue bounded source work only for a newly discovered regression or separately prioritized product feature.
+## 2.1 Domain boundaries
 
-## Operating rules
+Introduce bounded state and action access for:
 
-- Inspect exact current `main` and open PRs in both repositories before each slice.
-- Use small bounded branches and PRs.
-- Merge only the exact green head.
-- Preserve business logic, routes, IDs, canonical units, persistence, API/sync contracts, polling, idempotency, explicit confirmations, and completed history unless the task explicitly changes them.
-- Do not publish OTA, create native builds, install on devices, deploy backend changes, activate staging/production, or change credentials without explicit authorization.
+- workouts, sessions, programs, templates, and exercises;
+- nutrition entries, targets, meal templates, and library data;
+- weight history, body measurements, and progress selectors;
+- profile, onboarding, goals, and user preferences;
+- infrastructure status, restore state, mutation failures, authentication, and synchronization.
+
+Tasks:
+
+- [ ] separate state subscriptions from action access;
+- [ ] expose focused hooks instead of one application-wide value object;
+- [ ] retain one internal orchestration boundary while migration is in progress;
+- [ ] migrate consumers one domain at a time;
+- [ ] add render-focused regression coverage where practical.
+
+## 2.2 Derived selectors
+
+- [ ] extract pure selectors for workout summaries, recent sessions, program summaries, daily nutrition, weekly volume, weight trends, and personal records;
+- [ ] accept only the minimum required state slice;
+- [ ] keep date, locale, and unit conversion at explicit boundaries;
+- [ ] unit-test selector edge cases and legacy data normalization.
+
+## 2.3 Coalesced local persistence
+
+The current ordered mutation queue must remain authoritative.
+
+Required behavior:
+
+- ordinary high-frequency local edits update memory immediately and coalesce the latest pending snapshot over approximately 300–500 ms;
+- critical mutations flush immediately;
+- lifecycle transitions flush pending local state;
+- outbox operations retain explicit order and retry identity;
+- create/update/delete compaction is allowed only through a tested domain-specific algorithm.
+
+Planned queue API:
+
+- `scheduleLatestState`;
+- `enqueueCriticalMutation`;
+- `flush`;
+- `cancelPending` where safe.
+
+Critical examples:
+
+- finishing a workout;
+- destructive deletion;
+- onboarding completion;
+- logout;
+- synchronized full-state replacement;
+- any mutation carrying a required outbox step.
+
+Tasks:
+
+- [ ] specify queue semantics and failure behavior before implementation;
+- [ ] add fake-timer tests for coalescing and flush;
+- [ ] add background/inactive lifecycle flushing;
+- [ ] preserve retry controls and observable failure state;
+- [ ] verify restart recovery and planner-based regeneration remain intact.
+
+## 2.4 State-library decision gate
+
+- [ ] profile the domain-context result before considering Zustand;
+- [ ] adopt an external store only if render counts, cross-domain subscriptions, or provider composition remain materially problematic;
+- [ ] do not migrate to Jotai or Zustand as an unmeasured cleanup exercise.
+
+### Phase 2 acceptance
+
+- a nutrition mutation does not broadly invalidate workout and progress consumers;
+- action-only consumers do not subscribe to unrelated state arrays;
+- repeated form edits do not enqueue a full persistence write per keystroke;
+- critical and outbox-bearing operations remain durable, ordered, observable, and retryable;
+- existing persisted state and synchronization contracts remain compatible.
+
+# Phase 3 — UI virtualization and render performance
+
+Status: pending Phase 2 subscription boundaries.
+
+## 3.1 Performance baseline
+
+Use representative large local fixtures:
+
+- 500 food entries;
+- 100 training programs;
+- 500 completed workout sessions;
+- 500 exercises;
+- 365 weight entries.
+
+Measure:
+
+- render commits;
+- first meaningful screen render;
+- tab-switch responsiveness;
+- long-list scroll stability;
+- local-state restore and save duration;
+- memory behavior on a real supported iPhone when device validation is authorized.
+
+## 3.2 Nutrition
+
+Current structure has one outer `ScrollView`, four meal groups, and potentially unbounded food-entry maps.
+
+Target:
+
+- [ ] use one `SectionList` for meal sections and food entries;
+- [ ] keep summary and week controls in `ListHeaderComponent`;
+- [ ] keep details in `ListFooterComponent`;
+- [ ] represent collapsed meals with empty section data;
+- [ ] preserve expansion, editing, keyboard, accessibility, and scroll behavior;
+- [ ] avoid nested vertical virtualized lists.
+
+## 3.3 Workouts
+
+Current suggested and recent collections are bounded; the program collection is not.
+
+Target:
+
+- [ ] virtualize the program list;
+- [ ] retain simple rendering for tiny bounded collections unless profiling proves otherwise;
+- [ ] evaluate exercise library, workout history, food search, templates, and saved-item screens by actual collection growth;
+- [ ] preserve sticky footer, active-session resume, navigation, and exact existing interaction logic.
+
+## 3.4 Row stability
+
+- [ ] memoize only proven hot row components;
+- [ ] use stable callbacks and `keyExtractor` values;
+- [ ] use `getItemLayout` only where row dimensions are truly fixed;
+- [ ] pass minimal row props rather than full domain state;
+- [ ] prevent nested-list warnings and scroll-position regressions.
+
+### Phase 3 acceptance
+
+- unbounded collections are virtualized through one coherent scroll owner;
+- no nested vertical virtualized-list warnings exist;
+- large fixtures remain responsive;
+- route transitions, expanded sections, sticky controls, and scroll restoration behave correctly;
+- measured render counts improve without visual regressions.
+
+# Phase 4 — progress charts
+
+Status: pending stable selectors and performance boundaries.
+
+No new chart dependency is approved by default. Use the installed `react-native-svg` unless requirements exceed it.
+
+## 4.1 Weight trend
+
+- [ ] replace the current view-based bar visualization with an SVG time-series chart;
+- [ ] support 7-, 30-, and 90-day ranges;
+- [ ] preserve kg/lb presentation from canonical kg storage;
+- [ ] support zero/one-entry empty states;
+- [ ] provide accessible min, max, current, and selected-point summaries;
+- [ ] keep chart presentation separate from weight-domain selectors.
+
+## 4.2 Weekly workout volume
+
+- [ ] implement a pure weekly-volume selector;
+- [ ] define timezone and week-start behavior explicitly;
+- [ ] calculate canonical volume from valid completed sets only;
+- [ ] represent weeks with no sessions consistently;
+- [ ] display 8–12 weeks with kg/lb presentation conversion only at the UI boundary;
+- [ ] cover deload weeks, incomplete sets, missing weight, malformed legacy data, and timezone edges.
+
+### Phase 4 acceptance
+
+- both charts derive from tested selectors;
+- units and locale formatting remain centralized;
+- the chart components expose useful accessibility summaries;
+- no additional chart framework is added without a documented capability gap.
+
+# External and deferred work
+
+These items remain valid but are not part of the autonomous refactor sequence:
+
+- fixed-SHA cross-repository release gate requiring authorized repository-token access;
+- provider-neutral Coach staging credentials and model validation;
+- matching native builds and physical release-device testing;
+- offline termination/restart and second-device conflict matrices;
+- accessibility and EN/RU/unit device matrices;
+- explicit local-versus-account destructive conflict-choice contract;
+- privacy, consent, identity, retention, deletion, and analytics requirements;
+- SQLite consideration only after local-state size and restore/save measurements;
+- OTA publication, native builds, device installation, backend deployment, staging activation, production activation, and credential changes.
+
+# Planned pull-request sequence
+
+1. Active roadmap rewrite, root artifact cleanup, and `.gitignore` hardening.
+2. Legacy-route compatibility audit and bounded route cleanup.
+3. Empty-state consolidation.
+4. Cloud-module inventory and confirmed dead-code removal.
+5. Placeholder timestamp model and migrations where required.
+6. Domain state/action subscription boundaries.
+7. Pure derived selectors and consumer migration.
+8. Coalesced persistence with critical flush and lifecycle coverage.
+9. Nutrition `SectionList` migration.
+10. Workouts and other proven unbounded-list virtualization.
+11. SVG weight trend.
+12. Weekly workout-volume selector and SVG chart.
+
+# Validation policy
+
+For every code-bearing mobile slice:
+
+- `npx tsc --noEmit`;
+- `npm test`;
+- relevant focused tests;
+- full blocking Mobile CI, including source-size audits, Expo export, and Expo Doctor;
+- inspect all review threads;
+- merge only the exact green head.
+
+Documentation-only and tracked-artifact cleanup still require repository CI before merge.
+
+# Immediate next action
+
+Complete PR 1: replace the stale historical implementation plan with this active roadmap, remove tracked root artifacts, harden `.gitignore`, and confirm CI before proceeding to route compatibility analysis.
