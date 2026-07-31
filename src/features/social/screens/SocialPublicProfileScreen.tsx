@@ -119,11 +119,13 @@ export default function SocialPublicProfileScreen() {
         setStatus(
           state === 'private'
             ? 'private'
-            : state === 'blocked'
-              ? 'blocked'
-              : state === 'not_found'
-                ? 'not_found'
-                : 'error',
+            : state === 'blocked_by_viewer'
+              ? 'blocked_by_viewer'
+              : state === 'blocked'
+                ? 'blocked'
+                : state === 'not_found'
+                  ? 'not_found'
+                  : 'error',
         );
       }
     } catch (error) {
