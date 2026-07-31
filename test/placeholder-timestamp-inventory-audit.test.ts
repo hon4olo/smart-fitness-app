@@ -29,19 +29,25 @@ const sourceFiles = collectFiles(sourceRoot).filter(
   (path) => /\.(?:ts|tsx|js|jsx|json)$/.test(path) && !isTestFile(path),
 );
 const dateLiteralPattern = /(['"])(\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?)\1/g;
+const symbols = ['DEFAULT_APP_DATA_CREATED_AT', 'DEFAULT_EXERCISE_CREATED_AT'] as const;
 
-type DateOccurrence = {
+type SourceOccurrence = {
   path: string;
   line: number;
-  literal: string;
   sourceLine: string;
+};
+type DateOccurrence = SourceOccurrence & {
+  literal: string;
   classificationHint: string;
 };
 
-const occurrences: DateOccurrence[] = [];
+const dateOccurrences: DateOccurrence[] = [];
+const symbolUsages: Record<(typeof symbols)[number], SourceOccurrence[]> = {
+  DEFAULT_APP_DATA_CREATED_AT: [],
+  DEFAULT_EXERCISE_CREATED_AT: [],
+};
 for (const path of sourceFiles) {
-  const source = readFileSync(path, 'utf8');
-  const lines = source.split(/\r?\n/);
+  const lines = readFileSync(path, 'utf8').split(/\r?\n/);
   for (const [lineIndex, sourceLine] of lines.entries()) {
     for (const match of sourceLine.matchAll(dateLiteralPattern)) {
       const literal = match[2];
@@ -52,7 +58,7 @@ for (const path of sourceFiles) {
           : /(?:createdAt|updatedAt|finishedAt|occurredAt|timestamp|date)/.test(sourceLine)
             ? 'fixed-domain-date'
             : 'fixed-literal';
-      occurrences.push({
+      dateOccurrences.push({
         path: relative(projectRoot, path),
         line: lineIndex + 1,
         literal,
@@ -60,11 +66,21 @@ for (const path of sourceFiles) {
         classificationHint,
       });
     }
+    for (const symbol of symbols) {
+      if (!sourceLine.includes(symbol)) continue;
+      symbolUsages[symbol].push({
+        path: relative(projectRoot, path),
+        line: lineIndex + 1,
+        sourceLine: sourceLine.trim(),
+      });
+    }
   }
 }
 
 describe('temporary placeholder timestamp inventory', () => {
-  test('prints fixed production date literals for classification', () => {
-    throw new Error(`PLACEHOLDER_TIMESTAMP_INVENTORY=${JSON.stringify(occurrences)}`);
+  test('prints fixed production dates and sentinel symbol usages', () => {
+    throw new Error(
+      `PLACEHOLDER_TIMESTAMP_INVENTORY=${JSON.stringify({ dateOccurrences, symbolUsages })}`,
+    );
   });
 });
