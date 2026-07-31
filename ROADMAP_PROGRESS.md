@@ -38,7 +38,7 @@ Always inspect current `main` and open pull requests in both repositories before
 ## Completed foundation
 
 - Single Fastify/PostgreSQL backend.
-- Revision-aware offline-first synchronization for weight history, workout sessions, workout templates, food entries, nutrition targets, fitness profiles, limitations, recovery check-ins, body measurements, training programs, custom exercises, and meal templates.
+- Revision-aware offline-first synchronization for weight history, workout sessions, workout templates, food entries, nutrition targets, fitness profiles, limitations, recovery check-ins, body measurements, training programs, custom exercises, meal templates, and the account-scoped Nutrition library.
 - Stable UUID custom-exercise references across templates, sessions, programs, and Coach contexts.
 - Strict nested meal-template snapshot validation with separate template/diary identity.
 - Deterministic and provider-neutral Coach contracts with explicit confirmation boundaries.
@@ -46,10 +46,15 @@ Always inspect current `main` and open pull requests in both repositories before
 - Blocking mobile line audits, TypeScript, Coach/sync contracts, full regression suite, Expo export, and Expo Doctor.
 - Blocking backend lint, build, tests, migration/schema checks, startup, and health validation.
 - All tracked hand-written mobile/backend source and architecture files at or below 500 lines.
-- Durable weight outbox restart recovery and persisted unresolved conflict state.
-- Nutrition child-flow hardening source work complete.
+- Durable restart recovery for the eager weight-history outbox path.
+- Deterministic restart replanning for planner-based synchronized domains from persisted state, metadata, and pending operations.
+- Push and pull access-token refresh retry contracts preserving exact revisions, payloads, and idempotency keys.
+- Behavioral concurrent-pull coverage proving local mutations survive metadata loading while remote non-weight data is materialized.
+- Broad two-device conflict coverage, including update/delete matrices for all mutable synchronized domains and real PostgreSQL Nutrition-library concurrency.
+- Persisted unresolved conflict state and safe Data & Sync status, retry, recovery, conflict review, and diagnostics.
 - Account deletion, authenticated password change, and session/device management complete at source-code level.
 - Typed English/Russian localization foundation and dedicated Settings route complete.
+- Repository-wide presentation audits for controls, accessibility, units, formatting, statuses, provider/backend errors, and internal codes.
 - Weight, length, and energy unit preferences implemented with canonical `kg/cm/kcal` storage.
 
 ## Detailed phase files
@@ -91,13 +96,15 @@ Covers:
 
 ## Recommended immediate next actions
 
-1. Complete the repository-wide visible Pressable/menu/tab/state-control and raw-status presentation audit.
-2. Remove remaining stale implementation-status wording from secondary mobile/backend instruction documents.
-3. Extend durable save-succeeded/outbox-enqueue-failed recovery beyond the current weight-history contract, or explicitly document the bounded coverage.
-4. Add token-refresh, concurrent local-mutation/remote-pull, and broader two-device conflict tests.
-5. Configure `BACKEND_REPOSITORY_TOKEN` and run the fixed-SHA cross-repository release gate when explicitly authorized.
-6. Introduce provider-neutral Coach model configuration and validate the provider in staging when credentials are available.
-7. Create matching native builds and execute the release-device, offline-restart, and second-device matrix when explicitly authorized.
+All currently known autonomous source-level localization and sync-hardening gaps are complete. The next items depend on a product contract, credentials, or physical environments:
+
+1. Configure `BACKEND_REPOSITORY_TOKEN` and run the fixed-SHA cross-repository release gate when explicitly authorized.
+2. Introduce provider-neutral Coach model configuration and validate the provider in staging when credentials are available.
+3. Create matching native builds and execute the release-device, offline-restart, second-device, EN/RU, unit, and accessibility matrices when explicitly authorized.
+4. Define an explicit local-versus-account conflict-choice contract before adding destructive conflict controls.
+5. Define the privacy/consent/retention contract before implementing product analytics.
+6. Measure local-state size and restore/save performance before considering SQLite.
+7. Continue bounded source work only for newly discovered real regressions or separately prioritized product scope.
 
 ## Validation expectations
 
@@ -122,4 +129,4 @@ Do not claim completion when CI is failing or when an external environment actio
 
 ## New-chat starter prompt
 
-> Continue the Smart Fitness roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, the files under `docs/roadmap/`, `docs/implementation-plan.md`, `docs/nutrition-roadmap.md`, and the release documents first. Inspect latest `main` and open PRs in both repositories. Continue from the first unchecked code-verifiable item, note external blockers without inventing completion, work in small focused PRs, run full blocking CI, merge only exact green heads, preserve behavior, and keep hand-written source files at or below 500 lines. Do not publish OTA, create native builds, install on devices, deploy backend changes, or activate credentials unless explicitly requested.
+> Continue the Smart Fitness roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, the files under `docs/roadmap/`, `docs/implementation-plan.md`, `docs/nutrition-roadmap.md`, and the release documents first. Inspect latest `main` and open PRs in both repositories. Continue from the first unchecked code-verifiable item, note external or product-contract blockers without inventing completion, work in small focused PRs, run full blocking CI, merge only exact green heads, preserve behavior, and keep hand-written source files at or below 500 lines. Do not publish OTA, create native builds, install on devices, deploy backend changes, or activate credentials unless explicitly requested.
