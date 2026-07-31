@@ -29,6 +29,7 @@ import {
   type SocialActionError,
   type SocialProfileLoadError,
 } from '../socialPublicProfileModel';
+import { getSocialWorkoutPostSurfaceCopy } from '../socialWorkoutPostSurfaceCopy';
 import {
   createSocialPublicProfileStyles,
   type SocialPublicProfileStyles,
@@ -65,6 +66,7 @@ export default function SocialPublicProfileScreen() {
   const { colors } = useAppTheme();
   const { locale, t } = useLocalization();
   const copy = getSocialPublicProfileCopy(locale);
+  const postsCopy = getSocialWorkoutPostSurfaceCopy(locale);
   const { isAuthenticated, ready, refresh, session } = useAuthSession();
   const styles = useMemo(() => createSocialPublicProfileStyles(colors), [colors]);
   const requestSequence = useRef(0);
@@ -381,6 +383,16 @@ export default function SocialPublicProfileScreen() {
             </View>
 
             <Text style={styles.bio}>{profileView.profile.bio || copy.noBio}</Text>
+
+            <SecondaryButton
+              label={postsCopy.postsAction}
+              onPress={() =>
+                router.push({
+                  pathname: '/social/posts/[username]',
+                  params: { username: profileView.profile.username },
+                })
+              }
+            />
 
             {isOwnProfile ? <Text style={styles.relationshipLabel}>{copy.ownProfile}</Text> : null}
             {!isOwnProfile && profileView.relationship.following ? (

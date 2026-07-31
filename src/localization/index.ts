@@ -7,6 +7,10 @@ export {
   useLocalization,
 } from './LocalizationProvider';
 export {
+  formatLocalizedDateTime,
+  formatLocalizedNumber,
+} from './formatting';
+export {
   MESSAGE_CATALOGS,
   enMessages,
   ruMessages,

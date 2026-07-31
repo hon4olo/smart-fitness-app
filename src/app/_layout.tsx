@@ -72,6 +72,11 @@ function RootNavigator() {
           <Stack.Screen name="social/index" options={{ headerShown: false }} />
           <Stack.Screen name="social/relationships" options={{ headerShown: false }} />
           <Stack.Screen name="social/[username]" options={{ headerShown: false }} />
+          <Stack.Screen name="social/posts/[username]" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="social/workout-post/[postId]"
+            options={{ headerShown: false }}
+          />
           <Stack.Screen
             name="social/share-workout/[sessionId]"
             options={{ headerShown: false }}
