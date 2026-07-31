@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 
 import { AppCard } from '@/components/ui/AppCard';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 import { useLocalization } from '@/localization';
 
 import { getSocialProfileCopy } from './socialProfileCopy';
@@ -37,5 +37,4 @@ const styles = {
     fontWeight: Typography.cardTitle.fontWeight,
     lineHeight: Typography.cardTitle.lineHeight,
   },
-  unusedSpacingReference: { gap: Spacing.one },
 };
