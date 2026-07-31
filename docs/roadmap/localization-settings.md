@@ -4,205 +4,149 @@ Updated: 2026-07-31
 
 ## Localization and regional formatting
 
-Goal: make English and Russian first-class product languages across every reachable production surface while keeping persisted values, API identifiers, sync schemas, user-created names and canonical health/fitness units stable.
+Goal: make English and Russian first-class product languages across every reachable production surface while preserving routes, IDs, enum values, sync fields, provider/database identifiers, user-created names, and canonical `kg/cm/kcal` persistence.
 
-## Shared foundations
+## Shared foundations — completed
 
-Completed:
-
-- System, English and Russian language selection with persisted preference;
+- System, English, and Russian selection with persisted preference;
 - immediate language application without restart;
-- centralized locale-aware date and number formatting;
-- deterministic English/Russian one/few/many/other pluralization;
-- weight, length and energy display-unit preferences;
-- canonical persistence in `kg`, `cm` and `kcal`;
+- centralized locale-aware date, number, plural, and unit formatting;
+- deterministic English/Russian one/few/many/other pluralization with a Hermes-safe fallback;
+- weight, length, and energy display preferences;
+- canonical persistence in `kg`, `cm`, and `kcal`;
 - English fallback and EN/RU catalog parity checks;
 - Account & Security entry and flows inside dedicated Settings;
-- pre-provider root recovery localization;
-- password-reset source flow localization;
-- privacy-safe local storage/API diagnostics without raw payloads, tokens, email addresses or health values.
-
-Stable internal data remains untranslated: routes, IDs, enum values, sync fields, provider/database identifiers, user-created names and canonical measurement values.
+- privacy-safe local storage/API diagnostics;
+- bounded provider/backend/status/error presentation.
 
 ## Completed production surfaces
 
-### Account, Home and Settings
+### Account, Home, and Settings
 
-Completed root navigation, Home summaries, onboarding, authentication, sessions/devices, password/account flows, Settings, Account & Security, Privacy, About, Data & Sync, Profile preferences and production hiding of developer/OTA diagnostics.
+Root navigation, Home summaries, onboarding, authentication, sessions/devices, password/account flows, Settings, Account & Security, Privacy, About, Data & Sync, Profile preferences, and production hiding of developer/OTA diagnostics.
 
-### Nutrition diary and food flows
+### Nutrition
 
-Completed:
-
-- main diary, selected-day navigation, seven-day strip and full calendar;
-- streak, macro headers, meal groups, counts, Nutrition details and fibre;
-- Add Food search, recent foods, favourites, My foods and saved meals;
-- custom food, portion editor and barcode/manual-product flows;
+- main diary, day navigation, seven-day strip, and calendar;
+- macro headers, meal groups, counts, details, and fibre;
+- Add Food search, recent, favourites, My foods, and saved meals;
+- custom food, portions, barcode/manual-product flows;
 - safe provider/search/scanner errors;
 - selected `kcal/kJ` presentation.
 
-### Workouts core flows
+### Workouts
 
-Completed:
+- Workouts hub and program creation;
+- active session, set table, RPE, cancellation, finish, and summary;
+- Exercise Library, filters, favourites, recent, custom exercises, and details;
+- Workout History list/detail/edit/delete;
+- selected `kg/lb` presentation with canonical kg writes;
+- workout-template and program details, menus, favourites, deletion, counts, and accessibility;
+- routine/program builders, reusable-workout picker, editor, and row controls;
+- active-workout exercise picker loading/error/empty/count states in EN/RU;
+- removal of raw provider/source/error diagnostics from the active-workout picker;
+- pre-workout Safety Gate title, status, restrictions, findings, acknowledgement, navigation, storage errors, and disclaimer in EN/RU.
 
-- Workouts hub and program-creation entry;
-- active session, set table, RPE, cancellation, finish and summary;
-- Exercise Library, filters, favourites, recently used and custom exercise;
-- exercise detail sheet;
-- Workout History list/edit/delete;
-- selected `kg/lb` with conversion back to canonical kilograms on edit;
-- workout-template detail loading/not-found states, menu, favourite toggle, deletion confirmation, pluralized set counts, accessibility and start action;
-- program detail loading/not-found states, stable-ID titles, favourite/delete/remove actions, unavailable-template handling, pluralized exercise counts and saved toast;
-- linked new-routine builder, exercise picker/action menu, selected `kg/lb` labels and localized accessibility;
-- program builder, reusable-workout picker, workout editor, builder card and exercise-row controls;
-- localized discard interception, stable-ID workout titles, count-dependent picker actions and builder accessibility states;
-- session-header metrics using selected `kg/lb` and locale-aware numbers;
-- collapsed exercise previews with localized repetitions, selected units and Add Set controls;
-- semantic set-input, RPE and completion accessibility states;
-- display-only localization for empty and built-in workout titles without changing persisted draft values;
-- active-workout exercise picker controls, loading/error/empty states and count actions in EN/RU;
-- removal of raw provider/source/error diagnostics from the active-workout picker while retaining bounded source attribution.
+Relevant merges:
 
-Program/routine details merged in PR #228. Builder/picker/editor localization merged in PR #229. Session-preview boundaries merged in PR #230. Active-workout picker localization and obsolete parallel builder cleanup merged in PR #251.
+- program/routine details: PR #228;
+- builder/picker/editor: PR #229;
+- session previews: PR #230;
+- active-workout picker and obsolete builder cleanup: PR #251;
+- menu/tab/state/raw-status audit and complete Safety Gate boundary: PR #253.
 
 ### Progress
 
-Completed:
+- Progress and Weight Details copy, dates, charts, recent weigh-ins, and selected units;
+- body-measurement labels, validation, and `cm/in` previews;
+- Safety & Recovery history and weekly trends;
+- workout-volume conversion and locale-aware analytics;
+- Exercise Detail tabs, history, metrics, errors, and provider-safe presentation.
 
-- primary Progress and Weight Details copy, dates, chart states and recent weigh-ins;
-- selected `kg/lb` on weight summaries and Weight Details;
-- locale-aware body-measurement labels, entry validation and selected `cm/in` previews;
-- Safety & Recovery history and weekly-trend cards;
-- central locale formatting for Progress chart bounds, midpoint and body-fat values;
-- selected `kg/lb` workout-volume summaries converted from canonical kilogram volume;
-- selected units in Progress and Weight Details chart latest-value presentation;
-- Exercise Detail tabs, loading/error/empty states, history and progress metrics in EN/RU;
-- selected `kg/lb`, locale-aware dates/counts and volume-trend values on Exercise Detail;
-- bounded Exercise Detail errors and removal of raw provider/source/media diagnostics from user presentation.
+Secondary analytics merged in PR #231. Exercise Detail localization merged in PR #232.
 
-Secondary Progress analytics formatting merged in PR #231. Exercise Detail progress localization merged in PR #232. The final route-backed audit found no additional reachable measurement-history or workout-volume detail screen requiring a separate no-op slice.
-
-### Coach history and trust
-
-Completed immutable run history/detail, trust states, provenance, Nutrition/Strength/Combined before-after summaries, deterministic rationale, privacy-safe input coverage and fail-closed metadata parsing.
-
-### Safety and Recovery
+### Coach and Safety
 
 Completed:
 
-- Recovery Check-In and User Limitations;
-- typed enum display mappings and selected-locale dates;
-- preflight and deterministic readiness review;
-- readiness, pending-operation and conflict gates;
-- restrictions, findings and load recommendations;
-- bounded request and snapshot errors;
-- bounded preflight sync statuses and review run statuses;
-- bounded unknown limitation enums without humanized internal-code fallbacks;
-- capability copy without user-visible internal schema versions;
-- localized pre-workout acknowledgement and Safety navigation controls.
+- Nutrition Coach and Strength Coach account/capability/review/proposal/confirmation states;
+- Combined Review and Combined Proposal trust presentation;
+- separate explicit Combined Strength and Nutrition confirmations;
+- immutable run history/detail, provenance, before/after summaries, rationale, and privacy-safe input coverage;
+- Recovery Check-In, User Limitations, preflight, readiness review, restrictions, findings, load recommendations, and bounded errors;
+- no user-visible internal schema versions or raw enum/code fallbacks.
 
-The remaining Safety & Recovery retry/status presentation merged in PR #234. Pre-workout Pressable controls were completed in PR #251.
+Relevant merges:
 
-### Combined Coach
+- Nutrition Coach: PR #224;
+- Strength Coach: PR #226;
+- Combined trust presentation: PR #233;
+- remaining Safety/Recovery retry and status presentation: PR #234;
+- complete pre-workout Safety Gate boundary: PR #253.
 
-Completed:
+## Repository-wide presentation boundaries — completed
 
-- read-only Combined Review with child Strength/Nutrition/Safety summaries;
-- schema-v6 gate, polling, idempotency and `automaticApplication: false`;
-- selected `kg/lb` and `kcal/kJ`;
-- Combined Proposal with effective Safety-capped Strength;
-- separate explicit Strength-template and Nutrition-target confirmations;
-- revisioned writes, idempotency keys, fail-closed parsing and no automatic mutation;
-- bounded standalone capability states without user-visible schema versions;
-- bounded EN/RU sync presentation with a safe unknown-status fallback.
+Permanent source contracts now cover:
 
-Standalone Combined Review/Proposal trust presentation merged in PR #233.
+- direct locale formatting and `.toLocaleString` in reachable TSX;
+- unsafe formatting in TS helpers/view models;
+- presentation-level `.toFixed`;
+- fixed display-unit literals;
+- accessibility labels and hints;
+- static button labels;
+- static `Alert.alert` action labels;
+- static `Pressable` text;
+- static menu, tab, navigator, and state-control labels;
+- direct raw status/provider/source member presentation;
+- uppercased internal status/code presentation;
+- raw `Error.message` fallbacks;
+- unsafe status and humanized-code fallbacks.
 
-### Nutrition Coach
+Audit sequence:
 
-Completed and merged in PR #224:
+- TSX boundaries: PR #235;
+- TS helper boundaries: PR #236;
+- `.toFixed`: PR #237;
+- display units: PR #238;
+- accessibility: PR #239;
+- buttons: PR #240;
+- Alerts: PR #250;
+- Pressables: PR #251;
+- menu/tab/state/raw status: PR #253.
 
-- account/capability/period states;
-- deterministic Nutrition review and metrics;
-- structured AI strategy preview;
-- strategy confirmation alert and explicit `confirmRun`;
-- selected `kcal/kJ`, `kg/lb` and `g/kg` or `g/lb`;
-- abort, polling, idempotency and post-confirmation sync;
-- bounded capability, request, confirmation, rejection and issue presentation;
-- full Mobile CI.
+## Remaining source-verifiable localization work
 
-### Strength Coach
+No known broad reachable production surface remains unlocalized after PR #253. Continue only with bounded real findings:
 
-Completed and merged in PR #226:
+- new or changed screens detected by permanent source contracts;
+- literal-English tests that should assert semantic behavior rather than physical file placement;
+- confirmed raw provider/backend/policy text not covered by current patterns;
+- user-visible Data & Sync recovery copy introduced by Phase 3 hardening.
 
-- account/loading/capability and latest-workout states;
-- deterministic review, next-workout proposal and structured Strength Strategy preview;
-- localized metrics, mapped sets, guardrail states, rationale/caveat codes and confirmation alert;
-- selected `kg/lb`, locale-aware dates/numbers and count-dependent copy;
-- bounded request, confirmation, view-model, issue and provider-audit presentation;
-- preserved abort, polling, idempotency, explicit `confirmRun`, post-confirmation sync and new-template-only application;
-- full Mobile CI.
-
-### Repository-wide presentation boundaries
-
-Completed:
-
-- recursive `.tsx` audit for direct locale formatting, raw status fallback and humanized internal-code fallback;
-- recursive `.ts` helper/view-model audit for direct locale formatting and unsafe status fallbacks;
-- presentation-level `.toFixed` audit while preserving calculation and serialization rounding;
-- fixed display-unit literal audit with central selected-energy and protein-ratio conversion;
-- static accessibility-label and hint audit with dynamic-template classification;
-- static `Alert.alert` action-label audit;
-- static `Pressable` control-copy audit with glyph, technical-token and numeric-unit classification;
-- removal of unreachable diagnostic and obsolete formatted presentation helpers;
-- removal of two obsolete parallel Workouts builder components;
-- bounded standalone Nutrition Target Proposal and Workout History list/detail presentation;
-- central selected-locale and selected-unit formatting on reachable presentation surfaces;
-- permanent source contracts preventing regression.
-
-The `.tsx` presentation boundary audit merged in PR #235. The `.ts` helper/view-model boundary audit merged in PR #236. Presentation-level `.toFixed` auditing merged in PR #237. Fixed display-unit auditing merged in PR #238. Accessibility copy auditing merged in PR #239. Static Alert action auditing merged in PR #250. Pressable control-copy auditing and its confirmed fixes merged in PR #251.
-
-## Current next task
-
-### Remaining menu, tab, state-control and raw-status audit
-
-After PR #251, audit remaining reachable source with context-sensitive checks for:
-
-- fixed English menu, tab and state-control copy outside localization boundaries;
-- raw provider/backend/status/enum fallbacks not matched by the bounded status guards;
-- reachable screens that still expose internal diagnostic or policy wording;
-- literal-English source tests that should assert semantic behavior rather than physical file placement.
-
-Preserve accessibility roles/states, touch handlers, routes, IDs, persisted canonical units, calculations, API and sync schemas, business logic, polling, idempotency, explicit confirmations and completed history.
-
-Use separate bounded PRs for real findings and do not create no-op changes.
+Do not create no-op localization PRs.
 
 ## Product/API dependency
 
-Compensating revert for Coach-applied changes is not implemented because the current Mobile `CoachApi` exposes confirm operations but no revert mutation or reversal contract. A safe implementation requires an explicit backend/API product contract with ownership, revision, idempotency, conflict and audit semantics; do not invent a client-only rollback.
+Compensating revert for Coach-applied changes remains unavailable because Mobile exposes confirmation operations but no backend reversal contract. A safe revert requires explicit ownership, source/applied revisions, idempotency, conflict handling, and immutable audit semantics. Do not invent a client-only rollback.
 
 ## External validation still required
-
-Requires user/device/provider/release access:
 
 - physical iPhone EN/RU visual pass;
 - Android build/layout validation;
 - narrow/standard/wide devices;
 - Dynamic Type and VoiceOver/TalkBack;
-- focus, keyboard, touch targets, clipping and safe areas;
+- focus, keyboard, touch targets, clipping, and safe areas;
 - appearance and unit matrices;
 - second-device sync/conflicts and offline restart recovery;
-- production password-reset email after provider configuration and deployment;
-- OTA/native build, rollback and release-gate validation.
+- production password-reset email after provider configuration/deployment;
+- OTA/native-build, rollback, and release-gate validation.
 
-## Source and validation rules
+## Rules for future presentation changes
 
-For every localization slice:
-
-- preserve business logic, persistence and sync/API contracts;
+- preserve business logic, persistence, API/sync contracts, polling, idempotency, confirmations, and history;
 - use typed or bounded copy contracts;
-- use central date, number and unit formatters;
-- keep English fallback and EN/RU parity tests current;
-- add source-contract tests preventing hard-coded controls, raw internal statuses, raw provider errors and unsafe formatting;
-- require line audit, TypeScript, Coach/sync contracts, full regression suite, Expo export and Expo Doctor before merge;
+- use central date, number, plural, and unit formatters;
+- retain English fallback and EN/RU parity checks;
+- prevent hard-coded controls, raw statuses, provider errors, internal codes, and unsafe formatting;
+- require line audit, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor;
 - do not claim rendered layout/accessibility completion without device or screenshot validation.
