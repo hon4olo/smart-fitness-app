@@ -153,12 +153,14 @@ Status: reactions, bounded comments, server-authoritative notifications, and per
 
 ## Phase S5 — moderation and trust
 
-Required before broad release:
+Status: bounded report intake is source-complete end to end. Staff review operations, policy surfaces, and device validation remain pending before broad release.
 
-- [ ] report profile, post, and comment with bounded reason codes;
-- [ ] block/unblock;
+- [x] report profile, post, and comment with bounded reason codes;
+- [x] strict mobile report receipt contracts and authenticated target-specific API methods;
+- [x] localized reason picker, success receipt, offline/session/rate-limit recovery, and self-target suppression;
+- [x] block/unblock;
 - [ ] soft deletion and audit-safe moderation state;
-- [ ] abuse rate limits and duplicate-report handling;
+- [x] report abuse rate limits and duplicate-report handling;
 - [ ] privacy-safe moderation logs;
 - [ ] terms/community-guideline surfaces;
 - [ ] operational review path for reports;
@@ -196,7 +198,8 @@ Do not begin without explicit prioritization:
 12. [x] Reactions and bounded comments.
 13. [x] In-app notifications and read state.
 14. [x] Persistent Social write rate limits and localized recovery copy.
-15. [ ] Moderation and physical-device release matrix.
+15. [x] Bounded report intake for profiles, posts, and comments.
+16. [ ] Moderation operations, policy surfaces, and physical-device release matrix.
 
 ## Release boundary
 

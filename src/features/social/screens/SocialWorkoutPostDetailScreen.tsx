@@ -15,9 +15,12 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
+import { SocialReportModal } from '../SocialReportModal';
 import { SocialWorkoutCommentsCard } from '../SocialWorkoutCommentsCard';
 import { SocialWorkoutPostDetailContent } from '../SocialWorkoutPostDetailContent';
 import { SocialWorkoutReactionCard } from '../SocialWorkoutReactionCard';
+import { getSocialReportCopy } from '../socialReportCopy';
+import type { SocialReportTarget } from '../socialReportModel';
 import { getSocialWorkoutPostSurfaceCopy } from '../socialWorkoutPostSurfaceCopy';
 import {
   getSocialWorkoutPostLoadError,
@@ -46,6 +49,7 @@ export default function SocialWorkoutPostDetailScreen() {
   const { colors } = useAppTheme();
   const { locale, t } = useLocalization();
   const copy = getSocialWorkoutPostSurfaceCopy(locale);
+  const reportCopy = getSocialReportCopy(locale);
   const styles = useMemo(() => createSocialWorkoutPostSurfaceStyles(colors), [colors]);
   const { isAuthenticated, ready, refresh, session } = useAuthSession();
   const requestSequence = useRef(0);
@@ -58,6 +62,8 @@ export default function SocialWorkoutPostDetailScreen() {
   );
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] =
+    useState<SocialReportTarget | null>(null);
 
   const auth = useMemo(
     () => ({
@@ -81,6 +87,7 @@ export default function SocialWorkoutPostDetailScreen() {
     setIsOwnPost(false);
     setLoadError(null);
     setDeleteError(null);
+    setReportTarget(null);
 
     try {
       const [loadedPost, ownProfile] = await Promise.all([
@@ -239,11 +246,27 @@ export default function SocialWorkoutPostDetailScreen() {
               isPostOwner={isOwnPost}
               locale={locale}
               onCreateProfile={() => router.push('/settings/social-profile')}
+              onReportComment={(commentId) =>
+                setReportTarget({
+                  type: 'workout_comment',
+                  postId: post.id,
+                  commentId,
+                })
+              }
               ownUsername={ownUsername}
               postId={post.id}
+              reportLabel={reportCopy.reportComment}
               socialApi={socialApi}
               styles={styles}
             />
+            {!isOwnPost ? (
+              <SecondaryButton
+                label={reportCopy.reportPost}
+                onPress={() =>
+                  setReportTarget({ type: 'workout_post', postId: post.id })
+                }
+              />
+            ) : null}
             {isOwnPost ? (
               <>
                 <InlineError message={deleteError} />
@@ -258,6 +281,12 @@ export default function SocialWorkoutPostDetailScreen() {
           </>
         ) : null}
       </View>
+      <SocialReportModal
+        locale={locale}
+        onClose={() => setReportTarget(null)}
+        socialApi={socialApi}
+        target={reportTarget}
+      />
     </ScrollView>
   );
 }
