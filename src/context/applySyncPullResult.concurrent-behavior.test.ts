@@ -23,7 +23,7 @@ const createDeferred = <T,>() => {
 const createMetadataStore = (load: () => Promise<Map<string, never>>) => ({
   load: vi.fn(load),
   clear: vi.fn().mockResolvedValue(undefined),
-  set: vi.fn().mockResolvedValue(new Map()),
+  set: vi.fn().mockResolvedValue(new Map<string, never>()),
 });
 
 const remoteExerciseId = '11111111-1111-4111-8111-111111111111';
@@ -53,7 +53,8 @@ const remoteExercisePayload = {
 describe('applySyncPullResult concurrent behavior', () => {
   it('preserves a local mutation that lands while metadata loads and still materializes remote data', async () => {
     const delayedMetadata = createDeferred<Map<string, never>>();
-    const immediateStore = () => createMetadataStore(async () => new Map());
+    const immediateStore = () =>
+      createMetadataStore(async () => new Map<string, never>());
     const customExerciseMetadataStore = createMetadataStore(() => delayedMetadata.promise);
     const weightMetadataStore = immediateStore();
     const cursorStore = { set: vi.fn().mockResolvedValue(undefined) };
@@ -97,7 +98,7 @@ describe('applySyncPullResult concurrent behavior', () => {
     });
 
     currentState = { ...currentState, onboardingCompleted: true };
-    delayedMetadata.resolve(new Map());
+    delayedMetadata.resolve(new Map<string, never>());
     await applyPromise;
 
     expect(replacedState.onboardingCompleted).toBe(true);
