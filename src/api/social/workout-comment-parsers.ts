@@ -10,6 +10,7 @@ const COMMENT_KEYS = ['schemaVersion', 'id', 'author', 'body', 'createdAt'] as c
 const COMMENT_PAGE_KEYS = ['schemaVersion', 'items', 'nextCursor'] as const;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const INVALID_COMMENT_RESPONSE = 'Invalid social workout comment response';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -32,7 +33,7 @@ export const parseSocialWorkoutCommentDto = (
   value: unknown,
 ): SocialWorkoutCommentDto => {
   if (!isRecord(value) || !hasExactKeys(value, COMMENT_KEYS)) {
-    throw new Error('Invalid social workout comment response');
+    throw new Error(INVALID_COMMENT_RESPONSE);
   }
   if (
     value.schemaVersion !== SOCIAL_WORKOUT_COMMENT_DTO_SCHEMA_VERSION ||
@@ -44,22 +45,27 @@ export const parseSocialWorkoutCommentDto = (
     value.body !== value.body.trim() ||
     !isIsoDate(value.createdAt)
   ) {
-    throw new Error('Invalid social workout comment response');
+    throw new Error(INVALID_COMMENT_RESPONSE);
   }
-  return {
-    schemaVersion: SOCIAL_WORKOUT_COMMENT_DTO_SCHEMA_VERSION,
-    id: value.id,
-    author: parseSocialProfileDto(value.author),
-    body: value.body,
-    createdAt: value.createdAt,
-  };
+
+  try {
+    return {
+      schemaVersion: SOCIAL_WORKOUT_COMMENT_DTO_SCHEMA_VERSION,
+      id: value.id,
+      author: parseSocialProfileDto(value.author),
+      body: value.body,
+      createdAt: value.createdAt,
+    };
+  } catch {
+    throw new Error(INVALID_COMMENT_RESPONSE);
+  }
 };
 
 export const parseSocialWorkoutCommentResponse = (
   value: unknown,
 ): SocialWorkoutCommentDto => {
   if (!isRecord(value) || !hasExactKeys(value, ['comment'])) {
-    throw new Error('Invalid social workout comment response');
+    throw new Error(INVALID_COMMENT_RESPONSE);
   }
   return parseSocialWorkoutCommentDto(value.comment);
 };
