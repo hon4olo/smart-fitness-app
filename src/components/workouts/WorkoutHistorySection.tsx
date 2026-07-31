@@ -1,12 +1,12 @@
 import { memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Colors, Spacing } from '@/constants/theme';
 import { WorkoutSession } from '@/context/AppContext';
 import { getSessionExercises, getSessionVolume } from '@/lib/workouts';
-import { EmptyWorkoutState } from './EmptyWorkoutState';
+
 import { WorkoutHistorySessionCard } from './WorkoutHistorySessionCard';
 
 type WorkoutHistorySectionProps = {
@@ -37,7 +37,29 @@ const getSectionTitle = (title: string, isExpanded: boolean) => {
   return `${title} ${isExpanded ? '−' : '+'}`;
 };
 
-export const WorkoutHistorySection = memo(function WorkoutHistorySection({ completedSessions, editingSessionId, editingSessionSetId, formatFinishedAt, isExpanded, onCancelSessionEdit, onCancelSessionSetEdit, onDeleteSession, onDeleteSessionSet, onEditSession, onEditSessionSet, onSaveSessionChanges, onSaveSessionSet, onSessionExerciseNameChange, onSessionRepsChange, onSessionWeightChange, onToggleExpanded, sessionDraftSets, sessionExerciseName, sessionReps, sessionWeight, }: WorkoutHistorySectionProps) {
+export const WorkoutHistorySection = memo(function WorkoutHistorySection({
+  completedSessions,
+  editingSessionId,
+  editingSessionSetId,
+  formatFinishedAt,
+  isExpanded,
+  onCancelSessionEdit,
+  onCancelSessionSetEdit,
+  onDeleteSession,
+  onDeleteSessionSet,
+  onEditSession,
+  onEditSessionSet,
+  onSaveSessionChanges,
+  onSaveSessionSet,
+  onSessionExerciseNameChange,
+  onSessionRepsChange,
+  onSessionWeightChange,
+  onToggleExpanded,
+  sessionDraftSets,
+  sessionExerciseName,
+  sessionReps,
+  sessionWeight,
+}: WorkoutHistorySectionProps) {
   return (
     <AppCard>
       <Pressable onPress={onToggleExpanded} style={styles.collapsibleHeader}>
@@ -46,7 +68,8 @@ export const WorkoutHistorySection = memo(function WorkoutHistorySection({ compl
 
       {isExpanded ? (
         completedSessions.length === 0 ? (
-          <EmptyWorkoutState
+          <EmptyState
+            compact
             description="Log a few workouts and your recent sessions will appear here."
             message="No completed workouts yet."
             title="Workout history is empty"

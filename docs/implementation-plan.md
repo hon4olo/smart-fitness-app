@@ -2,20 +2,18 @@
 
 Updated: 2026-08-01
 
-Canonical active plan for `hon4olo/smart-fitness-app`. Backend work is included only when a mobile change requires a new server contract.
+Canonical active plan for `hon4olo/smart-fitness-app`. Backend work is included only when a mobile slice requires a server-contract change. Completed implementation history belongs in merged PRs and Git history.
 
-Completed implementation history belongs in merged PRs and Git history. This file tracks only active work, constraints, external blockers, and the next bounded slices.
-
-## Current verified baseline
+## Verified baseline
 
 Mobile:
 
-- current base for the navigation slice: `5329e992374376c0b381e14d4c19b3ff103aae2b`;
+- current `main`: `f5bd042282381f1e5cd36ad99a37ab6194051226`;
 - Expo SDK 56, React Native, Expo Router, TypeScript;
 - offline-first repository persistence;
 - ordered observable mutation queue;
 - revision-aware synchronization for supported domains;
-- `react-native-svg` already installed;
+- `react-native-svg` is already installed;
 - blocking Mobile CI covers line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor.
 
 Backend:
@@ -30,7 +28,7 @@ Backend:
 - Do not apply a generic debounce to outbox-bearing mutations.
 - Do not add a state or chart library without measured need.
 - Keep hand-written source files at or below 500 physical lines.
-- Do not publish OTA, build/install native binaries, deploy backend changes, activate environments, or change credentials without explicit authorization.
+- Do not publish OTA, build or install native binaries, deploy backend changes, activate environments, or change credentials without explicit authorization.
 - Use small PRs and merge only an exact green head.
 
 # Phase 1 — cleanup and preparation
@@ -39,51 +37,37 @@ Status: in progress.
 
 ## 1. Repository and roadmap cleanup
 
-Completed in mobile PR #291, merge `5329e992374376c0b381e14d4c19b3ff103aae2b`:
+Completed in PR #291, merge `5329e992374376c0b381e14d4c19b3ff103aae2b`:
 
 - [x] replace the stale completion-history roadmap with this active plan;
-- [x] remove tracked `repomix-output.xml`;
-- [x] remove tracked empty `connect.txt`;
+- [x] remove tracked `repomix-output.xml` and empty `connect.txt`;
 - [x] ignore Repomix output, connection notes, coverage, and generic logs;
 - [x] pass full Mobile CI on the exact merged head.
 
 ## 2. Legacy tab routes
 
-Compatibility routes:
+Completed in PR #292, merge `f5bd042282381f1e5cd36ad99a37ab6194051226`:
 
-- `/labs` → Progress;
-- `/track` → Workouts;
-- `/eat` → Nutrition.
-
-Current navigation slice:
-
-- [x] verify the aliases originated from the former Labs/Track/Eat information architecture;
-- [x] identify internal Home usage of `/track`;
-- [x] fix Home Start Workout to use canonical Workouts navigation;
-- [x] fix Home Add Food to use canonical Nutrition navigation;
-- [x] replace screen re-exports with explicit compatibility redirects;
-- [x] retain hidden tab registrations for old deep links and cached navigation state;
+- [x] preserve `/labs`, `/track`, and `/eat` as explicit compatibility redirects;
+- [x] route them to Progress, Workouts, and Nutrition respectively;
+- [x] replace internal Home usage with canonical tab routes;
+- [x] fix Home Add Food opening Workouts through `/track`;
 - [x] add a contract test preventing internal legacy-route reuse;
-- [ ] pass full Mobile CI and merge PR #292 on its exact green head.
+- [x] pass full Mobile CI on the exact merged head.
 
-`src/app/(tabs)/coach.tsx` is a real public screen and is not part of legacy-route cleanup.
+`src/app/(tabs)/coach.tsx` is a real public screen and is not legacy code.
 
 ## 3. Empty-state consolidation
 
-Audit targets:
+Current PR #293:
 
-- `EmptyNutritionState.tsx`;
-- `NutritionEmptyState.tsx`;
-- `EmptyWorkoutState.tsx`;
-- `EmptyProgressState.tsx`;
-- shared `EmptyState.tsx`.
-
-Tasks:
-
-- [ ] remove wrappers that only forward props;
-- [ ] retain domain wrappers only when they own stable localization, actions, accessibility semantics, or a feature API boundary;
-- [ ] keep domain-specific conditionals out of the shared component;
-- [ ] update imports and focused tests.
+- [x] inventory exact consumers through a temporary source audit;
+- [x] confirm both nutrition empty-state files are unused;
+- [x] migrate Progress, workout builder, exercise library, and workout history to shared `EmptyState`;
+- [x] preserve the existing compact presentation, copy, and actions;
+- [x] remove `EmptyNutritionState.tsx`, `NutritionEmptyState.tsx`, `EmptyProgressState.tsx`, and `EmptyWorkoutState.tsx`;
+- [x] remove the temporary audit and add a permanent duplicate-wrapper regression guard;
+- [ ] pass full Mobile CI and squash-merge the exact green head.
 
 ## 4. Cloud-module inventory
 
@@ -109,11 +93,11 @@ Tasks:
 ### Phase 1 exit criteria
 
 - temporary artifacts are untracked and ignored;
-- legacy routes are explicit compatibility redirects only;
-- duplicate presentation wrappers are reduced without semantic loss;
-- no active sync/recovery path is removed;
+- legacy routes are compatibility redirects only;
+- duplicate presentation wrappers are removed without semantic loss;
+- no active sync or recovery path is removed;
 - persisted data remains readable;
-- full Mobile CI is green for every slice.
+- every slice has green blocking Mobile CI.
 
 # Phase 2 — state and persistence architecture
 
@@ -125,11 +109,11 @@ The existing `AppContext` is already internally decomposed into infrastructure a
 
 Create focused state/action access for:
 
-- workouts, sessions, programs, templates, exercises;
-- food entries, targets, meal templates, Nutrition library;
-- weight, measurements, progress analytics;
-- profile, onboarding, goals, preferences;
-- restore, persistence failure, authentication, synchronization status.
+- workouts, sessions, programs, templates, and exercises;
+- food entries, targets, meal templates, and Nutrition library data;
+- weight, measurements, and progress analytics;
+- profile, onboarding, goals, and preferences;
+- restore, persistence failure, authentication, and synchronization status.
 
 Tasks:
 
@@ -141,7 +125,7 @@ Tasks:
 
 ## 2. Pure selectors
 
-- [ ] extract program, session, daily nutrition, weekly volume, weight trend, and personal-record selectors;
+- [ ] extract program, session, daily nutrition, weekly volume, weight-trend, and personal-record selectors;
 - [ ] accept minimum required state slices;
 - [ ] keep time, locale, and unit boundaries explicit;
 - [ ] cover legacy normalization and edge cases with unit tests.
@@ -152,7 +136,7 @@ Required behavior:
 
 - high-frequency local edits update memory immediately and coalesce the latest snapshot over roughly 300–500 ms;
 - critical operations flush immediately;
-- background/inactive lifecycle transitions flush pending local state;
+- background and inactive lifecycle transitions flush pending local state;
 - outbox steps preserve order, identity, observability, and retry behavior;
 - domain operation compaction is allowed only through tested explicit rules.
 
@@ -165,8 +149,8 @@ Planned API:
 
 Critical examples:
 
-- finish workout;
-- destructive delete;
+- finishing a workout;
+- destructive deletion;
 - onboarding completion;
 - logout;
 - synchronized full-state replacement;
@@ -175,7 +159,7 @@ Critical examples:
 Tasks:
 
 - [ ] specify queue semantics and failure behavior;
-- [ ] add fake-timer coalescing/flush tests;
+- [ ] add fake-timer coalescing and flush tests;
 - [ ] add lifecycle flushing;
 - [ ] preserve failure notices and retry controls;
 - [ ] verify restart recovery and planner regeneration.
@@ -212,9 +196,9 @@ Measure render commits, first render, tab switching, long-list scrolling, restor
 
 ## Nutrition
 
-- [ ] replace the outer diary `ScrollView` and unbounded entry maps with one `SectionList`;
+- [ ] replace the diary `ScrollView` and unbounded entry maps with one `SectionList`;
 - [ ] use meal sections and food rows as the virtualized data model;
-- [ ] keep summary/week controls in `ListHeaderComponent`;
+- [ ] keep summary and week controls in `ListHeaderComponent`;
 - [ ] keep details in `ListFooterComponent`;
 - [ ] preserve collapse, editing, keyboard, accessibility, and scroll behavior;
 - [ ] avoid nested vertical virtualized lists.
@@ -222,7 +206,7 @@ Measure render commits, first render, tab switching, long-list scrolling, restor
 ## Workouts and other growing lists
 
 - [ ] virtualize the unbounded program list;
-- [ ] retain simple rendering for tiny bounded suggested/recent collections unless profiling disproves it;
+- [ ] retain simple rendering for tiny bounded suggested and recent collections unless profiling disproves it;
 - [ ] evaluate exercise library, history, food search, templates, and saved items by measured growth;
 - [ ] preserve active-session resume, sticky controls, and navigation.
 
@@ -249,11 +233,11 @@ Use installed `react-native-svg` by default.
 
 ## Weight trend
 
-- [ ] replace the view-based bars with an SVG time-series chart;
-- [ ] support 7/30/90-day ranges;
+- [ ] replace view-based bars with an SVG time-series chart;
+- [ ] support 7, 30, and 90-day ranges;
 - [ ] preserve canonical kg storage and kg/lb presentation;
-- [ ] handle zero/one-entry states;
-- [ ] expose accessible min/max/current/selected summaries.
+- [ ] handle zero and one-entry states;
+- [ ] expose accessible min, max, current, and selected summaries.
 
 ## Weekly workout volume
 
@@ -288,8 +272,8 @@ Not part of autonomous refactor execution:
 # Pull-request sequence
 
 1. [x] Active roadmap and root artifact cleanup — PR #291.
-2. [ ] Legacy-route compatibility and Home navigation repair — PR #292.
-3. [ ] Empty-state consolidation.
+2. [x] Legacy-route compatibility and Home navigation repair — PR #292.
+3. [ ] Empty-state consolidation — PR #293.
 4. [ ] Cloud inventory and confirmed dead-code removal.
 5. [ ] Placeholder timestamp model and migrations where required.
 6. [ ] Domain state/action subscription boundaries.
@@ -313,4 +297,4 @@ Every code-bearing mobile slice requires:
 
 # Immediate next action
 
-Finish validation and merge of PR #292. Then consolidate pure empty-state wrappers in a separate bounded PR.
+Finish full validation and squash-merge PR #293. Then begin a read-only `src/cloud/` inventory before deleting any synchronization code.

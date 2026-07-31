@@ -4,7 +4,6 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddBodyMeasurementCard } from '@/components/progress/AddBodyMeasurementCard';
-import { EmptyProgressState } from '@/components/progress/EmptyProgressState';
 import {
   ProgressTrendChart,
   type ProgressTrendPoint,
@@ -13,6 +12,7 @@ import { SafetyRecoveryProgressCard } from '@/components/progress/SafetyRecovery
 import { SafetyRecoveryWeeklyTrendCard } from '@/components/progress/SafetyRecoveryWeeklyTrendCard';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
@@ -256,7 +256,8 @@ export default function ProgressScreen() {
               />
             </View>
           ) : (
-            <EmptyProgressState
+            <EmptyState
+              compact
               description={t('progress.weightBaselineDescription')}
               message={t('progress.weightBaselineMessage')}
               title={t('progress.weightBaselineTitle')}
@@ -296,7 +297,8 @@ export default function ProgressScreen() {
               ))}
             </View>
           ) : (
-            <EmptyProgressState
+            <EmptyState
+              compact
               description={t('progress.measurementsEmptyDescription')}
               message={t('progress.measurementsEmptyMessage')}
               title={t('progress.measurementsEmptyTitle')}

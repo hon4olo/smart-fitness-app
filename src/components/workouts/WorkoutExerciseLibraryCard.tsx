@@ -3,14 +3,21 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Colors } from '@/constants/theme';
-import { loadWorkoutExerciseFavoriteIds, saveWorkoutExerciseFavoriteIds } from '@/features/workouts/exerciseFavoritesStorage';
-import { getRecentExercisesFromWorkoutSessions, getSimilarExercises, searchExercises } from '@/lib/workouts';
+import {
+  loadWorkoutExerciseFavoriteIds,
+  saveWorkoutExerciseFavoriteIds,
+} from '@/features/workouts/exerciseFavoritesStorage';
+import {
+  getRecentExercisesFromWorkoutSessions,
+  getSimilarExercises,
+  searchExercises,
+} from '@/lib/workouts';
 import { getExerciseLibraryCopy } from '@/localization/exerciseLibraryCopy';
 import { useLocalization } from '@/localization';
 import type { Exercise, WorkoutSession } from '@/types';
 
-import { EmptyWorkoutState } from './EmptyWorkoutState';
 import { ExerciseDetailSheet } from './exercise-library/ExerciseDetailSheet';
 import { ExerciseFilterBar } from './exercise-library/ExerciseFilterBar';
 import { ExerciseSection } from './exercise-library/ExerciseSection';
@@ -77,10 +84,7 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
     () => new Set(favoriteExerciseIds),
     [favoriteExerciseIds],
   );
-  const { muscles, equipment } = useMemo(
-    () => getFacetOptions(exercises),
-    [exercises],
-  );
+  const { muscles, equipment } = useMemo(() => getFacetOptions(exercises), [exercises]);
   const recentExercises = useMemo(
     () => getRecentExercisesFromWorkoutSessions(workoutSessions, exercises, 10),
     [exercises, workoutSessions],
@@ -91,9 +95,7 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
     loadWorkoutExerciseFavoriteIds()
       .then((value) => {
         if (!active) return;
-        setFavoriteExerciseIds(
-          Array.from(value).filter((entry) => exerciseIdSet.has(entry)),
-        );
+        setFavoriteExerciseIds(Array.from(value).filter((entry) => exerciseIdSet.has(entry)));
         setIsFavoritesReady(true);
       })
       .catch(() => {
@@ -106,9 +108,7 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
 
   useEffect(() => {
     if (!isFavoritesReady) return;
-    const filteredFavoriteIds = favoriteExerciseIds.filter((id) =>
-      exerciseIdSet.has(id),
-    );
+    const filteredFavoriteIds = favoriteExerciseIds.filter((id) => exerciseIdSet.has(id));
     if (filteredFavoriteIds.length !== favoriteExerciseIds.length) {
       setFavoriteExerciseIds(filteredFavoriteIds);
       return;
@@ -174,8 +174,7 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
     [favoriteExercises, recentFilteredExercises],
   );
   const mainExercises = useMemo(
-    () =>
-      filteredExercises.filter((exercise) => !sectionedExerciseIds.has(exercise.id)),
+    () => filteredExercises.filter((exercise) => !sectionedExerciseIds.has(exercise.id)),
     [filteredExercises, sectionedExerciseIds],
   );
   const selectedExercise = useMemo(
@@ -231,7 +230,9 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
       {isExpanded ? (
         <>
           <View style={styles.searchSection}>
-            <Text selectable style={styles.inputLabel}>{copy.searchLabel}</Text>
+            <Text selectable style={styles.inputLabel}>
+              {copy.searchLabel}
+            </Text>
             <TextInput
               onChangeText={onSearchChange}
               placeholder={copy.searchPlaceholder}
@@ -332,7 +333,8 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
                 <Text style={styles.sectionHint}>{copy.alreadySectioned}</Text>
               )
             ) : (
-              <EmptyWorkoutState
+              <EmptyState
+                compact
                 actionLabel={hasActiveSearch || isFiltersActive ? copy.clearFilters : undefined}
                 description={hasActiveSearch || isFiltersActive ? copy.broadenSearch : copy.addFirst}
                 message={hasActiveSearch || isFiltersActive ? copy.noFilteredMatches : copy.noExercises}
@@ -348,7 +350,9 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
             </View>
             <View style={styles.customForm}>
               <View style={styles.inputGroup}>
-                <Text selectable style={styles.inputLabel}>{copy.exerciseName}</Text>
+                <Text selectable style={styles.inputLabel}>
+                  {copy.exerciseName}
+                </Text>
                 <TextInput
                   onChangeText={onExerciseNameChange}
                   placeholder={copy.exerciseNamePlaceholder}
@@ -358,7 +362,9 @@ export const WorkoutExerciseLibraryCard = memo(function WorkoutExerciseLibraryCa
                 />
               </View>
               <View style={styles.inputGroup}>
-                <Text selectable style={styles.inputLabel}>{copy.muscleGroup}</Text>
+                <Text selectable style={styles.inputLabel}>
+                  {copy.muscleGroup}
+                </Text>
                 <TextInput
                   onChangeText={onExerciseMuscleGroupChange}
                   placeholder={copy.muscleGroupPlaceholder}
