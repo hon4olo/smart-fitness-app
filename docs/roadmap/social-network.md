@@ -137,9 +137,11 @@ Status: chronological server-authoritative source surface complete. Persistent l
 
 ## Phase S4 — reactions, comments, and notifications
 
-- [ ] one reaction per user/post with idempotent toggle semantics;
-- [ ] bounded comments and delete-own-comment;
-- [ ] post owner moderation for comments;
+Status: reactions and bounded comments are source-complete end to end. Notifications and anti-spam controls remain pending.
+
+- [x] one reaction per user/post with idempotent toggle semantics;
+- [x] bounded comments and delete-own-comment;
+- [x] post owner moderation for comments;
 - [ ] in-app notifications for follow requests, accepted follows, reactions, and comments;
 - [ ] notification read state and cursor pagination;
 - [ ] rate limits and anti-spam controls;
@@ -187,8 +189,9 @@ Do not begin without explicit prioritization:
 9. [x] Relationship discovery/list endpoints and mobile lists.
 10. [x] Post detail and profile workout-post list.
 11. [x] Chronological following feed.
-12. [ ] Reactions/comments/notifications.
-13. [ ] Moderation and physical-device release matrix.
+12. [x] Reactions and bounded comments.
+13. [ ] In-app notifications and read state.
+14. [ ] Moderation and physical-device release matrix.
 
 ## Release boundary
 
