@@ -1,0 +1,48 @@
+import type { SupportedLocale } from '@/localization';
+
+export const getSocialWorkoutPostListCopy = (locale: SupportedLocale) =>
+  locale === 'ru'
+    ? {
+        title: 'Тренировки',
+        loading: 'Загрузка публикаций…',
+        emptyTitle: 'Публикаций пока нет',
+        emptyBody: 'Опубликованные тренировки появятся здесь.',
+        loadError: 'Не удалось загрузить публикации.',
+        offline: 'Нет соединения. Подключитесь к интернету и повторите попытку.',
+        sessionExpired: 'Сессия истекла. Войдите снова.',
+        unavailable: 'Публикации этого профиля сейчас недоступны.',
+        retry: 'Повторить',
+        loadMore: 'Показать ещё',
+        delete: 'Удалить публикацию',
+        deleteTitle: 'Удалить публикацию?',
+        deleteBody: 'Публичная публикация будет удалена. Личная тренировка сохранится.',
+        deleteConfirm: 'Удалить',
+        deleteError: 'Не удалось удалить публикацию.',
+        minutes: (count: number) => `${count} мин`,
+        exercises: (count: number) => `${count} упр.`,
+        sets: (count: number) => `${count} подх.`,
+        volume: (value: number) => `${Math.round(value)} кг`,
+        noCaption: 'Без подписи',
+      }
+    : {
+        title: 'Workouts',
+        loading: 'Loading posts…',
+        emptyTitle: 'No posts yet',
+        emptyBody: 'Published workouts will appear here.',
+        loadError: 'Posts could not be loaded.',
+        offline: 'You are offline. Reconnect and try again.',
+        sessionExpired: 'Your session expired. Sign in again.',
+        unavailable: 'This profile’s posts are not available.',
+        retry: 'Retry',
+        loadMore: 'Load more',
+        delete: 'Delete post',
+        deleteTitle: 'Delete this post?',
+        deleteBody: 'The public post will be removed. The private workout will remain.',
+        deleteConfirm: 'Delete',
+        deleteError: 'The post could not be deleted.',
+        minutes: (count: number) => `${count} min`,
+        exercises: (count: number) => `${count} exercises`,
+        sets: (count: number) => `${count} sets`,
+        volume: (value: number) => `${Math.round(value)} kg`,
+        noCaption: 'No caption',
+      };
