@@ -7,11 +7,13 @@ import { Colors, Typography } from '@/constants/theme';
 import { useLocalization } from '@/localization';
 
 import { getSocialProfileCopy } from './socialProfileCopy';
+import { getSocialPublicProfileCopy } from './socialPublicProfileCopy';
 
 export function SocialProfileEntryCard() {
   const router = useRouter();
   const { locale } = useLocalization();
   const copy = getSocialProfileCopy(locale);
+  const publicCopy = getSocialPublicProfileCopy(locale);
 
   return (
     <AppCard>
@@ -20,6 +22,10 @@ export function SocialProfileEntryCard() {
       <SecondaryButton
         label={copy.settingsAction}
         onPress={() => router.push('/settings/social-profile')}
+      />
+      <SecondaryButton
+        label={publicCopy.findAction}
+        onPress={() => router.push('/social')}
       />
     </AppCard>
   );

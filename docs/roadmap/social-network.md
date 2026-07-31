@@ -72,15 +72,20 @@ Backend:
 - [x] authenticated self-profile read/update;
 - [x] username lookup and public-profile read;
 - [x] follow, unfollow, request, approve, reject, and cancel operations;
-- [x] ownership, privacy, duplicate-delivery, block, and account-deletion tests.
+- [x] ownership, privacy, duplicate-delivery, block, and account-deletion tests;
+- [ ] cursor-paginated follower, following, incoming-request, and outgoing-request discovery routes.
+
+Contract note:
+
+Private-profile lookup intentionally returns `SOCIAL_PROFILE_PRIVATE` before disclosing the relationship DTO. Persistent pending/incoming state therefore requires dedicated authenticated discovery endpoints rather than client inference or an automatic mutating request. Symmetric block lookup likewise must not reveal which side initiated a block.
 
 Mobile:
 
 - [x] Social profile editor;
-- [ ] public profile screen;
-- [ ] follow/request state controls;
-- [ ] followers/following lists with cursor pagination;
-- [ ] localized empty, loading, error, blocked, private, and pending states;
+- [x] public profile screen with exact-username lookup;
+- [x] follow, unfollow, request, cancel, approve, reject, block, and post-action unblock controls;
+- [ ] followers/following and request lists with cursor pagination;
+- [ ] persistent localized empty, loading, error, blocked, private, and pending list states after discovery contracts merge;
 - [x] no social tab until the profile/follow contracts are stable.
 
 ## Phase S2 — workout posts
@@ -168,11 +173,12 @@ Do not begin without explicit prioritization:
 4. [x] Mobile strict profile/relationship API and parser layer.
 5. [x] Mobile social profile editor.
 6. [x] Backend immutable workout-post snapshot and mobile API/parser contracts.
-7. [ ] Public profile and relationship controls.
-8. [ ] Mobile Share Workout preview and explicit publication flow.
-9. [ ] Chronological following feed.
-10. [ ] Reactions/comments/notifications.
-11. [ ] Moderation and physical-device release matrix.
+7. [x] Public profile and relationship action controls.
+8. [ ] Relationship discovery/list endpoints and mobile lists.
+9. [ ] Mobile Share Workout preview and explicit publication flow.
+10. [ ] Chronological following feed.
+11. [ ] Reactions/comments/notifications.
+12. [ ] Moderation and physical-device release matrix.
 
 ## Release boundary
 

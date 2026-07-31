@@ -70,6 +70,8 @@ function RootNavigator() {
           <Stack.Screen name="account/sessions" options={{ headerShown: false }} />
           <Stack.Screen name="settings/index" options={{ headerShown: false }} />
           <Stack.Screen name="settings/social-profile" options={{ headerShown: false }} />
+          <Stack.Screen name="social/index" options={{ headerShown: false }} />
+          <Stack.Screen name="social/[username]" options={{ headerShown: false }} />
           <Stack.Screen name="exercises/[exerciseId]" options={{ headerShown: false }} />
           <Stack.Screen name="nutrition/add-food" options={{ headerShown: false }} />
           <Stack.Screen name="nutrition/date-picker" options={{ headerShown: false }} />
