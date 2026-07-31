@@ -28,6 +28,19 @@ const comment = (id: string): SocialWorkoutCommentDto => ({
   createdAt: '2026-07-31T10:00:00.000Z',
 });
 
+const socialError = (code: string, status: number): ApiError =>
+  new ApiError({
+    code:
+      status === 404
+        ? 'not_found'
+        : status === 409
+          ? 'conflict'
+          : 'validation_error',
+    message: code,
+    status,
+    body: { code },
+  });
+
 describe('social workout comment model', () => {
   it('merges pages without duplicate comments and removes stale rows', () => {
     const first = comment('00000000-0000-4000-8000-000000000001');
@@ -62,11 +75,7 @@ describe('social workout comment model', () => {
   it('maps stable privacy-safe comment failures', () => {
     expect(
       getSocialWorkoutCommentLoadError(
-        new ApiError({
-          code: 'SOCIAL_WORKOUT_COMMENT_INVALID_CURSOR',
-          message: 'invalid',
-          status: 400,
-        }),
+        socialError('SOCIAL_WORKOUT_COMMENT_INVALID_CURSOR', 400),
       ),
     ).toBe('invalid_cursor');
     expect(
@@ -79,11 +88,7 @@ describe('social workout comment model', () => {
         new ApiError({ code: 'unauthorized', message: 'expired', status: 401 }),
       ),
     ).toBe('session_expired');
-    const missing = new ApiError({
-      code: 'SOCIAL_WORKOUT_COMMENT_NOT_FOUND',
-      message: 'missing',
-      status: 404,
-    });
+    const missing = socialError('SOCIAL_WORKOUT_COMMENT_NOT_FOUND', 404);
     expect(getSocialWorkoutCommentLoadError(missing)).toBe('not_found');
     expect(isMissingSocialWorkoutCommentError(missing)).toBe(true);
     expect(getSocialWorkoutCommentLoadError(new Error('private detail'))).toBe(
