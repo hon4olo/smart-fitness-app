@@ -153,19 +153,27 @@ Status: reactions, bounded comments, server-authoritative notifications, and per
 
 ## Phase S5 — moderation and trust
 
-Status: bounded report intake and the user-facing Community Guidelines surface are source-complete. Staff review operations, legal terms, and device validation remain pending before broad release.
+Status: report intake, bounded evidence, internal review operations, explicit server-side hide/restore restrictions, and the user-facing Community Guidelines surface are source-complete. Legal policy review and physical-device validation remain release blockers.
 
 - [x] report profile, post, and comment with bounded reason codes;
 - [x] strict mobile report receipt contracts and authenticated target-specific API methods;
 - [x] localized reason picker, success receipt, offline/session/rate-limit recovery, and self-target suppression;
 - [x] block/unblock;
-- [ ] soft deletion and audit-safe moderation state;
+- [x] explicit server-side hide/restore restrictions for profiles, workout posts, and comments;
+- [x] fail-closed filtering across profile discovery, relationship lists, feeds, post detail, comments, reactions, notifications, and repeat reporting;
+- [x] restricted-profile write blocking without changing private fitness, sync, or authentication data;
+- [x] bounded report evidence retained across later content edits or deletion;
 - [x] report abuse rate limits and duplicate-report handling;
-- [ ] privacy-safe moderation logs;
+- [x] privacy-safe append-only moderation and restriction logs;
+- [x] internal database-backed report queue and explicit status-transition workflow;
+- [x] idempotent operator-only hide/restore CLI with no public staff/admin HTTP API;
 - [x] localized Community Guidelines surface covering respect, harm, authenticity, privacy, fitness safety, blocking, and reporting;
 - [ ] legal Terms of Service and Privacy Policy reviewed for broad release;
-- [ ] operational review path for reports;
-- [ ] device tests for blocked/private/deleted states.
+- [ ] physical-device tests for blocked/private/deleted/restricted/restored states;
+
+Contract note:
+
+Moderation state is not exposed in public DTOs. Restricted targets use existing bounded not-found or profile-required behavior. Resolving a report as `actioned` never performs automatic enforcement: an operator must explicitly hide the report-derived target, and restoration is a separate audited action after reopen or dismissal.
 
 ## Deferred beyond Social MVP
 
@@ -201,7 +209,8 @@ Do not begin without explicit prioritization:
 14. [x] Persistent Social write rate limits and localized recovery copy.
 15. [x] Bounded report intake for profiles, posts, and comments.
 16. [x] Localized Community Guidelines surface.
-17. [ ] Moderation operations, legal policy review, and physical-device release matrix.
+17. [x] Bounded evidence, internal moderation operations, and explicit audited restrictions.
+18. [ ] Legal policy review and physical-device release matrix.
 
 ## Release boundary
 
