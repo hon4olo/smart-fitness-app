@@ -31,6 +31,20 @@ const listPage = {
   nextCursor: 'next-page',
 };
 
+const workoutPostPage = {
+  items: [
+    {
+      schemaVersion: 1,
+      id: '00000000-0000-4000-8000-000000000001',
+      author: profile,
+      caption: 'Training day',
+      workout: { schemaVersion: 1, title: 'Upper body' },
+      createdAt: '2026-07-31T09:00:00.000Z',
+    },
+  ],
+  nextCursor: 'feed-next-page',
+};
+
 const createAuth = () => ({
   getAccessToken: vi.fn().mockResolvedValue('access-token'),
   refreshAccessToken: vi.fn().mockResolvedValue('refreshed-token'),
@@ -157,7 +171,23 @@ describe('social API client', () => {
     });
   });
 
-  it('rejects invalid relationship list pagination before network access', async () => {
+  it('lists the chronological following feed with bounded opaque pagination', async () => {
+    const request = vi.fn().mockResolvedValue(workoutPostPage);
+    const api = createSocialApi(createAuth(), createClient(request));
+
+    await expect(
+      api.listFollowingFeed({ limit: 12, cursor: 'feed/cursor' }),
+    ).resolves.toEqual(workoutPostPage);
+
+    expect(request).toHaveBeenCalledWith({
+      method: 'GET',
+      path: '/v1/social/feed?limit=12&cursor=feed%2Fcursor',
+      headers: { authorization: 'Bearer access-token' },
+      retry: false,
+    });
+  });
+
+  it('rejects invalid relationship and feed pagination before network access', async () => {
     const request = vi.fn().mockResolvedValue(listPage);
     const api = createSocialApi(createAuth(), createClient(request));
 
@@ -168,6 +198,12 @@ describe('social API client', () => {
       'between 1 and 50',
     );
     await expect(api.listFollowers({ cursor: '   ' })).rejects.toThrow(
+      'must not be empty',
+    );
+    await expect(api.listFollowingFeed({ limit: 0 })).rejects.toThrow(
+      'between 1 and 50',
+    );
+    await expect(api.listFollowingFeed({ cursor: '   ' })).rejects.toThrow(
       'must not be empty',
     );
     expect(request).not.toHaveBeenCalled();
