@@ -16,6 +16,10 @@ export {
   type UpsertOwnSocialProfileInput,
 } from './contracts';
 export {
+  getSocialApiErrorCode,
+  getSocialRateLimitRetryAfterSeconds,
+} from './error-parsers';
+export {
   SOCIAL_NOTIFICATION_DTO_SCHEMA_VERSION,
   SOCIAL_NOTIFICATION_PAGE_DTO_SCHEMA_VERSION,
   SOCIAL_NOTIFICATION_TYPES,
@@ -30,7 +34,6 @@ export {
   parseSocialNotificationResponse,
 } from './notification-parsers';
 export {
-  getSocialApiErrorCode,
   parseOwnSocialProfileResponse,
   parseSocialProfileDto,
   parseSocialProfileListItemDto,
