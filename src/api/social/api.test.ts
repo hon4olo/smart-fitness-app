@@ -45,6 +45,12 @@ const workoutPostPage = {
   nextCursor: 'feed-next-page',
 };
 
+const reaction = {
+  schemaVersion: 1,
+  reacted: true,
+  reactionCount: 7,
+};
+
 const createAuth = () => ({
   getAccessToken: vi.fn().mockResolvedValue('access-token'),
   refreshAccessToken: vi.fn().mockResolvedValue('refreshed-token'),
@@ -187,7 +193,31 @@ describe('social API client', () => {
     });
   });
 
-  it('rejects invalid relationship and feed pagination before network access', async () => {
+  it('gets, adds, and removes an encoded workout-post reaction', async () => {
+    const request = vi.fn().mockResolvedValue({ reaction });
+    const api = createSocialApi(createAuth(), createClient(request));
+
+    await expect(api.getWorkoutPostReaction('post/segment')).resolves.toEqual(
+      reaction,
+    );
+    await expect(api.reactToWorkoutPost('post/segment')).resolves.toEqual(
+      reaction,
+    );
+    await expect(api.unreactToWorkoutPost('post/segment')).resolves.toEqual(
+      reaction,
+    );
+
+    for (const [index, method] of ['GET', 'PUT', 'DELETE'].entries()) {
+      expect(request).toHaveBeenNthCalledWith(index + 1, {
+        method,
+        path: '/v1/social/workout-posts/post%2Fsegment/reaction',
+        headers: { authorization: 'Bearer access-token' },
+        retry: false,
+      });
+    }
+  });
+
+  it('rejects invalid pagination and reaction IDs before network access', async () => {
     const request = vi.fn().mockResolvedValue(listPage);
     const api = createSocialApi(createAuth(), createClient(request));
 
@@ -205,6 +235,15 @@ describe('social API client', () => {
     );
     await expect(api.listFollowingFeed({ cursor: '   ' })).rejects.toThrow(
       'must not be empty',
+    );
+    await expect(api.getWorkoutPostReaction('   ')).rejects.toThrow(
+      'Social workout post ID is required',
+    );
+    await expect(api.reactToWorkoutPost('   ')).rejects.toThrow(
+      'Social workout post ID is required',
+    );
+    await expect(api.unreactToWorkoutPost('   ')).rejects.toThrow(
+      'Social workout post ID is required',
     );
     expect(request).not.toHaveBeenCalled();
   });

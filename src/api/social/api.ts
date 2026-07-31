@@ -33,6 +33,8 @@ import {
   parseSocialWorkoutPostPageResponse,
   parseSocialWorkoutPostResponse,
 } from './workout-post-parsers';
+import type { SocialWorkoutReactionDto } from './workout-reaction-contracts';
+import { parseSocialWorkoutReactionResponse } from './workout-reaction-parsers';
 
 const defaultApiClient = createApiClient({
   baseUrl: getMobileApiBaseUrl(),
@@ -123,6 +125,9 @@ const buildFollowingFeedPath = (
   input: ListSocialWorkoutPostsInput = {},
 ): string => `/v1/social/feed${buildListQuery(input, 'Social feed')}`;
 
+const buildWorkoutReactionPath = (postId: string): string =>
+  `/v1/social/workout-posts/${requirePostIdPath(postId)}/reaction`;
+
 const requestWithAuth = async <TBody = unknown>(
   auth: SocialApiAuth,
   apiClient: ApiClient,
@@ -181,6 +186,9 @@ export type SocialApi = {
     input?: ListSocialWorkoutPostsInput,
   ): Promise<SocialWorkoutPostPageDto>;
   deleteWorkoutPost(postId: string): Promise<void>;
+  getWorkoutPostReaction(postId: string): Promise<SocialWorkoutReactionDto>;
+  reactToWorkoutPost(postId: string): Promise<SocialWorkoutReactionDto>;
+  unreactToWorkoutPost(postId: string): Promise<SocialWorkoutReactionDto>;
 };
 
 export const createSocialApi = (
@@ -213,6 +221,19 @@ export const createSocialApi = (
   ): Promise<SocialWorkoutPostPageDto> =>
     parseSocialWorkoutPostPageResponse(
       await requestWithAuth(auth, apiClient, 'GET', path),
+    );
+
+  const workoutReactionRequest = async (
+    method: 'GET' | 'PUT' | 'DELETE',
+    postId: string,
+  ): Promise<SocialWorkoutReactionDto> =>
+    parseSocialWorkoutReactionResponse(
+      await requestWithAuth(
+        auth,
+        apiClient,
+        method,
+        buildWorkoutReactionPath(postId),
+      ),
     );
 
   const removeFollow = (username: string): Promise<SocialRelationshipDto> =>
@@ -345,6 +366,18 @@ export const createSocialApi = (
           `/v1/social/workout-posts/${requirePostIdPath(postId)}`,
         ),
       );
+    },
+
+    getWorkoutPostReaction(postId) {
+      return workoutReactionRequest('GET', postId);
+    },
+
+    reactToWorkoutPost(postId) {
+      return workoutReactionRequest('PUT', postId);
+    },
+
+    unreactToWorkoutPost(postId) {
+      return workoutReactionRequest('DELETE', postId);
     },
   };
 };
