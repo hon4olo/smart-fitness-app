@@ -67,9 +67,16 @@ const COPY: Record<
 
 export const isSocialContentModerationUiState = (
   value: unknown,
-): value is SocialContentModerationUiState =>
+): boolean =>
   typeof value === 'string' &&
   UI_STATES.has(value as SocialContentModerationUiState);
+
+const requireUiState = (value: unknown): SocialContentModerationUiState => {
+  if (!isSocialContentModerationUiState(value)) {
+    throw new Error('Invalid Social content moderation UI state');
+  }
+  return value as SocialContentModerationUiState;
+};
 
 export const getSocialContentModerationUiState = (
   error: unknown,
@@ -80,17 +87,20 @@ export const getSocialContentModerationUiState = (
 };
 
 export const getSocialContentModerationMessage = (
-  state: SocialContentModerationUiState,
+  state: unknown,
   locale: SupportedLocale,
-): string => COPY[locale][state];
+): string => COPY[locale][requireUiState(state)];
 
 export const canRetrySocialContentModeration = (
-  state: SocialContentModerationUiState,
-): boolean =>
-  state === 'unavailable' ||
-  state === 'timeout' ||
-  state === 'retryable_failure';
+  state: unknown,
+): boolean => {
+  const value = requireUiState(state);
+  return (
+    value === 'unavailable' ||
+    value === 'timeout' ||
+    value === 'retryable_failure'
+  );
+};
 
-export const requiresSocialContentEdit = (
-  state: SocialContentModerationUiState,
-): boolean => !canRetrySocialContentModeration(state);
+export const requiresSocialContentEdit = (state: unknown): boolean =>
+  !canRetrySocialContentModeration(state);
