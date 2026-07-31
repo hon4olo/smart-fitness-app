@@ -3,7 +3,10 @@ import {
   getSocialApiErrorCode,
   type SocialWorkoutPostDto,
 } from '@/api/social';
-import type { SupportedLocale } from '@/localization';
+import {
+  formatLocalizedDateTime,
+  type SupportedLocale,
+} from '@/localization';
 
 export type SocialWorkoutPostLoadError =
   | 'invalid_cursor'
@@ -65,11 +68,7 @@ export const getSocialWorkoutPostLoadError = (
 export const formatSocialWorkoutPostDate = (
   value: string,
   locale: SupportedLocale,
-): string =>
-  new Intl.DateTimeFormat(locale === 'ru' ? 'ru-RU' : 'en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
+): string => formatLocalizedDateTime(value, locale);
 
 export const countSocialWorkoutPostSets = (post: SocialWorkoutPostDto): number =>
   post.workout.exercises?.reduce(
