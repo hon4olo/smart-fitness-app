@@ -74,20 +74,22 @@ Backend:
 - [x] follow, unfollow, request, approve, reject, and cancel operations;
 - [x] ownership, privacy, duplicate-delivery, block, and account-deletion tests;
 - [x] private incoming-request profile review and viewer-owned unblock recovery without revealing reverse-side blocks;
-- [ ] cursor-paginated follower, following, incoming-request, and outgoing-request discovery routes.
+- [x] cursor-paginated follower, following, incoming-request, and outgoing-request discovery routes.
 
 Contract note:
 
-A private requester may be inspected by the authenticated request recipient so approve/reject controls remain reachable. A viewer-owned block returns a dedicated bounded error solely to restore `Unblock`; a reverse-side block remains generic. Persistent follower/following and request lists still require dedicated authenticated cursor endpoints rather than client inference.
+A private requester may be inspected by the authenticated request recipient so approve/reject controls remain reachable. A viewer-owned block returns a dedicated bounded error solely to restore `Unblock`; a reverse-side block remains generic. Relationship discovery uses authenticated owner-scoped cursor endpoints with stable `createdAt + id` ordering and opaque fail-closed cursors.
 
 Mobile:
 
 - [x] Social profile editor;
 - [x] public profile screen with exact-username lookup;
 - [x] follow, unfollow, request, cancel, approve, reject, block, and restart-safe unblock controls;
-- [ ] followers/following and request lists with cursor pagination;
-- [ ] persistent localized empty, loading, error, blocked, private, and pending list states after discovery contracts merge;
-- [x] no social tab until the profile/follow contracts are stable.
+- [x] strict versioned follower/following/request page contracts and bounded API pagination;
+- [x] followers/following and incoming/outgoing request lists with cursor pagination;
+- [x] localized empty, loading, offline, expired-session, invalid-cursor, retry, private-visibility, and pending-request states;
+- [x] approve, reject, cancel-request, and unfollow actions directly from relationship lists;
+- [x] Social network access from the existing Profile surface without adding a bottom-tab Social destination.
 
 ## Phase S2 — workout posts
 
@@ -178,7 +180,7 @@ Do not begin without explicit prioritization:
 6. [x] Backend immutable workout-post snapshot and mobile API/parser contracts.
 7. [x] Public profile and relationship action controls.
 8. [x] Mobile Share Workout preview and explicit publication flow.
-9. [ ] Relationship discovery/list endpoints and mobile lists.
+9. [x] Relationship discovery/list endpoints and mobile lists.
 10. [ ] Post detail and profile workout-post list.
 11. [ ] Chronological following feed.
 12. [ ] Reactions/comments/notifications.
