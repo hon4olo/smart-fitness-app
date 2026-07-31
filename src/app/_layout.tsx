@@ -71,6 +71,7 @@ function RootNavigator() {
           <Stack.Screen name="settings/social-profile" options={{ headerShown: false }} />
           <Stack.Screen name="social/index" options={{ headerShown: false }} />
           <Stack.Screen name="social/feed" options={{ headerShown: false }} />
+          <Stack.Screen name="social/guidelines" options={{ headerShown: false }} />
           <Stack.Screen name="social/notifications" options={{ headerShown: false }} />
           <Stack.Screen name="social/relationships" options={{ headerShown: false }} />
           <Stack.Screen name="social/[username]" options={{ headerShown: false }} />
