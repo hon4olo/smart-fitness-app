@@ -28,6 +28,7 @@ Social API
 - workout-post snapshots
 - reactions and comments
 - notifications
+- moderated media assets
 ```
 
 Rules:
@@ -39,7 +40,9 @@ Rules:
 - public DTOs must not contain email, auth/session/device data, health limitations, recovery data, body measurements, nutrition logs, Coach context, raw internal IDs, or free-form private notes;
 - social writes require authenticated ownership and idempotency where retryable;
 - block enforcement is server-side and applies to profiles, follows, feeds, posts, comments, reactions, and notifications;
-- account deletion cascades through all social records.
+- account deletion cascades through all social records;
+- user-uploaded media must remain private until server-side validation and moderation approve it;
+- PostgreSQL stores media metadata and audit state, while image bytes live in private object storage and approved CDN variants.
 
 ## Phase S0 — contracts and safety baseline
 
@@ -161,9 +164,9 @@ Status: reactions, bounded comments, server-authoritative notifications, and per
 - [x] stable `SOCIAL_RATE_LIMITED` responses with bounded retry-after details and localized write-surface recovery copy;
 - [ ] no push notifications until permission, privacy, and delivery contracts are separately approved.
 
-## Phase S5 — moderation and trust
+## Phase S5 — reports, operator moderation, and trust
 
-Status: report intake, bounded evidence, internal review operations, explicit server-side hide/restore restrictions, and the user-facing Community Guidelines surface are source-complete. Legal policy review and physical-device validation remain release blockers.
+Status: post-publication report intake, bounded evidence, internal review operations, explicit server-side hide/restore restrictions, and the user-facing Community Guidelines surface are source-complete. Legal policy review and physical-device validation remain release blockers. Proactive pre-publication moderation is tracked separately in Phase S6.
 
 - [x] report profile, post, and comment with bounded reason codes;
 - [x] strict mobile report receipt contracts and authenticated target-specific API methods;
@@ -179,11 +182,132 @@ Status: report intake, bounded evidence, internal review operations, explicit se
 - [x] idempotent operator-only hide/restore CLI with no public staff/admin HTTP API;
 - [x] localized Community Guidelines surface covering respect, harm, authenticity, privacy, fitness safety, blocking, and reporting;
 - [ ] legal Terms of Service and Privacy Policy reviewed for broad release;
-- [ ] physical-device tests for blocked/private/deleted/restricted/restored states;
+- [ ] physical-device tests for blocked/private/deleted/restricted/restored states.
 
 Contract note:
 
 Moderation state is not exposed in public DTOs. Restricted targets use existing bounded not-found or profile-required behavior. Resolving a report as `actioned` never performs automatic enforcement: an operator must explicitly hide the report-derived target, and restoration is a separate audited action after reopen or dismissal.
+
+S5 remains the post-publication human/operator safety contour. AI moderation in S6 is a separate pre-publication gate and must not silently create, resolve, or enforce report records.
+
+## Phase S6 — proactive AI content moderation
+
+Status: architecture approved; implementation not started.
+
+The moderation pipeline follows the same separation-of-responsibility principles as AI Coach, but it is an independent bounded subsystem. Coach orchestrators and domain contracts must not be reused for content enforcement.
+
+```text
+Social create/update endpoint
+→ Content Moderation Orchestrator
+→ deterministic preprocessing workers
+→ provider-neutral typed text/image classifiers
+→ strict versioned response parser
+→ deterministic policy decision worker
+→ allow | review_required | reject
+→ persistence and privacy-safe audit
+```
+
+Architecture and provider boundary:
+
+- [ ] define versioned moderation categories, reason codes, policy versions, confidence bands, and terminal decisions;
+- [ ] introduce a backend-only `ContentModerationProvider` abstraction separate from `StructuredModelClient` and Coach contracts;
+- [ ] permit reuse only of low-level provider transport, retry, timeout, telemetry, and configuration plumbing where dependency direction remains clean;
+- [ ] ensure routes contain no provider prompts, provider payloads, policy thresholds, or orchestration logic;
+- [ ] validate every provider result through strict versioned Zod contracts and reject unknown critical fields;
+- [ ] persist structured category results, hashes, policy/model identifiers, attempts, latency, and bounded failure metadata without chain-of-thought or raw provider responses;
+- [ ] use idempotent moderation runs and content hashes so retries cannot publish duplicate or stale content;
+- [ ] keep the backend as the only caller of moderation providers and keep credentials server-side.
+
+Deterministic preprocessing and policy:
+
+- [ ] normalize Unicode, confusable characters, hidden characters, stretched words, whitespace, links, repeated spam, and obvious prohibited terms before model classification;
+- [ ] use deterministic reserved/prohibited-term checks for usernames and use model classification only where context is materially useful;
+- [ ] define categories for explicit sexual content, nudity, possible minor safety, graphic violence, hate, harassment, self-harm, personal data/doxxing, spam/scams, and dangerous fitness or medical claims;
+- [ ] make the model return typed signals only; the deterministic policy worker owns `allow`, `review_required`, and `reject`;
+- [ ] prohibit provider output from overriding hard policy rules or existing block/restriction enforcement;
+- [ ] use a fitness-specific image policy so ordinary adult workout photos, posing, sportswear, bodybuilding stages, and non-erotic progress photos are not automatically treated as explicit content;
+- [ ] never claim or persist a precise age inferred from appearance; combine possible-minor signals with sexual-content signals conservatively;
+- [ ] keep false-positive-sensitive cases in `review_required` rather than silently deleting them.
+
+Initial text surfaces:
+
+- [ ] moderate workout-post captions synchronously before publication;
+- [ ] moderate comments synchronously before insertion or notification creation;
+- [ ] moderate display-name and bio revisions before replacing the currently approved profile version;
+- [ ] preserve the currently approved profile when a submitted revision is pending, rejected, or the provider is unavailable;
+- [ ] return stable localized errors for rejected, review-required, unavailable, timed-out, and retryable moderation states;
+- [ ] add exact ownership, idempotency, stale-result, provider-failure, unknown-field, policy-threshold, and account-deletion tests.
+
+Failure and review policy:
+
+- newly submitted public content fails closed when required moderation cannot complete;
+- existing approved public content is not hidden merely because a later profile revision cannot be checked;
+- `review_required` content remains non-public until an explicit operator decision;
+- reports and audited restrictions remain available for content that passes automated checks but is later reported;
+- provider activation, model selection, and production thresholds require explicit environment configuration and staging validation.
+
+## Phase S7 — safe media ingestion, compression, moderation, and delivery
+
+Status: architecture approved; implementation not started.
+
+Arbitrary remote `avatarUrl` values are transitional and must not be treated as a secure long-term media contract. User media must move to server-owned asset IDs and immutable approved variants.
+
+Media lifecycle:
+
+```text
+Mobile selection and local preview
+→ bounded client resize/re-encode
+→ signed upload to private quarantine storage
+→ server MIME/pixel/decode validation
+→ orientation normalization, EXIF/GPS removal, and sRGB conversion
+→ normalized moderation master
+→ image moderation + OCR + OCR text moderation
+→ deterministic policy decision
+→ approved derivatives and CDN publication
+```
+
+Storage and upload boundary:
+
+- [ ] add `social_media_assets` and versioned media-state metadata in PostgreSQL; never store image bytes in PostgreSQL;
+- [ ] use S3-compatible object storage with private quarantine objects and narrowly scoped signed upload/download operations;
+- [ ] accept only bounded JPEG, HEIC/HEIF, and PNG inputs in the first version; reject animated GIF/APNG and unsupported containers;
+- [ ] enforce configurable input limits targeting at most 15 MiB and approximately 40 megapixels before decode;
+- [ ] verify real file signatures and decoded dimensions rather than trusting extension or client MIME;
+- [ ] defend against decompression bombs, malformed files, excessive dimensions, and repeated abusive uploads;
+- [ ] remove EXIF, GPS, device metadata, embedded thumbnails, and unsupported color-profile data on the server;
+- [ ] keep original uploads private and temporary, then delete them after a terminal decision or a separately approved bounded evidence-retention period;
+- [ ] use SHA-256 and perceptual hashes for integrity, idempotency, duplicate detection, and repeat-abuse investigation without exposing hashes publicly.
+
+Client-side preprocessing targets:
+
+- [ ] correct orientation and resize the long edge to approximately 2,048–2,560 pixels before upload;
+- [ ] use visually lossless JPEG compression targeting quality 82–88 for ordinary photographs;
+- [ ] aim for typical uploads around 300 KiB–1.5 MiB while retaining server-side limits as the security boundary;
+- [ ] retain the local preview while upload and moderation continue;
+- [ ] do not rely on client EXIF stripping, file validation, or compression as authoritative security controls.
+
+Server derivatives and delivery:
+
+- [ ] create a normalized moderation master with a long edge around 1,600–2,048 pixels so AI and OCR inspect the same visible pixels later delivered to users;
+- [ ] generate public derivatives only after `allow` to avoid permanent storage and processing cost for rejected content;
+- [ ] generate avatar variants targeting 64, 128, 256, and 512 pixels;
+- [ ] generate post variants targeting 320, 640, 1,080, and 1,440 pixels, with an optional 2,048-pixel detail variant only when justified;
+- [ ] generate a tiny blurred preview, BlurHash, or ThumbHash for immediate layout-stable rendering;
+- [ ] begin with normalized JPEG derivatives and add WebP/AVIF negotiation only after the basic pipeline is stable;
+- [ ] publish immutable content-hashed URLs through a CDN with long-lived cache headers;
+- [ ] return a strict media descriptor containing asset ID, dimensions, aspect ratio, placeholder, and named variants instead of one arbitrary image URL;
+- [ ] lazy-load viewport media, cancel off-screen requests, select the smallest adequate variant, and use bounded device caching;
+- [ ] account deletion must remove metadata and schedule deletion of every owned quarantine, master, derivative, and CDN-origin object.
+
+Product rollout:
+
+- [ ] migrate avatars from arbitrary URLs to managed approved media assets;
+- [ ] add one moderated image per workout post before supporting multi-image posts;
+- [ ] keep images with `pending`, `review_required`, or `rejected` status out of profiles, feeds, notifications, and public post DTOs;
+- [ ] use asynchronous media status polling or bounded refresh rather than keeping the upload request open through full processing;
+- [ ] add localized upload, compression, pending-moderation, rejected, review-required, offline, retry, and deleted-asset states;
+- [ ] add manual review and appeal operations before broad public image rollout;
+- [ ] measure storage per approved asset, derivative-generation latency, cache hit rate, upload failure rate, moderation latency, and false-positive outcomes without adding behavioural advertising analytics.
 
 ## Deferred beyond Social MVP
 
@@ -199,7 +323,8 @@ Do not begin without explicit prioritization:
 - location sharing;
 - automatic workout publishing;
 - public nutrition, weight, body-measurement, limitation, recovery, or Coach data;
-- public leaderboards based on body or health metrics.
+- public leaderboards based on body or health metrics;
+- multi-image posts and advanced media formats until the one-image moderated pipeline is stable.
 
 ## Immediate execution order
 
@@ -220,8 +345,16 @@ Do not begin without explicit prioritization:
 15. [x] Bounded report intake for profiles, posts, and comments.
 16. [x] Localized Community Guidelines surface.
 17. [x] Bounded evidence, internal moderation operations, and explicit audited restrictions.
-18. [ ] Legal policy review and physical-device release matrix.
+18. [ ] Legal policy review and physical-device release matrix for the existing Social surface.
+19. [ ] S6 policy/categories/contracts, provider boundary, persistence, and deterministic decision worker.
+20. [ ] S6 synchronous moderation for captions, comments, display names, and bios.
+21. [ ] S7 object storage, quarantine, managed-avatar migration, normalization, compression, and variants.
+22. [ ] S7 one-image workout-post contract with image moderation, OCR, placeholders, CDN delivery, and mobile states.
+23. [ ] Manual review, appeal, retention, threshold calibration, and false-positive validation.
+24. [ ] Multi-image posts, WebP/AVIF negotiation, and further media optimization only after the bounded first version is stable.
 
 ## Release boundary
 
-No backend deployment, production activation, OTA publication, native build, device installation, analytics SDK, push-notification setup, or credentials change is implied by source completion.
+No backend deployment, production activation, AI-provider activation, moderation-threshold activation, object-storage or CDN credential change, OTA publication, native build, device installation, analytics SDK, push-notification setup, or migration execution is implied by source completion.
+
+Public image uploads must not be enabled until the S7 quarantine, normalization, moderation, approved-variant, deletion, and account-cleanup contracts are implemented and validated. Broad public Social release should treat the S6 pre-publication moderation policy and the existing S5 report/operator contour as complementary required safeguards.
