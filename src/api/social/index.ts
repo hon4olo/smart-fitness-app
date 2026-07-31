@@ -1,4 +1,4 @@
-export { createSocialApi, type SocialApi } from './api';
+export { createSocialApi, type SocialApi } from './combined-api';
 export {
   SOCIAL_API_ERROR_CODES,
   SOCIAL_PROFILE_DTO_SCHEMA_VERSION,
@@ -15,6 +15,20 @@ export {
   type SocialRelationshipDto,
   type UpsertOwnSocialProfileInput,
 } from './contracts';
+export {
+  SOCIAL_NOTIFICATION_DTO_SCHEMA_VERSION,
+  SOCIAL_NOTIFICATION_PAGE_DTO_SCHEMA_VERSION,
+  SOCIAL_NOTIFICATION_TYPES,
+  type ListSocialNotificationsInput,
+  type SocialNotificationDto,
+  type SocialNotificationPageDto,
+  type SocialNotificationType,
+} from './notification-contracts';
+export {
+  parseSocialNotificationDto,
+  parseSocialNotificationPageResponse,
+  parseSocialNotificationResponse,
+} from './notification-parsers';
 export {
   getSocialApiErrorCode,
   parseOwnSocialProfileResponse,
