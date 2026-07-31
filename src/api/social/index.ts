@@ -45,3 +45,11 @@ export {
   parseSocialWorkoutPostResponse,
   parseSocialWorkoutSnapshotDto,
 } from './workout-post-parsers';
+export {
+  SOCIAL_WORKOUT_REACTION_DTO_SCHEMA_VERSION,
+  type SocialWorkoutReactionDto,
+} from './workout-reaction-contracts';
+export {
+  parseSocialWorkoutReactionDto,
+  parseSocialWorkoutReactionResponse,
+} from './workout-reaction-parsers';
