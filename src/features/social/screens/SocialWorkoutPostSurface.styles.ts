@@ -30,6 +30,11 @@ export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark)
       fontWeight: Typography.cardTitle.fontWeight,
       lineHeight: Typography.cardTitle.lineHeight,
     },
+    commentActions: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.one,
+    },
     commentBody: {
       color: colors.textPrimary,
       fontSize: Typography.body.fontSize,
@@ -64,6 +69,18 @@ export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark)
     },
     commentHeaderCopy: { flex: 1, gap: 2 },
     commentInput: { minHeight: 96 },
+    commentReportButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 32,
+      paddingHorizontal: Spacing.two,
+    },
+    commentReportLabel: {
+      color: colors.textSecondary,
+      fontSize: Typography.caption.fontSize,
+      fontWeight: '700',
+      lineHeight: Typography.caption.lineHeight,
+    },
     container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
     content: {
       alignItems: 'center',
