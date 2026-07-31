@@ -92,12 +92,5 @@ export const getSocialProfileRequestError = (
       return 'offline';
     }
   }
-  if (
-    error instanceof Error &&
-    (error.message === 'Social authentication expired' ||
-      error.message === 'Social authentication is required')
-  ) {
-    return 'session_expired';
-  }
   return 'generic';
 };
