@@ -39,7 +39,7 @@ export type ShareWorkoutError =
   | 'source_not_ready'
   | 'offline'
   | 'session_expired'
-  | 'publish_unavailable'
+  | 'unavailable'
   | 'generic'
   | SocialContentModerationUiState;
 
@@ -134,7 +134,7 @@ export const getShareWorkoutError = (error: unknown): ShareWorkoutError => {
     socialCode === 'SOCIAL_WORKOUT_POST_EMPTY' ||
     socialCode === 'SOCIAL_WORKOUT_SOURCE_TOO_LARGE'
   ) {
-    return 'publish_unavailable';
+    return 'unavailable';
   }
   if (isApiError(error)) {
     if (error.status === 401 || error.code === 'unauthorized') {
