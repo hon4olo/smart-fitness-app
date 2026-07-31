@@ -47,14 +47,14 @@ const staticNamedControlItemPattern =
 
 const rawPresentationPatterns = [
   {
-    name: 'raw status/provider/source text',
+    name: 'raw status/provider/source member text',
     pattern:
-      /<Text\b[^>]*>\s*\{\s*(?:[A-Za-z_$][\w$]*\.)?(?:status|provider|source)\s*\}\s*<\/Text>/g,
+      /<Text\b[^>]*>\s*\{\s*(?:[A-Za-z_$][\w$]*\.)+(?:status|provider|source)\s*\}\s*<\/Text>/g,
   },
   {
-    name: 'raw String status/provider/source text',
+    name: 'raw String status/provider/source member text',
     pattern:
-      /<Text\b[^>]*>\s*\{\s*String\(\s*(?:[A-Za-z_$][\w$]*\.)?(?:status|provider|source)\s*\)\s*\}\s*<\/Text>/g,
+      /<Text\b[^>]*>\s*\{\s*String\(\s*(?:[A-Za-z_$][\w$]*\.)+(?:status|provider|source)\s*\)\s*\}\s*<\/Text>/g,
   },
   {
     name: 'uppercased internal status/code',
@@ -64,7 +64,7 @@ const rawPresentationPatterns = [
   {
     name: 'raw Error.message fallback',
     pattern:
-      /\bset(?:Error|Message|Notice)\s*\(\s*(?:error|cause)\s+instanceof\s+Error\s*\?\s*(?:error|cause)\.message\b/g,
+      /\bset(?:Error|Message|Notice)\s*\(\s*(?:error|cause)\s+instanceof\s+Error[\s\S]{0,160}?\?\s*(?:error|cause)\.message\b/g,
   },
 ];
 
