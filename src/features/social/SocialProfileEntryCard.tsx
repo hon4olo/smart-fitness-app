@@ -8,12 +8,14 @@ import { useLocalization } from '@/localization';
 
 import { getSocialProfileCopy } from './socialProfileCopy';
 import { getSocialPublicProfileCopy } from './socialPublicProfileCopy';
+import { getSocialRelationshipListsCopy } from './socialRelationshipListsCopy';
 
 export function SocialProfileEntryCard() {
   const router = useRouter();
   const { locale } = useLocalization();
   const copy = getSocialProfileCopy(locale);
   const publicCopy = getSocialPublicProfileCopy(locale);
+  const relationshipCopy = getSocialRelationshipListsCopy(locale);
 
   return (
     <AppCard>
@@ -22,6 +24,10 @@ export function SocialProfileEntryCard() {
       <SecondaryButton
         label={copy.settingsAction}
         onPress={() => router.push('/settings/social-profile')}
+      />
+      <SecondaryButton
+        label={relationshipCopy.entryAction}
+        onPress={() => router.push('/social/relationships')}
       />
       <SecondaryButton
         label={publicCopy.findAction}
