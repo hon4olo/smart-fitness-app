@@ -328,11 +328,11 @@ export const createSocialApi = (
       );
     },
 
-    listWorkoutPosts(username, input = {}) {
+    async listWorkoutPosts(username, input = {}) {
       return listWorkoutPostPage(buildWorkoutPostListPath(username, input));
     },
 
-    listFollowingFeed(input = {}) {
+    async listFollowingFeed(input = {}) {
       return listWorkoutPostPage(buildFollowingFeedPath(input));
     },
 
