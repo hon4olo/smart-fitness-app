@@ -15,7 +15,7 @@ Goal: make English and Russian first-class product languages across every reacha
 - weight, length, and energy display preferences;
 - canonical persistence in `kg`, `cm`, and `kcal`;
 - English fallback and EN/RU catalog parity checks;
-- Account & Security inside dedicated Settings;
+- Account & Security entry and flows inside dedicated Settings;
 - privacy-safe local storage/API diagnostics;
 - bounded provider/backend/status/error presentation.
 
