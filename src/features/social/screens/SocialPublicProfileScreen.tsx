@@ -19,6 +19,7 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
+import { SocialPublicProfileStateCard as StateCard } from '../SocialPublicProfileStateCard';
 import { SocialReportModal } from '../SocialReportModal';
 import { getSocialPublicProfileCopy } from '../socialPublicProfileCopy';
 import {
@@ -33,10 +34,7 @@ import {
 import { getSocialRateLimitMessage } from '../socialRateLimitCopy';
 import { getSocialReportCopy } from '../socialReportCopy';
 import { getSocialWorkoutPostSurfaceCopy } from '../socialWorkoutPostSurfaceCopy';
-import {
-  createSocialPublicProfileStyles,
-  type SocialPublicProfileStyles,
-} from './SocialPublicProfileScreen.styles';
+import { createSocialPublicProfileStyles } from './SocialPublicProfileScreen.styles';
 
 type ProfileStatus =
   | 'idle'
@@ -488,25 +486,5 @@ export default function SocialPublicProfileScreen() {
         target={reportOpen ? { type: 'profile', username } : null}
       />
     </ScrollView>
-  );
-}
-
-function StateCard({
-  body,
-  children,
-  styles,
-  title,
-}: {
-  body: string;
-  children?: React.ReactNode;
-  styles: SocialPublicProfileStyles;
-  title: string;
-}) {
-  return (
-    <AppCard>
-      <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={styles.body}>{body}</Text>
-      {children}
-    </AppCard>
   );
 }
