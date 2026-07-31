@@ -6,6 +6,7 @@ import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, Typography } from '@/constants/theme';
 import { useLocalization } from '@/localization';
 
+import { getSocialFollowingFeedCopy } from './socialFollowingFeedCopy';
 import { getSocialProfileCopy } from './socialProfileCopy';
 import { getSocialPublicProfileCopy } from './socialPublicProfileCopy';
 import { getSocialRelationshipListsCopy } from './socialRelationshipListsCopy';
@@ -14,6 +15,7 @@ export function SocialProfileEntryCard() {
   const router = useRouter();
   const { locale } = useLocalization();
   const copy = getSocialProfileCopy(locale);
+  const feedCopy = getSocialFollowingFeedCopy(locale);
   const publicCopy = getSocialPublicProfileCopy(locale);
   const relationshipCopy = getSocialRelationshipListsCopy(locale);
 
@@ -21,6 +23,10 @@ export function SocialProfileEntryCard() {
     <AppCard>
       <Text style={styles.title}>{copy.settingsTitle}</Text>
       <Text style={styles.description}>{copy.settingsDescription}</Text>
+      <SecondaryButton
+        label={feedCopy.entryAction}
+        onPress={() => router.push('/social/feed')}
+      />
       <SecondaryButton
         label={copy.settingsAction}
         onPress={() => router.push('/settings/social-profile')}

@@ -87,7 +87,7 @@ const buildWorkoutPostPayload = (
 });
 
 const buildListQuery = (
-  input: ListSocialProfilesInput,
+  input: { limit?: number; cursor?: string },
   label: string,
 ): string => {
   const query: string[] = [];
@@ -113,22 +113,15 @@ const buildSocialProfileListPath = (
 const buildWorkoutPostListPath = (
   username: string,
   input: ListSocialWorkoutPostsInput = {},
-): string => {
-  const query: string[] = [];
-  if (input.limit !== undefined) {
-    if (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 50) {
-      throw new Error('Social workout post limit must be between 1 and 50');
-    }
-    query.push(`limit=${input.limit}`);
-  }
-  if (input.cursor !== undefined) {
-    const cursor = input.cursor.trim();
-    if (!cursor) throw new Error('Social workout post cursor must not be empty');
-    query.push(`cursor=${encodeURIComponent(cursor)}`);
-  }
-  const suffix = query.length > 0 ? `?${query.join('&')}` : '';
-  return `/v1/social/profiles/${requireUsernamePath(username)}/workout-posts${suffix}`;
-};
+): string =>
+  `/v1/social/profiles/${requireUsernamePath(username)}/workout-posts${buildListQuery(
+    input,
+    'Social workout post',
+  )}`;
+
+const buildFollowingFeedPath = (
+  input: ListSocialWorkoutPostsInput = {},
+): string => `/v1/social/feed${buildListQuery(input, 'Social feed')}`;
 
 const requestWithAuth = async <TBody = unknown>(
   auth: SocialApiAuth,
@@ -184,6 +177,9 @@ export type SocialApi = {
     username: string,
     input?: ListSocialWorkoutPostsInput,
   ): Promise<SocialWorkoutPostPageDto>;
+  listFollowingFeed(
+    input?: ListSocialWorkoutPostsInput,
+  ): Promise<SocialWorkoutPostPageDto>;
   deleteWorkoutPost(postId: string): Promise<void>;
 };
 
@@ -210,6 +206,13 @@ export const createSocialApi = (
         'GET',
         buildSocialProfileListPath(path, input),
       ),
+    );
+
+  const listWorkoutPostPage = async (
+    path: string,
+  ): Promise<SocialWorkoutPostPageDto> =>
+    parseSocialWorkoutPostPageResponse(
+      await requestWithAuth(auth, apiClient, 'GET', path),
     );
 
   const removeFollow = (username: string): Promise<SocialRelationshipDto> =>
@@ -326,14 +329,11 @@ export const createSocialApi = (
     },
 
     async listWorkoutPosts(username, input = {}) {
-      return parseSocialWorkoutPostPageResponse(
-        await requestWithAuth(
-          auth,
-          apiClient,
-          'GET',
-          buildWorkoutPostListPath(username, input),
-        ),
-      );
+      return listWorkoutPostPage(buildWorkoutPostListPath(username, input));
+    },
+
+    async listFollowingFeed(input = {}) {
+      return listWorkoutPostPage(buildFollowingFeedPath(input));
     },
 
     async deleteWorkoutPost(postId) {
