@@ -1,6 +1,6 @@
 # Social network roadmap
 
-Updated: 2026-07-31
+Updated: 2026-08-01
 
 ## Product objective
 
@@ -192,7 +192,7 @@ S5 remains the post-publication human/operator safety contour. AI moderation in 
 
 ## Phase S6 — proactive AI content moderation
 
-Status: architecture approved; implementation not started.
+Status: text-only Phase S6 is source-complete; production provider activation remains disabled.
 
 The moderation pipeline follows the same separation-of-responsibility principles as AI Coach, but it is an independent bounded subsystem. Coach orchestrators and domain contracts must not be reused for content enforcement.
 
@@ -209,34 +209,34 @@ Social create/update endpoint
 
 Architecture and provider boundary:
 
-- [ ] define versioned moderation categories, reason codes, policy versions, confidence bands, and terminal decisions;
-- [ ] introduce a backend-only `ContentModerationProvider` abstraction separate from `StructuredModelClient` and Coach contracts;
-- [ ] permit reuse only of low-level provider transport, retry, timeout, telemetry, and configuration plumbing where dependency direction remains clean;
-- [ ] ensure routes contain no provider prompts, provider payloads, policy thresholds, or orchestration logic;
-- [ ] validate every provider result through strict versioned Zod contracts and reject unknown critical fields;
-- [ ] persist structured category results, hashes, policy/model identifiers, attempts, latency, and bounded failure metadata without chain-of-thought or raw provider responses;
-- [ ] use idempotent moderation runs and content hashes so retries cannot publish duplicate or stale content;
-- [ ] keep the backend as the only caller of moderation providers and keep credentials server-side.
+- [x] define versioned moderation categories, reason codes, policy versions, confidence bands, and terminal decisions;
+- [x] introduce a backend-only `ContentModerationProvider` abstraction separate from `StructuredModelClient` and Coach contracts;
+- [x] permit reuse only of low-level provider transport, retry, timeout, telemetry, and configuration plumbing where dependency direction remains clean;
+- [x] ensure routes contain no provider prompts, provider payloads, policy thresholds, or orchestration logic;
+- [x] validate every provider result through strict versioned Zod contracts and reject unknown critical fields;
+- [x] persist structured category results, hashes, policy/model identifiers, attempts, latency, and bounded failure metadata without chain-of-thought or raw provider responses;
+- [x] use idempotent moderation runs and content hashes so retries cannot publish duplicate or stale content;
+- [x] keep the backend as the only caller of moderation providers and keep credentials server-side.
 
 Deterministic preprocessing and policy:
 
-- [ ] normalize Unicode, confusable characters, hidden characters, stretched words, whitespace, links, repeated spam, and obvious prohibited terms before model classification;
-- [ ] use deterministic reserved/prohibited-term checks for usernames and use model classification only where context is materially useful;
-- [ ] define categories for explicit sexual content, nudity, possible minor safety, graphic violence, hate, harassment, self-harm, personal data/doxxing, spam/scams, and dangerous fitness or medical claims;
-- [ ] make the model return typed signals only; the deterministic policy worker owns `allow`, `review_required`, and `reject`;
-- [ ] prohibit provider output from overriding hard policy rules or existing block/restriction enforcement;
+- [x] normalize Unicode, confusable characters, hidden characters, stretched words, whitespace, links, repeated spam, and obvious prohibited terms before model classification;
+- [x] use deterministic reserved/prohibited-term checks for usernames and use model classification only where context is materially useful;
+- [x] define categories for explicit sexual content, nudity, possible minor safety, graphic violence, hate, harassment, self-harm, personal data/doxxing, spam/scams, and dangerous fitness or medical claims;
+- [x] make the model return typed signals only; the deterministic policy worker owns `allow`, `review_required`, and `reject`;
+- [x] prohibit provider output from overriding hard policy rules or existing block/restriction enforcement;
 - [ ] use a fitness-specific image policy so ordinary adult workout photos, posing, sportswear, bodybuilding stages, and non-erotic progress photos are not automatically treated as explicit content;
 - [ ] never claim or persist a precise age inferred from appearance; combine possible-minor signals with sexual-content signals conservatively;
-- [ ] keep false-positive-sensitive cases in `review_required` rather than silently deleting them.
+- [x] keep false-positive-sensitive cases in `review_required` rather than silently deleting them.
 
 Initial text surfaces:
 
-- [ ] moderate workout-post captions synchronously before publication;
-- [ ] moderate comments synchronously before insertion or notification creation;
-- [ ] moderate display-name and bio revisions before replacing the currently approved profile version;
-- [ ] preserve the currently approved profile when a submitted revision is pending, rejected, or the provider is unavailable;
-- [ ] return stable localized errors for rejected, review-required, unavailable, timed-out, and retryable moderation states;
-- [ ] add exact ownership, idempotency, stale-result, provider-failure, unknown-field, policy-threshold, and account-deletion tests.
+- [x] moderate workout-post captions synchronously before publication;
+- [x] moderate comments synchronously before insertion or notification creation;
+- [x] moderate display-name and bio revisions before replacing the currently approved profile version;
+- [x] preserve the currently approved profile when a submitted revision is pending, rejected, or the provider is unavailable;
+- [x] return stable localized errors for rejected, review-required, unavailable, timed-out, and retryable moderation states;
+- [x] add exact ownership, idempotency, stale-result, provider-failure, unknown-field, policy-threshold, and account-deletion tests.
 
 Failure and review policy:
 
@@ -245,6 +245,8 @@ Failure and review policy:
 - `review_required` content remains non-public until an explicit operator decision;
 - reports and audited restrictions remain available for content that passes automated checks but is later reported;
 - provider activation, model selection, and production thresholds require explicit environment configuration and staging validation.
+- source completion does not activate a production provider; enforcement and provider selection remain safe-default disabled until explicit staging and production configuration.
+- `review_required` is a typed non-public terminal result in S6; it does not create or action an S5 report and has no pending-profile UI model.
 
 ## Phase S7 — safe media ingestion, compression, moderation, and delivery
 
@@ -346,8 +348,8 @@ Do not begin without explicit prioritization:
 16. [x] Localized Community Guidelines surface.
 17. [x] Bounded evidence, internal moderation operations, and explicit audited restrictions.
 18. [ ] Legal policy review and physical-device release matrix for the existing Social surface.
-19. [ ] S6 policy/categories/contracts, provider boundary, persistence, and deterministic decision worker.
-20. [ ] S6 synchronous moderation for captions, comments, display names, and bios.
+19. [x] S6 policy/categories/contracts, provider boundary, persistence, and deterministic decision worker.
+20. [x] S6 synchronous moderation for captions, comments, display names, and bios.
 21. [ ] S7 object storage, quarantine, managed-avatar migration, normalization, compression, and variants.
 22. [ ] S7 one-image workout-post contract with image moderation, OCR, placeholders, CDN delivery, and mobile states.
 23. [ ] Manual review, appeal, retention, threshold calibration, and false-positive validation.
