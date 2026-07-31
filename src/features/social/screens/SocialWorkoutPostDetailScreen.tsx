@@ -3,7 +3,11 @@ import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { createSocialApi, type SocialWorkoutPostDto } from '@/api/social';
+import {
+  createSocialApi,
+  type SocialWorkoutPostDto,
+  type SocialWorkoutReactionDto,
+} from '@/api/social';
 import { AppCard } from '@/components/ui/AppCard';
 import { DestructiveButton } from '@/components/ui/DestructiveButton';
 import { InlineError } from '@/components/ui/InlineError';
@@ -16,11 +20,16 @@ import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { SocialWorkoutPostDetailContent } from '../SocialWorkoutPostDetailContent';
+import { SocialWorkoutReactionCard } from '../SocialWorkoutReactionCard';
 import { getSocialWorkoutPostSurfaceCopy } from '../socialWorkoutPostSurfaceCopy';
 import {
   getSocialWorkoutPostLoadError,
   type SocialWorkoutPostLoadError,
 } from '../socialWorkoutPostSurfaceModel';
+import {
+  getSocialWorkoutReactionError,
+  type SocialWorkoutReactionError,
+} from '../socialWorkoutReactionModel';
 import { createSocialWorkoutPostSurfaceStyles } from './SocialWorkoutPostSurface.styles';
 
 type DetailStatus =
@@ -50,9 +59,15 @@ export default function SocialWorkoutPostDetailScreen() {
   const [status, setStatus] = useState<DetailStatus>('idle');
   const [post, setPost] = useState<SocialWorkoutPostDto | null>(null);
   const [isOwnPost, setIsOwnPost] = useState(false);
+  const [hasSocialProfile, setHasSocialProfile] = useState(false);
   const [loadError, setLoadError] = useState<SocialWorkoutPostLoadError | null>(
     null,
   );
+  const [reaction, setReaction] = useState<SocialWorkoutReactionDto | null>(null);
+  const [reactionLoading, setReactionLoading] = useState(false);
+  const [reactionBusy, setReactionBusy] = useState(false);
+  const [reactionError, setReactionError] =
+    useState<SocialWorkoutReactionError | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -75,17 +90,33 @@ export default function SocialWorkoutPostDetailScreen() {
     setStatus('loading');
     setPost(null);
     setIsOwnPost(false);
+    setHasSocialProfile(false);
     setLoadError(null);
     setDeleteError(null);
+    setReaction(null);
+    setReactionError(null);
+    setReactionLoading(true);
+
+    const reactionRequest = socialApi
+      .getWorkoutPostReaction(postId)
+      .then((value) => ({ value, error: null }))
+      .catch((error: unknown) => ({
+        value: null,
+        error: getSocialWorkoutReactionError(error),
+      }));
 
     try {
-      const [loadedPost, ownProfile] = await Promise.all([
+      const [loadedPost, ownProfile, reactionResult] = await Promise.all([
         socialApi.getWorkoutPost(postId),
         socialApi.getOwnProfile(),
+        reactionRequest,
       ]);
       if (sequence !== requestSequence.current) return;
       setPost(loadedPost);
       setIsOwnPost(ownProfile?.username === loadedPost.author.username);
+      setHasSocialProfile(Boolean(ownProfile));
+      setReaction(reactionResult.value);
+      setReactionError(reactionResult.error);
       setStatus('ready');
     } catch (error) {
       if (sequence !== requestSequence.current) return;
@@ -100,6 +131,8 @@ export default function SocialWorkoutPostDetailScreen() {
               ? 'not_found'
               : 'error',
       );
+    } finally {
+      if (sequence === requestSequence.current) setReactionLoading(false);
     }
   }, [isAuthenticated, postId, socialApi]);
 
@@ -116,6 +149,37 @@ export default function SocialWorkoutPostDetailScreen() {
     };
   }, [isAuthenticated, loadPost, ready]);
 
+  const retryReaction = async () => {
+    if (!post || reactionLoading) return;
+    setReactionLoading(true);
+    setReactionError(null);
+    try {
+      setReaction(await socialApi.getWorkoutPostReaction(post.id));
+    } catch (error) {
+      setReactionError(getSocialWorkoutReactionError(error));
+    } finally {
+      setReactionLoading(false);
+    }
+  };
+
+  const toggleReaction = async () => {
+    if (!post || !reaction || reactionBusy || !hasSocialProfile) return;
+    setReactionBusy(true);
+    setReactionError(null);
+    try {
+      const next = reaction.reacted
+        ? await socialApi.unreactToWorkoutPost(post.id)
+        : await socialApi.reactToWorkoutPost(post.id);
+      setReaction(next);
+    } catch (error) {
+      const mapped = getSocialWorkoutReactionError(error);
+      if (mapped === 'profile_required') setHasSocialProfile(false);
+      setReactionError(mapped);
+    } finally {
+      setReactionBusy(false);
+    }
+  };
+
   const deletePost = async () => {
     if (deleteBusy || !isOwnPost) return;
     setDeleteBusy(true);
@@ -123,6 +187,7 @@ export default function SocialWorkoutPostDetailScreen() {
     try {
       await socialApi.deleteWorkoutPost(postId);
       setPost(null);
+      setReaction(null);
       setStatus('deleted');
     } catch {
       setDeleteError(copy.deleteError);
@@ -144,6 +209,18 @@ export default function SocialWorkoutPostDetailScreen() {
       : loadError === 'session_expired'
         ? copy.loadErrorSession
         : copy.loadErrorGeneric;
+  const reactionErrorMessage =
+    reactionError === 'offline'
+      ? copy.reactionErrorOffline
+      : reactionError === 'session_expired'
+        ? copy.reactionErrorSession
+        : reactionError === 'profile_required'
+          ? copy.reactionErrorProfile
+          : reactionError === 'unavailable'
+            ? copy.reactionErrorUnavailable
+            : reactionError === 'generic'
+              ? copy.reactionErrorGeneric
+              : null;
 
   return (
     <ScrollView
@@ -214,6 +291,18 @@ export default function SocialWorkoutPostDetailScreen() {
               copy={copy}
               locale={locale}
               post={post}
+              styles={styles}
+            />
+            <SocialWorkoutReactionCard
+              busy={reactionBusy}
+              canReact={hasSocialProfile}
+              copy={copy}
+              errorMessage={reactionErrorMessage}
+              loading={reactionLoading}
+              onCreateProfile={() => router.push('/settings/social-profile')}
+              onRetry={() => void retryReaction()}
+              onToggle={() => void toggleReaction()}
+              reaction={reaction}
               styles={styles}
             />
             {isOwnPost ? (
