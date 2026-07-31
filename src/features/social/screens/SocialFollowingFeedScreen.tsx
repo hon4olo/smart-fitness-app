@@ -22,6 +22,7 @@ import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { getSocialFollowingFeedCopy } from '../socialFollowingFeedCopy';
 import { SocialWorkoutPostCard } from '../SocialWorkoutPostCard';
+import { getSocialWorkoutPostSurfaceCopy } from '../socialWorkoutPostSurfaceCopy';
 import {
   getSocialWorkoutPostLoadError,
   mergeSocialWorkoutPosts,
@@ -39,6 +40,7 @@ export default function SocialFollowingFeedScreen() {
   const { colors } = useAppTheme();
   const { locale, t } = useLocalization();
   const copy = getSocialFollowingFeedCopy(locale);
+  const postCopy = getSocialWorkoutPostSurfaceCopy(locale);
   const styles = useMemo(() => createSocialWorkoutPostSurfaceStyles(colors), [colors]);
   const { isAuthenticated, ready, refresh, session } = useAuthSession();
   const requestSequence = useRef(0);
@@ -206,16 +208,7 @@ export default function SocialFollowingFeedScreen() {
         {ready && isAuthenticated && status === 'ready'
           ? posts.map((post) => (
               <SocialWorkoutPostCard
-                copy={{
-                  ...copy,
-                  openPost: copy.title,
-                  untitledWorkout: copy.title,
-                  duration: '',
-                  minutes: '',
-                  exercises: '',
-                  sets: '',
-                  volume: '',
-                }}
+                copy={postCopy}
                 key={post.id}
                 locale={locale}
                 onOpen={openPost}
