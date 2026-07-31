@@ -50,7 +50,7 @@ const en = {
   errorGeneric: 'The social profile could not be saved right now. Try again.',
 } as const;
 
-export type SocialProfileCopy = typeof en;
+export type SocialProfileCopy = Record<keyof typeof en, string>;
 
 const ru: SocialProfileCopy = {
   settingsSection: 'Социальный профиль',
