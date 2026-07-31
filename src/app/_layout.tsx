@@ -14,7 +14,6 @@ import { RootErrorFallback } from '@/observability/RootErrorFallback';
 import { AppThemeProvider, useAppTheme } from '@/theme/AppThemeProvider';
 import { UnitPreferencesProvider } from '@/units';
 
-
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return <RootErrorFallback error={error} retry={retry} />;
 }
@@ -72,6 +71,10 @@ function RootNavigator() {
           <Stack.Screen name="settings/social-profile" options={{ headerShown: false }} />
           <Stack.Screen name="social/index" options={{ headerShown: false }} />
           <Stack.Screen name="social/[username]" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="social/share-workout/[sessionId]"
+            options={{ headerShown: false }}
+          />
           <Stack.Screen name="exercises/[exerciseId]" options={{ headerShown: false }} />
           <Stack.Screen name="nutrition/add-food" options={{ headerShown: false }} />
           <Stack.Screen name="nutrition/date-picker" options={{ headerShown: false }} />

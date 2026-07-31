@@ -48,6 +48,9 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
       position: 'absolute',
       right: 0,
     },
+    footerStack: {
+      gap: Spacing.one,
+    },
     formStack: {
       gap: Spacing.two,
       paddingTop: Spacing.three,
@@ -193,7 +196,7 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
       borderCurve: 'continuous',
       borderRadius: 999,
       justifyContent: 'center',
-      minHeight: 58,
+      minHeight: 56,
     },
     saveButtonDisabled: {
       opacity: 0.45,
@@ -209,6 +212,23 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
     screen: {
       backgroundColor: colors.background,
       flex: 1,
+    },
+    shareButton: {
+      alignItems: 'center',
+      borderColor: colors.accent,
+      borderCurve: 'continuous',
+      borderRadius: 999,
+      borderWidth: 1,
+      justifyContent: 'center',
+      minHeight: 48,
+    },
+    shareButtonDisabled: {
+      opacity: 0.45,
+    },
+    shareButtonLabel: {
+      color: colors.accent,
+      fontSize: 16,
+      fontWeight: '800',
     },
     singleLineField: {
       alignItems: 'center',
