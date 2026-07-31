@@ -1,5 +1,6 @@
 import { getNutritionFavoritesStorageKey } from '@/features/nutrition/nutritionFavorites';
 import { getNutritionFoodLibraryStorageKey } from '@/features/nutrition/nutritionFoodLibrary';
+import { getSocialFollowingFeedCacheStorageKey } from '@/features/social/socialFollowingFeedCache';
 import { APP_STATE_STORAGE_KEY } from '@/repositories/LocalAppRepository';
 import {
   APP_MUTATION_OUTBOX_RECOVERY_STORAGE_KEY,
@@ -59,6 +60,7 @@ export const getLocalAccountDataStorageKeys = (userId: string): string[] =>
       ...STATIC_ACCOUNT_DATA_KEYS,
       getNutritionFavoritesStorageKey(userId),
       getNutritionFoodLibraryStorageKey(userId),
+      getSocialFollowingFeedCacheStorageKey(userId),
     ]),
   );
 
