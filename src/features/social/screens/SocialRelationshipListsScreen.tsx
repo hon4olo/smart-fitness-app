@@ -306,7 +306,19 @@ export default function SocialRelationshipListsScreen() {
           />
         ) : null}
 
-        {ready && isAuthenticated && status === 'ready' && nextCursor ? (
+        {ready &&
+        isAuthenticated &&
+        status === 'ready' &&
+        items.length > 0 &&
+        loadError ? (
+          <SecondaryButton label={copy.retry} onPress={() => void loadList(true)} />
+        ) : null}
+
+        {ready &&
+        isAuthenticated &&
+        status === 'ready' &&
+        nextCursor &&
+        !loadError ? (
           <SecondaryButton
             disabled={loadingMore}
             label={copy.loadMore}
