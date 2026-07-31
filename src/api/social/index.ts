@@ -20,3 +20,22 @@ export {
   parseSocialRelationshipDto,
   parseSocialRelationshipResponse,
 } from './parsers';
+export {
+  SOCIAL_WORKOUT_POST_DTO_SCHEMA_VERSION,
+  SOCIAL_WORKOUT_SNAPSHOT_SCHEMA_VERSION,
+  type CreateSocialWorkoutPostInput,
+  type ListSocialWorkoutPostsInput,
+  type SocialWorkoutPostDto,
+  type SocialWorkoutPostExerciseDto,
+  type SocialWorkoutPostPageDto,
+  type SocialWorkoutPostSetDto,
+  type SocialWorkoutShareControls,
+  type SocialWorkoutSnapshotDto,
+} from './workout-post-contracts';
+export {
+  parseDeleteSocialWorkoutPostResponse,
+  parseSocialWorkoutPostDto,
+  parseSocialWorkoutPostPageResponse,
+  parseSocialWorkoutPostResponse,
+  parseSocialWorkoutSnapshotDto,
+} from './workout-post-parsers';

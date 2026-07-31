@@ -43,7 +43,7 @@ Rules:
 
 ## Phase S0 — contracts and safety baseline
 
-Status: active.
+Status: complete and maintained as a blocking boundary.
 
 - [x] define the Social MVP scope and architecture boundary;
 - [x] define versioned public DTOs and stable error codes;
@@ -87,15 +87,24 @@ Mobile:
 
 Backend:
 
-- [ ] immutable versioned workout-post snapshot schema;
-- [ ] explicit field-level share controls for title, duration, exercises, sets, load, repetitions, RPE, volume, and caption;
-- [ ] create, read, delete-own-post, and profile-post-list routes;
-- [ ] cursor pagination and deterministic ordering;
-- [ ] bounded caption length and content validation;
-- [ ] private-workout ownership verification before snapshot creation;
-- [ ] no automatic publication and no raw private-workout payload storage.
+- [x] immutable versioned workout-post snapshot schema;
+- [x] explicit field-level share controls for title, duration, exercises, sets, load, repetitions, RPE, volume, and caption;
+- [x] create, read, delete-own-post, and profile-post-list routes;
+- [x] cursor pagination and deterministic ordering;
+- [x] bounded caption length and content validation;
+- [x] private-workout ownership and completed-state verification before snapshot creation;
+- [x] no automatic publication and no raw private-workout payload storage;
+- [x] private-profile follow access, symmetric block enforcement, idempotency, immutable-source, migration, and PostgreSQL API tests.
 
-Mobile:
+Mobile foundation:
+
+- [x] versioned workout-post, snapshot, exercise, set, page, and share-control contracts;
+- [x] strict fail-closed parsers that reject unknown/private fields and malformed versions;
+- [x] authenticated create, get, profile-list, and delete-own API methods;
+- [x] bounded client-side pagination validation and opaque cursor handling;
+- [x] stable workout-post error-code parsing.
+
+Mobile product surface:
 
 - [ ] `Share workout` action after a completed workout;
 - [ ] preview with per-field visibility controls;
@@ -156,13 +165,14 @@ Do not begin without explicit prioritization:
 1. [x] Backend social-profile schema and public DTO contract.
 2. [x] Self-profile and username lookup routes.
 3. [x] Visibility, follow requests, follows, and blocks.
-4. [x] Mobile strict API/parser layer.
+4. [x] Mobile strict profile/relationship API and parser layer.
 5. [x] Mobile social profile editor.
-6. [ ] Public profile and relationship controls.
-7. [ ] Immutable workout-post snapshot contract.
-8. [ ] Chronological following feed.
-9. [ ] Reactions/comments/notifications.
-10. [ ] Moderation and physical-device release matrix.
+6. [x] Backend immutable workout-post snapshot and mobile API/parser contracts.
+7. [ ] Public profile and relationship controls.
+8. [ ] Mobile Share Workout preview and explicit publication flow.
+9. [ ] Chronological following feed.
+10. [ ] Reactions/comments/notifications.
+11. [ ] Moderation and physical-device release matrix.
 
 ## Release boundary
 
