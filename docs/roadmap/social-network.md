@@ -76,12 +76,12 @@ Backend:
 
 Mobile:
 
-- [ ] Social profile editor;
+- [x] Social profile editor;
 - [ ] public profile screen;
 - [ ] follow/request state controls;
 - [ ] followers/following lists with cursor pagination;
 - [ ] localized empty, loading, error, blocked, private, and pending states;
-- [ ] no social tab until the profile/follow contracts are stable.
+- [x] no social tab until the profile/follow contracts are stable.
 
 ## Phase S2 — workout posts
 
@@ -157,11 +157,12 @@ Do not begin without explicit prioritization:
 2. [x] Self-profile and username lookup routes.
 3. [x] Visibility, follow requests, follows, and blocks.
 4. [x] Mobile strict API/parser layer.
-5. [ ] Mobile profile editor, public profile, and relationship controls.
-6. [ ] Immutable workout-post snapshot contract.
-7. [ ] Chronological following feed.
-8. [ ] Reactions/comments/notifications.
-9. [ ] Moderation and physical-device release matrix.
+5. [x] Mobile social profile editor.
+6. [ ] Public profile and relationship controls.
+7. [ ] Immutable workout-post snapshot contract.
+8. [ ] Chronological following feed.
+9. [ ] Reactions/comments/notifications.
+10. [ ] Moderation and physical-device release matrix.
 
 ## Release boundary
 
