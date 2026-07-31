@@ -19,6 +19,7 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
+import { SocialReportModal } from '../SocialReportModal';
 import { getSocialPublicProfileCopy } from '../socialPublicProfileCopy';
 import {
   getSocialActionError,
@@ -30,6 +31,7 @@ import {
   type SocialProfileLoadError,
 } from '../socialPublicProfileModel';
 import { getSocialRateLimitMessage } from '../socialRateLimitCopy';
+import { getSocialReportCopy } from '../socialReportCopy';
 import { getSocialWorkoutPostSurfaceCopy } from '../socialWorkoutPostSurfaceCopy';
 import {
   createSocialPublicProfileStyles,
@@ -67,6 +69,7 @@ export default function SocialPublicProfileScreen() {
   const { colors } = useAppTheme();
   const { locale, t } = useLocalization();
   const copy = getSocialPublicProfileCopy(locale);
+  const reportCopy = getSocialReportCopy(locale);
   const postsCopy = getSocialWorkoutPostSurfaceCopy(locale);
   const { isAuthenticated, ready, refresh, session } = useAuthSession();
   const styles = useMemo(() => createSocialPublicProfileStyles(colors), [colors]);
@@ -83,6 +86,7 @@ export default function SocialPublicProfileScreen() {
   );
   const [busyAction, setBusyAction] = useState<BusyAction>(null);
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const auth = useMemo(
     () => ({
@@ -108,6 +112,7 @@ export default function SocialPublicProfileScreen() {
     setActionError(null);
     setActionRateLimitMessage(null);
     setAvatarFailed(false);
+    setReportOpen(false);
 
     try {
       const ownProfile = await socialApi.getOwnProfile();
@@ -460,16 +465,28 @@ export default function SocialPublicProfileScreen() {
             ) : null}
 
             {!isOwnProfile ? (
-              <DestructiveButton
-                disabled={busyAction === 'block'}
-                label={copy.block}
-                loading={busyAction === 'block'}
-                onPress={confirmBlock}
-              />
+              <>
+                <SecondaryButton
+                  label={reportCopy.reportProfile}
+                  onPress={() => setReportOpen(true)}
+                />
+                <DestructiveButton
+                  disabled={busyAction === 'block'}
+                  label={copy.block}
+                  loading={busyAction === 'block'}
+                  onPress={confirmBlock}
+                />
+              </>
             ) : null}
           </AppCard>
         ) : null}
       </View>
+      <SocialReportModal
+        locale={locale}
+        onClose={() => setReportOpen(false)}
+        socialApi={socialApi}
+        target={reportOpen ? { type: 'profile', username } : null}
+      />
     </ScrollView>
   );
 }
