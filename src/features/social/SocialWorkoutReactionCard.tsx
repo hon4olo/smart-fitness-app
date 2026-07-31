@@ -21,14 +21,18 @@ import {
 type ReactionStatus = 'loading' | 'ready' | 'error';
 
 type SocialWorkoutReactionCardProps = {
+  canReact: boolean;
   copy: SocialWorkoutPostSurfaceCopy;
+  onCreateProfile: () => void;
   postId: string;
   socialApi: SocialApi;
   styles: SocialWorkoutPostSurfaceStyles;
 };
 
 export function SocialWorkoutReactionCard({
+  canReact,
   copy,
+  onCreateProfile,
   postId,
   socialApi,
   styles,
@@ -70,7 +74,7 @@ export function SocialWorkoutReactionCard({
   }, [loadReaction]);
 
   const toggleReaction = async () => {
-    if (!reaction || mutationBusy) return;
+    if (!canReact || !reaction || mutationBusy) return;
     const sequence = requestSequence.current;
     setMutationBusy(true);
     setMutationError(null);
@@ -114,18 +118,33 @@ export function SocialWorkoutReactionCard({
       {status === 'ready' && reaction ? (
         <>
           <Text style={styles.body}>{copy.reactionBody}</Text>
-          <InlineError message={mutationError} />
-          <SecondaryButton
-            accessibilityHint={
-              reaction.reacted
-                ? copy.reactionRemoveHint
-                : copy.reactionAddHint
-            }
-            disabled={mutationBusy}
-            label={`${reaction.reacted ? copy.reacted : copy.react} · ${reaction.reactionCount}`}
-            loading={mutationBusy}
-            onPress={toggleReaction}
-          />
+          {canReact ? (
+            <>
+              <InlineError message={mutationError} />
+              <SecondaryButton
+                accessibilityHint={
+                  reaction.reacted
+                    ? copy.reactionRemoveHint
+                    : copy.reactionAddHint
+                }
+                disabled={mutationBusy}
+                label={`${reaction.reacted ? copy.reacted : copy.react} · ${reaction.reactionCount}`}
+                loading={mutationBusy}
+                onPress={toggleReaction}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={styles.metaText}>
+                {copy.reactionCount}: {reaction.reactionCount}
+              </Text>
+              <Text style={styles.body}>{copy.reactionProfileRequired}</Text>
+              <SecondaryButton
+                label={copy.reactionCreateProfile}
+                onPress={onCreateProfile}
+              />
+            </>
+          )}
         </>
       ) : null}
     </AppCard>
