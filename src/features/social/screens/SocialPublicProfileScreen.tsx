@@ -29,6 +29,7 @@ import {
   type SocialActionError,
   type SocialProfileLoadError,
 } from '../socialPublicProfileModel';
+import { getSocialRateLimitMessage } from '../socialRateLimitCopy';
 import { getSocialWorkoutPostSurfaceCopy } from '../socialWorkoutPostSurfaceCopy';
 import {
   createSocialPublicProfileStyles,
@@ -77,6 +78,9 @@ export default function SocialPublicProfileScreen() {
   const [ownUsername, setOwnUsername] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<SocialProfileLoadError | null>(null);
   const [actionError, setActionError] = useState<SocialActionError | null>(null);
+  const [actionRateLimitMessage, setActionRateLimitMessage] = useState<string | null>(
+    null,
+  );
   const [busyAction, setBusyAction] = useState<BusyAction>(null);
   const [avatarFailed, setAvatarFailed] = useState(false);
 
@@ -102,6 +106,7 @@ export default function SocialPublicProfileScreen() {
     setPrivateRelationship(null);
     setLoadError(null);
     setActionError(null);
+    setActionRateLimitMessage(null);
     setAvatarFailed(false);
 
     try {
@@ -151,12 +156,13 @@ export default function SocialPublicProfileScreen() {
   }, [isAuthenticated, loadProfile, ready]);
 
   const actionErrorMessage = useMemo(() => {
+    if (actionRateLimitMessage) return actionRateLimitMessage;
     if (actionError === 'offline') return copy.actionErrorOffline;
     if (actionError === 'session_expired') return copy.actionErrorSession;
     if (actionError === 'unavailable') return copy.actionErrorUnavailable;
     if (actionError === 'generic') return copy.actionErrorGeneric;
     return null;
-  }, [actionError, copy]);
+  }, [actionError, actionRateLimitMessage, copy]);
 
   const loadErrorMessage = useMemo(() => {
     if (loadError === 'offline') return copy.actionErrorOffline;
@@ -164,12 +170,22 @@ export default function SocialPublicProfileScreen() {
     return copy.loadError;
   }, [copy, loadError]);
 
+  const setActionFailure = (error: unknown) => {
+    setActionRateLimitMessage(getSocialRateLimitMessage(error, locale));
+    setActionError(getSocialActionError(error));
+  };
+
+  const clearActionError = () => {
+    setActionError(null);
+    setActionRateLimitMessage(null);
+  };
+
   const runRelationshipAction = async (
     action: Exclude<BusyAction, 'block' | 'unblock' | null>,
   ) => {
     if (busyAction) return;
     setBusyAction(action);
-    setActionError(null);
+    clearActionError();
     try {
       const relationship =
         action === 'follow'
@@ -196,7 +212,7 @@ export default function SocialPublicProfileScreen() {
         setProfileView({ ...profileView, relationship });
       }
     } catch (error) {
-      setActionError(getSocialActionError(error));
+      setActionFailure(error);
     } finally {
       setBusyAction(null);
     }
@@ -205,14 +221,14 @@ export default function SocialPublicProfileScreen() {
   const blockProfile = async () => {
     if (busyAction) return;
     setBusyAction('block');
-    setActionError(null);
+    clearActionError();
     try {
       const relationship = await socialApi.block(username);
       setProfileView(null);
       setPrivateRelationship(relationship);
       setStatus('blocked_by_viewer');
     } catch (error) {
-      setActionError(getSocialActionError(error));
+      setActionFailure(error);
     } finally {
       setBusyAction(null);
     }
@@ -228,12 +244,12 @@ export default function SocialPublicProfileScreen() {
   const unblockProfile = async () => {
     if (busyAction) return;
     setBusyAction('unblock');
-    setActionError(null);
+    clearActionError();
     try {
       await socialApi.unblock(username);
       await loadProfile();
     } catch (error) {
-      setActionError(getSocialActionError(error));
+      setActionFailure(error);
     } finally {
       setBusyAction(null);
     }
