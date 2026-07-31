@@ -16,6 +16,7 @@ import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { SocialWorkoutPostDetailContent } from '../SocialWorkoutPostDetailContent';
+import { SocialWorkoutReactionCard } from '../SocialWorkoutReactionCard';
 import { getSocialWorkoutPostSurfaceCopy } from '../socialWorkoutPostSurfaceCopy';
 import {
   getSocialWorkoutPostLoadError,
@@ -214,6 +215,12 @@ export default function SocialWorkoutPostDetailScreen() {
               copy={copy}
               locale={locale}
               post={post}
+              styles={styles}
+            />
+            <SocialWorkoutReactionCard
+              copy={copy}
+              postId={post.id}
+              socialApi={socialApi}
               styles={styles}
             />
             {isOwnPost ? (
