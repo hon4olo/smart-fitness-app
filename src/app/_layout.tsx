@@ -70,6 +70,7 @@ function RootNavigator() {
           <Stack.Screen name="settings/index" options={{ headerShown: false }} />
           <Stack.Screen name="settings/social-profile" options={{ headerShown: false }} />
           <Stack.Screen name="social/index" options={{ headerShown: false }} />
+          <Stack.Screen name="social/relationships" options={{ headerShown: false }} />
           <Stack.Screen name="social/[username]" options={{ headerShown: false }} />
           <Stack.Screen
             name="social/share-workout/[sessionId]"
