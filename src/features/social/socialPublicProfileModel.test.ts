@@ -40,6 +40,11 @@ describe('public social profile model', () => {
     expect(getSocialProfileLoadError(error(403, 'SOCIAL_PROFILE_PRIVATE'))).toBe(
       'private',
     );
+    expect(
+      getSocialProfileLoadError(
+        error(403, 'SOCIAL_PROFILE_BLOCKED_BY_VIEWER'),
+      ),
+    ).toBe('blocked_by_viewer');
     expect(getSocialProfileLoadError(error(403, 'SOCIAL_RELATION_BLOCKED'))).toBe(
       'blocked',
     );
@@ -71,6 +76,16 @@ describe('public social profile model', () => {
           message: 'blocked',
           status: 403,
           body: { code: 'SOCIAL_RELATION_BLOCKED' },
+        }),
+      ),
+    ).toBe('unavailable');
+    expect(
+      getSocialActionError(
+        new ApiError({
+          code: 'forbidden',
+          message: 'blocked',
+          status: 403,
+          body: { code: 'SOCIAL_PROFILE_BLOCKED_BY_VIEWER' },
         }),
       ),
     ).toBe('unavailable');
