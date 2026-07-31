@@ -3,9 +3,12 @@ import { isApiError } from '@/api/client';
 import {
   SOCIAL_API_ERROR_CODES,
   SOCIAL_PROFILE_DTO_SCHEMA_VERSION,
+  SOCIAL_PROFILE_LIST_DTO_SCHEMA_VERSION,
   SOCIAL_RELATIONSHIP_DTO_SCHEMA_VERSION,
   type SocialApiErrorCode,
   type SocialProfileDto,
+  type SocialProfileListItemDto,
+  type SocialProfileListPageDto,
   type SocialProfileViewDto,
   type SocialRelationshipDto,
 } from './contracts';
@@ -31,6 +34,8 @@ const RELATIONSHIP_KEYS = [
   'blocksViewer',
 ] as const;
 
+const PROFILE_LIST_ITEM_KEYS = ['profile', 'createdAt'] as const;
+const PROFILE_LIST_PAGE_KEYS = ['schemaVersion', 'items', 'nextCursor'] as const;
 const SOCIAL_ERROR_CODES = new Set<string>(SOCIAL_API_ERROR_CODES);
 const SOCIAL_USERNAME_PATTERN = /^[a-z0-9_]{3,30}$/;
 
@@ -131,6 +136,42 @@ export const parseSocialRelationshipDto = (
     incomingRequest: value.incomingRequest,
     blockedByViewer: value.blockedByViewer,
     blocksViewer: value.blocksViewer,
+  };
+};
+
+export const parseSocialProfileListItemDto = (
+  value: unknown,
+): SocialProfileListItemDto => {
+  if (!isRecord(value) || !hasExactKeys(value, PROFILE_LIST_ITEM_KEYS)) {
+    throw new Error('Invalid social profile list item response');
+  }
+  if (!isIsoDate(value.createdAt)) {
+    throw new Error('Invalid social profile list item response');
+  }
+  return {
+    profile: parseSocialProfileDto(value.profile),
+    createdAt: value.createdAt,
+  };
+};
+
+export const parseSocialProfileListPageResponse = (
+  value: unknown,
+): SocialProfileListPageDto => {
+  if (!isRecord(value) || !hasExactKeys(value, PROFILE_LIST_PAGE_KEYS)) {
+    throw new Error('Invalid social profile list response');
+  }
+  if (
+    value.schemaVersion !== SOCIAL_PROFILE_LIST_DTO_SCHEMA_VERSION ||
+    !Array.isArray(value.items) ||
+    (value.nextCursor !== null &&
+      (typeof value.nextCursor !== 'string' || value.nextCursor.length === 0))
+  ) {
+    throw new Error('Invalid social profile list response');
+  }
+  return {
+    schemaVersion: SOCIAL_PROFILE_LIST_DTO_SCHEMA_VERSION,
+    items: value.items.map(parseSocialProfileListItemDto),
+    nextCursor: value.nextCursor,
   };
 };
 

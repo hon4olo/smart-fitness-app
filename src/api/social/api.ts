@@ -7,14 +7,17 @@ import {
 import { getMobileApiBaseUrl } from '@/api/config';
 
 import type {
+  ListSocialProfilesInput,
   SocialApiAuth,
   SocialProfileDto,
+  SocialProfileListPageDto,
   SocialProfileViewDto,
   SocialRelationshipDto,
   UpsertOwnSocialProfileInput,
 } from './contracts';
 import {
   parseOwnSocialProfileResponse,
+  parseSocialProfileListPageResponse,
   parseSocialProfileResponse,
   parseSocialProfileViewResponse,
   parseSocialRelationshipResponse,
@@ -83,6 +86,30 @@ const buildWorkoutPostPayload = (
     : {}),
 });
 
+const buildListQuery = (
+  input: ListSocialProfilesInput,
+  label: string,
+): string => {
+  const query: string[] = [];
+  if (input.limit !== undefined) {
+    if (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 50) {
+      throw new Error(`${label} limit must be between 1 and 50`);
+    }
+    query.push(`limit=${input.limit}`);
+  }
+  if (input.cursor !== undefined) {
+    const cursor = input.cursor.trim();
+    if (!cursor) throw new Error(`${label} cursor must not be empty`);
+    query.push(`cursor=${encodeURIComponent(cursor)}`);
+  }
+  return query.length > 0 ? `?${query.join('&')}` : '';
+};
+
+const buildSocialProfileListPath = (
+  path: string,
+  input: ListSocialProfilesInput = {},
+): string => `${path}${buildListQuery(input, 'Social profile list')}`;
+
 const buildWorkoutPostListPath = (
   username: string,
   input: ListSocialWorkoutPostsInput = {},
@@ -136,6 +163,14 @@ export type SocialApi = {
   getOwnProfile(): Promise<SocialProfileDto | null>;
   upsertOwnProfile(input: UpsertOwnSocialProfileInput): Promise<SocialProfileDto>;
   getProfile(username: string): Promise<SocialProfileViewDto>;
+  listFollowers(input?: ListSocialProfilesInput): Promise<SocialProfileListPageDto>;
+  listFollowing(input?: ListSocialProfilesInput): Promise<SocialProfileListPageDto>;
+  listIncomingFollowRequests(
+    input?: ListSocialProfilesInput,
+  ): Promise<SocialProfileListPageDto>;
+  listOutgoingFollowRequests(
+    input?: ListSocialProfilesInput,
+  ): Promise<SocialProfileListPageDto>;
   follow(username: string): Promise<SocialRelationshipDto>;
   unfollow(username: string): Promise<SocialRelationshipDto>;
   cancelFollowRequest(username: string): Promise<SocialRelationshipDto>;
@@ -162,6 +197,19 @@ export const createSocialApi = (
   ): Promise<SocialRelationshipDto> =>
     parseSocialRelationshipResponse(
       await requestWithAuth(auth, apiClient, method, path),
+    );
+
+  const listProfiles = async (
+    path: string,
+    input: ListSocialProfilesInput = {},
+  ): Promise<SocialProfileListPageDto> =>
+    parseSocialProfileListPageResponse(
+      await requestWithAuth(
+        auth,
+        apiClient,
+        'GET',
+        buildSocialProfileListPath(path, input),
+      ),
     );
 
   const removeFollow = (username: string): Promise<SocialRelationshipDto> =>
@@ -198,6 +246,22 @@ export const createSocialApi = (
           `/v1/social/profiles/${requireUsernamePath(username)}`,
         ),
       );
+    },
+
+    listFollowers(input = {}) {
+      return listProfiles('/v1/social/followers', input);
+    },
+
+    listFollowing(input = {}) {
+      return listProfiles('/v1/social/following', input);
+    },
+
+    listIncomingFollowRequests(input = {}) {
+      return listProfiles('/v1/social/follow-requests/incoming', input);
+    },
+
+    listOutgoingFollowRequests(input = {}) {
+      return listProfiles('/v1/social/follow-requests/outgoing', input);
     },
 
     follow(username) {
