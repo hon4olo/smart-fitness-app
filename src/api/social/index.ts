@@ -44,6 +44,17 @@ export {
   parseSocialRelationshipResponse,
 } from './parsers';
 export {
+  SOCIAL_REPORT_REASON_CODES,
+  SOCIAL_REPORT_RECEIPT_SCHEMA_VERSION,
+  type CreateSocialReportInput,
+  type SocialReportReasonCode,
+  type SocialReportReceiptDto,
+} from './report-contracts';
+export {
+  parseSocialReportReceiptDto,
+  parseSocialReportResponse,
+} from './report-parsers';
+export {
   SOCIAL_WORKOUT_COMMENT_DTO_SCHEMA_VERSION,
   SOCIAL_WORKOUT_COMMENT_PAGE_DTO_SCHEMA_VERSION,
   type CreateSocialWorkoutCommentInput,
