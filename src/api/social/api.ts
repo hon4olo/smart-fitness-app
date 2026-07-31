@@ -19,6 +19,17 @@ import {
   parseSocialProfileViewResponse,
   parseSocialRelationshipResponse,
 } from './parsers';
+import type {
+  CreateSocialWorkoutPostInput,
+  ListSocialWorkoutPostsInput,
+  SocialWorkoutPostDto,
+  SocialWorkoutPostPageDto,
+} from './workout-post-contracts';
+import {
+  parseDeleteSocialWorkoutPostResponse,
+  parseSocialWorkoutPostPageResponse,
+  parseSocialWorkoutPostResponse,
+} from './workout-post-parsers';
 
 const defaultApiClient = createApiClient({
   baseUrl: getMobileApiBaseUrl(),
@@ -26,11 +37,17 @@ const defaultApiClient = createApiClient({
   defaultRetry: { attempts: 1, delayMs: 300, factor: 2 },
 });
 
-const requireUsernamePath = (username: string): string => {
-  const trimmed = username.trim();
-  if (!trimmed) throw new Error('Social username is required');
+const requirePathSegment = (value: string, label: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) throw new Error(`${label} is required`);
   return encodeURIComponent(trimmed);
 };
+
+const requireUsernamePath = (username: string): string =>
+  requirePathSegment(username, 'Social username');
+
+const requirePostIdPath = (postId: string): string =>
+  requirePathSegment(postId, 'Social workout post ID');
 
 const buildUpsertPayload = (
   input: UpsertOwnSocialProfileInput,
@@ -53,6 +70,37 @@ const buildUpsertPayload = (
   }
 
   return payload;
+};
+
+const buildWorkoutPostPayload = (
+  input: CreateSocialWorkoutPostInput,
+): CreateSocialWorkoutPostInput => ({
+  sourceWorkoutSessionId: input.sourceWorkoutSessionId.trim(),
+  idempotencyKey: input.idempotencyKey.trim(),
+  share: { ...input.share },
+  ...(input.caption !== undefined
+    ? { caption: input.caption === null ? null : input.caption.trim() }
+    : {}),
+});
+
+const buildWorkoutPostListPath = (
+  username: string,
+  input: ListSocialWorkoutPostsInput = {},
+): string => {
+  const query: string[] = [];
+  if (input.limit !== undefined) {
+    if (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 50) {
+      throw new Error('Social workout post limit must be between 1 and 50');
+    }
+    query.push(`limit=${input.limit}`);
+  }
+  if (input.cursor !== undefined) {
+    const cursor = input.cursor.trim();
+    if (!cursor) throw new Error('Social workout post cursor must not be empty');
+    query.push(`cursor=${encodeURIComponent(cursor)}`);
+  }
+  const suffix = query.length > 0 ? `?${query.join('&')}` : '';
+  return `/v1/social/profiles/${requireUsernamePath(username)}/workout-posts${suffix}`;
 };
 
 const requestWithAuth = async <TBody = unknown>(
@@ -95,6 +143,13 @@ export type SocialApi = {
   rejectFollowRequest(username: string): Promise<SocialRelationshipDto>;
   block(username: string): Promise<SocialRelationshipDto>;
   unblock(username: string): Promise<SocialRelationshipDto>;
+  createWorkoutPost(input: CreateSocialWorkoutPostInput): Promise<SocialWorkoutPostDto>;
+  getWorkoutPost(postId: string): Promise<SocialWorkoutPostDto>;
+  listWorkoutPosts(
+    username: string,
+    input?: ListSocialWorkoutPostsInput,
+  ): Promise<SocialWorkoutPostPageDto>;
+  deleteWorkoutPost(postId: string): Promise<void>;
 };
 
 export const createSocialApi = (
@@ -180,6 +235,51 @@ export const createSocialApi = (
       return relationRequest(
         'DELETE',
         `/v1/social/profiles/${requireUsernamePath(username)}/block`,
+      );
+    },
+
+    async createWorkoutPost(input) {
+      return parseSocialWorkoutPostResponse(
+        await requestWithAuth(
+          auth,
+          apiClient,
+          'POST',
+          '/v1/social/workout-posts',
+          buildWorkoutPostPayload(input),
+        ),
+      );
+    },
+
+    async getWorkoutPost(postId) {
+      return parseSocialWorkoutPostResponse(
+        await requestWithAuth(
+          auth,
+          apiClient,
+          'GET',
+          `/v1/social/workout-posts/${requirePostIdPath(postId)}`,
+        ),
+      );
+    },
+
+    async listWorkoutPosts(username, input = {}) {
+      return parseSocialWorkoutPostPageResponse(
+        await requestWithAuth(
+          auth,
+          apiClient,
+          'GET',
+          buildWorkoutPostListPath(username, input),
+        ),
+      );
+    },
+
+    async deleteWorkoutPost(postId) {
+      parseDeleteSocialWorkoutPostResponse(
+        await requestWithAuth(
+          auth,
+          apiClient,
+          'DELETE',
+          `/v1/social/workout-posts/${requirePostIdPath(postId)}`,
+        ),
       );
     },
   };
