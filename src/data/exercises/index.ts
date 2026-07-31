@@ -1,6 +1,7 @@
 import type { Exercise } from '@/domain/models';
 import { createExercise } from '@/domain/models';
 
+import { BUNDLED_CONTENT_CREATED_AT } from '../bundledContent';
 import exerciseRows from './exercises.json';
 
 type ExerciseFixtureRow = {
@@ -16,13 +17,22 @@ type ExerciseFixtureRow = {
   tips?: string[];
 };
 
-const DEFAULT_EXERCISE_CREATED_AT = '2000-01-01T00:00:00.000Z';
-
 const normalize = (value: string) =>
-  value.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 
 const uniqueStrings = (values: Array<string | undefined | null>) =>
-  Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
+  Array.from(
+    new Set(
+      values
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
 
 const toDomainExercise = (row: ExerciseFixtureRow): Exercise => {
   const primaryMuscles = uniqueStrings(row.primaryMuscles ?? []);
@@ -42,7 +52,7 @@ const toDomainExercise = (row: ExerciseFixtureRow): Exercise => {
     tips: uniqueStrings(row.tips ?? []),
     muscleGroup: primaryMuscles[0] ?? row.bodyPart ?? '',
     source: 'local',
-    createdAt: DEFAULT_EXERCISE_CREATED_AT,
+    createdAt: BUNDLED_CONTENT_CREATED_AT,
     isCustom: false,
     metadata: {
       sourceId: row.id,
@@ -50,7 +60,9 @@ const toDomainExercise = (row: ExerciseFixtureRow): Exercise => {
   });
 };
 
-export const exerciseDatabase = (exerciseRows as ExerciseFixtureRow[]).map(toDomainExercise);
+export const exerciseDatabase = (exerciseRows as ExerciseFixtureRow[]).map(
+  toDomainExercise,
+);
 
 export const exerciseSearchIndex = (exercise: Exercise) => {
   const fields = [
@@ -96,18 +108,34 @@ export const matchesExerciseQuery = (exercise: Exercise, query: string) => {
     return (
       index.compact.includes(token) ||
       compactHaystack.includes(compactToken) ||
-      index.fields.some((field) => field.includes(token) || field.replace(/\s+/g, '').includes(compactToken)) ||
-      index.raw.some((field) => field.includes(token) || field.replace(/\s+/g, '').includes(compactToken)) ||
+      index.fields.some(
+        (field) =>
+          field.includes(token) ||
+          field.replace(/\s+/g, '').includes(compactToken),
+      ) ||
+      index.raw.some(
+        (field) =>
+          field.includes(token) ||
+          field.replace(/\s+/g, '').includes(compactToken),
+      ) ||
       (compactQuery.length > 0 && compactHaystack.includes(compactQuery))
     );
   });
 };
 
 export const createExerciseLookup = (exercises: Exercise[]) => {
-  const byId = new Map(exercises.map((exercise) => [normalize(exercise.id), exercise] as const));
-  const byName = new Map(exercises.map((exercise) => [normalize(exercise.name), exercise] as const));
+  const byId = new Map(
+    exercises.map((exercise) => [normalize(exercise.id), exercise] as const),
+  );
+  const byName = new Map(
+    exercises.map((exercise) => [normalize(exercise.name), exercise] as const),
+  );
   const byAlias = new Map(
-    exercises.flatMap((exercise) => (exercise.aliases ?? []).map((alias) => [normalize(alias), exercise] as const)),
+    exercises.flatMap((exercise) =>
+      (exercise.aliases ?? []).map(
+        (alias) => [normalize(alias), exercise] as const,
+      ),
+    ),
   );
 
   return { byAlias, byId, byName };
@@ -115,7 +143,10 @@ export const createExerciseLookup = (exercises: Exercise[]) => {
 
 export const exerciseCatalogLookup = createExerciseLookup(exerciseDatabase);
 
-export const mergeExerciseCatalog = (baseExercises: Exercise[], storedExercises: Exercise[] = []) => {
+export const mergeExerciseCatalog = (
+  baseExercises: Exercise[],
+  storedExercises: Exercise[] = [],
+) => {
   const { byAlias, byId, byName } = createExerciseLookup(baseExercises);
   const merged = [...baseExercises];
 
@@ -129,8 +160,14 @@ export const mergeExerciseCatalog = (baseExercises: Exercise[], storedExercises:
     const instructions = exercise.instructions ?? [];
     const tips = exercise.tips ?? [];
     const commonMistakes = exercise.commonMistakes ?? [];
-    const aliasMatch = aliases.map((alias) => byAlias.get(normalize(alias))).find(Boolean);
-    const match = byId.get(normalize(exercise.id)) ?? (!exercise.isCustom ? byName.get(normalize(exercise.name)) ?? aliasMatch : undefined);
+    const aliasMatch = aliases
+      .map((alias) => byAlias.get(normalize(alias)))
+      .find(Boolean);
+    const match =
+      byId.get(normalize(exercise.id)) ??
+      (!exercise.isCustom
+        ? (byName.get(normalize(exercise.name)) ?? aliasMatch)
+        : undefined);
 
     if (!match) {
       merged.push(exercise);
@@ -148,14 +185,27 @@ export const mergeExerciseCatalog = (baseExercises: Exercise[], storedExercises:
       ...match,
       ...exercise,
       aliases: aliases.length > 0 ? aliases : (match.aliases ?? []),
-      primaryMuscles: primaryMuscles.length > 0 ? primaryMuscles : (match.primaryMuscles ?? []),
-      secondaryMuscles: secondaryMuscles.length > 0 ? secondaryMuscles : (match.secondaryMuscles ?? []),
+      primaryMuscles:
+        primaryMuscles.length > 0
+          ? primaryMuscles
+          : (match.primaryMuscles ?? []),
+      secondaryMuscles:
+        secondaryMuscles.length > 0
+          ? secondaryMuscles
+          : (match.secondaryMuscles ?? []),
       equipment: equipment.length > 0 ? equipment : (match.equipment ?? []),
-      movementPattern: movementPattern.length > 0 ? movementPattern : (match.movementPattern ?? []),
+      movementPattern:
+        movementPattern.length > 0
+          ? movementPattern
+          : (match.movementPattern ?? []),
       tags: tags.length > 0 ? tags : (match.tags ?? []),
-      instructions: instructions.length > 0 ? instructions : (match.instructions ?? []),
+      instructions:
+        instructions.length > 0 ? instructions : (match.instructions ?? []),
       tips: tips.length > 0 ? tips : (match.tips ?? []),
-      commonMistakes: commonMistakes.length > 0 ? commonMistakes : (match.commonMistakes ?? []),
+      commonMistakes:
+        commonMistakes.length > 0
+          ? commonMistakes
+          : (match.commonMistakes ?? []),
       createdAt: exercise.createdAt ?? match.createdAt,
       muscleGroup: exercise.muscleGroup ?? match.muscleGroup,
       source: exercise.source ?? match.source,
