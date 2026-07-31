@@ -164,13 +164,17 @@ export default function HomeScreen() {
         pathname: '/workout-session' as const,
         params: { workoutId: activeWorkout.workoutId },
       }
-    : '/track';
+    : '/(tabs)/workouts';
   const primaryWorkoutLabel = t(
     activeWorkout ? 'home.continueWorkout' : 'home.startWorkout',
   );
 
-  const roundedCurrentVolume = Math.round(weightFromKg(weeklyVolumeTrend.currentVolume, weightUnit));
-  const roundedPreviousVolume = Math.round(weightFromKg(weeklyVolumeTrend.previousVolume, weightUnit));
+  const roundedCurrentVolume = Math.round(
+    weightFromKg(weeklyVolumeTrend.currentVolume, weightUnit),
+  );
+  const roundedPreviousVolume = Math.round(
+    weightFromKg(weeklyVolumeTrend.previousVolume, weightUnit),
+  );
   const roundedVolumeDelta = roundedCurrentVolume - roundedPreviousVolume;
   const volumePercentChange =
     weeklyVolumeTrend.previousVolume > 0
@@ -298,7 +302,7 @@ export default function HomeScreen() {
           secondaryActions={[
             {
               label: t('home.addFood'),
-              onPress: () => router.push('/track'),
+              onPress: () => router.push('/(tabs)/nutrition'),
             },
             {
               label: t('home.logWeight'),
