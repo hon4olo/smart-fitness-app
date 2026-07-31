@@ -122,7 +122,7 @@ describe('social API parsers', () => {
       body: { code: 'SOCIAL_RELATION_BLOCKED' },
     });
     const invalidCursor = new ApiError({
-      code: 'bad_request',
+      code: 'validation_error',
       message: 'Bad request',
       status: 400,
       body: { code: 'SOCIAL_RELATION_LIST_INVALID_CURSOR' },
