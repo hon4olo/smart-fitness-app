@@ -13,7 +13,7 @@ Completed:
 - raw internal sync error text is not displayed to users;
 - local-only and account-synchronized behavior are explained in English and Russian;
 - failed local persistence exposes a safe retry action without displaying the raw exception;
-- durable weight-history outbox recovery records are counted and can be replayed manually without deleting records after a failed replay;
+- durable outbox recovery records are counted for the eager weight-history path and can be replayed manually without deleting records after a failed replay;
 - planner-based domains regenerate missing operations from persisted state, metadata, and pending queue on the next sync;
 - unresolved conflict snapshots are listed by localized domain, detection time, and sync stage without raw payload values;
 - users can retry the existing deterministic conflict resolver through the ordinary synchronization contract without deleting either version;
