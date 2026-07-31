@@ -1,6 +1,6 @@
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/ui/AppCard';
@@ -8,32 +8,29 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import type { WorkoutSessionDraft } from '@/features/workouts/types';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
+import { getSafetyRecoveryReviewCopy } from '@/localization/safetyRecoveryReviewCopy';
+import { getUserLimitationsCopy } from '@/localization/userLimitationsCopy';
 import { getWorkoutSafetyGateCopy } from '@/localization/workoutSafetyGateCopy';
 import {
   createAsyncStorageAdapter,
   createSafetyRecoveryReviewStore,
 } from '@/storage';
 import { useAppTheme } from '@/theme/AppThemeProvider';
-import type { WorkoutSessionDraft } from '@/features/workouts/types';
+
 import {
   buildWorkoutSafetyGateDecision,
   type WorkoutSafetyGateDecision,
 } from '../workoutSafetyGateModel';
 import { createWorkoutSafetyGateStyles } from './workoutSafetyGateScreen.styles';
 
-const formatCode = (value: string): string =>
-  value
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-
-const statusLabel = (decision: WorkoutSafetyGateDecision): string => {
-  if (decision.kind === 'review_missing') return 'NO REVIEW';
-  if (decision.kind === 'review_stale') return 'STALE';
-  return decision.reviewStatus?.toUpperCase() ?? 'REVIEW';
-};
+const boundedLabel = (
+  labels: Record<string, string>,
+  value: string,
+  fallback: string,
+): string => labels[value] ?? fallback;
 
 export default function WorkoutSafetyGateScreen({
   draft,
@@ -46,8 +43,10 @@ export default function WorkoutSafetyGateScreen({
   ): Promise<void> | void;
 }) {
   const { colors } = useAppTheme();
-  const { locale } = useLocalization();
+  const { formatNumber, locale } = useLocalization();
   const copy = useMemo(() => getWorkoutSafetyGateCopy(locale), [locale]);
+  const reviewCopy = useMemo(() => getSafetyRecoveryReviewCopy(locale), [locale]);
+  const limitationCopy = useMemo(() => getUserLimitationsCopy(locale), [locale]);
   const styles = useMemo(() => createWorkoutSafetyGateStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const app = useAppContext();
@@ -66,17 +65,13 @@ export default function WorkoutSafetyGateScreen({
     setLoadError(null);
     try {
       setSnapshot(userId ? await reviewStore.get(userId) : null);
-    } catch (error) {
+    } catch {
       setSnapshot(null);
-      setLoadError(
-        error instanceof Error
-          ? error.message
-          : 'The saved Safety & Recovery review could not be loaded.',
-      );
+      setLoadError(copy.snapshotLoadError);
     } finally {
       setLoading(false);
     }
-  }, [reviewStore, userId]);
+  }, [copy.snapshotLoadError, reviewStore, userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -112,6 +107,29 @@ export default function WorkoutSafetyGateScreen({
     }
   };
 
+  const decisionPresentation = useMemo(() => {
+    if (loading) {
+      return {
+        title: copy.loadingReview,
+        message: null,
+        statusLabel: copy.loadingStatus,
+      };
+    }
+    if (decision.kind === 'review_missing') {
+      return { ...copy.reviewMissing, statusLabel: copy.noReviewStatus };
+    }
+    if (decision.kind === 'review_stale') {
+      return { ...copy.reviewStale, statusLabel: copy.staleStatus };
+    }
+    if (decision.reviewStatus) {
+      return {
+        ...reviewCopy.resultCopy[decision.reviewStatus],
+        statusLabel: reviewCopy.readinessStatusLabels[decision.reviewStatus],
+      };
+    }
+    return { ...copy.reviewUnavailable, statusLabel: copy.reviewUnavailableStatus };
+  }, [copy, decision.kind, decision.reviewStatus, loading, reviewCopy]);
+
   const statusColor =
     decision.reviewStatus === 'ready'
       ? colors.success
@@ -130,8 +148,8 @@ export default function WorkoutSafetyGateScreen({
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>Before your workout</Text>
-          <Text style={styles.subtitle}>Safety & Recovery acknowledgement</Text>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.subtitle}>{copy.subtitle}</Text>
         </View>
       </View>
 
@@ -143,83 +161,118 @@ export default function WorkoutSafetyGateScreen({
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <AppCard>
-            <Text style={styles.eyebrow}>WORKOUT</Text>
+            <Text style={styles.eyebrow}>{copy.workout}</Text>
             <Text style={styles.workoutTitle}>{draft.workoutTitle}</Text>
-            <Text style={styles.bodyText}>
-              This check is attached to the current workout session. Returning to this session will not
-              request the same acknowledgement again.
-            </Text>
+            <Text style={styles.bodyText}>{copy.sessionContext}</Text>
           </AppCard>
 
           <AppCard style={decision.reviewStatus === 'blocked' ? styles.blockedCard : undefined}>
             <View style={styles.resultHeader}>
               <View style={styles.headerCopy}>
-                <Text style={styles.cardTitle}>{loading ? 'Loading review…' : decision.title}</Text>
-                {!loading ? <Text style={styles.bodyText}>{decision.message}</Text> : null}
+                <Text style={styles.cardTitle}>{decisionPresentation.title}</Text>
+                {decisionPresentation.message ? (
+                  <Text style={styles.bodyText}>{decisionPresentation.message}</Text>
+                ) : null}
               </View>
               <Text style={[styles.statusBadge, { color: statusColor }]}>
-                {loading ? 'LOADING' : statusLabel(decision)}
+                {decisionPresentation.statusLabel}
               </Text>
             </View>
 
             {decision.recommendedLoadPercent !== null ? (
               <View style={styles.metricRow}>
                 <View>
-                  <Text style={styles.metricValue}>{decision.recommendedLoadPercent}%</Text>
-                  <Text style={styles.metricLabel}>Reviewed load ceiling</Text>
+                  <Text style={styles.metricValue}>
+                    {formatNumber(decision.recommendedLoadPercent, {
+                      maximumFractionDigits: 0,
+                    })}%
+                  </Text>
+                  <Text style={styles.metricLabel}>{copy.reviewedLoadCeiling}</Text>
                 </View>
                 <View>
-                  <Text style={styles.metricValue}>{decision.restrictions.length}</Text>
-                  <Text style={styles.metricLabel}>Restrictions</Text>
+                  <Text style={styles.metricValue}>
+                    {formatNumber(decision.restrictions.length, {
+                      maximumFractionDigits: 0,
+                    })}
+                  </Text>
+                  <Text style={styles.metricLabel}>{copy.restrictions}</Text>
                 </View>
               </View>
             ) : null}
 
             {decision.restrictions.length > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Structured restrictions</Text>
-                {decision.restrictions.map((restriction) => (
-                  <View key={restriction.limitationId} style={styles.listRow}>
-                    <View style={styles.listCopy}>
-                      <Text style={styles.listTitle}>
-                        {formatCode(restriction.bodyRegion)} · {formatCode(restriction.side)}
-                      </Text>
-                      <Text style={styles.bodyText}>
-                        {formatCode(restriction.action)} · affected load up to{' '}
-                        {Math.round(restriction.maximumLoadMultiplier * 100)}%
-                      </Text>
-                      {restriction.movementPatterns.length > 0 ? (
-                        <Text style={styles.metaText}>
-                          Movements: {restriction.movementPatterns.map(formatCode).join(', ')}
+                <Text style={styles.sectionTitle}>{copy.structuredRestrictions}</Text>
+                {decision.restrictions.map((restriction) => {
+                  const percent = formatNumber(
+                    Math.round(restriction.maximumLoadMultiplier * 100),
+                    { maximumFractionDigits: 0 },
+                  );
+                  return (
+                    <View key={restriction.limitationId} style={styles.listRow}>
+                      <View style={styles.listCopy}>
+                        <Text style={styles.listTitle}>
+                          {boundedLabel(
+                            limitationCopy.bodyRegionLabels as Record<string, string>,
+                            restriction.bodyRegion,
+                            copy.notSpecified,
+                          )}{' '}
+                          ·{' '}
+                          {boundedLabel(
+                            limitationCopy.sideLabels as Record<string, string>,
+                            restriction.side,
+                            copy.notSpecified,
+                          )}
                         </Text>
-                      ) : null}
+                        <Text style={styles.bodyText}>
+                          {reviewCopy.actionLabels[restriction.action]} ·{' '}
+                          {copy.affectedLoadUpTo(percent)}
+                        </Text>
+                        {restriction.movementPatterns.length > 0 ? (
+                          <Text style={styles.metaText}>
+                            {reviewCopy.movements}:{' '}
+                            {restriction.movementPatterns
+                              .map((movement) =>
+                                boundedLabel(
+                                  limitationCopy.movementLabels as Record<string, string>,
+                                  movement,
+                                  copy.notSpecified,
+                                ),
+                              )
+                              .join(', ')}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text style={[styles.rowBadge, { color: colors.warning }]}>
+                        {limitationCopy.severityLabels[restriction.severity]}
+                      </Text>
                     </View>
-                    <Text style={[styles.rowBadge, { color: colors.warning }]}>
-                      {restriction.severity.toUpperCase()}
-                    </Text>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             ) : null}
 
             {decision.issues.length > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Review findings</Text>
-                {decision.issues.map((issue, index) => (
-                  <View key={`${issue.code}-${index}`} style={styles.listRow}>
-                    <View style={styles.listCopy}>
-                      <Text style={styles.listTitle}>{formatCode(issue.code)}</Text>
-                      <Text style={styles.bodyText}>{issue.message}</Text>
+                <Text style={styles.sectionTitle}>{copy.reviewFindings}</Text>
+                {decision.issues.map((issue, index) => {
+                  const issuePresentation = reviewCopy.issueCopy(issue.code);
+                  return (
+                    <View key={`${issue.code}-${index}`} style={styles.listRow}>
+                      <View style={styles.listCopy}>
+                        <Text style={styles.listTitle}>{issuePresentation.title}</Text>
+                        <Text style={styles.bodyText}>{issuePresentation.message}</Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.rowBadge,
+                          { color: issue.severity === 'hard_block' ? colors.error : colors.warning },
+                        ]}>
+                        {reviewCopy.issueSeverityLabels[issue.severity]}
+                      </Text>
                     </View>
-                    <Text
-                      style={[
-                        styles.rowBadge,
-                        { color: issue.severity === 'hard_block' ? colors.error : colors.warning },
-                      ]}>
-                      {formatCode(issue.severity)}
-                    </Text>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             ) : null}
 
@@ -251,11 +304,8 @@ export default function WorkoutSafetyGateScreen({
           </AppCard>
 
           <AppCard>
-            <Text style={styles.cardTitle}>Update the review</Text>
-            <Text style={styles.bodyText}>
-              Add current recovery data or limitations, synchronize them, and run the deterministic
-              review again before continuing.
-            </Text>
+            <Text style={styles.cardTitle}>{copy.updateReview}</Text>
+            <Text style={styles.bodyText}>{copy.updateReviewBody}</Text>
             <SecondaryButton
               label={copy.openSafetyRecovery}
               onPress={() => router.push('/profile/safety-recovery')}
@@ -274,10 +324,7 @@ export default function WorkoutSafetyGateScreen({
             </View>
           </AppCard>
 
-          <Text style={styles.disclaimer}>
-            Safety & Recovery uses synchronized self-reported product data. It is not a medical
-            diagnosis or treatment recommendation.
-          </Text>
+          <Text style={styles.disclaimer}>{copy.disclaimer}</Text>
         </View>
       </ScrollView>
     </View>
