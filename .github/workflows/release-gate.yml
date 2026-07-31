@@ -4,24 +4,22 @@ on:
   workflow_dispatch:
     inputs:
       app_ref:
-        description: Mobile repository branch, tag, or commit
+        description: Full 40-character mobile commit SHA
         required: true
-        default: main
         type: string
       backend_ref:
-        description: Backend repository branch, tag, or commit
+        description: Full 40-character backend commit SHA
         required: true
-        default: main
         type: string
   workflow_call:
     inputs:
       app_ref:
-        required: false
-        default: main
+        description: Full 40-character mobile commit SHA
+        required: true
         type: string
       backend_ref:
-        required: false
-        default: main
+        description: Full 40-character backend commit SHA
+        required: true
         type: string
     secrets:
       BACKEND_REPOSITORY_TOKEN:
@@ -31,10 +29,36 @@ permissions:
   contents: read
 
 jobs:
+  validate-refs:
+    name: Validate immutable refs
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require full commit SHAs
+        shell: bash
+        env:
+          APP_REF: ${{ inputs.app_ref }}
+          BACKEND_REF: ${{ inputs.backend_ref }}
+        run: |
+          sha_pattern='^[0-9a-fA-F]{40}$'
+          if [[ ! "$APP_REF" =~ $sha_pattern ]]; then
+            echo "app_ref must be a full 40-character commit SHA"
+            exit 1
+          fi
+          if [[ ! "$BACKEND_REF" =~ $sha_pattern ]]; then
+            echo "backend_ref must be a full 40-character commit SHA"
+            exit 1
+          fi
+
   mobile:
     name: Mobile release validation
+    needs: validate-refs
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
+    outputs:
+      sha: ${{ steps.checked-sha.outputs.sha }}
+    env:
+      EXPO_PUBLIC_API_BASE_URL: https://release-gate.invalid
     steps:
       - name: Checkout mobile
         uses: actions/checkout@v4
@@ -42,6 +66,20 @@ jobs:
           ref: ${{ inputs.app_ref }}
           path: mobile
           fetch-depth: 0
+
+      - name: Verify checked-out mobile SHA
+        id: checked-sha
+        working-directory: mobile
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.app_ref }}
+        run: |
+          actual_sha=$(git rev-parse HEAD)
+          if [ "${actual_sha,,}" != "${EXPECTED_SHA,,}" ]; then
+            echo "Mobile checkout mismatch: expected=$EXPECTED_SHA actual=$actual_sha"
+            exit 1
+          fi
+          echo "sha=$actual_sha" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -54,6 +92,10 @@ jobs:
         working-directory: mobile
         run: npm ci
 
+      - name: Audit repository file sizes
+        working-directory: mobile
+        run: node scripts/check-repository-file-lines.mjs
+
       - name: Validate TypeScript
         working-directory: mobile
         run: npx tsc --noEmit
@@ -64,9 +106,15 @@ jobs:
 
       - name: Validate Expo public configuration
         working-directory: mobile
-        env:
-          EXPO_PUBLIC_API_BASE_URL: https://release-gate.invalid
         run: npx expo config --type public > expo-public-config.json
+
+      - name: Export Expo application
+        working-directory: mobile
+        run: npx expo export --clear
+
+      - name: Validate Expo dependencies and configuration
+        working-directory: mobile
+        run: npx expo-doctor
 
       - name: Upload Expo configuration on failure
         if: failure()
@@ -79,8 +127,11 @@ jobs:
 
   backend:
     name: Backend release validation
+    needs: validate-refs
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
+    outputs:
+      sha: ${{ steps.checked-sha.outputs.sha }}
     services:
       postgres:
         image: postgres:16-alpine
@@ -114,6 +165,20 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.BACKEND_REPOSITORY_TOKEN || github.token }}
           persist-credentials: false
+
+      - name: Verify checked-out backend SHA
+        id: checked-sha
+        working-directory: backend
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.backend_ref }}
+        run: |
+          actual_sha=$(git rev-parse HEAD)
+          if [ "${actual_sha,,}" != "${EXPECTED_SHA,,}" ]; then
+            echo "Backend checkout mismatch: expected=$EXPECTED_SHA actual=$actual_sha"
+            exit 1
+          fi
+          echo "sha=$actual_sha" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -150,6 +215,11 @@ jobs:
       - name: Verify migration idempotency
         working-directory: backend
         run: npm run db:migrate
+
+      - name: Validate migrated backend schema
+        working-directory: backend
+        run: >-
+          npx vitest run tests/migration.test.ts --maxWorkers=1 --no-file-parallelism
 
       - name: Run complete backend test suite
         working-directory: backend
@@ -193,16 +263,19 @@ jobs:
   release-ready:
     name: Release ready
     runs-on: ubuntu-latest
-    needs: [mobile, backend]
+    needs: [validate-refs, mobile, backend]
     if: always()
     steps:
       - name: Enforce all release checks
         env:
+          REF_RESULT: ${{ needs.validate-refs.result }}
           MOBILE_RESULT: ${{ needs.mobile.result }}
           BACKEND_RESULT: ${{ needs.backend.result }}
+          MOBILE_SHA: ${{ needs.mobile.outputs.sha }}
+          BACKEND_SHA: ${{ needs.backend.outputs.sha }}
         run: |
-          if [ "$MOBILE_RESULT" != "success" ] || [ "$BACKEND_RESULT" != "success" ]; then
-            echo "Release blocked: mobile=$MOBILE_RESULT backend=$BACKEND_RESULT"
+          if [ "$REF_RESULT" != "success" ] || [ "$MOBILE_RESULT" != "success" ] || [ "$BACKEND_RESULT" != "success" ]; then
+            echo "Release blocked: refs=$REF_RESULT mobile=$MOBILE_RESULT backend=$BACKEND_RESULT"
             exit 1
           fi
-          echo "Release gate passed for app=${{ inputs.app_ref }} backend=${{ inputs.backend_ref }}"
+          echo "Release gate passed for mobile=$MOBILE_SHA backend=$BACKEND_SHA"
