@@ -46,12 +46,12 @@ Rules:
 Status: active.
 
 - [x] define the Social MVP scope and architecture boundary;
-- [ ] define versioned public DTOs and stable error codes;
-- [ ] define username normalization, reservation, validation, and uniqueness;
-- [ ] define public/private profile visibility;
-- [ ] define block semantics and account-deletion cascade;
-- [ ] add backend migration, repository/service boundaries, and blocking tests;
-- [ ] add mobile API parsers only after backend contracts are merged.
+- [x] define versioned public DTOs and stable error codes;
+- [x] define username normalization, reservation, validation, and uniqueness;
+- [x] define public/private profile visibility;
+- [x] define block semantics and account-deletion cascade;
+- [x] add backend migration, repository/service boundaries, and blocking tests;
+- [x] add mobile API parsers only after backend contracts are merged.
 
 Acceptance criteria:
 
@@ -65,14 +65,14 @@ Acceptance criteria:
 
 Backend:
 
-- [ ] `social_profiles` with username, display name, bio, avatar URL, visibility, timestamps, and counters derived safely;
-- [ ] `social_follows` for accepted relationships;
-- [ ] `social_follow_requests` for private profiles;
-- [ ] `social_blocks` with symmetric visibility enforcement;
-- [ ] authenticated self-profile read/update;
-- [ ] username lookup and public-profile read;
-- [ ] follow, unfollow, request, approve, reject, and cancel operations;
-- [ ] ownership, privacy, duplicate-delivery, block, and account-deletion tests.
+- [x] `social_profiles` with username, display name, bio, avatar URL, visibility, timestamps, and counters derived safely;
+- [x] `social_follows` for accepted relationships;
+- [x] `social_follow_requests` for private profiles;
+- [x] `social_blocks` with symmetric visibility enforcement;
+- [x] authenticated self-profile read/update;
+- [x] username lookup and public-profile read;
+- [x] follow, unfollow, request, approve, reject, and cancel operations;
+- [x] ownership, privacy, duplicate-delivery, block, and account-deletion tests.
 
 Mobile:
 
@@ -153,14 +153,15 @@ Do not begin without explicit prioritization:
 
 ## Immediate execution order
 
-1. Backend social-profile schema and public DTO contract.
-2. Self-profile and username lookup routes.
-3. Visibility, follow requests, follows, and blocks.
-4. Mobile strict API/parser layer and profile screens.
-5. Immutable workout-post snapshot contract.
-6. Chronological following feed.
-7. Reactions/comments/notifications.
-8. Moderation and physical-device release matrix.
+1. [x] Backend social-profile schema and public DTO contract.
+2. [x] Self-profile and username lookup routes.
+3. [x] Visibility, follow requests, follows, and blocks.
+4. [x] Mobile strict API/parser layer.
+5. [ ] Mobile profile editor, public profile, and relationship controls.
+6. [ ] Immutable workout-post snapshot contract.
+7. [ ] Chronological following feed.
+8. [ ] Reactions/comments/notifications.
+9. [ ] Moderation and physical-device release matrix.
 
 ## Release boundary
 
