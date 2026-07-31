@@ -28,9 +28,9 @@ export type Exercise = {
   metadata?: Record<string, unknown>;
 };
 
-export const DEFAULT_EXERCISE_CREATED_AT = '2000-01-01T00:00:00.000Z';
-
-export const createExercise = (exercise: Partial<Exercise> & Pick<Exercise, 'id' | 'name' | 'createdAt'>) => ({
+export const createExercise = (
+  exercise: Partial<Exercise> & Pick<Exercise, 'id' | 'name' | 'createdAt'>,
+) => ({
   aliases: [],
   category: '',
   commonMistakes: [],
