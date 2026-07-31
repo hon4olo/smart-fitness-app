@@ -125,15 +125,25 @@ Mobile product surface:
 
 ## Phase S3 — following feed
 
-Status: chronological server-authoritative source surface complete. Persistent local caching remains separately pending.
+Status: chronological server-authoritative source surface and bounded account-scoped first-page cache are source-complete.
 
 - [x] chronological following-only feed;
 - [x] cursor pagination and pull-to-refresh;
 - [x] block/private-profile enforcement in every backend query;
-- [ ] bounded account-scoped local cache for responsiveness, with backend as source of truth;
+- [x] bounded account-scoped local cache for responsiveness, with backend as source of truth;
 - [x] no algorithmic ranking, recommendations, or engagement optimization in the MVP;
-- [x] localized feed loading, empty, offline, expired-session, invalid-cursor, retry, refresh, and deleted-post detail states;
+- [x] localized feed loading, empty, offline, expired-session, invalid-cursor, retry, refresh, cached-data, and deleted-post detail states;
 - [x] Social feed access from the existing Profile surface without adding a bottom-tab destination.
+
+Cache contract:
+
+- cache only the first page and at most 20 strict public workout-post DTOs;
+- cap serialized data at 512 KiB and expire it after five minutes;
+- scope the storage key to the authenticated account and remove it during account deletion cleanup;
+- never persist access tokens, email, private fitness data, report/moderation data, or an opaque pagination cursor;
+- render cached data only as a short-lived preview while immediately revalidating from the backend;
+- enable pagination only after a current backend response supplies a fresh cursor;
+- malformed, duplicate, cross-account, expired, oversized, or unknown-field cache data fails closed.
 
 ## Phase S4 — reactions, comments, notifications, and anti-spam
 
@@ -203,7 +213,7 @@ Do not begin without explicit prioritization:
 8. [x] Mobile Share Workout preview and explicit publication flow.
 9. [x] Relationship discovery/list endpoints and mobile lists.
 10. [x] Post detail and profile workout-post list.
-11. [x] Chronological following feed.
+11. [x] Chronological following feed with bounded account-scoped first-page cache.
 12. [x] Reactions and bounded comments.
 13. [x] In-app notifications and read state.
 14. [x] Persistent Social write rate limits and localized recovery copy.
