@@ -1,9 +1,11 @@
 name: Patch Social S6 roadmap
 
 on:
-  push:
+  pull_request:
     branches:
-      - docs/social-s6-roadmap-sync
+      - main
+    paths:
+      - .github/workflows/patch-social-s6-roadmap.yml
 
 permissions:
   contents: write
