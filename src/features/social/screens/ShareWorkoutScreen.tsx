@@ -37,6 +37,7 @@ import {
   updateSocialWorkoutShareControl,
   type ShareWorkoutError,
 } from '../shareWorkoutModel';
+import { getSocialRateLimitMessage } from '../socialRateLimitCopy';
 import { createShareWorkoutStyles } from './ShareWorkoutScreen.styles';
 
 type PublishState = 'editing' | 'publishing' | 'profile_required' | 'success';
@@ -62,6 +63,7 @@ export default function ShareWorkoutScreen() {
   );
   const [publishState, setPublishState] = useState<PublishState>('editing');
   const [error, setError] = useState<ShareWorkoutError | 'empty' | null>(null);
+  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   const idempotencyKey = useRef(`social-workout-post:${createUuid()}`);
 
   const workoutSession = useMemo(
@@ -83,6 +85,7 @@ export default function ShareWorkoutScreen() {
   const socialApi = useMemo(() => createSocialApi(auth), [auth]);
 
   const errorMessage = useMemo(() => {
+    if (rateLimitError) return rateLimitError;
     if (error === 'empty') return copy.emptyError;
     if (error === 'source_not_ready') return copy.sourceNotReady;
     if (error === 'offline') return copy.offline;
@@ -90,17 +93,23 @@ export default function ShareWorkoutScreen() {
     if (error === 'unavailable') return copy.unavailable;
     if (error === 'generic') return copy.genericError;
     return null;
-  }, [copy, error]);
+  }, [copy, error, rateLimitError]);
+
+  const clearError = () => {
+    setError(null);
+    setRateLimitError(null);
+  };
 
   const publish = async () => {
     if (!workoutSession || publishState === 'publishing') return;
     if (!canPublishSocialWorkout(caption, controls)) {
+      setRateLimitError(null);
       setError('empty');
       return;
     }
 
     setPublishState('publishing');
-    setError(null);
+    clearError();
     try {
       const profile = await socialApi.getOwnProfile();
       if (!profile) {
@@ -117,6 +126,12 @@ export default function ShareWorkoutScreen() {
       });
       setPublishState('success');
     } catch (publishError) {
+      const rateLimitMessage = getSocialRateLimitMessage(publishError, locale);
+      if (rateLimitMessage) {
+        setPublishState('editing');
+        setRateLimitError(rateLimitMessage);
+        return;
+      }
       const state = getShareWorkoutError(publishError);
       if (state === 'profile_required') {
         setPublishState('profile_required');
@@ -129,6 +144,7 @@ export default function ShareWorkoutScreen() {
 
   const confirmPublish = () => {
     if (!canPublishSocialWorkout(caption, controls)) {
+      setRateLimitError(null);
       setError('empty');
       return;
     }
@@ -267,7 +283,7 @@ export default function ShareWorkoutScreen() {
                     setControls((current) =>
                       updateSocialWorkoutShareControl(current, key, value),
                     );
-                    setError(null);
+                    clearError();
                   }}
                   styles={styles}
                 />
@@ -282,7 +298,7 @@ export default function ShareWorkoutScreen() {
                   multiline
                   onChangeText={(value) => {
                     setCaption(value);
-                    setError(null);
+                    clearError();
                   }}
                   placeholder={copy.captionPlaceholder}
                   placeholderTextColor={colors.textMuted}

@@ -24,6 +24,7 @@ import {
   validateSocialProfileForm,
   type SocialProfileFormValues,
 } from '../socialProfileForm';
+import { getSocialRateLimitMessage } from '../socialRateLimitCopy';
 
 type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -55,13 +56,15 @@ export default function SocialProfileEditorScreen() {
 
   const requestErrorCopy = useCallback(
     (error: unknown): string => {
+      const rateLimitMessage = getSocialRateLimitMessage(error, locale);
+      if (rateLimitMessage) return rateLimitMessage;
       const state = getSocialProfileRequestError(error);
       if (state === 'username_taken') return copy.errorUsernameTaken;
       if (state === 'offline') return copy.errorOffline;
       if (state === 'session_expired') return copy.errorSessionExpired;
       return copy.errorGeneric;
     },
-    [copy],
+    [copy, locale],
   );
 
   const loadProfile = useCallback(async () => {

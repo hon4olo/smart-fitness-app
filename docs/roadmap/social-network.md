@@ -135,9 +135,9 @@ Status: chronological server-authoritative source surface complete. Persistent l
 - [x] localized feed loading, empty, offline, expired-session, invalid-cursor, retry, refresh, and deleted-post detail states;
 - [x] Social feed access from the existing Profile surface without adding a bottom-tab destination.
 
-## Phase S4 — reactions, comments, and notifications
+## Phase S4 — reactions, comments, notifications, and anti-spam
 
-Status: reactions, bounded comments, and server-authoritative in-app notifications are source-complete end to end. Anti-spam controls remain pending.
+Status: reactions, bounded comments, server-authoritative notifications, and persistent Social write rate limits are source-complete end to end.
 
 - [x] one reaction per user/post with idempotent toggle semantics;
 - [x] bounded comments and delete-own-comment;
@@ -147,7 +147,8 @@ Status: reactions, bounded comments, and server-authoritative in-app notificatio
 - [x] localized notification loading, empty, sign-in, missing-profile, offline, expired-session, invalid-cursor, retry, pagination, and stale-notification states;
 - [x] notification navigation to the relevant profile or immutable workout post;
 - [x] Social notification access from the existing Profile surface without adding a bottom-tab destination;
-- [ ] rate limits and anti-spam controls;
+- [x] PostgreSQL-backed short-window and daily caps for profile updates, follow creation, workout publication, reaction toggles, and comment creation;
+- [x] stable `SOCIAL_RATE_LIMITED` responses with bounded retry-after details and localized write-surface recovery copy;
 - [ ] no push notifications until permission, privacy, and delivery contracts are separately approved.
 
 ## Phase S5 — moderation and trust
@@ -194,7 +195,8 @@ Do not begin without explicit prioritization:
 11. [x] Chronological following feed.
 12. [x] Reactions and bounded comments.
 13. [x] In-app notifications and read state.
-14. [ ] Moderation and physical-device release matrix.
+14. [x] Persistent Social write rate limits and localized recovery copy.
+15. [ ] Moderation and physical-device release matrix.
 
 ## Release boundary
 

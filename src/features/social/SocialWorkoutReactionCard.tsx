@@ -9,8 +9,10 @@ import { AppCard } from '@/components/ui/AppCard';
 import { InlineError } from '@/components/ui/InlineError';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
+import type { SupportedLocale } from '@/localization';
 
 import type { SocialWorkoutPostSurfaceStyles } from './screens/SocialWorkoutPostSurface.styles';
+import { getSocialRateLimitMessage } from './socialRateLimitCopy';
 import type { SocialWorkoutPostSurfaceCopy } from './socialWorkoutPostSurfaceCopy';
 import {
   getSocialWorkoutReactionLoadError,
@@ -23,6 +25,7 @@ type ReactionStatus = 'loading' | 'ready' | 'error';
 type SocialWorkoutReactionCardProps = {
   canReact: boolean;
   copy: SocialWorkoutPostSurfaceCopy;
+  locale: SupportedLocale;
   onCreateProfile: () => void;
   postId: string;
   socialApi: SocialApi;
@@ -32,6 +35,7 @@ type SocialWorkoutReactionCardProps = {
 export function SocialWorkoutReactionCard({
   canReact,
   copy,
+  locale,
   onCreateProfile,
   postId,
   socialApi,
@@ -86,9 +90,11 @@ export function SocialWorkoutReactionCard({
       );
       if (sequence !== requestSequence.current) return;
       setReaction(updated);
-    } catch {
+    } catch (error) {
       if (sequence !== requestSequence.current) return;
-      setMutationError(copy.reactionUpdateError);
+      setMutationError(
+        getSocialRateLimitMessage(error, locale) ?? copy.reactionUpdateError,
+      );
     } finally {
       if (sequence === requestSequence.current) {
         setMutationBusy(false);

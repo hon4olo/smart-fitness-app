@@ -14,6 +14,7 @@ import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import type { SupportedLocale } from '@/localization';
 
 import type { SocialWorkoutPostSurfaceStyles } from './screens/SocialWorkoutPostSurface.styles';
+import { getSocialRateLimitMessage } from './socialRateLimitCopy';
 import type { SocialWorkoutPostSurfaceCopy } from './socialWorkoutPostSurfaceCopy';
 import {
   buildPendingSocialWorkoutComment,
@@ -141,9 +142,11 @@ export function SocialWorkoutCommentsCard({
       setComments((current) => mergeSocialWorkoutComments(current, [created]));
       setDraft('');
       pendingSubmission.current = null;
-    } catch {
+    } catch (error) {
       if (sequence !== requestSequence.current) return;
-      setSubmitError(copy.commentsCreateError);
+      setSubmitError(
+        getSocialRateLimitMessage(error, locale) ?? copy.commentsCreateError,
+      );
     } finally {
       if (sequence === requestSequence.current) setSubmitBusy(false);
     }

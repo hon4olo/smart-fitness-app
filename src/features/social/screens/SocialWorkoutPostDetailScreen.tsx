@@ -226,6 +226,7 @@ export default function SocialWorkoutPostDetailScreen() {
             <SocialWorkoutReactionCard
               canReact={ownUsername !== null}
               copy={copy}
+              locale={locale}
               onCreateProfile={() => router.push('/settings/social-profile')}
               postId={post.id}
               socialApi={socialApi}
