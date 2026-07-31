@@ -51,6 +51,20 @@ const reaction = {
   reactionCount: 7,
 };
 
+const comment = {
+  schemaVersion: 1,
+  id: '00000000-0000-4000-8000-000000000101',
+  author: profile,
+  body: 'Strong session',
+  createdAt: '2026-07-31T10:00:00.000Z',
+};
+
+const commentPage = {
+  schemaVersion: 1,
+  items: [comment],
+  nextCursor: 'comment-next-page',
+};
+
 const createAuth = () => ({
   getAccessToken: vi.fn().mockResolvedValue('access-token'),
   refreshAccessToken: vi.fn().mockResolvedValue('refreshed-token'),
@@ -217,7 +231,55 @@ describe('social API client', () => {
     }
   });
 
-  it('rejects invalid pagination and reaction IDs before network access', async () => {
+  it('lists, creates, and deletes encoded workout-post comments', async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(commentPage)
+      .mockResolvedValueOnce({ comment })
+      .mockResolvedValueOnce({ success: true });
+    const api = createSocialApi(createAuth(), createClient(request));
+
+    await expect(
+      api.listWorkoutPostComments('post/segment', {
+        limit: 20,
+        cursor: 'comment/cursor',
+      }),
+    ).resolves.toEqual(commentPage);
+    await expect(
+      api.createWorkoutPostComment('post/segment', {
+        body: '  Strong session  ',
+        idempotencyKey: '  comment-idempotency-key  ',
+      }),
+    ).resolves.toEqual(comment);
+    await expect(
+      api.deleteWorkoutPostComment('post/segment', 'comment/segment'),
+    ).resolves.toBeUndefined();
+
+    expect(request).toHaveBeenNthCalledWith(1, {
+      method: 'GET',
+      path: '/v1/social/workout-posts/post%2Fsegment/comments?limit=20&cursor=comment%2Fcursor',
+      headers: { authorization: 'Bearer access-token' },
+      retry: false,
+    });
+    expect(request).toHaveBeenNthCalledWith(2, {
+      method: 'POST',
+      path: '/v1/social/workout-posts/post%2Fsegment/comments',
+      body: {
+        body: 'Strong session',
+        idempotencyKey: 'comment-idempotency-key',
+      },
+      headers: { authorization: 'Bearer access-token' },
+      retry: false,
+    });
+    expect(request).toHaveBeenNthCalledWith(3, {
+      method: 'DELETE',
+      path: '/v1/social/workout-posts/post%2Fsegment/comments/comment%2Fsegment',
+      headers: { authorization: 'Bearer access-token' },
+      retry: false,
+    });
+  });
+
+  it('rejects invalid pagination, reaction IDs, and comment input before network access', async () => {
     const request = vi.fn().mockResolvedValue(listPage);
     const api = createSocialApi(createAuth(), createClient(request));
 
@@ -245,6 +307,30 @@ describe('social API client', () => {
     await expect(api.unreactToWorkoutPost('   ')).rejects.toThrow(
       'Social workout post ID is required',
     );
+    await expect(api.listWorkoutPostComments('   ')).rejects.toThrow(
+      'Social workout post ID is required',
+    );
+    await expect(
+      api.listWorkoutPostComments('post-id', { limit: 51 }),
+    ).rejects.toThrow('between 1 and 50');
+    await expect(
+      api.listWorkoutPostComments('post-id', { cursor: '   ' }),
+    ).rejects.toThrow('must not be empty');
+    await expect(
+      api.createWorkoutPostComment('post-id', {
+        body: '   ',
+        idempotencyKey: 'comment-idempotency-key',
+      }),
+    ).rejects.toThrow('between 1 and 500');
+    await expect(
+      api.createWorkoutPostComment('post-id', {
+        body: 'Valid',
+        idempotencyKey: 'short',
+      }),
+    ).rejects.toThrow('between 16 and 128');
+    await expect(
+      api.deleteWorkoutPostComment('post-id', '   '),
+    ).rejects.toThrow('Social workout comment ID is required');
     expect(request).not.toHaveBeenCalled();
   });
 });
