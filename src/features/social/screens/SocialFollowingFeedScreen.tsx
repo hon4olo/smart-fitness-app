@@ -20,6 +20,7 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
+import { getDefaultSocialFollowingFeedCacheStore } from '../socialFollowingFeedCache';
 import { getSocialFollowingFeedCopy } from '../socialFollowingFeedCopy';
 import { SocialWorkoutPostCard } from '../SocialWorkoutPostCard';
 import { getSocialWorkoutPostSurfaceCopy } from '../socialWorkoutPostSurfaceCopy';
@@ -43,12 +44,18 @@ export default function SocialFollowingFeedScreen() {
   const postCopy = getSocialWorkoutPostSurfaceCopy(locale);
   const styles = useMemo(() => createSocialWorkoutPostSurfaceStyles(colors), [colors]);
   const { isAuthenticated, ready, refresh, session } = useAuthSession();
+  const accountId = session?.user.id ?? null;
+  const cacheStore = useMemo(
+    () => getDefaultSocialFollowingFeedCacheStore(),
+    [],
+  );
   const requestSequence = useRef(0);
   const [status, setStatus] = useState<FeedStatus>('idle');
   const [posts, setPosts] = useState<SocialWorkoutPostDto[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showingCachedFeed, setShowingCachedFeed] = useState(false);
   const [loadError, setLoadError] = useState<SocialWorkoutPostLoadError | null>(
     null,
   );
@@ -64,36 +71,69 @@ export default function SocialFollowingFeedScreen() {
 
   const loadFirstPage = useCallback(
     async (asRefresh = false) => {
-      if (!isAuthenticated) return;
+      if (!isAuthenticated || !accountId) return;
       const sequence = ++requestSequence.current;
+      const hadVisiblePosts = posts.length > 0;
+      let cachedPageShown = false;
+
       if (asRefresh) {
         setRefreshing(true);
       } else {
         setStatus('loading');
         setPosts([]);
         setNextCursor(null);
+        setShowingCachedFeed(false);
       }
       setLoadError(null);
+
+      if (!asRefresh) {
+        const cached = await cacheStore.load(accountId);
+        if (sequence !== requestSequence.current) return;
+        if (cached) {
+          cachedPageShown = true;
+          setPosts(cached.items);
+          setNextCursor(null);
+          setShowingCachedFeed(true);
+          setStatus('ready');
+        }
+      }
 
       try {
         const page = await socialApi.listFollowingFeed({ limit: PAGE_SIZE });
         if (sequence !== requestSequence.current) return;
         setPosts(page.items);
         setNextCursor(page.nextCursor);
+        setShowingCachedFeed(false);
         setStatus('ready');
+        setRefreshing(false);
+        if (page.items.length > 0) {
+          await cacheStore.save(accountId, page.items);
+        } else {
+          await cacheStore.remove(accountId);
+        }
       } catch (error) {
         if (sequence !== requestSequence.current) return;
-        setLoadError(getSocialWorkoutPostLoadError(error));
-        if (!asRefresh || posts.length === 0) setStatus('error');
+        const mapped = getSocialWorkoutPostLoadError(error);
+        setLoadError(mapped);
+        if (mapped === 'session_expired') {
+          setPosts([]);
+          setNextCursor(null);
+          setShowingCachedFeed(false);
+          setStatus('error');
+        } else if (cachedPageShown || (asRefresh && hadVisiblePosts)) {
+          setStatus('ready');
+        } else {
+          setStatus('error');
+        }
       } finally {
         if (sequence === requestSequence.current) setRefreshing(false);
       }
     },
-    [isAuthenticated, posts.length, socialApi],
+    [accountId, cacheStore, isAuthenticated, posts.length, socialApi],
   );
 
   const loadMore = async () => {
-    if (!nextCursor || loadingMore) return;
+    if (!nextCursor || loadingMore || showingCachedFeed) return;
     const sequence = ++requestSequence.current;
     setLoadingMore(true);
     setLoadError(null);
@@ -115,18 +155,19 @@ export default function SocialFollowingFeedScreen() {
 
   useEffect(() => {
     if (!ready) return;
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !accountId) {
       requestSequence.current += 1;
       setStatus('idle');
       setPosts([]);
       setNextCursor(null);
+      setShowingCachedFeed(false);
       return;
     }
     void loadFirstPage(false);
     return () => {
       requestSequence.current += 1;
     };
-  }, [isAuthenticated, ready, socialApi]);
+  }, [accountId, isAuthenticated, ready, socialApi]);
 
   const openPost = (postId: string) => {
     router.push({ pathname: '/social/workout-post/[postId]', params: { postId } });
@@ -195,6 +236,12 @@ export default function SocialFollowingFeedScreen() {
           </StateCard>
         ) : null}
 
+        {ready && isAuthenticated && status === 'ready' && showingCachedFeed ? (
+          <AppCard>
+            <Text style={styles.body}>{copy.cachedNotice}</Text>
+          </AppCard>
+        ) : null}
+
         {ready && isAuthenticated && status === 'ready' && posts.length === 0 ? (
           <StateCard body={copy.emptyBody} styles={styles} title={copy.emptyTitle}>
             <PrimaryButton label={copy.findProfiles} onPress={() => router.push('/social')} />
@@ -229,7 +276,8 @@ export default function SocialFollowingFeedScreen() {
         isAuthenticated &&
         status === 'ready' &&
         nextCursor &&
-        !loadError ? (
+        !loadError &&
+        !showingCachedFeed ? (
           <SecondaryButton
             disabled={loadingMore}
             label={copy.loadMore}
