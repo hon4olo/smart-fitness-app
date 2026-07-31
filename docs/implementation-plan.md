@@ -2,18 +2,18 @@
 
 Updated: 2026-08-01
 
-Canonical active plan for `hon4olo/smart-fitness-app`. Backend work is included only when a mobile slice requires a server-contract change. Completed implementation history belongs in merged PRs and Git history.
+Canonical active plan for `hon4olo/smart-fitness-app`. Completed implementation history belongs in merged PRs and Git history. Backend work is included only when a mobile slice requires a server-contract change.
 
 ## Verified baseline
 
 Mobile:
 
-- current `main`: `f5bd042282381f1e5cd36ad99a37ab6194051226`;
+- current `main`: `b2f8133fa530a00211be7ad3dea8a571f600e2b6`;
 - Expo SDK 56, React Native, Expo Router, TypeScript;
 - offline-first repository persistence;
 - ordered observable mutation queue;
 - revision-aware synchronization for supported domains;
-- `react-native-svg` is already installed;
+- `react-native-svg` is installed;
 - blocking Mobile CI covers line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor.
 
 Backend:
@@ -35,59 +35,62 @@ Backend:
 
 Status: in progress.
 
-## 1. Repository and roadmap cleanup
+## Completed cleanup slices
 
-Completed in PR #291, merge `5329e992374376c0b381e14d4c19b3ff103aae2b`:
+### PR #291 — roadmap and root artifacts
+
+Merge: `5329e992374376c0b381e14d4c19b3ff103aae2b`.
 
 - [x] replace the stale completion-history roadmap with this active plan;
 - [x] remove tracked `repomix-output.xml` and empty `connect.txt`;
 - [x] ignore Repomix output, connection notes, coverage, and generic logs;
-- [x] pass full Mobile CI on the exact merged head.
+- [x] pass full Mobile CI.
 
-## 2. Legacy tab routes
+### PR #292 — legacy tab compatibility
 
-Completed in PR #292, merge `f5bd042282381f1e5cd36ad99a37ab6194051226`:
+Merge: `f5bd042282381f1e5cd36ad99a37ab6194051226`.
 
 - [x] preserve `/labs`, `/track`, and `/eat` as explicit compatibility redirects;
-- [x] route them to Progress, Workouts, and Nutrition respectively;
-- [x] replace internal Home usage with canonical tab routes;
+- [x] route them to Progress, Workouts, and Nutrition;
+- [x] replace internal Home usage with canonical routes;
 - [x] fix Home Add Food opening Workouts through `/track`;
-- [x] add a contract test preventing internal legacy-route reuse;
-- [x] pass full Mobile CI on the exact merged head.
+- [x] add a regression guard and pass full Mobile CI.
 
 `src/app/(tabs)/coach.tsx` is a real public screen and is not legacy code.
 
-## 3. Empty-state consolidation
+### PR #293 — empty-state consolidation
 
-Current PR #293:
+Merge: `b2f8133fa530a00211be7ad3dea8a571f600e2b6`.
 
-- [x] inventory exact consumers through a temporary source audit;
-- [x] confirm both nutrition empty-state files are unused;
-- [x] migrate Progress, workout builder, exercise library, and workout history to shared `EmptyState`;
-- [x] preserve the existing compact presentation, copy, and actions;
-- [x] remove `EmptyNutritionState.tsx`, `NutritionEmptyState.tsx`, `EmptyProgressState.tsx`, and `EmptyWorkoutState.tsx`;
-- [x] remove the temporary audit and add a permanent duplicate-wrapper regression guard;
+- [x] inventory exact consumers;
+- [x] remove two unused Nutrition empty-state files;
+- [x] migrate Progress and workout consumers to shared `EmptyState`;
+- [x] remove redundant Progress and Workout wrappers;
+- [x] preserve compact presentation, copy, and actions;
+- [x] add a permanent duplicate-wrapper regression guard;
+- [x] pass full Mobile CI and squash-merge the exact green head.
+
+## Current slice — cloud module classification
+
+PR #294:
+
+- [x] inventory every TypeScript file under `src/cloud/`;
+- [x] identify 79 files: 45 production modules and 34 colocated tests;
+- [x] verify all 45 production modules are reachable from runtime entry points;
+- [x] confirm zero orphaned or dead production cloud modules;
+- [x] document the module groups and runtime roots;
+- [x] add a reachability guard that rejects test-only reachability and internal orphan cycles;
+- [x] reject generic deletion of `src/cloud/` as unsafe for the current codebase;
 - [ ] pass full Mobile CI and squash-merge the exact green head.
 
-## 4. Cloud-module inventory
+Inventory: `docs/architecture/cloud-module-inventory.md`.
 
-`src/cloud/` is not presumed dead. Active authentication, synchronization, recovery, and outbox behavior depend on parts of it.
-
-Tasks:
-
-- [ ] classify modules as production-used, feature-gated, test-only, duplicate, or unreachable;
-- [ ] remove only code with no import, runtime, persisted-compatibility, or test responsibility;
-- [ ] isolate future-only code behind an explicit boundary;
-- [ ] preserve revision, cursor, conflict, recovery, and idempotency semantics.
-
-## 5. Placeholder timestamps
-
-Tasks:
+## Remaining Phase 1 work — placeholder timestamps
 
 - [ ] inventory sentinel timestamps such as `2000-01-01T00:00:00.000Z`;
-- [ ] classify each as unknown date, bundled data, migration fallback, or sort key;
+- [ ] classify each as unknown date, bundled data, migration fallback, or deterministic sort key;
 - [ ] replace ambiguous sentinels with nullable dates, source metadata, or stable sort order;
-- [ ] add persisted-state migration when the serialized contract changes;
+- [ ] add a persisted-state migration when the serialized contract changes;
 - [ ] never substitute current time during hydration.
 
 ### Phase 1 exit criteria
@@ -95,7 +98,8 @@ Tasks:
 - temporary artifacts are untracked and ignored;
 - legacy routes are compatibility redirects only;
 - duplicate presentation wrappers are removed without semantic loss;
-- no active sync or recovery path is removed;
+- cloud synchronization modules are classified and protected from accidental orphaning;
+- placeholder timestamps have explicit semantics;
 - persisted data remains readable;
 - every slice has green blocking Mobile CI.
 
@@ -105,32 +109,22 @@ Status: pending Phase 1.
 
 The existing `AppContext` is already internally decomposed into infrastructure and domain action hooks. This phase narrows public subscriptions rather than rewriting the app from zero.
 
-## 1. Domain subscription boundaries
-
-Create focused state/action access for:
-
-- workouts, sessions, programs, templates, and exercises;
-- food entries, targets, meal templates, and Nutrition library data;
-- weight, measurements, and progress analytics;
-- profile, onboarding, goals, and preferences;
-- restore, persistence failure, authentication, and synchronization status.
-
-Tasks:
+## Domain subscription boundaries
 
 - [ ] separate state subscriptions from action access;
-- [ ] expose focused hooks instead of one application-wide value object;
+- [ ] expose focused hooks for workouts, Nutrition, progress, profile, and infrastructure;
 - [ ] retain one internal orchestration boundary during migration;
 - [ ] migrate consumers one domain at a time;
 - [ ] add render-focused regression coverage where practical.
 
-## 2. Pure selectors
+## Pure selectors
 
-- [ ] extract program, session, daily nutrition, weekly volume, weight-trend, and personal-record selectors;
+- [ ] extract program, session, daily Nutrition, weekly volume, weight-trend, and personal-record selectors;
 - [ ] accept minimum required state slices;
 - [ ] keep time, locale, and unit boundaries explicit;
 - [ ] cover legacy normalization and edge cases with unit tests.
 
-## 3. Coalesced persistence
+## Coalesced persistence
 
 Required behavior:
 
@@ -164,7 +158,7 @@ Tasks:
 - [ ] preserve failure notices and retry controls;
 - [ ] verify restart recovery and planner regeneration.
 
-## 4. State-library decision gate
+## State-library decision gate
 
 - [ ] profile domain contexts first;
 - [ ] consider Zustand only if broad subscriptions remain materially expensive;
@@ -184,13 +178,7 @@ Status: pending Phase 2 subscription boundaries.
 
 ## Performance baseline
 
-Representative fixtures:
-
-- 500 food entries;
-- 100 programs;
-- 500 completed sessions;
-- 500 exercises;
-- 365 weight entries.
+Use representative fixtures: 500 food entries, 100 programs, 500 completed sessions, 500 exercises, and 365 weight entries.
 
 Measure render commits, first render, tab switching, long-list scrolling, restore/save duration, and authorized real-device memory behavior.
 
@@ -248,13 +236,6 @@ Use installed `react-native-svg` by default.
 - [ ] display 8–12 weeks with UI-boundary unit conversion;
 - [ ] test deloads, incomplete sets, missing values, legacy data, and timezone edges.
 
-### Phase 4 exit criteria
-
-- both charts use tested selectors;
-- formatting remains centralized;
-- accessibility summaries are useful;
-- no chart framework is added without a documented capability gap.
-
 # External and deferred work
 
 Not part of autonomous refactor execution:
@@ -273,8 +254,8 @@ Not part of autonomous refactor execution:
 
 1. [x] Active roadmap and root artifact cleanup — PR #291.
 2. [x] Legacy-route compatibility and Home navigation repair — PR #292.
-3. [ ] Empty-state consolidation — PR #293.
-4. [ ] Cloud inventory and confirmed dead-code removal.
+3. [x] Empty-state consolidation — PR #293.
+4. [ ] Cloud inventory and reachability guard — PR #294.
 5. [ ] Placeholder timestamp model and migrations where required.
 6. [ ] Domain state/action subscription boundaries.
 7. [ ] Pure selectors and consumer migration.
@@ -286,15 +267,8 @@ Not part of autonomous refactor execution:
 
 # Validation policy
 
-Every code-bearing mobile slice requires:
-
-- focused tests;
-- `npx tsc --noEmit`;
-- `npm test`;
-- blocking Mobile CI, including line audits, Expo export, and Expo Doctor;
-- review-thread inspection;
-- merge of the exact green head only.
+Every code-bearing mobile slice requires focused tests, `npx tsc --noEmit`, `npm test`, blocking Mobile CI, review-thread inspection, and merge of the exact green head only.
 
 # Immediate next action
 
-Finish full validation and squash-merge PR #293. Then begin a read-only `src/cloud/` inventory before deleting any synchronization code.
+Finish full validation and squash-merge PR #294. Then inventory placeholder timestamps before changing any persisted model.
