@@ -98,6 +98,13 @@ export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark)
       lineHeight: Typography.cardTitle.lineHeight,
     },
     pressed: { opacity: 0.72 },
+    reactionCopy: { flex: 1, gap: Spacing.one },
+    reactionRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: Spacing.three,
+      justifyContent: 'space-between',
+    },
     screen: { backgroundColor: colors.background, flex: 1 },
     setRow: {
       alignItems: 'center',
