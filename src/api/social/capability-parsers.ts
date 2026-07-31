@@ -26,24 +26,26 @@ const fail = (): never => {
 export const parseSocialCapabilitiesResponse = (
   value: unknown,
 ): SocialCapabilitiesDto => {
-  if (!isRecord(value) || !hasExactKeys(value, ['capabilities'])) fail();
+  if (!isRecord(value)) fail();
+  if (!hasExactKeys(value, ['capabilities'])) fail();
+
   const capabilities = value.capabilities;
-  if (
-    !isRecord(capabilities) ||
-    !hasExactKeys(capabilities, ['schemaVersion', 'textModeration']) ||
-    capabilities.schemaVersion !== SOCIAL_CAPABILITIES_SCHEMA_VERSION
-  ) {
-    fail();
-  }
+  if (!isRecord(capabilities)) fail();
+  if (!hasExactKeys(capabilities, ['schemaVersion', 'textModeration'])) fail();
+  if (capabilities.schemaVersion !== SOCIAL_CAPABILITIES_SCHEMA_VERSION) fail();
 
   const textModeration = capabilities.textModeration;
+  if (!isRecord(textModeration)) fail();
   if (
-    !isRecord(textModeration) ||
     !hasExactKeys(textModeration, [
       'schemaVersion',
       'enforcementRequired',
       'reviewRequiredBehavior',
-    ]) ||
+    ])
+  ) {
+    fail();
+  }
+  if (
     textModeration.schemaVersion !==
       SOCIAL_TEXT_MODERATION_CAPABILITY_SCHEMA_VERSION ||
     typeof textModeration.enforcementRequired !== 'boolean' ||
