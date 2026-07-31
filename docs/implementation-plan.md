@@ -16,7 +16,7 @@ Implemented:
 - production Fastify/PostgreSQL backend at `https://api.peptonio.com`;
 - offline-first mobile persistence and ordered observable mutations;
 - native SecureStore authentication tokens;
-- revisioned sync for weight history, workout sessions/sets, workout templates, food entries, nutrition targets, fitness profiles, limitations, recovery check-ins, body measurements, training programs, custom exercises, and meal templates;
+- revisioned sync for weight history, workout sessions/sets, workout templates, food entries, nutrition targets, fitness profiles, limitations, recovery check-ins, body measurements, training programs, custom exercises, meal templates, and the account-scoped Nutrition library;
 - deterministic Nutrition, Strength, and Safety & Recovery reviews;
 - structured Nutrition and Strength Strategy previews with explicit confirmations;
 - read-only Combined Review and Combined Proposal with effective Safety-capped Strength;
@@ -36,7 +36,7 @@ Status: complete and maintained continuously.
 - [x] record the oversized-file audit and blocking CI baseline;
 - [x] maintain one canonical priority order;
 - [x] remove stale custom-exercise and meal-template “unfinished” wording from secondary instruction documents;
-- [x] refresh localization roadmap after repository-wide control/status audits.
+- [x] refresh localization and sync-hardening roadmaps after completed source audits.
 
 Acceptance criteria:
 
@@ -93,31 +93,33 @@ Do not reimplement these entities or describe them as local-only.
 
 ## Phase 3 — sync and persistence hardening
 
-Status: partially complete and the first active code phase.
+Status: source implementation and automated coverage complete for the current contracts. Physical multi-device validation remains external.
 
 Completed:
 
-- [x] durable restart replay for weight-history save-succeeded/outbox-enqueue-failed mutations;
+- [x] durable restart replay for the eager weight-history save-succeeded/outbox-enqueue-failed path;
+- [x] architecture audit confirming planner-based domains regenerate operations after restart from persisted state, metadata, and pending queue instead of requiring duplicate journals;
 - [x] persisted unresolved conflicts with restart restoration and per-user isolation;
 - [x] deterministic push validation isolation;
 - [x] idempotency-key length migration and targeted key-reuse repair;
 - [x] cursor advancement guarded by supported-entity handling and conflicts;
-- [x] existing focused token-refresh and concurrent-pull coverage for implemented paths;
-- [x] representative PostgreSQL concurrency coverage for Nutrition library sync.
+- [x] push and pull 401 refresh/retry coverage preserving exact cursor, payload, base revision, and idempotency key;
+- [x] behavioral concurrent local-mutation / remote-materialization coverage using a non-weight entity;
+- [x] source-level two-device conflict coverage for mutable synchronized domains, including independent edits, overlapping edits, duplicate delivery, update-versus-delete, delete-versus-update, and matching deletes;
+- [x] real PostgreSQL Nutrition-library create/update/delete concurrency and replay coverage in backend PR #62;
+- [x] bounded user-visible Data & Sync status, retry, recovery replay, conflict review, and privacy-safe diagnostics.
 
-Next source-verifiable work:
+Recovery boundary:
 
-- [ ] audit every critical synchronized mutation against the durable recovery contract;
-- [ ] extend recovery journaling where save-succeeded/enqueue-failed can still lose an operation after restart;
-- [ ] fill confirmed token-refresh gaps for push and pull;
-- [ ] fill confirmed concurrent local-mutation / remote-materialization gaps across representative entities;
-- [ ] complete source-level two-device conflict coverage for mutable synchronized entities;
-- [ ] keep user-visible Data & Sync recovery bounded, sanitized, and non-destructive.
+- weight history creates an eager outbox operation as part of the ordered local mutation and therefore journals the exact operation before queue enqueue;
+- planner-based domains persist canonical local state first and deterministically plan missing operations during synchronization, so a failed enqueue is regenerated on the next sync;
+- do not add duplicate recovery journals to planner-based domains unless a future mutation bypasses deterministic replanning.
 
-External validation:
+External validation still required:
 
 - [ ] physical second-device conflict matrix;
-- [ ] offline restart and queue recovery on a matching standalone runtime.
+- [ ] offline termination, restart, queue recovery, reconnect, and eventual synchronization on a matching standalone runtime;
+- [ ] verify user-visible conflict/recovery states during those scenarios.
 
 Acceptance criteria:
 
@@ -170,11 +172,12 @@ Completed:
 - [x] line audits, TypeScript, Coach/sync contracts, Expo export, and Doctor are blocking;
 - [x] backend lint/build/test/migration/schema/startup/health checks are blocking;
 - [x] rollout, rollback, crash-reporting, and release-validation documents exist;
-- [x] localization source audits are blocking.
+- [x] localization source audits are blocking;
+- [x] fixed-SHA cross-repository release workflow exists.
 
 Remaining:
 
-- [ ] configure and run the fixed-SHA cross-repository release gate;
+- [ ] configure `BACKEND_REPOSITORY_TOKEN` and run the fixed-SHA cross-repository release gate;
 - [ ] verify matching native runtime includes SecureStore and all native modules;
 - [ ] run physical workout, nutrition, progress, auth, sync, Coach, accessibility, and offline smoke tests;
 - [ ] validate narrow/standard/wide layouts and EN/RU appearance/unit matrices;
@@ -184,12 +187,15 @@ Green source CI does not replace device validation.
 
 ## Immediate next actions
 
-1. Audit durable recovery coverage for every critical synchronized mutation and implement the first confirmed gap.
-2. Audit existing token-refresh, concurrent-materialization, and two-device tests before adding non-duplicative coverage.
-3. Add safe user-visible Data & Sync recovery only where a real recoverable action exists.
-4. Introduce provider-neutral Coach model configuration when staging credentials are available.
-5. Configure the fixed-SHA cross-repository release gate.
-6. Complete physical release-device, offline-restart, accessibility, and second-device validation.
+No currently known autonomous source-level Phase 0–3 gap remains.
+
+1. Configure and run the fixed-SHA cross-repository release gate when repository-token access is explicitly authorized.
+2. Configure provider-neutral Coach staging credentials/model selection and validate structured outputs when explicitly authorized.
+3. Create matching native builds and complete physical release-device, offline-restart, accessibility, and second-device validation when explicitly authorized.
+4. Define an explicit local-versus-account conflict-choice contract before adding destructive conflict controls.
+5. Define privacy, consent, identity, retention, and deletion requirements before product analytics.
+6. Measure local-state size and restore/save duration before any SQLite migration decision.
+7. Continue bounded source work only for a newly discovered regression or separately prioritized product feature.
 
 ## Operating rules
 
