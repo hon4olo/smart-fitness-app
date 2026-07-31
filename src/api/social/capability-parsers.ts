@@ -19,23 +19,29 @@ const hasExactKeys = (
   );
 };
 
-const fail = (): never => {
-  throw new Error('Invalid Social capabilities response');
-};
+const invalidResponse = (): Error =>
+  new Error('Invalid Social capabilities response');
 
 export const parseSocialCapabilitiesResponse = (
   value: unknown,
 ): SocialCapabilitiesDto => {
-  if (!isRecord(value)) fail();
-  if (!hasExactKeys(value, ['capabilities'])) fail();
+  if (!isRecord(value)) throw invalidResponse();
+  const root = value;
+  if (!hasExactKeys(root, ['capabilities'])) throw invalidResponse();
 
-  const capabilities = value.capabilities;
-  if (!isRecord(capabilities)) fail();
-  if (!hasExactKeys(capabilities, ['schemaVersion', 'textModeration'])) fail();
-  if (capabilities.schemaVersion !== SOCIAL_CAPABILITIES_SCHEMA_VERSION) fail();
+  const capabilitiesValue = root.capabilities;
+  if (!isRecord(capabilitiesValue)) throw invalidResponse();
+  const capabilities = capabilitiesValue;
+  if (!hasExactKeys(capabilities, ['schemaVersion', 'textModeration'])) {
+    throw invalidResponse();
+  }
+  if (capabilities.schemaVersion !== SOCIAL_CAPABILITIES_SCHEMA_VERSION) {
+    throw invalidResponse();
+  }
 
-  const textModeration = capabilities.textModeration;
-  if (!isRecord(textModeration)) fail();
+  const textModerationValue = capabilities.textModeration;
+  if (!isRecord(textModerationValue)) throw invalidResponse();
+  const textModeration = textModerationValue;
   if (
     !hasExactKeys(textModeration, [
       'schemaVersion',
@@ -43,7 +49,7 @@ export const parseSocialCapabilitiesResponse = (
       'reviewRequiredBehavior',
     ])
   ) {
-    fail();
+    throw invalidResponse();
   }
   if (
     textModeration.schemaVersion !==
@@ -51,7 +57,7 @@ export const parseSocialCapabilitiesResponse = (
     typeof textModeration.enforcementRequired !== 'boolean' ||
     textModeration.reviewRequiredBehavior !== 'not_public'
   ) {
-    fail();
+    throw invalidResponse();
   }
 
   return {

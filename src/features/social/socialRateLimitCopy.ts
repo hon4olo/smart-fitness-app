@@ -4,6 +4,11 @@ import {
 } from '@/api/social';
 import type { SupportedLocale } from '@/localization';
 
+import {
+  getSocialContentModerationMessage,
+  getSocialContentModerationUiState,
+} from './socialContentModerationUi';
+
 const formatWait = (
   locale: SupportedLocale,
   retryAfterSeconds: number | null,
@@ -29,7 +34,13 @@ const formatWait = (
 export const getSocialRateLimitMessage = (
   error: unknown,
   locale: SupportedLocale,
-): string | null =>
-  getSocialApiErrorCode(error) === 'SOCIAL_RATE_LIMITED'
+): string | null => {
+  const moderationState = getSocialContentModerationUiState(error);
+  if (moderationState) {
+    return getSocialContentModerationMessage(moderationState, locale);
+  }
+
+  return getSocialApiErrorCode(error) === 'SOCIAL_RATE_LIMITED'
     ? formatWait(locale, getSocialRateLimitRetryAfterSeconds(error))
     : null;
+};
