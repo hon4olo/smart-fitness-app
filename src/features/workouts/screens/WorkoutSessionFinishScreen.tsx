@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/AppContext';
+import { getShareWorkoutCopy } from '@/features/social/shareWorkoutCopy';
 import { openAppleHealthIntegration } from '@/features/workouts/integrations/appleHealth';
 import { openStravaIntegration } from '@/features/workouts/integrations/strava';
 import { openWorkoutMediaIntegration } from '@/features/workouts/integrations/workoutMedia';
@@ -74,7 +75,8 @@ const formatDateTimeLabel = (value: string, formatDate: ReturnType<typeof useLoc
 export default function WorkoutSessionFinishScreen() {
   const { isRestoringState, saveWorkoutSession } = useAppContext();
   const { colors } = useWorkoutTheme();
-  const { formatDate, t } = useLocalization();
+  const { formatDate, locale, t } = useLocalization();
+  const shareCopy = getShareWorkoutCopy(locale);
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createWorkoutSessionFinishStyles(colors), [colors]);
   const [draft, setDraft] = useState<ReturnType<typeof getActiveWorkoutSessionDraft> | undefined>(
@@ -138,9 +140,9 @@ export default function WorkoutSessionFinishScreen() {
     router.replace('/workouts');
   };
 
-  const handleSave = () => {
+  const completeWorkout = () => {
     if (!canSave || saveGuard.current) {
-      return;
+      return null;
     }
 
     saveGuard.current = true;
@@ -160,7 +162,22 @@ export default function WorkoutSessionFinishScreen() {
     saveWorkoutSession(completedSnapshot);
     clearActiveWorkoutSessionDraft();
     markActiveWorkoutSessionCompleted();
-    router.replace('/workouts');
+    return completedSnapshot;
+  };
+
+  const handleSave = () => {
+    if (completeWorkout()) {
+      router.replace('/workouts');
+    }
+  };
+
+  const handleSaveAndShare = () => {
+    const completedSnapshot = completeWorkout();
+    if (!completedSnapshot) return;
+    router.replace({
+      pathname: '/social/share-workout/[sessionId]',
+      params: { sessionId: completedSnapshot.id },
+    });
   };
 
   const discardWorkout = () => {
@@ -180,7 +197,7 @@ export default function WorkoutSessionFinishScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 4, paddingBottom: insets.bottom + 112 },
+          { paddingTop: insets.top + 4, paddingBottom: insets.bottom + 176 },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
@@ -284,8 +301,20 @@ export default function WorkoutSessionFinishScreen() {
             paddingBottom: insets.bottom + Spacing.two,
           },
         ]}>
-        <View style={styles.container}>
+        <View style={[styles.container, styles.footerStack]}>
           <Pressable
+            accessibilityRole="button"
+            disabled={!canSave}
+            onPress={handleSaveAndShare}
+            style={({ pressed }) => [
+              styles.shareButton,
+              !canSave && styles.shareButtonDisabled,
+              pressed && canSave && styles.pressed,
+            ]}>
+            <Text style={styles.shareButtonLabel}>{shareCopy.title}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
             disabled={!canSave}
             onPress={handleSave}
             style={({ pressed }) => [
