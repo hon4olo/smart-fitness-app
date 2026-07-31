@@ -16,6 +16,7 @@ import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
 import { SocialWorkoutPostDetailContent } from '../SocialWorkoutPostDetailContent';
+import { SocialWorkoutReactionCard } from '../SocialWorkoutReactionCard';
 import { getSocialWorkoutPostSurfaceCopy } from '../socialWorkoutPostSurfaceCopy';
 import {
   getSocialWorkoutPostLoadError,
@@ -49,6 +50,7 @@ export default function SocialWorkoutPostDetailScreen() {
   const requestSequence = useRef(0);
   const [status, setStatus] = useState<DetailStatus>('idle');
   const [post, setPost] = useState<SocialWorkoutPostDto | null>(null);
+  const [hasOwnProfile, setHasOwnProfile] = useState(false);
   const [isOwnPost, setIsOwnPost] = useState(false);
   const [loadError, setLoadError] = useState<SocialWorkoutPostLoadError | null>(
     null,
@@ -74,6 +76,7 @@ export default function SocialWorkoutPostDetailScreen() {
     const sequence = ++requestSequence.current;
     setStatus('loading');
     setPost(null);
+    setHasOwnProfile(false);
     setIsOwnPost(false);
     setLoadError(null);
     setDeleteError(null);
@@ -85,6 +88,7 @@ export default function SocialWorkoutPostDetailScreen() {
       ]);
       if (sequence !== requestSequence.current) return;
       setPost(loadedPost);
+      setHasOwnProfile(Boolean(ownProfile));
       setIsOwnPost(ownProfile?.username === loadedPost.author.username);
       setStatus('ready');
     } catch (error) {
@@ -214,6 +218,14 @@ export default function SocialWorkoutPostDetailScreen() {
               copy={copy}
               locale={locale}
               post={post}
+              styles={styles}
+            />
+            <SocialWorkoutReactionCard
+              canReact={hasOwnProfile}
+              copy={copy}
+              onCreateProfile={() => router.push('/settings/social-profile')}
+              postId={post.id}
+              socialApi={socialApi}
               styles={styles}
             />
             {isOwnPost ? (
