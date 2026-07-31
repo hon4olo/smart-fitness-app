@@ -10,6 +10,7 @@ Read this index together with:
 - `PROJECT_LEARNINGS.md`;
 - `docs/implementation-plan.md`;
 - `docs/nutrition-roadmap.md`;
+- `docs/roadmap/social-network.md`;
 - `docs/release/validation-record-2026-07-24.md`;
 - `docs/release/rollout-and-rollback.md`;
 - `docs/release/crash-reporting.md`;
@@ -33,12 +34,12 @@ Always inspect current `main` and open pull requests in both repositories before
 - Do not add a second backend or provider secrets to mobile code.
 - Do not perform OTA/EAS publish, native builds, device installation, backend deployment, staging activation, or production activation unless explicitly requested.
 - New user-facing copy must use the localization layer.
-- Never add health, nutrition, workout, limitation, authentication, or Coach content to telemetry.
+- Never add health, nutrition, workout, limitation, authentication, Coach, or social-content payloads to telemetry.
 
 ## Completed foundation
 
 - Single Fastify/PostgreSQL backend.
-- Revision-aware offline-first synchronization for weight history, workout sessions, workout templates, food entries, nutrition targets, fitness profiles, limitations, recovery check-ins, body measurements, training programs, custom exercises, meal templates, and the account-scoped Nutrition library.
+- Revision-aware offline-first synchronization for private fitness data and the account-scoped Nutrition library.
 - Stable UUID custom-exercise references across templates, sessions, programs, and Coach contexts.
 - Strict nested meal-template snapshot validation with separate template/diary identity.
 - Deterministic and provider-neutral Coach contracts with explicit confirmation boundaries.
@@ -46,65 +47,56 @@ Always inspect current `main` and open pull requests in both repositories before
 - Blocking mobile line audits, TypeScript, Coach/sync contracts, full regression suite, Expo export, and Expo Doctor.
 - Blocking backend lint, build, tests, migration/schema checks, startup, and health validation.
 - All tracked hand-written mobile/backend source and architecture files at or below 500 lines.
-- Durable restart recovery for the eager weight-history outbox path.
-- Deterministic restart replanning for planner-based synchronized domains from persisted state, metadata, and pending operations.
-- Push and pull access-token refresh retry contracts preserving exact revisions, payloads, and idempotency keys.
-- Behavioral concurrent-pull coverage proving local mutations survive metadata loading while remote non-weight data is materialized.
-- Broad two-device conflict coverage, including update/delete matrices for all mutable synchronized domains and real PostgreSQL Nutrition-library concurrency.
-- Persisted unresolved conflict state and safe Data & Sync status, retry, recovery, conflict review, and diagnostics.
+- Durable restart recovery, token refresh, concurrent pull, two-device conflict, and privacy-safe Data & Sync coverage for current private-data contracts.
 - Account deletion, authenticated password change, and session/device management complete at source-code level.
-- Typed English/Russian localization foundation and dedicated Settings route complete.
-- Repository-wide presentation audits for controls, accessibility, units, formatting, statuses, provider/backend errors, and internal codes.
+- Typed English/Russian localization foundation and repository-wide presentation audits.
 - Weight, length, and energy unit preferences implemented with canonical `kg/cm/kcal` storage.
 
 ## Detailed phase files
+
+### Social network
+
+See [`docs/roadmap/social-network.md`](docs/roadmap/social-network.md).
+
+Covers:
+
+- server-authoritative social profiles and follow graph;
+- immutable opt-in workout-post snapshots;
+- chronological following feed;
+- reactions, comments, notifications, blocking, reports, and moderation;
+- strict privacy separation from private AppState and revisioned sync.
 
 ### Release and account
 
 See [`docs/roadmap/release-and-account.md`](docs/roadmap/release-and-account.md).
 
-Covers:
-
-- release gate, staging, native builds, OTA lanes, and device validation;
-- account deletion, password change, sessions/devices, password reset, privacy, and analytics prerequisites.
+Covers release gate, staging, native builds, OTA lanes, device validation, account security, privacy, and analytics prerequisites.
 
 ### Localization and Settings
 
 See [`docs/roadmap/localization-settings.md`](docs/roadmap/localization-settings.md).
 
-Covers:
-
-- English/Russian translation rollout;
-- locale dates, numbers, decimal separators, grouping, and pluralization;
-- `kg/lb`, `cm/in`, and `kcal/kJ` coverage;
-- visible control-copy and raw-status source audits;
-- accessibility and physical-device validation;
-- Settings information architecture and preference scope.
+Covers English/Russian copy, locale formatting, unit presentation, source audits, accessibility, and Settings preference scope.
 
 ### Data, quality, and scale
 
 See [`docs/roadmap/data-quality-and-scale.md`](docs/roadmap/data-quality-and-scale.md).
 
-Covers:
-
-- user-visible sync status and recovery;
-- privacy-safe analytics;
-- Coach history and trust;
-- restart recovery, token refresh, concurrent mutation, and second-device conflict hardening;
-- measured local-storage scalability and possible SQLite migration;
-- deferred major scope.
+Covers sync status/recovery, Coach trust, privacy-safe analytics prerequisites, local-storage measurement, and physical second-device validation.
 
 ## Recommended immediate next actions
 
-All currently known autonomous source-level localization and sync-hardening gaps are complete. The next items depend on a product contract, credentials, or physical environments:
+Social MVP is now the first active source-code program:
 
-1. Configure `BACKEND_REPOSITORY_TOKEN` and run the fixed-SHA cross-repository release gate when explicitly authorized.
-2. Introduce provider-neutral Coach model configuration and validate the provider in staging when credentials are available.
-3. Create matching native builds and execute the release-device, offline-restart, second-device, EN/RU, unit, and accessibility matrices when explicitly authorized.
-4. Define an explicit local-versus-account conflict-choice contract before adding destructive conflict controls.
-5. Define the privacy/consent/retention contract before implementing product analytics.
-6. Measure local-state size and restore/save performance before considering SQLite.
-7. Continue bounded source work only for newly discovered real regressions or separately prioritized product scope.
+1. Implement backend social-profile schema, username contract, visibility, ownership-safe repository/service boundaries, migration, and tests.
+2. Add authenticated self-profile and bounded username/public-profile reads.
+3. Add follow requests, follows, and block enforcement.
+4. Add strict mobile API parsers and profile screens only after backend contracts merge.
+5. Define and implement immutable opt-in workout-post snapshots.
+6. Add the chronological following feed, then reactions/comments/notifications.
+7. Complete moderation and physical-device matrices before broad release.
+
+Parallel external items remain blocked on explicit authorization or dependencies: release-gate execution, staging model credentials, native builds, deployment, and physical second-device/accessibility validation.
 
 ## Validation expectations
 
@@ -115,18 +107,24 @@ npx tsc --noEmit
 npm test
 ```
 
+For backend TypeScript/schema changes:
+
+```bash
+npm run build
+npm test
+npm run lint
+npm run format:check
+npm run db:generate
+```
+
 For native dependency or Expo configuration changes:
 
 ```bash
 npx expo-doctor
 ```
 
-For localization changes, also run missing-key, fallback, interpolation, pluralization, and source-boundary checks.
-
-For Settings changes, also test existing-install defaults, account switching, persistence scope, and immediate application.
-
 Do not claim completion when CI is failing or when an external environment action has not actually been performed.
 
 ## New-chat starter prompt
 
-> Continue the Smart Fitness roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, the files under `docs/roadmap/`, `docs/implementation-plan.md`, `docs/nutrition-roadmap.md`, and the release documents first. Inspect latest `main` and open PRs in both repositories. Continue from the first unchecked code-verifiable item, note external or product-contract blockers without inventing completion, work in small focused PRs, run full blocking CI, merge only exact green heads, preserve behavior, and keep hand-written source files at or below 500 lines. Do not publish OTA, create native builds, install on devices, deploy backend changes, or activate credentials unless explicitly requested.
+> Continue the Smart Fitness Social MVP roadmap. Read `AGENTS.md`, `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/roadmap/social-network.md`, `docs/implementation-plan.md`, and relevant backend instructions first. Inspect latest `main` and open PRs in both repositories. Continue from the first unchecked Social MVP item, keep public social data separate from private offline sync, work in small focused PRs, run full blocking CI, merge only exact green heads, preserve privacy and ownership boundaries, and keep hand-written files at or below 500 lines. Do not publish OTA, create native builds, install on devices, deploy backend changes, or activate credentials unless explicitly requested.
