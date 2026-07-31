@@ -9,6 +9,13 @@ import {
   type SupportedLocale,
 } from '@/localization';
 
+import {
+  getSocialContentModerationUiState,
+  isSocialContentModerationUiState,
+  requiresSocialContentEdit,
+  type SocialContentModerationUiState,
+} from './socialContentModerationUi';
+
 export type SocialWorkoutCommentLoadError =
   | 'invalid_cursor'
   | 'not_found'
@@ -17,6 +24,13 @@ export type SocialWorkoutCommentLoadError =
   | 'offline'
   | 'session_expired'
   | 'generic';
+
+export type SocialWorkoutCommentSubmitError =
+  | 'profile_required'
+  | 'offline'
+  | 'session_expired'
+  | 'generic'
+  | SocialContentModerationUiState;
 
 export type PendingSocialWorkoutComment = {
   body: string;
@@ -82,6 +96,31 @@ export const getSocialWorkoutCommentLoadError = (
   }
   return 'generic';
 };
+
+export const getSocialWorkoutCommentSubmitError = (
+  error: unknown,
+): SocialWorkoutCommentSubmitError => {
+  const moderationState = getSocialContentModerationUiState(error);
+  if (moderationState) return moderationState;
+
+  const code = getSocialApiErrorCode(error);
+  if (code === 'SOCIAL_PROFILE_REQUIRED') return 'profile_required';
+  if (isApiError(error)) {
+    if (error.status === 401 || error.code === 'unauthorized') {
+      return 'session_expired';
+    }
+    if (error.code === 'network_error' || error.code === 'timeout') {
+      return 'offline';
+    }
+  }
+  return 'generic';
+};
+
+export const socialWorkoutCommentErrorRequiresEdit = (
+  error: SocialWorkoutCommentSubmitError | null,
+): boolean =>
+  isSocialContentModerationUiState(error) &&
+  requiresSocialContentEdit(error);
 
 export const isMissingSocialWorkoutCommentError = (error: unknown): boolean =>
   getSocialApiErrorCode(error) === 'SOCIAL_WORKOUT_COMMENT_NOT_FOUND';
