@@ -1,12 +1,21 @@
 export { createSocialApi, type SocialApi } from './combined-api';
 export {
+  SOCIAL_CAPABILITIES_SCHEMA_VERSION,
+  SOCIAL_TEXT_MODERATION_CAPABILITY_SCHEMA_VERSION,
+  type SocialCapabilitiesDto,
+  type SocialTextModerationCapability,
+} from './capability-contracts';
+export { parseSocialCapabilitiesResponse } from './capability-parsers';
+export {
   SOCIAL_API_ERROR_CODES,
+  SOCIAL_CONTENT_MODERATION_ERROR_CODES,
   SOCIAL_PROFILE_DTO_SCHEMA_VERSION,
   SOCIAL_PROFILE_LIST_DTO_SCHEMA_VERSION,
   SOCIAL_RELATIONSHIP_DTO_SCHEMA_VERSION,
   type ListSocialProfilesInput,
   type SocialApiAuth,
   type SocialApiErrorCode,
+  type SocialContentModerationErrorCode,
   type SocialProfileDto,
   type SocialProfileListItemDto,
   type SocialProfileListPageDto,

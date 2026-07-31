@@ -5,6 +5,13 @@ import {
 } from '@/api/social';
 import type { WorkoutSession } from '@/types';
 
+import {
+  getSocialContentModerationUiState,
+  isSocialContentModerationUiState,
+  requiresSocialContentEdit,
+  type SocialContentModerationUiState,
+} from './socialContentModerationUi';
+
 export const DEFAULT_SOCIAL_WORKOUT_SHARE_CONTROLS: SocialWorkoutShareControls = {
   title: true,
   duration: true,
@@ -32,8 +39,9 @@ export type ShareWorkoutError =
   | 'source_not_ready'
   | 'offline'
   | 'session_expired'
-  | 'unavailable'
-  | 'generic';
+  | 'publish_unavailable'
+  | 'generic'
+  | SocialContentModerationUiState;
 
 export const normalizeSocialWorkoutShareControls = (
   controls: SocialWorkoutShareControls,
@@ -85,14 +93,17 @@ export const buildShareWorkoutPreview = (
     title: normalized.title ? session.workoutTitle : null,
     durationMinutes: normalized.duration ? durationMinutes : null,
     exerciseCount: normalized.exercises ? exerciseCount : null,
-    setCount: normalized.exercises && normalized.sets ? completedSets.length : null,
+    setCount:
+      normalized.exercises && normalized.sets ? completedSets.length : null,
     totalVolume: normalized.volume
       ? completedSets.reduce(
-          (total, set) => total + Math.max(0, set.weight) * Math.max(0, set.reps),
+          (total, set) =>
+            total + Math.max(0, set.weight) * Math.max(0, set.reps),
           0,
         )
       : null,
-    includesLoad: normalized.exercises && normalized.sets && normalized.load,
+    includesLoad:
+      normalized.exercises && normalized.sets && normalized.load,
     includesRepetitions:
       normalized.exercises && normalized.sets && normalized.repetitions,
     includesRpe: normalized.exercises && normalized.sets && normalized.rpe,
@@ -103,9 +114,13 @@ export const canPublishSocialWorkout = (
   caption: string,
   controls: SocialWorkoutShareControls,
 ): boolean =>
-  Boolean(caption.trim()) || Object.values(normalizeSocialWorkoutShareControls(controls)).some(Boolean);
+  Boolean(caption.trim()) ||
+  Object.values(normalizeSocialWorkoutShareControls(controls)).some(Boolean);
 
 export const getShareWorkoutError = (error: unknown): ShareWorkoutError => {
+  const moderationState = getSocialContentModerationUiState(error);
+  if (moderationState) return moderationState;
+
   const socialCode = getSocialApiErrorCode(error);
   if (socialCode === 'SOCIAL_PROFILE_REQUIRED') return 'profile_required';
   if (
@@ -119,7 +134,7 @@ export const getShareWorkoutError = (error: unknown): ShareWorkoutError => {
     socialCode === 'SOCIAL_WORKOUT_POST_EMPTY' ||
     socialCode === 'SOCIAL_WORKOUT_SOURCE_TOO_LARGE'
   ) {
-    return 'unavailable';
+    return 'publish_unavailable';
   }
   if (isApiError(error)) {
     if (error.status === 401 || error.code === 'unauthorized') {
@@ -131,3 +146,9 @@ export const getShareWorkoutError = (error: unknown): ShareWorkoutError => {
   }
   return 'generic';
 };
+
+export const shareWorkoutErrorRequiresEdit = (
+  error: ShareWorkoutError | 'empty' | null,
+): boolean =>
+  isSocialContentModerationUiState(error) &&
+  requiresSocialContentEdit(error);
