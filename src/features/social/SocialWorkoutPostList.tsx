@@ -53,7 +53,7 @@ export function SocialWorkoutPostList({
   const socialApi = useMemo(() => createSocialApi(auth), [auth]);
 
   const loadPosts = useCallback(
-    async (mode: 'replace' | 'append') => {
+    async (mode: 'replace' | 'append', requestedCursor?: string) => {
       const sequence = ++requestSequence.current;
       if (mode === 'replace') {
         setStatus('loading');
@@ -65,7 +65,9 @@ export function SocialWorkoutPostList({
       try {
         const page = await socialApi.listWorkoutPosts(username, {
           limit: 10,
-          ...(mode === 'append' && cursor ? { cursor } : {}),
+          ...(mode === 'append' && requestedCursor
+            ? { cursor: requestedCursor }
+            : {}),
         });
         if (sequence !== requestSequence.current) return;
         setPosts((current) =>
@@ -84,7 +86,7 @@ export function SocialWorkoutPostList({
         if (sequence === requestSequence.current) setLoadingMore(false);
       }
     },
-    [cursor, socialApi, username],
+    [socialApi, username],
   );
 
   useEffect(() => {
@@ -94,7 +96,7 @@ export function SocialWorkoutPostList({
     return () => {
       requestSequence.current += 1;
     };
-  }, [username]);
+  }, [loadPosts]);
 
   const errorMessage = useMemo(() => {
     if (error === 'offline') return copy.offline;
@@ -208,7 +210,7 @@ export function SocialWorkoutPostList({
           disabled={loadingMore}
           label={copy.loadMore}
           loading={loadingMore}
-          onPress={() => void loadPosts('append')}
+          onPress={() => void loadPosts('append', cursor)}
         />
       ) : null}
     </View>
