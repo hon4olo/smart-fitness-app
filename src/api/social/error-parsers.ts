@@ -40,8 +40,8 @@ export const getSocialRateLimitRetryAfterSeconds = (
   if (!isRecord(details)) return null;
 
   const retryAfterSeconds = details.retryAfterSeconds;
-  return Number.isSafeInteger(retryAfterSeconds) &&
-    typeof retryAfterSeconds === 'number' &&
+  return typeof retryAfterSeconds === 'number' &&
+    Number.isSafeInteger(retryAfterSeconds) &&
     retryAfterSeconds >= 1 &&
     retryAfterSeconds <= MAX_RETRY_AFTER_SECONDS
     ? retryAfterSeconds
