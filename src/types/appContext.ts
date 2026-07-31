@@ -43,7 +43,7 @@ export type AppState = {
   onboardingCompleted: boolean;
 };
 
-export type AppContextType = AppState & {
+export type AppActions = {
   addWeightEntry: (entry: WeightEntry) => void;
   updateWeightEntry: (entryId: string, entry: WeightEntry) => void;
   addBodyMeasurement: (entry: BodyMeasurement) => void;
@@ -97,12 +97,6 @@ export type AppContextType = AppState & {
   deleteWorkoutSession: (sessionId: string) => void;
   updateWorkoutSession: (sessionId: string, updatedSession: WorkoutSession) => void;
   saveWorkoutSession: (session: WorkoutSession) => void;
-  isRestoringState: boolean;
-  pendingMutationCount: number;
-  mutationFailure: AppMutationFailure | null;
-  dismissMutationFailure: () => void;
-  retryFailedMutation: () => void;
-  getLastWorkoutSession: () => WorkoutSession | null;
   completeOnboarding: (setup: {
     age: number;
     activityLevel: 'sedentary' | 'light' | 'moderate' | 'high' | 'very_high';
@@ -112,3 +106,17 @@ export type AppContextType = AppState & {
   }) => void;
   resetOnboarding: () => void;
 };
+
+export type AppInfrastructure = {
+  isRestoringState: boolean;
+  pendingMutationCount: number;
+  mutationFailure: AppMutationFailure | null;
+  dismissMutationFailure: () => void;
+  retryFailedMutation: () => void;
+};
+
+export type AppContextType = AppState &
+  AppActions &
+  AppInfrastructure & {
+    getLastWorkoutSession: () => WorkoutSession | null;
+  };
