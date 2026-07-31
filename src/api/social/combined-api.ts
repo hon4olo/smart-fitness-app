@@ -5,6 +5,10 @@ import {
   createSocialApi as createBaseSocialApi,
   type SocialApi as BaseSocialApi,
 } from './api';
+import {
+  createSocialCapabilityApi,
+  type SocialCapabilityApi,
+} from './capability-api';
 import type { SocialApiAuth } from './contracts';
 import {
   createSocialNotificationApi,
@@ -21,13 +25,17 @@ const defaultApiClient = createApiClient({
   defaultRetry: { attempts: 1, delayMs: 300, factor: 2 },
 });
 
-export type SocialApi = BaseSocialApi & SocialNotificationApi & SocialReportApi;
+export type SocialApi = BaseSocialApi &
+  SocialCapabilityApi &
+  SocialNotificationApi &
+  SocialReportApi;
 
 export const createSocialApi = (
   auth: SocialApiAuth,
   apiClient: ApiClient = defaultApiClient,
 ): SocialApi => ({
   ...createBaseSocialApi(auth, apiClient),
+  ...createSocialCapabilityApi(auth, apiClient),
   ...createSocialNotificationApi(auth, apiClient),
   ...createSocialReportApi(auth, apiClient),
 });
