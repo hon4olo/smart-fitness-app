@@ -27,6 +27,20 @@ export {
   parseSocialRelationshipResponse,
 } from './parsers';
 export {
+  SOCIAL_WORKOUT_COMMENT_DTO_SCHEMA_VERSION,
+  SOCIAL_WORKOUT_COMMENT_PAGE_DTO_SCHEMA_VERSION,
+  type CreateSocialWorkoutCommentInput,
+  type ListSocialWorkoutCommentsInput,
+  type SocialWorkoutCommentDto,
+  type SocialWorkoutCommentPageDto,
+} from './workout-comment-contracts';
+export {
+  parseDeleteSocialWorkoutCommentResponse,
+  parseSocialWorkoutCommentDto,
+  parseSocialWorkoutCommentPageResponse,
+  parseSocialWorkoutCommentResponse,
+} from './workout-comment-parsers';
+export {
   SOCIAL_WORKOUT_POST_DTO_SCHEMA_VERSION,
   SOCIAL_WORKOUT_SNAPSHOT_SCHEMA_VERSION,
   type CreateSocialWorkoutPostInput,
