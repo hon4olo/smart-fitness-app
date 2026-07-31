@@ -74,8 +74,8 @@ export const createSocialApi = (
       ),
 
     upsertOwnProfile: (input: UpsertSocialProfileInput) =>
-      requestWithAuth(async (accessToken) =>
-        parseOwnSocialProfileEnvelope(
+      requestWithAuth(async (accessToken) => {
+        const profile = parseOwnSocialProfileEnvelope(
           await apiClient.put<unknown, UpsertSocialProfileInput>(
             '/v1/social/profile',
             input,
@@ -84,11 +84,10 @@ export const createSocialApi = (
               retry: false,
             },
           ),
-        ).then((profile) => {
-          if (!profile) throw new Error('Invalid social profile response');
-          return profile;
-        }),
-      ),
+        );
+        if (!profile) throw new Error('Invalid social profile response');
+        return profile;
+      }),
 
     getProfile: (username) =>
       requestWithAuth(async (accessToken) =>
