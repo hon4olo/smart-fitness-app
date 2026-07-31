@@ -2,11 +2,11 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Colors, Spacing } from '@/constants/theme';
 import { useLocalization } from '@/localization';
 import { getWorkoutBuilderCopy } from '@/localization/workoutBuilderCopy';
 
-import { EmptyWorkoutState } from './EmptyWorkoutState';
 import type { DraftWorkoutExercise } from './workout-builder-types';
 import { WorkoutBuilderExerciseRow } from './WorkoutBuilderExerciseRow';
 
@@ -128,7 +128,8 @@ export function WorkoutBuilderCard({
           </View>
 
           {draftExercises.length === 0 ? (
-            <EmptyWorkoutState
+            <EmptyState
+              compact
               description={copy.noExercisesInWorkoutBody}
               message={copy.noExercisesInWorkout}
               title={copy.startBuilding}
