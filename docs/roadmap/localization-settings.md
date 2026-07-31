@@ -2,16 +2,16 @@
 
 Updated: 2026-07-31
 
-## Goal
+## Localization and regional formatting
 
-Make English and Russian first-class product languages across every reachable production surface while preserving routes, IDs, enum values, sync fields, provider/database identifiers, user-created names, and canonical `kg/cm/kcal` persistence.
+Goal: make English and Russian first-class product languages across every reachable production surface while preserving routes, IDs, enum values, sync fields, provider/database identifiers, user-created names, and canonical `kg/cm/kcal` persistence.
 
 ## Shared foundations — completed
 
 - System, English, and Russian selection with persisted preference;
 - immediate language application without restart;
 - centralized locale-aware date, number, plural, and unit formatting;
-- deterministic English/Russian plural fallback for Hermes runtimes;
+- deterministic English/Russian one/few/many/other pluralization with a Hermes-safe fallback;
 - weight, length, and energy display preferences;
 - canonical persistence in `kg`, `cm`, and `kcal`;
 - English fallback and EN/RU catalog parity checks;
