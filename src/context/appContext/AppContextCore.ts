@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, type Context, useContext } from 'react';
 
 import type { AppActions, AppContextType, AppInfrastructure } from '@/types';
 
@@ -7,7 +7,7 @@ export const AppActionsContext = createContext<AppActions | null>(null);
 export const AppInfrastructureContext = createContext<AppInfrastructure | null>(null);
 
 const useRequiredContext = <Value>(
-  context: React.Context<Value | null>,
+  context: Context<Value | null>,
   hookName: string,
 ): Value => {
   const value = useContext(context);
