@@ -7,6 +7,7 @@ import type { WorkoutSession } from '@/types';
 
 import {
   getSocialContentModerationUiState,
+  isSocialContentModerationUiState,
   requiresSocialContentEdit,
   type SocialContentModerationUiState,
 } from './socialContentModerationUi';
@@ -149,22 +150,5 @@ export const getShareWorkoutError = (error: unknown): ShareWorkoutError => {
 export const shareWorkoutErrorRequiresEdit = (
   error: ShareWorkoutError | 'empty' | null,
 ): boolean =>
-  error !== null &&
-  error !== 'empty' &&
-  requiresSocialContentEditIfModeration(error);
-
-const requiresSocialContentEditIfModeration = (
-  error: ShareWorkoutError,
-): boolean => {
-  const moderationStates: SocialContentModerationUiState[] = [
-    'rejected',
-    'review_required',
-    'unavailable',
-    'timeout',
-    'retryable_failure',
-    'invalid_result',
-  ];
-  return moderationStates.includes(error as SocialContentModerationUiState)
-    ? requiresSocialContentEdit(error as SocialContentModerationUiState)
-    : false;
-};
+  isSocialContentModerationUiState(error) &&
+  requiresSocialContentEdit(error);
