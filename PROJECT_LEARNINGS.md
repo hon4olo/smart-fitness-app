@@ -28,17 +28,25 @@ Revisioned sync exists for:
 - typed body measurements;
 - training programs;
 - custom exercises;
-- meal templates.
+- meal templates;
+- account-scoped Nutrition library items.
 
 Custom exercises use stable UUID references across workouts, programs, sync, and Coach contexts. Meal templates synchronize strict reusable food snapshots independently from consumed diary entries.
 
-Remaining work is hardening:
+Current source-level hardening is complete for the existing contracts:
 
-- extend or explicitly document restart recovery beyond the current weight-history journal;
-- verify token refresh during push and pull;
-- expand concurrent local-mutation / remote-materialization tests;
-- complete two-device conflict coverage for every mutable synchronized entity;
-- execute second-device and offline-restart validation on a matching standalone runtime.
+- the eager weight-history outbox path journals the exact operation before enqueue and replays it after restart;
+- planner-based domains recover by deterministic replanning from persisted state, metadata, and pending operations instead of duplicate journals;
+- push and pull refresh expired access tokens and retry with unchanged cursor, payload, base revision, and idempotency identity;
+- a behavioral concurrent-pull test proves a local mutation survives metadata loading while remote non-weight data is materialized;
+- two-device conflict coverage spans all mutable synchronized domains, including duplicate delivery and update/delete races;
+- real PostgreSQL Nutrition-library concurrency verifies one revisioned winner, conflict persistence, materialization, and idempotent replay.
+
+Remaining validation requires physical environments:
+
+- second-device conflict and reconciliation matrix;
+- offline termination/restart, queue recovery, reconnect, and eventual synchronization on matching standalone runtimes;
+- user-visible recovery and conflict states during those scenarios.
 
 Do not describe the project as weight-sync-only, and do not claim custom exercises or meal templates are local-only.
 
@@ -58,7 +66,10 @@ Do not describe the project as weight-sync-only, and do not claim custom exercis
 - Never render raw local/remote conflict versions, payloads, IDs, tokens, email, or full idempotency keys.
 - Apply deterministic server-wins data before clearing its persisted conflict snapshot.
 - Queue locking and deduplication do not make state persistence and outbox enqueue one atomic transaction.
-- Save-succeeded/enqueue-failed paths must remain recoverable after restart and visible to the user.
+- Eager save-succeeded/enqueue-failed operations must be journaled before enqueue.
+- Planner-based domains must persist enough canonical state and metadata to regenerate a missing operation on the next sync.
+- Do not add a recovery journal to a planner-based domain unless a future mutation bypasses deterministic replanning.
+- An explicit local-versus-account conflict choice requires a new ownership/revision/idempotency/audit contract; do not infer one in UI code.
 
 ## AI Coach
 
@@ -102,6 +113,7 @@ Automatic application remains prohibited. Do not invent a client-only compensati
 - Provider capability is optional and backend-gated. Deterministic reviews remain available when it is disabled.
 - Onboarding completion commits completion, profile inputs, initial weight, and derived targets in one observable state mutation.
 - Repository write failures must reject; logging and resolving creates false-success navigation.
+- Push and pull share the authenticated request boundary; a 401 refresh retry must preserve the exact request body and idempotency identity.
 
 ## Data readiness
 
@@ -132,6 +144,7 @@ Automatic application remains prohibited. Do not invent a client-only compensati
 - Forms inside `ScrollView` use `keyboardShouldPersistTaps="handled"`.
 - Search, autocomplete, barcode lookup, and custom barcode products use the shared API base URL.
 - Meal-template sync is first-class; do not reintroduce local-only assumptions.
+- Nutrition-library concurrent create/update/delete behavior is covered against real PostgreSQL; physical second-device validation remains separate.
 
 ## Workouts
 
