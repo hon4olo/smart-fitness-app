@@ -73,17 +73,18 @@ Backend:
 - [x] username lookup and public-profile read;
 - [x] follow, unfollow, request, approve, reject, and cancel operations;
 - [x] ownership, privacy, duplicate-delivery, block, and account-deletion tests;
+- [x] private incoming-request profile review and viewer-owned unblock recovery without revealing reverse-side blocks;
 - [ ] cursor-paginated follower, following, incoming-request, and outgoing-request discovery routes.
 
 Contract note:
 
-Private-profile lookup intentionally returns `SOCIAL_PROFILE_PRIVATE` before disclosing the relationship DTO. Persistent pending/incoming state therefore requires dedicated authenticated discovery endpoints rather than client inference or an automatic mutating request. Symmetric block lookup likewise must not reveal which side initiated a block.
+A private requester may be inspected by the authenticated request recipient so approve/reject controls remain reachable. A viewer-owned block returns a dedicated bounded error solely to restore `Unblock`; a reverse-side block remains generic. Persistent follower/following and request lists still require dedicated authenticated cursor endpoints rather than client inference.
 
 Mobile:
 
 - [x] Social profile editor;
 - [x] public profile screen with exact-username lookup;
-- [x] follow, unfollow, request, cancel, approve, reject, block, and post-action unblock controls;
+- [x] follow, unfollow, request, cancel, approve, reject, block, and restart-safe unblock controls;
 - [ ] followers/following and request lists with cursor pagination;
 - [ ] persistent localized empty, loading, error, blocked, private, and pending list states after discovery contracts merge;
 - [x] no social tab until the profile/follow contracts are stable.
@@ -111,11 +112,13 @@ Mobile foundation:
 
 Mobile product surface:
 
-- [ ] `Share workout` action after a completed workout;
-- [ ] preview with per-field visibility controls;
-- [ ] explicit final confirmation;
+- [x] `Share workout` action after a completed workout while preserving ordinary Save;
+- [x] preview with explicit per-field visibility controls and dependent set-field handling;
+- [x] explicit final confirmation before any network publication;
+- [x] synchronize the completed private workout before creating the server-authoritative snapshot;
+- [x] bounded sign-in, missing-profile, offline, source-not-ready, retry, and success states;
 - [ ] post detail and profile grid/list;
-- [ ] safe handling when the source private workout is later changed or removed.
+- [x] safe handling when the source private workout is later changed or removed through the immutable backend snapshot.
 
 ## Phase S3 — following feed
 
@@ -174,11 +177,12 @@ Do not begin without explicit prioritization:
 5. [x] Mobile social profile editor.
 6. [x] Backend immutable workout-post snapshot and mobile API/parser contracts.
 7. [x] Public profile and relationship action controls.
-8. [ ] Relationship discovery/list endpoints and mobile lists.
-9. [ ] Mobile Share Workout preview and explicit publication flow.
-10. [ ] Chronological following feed.
-11. [ ] Reactions/comments/notifications.
-12. [ ] Moderation and physical-device release matrix.
+8. [x] Mobile Share Workout preview and explicit publication flow.
+9. [ ] Relationship discovery/list endpoints and mobile lists.
+10. [ ] Post detail and profile workout-post list.
+11. [ ] Chronological following feed.
+12. [ ] Reactions/comments/notifications.
+13. [ ] Moderation and physical-device release matrix.
 
 ## Release boundary
 
