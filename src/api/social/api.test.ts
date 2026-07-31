@@ -25,6 +25,12 @@ const relationship = {
   blocksViewer: false,
 };
 
+const listPage = {
+  schemaVersion: 1,
+  items: [{ profile, createdAt: '2026-07-31T08:15:00.000Z' }],
+  nextCursor: 'next-page',
+};
+
 const createAuth = () => ({
   getAccessToken: vi.fn().mockResolvedValue('access-token'),
   refreshAccessToken: vi.fn().mockResolvedValue('refreshed-token'),
@@ -112,5 +118,58 @@ describe('social API client', () => {
       headers: { authorization: 'Bearer access-token' },
       retry: false,
     });
+  });
+
+  it('lists every relationship collection with bounded opaque pagination', async () => {
+    const request = vi.fn().mockResolvedValue(listPage);
+    const api = createSocialApi(createAuth(), createClient(request));
+
+    await expect(
+      api.listFollowers({ limit: 10, cursor: 'cursor/value' }),
+    ).resolves.toEqual(listPage);
+    await expect(api.listFollowing()).resolves.toEqual(listPage);
+    await expect(api.listIncomingFollowRequests()).resolves.toEqual(listPage);
+    await expect(api.listOutgoingFollowRequests()).resolves.toEqual(listPage);
+
+    expect(request).toHaveBeenNthCalledWith(1, {
+      method: 'GET',
+      path: '/v1/social/followers?limit=10&cursor=cursor%2Fvalue',
+      headers: { authorization: 'Bearer access-token' },
+      retry: false,
+    });
+    expect(request).toHaveBeenNthCalledWith(2, {
+      method: 'GET',
+      path: '/v1/social/following',
+      headers: { authorization: 'Bearer access-token' },
+      retry: false,
+    });
+    expect(request).toHaveBeenNthCalledWith(3, {
+      method: 'GET',
+      path: '/v1/social/follow-requests/incoming',
+      headers: { authorization: 'Bearer access-token' },
+      retry: false,
+    });
+    expect(request).toHaveBeenNthCalledWith(4, {
+      method: 'GET',
+      path: '/v1/social/follow-requests/outgoing',
+      headers: { authorization: 'Bearer access-token' },
+      retry: false,
+    });
+  });
+
+  it('rejects invalid relationship list pagination before network access', async () => {
+    const request = vi.fn().mockResolvedValue(listPage);
+    const api = createSocialApi(createAuth(), createClient(request));
+
+    await expect(api.listFollowers({ limit: 0 })).rejects.toThrow(
+      'between 1 and 50',
+    );
+    await expect(api.listFollowers({ limit: 51 })).rejects.toThrow(
+      'between 1 and 50',
+    );
+    await expect(api.listFollowers({ cursor: '   ' })).rejects.toThrow(
+      'must not be empty',
+    );
+    expect(request).not.toHaveBeenCalled();
   });
 });
