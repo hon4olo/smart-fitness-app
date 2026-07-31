@@ -137,13 +137,16 @@ Status: chronological server-authoritative source surface complete. Persistent l
 
 ## Phase S4 — reactions, comments, and notifications
 
-Status: reactions and bounded comments are source-complete end to end. Notifications and anti-spam controls remain pending.
+Status: reactions, bounded comments, and server-authoritative in-app notifications are source-complete end to end. Anti-spam controls remain pending.
 
 - [x] one reaction per user/post with idempotent toggle semantics;
 - [x] bounded comments and delete-own-comment;
 - [x] post owner moderation for comments;
-- [ ] in-app notifications for follow requests, accepted follows, reactions, and comments;
-- [ ] notification read state and cursor pagination;
+- [x] in-app notifications for follow requests, accepted follows, reactions, and comments;
+- [x] notification read state and cursor pagination;
+- [x] localized notification loading, empty, sign-in, missing-profile, offline, expired-session, invalid-cursor, retry, pagination, and stale-notification states;
+- [x] notification navigation to the relevant profile or immutable workout post;
+- [x] Social notification access from the existing Profile surface without adding a bottom-tab destination;
 - [ ] rate limits and anti-spam controls;
 - [ ] no push notifications until permission, privacy, and delivery contracts are separately approved.
 
@@ -190,7 +193,7 @@ Do not begin without explicit prioritization:
 10. [x] Post detail and profile workout-post list.
 11. [x] Chronological following feed.
 12. [x] Reactions and bounded comments.
-13. [ ] In-app notifications and read state.
+13. [x] In-app notifications and read state.
 14. [ ] Moderation and physical-device release matrix.
 
 ## Release boundary
