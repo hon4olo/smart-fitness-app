@@ -7,6 +7,7 @@ import {
 export type SocialProfileLoadError =
   | 'private'
   | 'blocked'
+  | 'blocked_by_viewer'
   | 'not_found'
   | 'offline'
   | 'session_expired'
@@ -42,6 +43,9 @@ export const getSocialProfileLoadError = (
 ): SocialProfileLoadError => {
   const socialCode = getSocialApiErrorCode(error);
   if (socialCode === 'SOCIAL_PROFILE_PRIVATE') return 'private';
+  if (socialCode === 'SOCIAL_PROFILE_BLOCKED_BY_VIEWER') {
+    return 'blocked_by_viewer';
+  }
   if (socialCode === 'SOCIAL_RELATION_BLOCKED') return 'blocked';
   if (socialCode === 'SOCIAL_PROFILE_NOT_FOUND') return 'not_found';
   if (isApiError(error)) {
@@ -59,6 +63,7 @@ export const getSocialActionError = (error: unknown): SocialActionError => {
   const socialCode = getSocialApiErrorCode(error);
   if (
     socialCode === 'SOCIAL_FOLLOW_REQUEST_NOT_FOUND' ||
+    socialCode === 'SOCIAL_PROFILE_BLOCKED_BY_VIEWER' ||
     socialCode === 'SOCIAL_PROFILE_NOT_FOUND' ||
     socialCode === 'SOCIAL_PROFILE_PRIVATE' ||
     socialCode === 'SOCIAL_RELATION_BLOCKED' ||
