@@ -1,4 +1,5 @@
 export const SOCIAL_PROFILE_DTO_SCHEMA_VERSION = 1 as const;
+export const SOCIAL_PROFILE_LIST_DTO_SCHEMA_VERSION = 1 as const;
 export const SOCIAL_RELATIONSHIP_DTO_SCHEMA_VERSION = 1 as const;
 
 export type SocialProfileVisibility = 'public' | 'private';
@@ -29,6 +30,22 @@ export type SocialProfileViewDto = {
   relationship: SocialRelationshipDto;
 };
 
+export type SocialProfileListItemDto = {
+  profile: SocialProfileDto;
+  createdAt: string;
+};
+
+export type SocialProfileListPageDto = {
+  schemaVersion: typeof SOCIAL_PROFILE_LIST_DTO_SCHEMA_VERSION;
+  items: SocialProfileListItemDto[];
+  nextCursor: string | null;
+};
+
+export type ListSocialProfilesInput = {
+  limit?: number;
+  cursor?: string;
+};
+
 export type UpsertOwnSocialProfileInput = {
   username: string;
   displayName?: string;
@@ -44,6 +61,7 @@ export const SOCIAL_API_ERROR_CODES = [
   'SOCIAL_PROFILE_PRIVATE',
   'SOCIAL_PROFILE_REQUIRED',
   'SOCIAL_RELATION_BLOCKED',
+  'SOCIAL_RELATION_LIST_INVALID_CURSOR',
   'SOCIAL_SELF_RELATION',
   'SOCIAL_USERNAME_TAKEN',
   'SOCIAL_WORKOUT_POST_EMPTY',
