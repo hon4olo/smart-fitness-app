@@ -119,17 +119,21 @@ Mobile product surface:
 - [x] explicit final confirmation before any network publication;
 - [x] synchronize the completed private workout before creating the server-authoritative snapshot;
 - [x] bounded sign-in, missing-profile, offline, source-not-ready, retry, and success states;
-- [ ] post detail and profile grid/list;
+- [x] immutable post detail and cursor-paginated profile workout-post list;
+- [x] owner-only published-snapshot deletion with explicit destructive confirmation;
 - [x] safe handling when the source private workout is later changed or removed through the immutable backend snapshot.
 
 ## Phase S3 — following feed
 
-- [ ] chronological following-only feed;
-- [ ] cursor pagination and refresh;
-- [ ] block/private-profile enforcement in every query;
-- [ ] bounded local cache for responsiveness, with backend as source of truth;
-- [ ] no algorithmic ranking, recommendations, or engagement optimization in the MVP;
-- [ ] feed loading, empty, offline, retry, and deleted-post states.
+Status: chronological server-authoritative source surface complete. Persistent local caching remains separately pending.
+
+- [x] chronological following-only feed;
+- [x] cursor pagination and pull-to-refresh;
+- [x] block/private-profile enforcement in every backend query;
+- [ ] bounded account-scoped local cache for responsiveness, with backend as source of truth;
+- [x] no algorithmic ranking, recommendations, or engagement optimization in the MVP;
+- [x] localized feed loading, empty, offline, expired-session, invalid-cursor, retry, refresh, and deleted-post detail states;
+- [x] Social feed access from the existing Profile surface without adding a bottom-tab destination.
 
 ## Phase S4 — reactions, comments, and notifications
 
@@ -181,8 +185,8 @@ Do not begin without explicit prioritization:
 7. [x] Public profile and relationship action controls.
 8. [x] Mobile Share Workout preview and explicit publication flow.
 9. [x] Relationship discovery/list endpoints and mobile lists.
-10. [ ] Post detail and profile workout-post list.
-11. [ ] Chronological following feed.
+10. [x] Post detail and profile workout-post list.
+11. [x] Chronological following feed.
 12. [ ] Reactions/comments/notifications.
 13. [ ] Moderation and physical-device release matrix.
 
