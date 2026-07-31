@@ -15,6 +15,7 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
+import { SocialWorkoutCommentsCard } from '../SocialWorkoutCommentsCard';
 import { SocialWorkoutPostDetailContent } from '../SocialWorkoutPostDetailContent';
 import { SocialWorkoutReactionCard } from '../SocialWorkoutReactionCard';
 import { getSocialWorkoutPostSurfaceCopy } from '../socialWorkoutPostSurfaceCopy';
@@ -50,7 +51,7 @@ export default function SocialWorkoutPostDetailScreen() {
   const requestSequence = useRef(0);
   const [status, setStatus] = useState<DetailStatus>('idle');
   const [post, setPost] = useState<SocialWorkoutPostDto | null>(null);
-  const [hasOwnProfile, setHasOwnProfile] = useState(false);
+  const [ownUsername, setOwnUsername] = useState<string | null>(null);
   const [isOwnPost, setIsOwnPost] = useState(false);
   const [loadError, setLoadError] = useState<SocialWorkoutPostLoadError | null>(
     null,
@@ -76,7 +77,7 @@ export default function SocialWorkoutPostDetailScreen() {
     const sequence = ++requestSequence.current;
     setStatus('loading');
     setPost(null);
-    setHasOwnProfile(false);
+    setOwnUsername(null);
     setIsOwnPost(false);
     setLoadError(null);
     setDeleteError(null);
@@ -87,9 +88,10 @@ export default function SocialWorkoutPostDetailScreen() {
         socialApi.getOwnProfile(),
       ]);
       if (sequence !== requestSequence.current) return;
+      const username = ownProfile?.username ?? null;
       setPost(loadedPost);
-      setHasOwnProfile(Boolean(ownProfile));
-      setIsOwnPost(ownProfile?.username === loadedPost.author.username);
+      setOwnUsername(username);
+      setIsOwnPost(username === loadedPost.author.username);
       setStatus('ready');
     } catch (error) {
       if (sequence !== requestSequence.current) return;
@@ -155,6 +157,7 @@ export default function SocialWorkoutPostDetailScreen() {
         styles.content,
         { paddingBottom: insets.bottom + Spacing.eight },
       ]}
+      keyboardShouldPersistTaps="handled"
       style={styles.screen}>
       <View style={styles.container}>
         <View style={styles.headerRow}>
@@ -221,9 +224,21 @@ export default function SocialWorkoutPostDetailScreen() {
               styles={styles}
             />
             <SocialWorkoutReactionCard
-              canReact={hasOwnProfile}
+              canReact={ownUsername !== null}
               copy={copy}
               onCreateProfile={() => router.push('/settings/social-profile')}
+              postId={post.id}
+              socialApi={socialApi}
+              styles={styles}
+            />
+            <SocialWorkoutCommentsCard
+              canComment={ownUsername !== null}
+              cancelLabel={t('common.cancel')}
+              copy={copy}
+              isPostOwner={isOwnPost}
+              locale={locale}
+              onCreateProfile={() => router.push('/settings/social-profile')}
+              ownUsername={ownUsername}
               postId={post.id}
               socialApi={socialApi}
               styles={styles}
