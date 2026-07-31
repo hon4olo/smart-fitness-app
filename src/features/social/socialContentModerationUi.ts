@@ -12,6 +12,15 @@ export type SocialContentModerationUiState =
   | 'retryable_failure'
   | 'invalid_result';
 
+const UI_STATES = new Set<SocialContentModerationUiState>([
+  'rejected',
+  'review_required',
+  'unavailable',
+  'timeout',
+  'retryable_failure',
+  'invalid_result',
+]);
+
 const STATE_BY_CODE: Record<
   SocialContentModerationErrorCode,
   SocialContentModerationUiState
@@ -55,6 +64,12 @@ const COPY: Record<
       'Не удалось безопасно проверить текст. Измените его перед повторной попыткой.',
   },
 };
+
+export const isSocialContentModerationUiState = (
+  value: unknown,
+): value is SocialContentModerationUiState =>
+  typeof value === 'string' &&
+  UI_STATES.has(value as SocialContentModerationUiState);
 
 export const getSocialContentModerationUiState = (
   error: unknown,
