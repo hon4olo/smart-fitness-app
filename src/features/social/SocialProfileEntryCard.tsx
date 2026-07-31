@@ -6,6 +6,7 @@ import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, Typography } from '@/constants/theme';
 import { useLocalization } from '@/localization';
 
+import { getSocialCommunityGuidelinesCopy } from './socialCommunityGuidelinesCopy';
 import { getSocialFollowingFeedCopy } from './socialFollowingFeedCopy';
 import { getSocialNotificationCopy } from './socialNotificationCopy';
 import { getSocialProfileCopy } from './socialProfileCopy';
@@ -17,6 +18,7 @@ export function SocialProfileEntryCard() {
   const { locale } = useLocalization();
   const copy = getSocialProfileCopy(locale);
   const feedCopy = getSocialFollowingFeedCopy(locale);
+  const guidelinesCopy = getSocialCommunityGuidelinesCopy(locale);
   const notificationCopy = getSocialNotificationCopy(locale);
   const publicCopy = getSocialPublicProfileCopy(locale);
   const relationshipCopy = getSocialRelationshipListsCopy(locale);
@@ -44,6 +46,10 @@ export function SocialProfileEntryCard() {
       <SecondaryButton
         label={publicCopy.findAction}
         onPress={() => router.push('/social')}
+      />
+      <SecondaryButton
+        label={guidelinesCopy.entryAction}
+        onPress={() => router.push('/social/guidelines')}
       />
     </AppCard>
   );
