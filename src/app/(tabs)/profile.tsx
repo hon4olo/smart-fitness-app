@@ -10,6 +10,7 @@ import {
   getGoalTypeLabel,
   getStoredActivityLevelLabel,
 } from '@/features/progress/progressLocalization';
+import { SocialProfileEntryCard } from '@/features/social/SocialProfileEntryCard';
 import { useLocalization } from '@/localization';
 
 export default function ProfileScreen() {
@@ -47,6 +48,7 @@ export default function ProfileScreen() {
           />
         </View>
 
+        <SocialProfileEntryCard />
         <ProfileGoalsSection />
       </View>
     </ScrollView>
