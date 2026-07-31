@@ -23,6 +23,17 @@ import {
   parseSocialRelationshipResponse,
 } from './parsers';
 import type {
+  CreateSocialWorkoutCommentInput,
+  ListSocialWorkoutCommentsInput,
+  SocialWorkoutCommentDto,
+  SocialWorkoutCommentPageDto,
+} from './workout-comment-contracts';
+import {
+  parseDeleteSocialWorkoutCommentResponse,
+  parseSocialWorkoutCommentPageResponse,
+  parseSocialWorkoutCommentResponse,
+} from './workout-comment-parsers';
+import type {
   CreateSocialWorkoutPostInput,
   ListSocialWorkoutPostsInput,
   SocialWorkoutPostDto,
@@ -53,6 +64,9 @@ const requireUsernamePath = (username: string): string =>
 
 const requirePostIdPath = (postId: string): string =>
   requirePathSegment(postId, 'Social workout post ID');
+
+const requireCommentIdPath = (commentId: string): string =>
+  requirePathSegment(commentId, 'Social workout comment ID');
 
 const buildUpsertPayload = (
   input: UpsertOwnSocialProfileInput,
@@ -87,6 +101,22 @@ const buildWorkoutPostPayload = (
     ? { caption: input.caption === null ? null : input.caption.trim() }
     : {}),
 });
+
+const buildWorkoutCommentPayload = (
+  input: CreateSocialWorkoutCommentInput,
+): CreateSocialWorkoutCommentInput => {
+  const body = input.body.trim();
+  const idempotencyKey = input.idempotencyKey.trim();
+  if (body.length < 1 || body.length > 500) {
+    throw new Error('Social workout comment body must be between 1 and 500 characters');
+  }
+  if (idempotencyKey.length < 16 || idempotencyKey.length > 128) {
+    throw new Error(
+      'Social workout comment idempotency key must be between 16 and 128 characters',
+    );
+  }
+  return { body, idempotencyKey };
+};
 
 const buildListQuery = (
   input: { limit?: number; cursor?: string },
@@ -127,6 +157,18 @@ const buildFollowingFeedPath = (
 
 const buildWorkoutReactionPath = (postId: string): string =>
   `/v1/social/workout-posts/${requirePostIdPath(postId)}/reaction`;
+
+const buildWorkoutCommentPath = (postId: string): string =>
+  `/v1/social/workout-posts/${requirePostIdPath(postId)}/comments`;
+
+const buildWorkoutCommentListPath = (
+  postId: string,
+  input: ListSocialWorkoutCommentsInput = {},
+): string =>
+  `${buildWorkoutCommentPath(postId)}${buildListQuery(
+    input,
+    'Social workout comment',
+  )}`;
 
 const requestWithAuth = async <TBody = unknown>(
   auth: SocialApiAuth,
@@ -189,6 +231,15 @@ export type SocialApi = {
   getWorkoutPostReaction(postId: string): Promise<SocialWorkoutReactionDto>;
   reactToWorkoutPost(postId: string): Promise<SocialWorkoutReactionDto>;
   unreactToWorkoutPost(postId: string): Promise<SocialWorkoutReactionDto>;
+  listWorkoutPostComments(
+    postId: string,
+    input?: ListSocialWorkoutCommentsInput,
+  ): Promise<SocialWorkoutCommentPageDto>;
+  createWorkoutPostComment(
+    postId: string,
+    input: CreateSocialWorkoutCommentInput,
+  ): Promise<SocialWorkoutCommentDto>;
+  deleteWorkoutPostComment(postId: string, commentId: string): Promise<void>;
 };
 
 export const createSocialApi = (
@@ -378,6 +429,40 @@ export const createSocialApi = (
 
     unreactToWorkoutPost(postId) {
       return workoutReactionRequest('DELETE', postId);
+    },
+
+    async listWorkoutPostComments(postId, input = {}) {
+      return parseSocialWorkoutCommentPageResponse(
+        await requestWithAuth(
+          auth,
+          apiClient,
+          'GET',
+          buildWorkoutCommentListPath(postId, input),
+        ),
+      );
+    },
+
+    async createWorkoutPostComment(postId, input) {
+      return parseSocialWorkoutCommentResponse(
+        await requestWithAuth(
+          auth,
+          apiClient,
+          'POST',
+          buildWorkoutCommentPath(postId),
+          buildWorkoutCommentPayload(input),
+        ),
+      );
+    },
+
+    async deleteWorkoutPostComment(postId, commentId) {
+      parseDeleteSocialWorkoutCommentResponse(
+        await requestWithAuth(
+          auth,
+          apiClient,
+          'DELETE',
+          `${buildWorkoutCommentPath(postId)}/${requireCommentIdPath(commentId)}`,
+        ),
+      );
     },
   };
 };
