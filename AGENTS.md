@@ -57,16 +57,22 @@ First-class revisioned sync is implemented for:
 - typed body measurements;
 - training programs;
 - custom exercises with stable UUID references;
-- meal templates with strict nested food snapshots.
+- meal templates with strict nested food snapshots;
+- account-scoped Nutrition library items.
 
 Do not describe synchronization as weight-only and do not route unrelated entities through the weight adapter.
 
-Remaining synchronization work is hardening rather than adding those entities:
+Source-level synchronization hardening is complete for the current contracts:
 
-- extend or explicitly document durable restart recovery beyond the current weight-history journal;
-- verify token refresh during push and pull;
-- expand concurrent local-mutation / remote-materialization coverage;
-- complete two-device conflict coverage and physical second-device validation.
+- the eager weight-history outbox path journals its exact operation for restart replay;
+- planner-based domains regenerate missing operations from persisted state, metadata, and pending queue;
+- push and pull token refresh retries preserve exact cursor, payload, base revision, and idempotency identity;
+- behavioral concurrent-pull coverage protects local mutations during remote materialization;
+- source-level two-device conflict coverage spans every mutable synchronized domain;
+- backend PostgreSQL coverage validates Nutrition-library create/update/delete concurrency and replay;
+- unresolved conflict state persists and Data & Sync exposes safe retry, recovery, review, and diagnostic actions.
+
+Remaining synchronization validation requires physical matching standalone runtimes: offline termination/restart, reconnect, recovery, and second-device conflicts.
 
 Critical local persistence is ordered and observable through the application mutation queue. Save and outbox failures are surfaced with retry controls. Application-state persistence and outbox enqueue are not one atomic transaction, so recovery semantics must remain explicit and tested.
 
@@ -186,6 +192,12 @@ When changing sync:
 
 Critical mutations must use the ordered observable mutation flow. Do not reintroduce unobserved `void repository.saveState(...)` or `void enqueue(...)` calls.
 
+Recovery boundary:
+
+- eager outbox operations must be journaled before enqueue;
+- planner-based domains must retain enough persisted state and metadata to regenerate missing operations;
+- do not add duplicate journals to planner-based domains without a demonstrated loss path.
+
 ## AI Trainer architecture
 
 AI Trainer must not become one monolithic prompt.
@@ -268,11 +280,13 @@ Do not perform or claim OTA publication, EAS/native builds, device installation,
 
 ## Current priority order
 
+No currently known autonomous source-level localization or synchronization-hardening gap remains.
+
 1. Keep architecture and status documents synchronized with actual code.
-2. Complete sync and persistence hardening: restart recovery, token refresh, concurrent materialization, and conflict coverage.
-3. Add user-visible Data & Sync recovery only through safe bounded contracts.
-4. Introduce provider-neutral Coach model configuration and validate it in staging when credentials are available.
-5. Implement only confirmed Combined/revert contract gaps; do not duplicate completed proposal and confirmation flows.
-6. Configure the fixed-SHA cross-repository release gate.
-7. Complete physical release-device, offline-restart, accessibility, and second-device validation.
-8. Add education, lab tracking, marketplace, social, and payments only when explicitly prioritized.
+2. Configure and run the fixed-SHA cross-repository release gate only when repository-token access is explicitly authorized.
+3. Introduce provider-neutral Coach model configuration and validate it in staging only when credentials/model selection are available.
+4. Complete physical release-device, offline-restart, accessibility, EN/RU/unit, and second-device validation only when explicitly authorized.
+5. Define an explicit local-versus-account conflict-choice contract before adding destructive conflict controls.
+6. Define privacy, consent, identity, retention, and deletion requirements before product analytics.
+7. Measure local-state size and restore/save performance before considering SQLite.
+8. Implement only newly discovered regressions or separately prioritized product scope; do not duplicate completed roadmap work.
