@@ -130,7 +130,8 @@ export const parseSocialRelationship = (
   if (booleanFields.some((field) => typeof value[field] !== 'boolean')) {
     throw new Error('Invalid social relationship state');
   }
-  return {
+
+  const relationship: SocialRelationship = {
     schemaVersion: 1,
     following: value.following as boolean,
     followedBy: value.followedBy as boolean,
@@ -139,6 +140,20 @@ export const parseSocialRelationship = (
     blockedByViewer: value.blockedByViewer as boolean,
     blocksViewer: value.blocksViewer as boolean,
   };
+  const hasBlock = relationship.blockedByViewer || relationship.blocksViewer;
+  const hasConnection =
+    relationship.following ||
+    relationship.followedBy ||
+    relationship.outgoingRequest ||
+    relationship.incomingRequest;
+  if (
+    (hasBlock && hasConnection) ||
+    (relationship.following && relationship.outgoingRequest) ||
+    (relationship.followedBy && relationship.incomingRequest)
+  ) {
+    throw new Error('Invalid social relationship state');
+  }
+  return relationship;
 };
 
 export const parseOwnSocialProfileEnvelope = (
