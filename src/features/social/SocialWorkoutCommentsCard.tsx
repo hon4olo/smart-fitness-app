@@ -36,8 +36,10 @@ type SocialWorkoutCommentsCardProps = {
   isPostOwner: boolean;
   locale: SupportedLocale;
   onCreateProfile: () => void;
+  onReportComment: (commentId: string) => void;
   ownUsername: string | null;
   postId: string;
+  reportLabel: string;
   socialApi: SocialApi;
   styles: SocialWorkoutPostSurfaceStyles;
 };
@@ -51,8 +53,10 @@ export function SocialWorkoutCommentsCard({
   isPostOwner,
   locale,
   onCreateProfile,
+  onReportComment,
   ownUsername,
   postId,
+  reportLabel,
   socialApi,
   styles,
 }: SocialWorkoutCommentsCardProps) {
@@ -219,8 +223,9 @@ export function SocialWorkoutCommentsCard({
             <Text style={styles.body}>{copy.commentsEmpty}</Text>
           ) : (
             comments.map((comment) => {
-              const canDelete =
-                isPostOwner || comment.author.username === ownUsername;
+              const isOwnComment = comment.author.username === ownUsername;
+              const canDelete = isPostOwner || isOwnComment;
+              const canReport = !isOwnComment;
               return (
                 <View key={comment.id} style={styles.commentCard}>
                   <View style={styles.commentHeader}>
@@ -235,22 +240,40 @@ export function SocialWorkoutCommentsCard({
                         )}
                       </Text>
                     </View>
-                    {canDelete ? (
-                      <Pressable
-                        accessibilityLabel={copy.commentsDelete}
-                        accessibilityRole="button"
-                        disabled={deletingId !== null}
-                        onPress={() => confirmDelete(comment.id)}
-                        style={({ pressed }) => [
-                          styles.commentDeleteButton,
-                          pressed && styles.pressed,
-                        ]}>
-                        <Text style={styles.commentDeleteLabel}>
-                          {deletingId === comment.id
-                            ? `${copy.commentsDelete}…`
-                            : copy.commentsDelete}
-                        </Text>
-                      </Pressable>
+                    {canDelete || canReport ? (
+                      <View style={styles.commentActions}>
+                        {canReport ? (
+                          <Pressable
+                            accessibilityLabel={reportLabel}
+                            accessibilityRole="button"
+                            onPress={() => onReportComment(comment.id)}
+                            style={({ pressed }) => [
+                              styles.commentReportButton,
+                              pressed && styles.pressed,
+                            ]}>
+                            <Text style={styles.commentReportLabel}>
+                              {reportLabel}
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                        {canDelete ? (
+                          <Pressable
+                            accessibilityLabel={copy.commentsDelete}
+                            accessibilityRole="button"
+                            disabled={deletingId !== null}
+                            onPress={() => confirmDelete(comment.id)}
+                            style={({ pressed }) => [
+                              styles.commentDeleteButton,
+                              pressed && styles.pressed,
+                            ]}>
+                            <Text style={styles.commentDeleteLabel}>
+                              {deletingId === comment.id
+                                ? `${copy.commentsDelete}…`
+                                : copy.commentsDelete}
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
                     ) : null}
                   </View>
                   <Text style={styles.commentBody}>{comment.body}</Text>
