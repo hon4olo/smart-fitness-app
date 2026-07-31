@@ -2,7 +2,10 @@ import { Text, View } from 'react-native';
 
 import type { SocialWorkoutPostDto, SocialWorkoutPostSetDto } from '@/api/social';
 import { AppCard } from '@/components/ui/AppCard';
-import type { SupportedLocale } from '@/localization';
+import {
+  formatLocalizedNumber,
+  type SupportedLocale,
+} from '@/localization';
 
 import type { SocialWorkoutPostSurfaceCopy } from './socialWorkoutPostSurfaceCopy';
 import {
@@ -67,7 +70,7 @@ export function SocialWorkoutPostDetailContent({
               <Metric
                 label={copy.volume}
                 styles={styles}
-                value={formatNumber(post.workout.totalVolume, locale)}
+                value={formatLocalizedNumber(post.workout.totalVolume, locale)}
               />
             ) : null}
           </View>
@@ -132,14 +135,18 @@ function SetRow({
         <Detail
           label={copy.weight}
           styles={styles}
-          value={formatNumber(set.weight, locale)}
+          value={formatLocalizedNumber(set.weight, locale)}
         />
       ) : null}
       {set.reps !== undefined ? (
         <Detail label={copy.reps} styles={styles} value={`${set.reps}`} />
       ) : null}
       {set.rpe !== undefined ? (
-        <Detail label={copy.rpe} styles={styles} value={formatNumber(set.rpe, locale)} />
+        <Detail
+          label={copy.rpe}
+          styles={styles}
+          value={formatLocalizedNumber(set.rpe, locale)}
+        />
       ) : null}
     </View>
   );
@@ -161,8 +168,3 @@ function Detail({
     </View>
   );
 }
-
-const formatNumber = (value: number, locale: SupportedLocale): string =>
-  new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : 'en-US', {
-    maximumFractionDigits: 1,
-  }).format(value);
