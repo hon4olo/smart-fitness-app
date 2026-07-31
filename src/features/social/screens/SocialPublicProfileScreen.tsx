@@ -19,6 +19,7 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
+import { SocialWorkoutPostList } from '../SocialWorkoutPostList';
 import { getSocialPublicProfileCopy } from '../socialPublicProfileCopy';
 import {
   getSocialActionError,
@@ -268,6 +269,7 @@ export default function SocialPublicProfileScreen() {
         styles.content,
         { paddingBottom: insets.bottom + Spacing.eight },
       ]}
+      keyboardShouldPersistTaps="handled"
       style={styles.screen}>
       <View style={styles.container}>
         <View style={styles.headerRow}>
@@ -353,93 +355,99 @@ export default function SocialPublicProfileScreen() {
         ) : null}
 
         {ready && isAuthenticated && status === 'ready' && profileView ? (
-          <AppCard>
-            <View style={styles.identityRow}>
-              {profileView.profile.avatarUrl && !avatarFailed ? (
-                <Image
-                  accessibilityIgnoresInvertColors
-                  onError={() => setAvatarFailed(true)}
-                  source={{ uri: profileView.profile.avatarUrl }}
-                  style={styles.avatar}
-                />
-              ) : (
-                <View style={styles.avatarFallback}>
-                  <Text style={styles.avatarInitial}>
-                    {profileView.profile.displayName.trim().charAt(0).toUpperCase() || '?'}
+          <>
+            <AppCard>
+              <View style={styles.identityRow}>
+                {profileView.profile.avatarUrl && !avatarFailed ? (
+                  <Image
+                    accessibilityIgnoresInvertColors
+                    onError={() => setAvatarFailed(true)}
+                    source={{ uri: profileView.profile.avatarUrl }}
+                    style={styles.avatar}
+                  />
+                ) : (
+                  <View style={styles.avatarFallback}>
+                    <Text style={styles.avatarInitial}>
+                      {profileView.profile.displayName.trim().charAt(0).toUpperCase() || '?'}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.identityCopy}>
+                  <Text style={styles.displayName}>{profileView.profile.displayName}</Text>
+                  <Text style={styles.username}>@{profileView.profile.username}</Text>
+                  <Text style={styles.visibilityBadge}>
+                    {profileView.profile.visibility === 'private'
+                      ? copy.visibilityPrivate
+                      : copy.visibilityPublic}
                   </Text>
                 </View>
-              )}
-              <View style={styles.identityCopy}>
-                <Text style={styles.displayName}>{profileView.profile.displayName}</Text>
-                <Text style={styles.username}>@{profileView.profile.username}</Text>
-                <Text style={styles.visibilityBadge}>
-                  {profileView.profile.visibility === 'private'
-                    ? copy.visibilityPrivate
-                    : copy.visibilityPublic}
-                </Text>
               </View>
-            </View>
 
-            <Text style={styles.bio}>{profileView.profile.bio || copy.noBio}</Text>
+              <Text style={styles.bio}>{profileView.profile.bio || copy.noBio}</Text>
 
-            {isOwnProfile ? <Text style={styles.relationshipLabel}>{copy.ownProfile}</Text> : null}
-            {!isOwnProfile && profileView.relationship.following ? (
-              <Text style={styles.relationshipLabel}>{copy.following}</Text>
-            ) : null}
-            {!isOwnProfile && profileView.relationship.followedBy ? (
-              <Text style={styles.relationshipLabel}>{copy.followsYou}</Text>
-            ) : null}
-            {!isOwnProfile && profileView.relationship.outgoingRequest ? (
-              <Text style={styles.relationshipLabel}>{copy.requestPending}</Text>
-            ) : null}
-            {!isOwnProfile && profileView.relationship.incomingRequest ? (
-              <Text style={styles.relationshipLabel}>{copy.requestedToFollow}</Text>
-            ) : null}
+              {isOwnProfile ? <Text style={styles.relationshipLabel}>{copy.ownProfile}</Text> : null}
+              {!isOwnProfile && profileView.relationship.following ? (
+                <Text style={styles.relationshipLabel}>{copy.following}</Text>
+              ) : null}
+              {!isOwnProfile && profileView.relationship.followedBy ? (
+                <Text style={styles.relationshipLabel}>{copy.followsYou}</Text>
+              ) : null}
+              {!isOwnProfile && profileView.relationship.outgoingRequest ? (
+                <Text style={styles.relationshipLabel}>{copy.requestPending}</Text>
+              ) : null}
+              {!isOwnProfile && profileView.relationship.incomingRequest ? (
+                <Text style={styles.relationshipLabel}>{copy.requestedToFollow}</Text>
+              ) : null}
 
-            <InlineError message={actionErrorMessage} />
+              <InlineError message={actionErrorMessage} />
 
-            {isOwnProfile ? (
-              <PrimaryButton
-                label={copy.editOwnProfile}
-                onPress={() => router.push('/settings/social-profile')}
-              />
-            ) : null}
-
-            {!isOwnProfile && profileView.relationship.incomingRequest ? (
-              <View style={styles.actionStack}>
+              {isOwnProfile ? (
                 <PrimaryButton
-                  disabled={busyAction === 'approve'}
-                  label={copy.approveRequest}
-                  loading={busyAction === 'approve'}
-                  onPress={() => void runRelationshipAction('approve')}
+                  label={copy.editOwnProfile}
+                  onPress={() => router.push('/settings/social-profile')}
                 />
-                <SecondaryButton
-                  disabled={busyAction === 'reject'}
-                  label={copy.rejectRequest}
-                  loading={busyAction === 'reject'}
-                  onPress={() => void runRelationshipAction('reject')}
+              ) : null}
+
+              {!isOwnProfile && profileView.relationship.incomingRequest ? (
+                <View style={styles.actionStack}>
+                  <PrimaryButton
+                    disabled={busyAction === 'approve'}
+                    label={copy.approveRequest}
+                    loading={busyAction === 'approve'}
+                    onPress={() => void runRelationshipAction('approve')}
+                  />
+                  <SecondaryButton
+                    disabled={busyAction === 'reject'}
+                    label={copy.rejectRequest}
+                    loading={busyAction === 'reject'}
+                    onPress={() => void runRelationshipAction('reject')}
+                  />
+                </View>
+              ) : null}
+
+              {!isOwnProfile && primaryAction ? (
+                <PrimaryButton
+                  disabled={primaryBusy}
+                  label={primaryLabel}
+                  loading={primaryBusy}
+                  onPress={runPrimaryAction}
                 />
-              </View>
-            ) : null}
+              ) : null}
 
-            {!isOwnProfile && primaryAction ? (
-              <PrimaryButton
-                disabled={primaryBusy}
-                label={primaryLabel}
-                loading={primaryBusy}
-                onPress={runPrimaryAction}
-              />
-            ) : null}
-
-            {!isOwnProfile ? (
-              <DestructiveButton
-                disabled={busyAction === 'block'}
-                label={copy.block}
-                loading={busyAction === 'block'}
-                onPress={confirmBlock}
-              />
-            ) : null}
-          </AppCard>
+              {!isOwnProfile ? (
+                <DestructiveButton
+                  disabled={busyAction === 'block'}
+                  label={copy.block}
+                  loading={busyAction === 'block'}
+                  onPress={confirmBlock}
+                />
+              ) : null}
+            </AppCard>
+            <SocialWorkoutPostList
+              isOwnProfile={isOwnProfile}
+              username={profileView.profile.username}
+            />
+          </>
         ) : null}
       </View>
     </ScrollView>
