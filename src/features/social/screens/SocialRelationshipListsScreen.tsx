@@ -299,7 +299,11 @@ export default function SocialRelationshipListsScreen() {
           : null}
 
         {ready && isAuthenticated && status === 'ready' ? (
-          <InlineError message={actionError ?? (items.length > 0 ? loadErrorMessage : null)} />
+          <InlineError
+            message={
+              actionError ?? (items.length > 0 && loadError ? loadErrorMessage : null)
+            }
+          />
         ) : null}
 
         {ready && isAuthenticated && status === 'ready' && nextCursor ? (
