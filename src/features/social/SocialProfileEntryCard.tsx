@@ -7,6 +7,7 @@ import { Colors, Typography } from '@/constants/theme';
 import { useLocalization } from '@/localization';
 
 import { getSocialFollowingFeedCopy } from './socialFollowingFeedCopy';
+import { getSocialNotificationCopy } from './socialNotificationCopy';
 import { getSocialProfileCopy } from './socialProfileCopy';
 import { getSocialPublicProfileCopy } from './socialPublicProfileCopy';
 import { getSocialRelationshipListsCopy } from './socialRelationshipListsCopy';
@@ -16,6 +17,7 @@ export function SocialProfileEntryCard() {
   const { locale } = useLocalization();
   const copy = getSocialProfileCopy(locale);
   const feedCopy = getSocialFollowingFeedCopy(locale);
+  const notificationCopy = getSocialNotificationCopy(locale);
   const publicCopy = getSocialPublicProfileCopy(locale);
   const relationshipCopy = getSocialRelationshipListsCopy(locale);
 
@@ -23,6 +25,10 @@ export function SocialProfileEntryCard() {
     <AppCard>
       <Text style={styles.title}>{copy.settingsTitle}</Text>
       <Text style={styles.description}>{copy.settingsDescription}</Text>
+      <SecondaryButton
+        label={notificationCopy.action}
+        onPress={() => router.push('/social/notifications')}
+      />
       <SecondaryButton
         label={feedCopy.entryAction}
         onPress={() => router.push('/social/feed')}
