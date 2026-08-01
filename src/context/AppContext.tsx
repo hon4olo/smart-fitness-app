@@ -13,6 +13,7 @@ import type {
   AppInfrastructure,
   AppState,
   BodyMeasurement,
+  ProfileCalculationSex,
   ProfileGoalType,
   ProfileTrainingExperience,
   RecoveryCheckIn,
@@ -34,8 +35,11 @@ import {
   completeOnboardingInState,
   deleteBodyMeasurementFromState,
   resetOnboardingInState,
+  updateCoachProfileInState,
+  updatePersonalDetailsInState,
   updateProfileGoalsInState,
   updateRegistrationProfileInState,
+  type CoachProfileUpdate,
 } from './appContext/progressActions';
 import {
   deleteUserLimitationFromState,
@@ -144,6 +148,28 @@ export function AppProvider({ children }: PropsWithChildren) {
       setState((currentState) => {
         const nextState = updateRegistrationProfileInState(currentState, profile);
         scheduleStateMutation({ label: 'Save registration profile', nextState });
+        return nextState;
+      });
+    },
+    [scheduleStateMutation],
+  );
+
+  const updatePersonalDetails = useCallback(
+    (details: { dateOfBirth: string; calculationSex: ProfileCalculationSex }) => {
+      setState((currentState) => {
+        const nextState = updatePersonalDetailsInState(currentState, details);
+        scheduleStateMutation({ label: 'Apply synchronized data', nextState });
+        return nextState;
+      });
+    },
+    [scheduleStateMutation],
+  );
+
+  const updateCoachProfile = useCallback(
+    (profile: CoachProfileUpdate) => {
+      setState((currentState) => {
+        const nextState = updateCoachProfileInState(currentState, profile);
+        scheduleStateMutation({ label: 'Apply synchronized data', nextState });
         return nextState;
       });
     },
@@ -290,8 +316,10 @@ export function AppProvider({ children }: PropsWithChildren) {
       saveTrainingProgram,
       saveWorkoutSession,
       toggleTrainingProgramFavorite,
+      updateCoachProfile,
       updateFoodEntry,
       updateNutritionTargets,
+      updatePersonalDetails,
       updateProfileGoals,
       updateRegistrationProfile,
       updateWeightEntry,
@@ -323,8 +351,10 @@ export function AppProvider({ children }: PropsWithChildren) {
       saveTrainingProgram,
       saveWorkoutSession,
       toggleTrainingProgramFavorite,
+      updateCoachProfile,
       updateFoodEntry,
       updateNutritionTargets,
+      updatePersonalDetails,
       updateProfileGoals,
       updateRegistrationProfile,
       updateWeightEntry,
