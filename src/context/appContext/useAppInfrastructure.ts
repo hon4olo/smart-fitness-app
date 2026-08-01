@@ -20,6 +20,8 @@ import { createSecureTokenStorageAdapter } from '@/storage/SecureTokenStorageAda
 import { createWeightSyncMetadataStore } from '@/storage/WeightSyncMetadataStore';
 import type { AppState } from '@/types';
 
+import { measureAppStateRestore } from './AppPersistenceMetrics';
+
 export function useAppInfrastructure(
   setState: Dispatch<SetStateAction<AppState>>,
   setIsRestoringState: Dispatch<SetStateAction<boolean>>,
@@ -91,7 +93,9 @@ export function useAppInfrastructure(
           await completeLocalAccountCleanup(secureTokenStorage);
         }
 
-        const storedState = await repository.loadState();
+        const storedState = await measureAppStateRestore({
+          load: () => repository.loadState(),
+        });
         if (storedState && !cancelled) setState(storedState);
       } catch {
         if (!cancelled) setState(defaultAppState);
