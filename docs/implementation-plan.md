@@ -8,8 +8,9 @@ This file contains only active and upcoming work. Completed implementation detai
 
 - One authoritative internal `AppState` remains behind repository, mutation queue, outbox, and synchronization layers.
 - Focused boundaries are available for actions, infrastructure, Workout, Nutrition, Progress, Profile, and Safety/Recovery state.
-- Production `useAppContext` consumers have been reduced from 40 to 3.
-- No production UI reconstructs the full application state for a bounded edit.
+- Production `useAppContext` consumers have been reduced from 40 to 0.
+- No production UI reconstructs or subscribes to the full application state.
+- A permanent source guard prevents production consumers from returning to `useAppContext`.
 - Blocking Mobile CI covers line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor.
 
 ## Invariants
@@ -30,7 +31,7 @@ Root artifacts, alias routes, duplicate empty states, cloud reachability, and bu
 
 # Phase 2 — state architecture
 
-Status: nearly complete.
+Status: complete.
 
 Completed boundaries:
 
@@ -40,55 +41,63 @@ Completed boundaries:
 - Nutrition state;
 - Progress state;
 - Profile state;
-- Safety/Recovery state.
+- Safety/Recovery state;
+- Home composition from existing focused hooks;
+- auth startup composition from Profile and Infrastructure state;
+- onboarding composition from Profile state, AppActions, and AppInfrastructure.
 
-Current compatibility consumers:
+Exit criteria satisfied:
 
-- Home;
-- auth startup redirect;
-- onboarding client.
-
-## Immediate next action
-
-Close the compatibility-context decision gate:
-
-1. inspect the exact fields still read by Home, auth startup, and onboarding;
-2. migrate Home by composing existing focused hooks where this does not create an unreadable subscription surface;
-3. introduce a minimal startup/onboarding boundary only if `onboardingCompleted` and restore state cannot be represented cleanly through existing Profile and Infrastructure hooks;
-4. preserve onboarding validation, mutations, redirects, restore ordering, persistence, sync, and UI;
-5. add permanent source guards;
-6. confirm whether compatibility `useAppContext` can then be removed from production exports or retained only as an internal migration adapter.
-
-Phase 2 exit criteria:
-
-- no broad production subscription remains without a documented reason;
+- production `useAppContext` consumers: 0;
 - mixed readers compose focused hooks;
 - action-only and status-only consumers avoid domain arrays;
 - critical and outbox-bearing operations remain durable and ordered;
 - persistence and synchronization contracts remain compatible.
 
+The internal compatibility primitive remains provider-internal. Removing it is not required for the production subscription boundary and must not be combined with persistence work.
+
 # Phase 3 — persistence measurement and coalescing decision
 
-Status: pending Phase 2 completion.
+Status: active.
 
-Before implementation:
+## Immediate next action
 
-- measure save frequency during set editing, nutrition editing, weight entry, and profile forms;
-- identify which writes are local snapshot-only and which carry outbox semantics;
-- record app-background and process-termination behavior.
+Measure `repository.saveState()` frequency and timing during four representative flows:
 
-Implement coalescing only if measurements show material redundant writes.
+1. active workout set editing;
+2. nutrition entry editing;
+3. weight entry creation/editing;
+4. profile form editing.
 
-Required properties:
+For every observed write path, classify:
+
+- snapshot-only local persistence;
+- eager outbox-bearing operation;
+- planner-based synchronized operation;
+- critical transition requiring immediate flush;
+- lifecycle-sensitive write requiring background/termination handling.
+
+Record:
+
+- write count per user action;
+- payload/state size where available;
+- queue ordering and retry behavior;
+- app-background and process-termination behavior;
+- whether repeated writes are materially redundant.
+
+Do not implement coalescing until measurements establish a concrete redundant-write problem.
+
+If implementation becomes justified, required properties are:
 
 - immediate in-memory updates;
-- latest-state coalescing around 300–500 ms only for eligible local writes;
+- latest-state coalescing around 300–500 ms only for eligible snapshot-only writes;
 - immediate flush for critical operations and lifecycle transitions;
-- preserved mutation order, retry, recovery, observability, and outbox identity.
+- preserved mutation order, retry, recovery, observability, and outbox identity;
+- no generic debounce around the mutation queue.
 
 # Phase 4 — UI virtualization and render performance
 
-Status: pending stable state and persistence boundaries.
+Status: pending stable persistence decision.
 
 Use representative fixtures:
 
