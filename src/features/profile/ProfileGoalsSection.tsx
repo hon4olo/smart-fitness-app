@@ -3,7 +3,9 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
 import { Colors, Radii, Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions } from '@/context/AppContext';
+import { useProfileState } from '@/context/ProfileStateContext';
+import { useProgressState } from '@/context/ProgressStateContext';
 import { getGoalTypeLabel } from '@/features/progress/progressLocalization';
 import { useLocalization } from '@/localization';
 import {
@@ -20,12 +22,9 @@ import {
 } from './profilePlan';
 
 export function ProfileGoalsSection() {
-  const {
-    profile,
-    updateNutritionTargets,
-    updateProfileGoals,
-    weightHistory,
-  } = useAppContext();
+  const { profile } = useProfileState();
+  const { weightHistory } = useProgressState();
+  const { updateNutritionTargets, updateProfileGoals } = useAppActions();
   const { t } = useLocalization();
   const { weight: weightUnit } = useUnitPreferences();
   const [expanded, setExpanded] = useState(false);
