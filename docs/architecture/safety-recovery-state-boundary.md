@@ -2,7 +2,7 @@
 
 Updated: 2026-08-01
 
-Status: provider foundation, pure editors, and preflight migration complete.
+Status: provider foundation, pure editors, preflight, and workout safety gate migrations complete.
 
 ## Purpose
 
@@ -37,7 +37,7 @@ These screens now read Safety/Recovery arrays through `useSafetyRecoveryState`. 
 
 ## Completed slice 3 — preflight composition
 
-Safety Recovery Preflight now composes:
+PR #325 migrated Safety Recovery Preflight. It now composes:
 
 - `useSafetyRecoveryState` for recovery check-ins and limitations;
 - `useAppInfrastructure` for restore status;
@@ -46,13 +46,22 @@ Safety Recovery Preflight now composes:
 
 Local summary calculation, review gating, synchronization controls, routes, and UI behavior remain unchanged.
 
+## Completed slice 4 — workout safety gate
+
+Workout Safety Gate now reads recovery check-ins and limitations directly from `useSafetyRecoveryState`.
+
+The workout draft remains an explicit component prop, the persisted review snapshot remains owned by its existing store, and authentication remains owned by the auth session hook. No Workout or infrastructure state was added because the screen does not read those domains.
+
+Decision calculation, acknowledgement handling, review snapshot loading, routes, and UI behavior remain unchanged.
+
 ## Next slices
 
-Migrate remaining mixed readers by composing focused Safety/Recovery state with Workout state, infrastructure, actions, and sync hooks as required:
+Migrate the remaining mixed readers:
 
 - Safety Recovery Coach;
-- Workout Safety Gate;
 - Combined Coach.
+
+Compose only the focused boundaries each screen actually reads. Do not add Workout, Profile, Progress, Nutrition, action, infrastructure, or sync dependencies unless the source requires them.
 
 ## Explicit exclusions
 
