@@ -5,12 +5,8 @@ import { getLoggedFoodDates, getNutritionSummary, resolveFoodCatalogItem } from 
 import { useLocalization } from '@/localization';
 import type { FoodEntry } from '@/types';
 
-import {
-  getWeekStart,
-  mealTypeOrder,
-  type MealSummary,
-  type WeekDay,
-} from '../utils/nutritionScreenUtils';
+import { buildMealSummaries } from '../utils/nutritionDaySummaryModel';
+import { getWeekStart, type WeekDay } from '../utils/nutritionScreenUtils';
 
 type UseNutritionDaySummaryParams = {
   foodEntries: FoodEntry[];
@@ -76,14 +72,7 @@ export function useNutritionDaySummary({
     return streak;
   }, [streakDays, todayKey]);
 
-  const meals = useMemo<MealSummary[]>(
-    () =>
-      mealTypeOrder.map((mealType) => {
-        const entries = selectedDateEntries.filter((entry) => entry.mealType === mealType);
-        return { entries, mealType, subtotal: sumNutritionTotals(entries) };
-      }),
-    [selectedDateEntries],
-  );
+  const meals = useMemo(() => buildMealSummaries(selectedDateEntries), [selectedDateEntries]);
 
   const fiberBreakdown = useMemo(() => {
     let hasFiberData = false;
