@@ -13,6 +13,7 @@ import type {
   AppInfrastructure,
   AppState,
   BodyMeasurement,
+  NutritionDataState,
   ProfileCalculationSex,
   ProfileGoalType,
   ProfileTrainingExperience,
@@ -26,9 +27,11 @@ import {
   AppActionsContext,
   AppContext,
   AppInfrastructureContext,
+  NutritionDataStateContext,
   useAppActions,
   useAppContext,
   useAppInfrastructure,
+  useNutritionState,
   useWorkoutState,
   WorkoutStateContext,
 } from './appContext/AppContextCore';
@@ -65,6 +68,7 @@ export type {
   FoodEntry,
   MealTemplate,
   MealType,
+  NutritionDataState,
   NutritionState,
   NutritionTargets,
   ProfileGoalType,
@@ -77,7 +81,13 @@ export type {
   WorkoutState,
 } from '@/types';
 
-export { useAppActions, useAppContext, useAppInfrastructure, useWorkoutState };
+export {
+  useAppActions,
+  useAppContext,
+  useAppInfrastructure,
+  useNutritionState,
+  useWorkoutState,
+};
 
 export function AppProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(defaultAppState);
@@ -386,6 +396,15 @@ export function AppProvider({ children }: PropsWithChildren) {
     ],
   );
 
+  const nutritionState = useMemo<NutritionDataState>(
+    () => ({
+      foodEntries: state.foodEntries,
+      mealTemplates: state.mealTemplates,
+      nutritionTargets: state.nutritionTargets,
+    }),
+    [state.foodEntries, state.mealTemplates, state.nutritionTargets],
+  );
+
   const workoutState = useMemo<WorkoutState>(
     () => ({
       exercises: state.exercises,
@@ -410,24 +429,26 @@ export function AppProvider({ children }: PropsWithChildren) {
     <AuthProvider service={authService}>
       <AppActionsContext.Provider value={actions}>
         <AppInfrastructureContext.Provider value={infrastructure}>
-          <WorkoutStateContext.Provider value={workoutState}>
-            <AppContext.Provider value={value}>
-              <SyncProvider
-                metadataStore={weightSyncMetadataStore}
-                queueStore={queueStore}
-                replaceState={replaceState}
-                state={state}
-                syncCoordinator={syncCoordinator}>
-                {children}
-              </SyncProvider>
-              <AppMutationFailureNotice
-                failure={mutationFailure}
-                onDismiss={dismissMutationFailure}
-                onRetry={retryFailedMutation}
-                pendingCount={pendingMutationCount}
-              />
-            </AppContext.Provider>
-          </WorkoutStateContext.Provider>
+          <NutritionDataStateContext.Provider value={nutritionState}>
+            <WorkoutStateContext.Provider value={workoutState}>
+              <AppContext.Provider value={value}>
+                <SyncProvider
+                  metadataStore={weightSyncMetadataStore}
+                  queueStore={queueStore}
+                  replaceState={replaceState}
+                  state={state}
+                  syncCoordinator={syncCoordinator}>
+                  {children}
+                </SyncProvider>
+                <AppMutationFailureNotice
+                  failure={mutationFailure}
+                  onDismiss={dismissMutationFailure}
+                  onRetry={retryFailedMutation}
+                  pendingCount={pendingMutationCount}
+                />
+              </AppContext.Provider>
+            </WorkoutStateContext.Provider>
+          </NutritionDataStateContext.Provider>
         </AppInfrastructureContext.Provider>
       </AppActionsContext.Provider>
     </AuthProvider>

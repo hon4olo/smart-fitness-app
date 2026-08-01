@@ -5,6 +5,7 @@ export type {
   AppMutationFailure,
   AppMutationStage,
   AppState,
+  NutritionDataState,
   WorkoutState,
 } from './appContext';
 export type {
