@@ -57,4 +57,14 @@ describe('Safety Recovery state boundary', () => {
       expect(source).not.toContain('useAppContext');
     }
   });
+
+  test('Safety Recovery preflight composes focused state and infrastructure', () => {
+    const source = readSource(
+      'src/features/coach/screens/SafetyRecoveryPreflightScreen.tsx',
+    );
+
+    expect(source).toContain('useSafetyRecoveryState');
+    expect(source).toContain('useAppInfrastructure');
+    expect(source).not.toContain('useAppContext');
+  });
 });
