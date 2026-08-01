@@ -152,7 +152,7 @@ describe('nutrition compact diary 5.0', () => {
     const source = readSource('src/app/nutrition/date-picker.tsx');
     const copy = readSource('src/localization/nutritionCalendarCopy.ts');
 
-    expect(source).toContain('useAppContext');
+    expect(source).toContain('useNutritionState');
     expect(source).toContain('getLoggedFoodDates');
     expect(source).toContain('dayCellLogged');
     expect(source).toContain('dayCellCheck');
