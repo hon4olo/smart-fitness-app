@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useWorkoutState } from '@/context/AppContext';
 import {
   exerciseRepository,
   isOssExerciseDbEnabled,
@@ -42,7 +42,7 @@ const getOptionsFromExercises = (
   );
 
 export default function WorkoutExerciseLibraryScreen() {
-  const { workoutSessions } = useAppContext();
+  const { workoutSessions } = useWorkoutState();
   const { colors } = useWorkoutTheme();
   const { formatNumber, locale } = useLocalization();
   const copy = useMemo(
