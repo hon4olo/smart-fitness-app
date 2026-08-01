@@ -10,7 +10,7 @@ This file contains only active and upcoming work. Completed implementation detai
 - Focused boundaries are available for actions, infrastructure, Workout, Nutrition, Progress, Profile, and Safety/Recovery state.
 - Production `useAppContext` consumers have been reduced from 40 to 0.
 - No production UI reconstructs or subscribes to the full application state.
-- Permanent source guards protect focused state boundaries and virtualized high-volume list surfaces.
+- Permanent source guards protect focused state boundaries, virtualized high-volume lists, and Progress chart contracts.
 - Blocking Mobile CI covers line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor.
 
 ## Invariants
@@ -112,26 +112,51 @@ Exit criteria satisfied:
 
 # Phase 5 — progress charts
 
-Status: active.
+Status: complete.
 
-Use installed `react-native-svg` by default. Do not add a chart dependency without measured need.
+Completed weight trend work:
 
-## First bounded slice — weight trend selector and chart contract
+- pure canonical-kg selector for 7/30/90-day ranges;
+- deterministic anchoring to the latest valid entry;
+- latest-write handling for duplicate date keys;
+- invalid timestamp and non-finite weight exclusion;
+- accessible `7D / 30D / 90D` controls;
+- kg/lb conversion retained in the presentation layer;
+- zero-entry, one-entry, sparse, boundary, duplicate-date, invalid-data, and range-switch coverage;
+- existing weight summary, add-weight flow, and Weight Details navigation preserved.
 
-1. Inventory the current weight analytics and `ProgressTrendChart` implementation.
-2. Define pure 7/30/90-day selectors over canonical kg entries.
-3. Specify timezone/date bucketing and duplicate-day behavior.
-4. Cover zero-entry, one-entry, sparse, invalid timestamp, kg/lb presentation, and range-switch cases.
-5. Preserve current Progress information architecture and weight-details navigation.
-6. Implement chart changes only after the selector contract is green.
+Completed weekly workout-volume work:
 
-## Following slice — weekly workout volume
+- pure selector for a continuous 8–12 week series;
+- Monday week boundaries with explicit timezone offset;
+- empty weeks retained for chart continuity;
+- positive finite completed sets and legacy sets without `completed` counted;
+- explicitly incomplete and invalid sets excluded;
+- current-week volume and workout count;
+- previous-week comparison;
+- reusable chart card using the existing `ProgressTrendChart` and installed SVG stack;
+- old session-level Training Progress summary removed from Progress;
+- permanent source guards protect selector, card, and screen integration.
 
-- pure timezone-aware selector;
-- valid completed sets only;
-- consistent empty weeks;
-- 8–12 week display;
-- legacy, deload, incomplete-set, and timezone coverage.
+Exit criteria satisfied:
+
+- no new chart dependency;
+- canonical units and persistence remain unchanged;
+- chart selectors are pure and deterministic;
+- Progress no longer presents session count as weekly workout count;
+- routes, synchronization, and native configuration remain compatible.
+
+# Next decision gate
+
+The active architecture, persistence, list-performance, and Progress-chart refactor roadmap is complete. The next bounded slice must be selected from measured product or release evidence rather than speculative refactoring.
+
+Eligible inputs include:
+
+- physical-device performance or accessibility findings;
+- release-candidate smoke failures;
+- user-visible workflow defects;
+- backend contract gaps;
+- a separately approved product roadmap item.
 
 # Deferred external work
 

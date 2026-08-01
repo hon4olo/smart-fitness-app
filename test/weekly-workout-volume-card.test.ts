@@ -10,27 +10,40 @@ const { resolve } = require('path') as {
   resolve: (...parts: string[]) => string;
 };
 
-const source = readFileSync(
+const cardSource = readFileSync(
   resolve(__dirname, '../src/components/progress/WeeklyWorkoutVolumeCard.tsx'),
+  'utf8',
+);
+const progressSource = readFileSync(
+  resolve(__dirname, '../src/app/(tabs)/progress.tsx'),
   'utf8',
 );
 
 describe('weekly workout volume card', () => {
   test('uses the weekly selector with a ten-week local-time series', () => {
-    expect(source).toContain('getWeeklyWorkoutVolume');
-    expect(source).toContain('weeks: 10');
-    expect(source).toContain('-new Date().getTimezoneOffset()');
+    expect(cardSource).toContain('getWeeklyWorkoutVolume');
+    expect(cardSource).toContain('weeks: 10');
+    expect(cardSource).toContain('-new Date().getTimezoneOffset()');
   });
 
   test('renders current-week volume, workout count, comparison, and chart', () => {
-    expect(source).toContain("t('progress.trainingVolume')");
-    expect(source).toContain("t('progress.weeklyWorkoutCount')");
-    expect(source).toContain("t('progress.compareValues'");
-    expect(source).toContain('<ProgressTrendChart');
+    expect(cardSource).toContain("t('progress.trainingVolume')");
+    expect(cardSource).toContain("t('progress.weeklyWorkoutCount')");
+    expect(cardSource).toContain("t('progress.compareValues'");
+    expect(cardSource).toContain('<ProgressTrendChart');
   });
 
   test('keeps an explicit empty state', () => {
-    expect(source).toContain('<EmptyState');
-    expect(source).toContain("t('progress.noWorkoutTrend')");
+    expect(cardSource).toContain('<EmptyState');
+    expect(cardSource).toContain("t('progress.noWorkoutTrend')");
+  });
+
+  test('is the single training-progress surface on Progress', () => {
+    expect(progressSource).toContain(
+      '<WeeklyWorkoutVolumeCard sessions={workoutSessions} />',
+    );
+    expect(progressSource).not.toContain('latestVolumePoint');
+    expect(progressSource).not.toContain('previousVolumePoint');
+    expect(progressSource).not.toContain('formatWorkoutVolume');
   });
 });
