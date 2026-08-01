@@ -4,7 +4,11 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabInset } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import {
+  useAppActions,
+  useAppInfrastructure,
+  useWorkoutState,
+} from '@/context/AppContext';
 import { createBlankProgramDraft } from '@/features/workouts/programEditorModel';
 import type { WorkoutSessionDraft } from '@/features/workouts/types';
 import {
@@ -34,13 +38,9 @@ export default function WorkoutsScreen() {
   const { t } = useLocalization();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createWorkoutsScreenStyles(colors), [colors]);
-  const {
-    isRestoringState,
-    saveTrainingProgram,
-    trainingPrograms,
-    workoutSessions,
-    workouts,
-  } = useAppContext();
+  const { saveTrainingProgram } = useAppActions();
+  const { isRestoringState } = useAppInfrastructure();
+  const { trainingPrograms, workoutSessions, workouts } = useWorkoutState();
   const [activeTab, setActiveTab] = useState<TabKey>('start-now');
   const [activeDraft, setActiveDraft] = useState<WorkoutSessionDraft | null>(null);
   const [draftReady, setDraftReady] = useState(false);
@@ -136,7 +136,10 @@ export default function WorkoutsScreen() {
     <View style={styles.screen}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + BottomTabInset + 84 }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + BottomTabInset + 84 },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>

@@ -18,6 +18,7 @@ import type {
   ProfileTrainingExperience,
   RecoveryCheckIn,
   UserLimitation,
+  WorkoutState,
 } from '@/types';
 
 import { SyncProvider } from './SyncContext';
@@ -28,6 +29,8 @@ import {
   useAppActions,
   useAppContext,
   useAppInfrastructure,
+  useWorkoutState,
+  WorkoutStateContext,
 } from './appContext/AppContextCore';
 import { AppMutationFailureNotice } from './appContext/AppMutationFailureNotice';
 import {
@@ -71,9 +74,10 @@ export type {
   Workout,
   WorkoutSession,
   WorkoutSet,
+  WorkoutState,
 } from '@/types';
 
-export { useAppActions, useAppContext, useAppInfrastructure };
+export { useAppActions, useAppContext, useAppInfrastructure, useWorkoutState };
 
 export function AppProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(defaultAppState);
@@ -382,6 +386,16 @@ export function AppProvider({ children }: PropsWithChildren) {
     ],
   );
 
+  const workoutState = useMemo<WorkoutState>(
+    () => ({
+      exercises: state.exercises,
+      trainingPrograms: state.trainingPrograms,
+      workoutSessions: state.workoutSessions,
+      workouts: state.workouts,
+    }),
+    [state.exercises, state.trainingPrograms, state.workoutSessions, state.workouts],
+  );
+
   const value = useMemo<AppContextType>(
     () => ({
       ...state,
@@ -396,22 +410,24 @@ export function AppProvider({ children }: PropsWithChildren) {
     <AuthProvider service={authService}>
       <AppActionsContext.Provider value={actions}>
         <AppInfrastructureContext.Provider value={infrastructure}>
-          <AppContext.Provider value={value}>
-            <SyncProvider
-              metadataStore={weightSyncMetadataStore}
-              queueStore={queueStore}
-              replaceState={replaceState}
-              state={state}
-              syncCoordinator={syncCoordinator}>
-              {children}
-            </SyncProvider>
-            <AppMutationFailureNotice
-              failure={mutationFailure}
-              onDismiss={dismissMutationFailure}
-              onRetry={retryFailedMutation}
-              pendingCount={pendingMutationCount}
-            />
-          </AppContext.Provider>
+          <WorkoutStateContext.Provider value={workoutState}>
+            <AppContext.Provider value={value}>
+              <SyncProvider
+                metadataStore={weightSyncMetadataStore}
+                queueStore={queueStore}
+                replaceState={replaceState}
+                state={state}
+                syncCoordinator={syncCoordinator}>
+                {children}
+              </SyncProvider>
+              <AppMutationFailureNotice
+                failure={mutationFailure}
+                onDismiss={dismissMutationFailure}
+                onRetry={retryFailedMutation}
+                pendingCount={pendingMutationCount}
+              />
+            </AppContext.Provider>
+          </WorkoutStateContext.Provider>
         </AppInfrastructureContext.Provider>
       </AppActionsContext.Provider>
     </AuthProvider>

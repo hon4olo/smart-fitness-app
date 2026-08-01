@@ -1,10 +1,16 @@
 import { createContext, type Context, useContext } from 'react';
 
-import type { AppActions, AppContextType, AppInfrastructure } from '@/types';
+import type {
+  AppActions,
+  AppContextType,
+  AppInfrastructure,
+  WorkoutState,
+} from '@/types';
 
 export const AppContext = createContext<AppContextType | null>(null);
 export const AppActionsContext = createContext<AppActions | null>(null);
 export const AppInfrastructureContext = createContext<AppInfrastructure | null>(null);
+export const WorkoutStateContext = createContext<WorkoutState | null>(null);
 
 const useRequiredContext = <Value>(
   context: Context<Value | null>,
@@ -29,4 +35,8 @@ export function useAppActions() {
 
 export function useAppInfrastructure() {
   return useRequiredContext(AppInfrastructureContext, 'useAppInfrastructure');
+}
+
+export function useWorkoutState() {
+  return useRequiredContext(WorkoutStateContext, 'useWorkoutState');
 }

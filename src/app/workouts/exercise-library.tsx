@@ -4,23 +4,34 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WorkoutExerciseLibraryCard } from '@/components/workouts/WorkoutExerciseLibraryCard';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions, useWorkoutState } from '@/context/AppContext';
 
-const createExerciseId = (name: string) => `exercise-${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
+const createExerciseId = (name: string) =>
+  `exercise-${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
 
 export default function ExerciseLibraryRoute() {
-  const { addExercise, deleteExercise, exercises, workoutSessions } = useAppContext();
+  const { addExercise, deleteExercise } = useAppActions();
+  const { exercises, workoutSessions } = useWorkoutState();
   const [isExpanded, setIsExpanded] = useState(true);
   const [exerciseName, setExerciseName] = useState('');
   const [exerciseMuscleGroup, setExerciseMuscleGroup] = useState('');
   const [searchValue, setSearchValue] = useState('');
   const insets = useSafeAreaInsets();
 
-  const isExerciseAdded = useMemo(() => new Set(exercises.map((exercise) => exercise.name.toLowerCase())), [exercises]);
+  const isExerciseAdded = useMemo(
+    () => new Set(exercises.map((exercise) => exercise.name.toLowerCase())),
+    [exercises],
+  );
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.three }]} style={styles.scrollView}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + Spacing.three },
+        ]}
+        style={styles.scrollView}>
         <View style={styles.container}>
           <WorkoutExerciseLibraryCard
             exerciseName={exerciseName}
