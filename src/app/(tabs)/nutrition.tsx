@@ -4,7 +4,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useNutritionState } from '@/context/AppContext';
 import { MealGroup } from '@/features/nutrition/components/MealGroup';
 import { NutritionDetailsSection } from '@/features/nutrition/components/NutritionDetailsSection';
 import { NutritionSummaryGrid } from '@/features/nutrition/components/NutritionSummaryGrid';
@@ -27,7 +27,7 @@ export default function NutritionScreen() {
   const copy = getNutritionDiaryCopy(locale);
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { foodEntries, nutritionTargets } = useAppContext();
+  const { foodEntries, nutritionTargets } = useNutritionState();
   const params = useLocalSearchParams<{ date?: string; openMeal?: MealType }>();
 
   const todayKey = useMemo(() => formatLocalDate(new Date()), []);
