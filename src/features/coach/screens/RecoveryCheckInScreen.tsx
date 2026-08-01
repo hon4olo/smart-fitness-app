@@ -7,11 +7,8 @@ import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Spacing } from '@/constants/theme';
-import {
-  useAppActions,
-  useAppContext,
-  useAppInfrastructure,
-} from '@/context/AppContext';
+import { useAppActions, useAppInfrastructure } from '@/context/AppContext';
+import { useSafetyRecoveryState } from '@/context/SafetyRecoveryStateContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { RecoveryScorePicker } from '@/features/coach/components/RecoveryScorePicker';
 import { createUuid } from '@/lib/ids';
@@ -64,7 +61,7 @@ export default function RecoveryCheckInScreen() {
   const copy = getRecoveryCheckInCopy(locale);
   const themedStyles = useMemo(() => createRecoveryCheckInScreenStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { recoveryCheckIns } = useAppContext();
+  const { recoveryCheckIns } = useSafetyRecoveryState();
   const { upsertRecoveryCheckIn } = useAppActions();
   const { isRestoringState } = useAppInfrastructure();
   const { error: syncError, pendingOperations, status: syncStatus, syncNow } = useWeightSync();
