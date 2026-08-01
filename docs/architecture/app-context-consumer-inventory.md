@@ -6,17 +6,11 @@ Updated: 2026-08-01
 
 The original production baseline contained 40 `useAppContext` consumers.
 
-After the focused state-boundary migration, only three intentional compatibility consumers remain:
+After completing the focused state-boundary migration:
 
-- `src/app/(tabs)/index.tsx` — Home composes data from every major product domain plus onboarding state;
-- `src/app/auth/index.tsx` — startup redirect depends on restore and onboarding state;
-- `src/features/onboarding/OnboardingClientScreen.tsx` — onboarding edits profile data and completes the onboarding transition.
-
-Reduction:
-
-- original: 40;
-- remaining: 3;
-- removed from compatibility context: 37, or 92.5%.
+- original production consumers: 40;
+- remaining production consumers: 0;
+- removed from compatibility context: 40, or 100%.
 
 ## Available focused boundaries
 
@@ -28,15 +22,20 @@ Reduction:
 - `ProfileDataState`;
 - `SafetyRecoveryState`.
 
-All pure Workout, Nutrition, Progress, Profile, and Safety/Recovery consumers use focused hooks. Mixed Coach and Progress readers compose focused boundaries rather than introducing aggregate contexts.
+Mixed readers compose only the focused boundaries they actually need. No production screen receives the full application state through `useAppContext`.
 
-## Remaining decision gate
+## Final migrated consumers
 
-Do not remove compatibility `AppContext` mechanically.
+- Home composes Workout, Nutrition, Progress, Profile, and Infrastructure hooks.
+- Auth startup composes Profile state, Infrastructure state, and the existing auth-session hook.
+- Onboarding reads Profile state, invokes `AppActions`, and observes restore/mutation status through `AppInfrastructure`.
 
-First decide whether Home and onboarding should:
+No Home aggregate context or startup/onboarding context was required.
 
-1. compose the existing focused hooks directly; or
-2. use a small dedicated onboarding/startup boundary for `onboardingCompleted` and restore state.
+## Compatibility primitive
 
-The internal `AppState`, repository, mutation queue, outbox, and synchronization ownership remain authoritative during this decision.
+The internal `AppContext` object and `useAppContext` helper remain inside the provider implementation as a compatibility primitive while one authoritative internal `AppState` continues to back repositories, the mutation queue, outbox, and synchronization layers.
+
+They are not permitted in production consumers. `test/no-production-app-context-consumers.test.ts` permanently guards this boundary.
+
+Removing the internal primitive is a separate provider-internals refactor and is not required to close the production subscription boundary.
