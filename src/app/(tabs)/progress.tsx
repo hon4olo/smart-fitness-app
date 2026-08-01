@@ -248,7 +248,6 @@ export default function ProgressScreen() {
               return (
                 <Pressable
                   key={range}
-                  accessibilityLabel={`${range} days`}
                   accessibilityRole="tab"
                   accessibilityState={{ selected }}
                   onPress={() => setWeightTrendRange(range)}
