@@ -86,6 +86,10 @@ describe('AppContext public boundaries', () => {
       'src/features/workouts/screens/WorkoutTemplateDetailScreen.tsx',
       ['useAppActions', 'useAppInfrastructure', 'useWorkoutState'],
     ],
+    [
+      'src/features/workouts/screens/NewRoutineScreen.tsx',
+      ['useAppActions', 'useWorkoutState'],
+    ],
   ])('%s uses only focused app contexts', (path, focusedHooks) => {
     const source = readSource(path);
 

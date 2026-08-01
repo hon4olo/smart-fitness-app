@@ -4,7 +4,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabInset, Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions, useWorkoutState } from '@/context/AppContext';
 import {
   RoutineExerciseMenuModal,
   RoutineExercisePickerModal,
@@ -36,13 +36,8 @@ export function NewRoutineScreen() {
   const { weight } = useUnitPreferences();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const {
-    addWorkoutTemplate,
-    exercises,
-    saveTrainingProgram,
-    trainingPrograms,
-    workouts,
-  } = useAppContext();
+  const { addWorkoutTemplate, saveTrainingProgram } = useAppActions();
+  const { exercises, trainingPrograms, workouts } = useWorkoutState();
   const program = useMemo(
     () => (programId ? getWorkoutProgramById(programId, workouts, trainingPrograms) : null),
     [programId, trainingPrograms, workouts],
