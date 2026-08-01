@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ProfilePreferencesCard } from '@/components/profile/ProfilePreferencesCard';
 import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useProfileState } from '@/context/ProfileStateContext';
 import { ProfileGoalsSection } from '@/features/profile/ProfileGoalsSection';
 import {
   getGoalTypeLabel,
@@ -15,7 +15,7 @@ import { useLocalization } from '@/localization';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { profile } = useAppContext();
+  const { profile } = useProfileState();
   const { t } = useLocalization();
   const safeAreaInsets = useSafeAreaInsets();
 
