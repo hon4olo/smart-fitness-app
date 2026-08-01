@@ -2,7 +2,7 @@
 
 Updated: 2026-08-01
 
-Status: provider foundation introduced; consumer migration pending.
+Status: provider foundation and first pure-consumer migration complete.
 
 ## Purpose
 
@@ -17,25 +17,29 @@ The focused value contains only:
 
 Mutations remain in stable `AppActions`. Restore and mutation status remain in `AppInfrastructure`. Sync state remains in `SyncContext`.
 
-## First slice
+## Completed slice 1 — provider foundation
 
-This slice:
+PR #323:
 
-- adds `SafetyRecoveryStateProvider` and `useSafetyRecoveryState`;
-- memoizes the value from only the two Safety/Recovery arrays;
-- mounts the provider inside the existing `AppProvider` boundary;
-- adds permanent contract tests.
+- added `SafetyRecoveryStateProvider` and `useSafetyRecoveryState`;
+- memoized the value from only the two Safety/Recovery arrays;
+- mounted the provider inside the existing `AppProvider` boundary;
+- added permanent contract tests.
 
-No production consumer migrates in this foundation slice.
+## Completed slice 2 — pure editors
 
-## Next slices
-
-Migrate pure readers first:
+The following screens now read Safety/Recovery arrays through `useSafetyRecoveryState` and no longer subscribe to compatibility `AppContext`:
 
 - Recovery Check-In;
 - User Limitation.
 
-Then migrate mixed readers by composing focused Safety/Recovery state with infrastructure, actions, Workout state, and sync hooks as required:
+Their mutations remain in `useAppActions`, restore status remains in `useAppInfrastructure`, and sync state remains in `SyncContext`.
+
+Validation, local form state, pending-sync tracking, alerts, routes, and UI behavior remain unchanged.
+
+## Next slices
+
+Migrate mixed readers by composing focused Safety/Recovery state with infrastructure, actions, Workout state, and sync hooks as required:
 
 - Safety Recovery Coach;
 - Safety Recovery Preflight;
