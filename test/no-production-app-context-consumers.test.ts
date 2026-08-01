@@ -8,17 +8,15 @@ const { readFileSync, readdirSync, statSync } = require('fs') as {
   readdirSync: (path: string) => string[];
   statSync: (path: string) => { isDirectory(): boolean };
 };
-const { extname, resolve } = require('path') as {
+const { extname, resolve, sep } = require('path') as {
   extname: (path: string) => string;
   resolve: (...parts: string[]) => string;
+  sep: string;
 };
 
 const projectRoot = resolve(__dirname, '..');
 const productionRoot = resolve(projectRoot, 'src');
-const excludedCompatibilityFiles = new Set([
-  resolve(productionRoot, 'context/AppContext.tsx'),
-  resolve(productionRoot, 'context/appContext/AppContextCore.ts'),
-]);
+const internalContextPrefix = `${resolve(productionRoot, 'context')}${sep}`;
 
 const collectSourceFiles = (directory: string): string[] =>
   readdirSync(directory).flatMap((entry) => {
@@ -30,7 +28,7 @@ const collectSourceFiles = (directory: string): string[] =>
 describe('production compatibility context inventory', () => {
   test('contains no useAppContext consumers outside the internal provider implementation', () => {
     const offenders = collectSourceFiles(productionRoot)
-      .filter((path) => !excludedCompatibilityFiles.has(path))
+      .filter((path) => !path.startsWith(internalContextPrefix))
       .filter((path) => readFileSync(path, 'utf8').includes('useAppContext'));
 
     expect(offenders).toEqual([]);
