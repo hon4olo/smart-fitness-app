@@ -12,8 +12,10 @@ import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useNutritionState } from '@/context/NutritionStateContext';
+import { useSafetyRecoveryState } from '@/context/SafetyRecoveryStateContext';
 import { useWeightSync } from '@/context/SyncContext';
+import { useWorkoutState } from '@/context/WorkoutStateContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { getCombinedCoachTrustCopy } from '@/localization/combinedCoachTrustCopy';
@@ -233,7 +235,9 @@ export default function CombinedCoachScreen() {
   const { colors } = useAppTheme();
   const themedStyles = useMemo(() => createCombinedCoachScreenStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const app = useAppContext();
+  const { foodEntries } = useNutritionState();
+  const { recoveryCheckIns, userLimitations } = useSafetyRecoveryState();
+  const { workoutSessions } = useWorkoutState();
   const { syncNow, status: syncStatus } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
   const { formatNumber, locale } = useLocalization();
@@ -257,13 +261,13 @@ export default function CombinedCoachScreen() {
         ? 'available'
         : 'unavailable';
   const primarySession = useMemo(
-    () => latestSession(app.workoutSessions),
-    [app.workoutSessions],
+    () => latestSession(workoutSessions),
+    [workoutSessions],
   );
-  const activeLimitations = app.userLimitations.filter(
+  const activeLimitations = userLimitations.filter(
     (limitation) => limitation.status === 'active',
   ).length;
-  const trackedNutritionDays = new Set(app.foodEntries.map((entry) => entry.date)).size;
+  const trackedNutritionDays = new Set(foodEntries.map((entry) => entry.date)).size;
   const viewModel = useMemo(
     () => (run ? buildCombinedCoachViewModel(run) : null),
     [run],
@@ -358,7 +362,7 @@ export default function CombinedCoachScreen() {
             <Text style={themedStyles.bodyText}>
               {copy.contextCounts(
                 formatNumber(trackedNutritionDays, { maximumFractionDigits: 0 }),
-                formatNumber(app.recoveryCheckIns.length, { maximumFractionDigits: 0 }),
+                formatNumber(recoveryCheckIns.length, { maximumFractionDigits: 0 }),
                 formatNumber(activeLimitations, { maximumFractionDigits: 0 }),
               )}
             </Text>
