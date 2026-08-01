@@ -35,13 +35,25 @@ describe('AppContext public boundaries', () => {
   });
 
   test.each([
-    ['src/app/auth/register.tsx', 'useAppActions'],
-    ['src/app/weight-entry.tsx', 'useAppActions'],
-    ['src/features/settings/DataRecoveryCard.tsx', 'useAppInfrastructure'],
-  ])('%s no longer subscribes to the global context', (path, focusedHook) => {
+    ['src/app/auth/register.tsx', ['useAppActions']],
+    ['src/app/weight-entry.tsx', ['useAppActions']],
+    ['src/app/settings/index.tsx', ['useAppActions']],
+    ['src/features/settings/DataRecoveryCard.tsx', ['useAppInfrastructure']],
+    ['src/features/coach/screens/NutritionCoachScreen.tsx', ['useAppInfrastructure']],
+    [
+      'src/features/coach/screens/NutritionTargetProposalScreen.tsx',
+      ['useAppInfrastructure'],
+    ],
+    [
+      'src/features/workouts/screens/WorkoutSessionFinishScreen.tsx',
+      ['useAppActions', 'useAppInfrastructure'],
+    ],
+  ])('%s uses only focused app contexts', (path, focusedHooks) => {
     const source = readSource(path);
 
-    expect(source).toContain(focusedHook);
+    for (const focusedHook of focusedHooks) {
+      expect(source).toContain(focusedHook);
+    }
     expect(source).not.toContain('useAppContext');
   });
 });

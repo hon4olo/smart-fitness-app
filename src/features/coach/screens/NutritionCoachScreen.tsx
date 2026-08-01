@@ -12,7 +12,7 @@ import {
 import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppInfrastructure } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import {
   NutritionCoachReviewResultCard,
@@ -54,7 +54,7 @@ export default function NutritionCoachScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createNutritionCoachScreenStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { isRestoringState } = useAppContext();
+  const { isRestoringState } = useAppInfrastructure();
   const { syncNow } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
   const { formatNumber, locale } = useLocalization();

@@ -4,7 +4,7 @@ import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions, useAppInfrastructure } from '@/context/AppContext';
 import { getShareWorkoutCopy } from '@/features/social/shareWorkoutCopy';
 import { openAppleHealthIntegration } from '@/features/workouts/integrations/appleHealth';
 import { openStravaIntegration } from '@/features/workouts/integrations/strava';
@@ -56,7 +56,11 @@ const isSameCalendarDay = (left: Date, right: Date) =>
   left.getMonth() === right.getMonth() &&
   left.getDate() === right.getDate();
 
-const formatDateTimeLabel = (value: string, formatDate: ReturnType<typeof useLocalization>['formatDate'], todayAt: (time: string) => string) => {
+const formatDateTimeLabel = (
+  value: string,
+  formatDate: ReturnType<typeof useLocalization>['formatDate'],
+  todayAt: (time: string) => string,
+) => {
   const date = new Date(value);
   const time = formatDate(date, { hour: '2-digit', minute: '2-digit' });
 
@@ -73,7 +77,8 @@ const formatDateTimeLabel = (value: string, formatDate: ReturnType<typeof useLoc
 };
 
 export default function WorkoutSessionFinishScreen() {
-  const { isRestoringState, saveWorkoutSession } = useAppContext();
+  const { saveWorkoutSession } = useAppActions();
+  const { isRestoringState } = useAppInfrastructure();
   const { colors } = useWorkoutTheme();
   const { formatDate, locale, t } = useLocalization();
   const shareCopy = getShareWorkoutCopy(locale);
@@ -128,7 +133,11 @@ export default function WorkoutSessionFinishScreen() {
 
   const completedSetCount = getWorkoutSessionCompletedSetCount(draft);
   const canSave = completedSetCount > 0;
-  const dateTimeLabel = formatDateTimeLabel(new Date().toISOString(), formatDate, (time) => t('workouts.finish.todayAt', { time }));
+  const dateTimeLabel = formatDateTimeLabel(
+    new Date().toISOString(),
+    formatDate,
+    (time) => t('workouts.finish.todayAt', { time }),
+  );
   const durationLabel = formatDurationLabel(draft.startedAt);
   const discardActiveWorkoutAndReturn = () => {
     clearActiveWorkoutSessionDraft();
