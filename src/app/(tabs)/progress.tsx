@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { memo, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddBodyMeasurementCard } from '@/components/progress/AddBodyMeasurementCard';
@@ -27,10 +27,16 @@ import {
   getBodyMeasurementError,
 } from '@/features/progress/progressLocalization';
 import { createUuid } from '@/lib/ids';
-import { getProgressAnalytics } from '@/lib/progress';
+import {
+  getProgressAnalytics,
+  getWeightTrendEntries,
+  type WeightTrendRange,
+} from '@/lib/progress';
 import { useLocalization } from '@/localization';
 import type { BodyMeasurementMetric, BodyMeasurementUnit } from '@/types';
 import { weightFromKg, useUnitPreferences } from '@/units';
+
+const weightTrendRanges: WeightTrendRange[] = [7, 30, 90];
 
 const SectionRow = memo(function SectionRow({
   detail,
@@ -76,6 +82,7 @@ export default function ProgressScreen() {
     createBodyMeasurementDraft(lengthUnit),
   );
   const [measurementError, setMeasurementError] = useState<string | null>(null);
+  const [weightTrendRange, setWeightTrendRange] = useState<WeightTrendRange>(30);
   const toDateLabel = (value: string) =>
     formatDate(value, { day: 'numeric', month: 'short' });
   const formatWorkoutVolume = (volumeKg: number) =>
@@ -100,18 +107,22 @@ export default function ProgressScreen() {
       }),
     [bodyMeasurements, exercises, weightHistory, workoutSessions],
   );
+  const selectedWeightEntries = useMemo(
+    () => getWeightTrendEntries(weightHistory, weightTrendRange),
+    [weightHistory, weightTrendRange],
+  );
   const latestWeight = analytics.weight.currentWeight;
   const weightChange7d = analytics.weight.delta7Days;
-  const hasWeightChart = analytics.weight.recentEntries.length >= 2;
+  const hasWeightChart = selectedWeightEntries.length >= 2;
   const weightTrendPoints = useMemo<ProgressTrendPoint[]>(
     () =>
-      analytics.weight.recentEntries.map((entry) => ({
+      selectedWeightEntries.map((entry) => ({
         key: entry.id,
         label: formatDate(entry.createdAt, { day: 'numeric', month: 'short' }),
         value: weightFromKg(entry.weight, weightUnit),
         displayValue: `${formatWeightValue(entry.weight)} ${weightUnit}`,
       })),
-    [analytics.weight.recentEntries, formatDate, formatWeightValue, weightUnit],
+    [formatDate, formatWeightValue, selectedWeightEntries, weightUnit],
   );
   const latestVolumePoint = analytics.workoutVolumeTrend.at(-1) ?? null;
   const previousVolumePoint = analytics.workoutVolumeTrend.at(-2) ?? null;
@@ -230,6 +241,28 @@ export default function ProgressScreen() {
               onPress={() => router.push('/weight-details')}
               variant="secondary"
             />
+          </View>
+          <View accessibilityRole="tablist" style={styles.rangeTabs}>
+            {weightTrendRanges.map((range) => {
+              const selected = weightTrendRange === range;
+              return (
+                <Pressable
+                  key={range}
+                  accessibilityLabel={`${range} days`}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected }}
+                  onPress={() => setWeightTrendRange(range)}
+                  style={({ pressed }) => [
+                    styles.rangeTab,
+                    selected && styles.rangeTabSelected,
+                    pressed && styles.rangeTabPressed,
+                  ]}>
+                  <Text style={[styles.rangeTabLabel, selected && styles.rangeTabLabelSelected]}>
+                    {range}D
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
           {hasWeightChart ? (
             <View style={styles.chartWrap}>
@@ -392,8 +425,26 @@ export default function ProgressScreen() {
 const styles = StyleSheet.create({
   chartWrap: { marginBottom: Spacing.three },
   container: { gap: Spacing.three, maxWidth: MaxContentWidth, width: '100%' },
-  weightActions: { gap: Spacing.two, marginTop: Spacing.two },
   content: { alignItems: 'center', padding: Spacing.three },
+  rangeTab: {
+    alignItems: 'center',
+    borderRadius: 10,
+    flex: 1,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 8,
+  },
+  rangeTabLabel: { color: Colors.dark.textSecondary, fontSize: 13, fontWeight: '800' },
+  rangeTabLabelSelected: { color: Colors.dark.textPrimary },
+  rangeTabPressed: { opacity: 0.72 },
+  rangeTabs: {
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderRadius: 12,
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: Spacing.three,
+    padding: 3,
+  },
+  rangeTabSelected: { backgroundColor: Colors.dark.surfacePrimary },
   rowDetail: { color: Colors.dark.textSecondary, fontSize: 12, lineHeight: 18 },
   rowLabel: { color: Colors.dark.textSecondary, fontSize: 13, fontWeight: '700' },
   rowValue: { color: Colors.dark.textPrimary, fontSize: 15, fontWeight: '800' },
@@ -407,12 +458,13 @@ const styles = StyleSheet.create({
   },
   sectionRowCopy: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     gap: Spacing.two,
+    justifyContent: 'space-between',
   },
   sectionSubtitle: { color: Colors.dark.textSecondary, fontSize: 13, lineHeight: 18 },
   sectionTitle: { color: Colors.dark.textPrimary, fontSize: 18, fontWeight: '800' },
   stack: { gap: Spacing.two },
+  weightActions: { gap: Spacing.two, marginTop: Spacing.two },
   weightHero: {
     alignItems: 'flex-start',
     flexDirection: 'row',
