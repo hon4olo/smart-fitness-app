@@ -42,7 +42,7 @@ describe('AppContext public boundaries', () => {
     const source = readSource('src/types/appContext.ts');
     const workoutStateBlock = source.slice(
       source.indexOf('export type WorkoutState'),
-      source.indexOf('export type AppActions'),
+      source.indexOf('export type NutritionDataState'),
     );
 
     for (const field of ['workouts', 'trainingPrograms', 'exercises', 'workoutSessions']) {
