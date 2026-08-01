@@ -5,14 +5,14 @@ import { router } from 'expo-router';
 import { ProfileCoachCard } from '@/components/profile/ProfileCoachCard';
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
 import { Colors, Radii, Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions, useAppContext } from '@/context/AppContext';
 import {
   validateCoachProfileForm,
   type CoachActivityLevel,
 } from '@/features/profile/coachProfileForm';
 import { getGoalTypeLabel } from '@/features/progress/progressLocalization';
 import { useLocalization } from '@/localization';
-import type { ProfileGoalType, ProfileTrainingExperience } from '@/types';
+import type { ProfileTrainingExperience } from '@/types';
 import {
   displayLengthInputToCm,
   formatLengthValue,
@@ -39,10 +39,10 @@ const normalizeCoachActivity = (value: string): CoachActivityLevel | null => {
 };
 
 export function ProgressPlanningSections() {
-  const app = useAppContext();
+  const { profile } = useAppContext();
+  const { updateCoachProfile, updateProfileGoals } = useAppActions();
   const { t } = useLocalization();
   const { weight: weightUnit, length: lengthUnit } = useUnitPreferences();
-  const { profile, updateProfileGoals } = app;
   const [goalsExpanded, setGoalsExpanded] = useState(false);
   const [coachExpanded, setCoachExpanded] = useState(false);
   const [targetWeight, setTargetWeight] = useState(() =>
@@ -124,22 +124,7 @@ export function ProgressPlanningSections() {
 
   const handleSaveCoachProfile = () => {
     if (!coachProfileValidation.valid) return;
-    app.replaceState({
-      workouts: app.workouts,
-      trainingPrograms: app.trainingPrograms,
-      exercises: app.exercises,
-      workoutSessions: app.workoutSessions,
-      foodEntries: app.foodEntries,
-      mealTemplates: app.mealTemplates,
-      nutrition: app.nutrition,
-      nutritionTargets: app.nutritionTargets,
-      weightHistory: app.weightHistory,
-      bodyMeasurements: app.bodyMeasurements,
-      userLimitations: app.userLimitations,
-      recoveryCheckIns: app.recoveryCheckIns,
-      profile: { ...app.profile, ...coachProfileValidation.value },
-      onboardingCompleted: app.onboardingCompleted,
-    });
+    updateCoachProfile(coachProfileValidation.value);
     setCoachExpanded(false);
     Alert.alert(t('coach.savedTitle'), t('coach.savedBody'));
   };
