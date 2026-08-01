@@ -6,7 +6,8 @@ import { FormField } from '@/components/ui/FormField';
 import { InlineError } from '@/components/ui/InlineError';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useAppActions, useAppContext } from '@/context/AppContext';
+import { useAppActions } from '@/context/AppContext';
+import { useProfileState } from '@/context/ProfileStateContext';
 import { useLocalization } from '@/localization';
 import type { ProfileCalculationSex } from '@/types';
 
@@ -31,7 +32,7 @@ const validateDateOfBirth = (value: string): string | null => {
 };
 
 export function PersonalDetailsSettingsCard() {
-  const { profile } = useAppContext();
+  const { profile } = useProfileState();
   const { updatePersonalDetails } = useAppActions();
   const { t } = useLocalization();
   const [dateOfBirth, setDateOfBirth] = useState(profile.dateOfBirth ?? '');
