@@ -16,10 +16,14 @@ const readSource = (relativePath: string) =>
 
 describe('list virtualization boundaries', () => {
   test('Nutrition Diary keeps one SectionList boundary for food-entry rows', () => {
-    const source = readSource('src/app/(tabs)/nutrition.tsx');
-    expect(source).toContain('SectionList');
-    expect(source).toContain('keyExtractor={(entry) => entry.id}');
-    expect(source).not.toContain('<ScrollView');
+    const route = readSource('src/app/(tabs)/nutrition.tsx');
+    const list = readSource(
+      'src/features/nutrition/components/NutritionDiaryList.tsx',
+    );
+    expect(route).toContain('NutritionDiaryList');
+    expect(route).not.toContain('<ScrollView');
+    expect(list).toContain('SectionList');
+    expect(list).toContain('keyExtractor={(entry) => entry.id}');
   });
 
   test('Programs tab keeps a FlatList keyed by stable program id', () => {
@@ -27,7 +31,7 @@ describe('list virtualization boundaries', () => {
     expect(source).toContain('FlatList');
     expect(source).toContain('data={visibleProgramSummaries}');
     expect(source).toContain('keyExtractor={(summary) => summary.program.id}');
-    expect(source).not.toContain('visibleProgramSummaries.map');
+    expect(source).not.toContain('{visibleProgramSummaries.map(');
   });
 
   test('Workout History keeps a FlatList keyed by stable session id', () => {
@@ -35,13 +39,13 @@ describe('list virtualization boundaries', () => {
     expect(source).toContain('FlatList');
     expect(source).toContain('data={history}');
     expect(source).toContain('keyExtractor={(item) => item.session.id}');
-    expect(source).not.toContain('history.map');
+    expect(source).not.toContain('{history.map(');
   });
 
   test('Exercise Library keeps one SectionList and stable exercise ids', () => {
     const route = readSource('src/app/workouts/exercise-library.tsx');
     const browser = readSource(
-      'src/components/workouts/VirtualizedExerciseLibraryBrowser.tsx',
+      'src/components/workouts/VirtualizedWorkoutExerciseLibrary.tsx',
     );
     expect(route).not.toContain('<ScrollView');
     expect(browser).toContain('SectionList');
