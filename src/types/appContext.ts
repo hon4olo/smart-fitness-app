@@ -87,6 +87,9 @@ export type AppActions = {
     height: string;
     trainingExperience: ProfileTrainingExperience;
   }) => void;
+  upsertRecoveryCheckIn: (checkIn: RecoveryCheckIn) => boolean;
+  upsertUserLimitation: (limitation: UserLimitation) => boolean;
+  deleteUserLimitation: (limitationId: string) => void;
   updateFoodEntry: (entryId: string, updatedEntry: FoodEntry) => void;
   deleteFoodEntry: (entryId: string) => void;
   deleteMealTemplate: (templateId: string) => void;

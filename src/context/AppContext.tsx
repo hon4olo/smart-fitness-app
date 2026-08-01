@@ -3,6 +3,10 @@ import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { AuthProvider } from '@/auth';
 import { defaultState as defaultAppState } from '@/data/defaults';
 import { getLastWorkoutSession as getLastWorkoutSessionFromState } from '@/lib/appState';
+import {
+  normalizeRecoveryCheckIn,
+  normalizeUserLimitation,
+} from '@/lib/safetyRecoveryState';
 import type {
   AppActions,
   AppContextType,
@@ -11,6 +15,8 @@ import type {
   BodyMeasurement,
   ProfileGoalType,
   ProfileTrainingExperience,
+  RecoveryCheckIn,
+  UserLimitation,
 } from '@/types';
 
 import { SyncProvider } from './SyncContext';
@@ -31,6 +37,11 @@ import {
   updateProfileGoalsInState,
   updateRegistrationProfileInState,
 } from './appContext/progressActions';
+import {
+  deleteUserLimitationFromState,
+  upsertRecoveryCheckInInState,
+  upsertUserLimitationInState,
+} from './appContext/safetyRecoveryActions';
 import { useAppInfrastructure as useAppInfrastructureSetup } from './appContext/useAppInfrastructure';
 import { useAppMutationQueue } from './appContext/useAppMutationQueue';
 import { useNutritionStateActions } from './appContext/useNutritionStateActions';
@@ -161,6 +172,47 @@ export function AppProvider({ children }: PropsWithChildren) {
     [scheduleStateMutation],
   );
 
+  const upsertRecoveryCheckIn = useCallback(
+    (checkIn: RecoveryCheckIn): boolean => {
+      const normalized = normalizeRecoveryCheckIn(checkIn);
+      if (!normalized) return false;
+
+      setState((currentState) => {
+        const nextState = upsertRecoveryCheckInInState(currentState, normalized);
+        scheduleStateMutation({ label: 'Apply synchronized data', nextState });
+        return nextState;
+      });
+      return true;
+    },
+    [scheduleStateMutation],
+  );
+
+  const upsertUserLimitation = useCallback(
+    (limitation: UserLimitation): boolean => {
+      const normalized = normalizeUserLimitation(limitation);
+      if (!normalized) return false;
+
+      setState((currentState) => {
+        const nextState = upsertUserLimitationInState(currentState, normalized);
+        scheduleStateMutation({ label: 'Apply synchronized data', nextState });
+        return nextState;
+      });
+      return true;
+    },
+    [scheduleStateMutation],
+  );
+
+  const deleteUserLimitation = useCallback(
+    (limitationId: string) => {
+      setState((currentState) => {
+        const nextState = deleteUserLimitationFromState(currentState, limitationId);
+        scheduleStateMutation({ label: 'Apply synchronized data', nextState });
+        return nextState;
+      });
+    },
+    [scheduleStateMutation],
+  );
+
   const completeOnboarding = useCallback(
     (setup: {
       age: number;
@@ -229,6 +281,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       deleteFoodEntry,
       deleteMealTemplate,
       deleteTrainingProgram,
+      deleteUserLimitation,
       deleteWeightEntry,
       deleteWorkoutSession,
       deleteWorkoutTemplate,
@@ -244,6 +297,8 @@ export function AppProvider({ children }: PropsWithChildren) {
       updateWeightEntry,
       updateWorkoutSession,
       updateWorkoutTemplate,
+      upsertRecoveryCheckIn,
+      upsertUserLimitation,
     }),
     [
       addBodyMeasurement,
@@ -259,6 +314,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       deleteFoodEntry,
       deleteMealTemplate,
       deleteTrainingProgram,
+      deleteUserLimitation,
       deleteWeightEntry,
       deleteWorkoutSession,
       deleteWorkoutTemplate,
@@ -274,6 +330,8 @@ export function AppProvider({ children }: PropsWithChildren) {
       updateWeightEntry,
       updateWorkoutSession,
       updateWorkoutTemplate,
+      upsertRecoveryCheckIn,
+      upsertUserLimitation,
     ],
   );
 

@@ -7,12 +7,12 @@ import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
-import { useWeightSync } from '@/context/SyncContext';
 import {
-  deleteUserLimitationFromState,
-  upsertUserLimitationInState,
-} from '@/context/appContext/safetyRecoveryActions';
+  useAppActions,
+  useAppContext,
+  useAppInfrastructure,
+} from '@/context/AppContext';
+import { useWeightSync } from '@/context/SyncContext';
 import { createUuid } from '@/lib/ids';
 import { useLocalization } from '@/localization';
 import { getBoundedSyncStatusLabel } from '@/localization/statusPresentation';
@@ -21,12 +21,7 @@ import {
   type UserLimitationsCopy,
 } from '@/localization/userLimitationsCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
-import type {
-  AppContextType,
-  AppState,
-  UserLimitation,
-  UserLimitationMovementPattern,
-} from '@/types';
+import type { UserLimitation, UserLimitationMovementPattern } from '@/types';
 import {
   buildActiveUserLimitation,
   emptyUserLimitationDraft,
@@ -48,23 +43,6 @@ type PendingChange = {
   id: string;
   operation: 'upsert' | 'delete';
 };
-
-const toAppState = (app: AppContextType): AppState => ({
-  workouts: app.workouts,
-  trainingPrograms: app.trainingPrograms,
-  exercises: app.exercises,
-  workoutSessions: app.workoutSessions,
-  foodEntries: app.foodEntries,
-  mealTemplates: app.mealTemplates,
-  nutrition: app.nutrition,
-  nutritionTargets: app.nutritionTargets,
-  weightHistory: app.weightHistory,
-  bodyMeasurements: app.bodyMeasurements,
-  userLimitations: app.userLimitations,
-  recoveryCheckIns: app.recoveryCheckIns,
-  profile: app.profile,
-  onboardingCompleted: app.onboardingCompleted,
-});
 
 const localizeValidationMessage = (message: string, copy: UserLimitationsCopy) => {
   const messages: Record<string, string> = {
@@ -88,19 +66,21 @@ export default function UserLimitationScreen() {
   const options = getLimitationOptions(copy);
   const themedStyles = useMemo(() => createUserLimitationScreenStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const app = useAppContext();
+  const { userLimitations } = useAppContext();
+  const { deleteUserLimitation, upsertUserLimitation } = useAppActions();
+  const { isRestoringState } = useAppInfrastructure();
   const { error: syncError, pendingOperations, status: syncStatus, syncNow } = useWeightSync();
   const [draft, setDraft] = useState<UserLimitationDraft>(emptyUserLimitationDraft);
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const activeCount = app.userLimitations.filter((item) => item.status === 'active').length;
+  const activeCount = userLimitations.filter((item) => item.status === 'active').length;
   const syncStatusLabel = getBoundedSyncStatusLabel(locale, String(syncStatus));
 
   useEffect(() => {
     if (!pendingChange) return;
-    const exists = app.userLimitations.some((item) => item.id === pendingChange.id);
+    const exists = userLimitations.some((item) => item.id === pendingChange.id);
     if (
       (pendingChange.operation === 'upsert' && !exists) ||
       (pendingChange.operation === 'delete' && exists)
@@ -123,7 +103,7 @@ export default function UserLimitationScreen() {
     return () => {
       cancelled = true;
     };
-  }, [app.userLimitations, copy.savedAndSynced, copy.savedLocallyRetry, pendingChange, syncNow]);
+  }, [copy.savedAndSynced, copy.savedLocallyRetry, pendingChange, syncNow, userLimitations]);
 
   const updateDraft = <Key extends keyof UserLimitationDraft>(
     key: Key,
@@ -146,7 +126,7 @@ export default function UserLimitationScreen() {
   };
 
   const saveLimitation = () => {
-    if (pendingChange || app.isRestoringState) return;
+    if (pendingChange || isRestoringState) return;
     const result = buildActiveUserLimitation({
       draft,
       id: createUuid(),
@@ -157,12 +137,10 @@ export default function UserLimitationScreen() {
       return;
     }
 
-    const nextState = upsertUserLimitationInState(toAppState(app), result.limitation);
-    if (!nextState.userLimitations.some((item) => item.id === result.limitation.id)) {
+    if (!upsertUserLimitation(result.limitation)) {
       setFormError(copy.localValidationFailed);
       return;
     }
-    void app.replaceState(nextState);
     setPendingChange({ id: result.limitation.id, operation: 'upsert' });
     setDraft(emptyUserLimitationDraft());
     setFormError(null);
@@ -180,14 +158,17 @@ export default function UserLimitationScreen() {
       setFormError(localizeValidationMessage(result.message, copy));
       return;
     }
-    void app.replaceState(upsertUserLimitationInState(toAppState(app), result.limitation));
+    if (!upsertUserLimitation(result.limitation)) {
+      setFormError(copy.localValidationFailed);
+      return;
+    }
     setPendingChange({ id: limitation.id, operation: 'upsert' });
     setMessage(copy.statusUpdated);
   };
 
   const deleteLimitation = (limitation: UserLimitation) => {
     if (pendingChange) return;
-    void app.replaceState(deleteUserLimitationFromState(toAppState(app), limitation.id));
+    deleteUserLimitation(limitation.id);
     setPendingChange({ id: limitation.id, operation: 'delete' });
     setMessage(copy.deletedLocally);
   };
@@ -222,8 +203,8 @@ export default function UserLimitationScreen() {
               {copy.recordCounts(
                 activeCount,
                 formatNumber(activeCount, { maximumFractionDigits: 0 }),
-                app.userLimitations.length,
-                formatNumber(app.userLimitations.length, { maximumFractionDigits: 0 }),
+                userLimitations.length,
+                formatNumber(userLimitations.length, { maximumFractionDigits: 0 }),
               )}
             </Text>
             <Text style={themedStyles.metaText}>
@@ -237,11 +218,11 @@ export default function UserLimitationScreen() {
                 {copy.syncIssue}
               </Text>
             ) : null}
-            {app.userLimitations.length === 0 ? (
+            {userLimitations.length === 0 ? (
               <Text style={themedStyles.bodyText}>{copy.noLimitations}</Text>
             ) : (
               <View style={styles.listStack}>
-                {app.userLimitations.map((limitation) => (
+                {userLimitations.map((limitation) => (
                   <LimitationRow
                     key={limitation.id}
                     disabled={Boolean(pendingChange)}
@@ -287,7 +268,7 @@ export default function UserLimitationScreen() {
               <Text style={[themedStyles.metaText, { color: colors.success }]}>{message}</Text>
             ) : null}
             <PrimaryButton
-              disabled={app.isRestoringState || Boolean(pendingChange)}
+              disabled={isRestoringState || Boolean(pendingChange)}
               label={copy.save}
               loading={Boolean(pendingChange)}
               onPress={saveLimitation}

@@ -49,14 +49,17 @@ It does not need any domain arrays and should not subscribe to the compatibility
 
 ### Broad snapshot reconstruction
 
-Four screens read nearly every state slice and `replaceState`:
+The original inventory found four screens that read nearly every state slice and called `replaceState`:
 
 - `RecoveryCheckInScreen`;
 - `UserLimitationScreen`;
 - `ProgressPlanningSections`;
 - `PersonalDetailsSettingsCard`.
 
-These consumers reconstruct a complete `AppState` object to change one bounded domain. This is a higher-risk smell than simple destructuring and should be removed through typed updater actions before domain state contexts are finalized.
+Safety & Recovery typed updater actions now remove the first two from this list. The remaining broad reconstruction targets are:
+
+- `ProgressPlanningSections`;
+- `PersonalDetailsSettingsCard`.
 
 ### Workout concentration
 
@@ -87,9 +90,9 @@ Initial consumers moved off the global context:
 - weight entry;
 - Data Recovery.
 
-### Focused-consumer migration
+### PR #298 — focused-consumer migration
 
-The next bounded slice moves:
+PR #298 moved:
 
 - Settings reset-onboarding to `useAppActions`;
 - Nutrition Coach restore status to `useAppInfrastructure`;
@@ -98,11 +101,21 @@ The next bounded slice moves:
 
 A source regression guard requires these files to retain focused hooks and rejects reintroduction of `useAppContext`.
 
-This remains an incremental subscription change. No state slice, persisted model, repository, queue, outbox, or synchronization contract changes.
+### Safety & Recovery typed updater actions
+
+The next bounded slice adds typed actions for:
+
+- recovery check-in upsert;
+- user-limitation upsert;
+- user-limitation deletion.
+
+`RecoveryCheckInScreen` and `UserLimitationScreen` keep reading only their current domain arrays while validation and ordered persistence move behind `AppActions`. They no longer copy every `AppState` field or call `replaceState`.
+
+The provider keeps the same pure normalization helpers, state transition functions, `scheduleStateMutation` path, and subsequent screen-level `syncNow()` flow.
 
 ## Recommended migration order
 
-1. Replace full-state reconstruction with typed domain updater actions.
+1. Remove the remaining full-state reconstruction from Progress planning and Personal Details.
 2. Extract Workout state and actions as the first complete domain boundary.
 3. Extract Nutrition, Progress, and Profile state boundaries.
 4. Retain the compatibility context until no production consumer requires it.
