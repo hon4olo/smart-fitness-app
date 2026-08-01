@@ -43,4 +43,12 @@ describe('Progress state boundary', () => {
     expect(appProviderIndex).toBeGreaterThanOrEqual(0);
     expect(progressProviderIndex).toBeGreaterThan(appProviderIndex);
   });
+
+  test('Weight Details composes focused Progress and Workout state', () => {
+    const source = readSource('src/app/weight-details.tsx');
+
+    expect(source).toContain('useProgressState');
+    expect(source).toContain('useWorkoutState');
+    expect(source).not.toContain('useAppContext');
+  });
 });
