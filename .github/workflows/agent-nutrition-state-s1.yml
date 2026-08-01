@@ -1,0 +1,255 @@
+name: Agent first Nutrition state boundary
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/nutrition-state-boundary-s1'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/nutrition-state-boundary-s1
+          fetch-depth: 0
+
+      - name: Apply bounded Nutrition context migration
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path_string: str, old: str, new: str) -> None:
+              path = Path(path_string)
+              source = path.read_text()
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match for {old!r}, found {count}')
+              path.write_text(source.replace(old, new, 1))
+
+          replace_once(
+              'src/types/appContext.ts',
+              "export type WorkoutState = Pick<\n  AppState,\n  'workouts' | 'trainingPrograms' | 'exercises' | 'workoutSessions'\n>;\n\nexport type AppActions = {",
+              "export type WorkoutState = Pick<\n  AppState,\n  'workouts' | 'trainingPrograms' | 'exercises' | 'workoutSessions'\n>;\n\nexport type NutritionDataState = Pick<\n  AppState,\n  'foodEntries' | 'mealTemplates' | 'nutritionTargets'\n>;\n\nexport type AppActions = {",
+          )
+
+          replace_once(
+              'src/types/index.ts',
+              "  AppState,\n  WorkoutState,\n} from './appContext';",
+              "  AppState,\n  NutritionDataState,\n  WorkoutState,\n} from './appContext';",
+          )
+
+          replace_once(
+              'src/context/appContext/AppContextCore.ts',
+              "  AppInfrastructure,\n  WorkoutState,",
+              "  AppInfrastructure,\n  NutritionDataState,\n  WorkoutState,",
+          )
+          replace_once(
+              'src/context/appContext/AppContextCore.ts',
+              "export const AppInfrastructureContext = createContext<AppInfrastructure | null>(null);\nexport const WorkoutStateContext = createContext<WorkoutState | null>(null);",
+              "export const AppInfrastructureContext = createContext<AppInfrastructure | null>(null);\nexport const NutritionDataStateContext = createContext<NutritionDataState | null>(null);\nexport const WorkoutStateContext = createContext<WorkoutState | null>(null);",
+          )
+          replace_once(
+              'src/context/appContext/AppContextCore.ts',
+              "export function useWorkoutState() {\n  return useRequiredContext(WorkoutStateContext, 'useWorkoutState');\n}",
+              "export function useNutritionState() {\n  return useRequiredContext(NutritionDataStateContext, 'useNutritionState');\n}\n\nexport function useWorkoutState() {\n  return useRequiredContext(WorkoutStateContext, 'useWorkoutState');\n}",
+          )
+
+          replace_once(
+              'src/context/AppContext.tsx',
+              "  BodyMeasurement,\n  ProfileCalculationSex,",
+              "  BodyMeasurement,\n  NutritionDataState,\n  ProfileCalculationSex,",
+          )
+          replace_once(
+              'src/context/AppContext.tsx',
+              "  AppInfrastructureContext,\n  useAppActions,\n  useAppContext,\n  useAppInfrastructure,\n  useWorkoutState,\n  WorkoutStateContext,",
+              "  AppInfrastructureContext,\n  NutritionDataStateContext,\n  useAppActions,\n  useAppContext,\n  useAppInfrastructure,\n  useNutritionState,\n  useWorkoutState,\n  WorkoutStateContext,",
+          )
+          replace_once(
+              'src/context/AppContext.tsx',
+              "  MealType,\n  NutritionState,",
+              "  MealType,\n  NutritionDataState,\n  NutritionState,",
+          )
+          replace_once(
+              'src/context/AppContext.tsx',
+              "export { useAppActions, useAppContext, useAppInfrastructure, useWorkoutState };",
+              "export {\n  useAppActions,\n  useAppContext,\n  useAppInfrastructure,\n  useNutritionState,\n  useWorkoutState,\n};",
+          )
+          replace_once(
+              'src/context/AppContext.tsx',
+              "  const workoutState = useMemo<WorkoutState>(",
+              "  const nutritionState = useMemo<NutritionDataState>(\n    () => ({\n      foodEntries: state.foodEntries,\n      mealTemplates: state.mealTemplates,\n      nutritionTargets: state.nutritionTargets,\n    }),\n    [state.foodEntries, state.mealTemplates, state.nutritionTargets],\n  );\n\n  const workoutState = useMemo<WorkoutState>(",
+          )
+          replace_once(
+              'src/context/AppContext.tsx',
+              "        <AppInfrastructureContext.Provider value={infrastructure}>\n          <WorkoutStateContext.Provider value={workoutState}>",
+              "        <AppInfrastructureContext.Provider value={infrastructure}>\n          <NutritionDataStateContext.Provider value={nutritionState}>\n            <WorkoutStateContext.Provider value={workoutState}>",
+          )
+          replace_once(
+              'src/context/AppContext.tsx',
+              "          </WorkoutStateContext.Provider>\n        </AppInfrastructureContext.Provider>",
+              "            </WorkoutStateContext.Provider>\n          </NutritionDataStateContext.Provider>\n        </AppInfrastructureContext.Provider>",
+          )
+
+          replace_once(
+              'src/app/(tabs)/nutrition.tsx',
+              "import { useAppContext } from '@/context/AppContext';",
+              "import { useNutritionState } from '@/context/AppContext';",
+          )
+          replace_once(
+              'src/app/(tabs)/nutrition.tsx',
+              "  const { foodEntries, nutritionTargets } = useAppContext();",
+              "  const { foodEntries, nutritionTargets } = useNutritionState();",
+          )
+
+          replace_once(
+              'src/app/nutrition/date-picker.tsx',
+              "import { useAppContext } from '@/context/AppContext';",
+              "import { useNutritionState } from '@/context/AppContext';",
+          )
+          replace_once(
+              'src/app/nutrition/date-picker.tsx',
+              "  const { foodEntries } = useAppContext();",
+              "  const { foodEntries } = useNutritionState();",
+          )
+
+          Path('test/nutrition-state-boundary.test.ts').write_text("""import { describe, expect, test } from 'vitest';
+
+declare const __dirname: string;
+declare const require: any;
+
+const { readFileSync } = require('fs') as {
+  readFileSync: (path: string, encoding: string) => string;
+};
+const { resolve } = require('path') as { resolve: (...parts: string[]) => string };
+
+const projectRoot = resolve(__dirname, '..');
+const readSource = (relativePath: string) =>
+  readFileSync(resolve(projectRoot, relativePath), 'utf8');
+
+describe('Nutrition state boundary', () => {
+  test('defines and provides a memoized focused Nutrition state context', () => {
+    const core = readSource('src/context/appContext/AppContextCore.ts');
+    const provider = readSource('src/context/AppContext.tsx');
+
+    expect(core).toContain('NutritionDataStateContext');
+    expect(core).toContain('useNutritionState');
+    expect(provider).toContain('useMemo<NutritionDataState>');
+    expect(provider).toContain(
+      '<NutritionDataStateContext.Provider value={nutritionState}>',
+    );
+  });
+
+  test('contains only the three currently required Nutrition arrays', () => {
+    const source = readSource('src/types/appContext.ts');
+    const block = source.slice(
+      source.indexOf('export type NutritionDataState'),
+      source.indexOf('export type AppActions'),
+    );
+
+    for (const field of ['foodEntries', 'mealTemplates', 'nutritionTargets']) {
+      expect(block).toContain(field);
+    }
+    for (const unrelatedField of [
+      'workouts',
+      'workoutSessions',
+      'weightHistory',
+      'profile',
+      'recoveryCheckIns',
+    ]) {
+      expect(block).not.toContain(unrelatedField);
+    }
+  });
+
+  test.each([
+    'src/app/(tabs)/nutrition.tsx',
+    'src/app/nutrition/date-picker.tsx',
+  ])('%s uses only focused Nutrition state', (path) => {
+    const source = readSource(path);
+
+    expect(source).toContain('useNutritionState');
+    expect(source).not.toContain('useAppContext');
+  });
+});
+""")
+
+          Path('docs/architecture/nutrition-state-boundary.md').write_text("""# Nutrition State Boundary
+
+Updated: 2026-08-01
+
+Status: first migration slice.
+
+## Purpose
+
+`useNutritionState` narrows Nutrition-screen subscriptions without changing the internal `AppState`, persistence repository, mutation queue, outbox, or synchronization ownership.
+
+## Initial contract
+
+The focused value contains only:
+
+- `foodEntries`;
+- `mealTemplates`;
+- `nutritionTargets`.
+
+The existing macro-summary model named `NutritionState` remains unchanged. The focused context type is named `NutritionDataState` to avoid changing that public domain model.
+
+Nutrition mutations remain in stable `AppActions`. Restore and mutation status remain in `AppInfrastructure`.
+
+## First migration slice
+
+The first consumers are:
+
+- `src/app/(tabs)/nutrition.tsx`;
+- `src/app/nutrition/date-picker.tsx`.
+
+The Nutrition tab reads entries and targets. The date picker reads entries only. Neither screen needs Workout, Progress, Profile, Safety, Recovery, onboarding, actions, or infrastructure state.
+
+Add Food remains deferred to a separate slice because it combines entries, meal templates, multiple mutations, and substantial local editor state.
+
+## Explicit exclusions
+
+This slice does not change:
+
+- persisted schemas or serialized values;
+- Nutrition repositories or synchronization;
+- diary selectors or calculations;
+- routes, UI, or local screen state;
+- list virtualization;
+- persistence coalescing;
+- dependencies or external state libraries;
+- OTA, native builds, or deployments.
+""")
+
+          for guarded in [
+              Path('src/app/(tabs)/nutrition.tsx'),
+              Path('src/app/nutrition/date-picker.tsx'),
+          ]:
+              if 'useAppContext' in guarded.read_text():
+                  raise SystemExit(f'{guarded}: compatibility hook remains')
+
+          Path('.github/workflows/agent-nutrition-state-s1.yml').unlink()
+          PY
+
+      - name: Commit bounded Nutrition boundary
+        shell: bash
+        run: |
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- \
+            src/types/appContext.ts \
+            src/types/index.ts \
+            src/context/appContext/AppContextCore.ts \
+            src/context/AppContext.tsx \
+            'src/app/(tabs)/nutrition.tsx' \
+            src/app/nutrition/date-picker.tsx \
+            test/nutrition-state-boundary.test.ts \
+            docs/architecture/nutrition-state-boundary.md \
+            .github/workflows/agent-nutrition-state-s1.yml
+          git commit -m 'refactor: introduce first Nutrition state boundary'
+          git push origin HEAD:agent/nutrition-state-boundary-s1
