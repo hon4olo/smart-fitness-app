@@ -94,6 +94,19 @@ The fifth bounded consumer is:
 
 The picker uses `useWorkoutState` only for completed-session history that powers recent exercises. The exercise catalogue, search, filters, diagnostics, FlatList virtualization, selected-item state, active-draft update, and return navigation remain owned by their existing repositories and local state.
 
+### Slice 6 — Workout History
+
+The sixth bounded consumer is:
+
+- `src/app/workouts/history.tsx`.
+
+Workout History combines:
+
+- `useWorkoutState` for completed sessions;
+- `useAppActions` for session update and deletion.
+
+Its grouping, date presentation, set editor, canonical weight conversion, validation, alerts, and card rendering are unchanged.
+
 Source guards prevent all migrated files from returning to `useAppContext`.
 
 ## Deferred consumers
