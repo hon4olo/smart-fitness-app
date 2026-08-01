@@ -2,7 +2,7 @@
 
 Updated: 2026-08-01
 
-Status: provider foundation and first consumer migration complete.
+Status: provider foundation and three consumer migrations complete.
 
 ## Purpose
 
@@ -34,15 +34,21 @@ PR #319:
 
 Profile summary calculations, routes, Social Profile entry, Profile Goals composition, layout, styling, and UI behavior remain unchanged.
 
+## Completed slice 3 — planning and personal details
+
+The following consumers now read `profile` through `useProfileState` and keep mutations in `useAppActions`:
+
+- `src/features/progress/ProgressPlanningSections.tsx`;
+- `src/features/settings/PersonalDetailsSettingsCard.tsx`.
+
+Profile validation, unit conversion, local form state, alerts, routes, and save behavior remain unchanged.
+
 ## Next slices
 
 Migrate remaining Profile readers:
 
-- Progress planning sections;
-- personal-details settings;
-- Profile Goals by composing `useProfileState`, `useProgressState`, and stable actions.
-
-Then migrate onboarding and Home only after all required domain hooks are available.
+- Profile Goals by composing `useProfileState`, `useProgressState`, and stable actions;
+- onboarding and Home only after all required domain hooks are available.
 
 ## Explicit exclusions
 

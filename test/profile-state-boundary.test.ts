@@ -50,4 +50,17 @@ describe('Profile state boundary', () => {
     expect(source).toContain('useProfileState');
     expect(source).not.toContain('useAppContext');
   });
+
+  test('Profile planning and personal details read focused Profile state', () => {
+    for (const relativePath of [
+      'src/features/progress/ProgressPlanningSections.tsx',
+      'src/features/settings/PersonalDetailsSettingsCard.tsx',
+    ]) {
+      const source = readSource(relativePath);
+
+      expect(source).toContain('useProfileState');
+      expect(source).toContain('useAppActions');
+      expect(source).not.toContain('useAppContext');
+    }
+  });
 });

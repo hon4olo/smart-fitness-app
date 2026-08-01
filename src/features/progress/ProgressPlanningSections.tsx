@@ -5,7 +5,8 @@ import { router } from 'expo-router';
 import { ProfileCoachCard } from '@/components/profile/ProfileCoachCard';
 import { ProfileGoalsCard } from '@/components/profile/ProfileGoalsCard';
 import { Colors, Radii, Spacing } from '@/constants/theme';
-import { useAppActions, useAppContext } from '@/context/AppContext';
+import { useAppActions } from '@/context/AppContext';
+import { useProfileState } from '@/context/ProfileStateContext';
 import {
   validateCoachProfileForm,
   type CoachActivityLevel,
@@ -39,7 +40,7 @@ const normalizeCoachActivity = (value: string): CoachActivityLevel | null => {
 };
 
 export function ProgressPlanningSections() {
-  const { profile } = useAppContext();
+  const { profile } = useProfileState();
   const { updateCoachProfile, updateProfileGoals } = useAppActions();
   const { t } = useLocalization();
   const { weight: weightUnit, length: lengthUnit } = useUnitPreferences();
