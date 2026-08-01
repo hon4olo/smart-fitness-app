@@ -6,7 +6,7 @@ import { FormField } from '@/components/ui/FormField';
 import { InlineError } from '@/components/ui/InlineError';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions, useAppContext } from '@/context/AppContext';
 import { useLocalization } from '@/localization';
 import type { ProfileCalculationSex } from '@/types';
 
@@ -31,17 +31,18 @@ const validateDateOfBirth = (value: string): string | null => {
 };
 
 export function PersonalDetailsSettingsCard() {
-  const app = useAppContext();
+  const { profile } = useAppContext();
+  const { updatePersonalDetails } = useAppActions();
   const { t } = useLocalization();
-  const [dateOfBirth, setDateOfBirth] = useState(app.profile.dateOfBirth ?? '');
+  const [dateOfBirth, setDateOfBirth] = useState(profile.dateOfBirth ?? '');
   const [calculationSex, setCalculationSex] = useState<ProfileCalculationSex | null>(
-    app.profile.calculationSex,
+    profile.calculationSex,
   );
 
   useEffect(() => {
-    setDateOfBirth(app.profile.dateOfBirth ?? '');
-    setCalculationSex(app.profile.calculationSex);
-  }, [app.profile.calculationSex, app.profile.dateOfBirth]);
+    setDateOfBirth(profile.dateOfBirth ?? '');
+    setCalculationSex(profile.calculationSex);
+  }, [profile.calculationSex, profile.dateOfBirth]);
 
   const dateErrorKey = useMemo(() => validateDateOfBirth(dateOfBirth), [dateOfBirth]);
   const dateError = dateErrorKey
@@ -60,27 +61,10 @@ export function PersonalDetailsSettingsCard() {
 
   const save = () => {
     if (isDisabled || !calculationSex) return;
-    const nextState = {
-      workouts: app.workouts,
-      trainingPrograms: app.trainingPrograms,
-      exercises: app.exercises,
-      workoutSessions: app.workoutSessions,
-      foodEntries: app.foodEntries,
-      mealTemplates: app.mealTemplates,
-      nutrition: app.nutrition,
-      nutritionTargets: app.nutritionTargets,
-      weightHistory: app.weightHistory,
-      bodyMeasurements: app.bodyMeasurements,
-      userLimitations: app.userLimitations,
-      recoveryCheckIns: app.recoveryCheckIns,
-      profile: {
-        ...app.profile,
-        dateOfBirth: dateOfBirth.trim(),
-        calculationSex,
-      },
-      onboardingCompleted: app.onboardingCompleted,
-    };
-    app.replaceState(nextState);
+    updatePersonalDetails({
+      dateOfBirth: dateOfBirth.trim(),
+      calculationSex,
+    });
     Alert.alert(t('personalDetails.savedTitle'), t('personalDetails.savedBody'));
   };
 
