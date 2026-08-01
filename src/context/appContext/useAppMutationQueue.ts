@@ -10,6 +10,7 @@ import type { AppState } from '@/types';
 
 import { AppMutationQueue, type AppMutationTask } from './AppMutationQueue';
 import { recoverAppMutationOutbox } from './AppMutationOutboxRecovery';
+import { measureAppStatePersistence } from './AppPersistenceMetrics';
 
 export type EnqueueAppStateMutation = (input: {
   label: string;
@@ -55,7 +56,13 @@ export function useAppMutationQueue(repository: AppRepository) {
       const steps: AppMutationTask['steps'] = [
         {
           stage: 'local_persistence',
-          run: () => repository.saveState(nextState),
+          run: () =>
+            measureAppStatePersistence({
+              hasOutbox: Boolean(outbox),
+              label,
+              nextState,
+              save: () => repository.saveState(nextState),
+            }),
         },
       ];
       if (outbox) {
