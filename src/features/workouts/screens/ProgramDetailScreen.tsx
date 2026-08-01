@@ -4,7 +4,11 @@ import { Alert, Pressable, ScrollView, Text, View, useWindowDimensions } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import {
+  useAppActions,
+  useAppInfrastructure,
+  useWorkoutState,
+} from '@/context/AppContext';
 import {
   getWorkoutsHubProgramTitle,
   getWorkoutsHubWorkoutTitle,
@@ -32,13 +36,9 @@ export default function ProgramDetailScreen() {
   const { height: viewportHeight } = useWindowDimensions();
   const styles = useMemo(() => createProgramDetailScreenStyles(colors), [colors]);
   const [showSavedToast, setShowSavedToast] = useState(savedWorkout === '1');
-  const {
-    deleteTrainingProgram,
-    isRestoringState,
-    saveTrainingProgram,
-    trainingPrograms,
-    workouts,
-  } = useAppContext();
+  const { deleteTrainingProgram, saveTrainingProgram } = useAppActions();
+  const { isRestoringState } = useAppInfrastructure();
+  const { trainingPrograms, workouts } = useWorkoutState();
 
   const program = useMemo(
     () => (programId ? getWorkoutProgramById(programId, workouts, trainingPrograms) : null),
