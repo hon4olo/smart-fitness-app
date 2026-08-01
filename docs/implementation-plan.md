@@ -58,60 +58,44 @@ The internal compatibility primitive remains provider-internal. Removing it is n
 
 # Phase 3 — persistence measurement and coalescing decision
 
-Status: active; final decision gate.
+Status: complete.
 
-## Completed foundation
+Completed evidence:
 
-- Development-only measurement exists at the single `repository.saveState()` boundary.
-- It records only mutation label, duration, serialized character count, success/failure, and outbox presence.
-- It stores no payload, is bounded in memory, and is disabled in production builds.
-- The source-level operation matrix is recorded in `docs/architecture/persistence-operation-matrix.md`.
-- Deterministic results are recorded in `docs/architecture/persistence-measurement-results.md`.
+- development-only measurement at the single `repository.saveState()` boundary;
+- bounded payload-free metrics disabled in production builds;
+- source-level operation matrix in `docs/architecture/persistence-operation-matrix.md`;
+- deterministic results in `docs/architecture/persistence-measurement-results.md`;
+- rapid active-draft revision suppression;
+- ordered handling of in-flight writes and later revisions;
+- clear/discard ordering after an in-flight write;
+- hydration protection against overwriting a newer in-memory edit;
+- one AppState save per explicit nutrition/profile action;
+- preserved outbox identity for weight and onboarding operations;
+- preserved persistence-before-outbox, failure, and retry semantics.
 
-Verified results:
+Decision:
 
-- rapid active-workout revisions issued before the queue commits collapse to one latest-snapshot AsyncStorage write;
-- active-draft edits separated by a completed write each persist once;
-- active workout set editing does not use `repository.saveState()`;
-- nutrition and profile operations persist once at explicit action/submit boundaries;
-- weight create/update/delete and onboarding completion remain recoverable-outbox operations;
-- local persistence remains ordered before outbox execution;
-- failure and retry semantics remain preserved;
-- no measured representative flow demonstrates materially redundant committed writes;
-- no current evidence justifies a generic debounce around `AppMutationQueue`.
+- do not add generic debounce or coalescing around `AppMutationQueue`;
+- do not add time-based debounce to active workout draft persistence;
+- retain bounded development-only instrumentation for future diagnostics;
+- require new measurements before any future persistence optimization.
 
-## Immediate next action
+Exit criteria satisfied:
 
-Close the lifecycle-sensitive decision gate for active workout drafts:
-
-1. verify behavior when a new revision is queued while an earlier AsyncStorage write is already in progress;
-2. verify clear/discard supersedes pending draft writes;
-3. verify hydration ordering does not restore stale state over an in-memory edit;
-4. decide whether the current revision-aware queue is sufficient without AppState coalescing;
-5. record the final no-coalescing or narrowly-scoped implementation decision.
-
-## Decision gate
-
-Do not implement coalescing unless the remaining lifecycle scenarios expose a concrete durability or redundant-write problem.
-
-If they remain green:
-
-- retain the bounded development-only instrumentation for diagnostics;
-- document the no-coalescing decision;
-- close Phase 3.
-
-Any justified implementation must preserve:
-
-- immediate in-memory updates;
-- immediate flush for critical operations and lifecycle transitions;
-- mutation order, retry, recovery, observability, and outbox identity;
-- no generic debounce around the mutation queue.
+- representative write frequency and ordering are measured;
+- snapshot-only and outbox-bearing paths are classified;
+- lifecycle-sensitive draft behavior is covered;
+- no material redundant committed-write problem is demonstrated;
+- persistence schemas, mutation ordering, recovery, and sync ownership remain unchanged.
 
 # Phase 4 — UI virtualization and render performance
 
-Status: pending stable persistence decision.
+Status: active.
 
-Use representative fixtures:
+## Immediate next action
+
+Build representative deterministic fixtures and measure the existing list surfaces before changing components:
 
 - 500 food entries;
 - 100 programs;
@@ -119,12 +103,23 @@ Use representative fixtures:
 - 500 exercises;
 - 365 weight entries.
 
-Priorities:
+For each surface, record:
 
-- Nutrition diary as one `SectionList`;
-- virtualized program list;
+- current list primitive;
+- render-item and key stability;
+- derived selector cost;
+- initial render item count where configurable;
+- nested scrolling or keyboard constraints;
+- whether measurement demonstrates a material problem.
+
+Priorities after measurement:
+
+- Nutrition diary as one `SectionList` if justified;
+- virtualized program list if justified;
 - measured evaluation of workout history, exercise library, food search, templates, and saved items;
 - preservation of active-session, keyboard, accessibility, and navigation behavior.
+
+Do not begin charts until stable selectors and measured list performance are recorded.
 
 # Phase 5 — progress charts
 
