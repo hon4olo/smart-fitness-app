@@ -5,6 +5,7 @@ export type {
   AppMutationFailure,
   AppMutationStage,
   AppState,
+  WorkoutState,
 } from './appContext';
 export type {
   BodyMeasurement,
