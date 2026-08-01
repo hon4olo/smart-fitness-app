@@ -1,5 +1,7 @@
 export type {
+  AppActions,
   AppContextType,
+  AppInfrastructure,
   AppMutationFailure,
   AppMutationStage,
   AppState,

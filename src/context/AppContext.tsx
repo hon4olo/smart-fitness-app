@@ -4,7 +4,9 @@ import { AuthProvider } from '@/auth';
 import { defaultState as defaultAppState } from '@/data/defaults';
 import { getLastWorkoutSession as getLastWorkoutSessionFromState } from '@/lib/appState';
 import type {
+  AppActions,
   AppContextType,
+  AppInfrastructure,
   AppState,
   BodyMeasurement,
   ProfileGoalType,
@@ -12,7 +14,14 @@ import type {
 } from '@/types';
 
 import { SyncProvider } from './SyncContext';
-import { AppContext, useAppContext } from './appContext/AppContextCore';
+import {
+  AppActionsContext,
+  AppContext,
+  AppInfrastructureContext,
+  useAppActions,
+  useAppContext,
+  useAppInfrastructure,
+} from './appContext/AppContextCore';
 import { AppMutationFailureNotice } from './appContext/AppMutationFailureNotice';
 import {
   addBodyMeasurementToState,
@@ -22,14 +31,16 @@ import {
   updateProfileGoalsInState,
   updateRegistrationProfileInState,
 } from './appContext/progressActions';
-import { useAppInfrastructure } from './appContext/useAppInfrastructure';
+import { useAppInfrastructure as useAppInfrastructureSetup } from './appContext/useAppInfrastructure';
 import { useAppMutationQueue } from './appContext/useAppMutationQueue';
 import { useNutritionStateActions } from './appContext/useNutritionStateActions';
 import { useWeightHistoryActions } from './appContext/useWeightHistoryActions';
 import { useWorkoutStateActions } from './appContext/useWorkoutStateActions';
 
 export type {
+  AppActions,
   AppContextType,
+  AppInfrastructure,
   AppState,
   BodyMeasurement,
   Exercise,
@@ -47,7 +58,7 @@ export type {
   WorkoutSet,
 } from '@/types';
 
-export { useAppContext };
+export { useAppActions, useAppContext, useAppInfrastructure };
 
 export function AppProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(defaultAppState);
@@ -58,7 +69,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     repository,
     syncCoordinator,
     weightSyncMetadataStore,
-  } = useAppInfrastructure(setState, setIsRestoringState);
+  } = useAppInfrastructureSetup(setState, setIsRestoringState);
   const {
     dismissMutationFailure,
     mutationFailure,
@@ -203,9 +214,8 @@ export function AppProvider({ children }: PropsWithChildren) {
     [state.workoutSessions],
   );
 
-  const value = useMemo<AppContextType>(
+  const actions = useMemo<AppActions>(
     () => ({
-      ...state,
       addBodyMeasurement,
       addExercise,
       addFoodEntries,
@@ -222,14 +232,8 @@ export function AppProvider({ children }: PropsWithChildren) {
       deleteWeightEntry,
       deleteWorkoutSession,
       deleteWorkoutTemplate,
-      dismissMutationFailure,
-      getLastWorkoutSession,
-      isRestoringState,
-      mutationFailure,
-      pendingMutationCount,
       replaceState,
       resetOnboarding,
-      retryFailedMutation,
       saveTrainingProgram,
       saveWorkoutSession,
       toggleTrainingProgramFavorite,
@@ -242,7 +246,6 @@ export function AppProvider({ children }: PropsWithChildren) {
       updateWorkoutTemplate,
     }),
     [
-      state,
       addBodyMeasurement,
       addExercise,
       addFoodEntries,
@@ -259,14 +262,8 @@ export function AppProvider({ children }: PropsWithChildren) {
       deleteWeightEntry,
       deleteWorkoutSession,
       deleteWorkoutTemplate,
-      dismissMutationFailure,
-      getLastWorkoutSession,
-      isRestoringState,
-      mutationFailure,
-      pendingMutationCount,
       replaceState,
       resetOnboarding,
-      retryFailedMutation,
       saveTrainingProgram,
       saveWorkoutSession,
       toggleTrainingProgramFavorite,
@@ -280,24 +277,55 @@ export function AppProvider({ children }: PropsWithChildren) {
     ],
   );
 
+  const infrastructure = useMemo<AppInfrastructure>(
+    () => ({
+      dismissMutationFailure,
+      isRestoringState,
+      mutationFailure,
+      pendingMutationCount,
+      retryFailedMutation,
+    }),
+    [
+      dismissMutationFailure,
+      isRestoringState,
+      mutationFailure,
+      pendingMutationCount,
+      retryFailedMutation,
+    ],
+  );
+
+  const value = useMemo<AppContextType>(
+    () => ({
+      ...state,
+      ...actions,
+      ...infrastructure,
+      getLastWorkoutSession,
+    }),
+    [actions, getLastWorkoutSession, infrastructure, state],
+  );
+
   return (
     <AuthProvider service={authService}>
-      <AppContext.Provider value={value}>
-        <SyncProvider
-          metadataStore={weightSyncMetadataStore}
-          queueStore={queueStore}
-          replaceState={replaceState}
-          state={state}
-          syncCoordinator={syncCoordinator}>
-          {children}
-        </SyncProvider>
-        <AppMutationFailureNotice
-          failure={mutationFailure}
-          onDismiss={dismissMutationFailure}
-          onRetry={retryFailedMutation}
-          pendingCount={pendingMutationCount}
-        />
-      </AppContext.Provider>
+      <AppActionsContext.Provider value={actions}>
+        <AppInfrastructureContext.Provider value={infrastructure}>
+          <AppContext.Provider value={value}>
+            <SyncProvider
+              metadataStore={weightSyncMetadataStore}
+              queueStore={queueStore}
+              replaceState={replaceState}
+              state={state}
+              syncCoordinator={syncCoordinator}>
+              {children}
+            </SyncProvider>
+            <AppMutationFailureNotice
+              failure={mutationFailure}
+              onDismiss={dismissMutationFailure}
+              onRetry={retryFailedMutation}
+              pendingCount={pendingMutationCount}
+            />
+          </AppContext.Provider>
+        </AppInfrastructureContext.Provider>
+      </AppActionsContext.Provider>
     </AuthProvider>
   );
 }

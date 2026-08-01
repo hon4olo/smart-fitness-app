@@ -2,12 +2,12 @@ import { useRouter } from 'expo-router';
 
 import type { RegisterFormValues } from '@/auth/auth-ui';
 import { AuthFormScreen } from '@/components/auth';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions } from '@/context/AppContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { updateRegistrationProfile } = useAppContext();
+  const { updateRegistrationProfile } = useAppActions();
   const { register } = useAuthSession();
 
   return (
