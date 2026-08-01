@@ -56,10 +56,7 @@ The original inventory found four screens that read nearly every state slice and
 - `ProgressPlanningSections`;
 - `PersonalDetailsSettingsCard`.
 
-Safety & Recovery typed updater actions now remove the first two from this list. The remaining broad reconstruction targets are:
-
-- `ProgressPlanningSections`;
-- `PersonalDetailsSettingsCard`.
+All four are now migrated to typed functional updater actions. No production UI consumer in this inventory reconstructs the full `AppState` for a bounded domain edit.
 
 ### Workout concentration
 
@@ -101,25 +98,32 @@ PR #298 moved:
 
 A source regression guard requires these files to retain focused hooks and rejects reintroduction of `useAppContext`.
 
-### Safety & Recovery typed updater actions
+### PR #299 — Safety & Recovery typed updater actions
 
-The next bounded slice adds typed actions for:
+PR #299 added typed actions for:
 
 - recovery check-in upsert;
 - user-limitation upsert;
 - user-limitation deletion.
 
-`RecoveryCheckInScreen` and `UserLimitationScreen` keep reading only their current domain arrays while validation and ordered persistence move behind `AppActions`. They no longer copy every `AppState` field or call `replaceState`.
+`RecoveryCheckInScreen` and `UserLimitationScreen` keep reading only their current domain arrays while validation and ordered persistence live behind `AppActions`. They no longer copy every `AppState` field or call `replaceState`.
 
-The provider keeps the same pure normalization helpers, state transition functions, `scheduleStateMutation` path, and subsequent screen-level `syncNow()` flow.
+### Profile typed updater actions
+
+The next bounded slice adds:
+
+- `updateCoachProfile` for the validated Coach profile form;
+- `updatePersonalDetails` for date of birth and calculation sex.
+
+`ProgressPlanningSections` and `PersonalDetailsSettingsCard` retain their current profile reads, validation, alerts, and ordered persistence while removing the final two full-state replacement paths.
 
 ## Recommended migration order
 
-1. Remove the remaining full-state reconstruction from Progress planning and Personal Details.
-2. Extract Workout state and actions as the first complete domain boundary.
-3. Extract Nutrition, Progress, and Profile state boundaries.
-4. Retain the compatibility context until no production consumer requires it.
-5. Profile render counts before considering an external store.
+1. Extract Workout state and actions as the first complete domain boundary.
+2. Extract Nutrition, Progress, and Profile state boundaries.
+3. Retain the compatibility context until no production consumer requires it.
+4. Profile render counts before considering an external store.
+5. Specify and test coalesced persistence only after subscription boundaries stabilize.
 
 ## Decision gate
 
