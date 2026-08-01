@@ -15,7 +15,8 @@ import { AppCard } from '@/components/ui/AppCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions, useWorkoutState } from '@/context/AppContext';
+import { useProgressState } from '@/context/ProgressStateContext';
 import {
   buildBodyMeasurement,
   createBodyMeasurementDraft,
@@ -60,13 +61,9 @@ const SectionRow = memo(function SectionRow({
 });
 
 export default function ProgressScreen() {
-  const {
-    addBodyMeasurement,
-    bodyMeasurements,
-    exercises,
-    weightHistory,
-    workoutSessions,
-  } = useAppContext();
+  const { addBodyMeasurement } = useAppActions();
+  const { bodyMeasurements, weightHistory } = useProgressState();
+  const { exercises, workoutSessions } = useWorkoutState();
   const { formatDate, formatNumber, t } = useLocalization();
   const {
     formatLengthValue,
