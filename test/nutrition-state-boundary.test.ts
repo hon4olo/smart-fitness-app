@@ -48,11 +48,15 @@ describe('Nutrition state boundary', () => {
 
   test.each([
     'src/app/(tabs)/nutrition.tsx',
+    'src/app/nutrition/add-food.tsx',
     'src/app/nutrition/date-picker.tsx',
   ])('%s uses only focused Nutrition state', (path) => {
     const source = readSource(path);
 
     expect(source).toContain('useNutritionState');
     expect(source).not.toContain('useAppContext');
+    if (path.endsWith('add-food.tsx')) {
+      expect(source).toContain('useAppActions');
+    }
   });
 });

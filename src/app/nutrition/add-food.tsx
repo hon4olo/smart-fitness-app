@@ -4,7 +4,7 @@ import { Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { FoodItem } from '@/api/foods';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions, useNutritionState } from '@/context/AppContext';
 import { foodCatalog } from '@/data/foods';
 import {
   buildCustomFoodEntry,
@@ -55,16 +55,15 @@ export default function NutritionAddFoodScreen() {
   const copy = getNutritionAddFoodCopy(locale);
   const styles = useMemo(() => createAddFoodStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
+  const { foodEntries, mealTemplates } = useNutritionState();
   const {
     addFoodEntries,
     addFoodEntry,
     addMealTemplate,
     deleteFoodEntry,
     deleteMealTemplate,
-    foodEntries,
-    mealTemplates,
     updateFoodEntry,
-  } = useAppContext();
+  } = useAppActions();
   const params = useLocalSearchParams<{ date?: string; entryId?: string; meal?: MealType }>();
   const selectedDate = typeof params.date === 'string' && params.date.length > 0
     ? params.date
