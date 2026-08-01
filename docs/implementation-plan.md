@@ -60,32 +60,43 @@ The internal compatibility primitive remains provider-internal. Removing it is n
 
 Status: active.
 
+## Completed foundation
+
+- Development-only measurement exists at the single `repository.saveState()` boundary.
+- It records only mutation label, duration, serialized character count, success/failure, and outbox presence.
+- It stores no payload, is bounded in memory, and is disabled in production builds.
+- The source-level operation matrix is recorded in `docs/architecture/persistence-operation-matrix.md`.
+
+Verified classification:
+
+- active workout set editing uses a dedicated revision-aware AsyncStorage draft queue, not `repository.saveState()`;
+- nutrition explicit actions use ordered AppState snapshot persistence and planner-based synchronization;
+- weight create/update/delete operations are eager recoverable-outbox operations;
+- profile explicit-save flows use AppState snapshot persistence and planner/materialization sync paths;
+- onboarding completion is a critical AppState transition with an eager initial-weight outbox;
+- no current evidence justifies a generic debounce around `AppMutationQueue`.
+
 ## Immediate next action
 
-Measure `repository.saveState()` frequency and timing during four representative flows:
+Add deterministic measurement scenarios for:
 
-1. active workout set editing;
-2. nutrition entry editing;
-3. weight entry creation/editing;
-4. profile form editing.
+1. rapid active-workout set edits, recording draft requests versus committed AsyncStorage writes;
+2. nutrition add/update/delete, recording AppState save count and serialized size per explicit action;
+3. weight create/update/delete, proving AppState-save-before-outbox ordering and one durable outbox identity per action;
+4. profile explicit-save flows, recording AppState save count per submit;
+5. persistence failure/retry behavior on the measured boundary.
 
-For every observed write path, classify:
+Then record whether committed writes are materially redundant.
 
-- snapshot-only local persistence;
-- eager outbox-bearing operation;
-- planner-based synchronized operation;
-- critical transition requiring immediate flush;
-- lifecycle-sensitive write requiring background/termination handling.
-
-Record:
-
-- write count per user action;
-- payload/state size where available;
-- queue ordering and retry behavior;
-- app-background and process-termination behavior;
-- whether repeated writes are materially redundant.
+## Decision gate
 
 Do not implement coalescing until measurements establish a concrete redundant-write problem.
+
+If measurements do not show material redundant committed writes:
+
+- document the no-coalescing decision;
+- remove or retain development-only instrumentation based on ongoing diagnostic value;
+- close Phase 3.
 
 If implementation becomes justified, required properties are:
 
