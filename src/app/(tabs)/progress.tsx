@@ -10,6 +10,7 @@ import {
 } from '@/components/progress/ProgressTrendChart';
 import { SafetyRecoveryProgressCard } from '@/components/progress/SafetyRecoveryProgressCard';
 import { SafetyRecoveryWeeklyTrendCard } from '@/components/progress/SafetyRecoveryWeeklyTrendCard';
+import { WeeklyWorkoutVolumeCard } from '@/components/progress/WeeklyWorkoutVolumeCard';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -50,18 +51,10 @@ const SectionRow = memo(function SectionRow({
   return (
     <View style={styles.sectionRow}>
       <View style={styles.sectionRowCopy}>
-        <Text selectable style={styles.rowLabel}>
-          {label}
-        </Text>
-        <Text selectable style={styles.rowValue}>
-          {value}
-        </Text>
+        <Text selectable style={styles.rowLabel}>{label}</Text>
+        <Text selectable style={styles.rowValue}>{value}</Text>
       </View>
-      {detail ? (
-        <Text selectable style={styles.rowDetail}>
-          {detail}
-        </Text>
-      ) : null}
+      {detail ? <Text selectable style={styles.rowDetail}>{detail}</Text> : null}
     </View>
   );
 });
@@ -83,12 +76,9 @@ export default function ProgressScreen() {
   );
   const [measurementError, setMeasurementError] = useState<string | null>(null);
   const [weightTrendRange, setWeightTrendRange] = useState<WeightTrendRange>(30);
+
   const toDateLabel = (value: string) =>
     formatDate(value, { day: 'numeric', month: 'short' });
-  const formatWorkoutVolume = (volumeKg: number) =>
-    `${formatNumber(weightFromKg(volumeKg, weightUnit), {
-      maximumFractionDigits: 0,
-    })} ${weightUnit}`;
 
   useEffect(() => {
     setMeasurementDraft((current) => {
@@ -111,9 +101,6 @@ export default function ProgressScreen() {
     () => getWeightTrendEntries(weightHistory, weightTrendRange),
     [weightHistory, weightTrendRange],
   );
-  const latestWeight = analytics.weight.currentWeight;
-  const weightChange7d = analytics.weight.delta7Days;
-  const hasWeightChart = selectedWeightEntries.length >= 2;
   const weightTrendPoints = useMemo<ProgressTrendPoint[]>(
     () =>
       selectedWeightEntries.map((entry) => ({
@@ -124,8 +111,10 @@ export default function ProgressScreen() {
       })),
     [formatDate, formatWeightValue, selectedWeightEntries, weightUnit],
   );
-  const latestVolumePoint = analytics.workoutVolumeTrend.at(-1) ?? null;
-  const previousVolumePoint = analytics.workoutVolumeTrend.at(-2) ?? null;
+
+  const latestWeight = analytics.weight.currentWeight;
+  const weightChange7d = analytics.weight.delta7Days;
+  const hasWeightChart = selectedWeightEntries.length >= 2;
   const weightSummaryLabel =
     latestWeight !== null ? `${formatWeightValue(latestWeight)} ${weightUnit}` : '—';
   const convertedWeightDelta =
@@ -133,13 +122,10 @@ export default function ProgressScreen() {
   const weightTrendLabel =
     convertedWeightDelta !== null
       ? t('progress.weightTrendWeek', {
-          delta: `${convertedWeightDelta > 0 ? '+' : ''}${formatNumber(
-            convertedWeightDelta,
-            {
-              maximumFractionDigits: 1,
-              minimumFractionDigits: 1,
-            },
-          )}`,
+          delta: `${convertedWeightDelta > 0 ? '+' : ''}${formatNumber(convertedWeightDelta, {
+            maximumFractionDigits: 1,
+            minimumFractionDigits: 1,
+          })}`,
           unit: weightUnit,
         })
       : t('progress.noRecentTrend');
@@ -150,8 +136,7 @@ export default function ProgressScreen() {
     : t('progress.addWeightPrompt');
   const isMeasurementDisabled =
     measurementDraft.value.trim().length === 0 ||
-    (measurementDraft.metric === 'custom' &&
-      measurementDraft.customLabel.trim().length === 0);
+    (measurementDraft.metric === 'custom' && measurementDraft.customLabel.trim().length === 0);
 
   const changeMeasurementMetric = (metric: BodyMeasurementMetric) => {
     setMeasurementDraft((current) => ({
@@ -186,19 +171,11 @@ export default function ProgressScreen() {
   const formatMeasurementValue = (
     measurement: (typeof bodyMeasurementPreview)[number],
   ) => {
-    if (
-      measurement.canonicalUnit === 'cm' &&
-      measurement.canonicalNumericValue !== null
-    ) {
+    if (measurement.canonicalUnit === 'cm' && measurement.canonicalNumericValue !== null) {
       return `${formatLengthValue(measurement.canonicalNumericValue)} ${lengthUnit}`;
     }
-    if (
-      measurement.latestUnit === 'percent' &&
-      measurement.latestNumericValue !== null
-    ) {
-      return `${formatNumber(measurement.latestNumericValue, {
-        maximumFractionDigits: 1,
-      })}%`;
+    if (measurement.latestUnit === 'percent' && measurement.latestNumericValue !== null) {
+      return `${formatNumber(measurement.latestNumericValue, { maximumFractionDigits: 1 })}%`;
     }
     return measurement.latestValue;
   };
@@ -217,24 +194,14 @@ export default function ProgressScreen() {
         <SectionHeader title={t('tabs.progress')} subtitle={t('progress.subtitle')} />
         <AppCard>
           <View style={styles.sectionHeader}>
-            <Text selectable style={styles.sectionTitle}>
-              {t('progress.weight')}
-            </Text>
-            <Text selectable style={styles.sectionSubtitle}>
-              {weightTrendLabel}
-            </Text>
+            <Text selectable style={styles.sectionTitle}>{t('progress.weight')}</Text>
+            <Text selectable style={styles.sectionSubtitle}>{weightTrendLabel}</Text>
           </View>
           <View style={styles.weightHero}>
             <View style={styles.weightHeroCopy}>
-              <Text selectable style={styles.weightHeroLabel}>
-                {t('progress.currentWeight')}
-              </Text>
-              <Text selectable style={styles.weightHeroValue}>
-                {weightSummaryLabel}
-              </Text>
-              <Text selectable style={styles.weightHeroDetail}>
-                {weightDetailLabel}
-              </Text>
+              <Text selectable style={styles.weightHeroLabel}>{t('progress.currentWeight')}</Text>
+              <Text selectable style={styles.weightHeroValue}>{weightSummaryLabel}</Text>
+              <Text selectable style={styles.weightHeroDetail}>{weightDetailLabel}</Text>
             </View>
             <AppButton
               label={t('progress.weightDetails')}
@@ -267,20 +234,14 @@ export default function ProgressScreen() {
             <View style={styles.chartWrap}>
               <ProgressTrendChart
                 emptyLabel={t('progress.weightChartEmpty')}
-                maxLabel={`${formatNumber(
-                  Math.max(...weightTrendPoints.map((point) => point.value)),
-                  {
-                    maximumFractionDigits: 1,
-                    minimumFractionDigits: 1,
-                  },
-                )} ${weightUnit}`}
-                minLabel={`${formatNumber(
-                  Math.min(...weightTrendPoints.map((point) => point.value)),
-                  {
-                    maximumFractionDigits: 1,
-                    minimumFractionDigits: 1,
-                  },
-                )} ${weightUnit}`}
+                maxLabel={`${formatNumber(Math.max(...weightTrendPoints.map((point) => point.value)), {
+                  maximumFractionDigits: 1,
+                  minimumFractionDigits: 1,
+                })} ${weightUnit}`}
+                minLabel={`${formatNumber(Math.min(...weightTrendPoints.map((point) => point.value)), {
+                  maximumFractionDigits: 1,
+                  minimumFractionDigits: 1,
+                })} ${weightUnit}`}
                 points={weightTrendPoints}
               />
             </View>
@@ -293,10 +254,7 @@ export default function ProgressScreen() {
             />
           )}
           <View style={styles.weightActions}>
-            <AppButton
-              label={t('progress.addWeight')}
-              onPress={() => router.push('/weight-entry')}
-            />
+            <AppButton label={t('progress.addWeight')} onPress={() => router.push('/weight-entry')} />
             <AppButton
               label={t('progress.trainingDetails')}
               onPress={() => router.push('/weight-details')}
@@ -306,9 +264,7 @@ export default function ProgressScreen() {
         </AppCard>
         <AppCard>
           <View style={styles.sectionHeader}>
-            <Text selectable style={styles.sectionTitle}>
-              {t('progress.bodyMeasurements')}
-            </Text>
+            <Text selectable style={styles.sectionTitle}>{t('progress.bodyMeasurements')}</Text>
           </View>
           {bodyMeasurementPreview.length > 0 ? (
             <View style={styles.stack}>
@@ -348,57 +304,7 @@ export default function ProgressScreen() {
             onSave={saveMeasurement}
           />
         </AppCard>
-        <AppCard>
-          <View style={styles.sectionHeader}>
-            <Text selectable style={styles.sectionTitle}>
-              {t('progress.trainingProgress')}
-            </Text>
-            <Text selectable style={styles.sectionSubtitle}>
-              {t('progress.trainingSubtitle')}
-            </Text>
-          </View>
-          <View style={styles.stack}>
-            <SectionRow
-              detail={
-                previousVolumePoint
-                  ? t('progress.compareValues', {
-                      current: formatWorkoutVolume(latestVolumePoint?.volume ?? 0),
-                      previous: formatWorkoutVolume(previousVolumePoint.volume),
-                    })
-                  : t('progress.recentSessionsOnly')
-              }
-              label={t('progress.weeklyWorkoutCount')}
-              value={formatNumber(analytics.workoutVolumeTrend.length)}
-            />
-            <SectionRow
-              detail={
-                latestVolumePoint
-                  ? t('progress.latestSession', {
-                      date: toDateLabel(latestVolumePoint.createdAt),
-                    })
-                  : t('progress.noWorkoutTrend')
-              }
-              label={t('progress.trainingVolume')}
-              value={
-                latestVolumePoint ? formatWorkoutVolume(latestVolumePoint.volume) : '—'
-              }
-            />
-            <SectionRow
-              detail={
-                analytics.latestPrs.length > 0
-                  ? t('progress.prsOnDeck')
-                  : t('progress.noPrs')
-              }
-              label={t('progress.recentPrs')}
-              value={formatNumber(analytics.latestPrs.length)}
-            />
-          </View>
-          <AppButton
-            label={t('progress.trainingDetails')}
-            onPress={() => router.push('/weight-details')}
-            variant="secondary"
-          />
-        </AppCard>
+        <WeeklyWorkoutVolumeCard sessions={workoutSessions} />
         <SafetyRecoveryProgressCard
           onOpenHistory={() => router.push('/workout-history')}
           sessions={workoutSessions}
