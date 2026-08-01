@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Spacing, Typography } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppInfrastructure } from '@/context/AppContext';
 import { recoverAppMutationOutbox } from '@/context/appContext/AppMutationOutboxRecovery';
 import { useLocalization } from '@/localization';
 import {
@@ -21,7 +21,8 @@ type RecoveryState = 'idle' | 'loading' | 'recovering' | 'recovered' | 'error';
 export function DataRecoveryCard() {
   const { colors } = useAppTheme();
   const { locale, t } = useLocalization();
-  const { mutationFailure, pendingMutationCount, retryFailedMutation } = useAppContext();
+  const { mutationFailure, pendingMutationCount, retryFailedMutation } =
+    useAppInfrastructure();
   const copy = getDataRecoveryCopy(locale, t);
   const recoveryStore = useMemo(getDefaultAppMutationOutboxRecoveryStore, []);
   const recoveryQueueStore = useMemo(
