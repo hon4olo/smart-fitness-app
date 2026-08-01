@@ -12,7 +12,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import {
+  useAppActions,
+  useAppInfrastructure,
+  useWorkoutState,
+} from '@/context/AppContext';
 import { getWorkoutsHubWorkoutTitle } from '@/features/workouts/workoutsHubLocalization';
 import { useWorkoutTheme } from '@/features/workouts/workoutTheme';
 import {
@@ -29,7 +33,9 @@ import { getWorkoutTemplateDetailCopy } from '@/localization/workoutTemplateDeta
 export default function WorkoutTemplateDetailScreen() {
   const params = useLocalSearchParams<{ workoutId?: string }>();
   const workoutId = Array.isArray(params.workoutId) ? params.workoutId[0] : params.workoutId;
-  const { workouts, isRestoringState, deleteWorkoutTemplate } = useAppContext();
+  const { deleteWorkoutTemplate } = useAppActions();
+  const { isRestoringState } = useAppInfrastructure();
+  const { workouts } = useWorkoutState();
   const { colors } = useWorkoutTheme();
   const { formatNumber, locale, t } = useLocalization();
   const copy = getWorkoutTemplateDetailCopy(locale);
