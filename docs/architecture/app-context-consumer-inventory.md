@@ -2,129 +2,88 @@
 
 Updated: 2026-08-01
 
-Scope: static TypeScript-AST inventory of `useAppContext` consumers on mobile `main` at `bb7fcbd3dd9ccd0912ec2f172f51d12dd492c503`.
+Scope: TypeScript-AST inventory of production `useAppContext` consumers on mobile code baseline `3ead4fbadb68ed7c6ef44c3fe8e9f41441a2af7a`.
 
-## Baseline
+## Current baseline
 
-- global-context consumers: 40;
-- most common state field: `workoutSessions`, used by 19 consumers;
-- infrastructure field `isRestoringState`: 15 consumers;
-- `workouts`: 11 consumers;
-- `exercises`: 10 consumers;
-- `foodEntries`: 9 consumers;
-- `profile`, `recoveryCheckIns`, `trainingPrograms`, `userLimitations`, and `weightHistory`: 8 consumers each;
-- `bodyMeasurements` and `onboardingCompleted`: 7 consumers each;
-- `nutritionTargets`: 6 consumers.
+- compatibility-context consumers: 18;
+- original baseline before focused boundaries: 40;
+- reduction: 22 consumers, or 55%;
+- pure Workout consumers remaining on compatibility state: 0;
+- intentionally mixed Workout readers: 4;
+- no production UI reconstructs the full `AppState` for a bounded edit.
 
-The original `AppContext` value combines all state slices, mutation actions, restore state, mutation failure state, and derived accessors. Any state replacement creates a new global context value and invalidates every global consumer.
+`AppActions`, `AppInfrastructure`, and `WorkoutState` are independently memoized. The compatibility context remains only for consumers that still combine multiple state domains.
 
-## High-value findings
+## Intentionally mixed Workout readers
 
-### Action-only consumers
+These screens still read Workout data together with domains that do not yet have focused state boundaries:
 
-These consumers do not need application state:
+- `src/app/(tabs)/index.tsx` — Home combines Workout, Nutrition, Progress, Profile, and onboarding state;
+- `src/app/(tabs)/progress.tsx` — Progress combines Workout sessions with weight, measurements, and exercises;
+- `src/app/weight-details.tsx` — Weight Details combines Workout sessions with weight, measurements, and exercises;
+- `src/features/coach/screens/CombinedCoachScreen.tsx` — Combined Coach combines Workout, Nutrition, Recovery, and limitations.
 
-- `src/app/auth/register.tsx` — `updateRegistrationProfile`;
-- `src/app/weight-entry.tsx` — `addWeightEntry`;
-- `src/app/settings/index.tsx` — `resetOnboarding`.
+They remain on `useAppContext` intentionally. Each should migrate only after all required domain hooks exist.
 
-They should subscribe to a stable action context rather than the global state object.
+## Remaining compatibility consumers by domain
 
-### Infrastructure-only consumers
+### Nutrition
 
-- `src/features/settings/DataRecoveryCard.tsx` — mutation failure, pending count, retry;
-- `src/features/coach/screens/NutritionCoachScreen.tsx` — restore state;
-- `src/features/coach/screens/NutritionTargetProposalScreen.tsx` — restore state.
+- `src/app/(tabs)/nutrition.tsx` — `foodEntries`, `nutritionTargets`;
+- `src/app/nutrition/add-food.tsx` — entries, meal templates, and Nutrition actions;
+- `src/app/nutrition/date-picker.tsx` — `foodEntries`.
 
-They should subscribe only to infrastructure status.
+### Profile and onboarding
 
-### Mixed focused consumer
+- `src/app/(tabs)/profile.tsx` — `profile`;
+- `src/app/auth/index.tsx` — restore and onboarding status;
+- `src/features/onboarding/OnboardingClientScreen.tsx` — profile, onboarding, actions, and mutation status;
+- `src/features/profile/components/ProfileGoalsSection.tsx` — profile, weight history, and goal actions;
+- `src/features/progress/ProgressPlanningSections.tsx` — profile;
+- `src/features/settings/PersonalDetailsSettingsCard.tsx` — profile.
 
-`src/features/workouts/screens/WorkoutSessionFinishScreen.tsx` needs one mutation action and one infrastructure field:
+### Safety and Recovery
 
-- `saveWorkoutSession` from `AppActions`;
-- `isRestoringState` from `AppInfrastructure`.
+- `src/features/coach/screens/RecoveryCheckInScreen.tsx` — recovery check-ins;
+- `src/features/coach/screens/SafetyRecoveryCoachScreen.tsx` — recovery check-ins and limitations;
+- `src/features/coach/screens/SafetyRecoveryPreflightScreen.tsx` — restore, recovery, and limitations;
+- `src/features/coach/screens/UserLimitationScreen.tsx` — limitations;
+- `src/features/workouts/screens/WorkoutSafetyGateScreen.tsx` — recovery and limitations.
 
-It does not need any domain arrays and should not subscribe to the compatibility context.
+### Mixed multi-domain
 
-### Broad snapshot reconstruction
+- Home;
+- Progress;
+- Weight Details;
+- Combined Coach Review.
 
-The original inventory found four screens that read nearly every state slice and called `replaceState`:
+## Completed boundary work
 
-- `RecoveryCheckInScreen`;
-- `UserLimitationScreen`;
-- `ProgressPlanningSections`;
-- `PersonalDetailsSettingsCard`.
+### Stable action and infrastructure access
 
-All four are now migrated to typed functional updater actions. No production UI consumer in this inventory reconstructs the full `AppState` for a bounded domain edit.
+PRs #296 and #298 introduced stable `AppActions` and `AppInfrastructure` hooks and migrated action-only, infrastructure-only, and Workout Session Finish consumers.
 
-### Workout concentration
+### Typed bounded updater actions
 
-Workout-related data dominates global subscriptions:
+PRs #299 and #300 removed all four full-state reconstruction paths by adding typed functional updater actions for Safety, Recovery, and Profile edits.
 
-- `workoutSessions`: 19 consumers;
-- `workouts`: 11 consumers;
-- `exercises`: 10 consumers;
-- `trainingPrograms`: 8 consumers.
+### Workout state boundary
 
-The Workout domain should be the first full state slice extracted after infrastructure and actions.
+PRs #302–#307 introduced `WorkoutState` and migrated the main Workout flows. PR #310 refreshed the inventory and moved the final seven pure Workout readers:
 
-## Public boundary slices
+- Combined Coach Proposal;
+- Strength Coach;
+- Exercise Detail;
+- Share Workout;
+- Workout Builder;
+- Workout History Detail;
+- Workout History.
 
-### PR #296 — boundary introduction
+Source guards prevent every migrated file from returning to `useAppContext`.
 
-PR #296 introduced:
+## Next boundary
 
-- `AppActions` type and `AppActionsContext`;
-- `AppInfrastructure` type and `AppInfrastructureContext`;
-- `useAppActions` and `useAppInfrastructure` hooks;
-- memoized provider values;
-- compatibility retention of `useAppContext` during migration.
+Introduce `NutritionState` containing only the existing Nutrition arrays required by current consumers. Keep actions in `AppActions`, infrastructure in `AppInfrastructure`, and one internal `AppState` authoritative.
 
-Initial consumers moved off the global context:
-
-- registration;
-- weight entry;
-- Data Recovery.
-
-### PR #298 — focused-consumer migration
-
-PR #298 moved:
-
-- Settings reset-onboarding to `useAppActions`;
-- Nutrition Coach restore status to `useAppInfrastructure`;
-- Nutrition Target Proposal restore status to `useAppInfrastructure`;
-- Workout Session Finish save and restore dependencies to the two focused hooks.
-
-A source regression guard requires these files to retain focused hooks and rejects reintroduction of `useAppContext`.
-
-### PR #299 — Safety & Recovery typed updater actions
-
-PR #299 added typed actions for:
-
-- recovery check-in upsert;
-- user-limitation upsert;
-- user-limitation deletion.
-
-`RecoveryCheckInScreen` and `UserLimitationScreen` keep reading only their current domain arrays while validation and ordered persistence live behind `AppActions`. They no longer copy every `AppState` field or call `replaceState`.
-
-### Profile typed updater actions
-
-The next bounded slice adds:
-
-- `updateCoachProfile` for the validated Coach profile form;
-- `updatePersonalDetails` for date of birth and calculation sex.
-
-`ProgressPlanningSections` and `PersonalDetailsSettingsCard` retain their current profile reads, validation, alerts, and ordered persistence while removing the final two full-state replacement paths.
-
-## Recommended migration order
-
-1. Extract Workout state and actions as the first complete domain boundary.
-2. Extract Nutrition, Progress, and Profile state boundaries.
-3. Retain the compatibility context until no production consumer requires it.
-4. Profile render counts before considering an external store.
-5. Specify and test coalesced persistence only after subscription boundaries stabilize.
-
-## Decision gate
-
-Do not introduce Zustand or Jotai at this stage. The current architecture can obtain a substantial reduction in invalidation through stable contexts and focused hooks without changing persistence or synchronization ownership.
+Do not combine the Nutrition boundary with diary virtualization, persistence coalescing, synchronization changes, or an external state library.

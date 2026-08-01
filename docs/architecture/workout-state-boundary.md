@@ -2,11 +2,13 @@
 
 Updated: 2026-08-01
 
+Status: complete on code baseline `3ead4fbadb68ed7c6ef44c3fe8e9f41441a2af7a`.
+
 ## Purpose
 
 `WorkoutState` is the first focused domain-state boundary extracted from the compatibility `AppContext`.
 
-It narrows React subscriptions without changing the internal `AppState`, repository, ordered mutation queue, synchronization ownership, persisted schemas, or Workout actions.
+It narrows React subscriptions without changing the internal `AppState`, repository, ordered mutation queue, synchronization ownership, persisted schemas, active-draft storage, or Workout actions.
 
 ## Contract
 
@@ -17,109 +19,56 @@ The boundary contains only:
 - `exercises`;
 - `workoutSessions`.
 
-Mutation functions remain in the stable `AppActions` context. Restore and mutation status remain in `AppInfrastructure`.
+Mutation functions remain in stable `AppActions`. Restore and mutation status remain in `AppInfrastructure`.
 
 The provider value is memoized from the four Workout-domain array identities. Nutrition, weight, profile, onboarding, Safety, and Recovery changes do not create a new `WorkoutState` value.
 
-## Migration slices
+## Completed migration slices
 
-### Slice 1 — hub and exercise library
+1. PR #302 — introduced `WorkoutState`; migrated the Workouts hub and standalone Exercise Library. Merge: `c0b9456b40072017dbcc92e83fead2c0916d9765`.
+2. PR #303 — migrated Program Detail and Workout Template Detail. Merge: `46813780b230f7f41f5cd7a61bb275a03135b173`.
+3. PR #304 — migrated New Routine. Merge: `f46aa94bc7557ee1480e9e1b17b6a103cc4c704c`.
+4. PR #305 — migrated active Workout Session. Merge: `51bbaee498e9cbb9448e0c2b5547c7d7bb435fd4`.
+5. PR #306 — migrated the active-session exercise picker. Merge: `4dd982545867665a691b3cf4e483844d04634b44`.
+6. PR #307 — migrated editable Workout History. Merge: `415ab2b83d1109d16e777ae92ebcf9b059f5b874`.
+7. PR #310 — refreshed the exact AST inventory and migrated the remaining seven pure Workout readers. Merge: `3ead4fbadb68ed7c6ef44c3fe8e9f41441a2af7a`.
 
-The first bounded consumers are:
+The final slice covered:
 
-- `src/features/workouts/screens/WorkoutsScreen.tsx`;
-- `src/app/workouts/exercise-library.tsx`.
+- Combined Coach Proposal;
+- Strength Coach;
+- Exercise Detail;
+- Share Workout;
+- Workout Builder;
+- Workout History Detail;
+- filtered Workout History.
 
-`WorkoutsScreen` combines:
+Every migrated consumer is protected by a source guard that rejects reintroduction of `useAppContext`.
 
-- `useWorkoutState` for templates, programs, and completed sessions;
-- `useAppActions` for program creation;
-- `useAppInfrastructure` for restore status.
+## Intentionally mixed consumers
 
-Exercise Library combines:
+Four screens still read Workout data through the compatibility context because they also require state domains that do not yet have focused boundaries:
 
-- `useWorkoutState` for exercises and completed sessions;
-- `useAppActions` for exercise creation and deletion.
+- Home;
+- Progress;
+- Weight Details;
+- Combined Coach Review.
 
-### Slice 2 — program and template detail
+They are not Workout-boundary gaps. They should migrate only after their additional Nutrition, Progress, Profile, or Safety state hooks exist.
 
-The second bounded consumers are:
+## Result
 
-- `src/features/workouts/screens/ProgramDetailScreen.tsx`;
-- `src/features/workouts/screens/WorkoutTemplateDetailScreen.tsx`.
-
-Program Detail combines:
-
-- `useWorkoutState` for programs and workout templates;
-- `useAppActions` for program save and deletion;
-- `useAppInfrastructure` for restore status.
-
-Workout Template Detail combines:
-
-- `useWorkoutState` for workout templates;
-- `useAppActions` for custom-template deletion;
-- `useAppInfrastructure` for restore status.
-
-### Slice 3 — New Routine
-
-The third bounded consumer is:
-
-- `src/features/workouts/screens/NewRoutineScreen.tsx`.
-
-New Routine combines:
-
-- `useWorkoutState` for workout templates, programs, and exercises;
-- `useAppActions` for template creation and program save.
-
-Its local draft, exercise picker, validation, unit display, generated IDs, program attachment, and navigation behavior are unchanged.
-
-### Slice 4 — active Workout Session
-
-The fourth bounded consumer is:
-
-- `src/features/workouts/screens/WorkoutSessionScreen.tsx`.
-
-Active Workout Session combines:
-
-- `useWorkoutState` for templates, exercises, and completed-session history;
-- `useAppInfrastructure` for restore status.
-
-Its active-draft hydration, storage, set editing, RPE tracking, exercise replacement, finish routing, discard behavior, timers, and modal interactions are unchanged. The migration modifies only React context subscriptions.
-
-### Slice 5 — active-session exercise picker
-
-The fifth bounded consumer is:
-
-- `src/features/workouts/screens/WorkoutExerciseLibraryScreen.tsx`.
-
-The picker uses `useWorkoutState` only for completed-session history that powers recent exercises. The exercise catalogue, search, filters, diagnostics, FlatList virtualization, selected-item state, active-draft update, and return navigation remain owned by their existing repositories and local state.
-
-### Slice 6 — Workout History
-
-The sixth bounded consumer is:
-
-- `src/app/workouts/history.tsx`.
-
-Workout History combines:
-
-- `useWorkoutState` for completed sessions;
-- `useAppActions` for session update and deletion.
-
-Its grouping, date presentation, set editor, canonical weight conversion, validation, alerts, and card rendering are unchanged.
-
-Source guards prevent all migrated files from returning to `useAppContext`.
-
-## Deferred consumers
-
-Mixed Home, Coach, Progress, and synchronization consumers remain on the compatibility context until their non-Workout dependencies have focused boundaries.
-
-Later Workout-only screens should migrate in small groups after their exact state, action, and infrastructure dependencies are inspected. This boundary does not add a Workout action context because the existing stable `AppActions` value already avoids domain-array subscriptions.
+- pure Workout compatibility consumers remaining: 0;
+- `WorkoutState` contract remains limited to four arrays;
+- no Workout-specific action context was added because stable `AppActions` already avoids array subscriptions;
+- runtime behavior, persistence, synchronization, navigation, and UI remain compatible;
+- all code-bearing slices passed blocking Mobile CI on their exact heads.
 
 ## Explicit exclusions
 
-This boundary does not include:
+The boundary did not include:
 
-- list virtualization changes;
+- list virtualization;
 - selector rewrites;
 - persistence coalescing;
 - synchronization changes;
