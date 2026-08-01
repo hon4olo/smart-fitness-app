@@ -7,7 +7,8 @@ import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppInfrastructure } from '@/context/AppContext';
+import { useSafetyRecoveryState } from '@/context/SafetyRecoveryStateContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
@@ -22,7 +23,8 @@ export default function SafetyRecoveryPreflightScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { ready, session } = useAuthSession();
-  const app = useAppContext();
+  const { isRestoringState } = useAppInfrastructure();
+  const { recoveryCheckIns, userLimitations } = useSafetyRecoveryState();
   const {
     conflictCount,
     error,
@@ -35,10 +37,10 @@ export default function SafetyRecoveryPreflightScreen() {
   const summary = useMemo(
     () =>
       buildSafetyRecoveryLocalSummary({
-        recoveryCheckIns: app.recoveryCheckIns,
-        userLimitations: app.userLimitations,
+        recoveryCheckIns,
+        userLimitations,
       }),
-    [app.recoveryCheckIns, app.userLimitations],
+    [recoveryCheckIns, userLimitations],
   );
   const readinessCopy = copy.readiness[summary.readiness] ?? copy.readiness.ready;
   const isAuthenticated = Boolean(session?.tokens.accessToken);
@@ -51,7 +53,7 @@ export default function SafetyRecoveryPreflightScreen() {
     status === 'error';
   const reviewEnabled =
     ready &&
-    !app.isRestoringState &&
+    !isRestoringState &&
     isAuthenticated &&
     summary.reviewReady &&
     !syncBlocked;
