@@ -2,7 +2,7 @@
 
 Updated: 2026-08-01
 
-Status: provider foundation and first pure-consumer migration complete.
+Status: provider foundation, pure editors, and preflight migration complete.
 
 ## Purpose
 
@@ -28,21 +28,29 @@ PR #323:
 
 ## Completed slice 2 — pure editors
 
-The following screens now read Safety/Recovery arrays through `useSafetyRecoveryState` and no longer subscribe to compatibility `AppContext`:
+PR #324 migrated:
 
 - Recovery Check-In;
 - User Limitation.
 
-Their mutations remain in `useAppActions`, restore status remains in `useAppInfrastructure`, and sync state remains in `SyncContext`.
+These screens now read Safety/Recovery arrays through `useSafetyRecoveryState`. Their mutations remain in `useAppActions`, restore status remains in `useAppInfrastructure`, and sync state remains in `SyncContext`.
 
-Validation, local form state, pending-sync tracking, alerts, routes, and UI behavior remain unchanged.
+## Completed slice 3 — preflight composition
+
+Safety Recovery Preflight now composes:
+
+- `useSafetyRecoveryState` for recovery check-ins and limitations;
+- `useAppInfrastructure` for restore status;
+- `SyncContext` for pending operations, conflicts, status, and synchronization;
+- the existing auth session hook for account readiness.
+
+Local summary calculation, review gating, synchronization controls, routes, and UI behavior remain unchanged.
 
 ## Next slices
 
-Migrate mixed readers by composing focused Safety/Recovery state with infrastructure, actions, Workout state, and sync hooks as required:
+Migrate remaining mixed readers by composing focused Safety/Recovery state with Workout state, infrastructure, actions, and sync hooks as required:
 
 - Safety Recovery Coach;
-- Safety Recovery Preflight;
 - Workout Safety Gate;
 - Combined Coach.
 
