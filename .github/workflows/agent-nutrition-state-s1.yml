@@ -232,6 +232,7 @@ This slice does not change:
               if 'useAppContext' in guarded.read_text():
                   raise SystemExit(f'{guarded}: compatibility hook remains')
 
+          Path('.github/agent-nutrition-state-s1.trigger').unlink()
           Path('.github/workflows/agent-nutrition-state-s1.yml').unlink()
           PY
 
@@ -250,6 +251,7 @@ This slice does not change:
             src/app/nutrition/date-picker.tsx \
             test/nutrition-state-boundary.test.ts \
             docs/architecture/nutrition-state-boundary.md \
+            .github/agent-nutrition-state-s1.trigger \
             .github/workflows/agent-nutrition-state-s1.yml
           git commit -m 'refactor: introduce first Nutrition state boundary'
           git push origin HEAD:agent/nutrition-state-boundary-s1
