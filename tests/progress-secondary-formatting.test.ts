@@ -19,20 +19,24 @@ const auditedPresentation = () =>
     readSource('src/app/(tabs)/progress.tsx'),
     readSource('src/app/weight-details.tsx'),
     readSource('src/components/progress/ProgressTrendChart.tsx'),
+    readSource('src/components/progress/WeeklyWorkoutVolumeCard.tsx'),
   ].join('\n');
 
 describe('secondary Progress formatting boundaries', () => {
   it('uses central locale and selected-unit formatting for charts and measurements', () => {
     const progress = readSource('src/app/(tabs)/progress.tsx');
     const chart = readSource('src/components/progress/ProgressTrendChart.tsx');
+    const weeklyVolume = readSource(
+      'src/components/progress/WeeklyWorkoutVolumeCard.tsx',
+    );
     const weightDetails = readSource('src/app/weight-details.tsx');
     const source = auditedPresentation();
 
     expect(progress).toContain('formatLengthValue,');
     expect(progress).toContain('formatWeightValue,');
-    expect(progress).toContain('weightFromKg(volumeKg, weightUnit)');
     expect(progress).toContain('formatNumber(measurement.latestNumericValue');
-    expect(progress).toContain('formatWorkoutVolume(latestVolumePoint.volume)');
+    expect(weeklyVolume).toContain('weightFromKg(week.volume, weightUnit)');
+    expect(weeklyVolume).toContain('weightFromKg(volume, weightUnit)');
     expect(chart).toContain('value: formatNumber(midpoint');
     expect(weightDetails).toContain(
       'displayValue: `${formatWeightValue(entry.weight)} ${weightUnit}`',
@@ -42,14 +46,19 @@ describe('secondary Progress formatting boundaries', () => {
     expect(source).not.toContain('new Intl.');
   });
 
-  it('keeps chart geometry and analytics ordering unchanged', () => {
+  it('keeps chart geometry and bounded analytics ordering unchanged', () => {
     const progress = readSource('src/app/(tabs)/progress.tsx');
     const chart = readSource('src/components/progress/ProgressTrendChart.tsx');
+    const weeklyVolume = readSource(
+      'src/components/progress/WeeklyWorkoutVolumeCard.tsx',
+    );
 
     expect(progress).toContain('getProgressAnalytics({');
     expect(progress).toContain('analytics.measurements.slice(0, 3)');
-    expect(progress).toContain('analytics.workoutVolumeTrend.at(-1)');
-    expect(progress).toContain('analytics.workoutVolumeTrend.at(-2)');
+    expect(progress).toContain('<WeeklyWorkoutVolumeCard sessions={workoutSessions} />');
+    expect(weeklyVolume).toContain('getWeeklyWorkoutVolume');
+    expect(weeklyVolume).toContain('weeklyVolume.at(-1)');
+    expect(weeklyVolume).toContain('weeklyVolume.at(-2)');
     expect(chart).toContain('const visibleRange = Math.max(');
     expect(chart).toContain('const axisMinimum = minValue - visibleRange * 0.18');
     expect(chart).toContain('const axisMaximum = maxValue + visibleRange * 0.08');
