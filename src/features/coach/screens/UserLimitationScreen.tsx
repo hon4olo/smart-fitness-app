@@ -7,11 +7,8 @@ import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Spacing } from '@/constants/theme';
-import {
-  useAppActions,
-  useAppContext,
-  useAppInfrastructure,
-} from '@/context/AppContext';
+import { useAppActions, useAppInfrastructure } from '@/context/AppContext';
+import { useSafetyRecoveryState } from '@/context/SafetyRecoveryStateContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { createUuid } from '@/lib/ids';
 import { useLocalization } from '@/localization';
@@ -66,7 +63,7 @@ export default function UserLimitationScreen() {
   const options = getLimitationOptions(copy);
   const themedStyles = useMemo(() => createUserLimitationScreenStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { userLimitations } = useAppContext();
+  const { userLimitations } = useSafetyRecoveryState();
   const { deleteUserLimitation, upsertUserLimitation } = useAppActions();
   const { isRestoringState } = useAppInfrastructure();
   const { error: syncError, pendingOperations, status: syncStatus, syncNow } = useWeightSync();
