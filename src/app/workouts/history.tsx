@@ -7,11 +7,11 @@ import { AppCard } from '@/components/ui/AppCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { BottomTabInset, Colors, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
-import type { WorkoutSession } from '@/context/AppContext';
+import { useAppActions, useWorkoutState } from '@/context/AppContext';
 import { getSessionExercises, getSessionVolume } from '@/lib/workouts';
 import { useLocalization } from '@/localization';
 import { getWorkoutHistoryCopy } from '@/localization/workoutHistoryCopy';
+import type { WorkoutSession } from '@/types';
 import { parseDisplayNumber, useUnitPreferences, weightToKg } from '@/units';
 
 const isSameLocalDay = (left: Date, right: Date) =>
@@ -20,7 +20,8 @@ const isSameLocalDay = (left: Date, right: Date) =>
   left.getDate() === right.getDate();
 
 export default function WorkoutHistoryRoute() {
-  const { deleteWorkoutSession, updateWorkoutSession, workoutSessions } = useAppContext();
+  const { deleteWorkoutSession, updateWorkoutSession } = useAppActions();
+  const { workoutSessions } = useWorkoutState();
   const { formatDate, formatNumber, locale } = useLocalization();
   const { formatWeightValue, weight } = useUnitPreferences();
   const copy = getWorkoutHistoryCopy(locale);
