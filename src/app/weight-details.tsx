@@ -11,14 +11,16 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useWorkoutState } from '@/context/AppContext';
+import { useProgressState } from '@/context/ProgressStateContext';
 import { getProgressAnalytics } from '@/lib/progress';
 import { useLocalization } from '@/localization';
 import { getWeightDetailsCopy } from '@/localization/weightDetailsCopy';
 import { useUnitPreferences, weightFromKg } from '@/units';
 
 export default function WeightDetailsScreen() {
-  const { bodyMeasurements, exercises, weightHistory, workoutSessions } = useAppContext();
+  const { bodyMeasurements, weightHistory } = useProgressState();
+  const { exercises, workoutSessions } = useWorkoutState();
   const { formatDate, formatNumber, locale } = useLocalization();
   const copy = getWeightDetailsCopy(locale);
   const { formatWeightValue, weight: weightUnit } = useUnitPreferences();
