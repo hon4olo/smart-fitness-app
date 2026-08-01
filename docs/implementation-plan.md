@@ -8,13 +8,14 @@ Canonical execution plan for `hon4olo/smart-fitness-app`. Completed implementati
 
 Mobile:
 
-- current `main`: `86b0c1d871be40bdcdb0d0463d4c2a9e219a44fb`;
+- current `main`: `415ab2b83d1109d16e777ae92ebcf9b059f5b874`;
 - Expo SDK 56, React Native, Expo Router, TypeScript;
 - offline-first repository persistence;
 - ordered observable mutation queue;
 - revision-aware synchronization for supported domains;
-- stable `AppActions` and `AppInfrastructure` contexts coexist with the compatibility `AppContext`;
+- stable `AppActions`, `AppInfrastructure`, and focused `WorkoutState` contexts coexist with the compatibility `AppContext`;
 - all previously identified full-state reconstruction paths are removed from production UI;
+- six bounded Workout-state migration slices are merged and protected by source guards;
 - `react-native-svg` is installed;
 - blocking Mobile CI covers line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor.
 
@@ -95,33 +96,51 @@ Merge: `86b0c1d871be40bdcdb0d0463d4c2a9e219a44fb`.
 
 Inventory: `docs/architecture/app-context-consumer-inventory.md`.
 
-## Current target — Workout domain state boundary
+## Workout domain state boundary
 
-Scope:
+Status: in progress; first six migration slices complete.
 
-- workouts and templates;
-- completed workout sessions;
-- training programs;
-- exercise catalogue and custom exercises;
-- active restore status remains in `AppInfrastructure`;
-- mutation functions remain in `AppActions` until a measured need justifies domain-specific action contexts.
+Contract:
 
-Tasks:
+- `WorkoutState` contains only `workouts`, `trainingPrograms`, `exercises`, and `workoutSessions`;
+- the value is memoized from those four array identities;
+- mutation functions remain in stable `AppActions`;
+- restore and mutation status remain in `AppInfrastructure`;
+- one internal `AppState` remains authoritative.
 
-- [ ] inventory exact Workout state consumers after PR #300;
-- [ ] define a memoized `WorkoutState` value containing only Workout-domain arrays;
-- [ ] expose `useWorkoutState` without changing the internal `AppState` object;
-- [ ] migrate Workout screens and pure Workout-dependent cards incrementally;
-- [ ] keep mixed Home, Coach, and Progress consumers on compatibility state until their required slices are explicitly separated;
-- [ ] add source guards preventing migrated Workout consumers from returning to `useAppContext`;
-- [ ] add render-focused tests where practical;
-- [ ] pass full Mobile CI on each bounded migration slice.
+Completed slices:
+
+1. PR #302 — introduce `WorkoutState`, migrate Workouts hub and standalone Exercise Library; merge `c0b9456b40072017dbcc92e83fead2c0916d9765`.
+2. PR #303 — migrate Program Detail and Workout Template Detail; merge `46813780b230f7f41f5cd7a61bb275a03135b173`.
+3. PR #304 — migrate New Routine; merge `f46aa94bc7557ee1480e9e1b17b6a103cc4c704c`.
+4. PR #305 — migrate active Workout Session; merge `51bbaee498e9cbb9448e0c2b5547c7d7bb435fd4`.
+5. PR #306 — migrate active-session exercise picker; merge `4dd982545867665a691b3cf4e483844d04634b44`.
+6. PR #307 — migrate Workout History; merge `415ab2b83d1109d16e777ae92ebcf9b059f5b874`.
+
+Architecture note: `docs/architecture/workout-state-boundary.md`.
+
+Completed tasks:
+
+- [x] define a memoized `WorkoutState` value containing only Workout-domain arrays;
+- [x] expose `useWorkoutState` without changing the internal `AppState` object;
+- [x] migrate the main Workout hub, details, routine creation, active session, exercise picker, and history in bounded PRs;
+- [x] keep mixed Home, Coach, Progress, and synchronization consumers on compatibility state;
+- [x] add source guards preventing migrated consumers from returning to `useAppContext`;
+- [x] pass full Mobile CI on every migration slice.
+
+Remaining decision gate:
+
+- [ ] refresh the exact production consumer inventory on current `main`;
+- [ ] classify every remaining Workout-reading compatibility consumer as pure Workout or intentionally mixed;
+- [ ] migrate any remaining pure Workout consumers in bounded slices;
+- [ ] record the measured subscription baseline before declaring the Workout boundary complete;
+- [ ] do not add a Workout action context unless profiling demonstrates a material benefit.
 
 Do not combine this with list virtualization, persistence coalescing, or a state-library migration.
 
 ## Later domain state boundaries
 
-Recommended order after Workout:
+Recommended order after the Workout decision gate:
 
 1. Nutrition entries, targets, meal templates, and library data.
 2. Weight history, measurements, and progress analytics.
@@ -273,14 +292,15 @@ Not part of autonomous refactor execution:
 7. [x] Focused action/infrastructure consumer migration — PR #298.
 8. [x] Safety & Recovery typed updater actions — PR #299.
 9. [x] Profile typed updater actions — PR #300.
-10. [ ] Workout domain state boundary.
-11. [ ] Nutrition, Progress, and Profile state boundaries.
-12. [ ] Pure selectors and consumer migration.
-13. [ ] Coalesced persistence and lifecycle flush.
-14. [ ] Nutrition `SectionList` migration.
-15. [ ] Proven unbounded-list virtualization.
-16. [ ] SVG weight trend.
-17. [ ] Weekly workout-volume selector and SVG chart.
+10. [x] Advance roadmap to Workout state boundary — PR #301.
+11. [ ] Workout domain state boundary — PRs #302–#307 complete; final inventory decision gate pending.
+12. [ ] Nutrition, Progress, and Profile state boundaries.
+13. [ ] Pure selectors and consumer migration.
+14. [ ] Coalesced persistence and lifecycle flush.
+15. [ ] Nutrition `SectionList` migration.
+16. [ ] Proven unbounded-list virtualization.
+17. [ ] SVG weight trend.
+18. [ ] Weekly workout-volume selector and SVG chart.
 
 # Validation policy
 
@@ -288,4 +308,4 @@ Every code-bearing mobile slice requires focused tests, `npx tsc --noEmit`, `npm
 
 # Immediate next action
 
-Inventory exact Workout state consumers on current `main`, then introduce the smallest useful `WorkoutState` context and migrate a bounded first group without changing persistence or synchronization behavior.
+Refresh the exact `useAppContext` consumer inventory on current `main`. Migrate any remaining pure Workout consumers in bounded PRs; otherwise close the Workout decision gate and introduce the first focused Nutrition state boundary without changing persistence or synchronization ownership.
