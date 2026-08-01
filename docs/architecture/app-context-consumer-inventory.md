@@ -38,6 +38,15 @@ They should subscribe to a stable action context rather than the global state ob
 
 They should subscribe only to infrastructure status.
 
+### Mixed focused consumer
+
+`src/features/workouts/screens/WorkoutSessionFinishScreen.tsx` needs one mutation action and one infrastructure field:
+
+- `saveWorkoutSession` from `AppActions`;
+- `isRestoringState` from `AppInfrastructure`.
+
+It does not need any domain arrays and should not subscribe to the compatibility context.
+
 ### Broad snapshot reconstruction
 
 Four screens read nearly every state slice and `replaceState`:
@@ -60,9 +69,11 @@ Workout-related data dominates global subscriptions:
 
 The Workout domain should be the first full state slice extracted after infrastructure and actions.
 
-## First boundary slice
+## Public boundary slices
 
-PR #296 introduces:
+### PR #296 — boundary introduction
+
+PR #296 introduced:
 
 - `AppActions` type and `AppActionsContext`;
 - `AppInfrastructure` type and `AppInfrastructureContext`;
@@ -76,16 +87,26 @@ Initial consumers moved off the global context:
 - weight entry;
 - Data Recovery.
 
-This is intentionally incremental. No state slice, persisted model, repository, queue, or sync contract changes.
+### Focused-consumer migration
+
+The next bounded slice moves:
+
+- Settings reset-onboarding to `useAppActions`;
+- Nutrition Coach restore status to `useAppInfrastructure`;
+- Nutrition Target Proposal restore status to `useAppInfrastructure`;
+- Workout Session Finish save and restore dependencies to the two focused hooks.
+
+A source regression guard requires these files to retain focused hooks and rejects reintroduction of `useAppContext`.
+
+This remains an incremental subscription change. No state slice, persisted model, repository, queue, outbox, or synchronization contract changes.
 
 ## Recommended migration order
 
-1. Move the remaining action-only and infrastructure-only consumers.
-2. Replace full-state reconstruction with typed domain updater actions.
-3. Extract Workout state and actions as the first complete domain boundary.
-4. Extract Nutrition, Progress, and Profile state boundaries.
-5. Retain the compatibility context until no production consumer requires it.
-6. Profile render counts before considering an external store.
+1. Replace full-state reconstruction with typed domain updater actions.
+2. Extract Workout state and actions as the first complete domain boundary.
+3. Extract Nutrition, Progress, and Profile state boundaries.
+4. Retain the compatibility context until no production consumer requires it.
+5. Profile render counts before considering an external store.
 
 ## Decision gate
 
