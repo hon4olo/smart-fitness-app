@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
 
 import { AppProvider } from '@/context/AppContext';
+import { ProfileStateProvider } from '@/context/ProfileStateContext';
 import { ProgressStateProvider } from '@/context/ProgressStateContext';
 import { LocalizationProvider, useLocalization } from '@/localization';
 import { RootErrorFallback } from '@/observability/RootErrorFallback';
@@ -55,48 +56,50 @@ function RootNavigator() {
     <ThemeProvider value={navigationTheme}>
       <AppProvider>
         <ProgressStateProvider>
-          <StatusBar style={resolvedAppearance === 'dark' ? 'light' : 'dark'} />
-          <Stack
-            screenOptions={{
-              contentStyle: { backgroundColor: colors.background },
-              headerBackTitle: t('common.back'),
-              headerShadowVisible: false,
-              headerStyle: { backgroundColor: colors.surfacePrimary },
-              headerTintColor: colors.textPrimary,
-              headerTitleStyle: { color: colors.textPrimary },
-            }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-            <Stack.Screen name="auth" options={{ headerShown: false }} />
-            <Stack.Screen name="account/sessions" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/index" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/social-profile" options={{ headerShown: false }} />
-            <Stack.Screen name="social/index" options={{ headerShown: false }} />
-            <Stack.Screen name="social/feed" options={{ headerShown: false }} />
-            <Stack.Screen name="social/guidelines" options={{ headerShown: false }} />
-            <Stack.Screen name="social/notifications" options={{ headerShown: false }} />
-            <Stack.Screen name="social/relationships" options={{ headerShown: false }} />
-            <Stack.Screen name="social/[username]" options={{ headerShown: false }} />
-            <Stack.Screen name="social/posts/[username]" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="social/workout-post/[postId]"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="social/share-workout/[sessionId]"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="exercises/[exerciseId]" options={{ headerShown: false }} />
-            <Stack.Screen name="nutrition/add-food" options={{ headerShown: false }} />
-            <Stack.Screen name="nutrition/date-picker" options={{ headerShown: false }} />
-            <Stack.Screen name="workout-session" options={{ headerShown: false }} />
-            <Stack.Screen name="workout-session/exercises" options={{ headerShown: false }} />
-            <Stack.Screen name="workout-session-finish" options={{ headerShown: false }} />
-            <Stack.Screen name="workouts/builder" options={{ headerShown: false }} />
-            <Stack.Screen name="workouts/program/[programId]" options={{ headerShown: false }} />
-            <Stack.Screen name="workouts/routine/new" options={{ headerShown: false }} />
-            <Stack.Screen name="workouts/template/[workoutId]" options={{ headerShown: false }} />
-          </Stack>
+          <ProfileStateProvider>
+            <StatusBar style={resolvedAppearance === 'dark' ? 'light' : 'dark'} />
+            <Stack
+              screenOptions={{
+                contentStyle: { backgroundColor: colors.background },
+                headerBackTitle: t('common.back'),
+                headerShadowVisible: false,
+                headerStyle: { backgroundColor: colors.surfacePrimary },
+                headerTintColor: colors.textPrimary,
+                headerTitleStyle: { color: colors.textPrimary },
+              }}>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+              <Stack.Screen name="auth" options={{ headerShown: false }} />
+              <Stack.Screen name="account/sessions" options={{ headerShown: false }} />
+              <Stack.Screen name="settings/index" options={{ headerShown: false }} />
+              <Stack.Screen name="settings/social-profile" options={{ headerShown: false }} />
+              <Stack.Screen name="social/index" options={{ headerShown: false }} />
+              <Stack.Screen name="social/feed" options={{ headerShown: false }} />
+              <Stack.Screen name="social/guidelines" options={{ headerShown: false }} />
+              <Stack.Screen name="social/notifications" options={{ headerShown: false }} />
+              <Stack.Screen name="social/relationships" options={{ headerShown: false }} />
+              <Stack.Screen name="social/[username]" options={{ headerShown: false }} />
+              <Stack.Screen name="social/posts/[username]" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="social/workout-post/[postId]"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="social/share-workout/[sessionId]"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="exercises/[exerciseId]" options={{ headerShown: false }} />
+              <Stack.Screen name="nutrition/add-food" options={{ headerShown: false }} />
+              <Stack.Screen name="nutrition/date-picker" options={{ headerShown: false }} />
+              <Stack.Screen name="workout-session" options={{ headerShown: false }} />
+              <Stack.Screen name="workout-session/exercises" options={{ headerShown: false }} />
+              <Stack.Screen name="workout-session-finish" options={{ headerShown: false }} />
+              <Stack.Screen name="workouts/builder" options={{ headerShown: false }} />
+              <Stack.Screen name="workouts/program/[programId]" options={{ headerShown: false }} />
+              <Stack.Screen name="workouts/routine/new" options={{ headerShown: false }} />
+              <Stack.Screen name="workouts/template/[workoutId]" options={{ headerShown: false }} />
+            </Stack>
+          </ProfileStateProvider>
         </ProgressStateProvider>
       </AppProvider>
     </ThemeProvider>
