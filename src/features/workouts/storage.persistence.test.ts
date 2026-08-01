@@ -26,7 +26,7 @@ const createDraft = (reps: number): WorkoutSessionDraft => ({
       id: 'set-1',
       exerciseId: 'exercise-1',
       exerciseName: 'Bench Press',
-      kg: 80,
+      weight: 80,
       reps,
       completed: false,
     },
