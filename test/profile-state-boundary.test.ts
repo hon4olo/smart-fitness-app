@@ -63,4 +63,13 @@ describe('Profile state boundary', () => {
       expect(source).not.toContain('useAppContext');
     }
   });
+
+  test('Profile Goals composes focused Profile and Progress state', () => {
+    const source = readSource('src/features/profile/ProfileGoalsSection.tsx');
+
+    expect(source).toContain('useProfileState');
+    expect(source).toContain('useProgressState');
+    expect(source).toContain('useAppActions');
+    expect(source).not.toContain('useAppContext');
+  });
 });
