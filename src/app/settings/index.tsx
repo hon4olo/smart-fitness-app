@@ -12,7 +12,7 @@ import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
 import type { AppearanceMode } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions } from '@/context/AppContext';
 import { LocalPerformanceDiagnosticsCard } from '@/features/settings/LocalPerformanceDiagnosticsCard';
 import { AboutSettingsCard, PrivacySettingsCard } from '@/features/settings/PrivacyAboutCards';
 import { PersonalDetailsSettingsCard } from '@/features/settings/PersonalDetailsSettingsCard';
@@ -35,7 +35,7 @@ const supportDiagnosticsEnabled =
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const app = useAppContext();
+  const { resetOnboarding } = useAppActions();
   const { colors, mode, setMode } = useAppTheme();
   const { formatDate, languagePreference, locale, setLanguagePreference, t } = useLocalization();
   const { weight, length, energy, setWeightUnit, setLengthUnit, setEnergyUnit } =
@@ -89,7 +89,7 @@ export default function SettingsScreen() {
         {
           text: t('common.reset'),
           style: 'destructive',
-          onPress: () => app.resetOnboarding(),
+          onPress: resetOnboarding,
         },
       ],
     );
