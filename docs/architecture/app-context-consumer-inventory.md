@@ -2,18 +2,19 @@
 
 Updated: 2026-08-01
 
-Scope: TypeScript-AST inventory of production `useAppContext` consumers on mobile code baseline `3ead4fbadb68ed7c6ef44c3fe8e9f41441a2af7a`.
+Scope: TypeScript-AST inventory and subsequent focused migrations through mobile code baseline `099994f34a322aa4e2bed8c7933c8a25b55cfc65`.
 
 ## Current baseline
 
-- compatibility-context consumers: 18;
+- compatibility-context consumers: 16;
 - original baseline before focused boundaries: 40;
-- reduction: 22 consumers, or 55%;
+- reduction: 24 consumers, or 60%;
 - pure Workout consumers remaining on compatibility state: 0;
+- pure Nutrition consumers remaining on compatibility state: 1;
 - intentionally mixed Workout readers: 4;
 - no production UI reconstructs the full `AppState` for a bounded edit.
 
-`AppActions`, `AppInfrastructure`, and `WorkoutState` are independently memoized. The compatibility context remains only for consumers that still combine multiple state domains.
+`AppActions`, `AppInfrastructure`, `WorkoutState`, and `NutritionDataState` are independently memoized. The compatibility context remains only for still-unmigrated pure domains and consumers that combine multiple state domains.
 
 ## Intentionally mixed Workout readers
 
@@ -30,9 +31,9 @@ They remain on `useAppContext` intentionally. Each should migrate only after all
 
 ### Nutrition
 
-- `src/app/(tabs)/nutrition.tsx` — `foodEntries`, `nutritionTargets`;
-- `src/app/nutrition/add-food.tsx` — entries, meal templates, and Nutrition actions;
-- `src/app/nutrition/date-picker.tsx` — `foodEntries`.
+- `src/app/nutrition/add-food.tsx` — entries, meal templates, and Nutrition actions.
+
+The Nutrition tab and date picker moved to `useNutritionState` in PR #312.
 
 ### Profile and onboarding
 
@@ -70,20 +71,22 @@ PRs #299 and #300 removed all four full-state reconstruction paths by adding typ
 
 ### Workout state boundary
 
-PRs #302–#307 introduced `WorkoutState` and migrated the main Workout flows. PR #310 refreshed the inventory and moved the final seven pure Workout readers:
+PRs #302–#307 introduced `WorkoutState` and migrated the main Workout flows. PR #310 refreshed the inventory and moved the final seven pure Workout readers.
 
-- Combined Coach Proposal;
-- Strength Coach;
-- Exercise Detail;
-- Share Workout;
-- Workout Builder;
-- Workout History Detail;
-- Workout History.
+### Nutrition state boundary
+
+PR #312 introduced memoized `NutritionDataState` containing only:
+
+- `foodEntries`;
+- `mealTemplates`;
+- `nutritionTargets`.
+
+It migrated the Nutrition tab and date picker while preserving the existing macro-summary model named `NutritionState`.
 
 Source guards prevent every migrated file from returning to `useAppContext`.
 
-## Next boundary
+## Next action
 
-Introduce `NutritionState` containing only the existing Nutrition arrays required by current consumers. Keep actions in `AppActions`, infrastructure in `AppInfrastructure`, and one internal `AppState` authoritative.
+Migrate Add Food to `useNutritionState` plus stable `useAppActions` without changing its editor, catalog, favorites, library, persistence, synchronization, route, or UI behavior.
 
 Do not combine the Nutrition boundary with diary virtualization, persistence coalescing, synchronization changes, or an external state library.
