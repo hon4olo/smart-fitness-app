@@ -2,7 +2,7 @@
 
 Updated: 2026-08-01
 
-Status: provider foundation introduced; consumer migration pending.
+Status: provider foundation and first consumer migration complete.
 
 ## Purpose
 
@@ -15,24 +15,40 @@ The focused value contains only:
 - `weightHistory`;
 - `bodyMeasurements`.
 
-Workout sessions and exercises remain owned by `WorkoutState`. Mixed Progress screens must compose `useProgressState` with `useWorkoutState` rather than duplicating Workout arrays in the Progress contract.
+Workout sessions and exercises remain owned by `WorkoutState`. Mixed Progress screens compose `useProgressState` with `useWorkoutState` rather than duplicating Workout arrays in the Progress contract.
 
 Progress mutations remain in stable `AppActions`. Operational state remains in `AppInfrastructure`.
 
-## First slice
+## Completed slice 1 — provider foundation
 
-This slice:
+PR #316:
 
-- adds `ProgressStateProvider` and `useProgressState`;
-- memoizes the value from only `weightHistory` and `bodyMeasurements`;
-- mounts the provider inside the existing `AppProvider` boundary;
-- adds permanent contract tests.
+- added `ProgressStateProvider` and `useProgressState`;
+- memoized the value from only `weightHistory` and `bodyMeasurements`;
+- mounted the provider inside the existing `AppProvider` boundary;
+- added permanent contract tests.
 
-No production consumer migrates in this foundation slice. The next bounded slice will move the Progress tab and Weight Details to composition of focused Progress, Workout, and action hooks.
+## Completed slice 2 — Weight Details
+
+`src/app/weight-details.tsx` now:
+
+- reads `weightHistory` and `bodyMeasurements` through `useProgressState`;
+- reads `workoutSessions` and `exercises` through `useWorkoutState`;
+- no longer subscribes to compatibility `AppContext`.
+
+Analytics, chart data, units, routes, UI, and local screen behavior remain unchanged.
+
+## Next slice
+
+Migrate `src/app/(tabs)/progress.tsx` to compose:
+
+- `useProgressState` for Progress arrays;
+- `useWorkoutState` for Workout arrays;
+- `useAppActions` for `addBodyMeasurement`.
 
 ## Explicit exclusions
 
-This slice does not change:
+This boundary does not change:
 
 - persisted schemas or serialized values;
 - repositories, mutation ordering, outbox, or synchronization;
