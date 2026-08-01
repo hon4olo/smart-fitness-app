@@ -193,6 +193,7 @@ export default function WorkoutsScreen() {
                   workoutCount={0}
                   onPress={() => setCreateProgramOpen(true)}
                 />
+                {/* FlatList replaces visibleProgramSummaries.map while preserving row order. */}
                 <ProgramRow
                   favoriteMode={favoritesOnly ? 'show-all' : 'show-favorites'}
                   icon="favorite"
@@ -206,17 +207,17 @@ export default function WorkoutsScreen() {
               </View>
             </View>
           }
-          renderItem={({ item }) => (
+          renderItem={({ item: summary }) => (
             <View style={[styles.container, styles.programList]}>
               <ProgramRow
                 icon="program"
-                summary={item}
-                title={item.program.name}
-                workoutCount={item.workoutCount}
+                summary={summary}
+                title={summary.program.name}
+                workoutCount={summary.workoutCount}
                 onPress={() =>
                   router.push({
                     pathname: '/workouts/program/[programId]',
-                    params: { programId: item.program.id },
+                    params: { programId: summary.program.id },
                   })
                 }
               />
