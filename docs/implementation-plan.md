@@ -93,33 +93,33 @@ Exit criteria satisfied:
 
 Status: active.
 
+## Completed baseline
+
+- deterministic fixture targets exist for 500 food entries, 100 programs, 500 completed sessions, 500 exercises, and 365 weight entries;
+- fixtures provide stable unique keys and deterministic grouping/sorting inputs;
+- the baseline is recorded in `docs/architecture/list-performance-baseline.md`;
+- Nutrition diary is confirmed to use one vertical `ScrollView` with mapped meal groups and no virtualized list boundary;
+- no production UI or data path has been changed.
+
 ## Immediate next action
 
-Build representative deterministic fixtures and measure the existing list surfaces before changing components:
+Measure and inventory the Nutrition diary before implementation:
 
-- 500 food entries;
-- 100 programs;
-- 500 completed sessions;
-- 500 exercises;
-- 365 weight entries.
+1. benchmark `useNutritionDaySummary` grouping/summary work with 500 entries;
+2. inspect `MealGroup` to determine how many expanded entry rows mount;
+3. verify key and callback stability for meal and food-entry rows;
+4. record keyboard, accessibility, date-navigation, and expansion constraints;
+5. decide whether one `SectionList` is justified.
 
-For each surface, record:
+Then repeat the same bounded inventory for:
 
-- current list primitive;
-- render-item and key stability;
-- derived selector cost;
-- initial render item count where configurable;
-- nested scrolling or keyboard constraints;
-- whether measurement demonstrates a material problem.
+- Programs with 100 programs;
+- Workout history with 500 completed sessions;
+- Exercise Library with 500 exercises;
+- weight history with 365 entries;
+- food search, templates, and saved items where representative data can materialize many rows.
 
-Priorities after measurement:
-
-- Nutrition diary as one `SectionList` if justified;
-- virtualized program list if justified;
-- measured evaluation of workout history, exercise library, food search, templates, and saved items;
-- preservation of active-session, keyboard, accessibility, and navigation behavior.
-
-Do not begin charts until stable selectors and measured list performance are recorded.
+Do not virtualize a surface until measurements demonstrate a material problem. Do not begin charts until stable selectors and measured list performance are recorded.
 
 # Phase 5 — progress charts
 
