@@ -4,6 +4,7 @@ export type AppPersistenceMeasurement = {
   durationMs: number;
   hasOutbox: boolean;
   label: string;
+  operation: 'restore' | 'save';
   outcome: 'failure' | 'success';
   recordedAt: string;
   serializedCharacters: number;
@@ -31,6 +32,41 @@ const appendMeasurement = (measurement: AppPersistenceMeasurement): void => {
   }
 };
 
+const getSerializedCharacters = (state: AppState | null): number =>
+  state === null ? 0 : JSON.stringify(state).length;
+
+export async function measureAppStateRestore(input: {
+  load(): Promise<AppState | null>;
+}): Promise<AppState | null> {
+  if (!measurementEnabled) return input.load();
+
+  const startedAt = Date.now();
+  try {
+    const state = await input.load();
+    appendMeasurement({
+      durationMs: Date.now() - startedAt,
+      hasOutbox: false,
+      label: 'Restore app state',
+      operation: 'restore',
+      outcome: 'success',
+      recordedAt: new Date().toISOString(),
+      serializedCharacters: getSerializedCharacters(state),
+    });
+    return state;
+  } catch (error) {
+    appendMeasurement({
+      durationMs: Date.now() - startedAt,
+      hasOutbox: false,
+      label: 'Restore app state',
+      operation: 'restore',
+      outcome: 'failure',
+      recordedAt: new Date().toISOString(),
+      serializedCharacters: 0,
+    });
+    throw error;
+  }
+}
+
 export async function measureAppStatePersistence(input: {
   hasOutbox: boolean;
   label: string;
@@ -43,7 +79,7 @@ export async function measureAppStatePersistence(input: {
   }
 
   const startedAt = Date.now();
-  const serializedCharacters = JSON.stringify(input.nextState).length;
+  const serializedCharacters = getSerializedCharacters(input.nextState);
 
   try {
     await input.save();
@@ -51,6 +87,7 @@ export async function measureAppStatePersistence(input: {
       durationMs: Date.now() - startedAt,
       hasOutbox: input.hasOutbox,
       label: input.label,
+      operation: 'save',
       outcome: 'success',
       recordedAt: new Date().toISOString(),
       serializedCharacters,
@@ -60,6 +97,7 @@ export async function measureAppStatePersistence(input: {
       durationMs: Date.now() - startedAt,
       hasOutbox: input.hasOutbox,
       label: input.label,
+      operation: 'save',
       outcome: 'failure',
       recordedAt: new Date().toISOString(),
       serializedCharacters,
