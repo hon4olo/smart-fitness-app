@@ -86,6 +86,14 @@ Active Workout Session combines:
 
 Its active-draft hydration, storage, set editing, RPE tracking, exercise replacement, finish routing, discard behavior, timers, and modal interactions are unchanged. The migration modifies only React context subscriptions.
 
+### Slice 5 — active-session exercise picker
+
+The fifth bounded consumer is:
+
+- `src/features/workouts/screens/WorkoutExerciseLibraryScreen.tsx`.
+
+The picker uses `useWorkoutState` only for completed-session history that powers recent exercises. The exercise catalogue, search, filters, diagnostics, FlatList virtualization, selected-item state, active-draft update, and return navigation remain owned by their existing repositories and local state.
+
 Source guards prevent all migrated files from returning to `useAppContext`.
 
 ## Deferred consumers
@@ -98,7 +106,7 @@ Later Workout-only screens should migrate in small groups after their exact stat
 
 This boundary does not include:
 
-- list virtualization;
+- list virtualization changes;
 - selector rewrites;
 - persistence coalescing;
 - synchronization changes;
