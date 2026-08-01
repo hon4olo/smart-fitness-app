@@ -28,9 +28,12 @@ export type RegistrationProfileUpdate = {
   trainingExperience: ProfileTrainingExperience;
 };
 
-export type CoachProfileUpdate = {
+export type PersonalDetailsUpdate = {
   dateOfBirth: string;
   calculationSex: ProfileCalculationSex;
+};
+
+export type CoachProfileUpdate = PersonalDetailsUpdate & {
   height: string;
   activityLevel: ProfileActivityLevel;
   trainingExperience: ProfileTrainingExperience;
@@ -72,6 +75,19 @@ export function updateRegistrationProfileInState(
     profile: {
       ...currentState.profile,
       ...profile,
+    },
+  };
+}
+
+export function updatePersonalDetailsInState(
+  currentState: AppState,
+  details: PersonalDetailsUpdate,
+): AppState {
+  return {
+    ...currentState,
+    profile: {
+      ...currentState.profile,
+      ...details,
     },
   };
 }
