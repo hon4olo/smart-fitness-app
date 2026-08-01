@@ -8,12 +8,13 @@ Canonical execution plan for `hon4olo/smart-fitness-app`. Completed implementati
 
 Mobile:
 
-- current `main`: `a34c9f21c2577960dcbaed133c44d6873ab82963`;
+- current `main`: `86b0c1d871be40bdcdb0d0463d4c2a9e219a44fb`;
 - Expo SDK 56, React Native, Expo Router, TypeScript;
 - offline-first repository persistence;
 - ordered observable mutation queue;
 - revision-aware synchronization for supported domains;
-- focused action and infrastructure contexts now coexist with the compatibility `AppContext`;
+- stable `AppActions` and `AppInfrastructure` contexts coexist with the compatibility `AppContext`;
+- all previously identified full-state reconstruction paths are removed from production UI;
 - `react-native-svg` is installed;
 - blocking Mobile CI covers line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor.
 
@@ -36,8 +37,6 @@ Backend:
 
 Status: complete.
 
-Completed slices:
-
 1. PR #291 — active roadmap, root artifact cleanup, and `.gitignore` hardening; merge `5329e992374376c0b381e14d4c19b3ff103aae2b`.
 2. PR #292 — legacy route redirects and canonical Home navigation; merge `f5bd042282381f1e5cd36ad99a37ab6194051226`.
 3. PR #293 — shared empty-state consolidation; merge `b2f8133fa530a00211be7ad3dea8a571f600e2b6`.
@@ -49,69 +48,84 @@ Architecture notes:
 - `docs/architecture/cloud-module-inventory.md`;
 - `docs/architecture/placeholder-timestamp-inventory.md`.
 
-Phase 1 conclusions:
-
-- generated and local repository artifacts are removed and ignored;
-- old tab names remain only as compatibility redirects;
-- redundant empty-state wrappers are removed;
-- all production cloud modules are active and protected from accidental orphaning;
-- bundled timestamps have explicit semantics without serialized-data drift;
-- every slice passed blocking Mobile CI.
-
 # Phase 2 — state and persistence architecture
 
 Status: in progress.
 
-The application retains one orchestration, repository, queue, and synchronization boundary. Public React subscriptions are being narrowed incrementally instead of replacing the state architecture in one rewrite.
+The application retains one internal state object, repository, mutation queue, and synchronization boundary. Public React subscriptions are narrowed incrementally; persistence and sync ownership are not being rewritten.
 
-## Completed: initial public boundaries
+## Completed public-boundary work
 
-PR #296, merge `a34c9f21c2577960dcbaed133c44d6873ab82963`:
+### PR #296 — initial context boundaries
 
-- [x] inventory all 40 production `useAppContext` consumers with TypeScript AST;
-- [x] identify high-frequency fields and broad full-state reconstruction;
-- [x] define `AppActions` and `AppInfrastructure` types;
-- [x] add memoized `AppActionsContext` and `AppInfrastructureContext` providers;
-- [x] expose `useAppActions` and `useAppInfrastructure`;
+Merge: `a34c9f21c2577960dcbaed133c44d6873ab82963`.
+
+- [x] inventory all 40 production `useAppContext` consumers;
+- [x] define and provide stable `AppActions` and `AppInfrastructure` contexts;
 - [x] retain `useAppContext` as a compatibility layer;
-- [x] move registration and weight entry to the action context;
-- [x] move Data Recovery to the infrastructure context;
-- [x] add boundary regression coverage and architecture documentation;
-- [x] pass full Mobile CI.
+- [x] migrate registration, weight entry, and Data Recovery;
+- [x] add source regression coverage.
+
+### PR #298 — remaining focused consumers
+
+Merge: `68640d686df93fb2bc0be907be3fc56564a0de5c`.
+
+- [x] move Settings reset-onboarding to `useAppActions`;
+- [x] move restore-only Nutrition Coach screens to `useAppInfrastructure`;
+- [x] split Workout Session Finish between action and infrastructure hooks;
+- [x] guard migrated files from returning to the compatibility context.
+
+### PR #299 — Safety & Recovery updater actions
+
+Merge: `03b8b671e19d5128a5399766e9ec0790766b5a62`.
+
+- [x] add typed recovery check-in and user-limitation updater actions;
+- [x] remove full `AppState` reconstruction from both Safety & Recovery forms;
+- [x] preserve validation, ordered persistence, and subsequent synchronization;
+- [x] use functional state updates to avoid stale-snapshot replacement.
+
+### PR #300 — Profile updater actions
+
+Merge: `86b0c1d871be40bdcdb0d0463d4c2a9e219a44fb`.
+
+- [x] add typed Coach-profile and personal-details updater actions;
+- [x] remove the final two full-state reconstruction paths;
+- [x] preserve alerts, unit conversion, validation, and ordered persistence;
+- [x] prove unrelated state slices retain identity in behavior tests.
 
 Inventory: `docs/architecture/app-context-consumer-inventory.md`.
 
-## Next: remaining focused consumers
+## Current target — Workout domain state boundary
 
-- [ ] move `resetOnboarding` in Settings to `useAppActions`;
-- [ ] move restore-only Coach screens to `useAppInfrastructure`;
-- [ ] move Workout Session Finish to the action and infrastructure hooks;
-- [ ] add source guards so action-only and infrastructure-only consumers do not return to the compatibility context.
+Scope:
 
-## Typed state updater actions
-
-Four consumers currently read nearly every state slice only to create a new object for `replaceState`:
-
-- `RecoveryCheckInScreen`;
-- `UserLimitationScreen`;
-- `ProgressPlanningSections`;
-- `PersonalDetailsSettingsCard`.
+- workouts and templates;
+- completed workout sessions;
+- training programs;
+- exercise catalogue and custom exercises;
+- active restore status remains in `AppInfrastructure`;
+- mutation functions remain in `AppActions` until a measured need justifies domain-specific action contexts.
 
 Tasks:
 
-- [ ] replace full-state reconstruction with typed domain updater actions;
-- [ ] preserve the same ordered persistence path and synchronization semantics;
-- [ ] remove broad state reads once each bounded updater is available;
-- [ ] test each update against legacy persisted data.
+- [ ] inventory exact Workout state consumers after PR #300;
+- [ ] define a memoized `WorkoutState` value containing only Workout-domain arrays;
+- [ ] expose `useWorkoutState` without changing the internal `AppState` object;
+- [ ] migrate Workout screens and pure Workout-dependent cards incrementally;
+- [ ] keep mixed Home, Coach, and Progress consumers on compatibility state until their required slices are explicitly separated;
+- [ ] add source guards preventing migrated Workout consumers from returning to `useAppContext`;
+- [ ] add render-focused tests where practical;
+- [ ] pass full Mobile CI on each bounded migration slice.
 
-## Domain state boundaries
+Do not combine this with list virtualization, persistence coalescing, or a state-library migration.
 
-Recommended order:
+## Later domain state boundaries
 
-1. Workouts, sessions, programs, templates, and exercises.
-2. Nutrition entries, targets, meal templates, and library data.
-3. Weight history, measurements, and progress analytics.
-4. Profile, onboarding, goals, and preferences.
+Recommended order after Workout:
+
+1. Nutrition entries, targets, meal templates, and library data.
+2. Weight history, measurements, and progress analytics.
+3. Profile, onboarding, goals, and preferences.
 
 Tasks:
 
@@ -171,8 +185,8 @@ Tasks:
 ### Phase 2 exit criteria
 
 - action-only and infrastructure-only consumers do not subscribe to domain arrays;
+- full-state reconstruction is absent from bounded forms;
 - domain mutations do not broadly invalidate unrelated screens;
-- full-state reconstruction is removed from bounded forms;
 - repeated local form edits do not persist a full snapshot per keystroke;
 - critical and outbox-bearing operations remain durable and ordered;
 - persisted and synchronization contracts remain compatible.
@@ -210,13 +224,6 @@ Measure render commits, first render, tab switching, long-list scrolling, restor
 - [ ] use `getItemLayout` only for truly fixed dimensions;
 - [ ] pass minimal props;
 - [ ] prevent nested-list and scroll-restoration regressions.
-
-### Phase 3 exit criteria
-
-- unbounded collections have one coherent virtualized scroll owner;
-- no nested vertical virtualized-list warnings remain;
-- large fixtures stay responsive;
-- measured renders improve without visual or interaction regressions.
 
 # Phase 4 — progress charts
 
@@ -263,16 +270,17 @@ Not part of autonomous refactor execution:
 4. [x] Cloud inventory and reachability guard — PR #294.
 5. [x] Bundled timestamp semantics — PR #295.
 6. [x] Initial AppActions and AppInfrastructure boundaries — PR #296.
-7. [ ] Remaining action and infrastructure consumers.
-8. [ ] Typed domain updater actions.
-9. [ ] Workout domain state boundary.
-10. [ ] Nutrition, Progress, and Profile state boundaries.
-11. [ ] Pure selectors and consumer migration.
-12. [ ] Coalesced persistence and lifecycle flush.
-13. [ ] Nutrition `SectionList` migration.
-14. [ ] Proven unbounded-list virtualization.
-15. [ ] SVG weight trend.
-16. [ ] Weekly workout-volume selector and SVG chart.
+7. [x] Focused action/infrastructure consumer migration — PR #298.
+8. [x] Safety & Recovery typed updater actions — PR #299.
+9. [x] Profile typed updater actions — PR #300.
+10. [ ] Workout domain state boundary.
+11. [ ] Nutrition, Progress, and Profile state boundaries.
+12. [ ] Pure selectors and consumer migration.
+13. [ ] Coalesced persistence and lifecycle flush.
+14. [ ] Nutrition `SectionList` migration.
+15. [ ] Proven unbounded-list virtualization.
+16. [ ] SVG weight trend.
+17. [ ] Weekly workout-volume selector and SVG chart.
 
 # Validation policy
 
@@ -280,4 +288,4 @@ Every code-bearing mobile slice requires focused tests, `npx tsc --noEmit`, `npm
 
 # Immediate next action
 
-Migrate the remaining action-only and infrastructure-only consumers in a separate bounded PR, then introduce typed state updater actions for the four broad snapshot consumers.
+Inventory exact Workout state consumers on current `main`, then introduce the smallest useful `WorkoutState` context and migrate a bounded first group without changing persistence or synchronization behavior.
