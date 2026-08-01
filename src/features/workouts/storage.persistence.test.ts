@@ -133,6 +133,7 @@ describe('active workout draft persistence measurements', () => {
 
     expect(getActiveWorkoutSessionDraft()?.sets[0].reps).toBe(10);
     const [, serializedDraft] = vi.mocked(AsyncStorage.setItem).mock.calls.at(-1) ?? [];
-    expect(JSON.parse(serializedDraft).sets[0].reps).toBe(10);
+    expect(serializedDraft).toBeDefined();
+    expect(JSON.parse(serializedDraft as string).sets[0].reps).toBe(10);
   });
 });
