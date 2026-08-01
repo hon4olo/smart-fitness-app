@@ -2,7 +2,7 @@
 
 Updated: 2026-08-01
 
-Status: provider foundation introduced; consumer migration pending.
+Status: provider foundation and first consumer migration complete.
 
 ## Purpose
 
@@ -19,26 +19,30 @@ Profile and onboarding mutations remain in stable `AppActions`. Operational rest
 
 The focused type is named `ProfileDataState` so it does not collide with the existing domain model named `ProfileState`.
 
-## First slice
+## Completed slice 1 — provider foundation
 
-This slice:
+PR #319:
 
-- adds `ProfileStateProvider` and `useProfileState`;
-- memoizes the value from only `profile` and `onboardingCompleted`;
-- mounts the provider inside the existing `AppProvider` boundary;
-- adds permanent contract tests.
+- added `ProfileStateProvider` and `useProfileState`;
+- memoized the value from only `profile` and `onboardingCompleted`;
+- mounted the provider inside the existing `AppProvider` boundary;
+- added permanent contract tests.
 
-No production consumer migrates in this foundation slice.
+## Completed slice 2 — Profile tab
+
+`src/app/(tabs)/profile.tsx` now reads `profile` through `useProfileState` and no longer subscribes to compatibility `AppContext`.
+
+Profile summary calculations, routes, Social Profile entry, Profile Goals composition, layout, styling, and UI behavior remain unchanged.
 
 ## Next slices
 
-Migrate pure Profile readers first:
+Migrate remaining Profile readers:
 
-- Profile tab;
 - Progress planning sections;
-- personal-details settings.
+- personal-details settings;
+- Profile Goals by composing `useProfileState`, `useProgressState`, and stable actions.
 
-Then migrate onboarding and mixed Profile/Progress screens by composing focused hooks with stable actions and infrastructure.
+Then migrate onboarding and Home only after all required domain hooks are available.
 
 ## Explicit exclusions
 
