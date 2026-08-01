@@ -11,7 +11,8 @@ import {
 import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppInfrastructure } from '@/context/AppContext';
+import { useSafetyRecoveryState } from '@/context/SafetyRecoveryStateContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { getSafetyRecoveryReviewCopy } from '@/localization/safetyRecoveryReviewCopy';
@@ -45,8 +46,8 @@ export default function SafetyRecoveryCoachScreen() {
   const limitationCopy = getUserLimitationsCopy(locale);
   const styles = useMemo(() => createSafetyRecoveryCoachStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const app = useAppContext();
-  const { isRestoringState } = app;
+  const { isRestoringState } = useAppInfrastructure();
+  const { recoveryCheckIns, userLimitations } = useSafetyRecoveryState();
   const { ready, refresh, session } = useAuthSession();
   const storage = useMemo(() => createAsyncStorageAdapter(), []);
   const reviewStore = useMemo(() => createSafetyRecoveryReviewStore(storage), [storage]);
@@ -139,8 +140,8 @@ export default function SafetyRecoveryCoachScreen() {
       const snapshot = buildSafetyRecoveryReviewSnapshot({
         run: terminal,
         viewModel: terminalViewModel,
-        recoveryCheckIns: app.recoveryCheckIns,
-        userLimitations: app.userLimitations,
+        recoveryCheckIns,
+        userLimitations,
       });
       if (snapshot && session?.user.id === snapshot.userId) {
         try {

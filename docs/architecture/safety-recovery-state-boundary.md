@@ -2,74 +2,36 @@
 
 Updated: 2026-08-01
 
-Status: provider foundation, pure editors, preflight, and workout safety gate migrations complete.
-
-## Purpose
-
-`SafetyRecoveryStateProvider` publishes only Safety and Recovery state while retaining the existing internal `AppState`, repository, mutation queue, outbox, and synchronization ownership.
+Status: complete.
 
 ## Contract
 
-The focused value contains only:
+`SafetyRecoveryStateProvider` publishes only:
 
 - `recoveryCheckIns`;
 - `userLimitations`.
 
-Mutations remain in stable `AppActions`. Restore and mutation status remain in `AppInfrastructure`. Sync state remains in `SyncContext`.
+Mutations remain in `AppActions`, operational state remains in `AppInfrastructure`, synchronization remains in `SyncContext`, and the internal `AppState` remains authoritative.
 
-## Completed slice 1 — provider foundation
+## Completed migrations
 
-PR #323:
+- PR #323 — provider foundation and contract tests.
+- PR #324 — Recovery Check-In and User Limitation editors.
+- PR #325 — Safety Recovery Preflight.
+- PR #326 — Workout Safety Gate.
+- Final slice — Safety Recovery Coach and Combined Coach.
 
-- added `SafetyRecoveryStateProvider` and `useSafetyRecoveryState`;
-- memoized the value from only the two Safety/Recovery arrays;
-- mounted the provider inside the existing `AppProvider` boundary;
-- added permanent contract tests.
+`SafetyRecoveryCoachScreen` composes focused Safety/Recovery state with restore status from `AppInfrastructure`.
 
-## Completed slice 2 — pure editors
+`CombinedCoachScreen` composes the existing Workout, Nutrition, and Safety/Recovery state boundaries. It does not receive a new combined state context.
 
-PR #324 migrated:
+## Preserved behavior
 
-- Recovery Check-In;
-- User Limitation.
+The boundary migration does not change:
 
-These screens now read Safety/Recovery arrays through `useSafetyRecoveryState`. Their mutations remain in `useAppActions`, restore status remains in `useAppInfrastructure`, and sync state remains in `SyncContext`.
+- readiness, restriction, scoring, or acknowledgement rules;
+- Coach capability checks, polling, idempotency, or review snapshots;
+- persisted schemas, repository ownership, mutation ordering, outbox, or sync;
+- routes, UI, local form state, native configuration, backend, OTA, or deployment.
 
-## Completed slice 3 — preflight composition
-
-PR #325 migrated Safety Recovery Preflight. It now composes:
-
-- `useSafetyRecoveryState` for recovery check-ins and limitations;
-- `useAppInfrastructure` for restore status;
-- `SyncContext` for pending operations, conflicts, status, and synchronization;
-- the existing auth session hook for account readiness.
-
-Local summary calculation, review gating, synchronization controls, routes, and UI behavior remain unchanged.
-
-## Completed slice 4 — workout safety gate
-
-Workout Safety Gate now reads recovery check-ins and limitations directly from `useSafetyRecoveryState`.
-
-The workout draft remains an explicit component prop, the persisted review snapshot remains owned by its existing store, and authentication remains owned by the auth session hook. No Workout or infrastructure state was added because the screen does not read those domains.
-
-Decision calculation, acknowledgement handling, review snapshot loading, routes, and UI behavior remain unchanged.
-
-## Next slices
-
-Migrate the remaining mixed readers:
-
-- Safety Recovery Coach;
-- Combined Coach.
-
-Compose only the focused boundaries each screen actually reads. Do not add Workout, Profile, Progress, Nutrition, action, infrastructure, or sync dependencies unless the source requires them.
-
-## Explicit exclusions
-
-This boundary does not change:
-
-- persisted schemas or serialized values;
-- repositories, mutation ordering, outbox, or synchronization;
-- validation, scoring, readiness, or safety rules;
-- routes, UI, or local form state;
-- persistence coalescing or external state libraries;
-- OTA, native builds, backend deployment, or environment activation.
+Permanent source guards prevent migrated consumers from returning to `useAppContext`.

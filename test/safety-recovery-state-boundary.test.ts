@@ -44,38 +44,44 @@ describe('Safety Recovery state boundary', () => {
     expect(safetyProviderIndex).toBeGreaterThan(appProviderIndex);
   });
 
-  test('pure Safety Recovery editors use focused state', () => {
+  test('all Safety Recovery consumers use focused state', () => {
     for (const relativePath of [
       'src/features/coach/screens/RecoveryCheckInScreen.tsx',
       'src/features/coach/screens/UserLimitationScreen.tsx',
+      'src/features/coach/screens/SafetyRecoveryPreflightScreen.tsx',
+      'src/features/coach/screens/SafetyRecoveryCoachScreen.tsx',
+      'src/features/workouts/screens/WorkoutSafetyGateScreen.tsx',
+      'src/features/coach/screens/CombinedCoachScreen.tsx',
     ]) {
       const source = readSource(relativePath);
 
       expect(source).toContain('useSafetyRecoveryState');
-      expect(source).toContain('useAppActions');
-      expect(source).toContain('useAppInfrastructure');
       expect(source).not.toContain('useAppContext');
     }
   });
 
-  test('Safety Recovery preflight composes focused state and infrastructure', () => {
+  test('Safety Recovery Coach composes focused state and infrastructure', () => {
     const source = readSource(
-      'src/features/coach/screens/SafetyRecoveryPreflightScreen.tsx',
+      'src/features/coach/screens/SafetyRecoveryCoachScreen.tsx',
     );
 
-    expect(source).toContain('useSafetyRecoveryState');
     expect(source).toContain('useAppInfrastructure');
-    expect(source).not.toContain('useAppContext');
   });
 
-  test('workout safety gate reads only focused Safety Recovery state', () => {
+  test('workout safety gate reads no unnecessary domain context', () => {
     const source = readSource(
       'src/features/workouts/screens/WorkoutSafetyGateScreen.tsx',
     );
 
-    expect(source).toContain('useSafetyRecoveryState');
-    expect(source).not.toContain('useAppContext');
     expect(source).not.toContain('useWorkoutState');
     expect(source).not.toContain('useAppInfrastructure');
+  });
+
+  test('Combined Coach composes existing focused domains', () => {
+    const source = readSource('src/features/coach/screens/CombinedCoachScreen.tsx');
+
+    expect(source).toContain('useWorkoutState');
+    expect(source).toContain('useNutritionState');
+    expect(source).toContain('useSafetyRecoveryState');
   });
 });
