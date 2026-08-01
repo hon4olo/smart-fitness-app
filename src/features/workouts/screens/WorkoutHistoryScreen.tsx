@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/ui/AppCard';
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useWorkoutState } from '@/context/AppContext';
 import { useLocalization } from '@/localization';
 import { getWorkoutHistoryCopy } from '@/localization/workoutHistoryCopy';
 import { useAppTheme } from '@/theme/AppThemeProvider';
@@ -94,7 +94,7 @@ export default function WorkoutHistoryScreen() {
     () => parseWorkoutHistoryRouteFilters(params),
     [params.from, params.safety, params.to],
   );
-  const { trainingPrograms, workoutSessions } = useAppContext();
+  const { trainingPrograms, workoutSessions } = useWorkoutState();
   const { formatDate, formatNumber, locale } = useLocalization();
   const copy = getWorkoutHistoryCopy(locale);
   const { weight: weightUnit } = useUnitPreferences();

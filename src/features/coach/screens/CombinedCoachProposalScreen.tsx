@@ -12,7 +12,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useWorkoutState } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
@@ -41,7 +41,7 @@ export default function CombinedCoachProposalScreen() {
   const { colors } = useAppTheme();
   const themed = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const app = useAppContext();
+  const { workoutSessions } = useWorkoutState();
   const { syncNow, status: syncStatus } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
   const { locale } = useLocalization();
@@ -78,8 +78,8 @@ export default function CombinedCoachProposalScreen() {
         ? 'available'
         : 'unavailable';
   const primarySession = useMemo(
-    () => latestSession(app.workoutSessions),
-    [app.workoutSessions],
+    () => latestSession(workoutSessions),
+    [workoutSessions],
   );
   const viewModel = useMemo(
     () => (run ? buildCombinedCoachProposalViewModel(run) : null),

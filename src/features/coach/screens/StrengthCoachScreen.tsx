@@ -13,7 +13,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppInfrastructure, useWorkoutState } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
@@ -53,7 +53,8 @@ export default function StrengthCoachScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStrengthCoachScreenStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { isRestoringState, workoutSessions } = useAppContext();
+  const { isRestoringState } = useAppInfrastructure();
+  const { workoutSessions } = useWorkoutState();
   const { syncNow } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
   const { formatDate, formatNumber, locale } = useLocalization();

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/ui/AppCard';
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useWorkoutState } from '@/context/AppContext';
 import { useLocalization } from '@/localization';
 import { getUserLimitationsCopy } from '@/localization/userLimitationsCopy';
 import { getWorkoutHistoryCopy } from '@/localization/workoutHistoryCopy';
@@ -34,7 +34,7 @@ const safetyColor = (
 export default function WorkoutHistoryDetailScreen() {
   const params = useLocalSearchParams<{ sessionId?: string | string[] }>();
   const sessionId = Array.isArray(params.sessionId) ? params.sessionId[0] : params.sessionId;
-  const { workoutSessions } = useAppContext();
+  const { workoutSessions } = useWorkoutState();
   const { formatDate, formatNumber, locale } = useLocalization();
   const copy = getWorkoutHistoryCopy(locale);
   const limitationCopy = getUserLimitationsCopy(locale);
