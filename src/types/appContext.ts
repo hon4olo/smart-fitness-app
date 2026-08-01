@@ -49,6 +49,11 @@ export type WorkoutState = Pick<
   'workouts' | 'trainingPrograms' | 'exercises' | 'workoutSessions'
 >;
 
+export type NutritionDataState = Pick<
+  AppState,
+  'foodEntries' | 'mealTemplates' | 'nutritionTargets'
+>;
+
 export type AppActions = {
   addWeightEntry: (entry: WeightEntry) => void;
   updateWeightEntry: (entryId: string, entry: WeightEntry) => void;
