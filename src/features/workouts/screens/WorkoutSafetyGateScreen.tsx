@@ -7,7 +7,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useSafetyRecoveryState } from '@/context/SafetyRecoveryStateContext';
 import type { WorkoutSessionDraft } from '@/features/workouts/types';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
@@ -49,7 +49,7 @@ export default function WorkoutSafetyGateScreen({
   const limitationCopy = useMemo(() => getUserLimitationsCopy(locale), [locale]);
   const styles = useMemo(() => createWorkoutSafetyGateStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const app = useAppContext();
+  const { recoveryCheckIns, userLimitations } = useSafetyRecoveryState();
   const { session } = useAuthSession();
   const storage = useMemo(() => createAsyncStorageAdapter(), []);
   const reviewStore = useMemo(() => createSafetyRecoveryReviewStore(storage), [storage]);
@@ -84,10 +84,10 @@ export default function WorkoutSafetyGateScreen({
       buildWorkoutSafetyGateDecision({
         snapshot,
         currentUserId: userId,
-        recoveryCheckIns: app.recoveryCheckIns,
-        userLimitations: app.userLimitations,
+        recoveryCheckIns,
+        userLimitations,
       }),
-    [app.recoveryCheckIns, app.userLimitations, snapshot, userId],
+    [recoveryCheckIns, snapshot, userId, userLimitations],
   );
 
   useEffect(() => {
