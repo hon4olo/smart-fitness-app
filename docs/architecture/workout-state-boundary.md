@@ -73,6 +73,19 @@ New Routine combines:
 
 Its local draft, exercise picker, validation, unit display, generated IDs, program attachment, and navigation behavior are unchanged.
 
+### Slice 4 — active Workout Session
+
+The fourth bounded consumer is:
+
+- `src/features/workouts/screens/WorkoutSessionScreen.tsx`.
+
+Active Workout Session combines:
+
+- `useWorkoutState` for templates, exercises, and completed-session history;
+- `useAppInfrastructure` for restore status.
+
+Its active-draft hydration, storage, set editing, RPE tracking, exercise replacement, finish routing, discard behavior, timers, and modal interactions are unchanged. The migration modifies only React context subscriptions.
+
 Source guards prevent all migrated files from returning to `useAppContext`.
 
 ## Deferred consumers
