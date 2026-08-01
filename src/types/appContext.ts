@@ -44,6 +44,11 @@ export type AppState = {
   onboardingCompleted: boolean;
 };
 
+export type WorkoutState = Pick<
+  AppState,
+  'workouts' | 'trainingPrograms' | 'exercises' | 'workoutSessions'
+>;
+
 export type AppActions = {
   addWeightEntry: (entry: WeightEntry) => void;
   updateWeightEntry: (entryId: string, entry: WeightEntry) => void;
