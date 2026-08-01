@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppContext } from '@/context/AppContext';
+import { useAppInfrastructure, useWorkoutState } from '@/context/AppContext';
 import { WorkoutSessionBody } from '@/features/workouts/components/session/WorkoutSessionBody';
 import { WorkoutSessionLoadingState } from '@/features/workouts/components/session/WorkoutSessionLoadingState';
 import { WorkoutSessionMissingState } from '@/features/workouts/components/session/WorkoutSessionMissingState';
@@ -55,7 +55,8 @@ type ReplacementExercise = {
 export default function WorkoutSessionScreen() {
   const params = useLocalSearchParams<{ workoutId?: string }>();
   const workoutId = Array.isArray(params.workoutId) ? params.workoutId[0] : params.workoutId;
-  const { workouts, exercises, isRestoringState, workoutSessions } = useAppContext();
+  const { exercises, workoutSessions, workouts } = useWorkoutState();
+  const { isRestoringState } = useAppInfrastructure();
   const { colors } = useAppTheme();
   const { t } = useLocalization();
   const insets = useSafeAreaInsets();
