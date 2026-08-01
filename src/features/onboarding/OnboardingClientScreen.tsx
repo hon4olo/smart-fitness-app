@@ -16,7 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions, useAppInfrastructure } from '@/context/AppContext';
+import { useProfileState } from '@/context/ProfileStateContext';
 import type { ProfileActivityLevel } from '@/features/profile/profilePlan';
 import { useLocalization } from '@/localization';
 import type { ProfileGoalType } from '@/types';
@@ -35,14 +36,13 @@ const ACTIVITY_LEVELS: ProfileActivityLevel[] = [
 ];
 
 export default function OnboardingClientScreen() {
+  const { completeOnboarding } = useAppActions();
   const {
-    completeOnboarding,
     isRestoringState,
     mutationFailure,
-    onboardingCompleted,
     pendingMutationCount,
-    profile,
-  } = useAppContext();
+  } = useAppInfrastructure();
+  const { onboardingCompleted, profile } = useProfileState();
   const { t } = useLocalization();
   const { weight: weightUnit } = useUnitPreferences();
   const insets = useSafeAreaInsets();
