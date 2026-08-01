@@ -34,7 +34,7 @@ const createDraft = (reps: number): WorkoutSessionDraft => ({
 });
 
 const flushQueuedWrites = async () => {
-  for (let index = 0; index < 8; index += 1) {
+  for (let index = 0; index < 32; index += 1) {
     await Promise.resolve();
   }
 };
