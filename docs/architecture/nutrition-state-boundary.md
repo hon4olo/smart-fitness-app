@@ -2,7 +2,7 @@
 
 Updated: 2026-08-01
 
-Status: in progress; first migration slice complete on code baseline `099994f34a322aa4e2bed8c7933c8a25b55cfc65`.
+Status: pure Nutrition consumer migration complete.
 
 ## Purpose
 
@@ -33,15 +33,21 @@ The slice also updated source-regression tests so adjacent focused state types a
 
 Merge: `099994f34a322aa4e2bed8c7933c8a25b55cfc65`.
 
-## Remaining pure consumer
+## Completed slice 2 — Add Food
 
-`src/app/nutrition/add-food.tsx` remains the only pure Nutrition compatibility consumer. It combines:
+`src/app/nutrition/add-food.tsx` now:
 
-- `foodEntries` and `mealTemplates` from Nutrition state;
-- seven existing mutation functions from stable `AppActions`;
-- substantial local editor, search, favorites, scanner, and library state.
+- reads `foodEntries` and `mealTemplates` through `useNutritionState`;
+- receives `addFoodEntries`, `addFoodEntry`, `addMealTemplate`, `deleteFoodEntry`, `deleteMealTemplate`, and `updateFoodEntry` through stable `useAppActions`;
+- no longer subscribes to compatibility `AppContext`.
 
-Its migration must be a separate mechanical slice using `useNutritionState` plus `useAppActions`.
+Local editor state, food search, favorites, scanner, food library integration, routes, calculations, and UI behavior remain unchanged.
+
+All three pure Nutrition consumers are protected by permanent source guards.
+
+## Mixed consumers
+
+Home and Combined Coach continue to read Nutrition data through compatibility state because they also require other domains. They should migrate only after all of their remaining domain boundaries exist.
 
 ## Explicit exclusions
 
