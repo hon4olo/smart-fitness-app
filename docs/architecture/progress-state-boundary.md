@@ -2,7 +2,7 @@
 
 Updated: 2026-08-01
 
-Status: provider foundation and first consumer migration complete.
+Status: primary Progress consumers migrated.
 
 ## Purpose
 
@@ -30,21 +30,26 @@ PR #316:
 
 ## Completed slice 2 — Weight Details
 
-`src/app/weight-details.tsx` now:
+PR #317 migrated `src/app/weight-details.tsx`:
 
 - reads `weightHistory` and `bodyMeasurements` through `useProgressState`;
 - reads `workoutSessions` and `exercises` through `useWorkoutState`;
 - no longer subscribes to compatibility `AppContext`.
 
-Analytics, chart data, units, routes, UI, and local screen behavior remain unchanged.
+## Completed slice 3 — Progress tab
 
-## Next slice
+`src/app/(tabs)/progress.tsx` now:
 
-Migrate `src/app/(tabs)/progress.tsx` to compose:
+- reads `weightHistory` and `bodyMeasurements` through `useProgressState`;
+- reads `workoutSessions` and `exercises` through `useWorkoutState`;
+- receives `addBodyMeasurement` through stable `useAppActions`;
+- no longer subscribes to compatibility `AppContext`.
 
-- `useProgressState` for Progress arrays;
-- `useWorkoutState` for Workout arrays;
-- `useAppActions` for `addBodyMeasurement`.
+Analytics, chart data, body-measurement form behavior, Safety/Recovery cards, units, routes, UI, persistence, and synchronization remain unchanged.
+
+## Remaining mixed readers
+
+Home and Profile Goals still combine Progress data with domains that do not yet all have focused state boundaries. They should migrate only when their remaining Profile/onboarding dependencies are available through focused hooks.
 
 ## Explicit exclusions
 
