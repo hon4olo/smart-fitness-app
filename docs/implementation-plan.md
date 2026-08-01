@@ -58,7 +58,7 @@ The internal compatibility primitive remains provider-internal. Removing it is n
 
 # Phase 3 — persistence measurement and coalescing decision
 
-Status: active.
+Status: active; final decision gate.
 
 ## Completed foundation
 
@@ -66,44 +66,45 @@ Status: active.
 - It records only mutation label, duration, serialized character count, success/failure, and outbox presence.
 - It stores no payload, is bounded in memory, and is disabled in production builds.
 - The source-level operation matrix is recorded in `docs/architecture/persistence-operation-matrix.md`.
+- Deterministic results are recorded in `docs/architecture/persistence-measurement-results.md`.
 
-Verified classification:
+Verified results:
 
-- active workout set editing uses a dedicated revision-aware AsyncStorage draft queue, not `repository.saveState()`;
-- nutrition explicit actions use ordered AppState snapshot persistence and planner-based synchronization;
-- weight create/update/delete operations are eager recoverable-outbox operations;
-- profile explicit-save flows use AppState snapshot persistence and planner/materialization sync paths;
-- onboarding completion is a critical AppState transition with an eager initial-weight outbox;
+- rapid active-workout revisions issued before the queue commits collapse to one latest-snapshot AsyncStorage write;
+- active-draft edits separated by a completed write each persist once;
+- active workout set editing does not use `repository.saveState()`;
+- nutrition and profile operations persist once at explicit action/submit boundaries;
+- weight create/update/delete and onboarding completion remain recoverable-outbox operations;
+- local persistence remains ordered before outbox execution;
+- failure and retry semantics remain preserved;
+- no measured representative flow demonstrates materially redundant committed writes;
 - no current evidence justifies a generic debounce around `AppMutationQueue`.
 
 ## Immediate next action
 
-Add deterministic measurement scenarios for:
+Close the lifecycle-sensitive decision gate for active workout drafts:
 
-1. rapid active-workout set edits, recording draft requests versus committed AsyncStorage writes;
-2. nutrition add/update/delete, recording AppState save count and serialized size per explicit action;
-3. weight create/update/delete, proving AppState-save-before-outbox ordering and one durable outbox identity per action;
-4. profile explicit-save flows, recording AppState save count per submit;
-5. persistence failure/retry behavior on the measured boundary.
-
-Then record whether committed writes are materially redundant.
+1. verify behavior when a new revision is queued while an earlier AsyncStorage write is already in progress;
+2. verify clear/discard supersedes pending draft writes;
+3. verify hydration ordering does not restore stale state over an in-memory edit;
+4. decide whether the current revision-aware queue is sufficient without AppState coalescing;
+5. record the final no-coalescing or narrowly-scoped implementation decision.
 
 ## Decision gate
 
-Do not implement coalescing until measurements establish a concrete redundant-write problem.
+Do not implement coalescing unless the remaining lifecycle scenarios expose a concrete durability or redundant-write problem.
 
-If measurements do not show material redundant committed writes:
+If they remain green:
 
+- retain the bounded development-only instrumentation for diagnostics;
 - document the no-coalescing decision;
-- remove or retain development-only instrumentation based on ongoing diagnostic value;
 - close Phase 3.
 
-If implementation becomes justified, required properties are:
+Any justified implementation must preserve:
 
 - immediate in-memory updates;
-- latest-state coalescing around 300–500 ms only for eligible snapshot-only writes;
 - immediate flush for critical operations and lifecycle transitions;
-- preserved mutation order, retry, recovery, observability, and outbox identity;
+- mutation order, retry, recovery, observability, and outbox identity;
 - no generic debounce around the mutation queue.
 
 # Phase 4 — UI virtualization and render performance
