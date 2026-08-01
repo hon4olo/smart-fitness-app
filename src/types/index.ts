@@ -5,6 +5,7 @@ export type {
   AppMutationFailure,
   AppMutationStage,
   AppState,
+  NutritionDataState,
   WorkoutState,
 } from './appContext';
 export type {
@@ -58,10 +59,9 @@ export type {
   WorkoutSet,
 } from './workouts';
 export type {
+  ProgramDay,
+  ProgramGoal,
+  ProgramMetadata,
+  ProgramWeekday,
   TrainingProgram,
-  TrainingProgramDay,
-  TrainingProgramDifficulty,
-  TrainingProgramProgression,
-  TrainingProgramProgressionStrategy,
-  WeekdayKey,
 } from './programs';
