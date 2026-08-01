@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabInset } from '@/constants/theme';
@@ -55,7 +55,6 @@ export default function WorkoutsScreen() {
         setDraftReady(true);
       }
     });
-
     return () => {
       cancelled = true;
     };
@@ -64,14 +63,12 @@ export default function WorkoutsScreen() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-
       void hydrateActiveWorkoutSessionDraft().then(() => {
         if (!cancelled) {
           setActiveDraft(getActiveWorkoutSessionDraft());
           setDraftReady(true);
         }
       });
-
       return () => {
         cancelled = true;
       };
@@ -100,15 +97,11 @@ export default function WorkoutsScreen() {
     setActiveDraft(draft);
     router.push({ pathname: '/workout-session', params: { workoutId: draft.workoutId } });
   };
-
   const resumeWorkout = () => {
-    if (!activeDraft) {
-      return;
+    if (activeDraft) {
+      router.push({ pathname: '/workout-session', params: { workoutId: activeDraft.workoutId } });
     }
-
-    router.push({ pathname: '/workout-session', params: { workoutId: activeDraft.workoutId } });
   };
-
   const createProgram = (name: string) => {
     const draft = createBlankProgramDraft();
     const program: TrainingProgram = {
@@ -118,11 +111,24 @@ export default function WorkoutsScreen() {
       updatedAt: new Date().toISOString(),
       isCustom: true,
     };
-
     saveTrainingProgram(program);
     setCreateProgramOpen(false);
     router.push({ pathname: '/workouts/program/[programId]', params: { programId: program.id } });
   };
+
+  const header = (
+    <View style={styles.header}>
+      <TopTabs activeTab={activeTab} onChange={setActiveTab} />
+      <Pressable
+        accessibilityHint={t('workouts.searchExercisesHint')}
+        accessibilityLabel={t('workouts.searchExercisesAccessibility')}
+        accessibilityRole="button"
+        onPress={() => router.push('/workouts/exercise-library')}
+        style={({ pressed }) => [styles.searchButton, pressed && styles.pressed]}>
+        <Text style={styles.searchLabel}>⌕</Text>
+      </Pressable>
+    </View>
+  );
 
   if (isRestoringState || !draftReady) {
     return (
@@ -134,28 +140,16 @@ export default function WorkoutsScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + BottomTabInset + 84 },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <TopTabs activeTab={activeTab} onChange={setActiveTab} />
-            <Pressable
-              accessibilityHint={t('workouts.searchExercisesHint')}
-              accessibilityLabel={t('workouts.searchExercisesAccessibility')}
-              accessibilityRole="button"
-              onPress={() => router.push('/workouts/exercise-library')}
-              style={({ pressed }) => [styles.searchButton, pressed && styles.pressed]}>
-              <Text style={styles.searchLabel}>⌕</Text>
-            </Pressable>
-          </View>
-
-          {activeTab === 'start-now' ? (
+      {activeTab === 'start-now' ? (
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom + BottomTabInset + 84 },
+          ]}
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.container}>
+            {header}
             <View style={styles.sectionStack}>
               {suggested.length > 0 ? (
                 <View style={styles.grid}>
@@ -178,43 +172,59 @@ export default function WorkoutsScreen() {
                 ))}
               </ScrollView>
             </View>
-          ) : (
-            <View style={styles.programList}>
-              <ProgramRow
-                icon="add"
-                title={t('workouts.addProgram')}
-                workoutCount={0}
-                onPress={() => setCreateProgramOpen(true)}
-              />
-              <ProgramRow
-                favoriteMode={favoritesOnly ? 'show-all' : 'show-favorites'}
-                icon="favorite"
-                title={favoritesOnly ? t('workouts.allPrograms') : t('workouts.favorites')}
-                workoutCount={favoritesOnly ? programSummaries.length : favoriteCount}
-                onPress={() => setFavoritesOnly((current) => !current)}
-              />
-              {favoritesOnly && visibleProgramSummaries.length === 0 ? (
-                <Text style={styles.emptyProgramText}>{t('workouts.noFavorites')}</Text>
-              ) : null}
-              {visibleProgramSummaries.map((summary) => (
+          </View>
+        </ScrollView>
+      ) : (
+        <FlatList
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom + BottomTabInset + 84 },
+          ]}
+          data={visibleProgramSummaries}
+          keyExtractor={(summary) => summary.program.id}
+          ListHeaderComponent={
+            <View style={styles.container}>
+              {header}
+              <View style={styles.programList}>
                 <ProgramRow
-                  key={summary.program.id}
-                  icon="program"
-                  summary={summary}
-                  title={summary.program.name}
-                  workoutCount={summary.workoutCount}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/workouts/program/[programId]',
-                      params: { programId: summary.program.id },
-                    })
-                  }
+                  icon="add"
+                  title={t('workouts.addProgram')}
+                  workoutCount={0}
+                  onPress={() => setCreateProgramOpen(true)}
                 />
-              ))}
+                <ProgramRow
+                  favoriteMode={favoritesOnly ? 'show-all' : 'show-favorites'}
+                  icon="favorite"
+                  title={favoritesOnly ? t('workouts.allPrograms') : t('workouts.favorites')}
+                  workoutCount={favoritesOnly ? programSummaries.length : favoriteCount}
+                  onPress={() => setFavoritesOnly((current) => !current)}
+                />
+                {favoritesOnly && visibleProgramSummaries.length === 0 ? (
+                  <Text style={styles.emptyProgramText}>{t('workouts.noFavorites')}</Text>
+                ) : null}
+              </View>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <View style={[styles.container, styles.programList]}>
+              <ProgramRow
+                icon="program"
+                summary={item}
+                title={item.program.name}
+                workoutCount={item.workoutCount}
+                onPress={() =>
+                  router.push({
+                    pathname: '/workouts/program/[programId]',
+                    params: { programId: item.program.id },
+                  })
+                }
+              />
             </View>
           )}
-        </View>
-      </ScrollView>
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <View pointerEvents="box-none" style={[styles.footer, { paddingBottom: insets.bottom + 2 }]}>
         <View style={styles.container}>
