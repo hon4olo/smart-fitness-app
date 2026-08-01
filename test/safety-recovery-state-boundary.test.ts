@@ -67,4 +67,15 @@ describe('Safety Recovery state boundary', () => {
     expect(source).toContain('useAppInfrastructure');
     expect(source).not.toContain('useAppContext');
   });
+
+  test('workout safety gate reads only focused Safety Recovery state', () => {
+    const source = readSource(
+      'src/features/workouts/screens/WorkoutSafetyGateScreen.tsx',
+    );
+
+    expect(source).toContain('useSafetyRecoveryState');
+    expect(source).not.toContain('useAppContext');
+    expect(source).not.toContain('useWorkoutState');
+    expect(source).not.toContain('useAppInfrastructure');
+  });
 });
