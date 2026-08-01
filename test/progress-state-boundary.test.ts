@@ -44,11 +44,21 @@ describe('Progress state boundary', () => {
     expect(progressProviderIndex).toBeGreaterThan(appProviderIndex);
   });
 
-  test('Weight Details composes focused Progress and Workout state', () => {
-    const source = readSource('src/app/weight-details.tsx');
+  test.each([
+    'src/app/(tabs)/progress.tsx',
+    'src/app/weight-details.tsx',
+  ])('%s composes focused Progress and Workout state', (path) => {
+    const source = readSource(path);
 
     expect(source).toContain('useProgressState');
     expect(source).toContain('useWorkoutState');
     expect(source).not.toContain('useAppContext');
+  });
+
+  test('Progress tab receives body-measurement mutation through stable actions', () => {
+    const source = readSource('src/app/(tabs)/progress.tsx');
+
+    expect(source).toContain('useAppActions');
+    expect(source).toContain('addBodyMeasurement');
   });
 });
