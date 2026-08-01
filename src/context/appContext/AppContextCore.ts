@@ -4,12 +4,14 @@ import type {
   AppActions,
   AppContextType,
   AppInfrastructure,
+  NutritionDataState,
   WorkoutState,
 } from '@/types';
 
 export const AppContext = createContext<AppContextType | null>(null);
 export const AppActionsContext = createContext<AppActions | null>(null);
 export const AppInfrastructureContext = createContext<AppInfrastructure | null>(null);
+export const NutritionDataStateContext = createContext<NutritionDataState | null>(null);
 export const WorkoutStateContext = createContext<WorkoutState | null>(null);
 
 const useRequiredContext = <Value>(
@@ -35,6 +37,10 @@ export function useAppActions() {
 
 export function useAppInfrastructure() {
   return useRequiredContext(AppInfrastructureContext, 'useAppInfrastructure');
+}
+
+export function useNutritionState() {
+  return useRequiredContext(NutritionDataStateContext, 'useNutritionState');
 }
 
 export function useWorkoutState() {
