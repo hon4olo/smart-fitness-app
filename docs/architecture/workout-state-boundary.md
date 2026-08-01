@@ -60,6 +60,19 @@ Workout Template Detail combines:
 - `useAppActions` for custom-template deletion;
 - `useAppInfrastructure` for restore status.
 
+### Slice 3 — New Routine
+
+The third bounded consumer is:
+
+- `src/features/workouts/screens/NewRoutineScreen.tsx`.
+
+New Routine combines:
+
+- `useWorkoutState` for workout templates, programs, and exercises;
+- `useAppActions` for template creation and program save.
+
+Its local draft, exercise picker, validation, unit display, generated IDs, program attachment, and navigation behavior are unchanged.
+
 Source guards prevent all migrated files from returning to `useAppContext`.
 
 ## Deferred consumers
