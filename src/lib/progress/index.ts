@@ -5,6 +5,7 @@ export * from './measurements';
 export * from './muscleAnalytics';
 export * from './personalRecords';
 export * from './weight';
+export * from './weightTrend';
 export * from './workoutVolume';
 
 import { getMeasurementInsights } from './measurements';
