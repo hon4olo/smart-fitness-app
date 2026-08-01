@@ -1,8 +1,8 @@
-# List Performance Baseline
+# List Performance Baseline and Decisions
 
 Updated: 2026-08-01
 
-This note starts Phase 4 with deterministic fixture sizes and source-level inventory. It does not claim physical-device frame timing or memory measurements.
+Phase 4 used deterministic source-level fixtures and list-boundary audits. It does not claim physical-device frame timing or memory profiling.
 
 ## Representative fixture sizes
 
@@ -12,57 +12,85 @@ This note starts Phase 4 with deterministic fixture sizes and source-level inven
 - 500 exercises
 - 365 weight entries
 
-The reusable test fixtures live in `src/testing/listPerformanceFixtures.ts`. They provide stable unique IDs, deterministic group keys, and deterministic sort values without modifying production data or runtime behavior.
+Reusable fixtures live in `src/testing/listPerformanceFixtures.ts`. They provide stable unique IDs and deterministic grouping and sorting inputs without modifying production data.
 
-## Nutrition diary
+## Implemented virtualized boundaries
 
-Current route: `src/app/(tabs)/nutrition.tsx`.
+### Nutrition Diary
 
-Current primitive: one vertical `ScrollView`.
+Route: `src/app/(tabs)/nutrition.tsx`.
 
-Verified rendering behavior:
+Decision and result:
 
-- all four meal groups are mapped inside the ScrollView;
-- each expanded meal maps every entry directly to a `FoodEntryRow`;
-- there is no `FlatList` or `SectionList` boundary on the diary screen;
-- food-entry keys use stable `entry.id` values;
-- date navigation, summary cards, meal expansion, keyboard behavior, accessibility labels, and routing share the same screen layout.
+- the previous `ScrollView` path could mount 500 `FoodEntryRow` components when all meal groups were expanded;
+- meal grouping was reduced to one deterministic pass;
+- the diary now uses one `SectionList`;
+- collapsed meal sections expose empty data;
+- expanded meal sections render through the virtualized row boundary;
+- food-entry keys remain stable `entry.id` values;
+- summary, date navigation, meal expansion, add/edit routes, keyboard behavior, accessibility, and fiber details remain intact.
 
-Deterministic 500-entry result:
+### Workout Programs
 
-| Expanded groups | Mounted food-entry rows |
-| --- | ---: |
-| None | 0 |
-| One evenly populated meal | 125 |
-| All four meals | 500 |
+Screen: `src/features/workouts/screens/WorkoutsScreen.tsx`.
 
-The meal summary path is now a pure single-pass grouping model instead of filtering the selected-date array once per meal type. Nutrition subtotals and stable meal ordering remain unchanged.
+Decision and result:
 
-Decision:
+- the Programs tab previously mapped every program inside a vertical `ScrollView`;
+- the representative fixture contains 100 programs;
+- the Programs tab now uses `FlatList`, keyed by `program.id`;
+- Start Now retains its bounded existing layout;
+- add-program, favorites filtering, navigation, footer CTA, and modal behavior remain intact.
 
-- there is a concrete row-materialization risk when a large day is expanded;
-- the selector/grouping path itself is bounded and deterministic after the single-pass extraction;
-- a `SectionList` implementation is now justified for the row-rendering boundary, but must preserve the existing summary header, meal expansion, keyboard behavior, accessibility, date navigation, and routes;
-- virtualization should be a separate bounded PR, not combined with other list surfaces.
+### Workout History
 
-## Remaining surfaces
+Screen: `src/features/workouts/screens/WorkoutHistoryScreen.tsx`.
 
-Inventory and measure before implementation:
+Decision and result:
 
-- Programs with 100 programs;
-- Workout history with 500 completed sessions;
-- Exercise Library with 500 exercises;
-- weight history with 365 entries;
-- food search, templates, and saved items where representative data can materialize many rows.
+- the previous history path mapped all filtered sessions inside a `ScrollView`;
+- the representative fixture contains 500 completed sessions;
+- history now uses `FlatList`, keyed by `session.id`;
+- route header, summary, filters, empty states, safety metadata, metrics, navigation, and accessibility remain intact.
 
-## Decision rules
+### Exercise Library
 
-A surface is eligible for implementation work only when source or deterministic measurements show at least one of:
+Route: `src/app/workouts/exercise-library.tsx`.
 
-- all dataset rows mount at once;
-- repeated sorting/grouping occurs on unrelated renders;
-- unstable keys or callbacks invalidate row memoization;
-- nested scrolling creates a measurable rendering or interaction problem;
-- representative fixtures expose a material selector or transformation cost.
+Browser boundary: `src/components/workouts/VirtualizedExerciseLibraryBrowser.tsx`.
 
-No persistence, synchronization, native configuration, or production dataset is changed by this baseline.
+Decision and result:
+
+- favorites, recent, and browse sections previously mapped rows inside one outer `ScrollView`;
+- the representative fixture contains 500 exercises;
+- the browser now uses one `SectionList`, keyed by stable exercise IDs;
+- repeated linear membership lookups were replaced with memoized maps and sets;
+- search, facets, favorites, recents, custom exercise creation, detail sheet, add/delete, and favorite persistence behavior remain intact.
+
+## Secondary-surface audit
+
+No additional virtualization was justified in the current source state:
+
+- local food search results are capped at 18 rows;
+- recent foods are capped at 20 unique rows;
+- Progress renders bounded analytics, chart points, and a three-item measurement preview rather than all 365 weight entries;
+- only one saved meal template can be expanded at a time;
+- food picker modes are bounded collections embedded in a keyboard-sensitive form flow.
+
+These surfaces require new representative measurements before future virtualization. A generic rewrite of all `ScrollView` usage is not justified.
+
+## Permanent guards
+
+`test/list-virtualization-guards.test.ts` prevents regressions in:
+
+- Nutrition Diary `SectionList` and stable food-entry keys;
+- Programs `FlatList` and stable program keys;
+- Workout History `FlatList` and stable session keys;
+- Exercise Library `SectionList` and stable exercise keys;
+- bounded food-search, recent-food, and Progress preview limits.
+
+## Final decision
+
+Phase 4 is complete at the source and deterministic-regression level.
+
+No persistence, synchronization, route, native configuration, backend, OTA, deployment, or production data behavior was changed. Physical-device frame timing, memory profiling, and interaction validation remain external release evidence rather than blockers for this refactor phase.
