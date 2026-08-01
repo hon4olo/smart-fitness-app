@@ -7,7 +7,13 @@ import { HomeSnapshotCard } from '@/components/home/HomeSnapshotCard';
 import { HomeSummaryCard } from '@/components/home/HomeSummaryCard';
 import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import {
+  useAppInfrastructure,
+  useNutritionState,
+  useWorkoutState,
+} from '@/context/AppContext';
+import { useProfileState } from '@/context/ProfileStateContext';
+import { useProgressState } from '@/context/ProgressStateContext';
 import {
   getHomeMotivationLabel,
   getHomeRecoveryStatusLabel,
@@ -41,18 +47,11 @@ import {
 } from '@/units';
 
 export default function HomeScreen() {
-  const {
-    bodyMeasurements,
-    exercises,
-    foodEntries,
-    isRestoringState,
-    nutritionTargets,
-    onboardingCompleted,
-    profile,
-    weightHistory,
-    workoutSessions,
-    workouts,
-  } = useAppContext();
+  const { bodyMeasurements, weightHistory } = useProgressState();
+  const { exercises, workoutSessions, workouts } = useWorkoutState();
+  const { foodEntries, nutritionTargets } = useNutritionState();
+  const { onboardingCompleted, profile } = useProfileState();
+  const { isRestoringState } = useAppInfrastructure();
   const { formatNumber, locale, t } = useLocalization();
   const { energy: energyUnit, weight: weightUnit } = useUnitPreferences();
   const safeAreaInsets = useSafeAreaInsets();
