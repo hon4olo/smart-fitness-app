@@ -2,13 +2,13 @@
 
 Updated: 2026-08-01
 
-Status: first migration slice.
+Status: in progress; first migration slice complete on code baseline `099994f34a322aa4e2bed8c7933c8a25b55cfc65`.
 
 ## Purpose
 
 `useNutritionState` narrows Nutrition-screen subscriptions without changing the internal `AppState`, persistence repository, mutation queue, outbox, or synchronization ownership.
 
-## Initial contract
+## Contract
 
 The focused value contains only:
 
@@ -20,20 +20,32 @@ The existing macro-summary model named `NutritionState` remains unchanged. The f
 
 Nutrition mutations remain in stable `AppActions`. Restore and mutation status remain in `AppInfrastructure`.
 
-## First migration slice
+## Completed slice 1 — Nutrition diary and date picker
 
-The first consumers are:
+PR #312 introduced the context and migrated:
 
 - `src/app/(tabs)/nutrition.tsx`;
 - `src/app/nutrition/date-picker.tsx`.
 
-The Nutrition tab reads entries and targets. The date picker reads entries only. Neither screen needs Workout, Progress, Profile, Safety, Recovery, onboarding, actions, or infrastructure state.
+The Nutrition tab reads entries and targets. The date picker reads entries only. Neither screen now subscribes to Workout, Progress, Profile, Safety, Recovery, onboarding, actions, or infrastructure state through compatibility `AppContext`.
 
-Add Food remains deferred to a separate slice because it combines entries, meal templates, multiple mutations, and substantial local editor state.
+The slice also updated source-regression tests so adjacent focused state types are inspected with exact boundaries.
+
+Merge: `099994f34a322aa4e2bed8c7933c8a25b55cfc65`.
+
+## Remaining pure consumer
+
+`src/app/nutrition/add-food.tsx` remains the only pure Nutrition compatibility consumer. It combines:
+
+- `foodEntries` and `mealTemplates` from Nutrition state;
+- seven existing mutation functions from stable `AppActions`;
+- substantial local editor, search, favorites, scanner, and library state.
+
+Its migration must be a separate mechanical slice using `useNutritionState` plus `useAppActions`.
 
 ## Explicit exclusions
 
-This slice does not change:
+The boundary does not change:
 
 - persisted schemas or serialized values;
 - Nutrition repositories or synchronization;
