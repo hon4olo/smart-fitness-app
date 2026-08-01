@@ -7,9 +7,12 @@ import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import {
+  useAppActions,
+  useAppContext,
+  useAppInfrastructure,
+} from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
-import { upsertRecoveryCheckInInState } from '@/context/appContext/safetyRecoveryActions';
 import { RecoveryScorePicker } from '@/features/coach/components/RecoveryScorePicker';
 import { createUuid } from '@/lib/ids';
 import { useLocalization } from '@/localization';
@@ -19,12 +22,7 @@ import {
 } from '@/localization/recoveryCheckInCopy';
 import { getBoundedSyncStatusLabel } from '@/localization/statusPresentation';
 import { useAppTheme } from '@/theme/AppThemeProvider';
-import type {
-  AppContextType,
-  AppState,
-  RecoveryScaleOneToFive,
-  RecoveryScaleZeroToFive,
-} from '@/types';
+import type { RecoveryScaleOneToFive, RecoveryScaleZeroToFive } from '@/types';
 
 import {
   buildRecoveryCheckIn,
@@ -35,23 +33,6 @@ import { createRecoveryCheckInScreenStyles } from './recoveryCheckInScreen.style
 
 const ONE_TO_FIVE: readonly RecoveryScaleOneToFive[] = [1, 2, 3, 4, 5];
 const ZERO_TO_FIVE: readonly RecoveryScaleZeroToFive[] = [0, 1, 2, 3, 4, 5];
-
-const toAppState = (app: AppContextType): AppState => ({
-  workouts: app.workouts,
-  trainingPrograms: app.trainingPrograms,
-  exercises: app.exercises,
-  workoutSessions: app.workoutSessions,
-  foodEntries: app.foodEntries,
-  mealTemplates: app.mealTemplates,
-  nutrition: app.nutrition,
-  nutritionTargets: app.nutritionTargets,
-  weightHistory: app.weightHistory,
-  bodyMeasurements: app.bodyMeasurements,
-  userLimitations: app.userLimitations,
-  recoveryCheckIns: app.recoveryCheckIns,
-  profile: app.profile,
-  onboardingCompleted: app.onboardingCompleted,
-});
 
 const scoreSummary = (draft: RecoveryCheckInDraft): number =>
   [
@@ -83,14 +64,16 @@ export default function RecoveryCheckInScreen() {
   const copy = getRecoveryCheckInCopy(locale);
   const themedStyles = useMemo(() => createRecoveryCheckInScreenStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const app = useAppContext();
+  const { recoveryCheckIns } = useAppContext();
+  const { upsertRecoveryCheckIn } = useAppActions();
+  const { isRestoringState } = useAppInfrastructure();
   const { error: syncError, pendingOperations, status: syncStatus, syncNow } = useWeightSync();
   const [draft, setDraft] = useState<RecoveryCheckInDraft>(emptyRecoveryCheckInDraft);
   const [pendingSyncId, setPendingSyncId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  const latestCheckIn = app.recoveryCheckIns[0] ?? null;
+  const latestCheckIn = recoveryCheckIns[0] ?? null;
   const selectedSignalCount = scoreSummary(draft);
   const formatTimestamp = (value: string) => {
     const parsed = new Date(value);
@@ -102,7 +85,7 @@ export default function RecoveryCheckInScreen() {
   useEffect(() => {
     if (
       !pendingSyncId ||
-      !app.recoveryCheckIns.some((checkIn) => checkIn.id === pendingSyncId)
+      !recoveryCheckIns.some((checkIn) => checkIn.id === pendingSyncId)
     ) {
       return;
     }
@@ -122,7 +105,7 @@ export default function RecoveryCheckInScreen() {
     return () => {
       cancelled = true;
     };
-  }, [app.recoveryCheckIns, copy.savedAndSynced, copy.savedLocallyRetry, pendingSyncId, syncNow]);
+  }, [copy.savedAndSynced, copy.savedLocallyRetry, pendingSyncId, recoveryCheckIns, syncNow]);
 
   const updateDraft = <Key extends keyof RecoveryCheckInDraft>(
     key: Key,
@@ -134,7 +117,7 @@ export default function RecoveryCheckInScreen() {
   };
 
   const saveCheckIn = () => {
-    if (app.isRestoringState || pendingSyncId) return;
+    if (isRestoringState || pendingSyncId) return;
     setFormError(null);
     setSaveMessage(null);
 
@@ -148,13 +131,11 @@ export default function RecoveryCheckInScreen() {
       return;
     }
 
-    const nextState = upsertRecoveryCheckInInState(toAppState(app), result.checkIn);
-    if (!nextState.recoveryCheckIns.some((checkIn) => checkIn.id === result.checkIn.id)) {
+    if (!upsertRecoveryCheckIn(result.checkIn)) {
       setFormError(copy.localValidationFailed);
       return;
     }
 
-    app.replaceState(nextState);
     setPendingSyncId(result.checkIn.id);
     setDraft(emptyRecoveryCheckInDraft());
     setSaveMessage(
@@ -244,7 +225,7 @@ export default function RecoveryCheckInScreen() {
             ) : null}
 
             <PrimaryButton
-              disabled={app.isRestoringState || Boolean(pendingSyncId)}
+              disabled={isRestoringState || Boolean(pendingSyncId)}
               label={copy.save}
               loading={Boolean(pendingSyncId)}
               onPress={saveCheckIn}
