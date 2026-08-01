@@ -5,6 +5,7 @@ import type {
   MealTemplate,
   NutritionState,
   NutritionTargets,
+  ProfileCalculationSex,
   ProfileGoalType,
   ProfileState,
   ProfileTrainingExperience,
@@ -85,6 +86,17 @@ export type AppActions = {
   }) => void;
   updateRegistrationProfile: (profile: {
     height: string;
+    trainingExperience: ProfileTrainingExperience;
+  }) => void;
+  updatePersonalDetails: (details: {
+    dateOfBirth: string;
+    calculationSex: ProfileCalculationSex;
+  }) => void;
+  updateCoachProfile: (profile: {
+    dateOfBirth: string;
+    calculationSex: ProfileCalculationSex;
+    height: string;
+    activityLevel: 'sedentary' | 'light' | 'moderate' | 'high' | 'very_high';
     trainingExperience: ProfileTrainingExperience;
   }) => void;
   upsertRecoveryCheckIn: (checkIn: RecoveryCheckIn) => boolean;
