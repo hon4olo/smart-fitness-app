@@ -7,7 +7,7 @@ import { createCoachApi, type CoachRunEnvelope } from '@/api/coach';
 import { AppCard } from '@/components/ui/AppCard';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppInfrastructure } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
@@ -56,7 +56,7 @@ export default function NutritionTargetProposalScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createNutritionTargetProposalStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { isRestoringState } = useAppContext();
+  const { isRestoringState } = useAppInfrastructure();
   const { syncNow } = useWeightSync();
   const { ready, refresh, session } = useAuthSession();
   const { formatDate, formatNumber, locale } = useLocalization();
