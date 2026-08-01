@@ -11,7 +11,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useWorkoutState } from '@/context/AppContext';
 import {
   getExerciseDetailCopy,
   type ExerciseDetailErrorCode,
@@ -66,7 +66,7 @@ export default function ExerciseDetailScreen() {
     ],
     [copy],
   );
-  const { workoutSessions } = useAppContext();
+  const { workoutSessions } = useWorkoutState();
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorCode, setErrorCode] = useState<ExerciseDetailErrorCode | null>(null);

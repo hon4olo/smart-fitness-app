@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProgramWorkoutEditorModal } from '@/components/workouts/ProgramWorkoutEditorModal';
 import { ProgramWorkoutPickerModal } from '@/components/workouts/ProgramWorkoutPickerModal';
 import { BottomTabInset, Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppActions, useWorkoutState } from '@/context/AppContext';
 import {
   attachWorkoutsToProgramDraft,
   createBlankProgramDraft,
@@ -43,7 +43,8 @@ const createDefaultProgramDraft = () => createBlankProgramDraft();
 export function WorkoutBuilderScreen() {
   const params = useLocalSearchParams<{ programId?: string }>();
   const programId = Array.isArray(params.programId) ? params.programId[0] : params.programId;
-  const { workouts, addWorkoutTemplate, updateWorkoutTemplate } = useAppContext();
+  const { addWorkoutTemplate, updateWorkoutTemplate } = useAppActions();
+  const { workouts } = useWorkoutState();
   const { colors } = useWorkoutTheme();
   const { formatNumber, locale, t } = useLocalization();
   const copy = useMemo(() => getWorkoutBuilderCopy(locale), [locale]);

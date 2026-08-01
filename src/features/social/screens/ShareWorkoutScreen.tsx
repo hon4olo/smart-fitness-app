@@ -21,7 +21,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppInfrastructure, useWorkoutState } from '@/context/AppContext';
 import { useWeightSync } from '@/context/SyncContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { createUuid } from '@/lib/ids';
@@ -59,7 +59,8 @@ export default function ShareWorkoutScreen() {
   const { locale, t } = useLocalization();
   const copy = getShareWorkoutCopy(locale);
   const styles = useMemo(() => createShareWorkoutStyles(colors), [colors]);
-  const { isRestoringState, workoutSessions } = useAppContext();
+  const { isRestoringState } = useAppInfrastructure();
+  const { workoutSessions } = useWorkoutState();
   const { ready, isAuthenticated, refresh, session: authSession } =
     useAuthSession();
   const { syncNow } = useWeightSync();

@@ -99,6 +99,34 @@ describe('AppContext public boundaries', () => {
       ['useWorkoutState'],
     ],
     ['src/app/workouts/history.tsx', ['useAppActions', 'useWorkoutState']],
+    [
+      'src/features/coach/screens/CombinedCoachProposalScreen.tsx',
+      ['useWorkoutState'],
+    ],
+    [
+      'src/features/coach/screens/StrengthCoachScreen.tsx',
+      ['useAppInfrastructure', 'useWorkoutState'],
+    ],
+    [
+      'src/features/exercises/screens/ExerciseDetailScreen.tsx',
+      ['useWorkoutState'],
+    ],
+    [
+      'src/features/social/screens/ShareWorkoutScreen.tsx',
+      ['useAppInfrastructure', 'useWorkoutState'],
+    ],
+    [
+      'src/features/workouts/screens/WorkoutBuilderScreen.tsx',
+      ['useAppActions', 'useWorkoutState'],
+    ],
+    [
+      'src/features/workouts/screens/WorkoutHistoryDetailScreen.tsx',
+      ['useWorkoutState'],
+    ],
+    [
+      'src/features/workouts/screens/WorkoutHistoryScreen.tsx',
+      ['useWorkoutState'],
+    ],
   ])('%s uses only focused app contexts', (path, focusedHooks) => {
     const source = readSource(path);
 
