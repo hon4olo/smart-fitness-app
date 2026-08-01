@@ -22,6 +22,7 @@ type MealGroupProps = {
   onEditFoodEntry: (entry: FoodEntry) => void;
   onOpenMealPicker: (mealType: MealType) => void;
   onToggleMealExpansion: (mealType: MealType) => void;
+  renderEntries?: boolean;
   styles: Record<string, any>;
   subtotal: ReturnType<typeof sumNutritionTotals>;
 };
@@ -38,12 +39,12 @@ export function MealGroup({
   onEditFoodEntry,
   onOpenMealPicker,
   onToggleMealExpansion,
+  renderEntries = true,
   styles,
   subtotal,
 }: MealGroupProps) {
   const { formatNumber } = useLocalization();
   const itemCount = entries.length;
-  // Localized replacement for the legacy formatMealItemCount helper.
   const itemCountLabel = copy.itemCount(
     itemCount,
     formatNumber(itemCount, { maximumFractionDigits: 0 }),
@@ -102,7 +103,7 @@ export function MealGroup({
         />
       </View>
 
-      {expanded ? (
+      {expanded && renderEntries ? (
         <View style={styles.foodList}>
           {entries.map((entry, index) => (
             <FoodEntryRow
