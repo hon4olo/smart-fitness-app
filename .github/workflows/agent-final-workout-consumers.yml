@@ -1,0 +1,164 @@
+name: Agent final Workout context migration
+
+on:
+  push:
+    branches:
+      - agent/workout-state-boundary-final
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'ci: apply final Workout context migration'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/workout-state-boundary-final
+          fetch-depth: 0
+
+      - name: Apply bounded context replacements
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              'src/features/coach/screens/CombinedCoachProposalScreen.tsx': [
+                  (
+                      "import { useAppContext } from '@/context/AppContext';",
+                      "import { useWorkoutState } from '@/context/AppContext';",
+                  ),
+                  ('  const app = useAppContext();', '  const { workoutSessions } = useWorkoutState();'),
+                  ('latestSession(app.workoutSessions)', 'latestSession(workoutSessions)'),
+                  ('[app.workoutSessions],', '[workoutSessions],'),
+              ],
+              'src/features/coach/screens/StrengthCoachScreen.tsx': [
+                  (
+                      "import { useAppContext } from '@/context/AppContext';",
+                      "import { useAppInfrastructure, useWorkoutState } from '@/context/AppContext';",
+                  ),
+                  (
+                      '  const { isRestoringState, workoutSessions } = useAppContext();',
+                      '  const { isRestoringState } = useAppInfrastructure();\n'
+                      '  const { workoutSessions } = useWorkoutState();',
+                  ),
+              ],
+              'src/features/exercises/screens/ExerciseDetailScreen.tsx': [
+                  (
+                      "import { useAppContext } from '@/context/AppContext';",
+                      "import { useWorkoutState } from '@/context/AppContext';",
+                  ),
+                  ('  const { workoutSessions } = useAppContext();', '  const { workoutSessions } = useWorkoutState();'),
+              ],
+              'src/features/social/screens/ShareWorkoutScreen.tsx': [
+                  (
+                      "import { useAppContext } from '@/context/AppContext';",
+                      "import { useAppInfrastructure, useWorkoutState } from '@/context/AppContext';",
+                  ),
+                  (
+                      '  const { isRestoringState, workoutSessions } = useAppContext();',
+                      '  const { isRestoringState } = useAppInfrastructure();\n'
+                      '  const { workoutSessions } = useWorkoutState();',
+                  ),
+              ],
+              'src/features/workouts/screens/WorkoutBuilderScreen.tsx': [
+                  (
+                      "import { useAppContext } from '@/context/AppContext';",
+                      "import { useAppActions, useWorkoutState } from '@/context/AppContext';",
+                  ),
+                  (
+                      '  const { workouts, addWorkoutTemplate, updateWorkoutTemplate } = useAppContext();',
+                      '  const { addWorkoutTemplate, updateWorkoutTemplate } = useAppActions();\n'
+                      '  const { workouts } = useWorkoutState();',
+                  ),
+              ],
+              'src/features/workouts/screens/WorkoutHistoryDetailScreen.tsx': [
+                  (
+                      "import { useAppContext } from '@/context/AppContext';",
+                      "import { useWorkoutState } from '@/context/AppContext';",
+                  ),
+                  ('  const { workoutSessions } = useAppContext();', '  const { workoutSessions } = useWorkoutState();'),
+              ],
+              'src/features/workouts/screens/WorkoutHistoryScreen.tsx': [
+                  (
+                      "import { useAppContext } from '@/context/AppContext';",
+                      "import { useWorkoutState } from '@/context/AppContext';",
+                  ),
+                  (
+                      '  const { trainingPrograms, workoutSessions } = useAppContext();',
+                      '  const { trainingPrograms, workoutSessions } = useWorkoutState();',
+                  ),
+              ],
+          }
+
+          for path_string, path_replacements in replacements.items():
+              path = Path(path_string)
+              source = path.read_text()
+              for old, new in path_replacements:
+                  count = source.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{path}: expected exactly one match for {old!r}, found {count}')
+                  source = source.replace(old, new, 1)
+              if 'useAppContext' in source:
+                  raise SystemExit(f'{path}: compatibility hook remains after migration')
+              path.write_text(source)
+
+          test_path = Path('test/app-context-boundaries.test.ts')
+          test_source = test_path.read_text()
+          marker = "    ['src/app/workouts/history.tsx', ['useAppActions', 'useWorkoutState']],\n"
+          if test_source.count(marker) != 1:
+              raise SystemExit('app-context boundary insertion marker changed')
+          additions = marker + """    [
+              'src/features/coach/screens/CombinedCoachProposalScreen.tsx',
+              ['useWorkoutState'],
+            ],
+            [
+              'src/features/coach/screens/StrengthCoachScreen.tsx',
+              ['useAppInfrastructure', 'useWorkoutState'],
+            ],
+            [
+              'src/features/exercises/screens/ExerciseDetailScreen.tsx',
+              ['useWorkoutState'],
+            ],
+            [
+              'src/features/social/screens/ShareWorkoutScreen.tsx',
+              ['useAppInfrastructure', 'useWorkoutState'],
+            ],
+            [
+              'src/features/workouts/screens/WorkoutBuilderScreen.tsx',
+              ['useAppActions', 'useWorkoutState'],
+            ],
+            [
+              'src/features/workouts/screens/WorkoutHistoryDetailScreen.tsx',
+              ['useWorkoutState'],
+            ],
+            [
+              'src/features/workouts/screens/WorkoutHistoryScreen.tsx',
+              ['useWorkoutState'],
+            ],
+          """
+          test_path.write_text(test_source.replace(marker, additions, 1))
+
+          Path('.github/workflows/agent-final-workout-consumers.yml').unlink()
+          PY
+
+      - name: Commit bounded migration
+        shell: bash
+        run: |
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- \
+            src/features/coach/screens/CombinedCoachProposalScreen.tsx \
+            src/features/coach/screens/StrengthCoachScreen.tsx \
+            src/features/exercises/screens/ExerciseDetailScreen.tsx \
+            src/features/social/screens/ShareWorkoutScreen.tsx \
+            src/features/workouts/screens/WorkoutBuilderScreen.tsx \
+            src/features/workouts/screens/WorkoutHistoryDetailScreen.tsx \
+            src/features/workouts/screens/WorkoutHistoryScreen.tsx \
+            test/app-context-boundaries.test.ts \
+            .github/workflows/agent-final-workout-consumers.yml
+          git commit -m 'refactor: migrate remaining pure Workout consumers'
+          git push origin HEAD:agent/workout-state-boundary-final
