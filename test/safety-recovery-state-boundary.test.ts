@@ -43,4 +43,18 @@ describe('Safety Recovery state boundary', () => {
     expect(appProviderIndex).toBeGreaterThanOrEqual(0);
     expect(safetyProviderIndex).toBeGreaterThan(appProviderIndex);
   });
+
+  test('pure Safety Recovery editors use focused state', () => {
+    for (const relativePath of [
+      'src/features/coach/screens/RecoveryCheckInScreen.tsx',
+      'src/features/coach/screens/UserLimitationScreen.tsx',
+    ]) {
+      const source = readSource(relativePath);
+
+      expect(source).toContain('useSafetyRecoveryState');
+      expect(source).toContain('useAppActions');
+      expect(source).toContain('useAppInfrastructure');
+      expect(source).not.toContain('useAppContext');
+    }
+  });
 });
