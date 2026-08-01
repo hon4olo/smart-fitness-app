@@ -10,7 +10,7 @@ This file contains only active and upcoming work. Completed implementation detai
 - Focused boundaries are available for actions, infrastructure, Workout, Nutrition, Progress, Profile, and Safety/Recovery state.
 - Production `useAppContext` consumers have been reduced from 40 to 0.
 - No production UI reconstructs or subscribes to the full application state.
-- A permanent source guard prevents production consumers from returning to `useAppContext`.
+- Permanent source guards protect focused state boundaries and virtualized high-volume list surfaces.
 - Blocking Mobile CI covers line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor.
 
 ## Invariants
@@ -81,59 +81,51 @@ Decision:
 - retain bounded development-only instrumentation for future diagnostics;
 - require new measurements before any future persistence optimization.
 
-Exit criteria satisfied:
-
-- representative write frequency and ordering are measured;
-- snapshot-only and outbox-bearing paths are classified;
-- lifecycle-sensitive draft behavior is covered;
-- no material redundant committed-write problem is demonstrated;
-- persistence schemas, mutation ordering, recovery, and sync ownership remain unchanged.
-
 # Phase 4 — UI virtualization and render performance
 
-Status: active.
+Status: complete.
 
-## Completed baseline
+Completed evidence and implementation:
 
-- deterministic fixture targets exist for 500 food entries, 100 programs, 500 completed sessions, 500 exercises, and 365 weight entries;
-- fixtures provide stable unique keys and deterministic grouping/sorting inputs;
-- the baseline is recorded in `docs/architecture/list-performance-baseline.md`;
-- Nutrition diary is confirmed to use one vertical `ScrollView` with mapped meal groups and no virtualized list boundary;
-- no production UI or data path has been changed.
+- deterministic fixtures for 500 food entries, 100 programs, 500 completed sessions, 500 exercises, and 365 weight entries;
+- stable unique keys and deterministic grouping/sorting inputs;
+- Nutrition Diary moved to one `SectionList` after confirming up to 500 simultaneously mounted rows;
+- Programs tab moved to `FlatList` for the 100-program representative case;
+- Workout History moved to `FlatList` for the 500-session representative case;
+- Exercise Library moved to one `SectionList` for favorites, recent, and browse sections;
+- repeated Exercise Library membership scans replaced with memoized maps and sets;
+- food search remains bounded to 18 local results;
+- recent foods remain bounded to 20 unique results;
+- Progress keeps bounded analytics and short previews instead of rendering all 365 weight entries;
+- saved meal details allow only one expanded template at a time;
+- permanent source guards protect the four virtualized boundaries and bounded secondary limits.
 
-## Immediate next action
+The final decisions are recorded in `docs/architecture/list-performance-baseline.md`.
 
-Measure and inventory the Nutrition diary before implementation:
+Exit criteria satisfied:
 
-1. benchmark `useNutritionDaySummary` grouping/summary work with 500 entries;
-2. inspect `MealGroup` to determine how many expanded entry rows mount;
-3. verify key and callback stability for meal and food-entry rows;
-4. record keyboard, accessibility, date-navigation, and expansion constraints;
-5. decide whether one `SectionList` is justified.
-
-Then repeat the same bounded inventory for:
-
-- Programs with 100 programs;
-- Workout history with 500 completed sessions;
-- Exercise Library with 500 exercises;
-- weight history with 365 entries;
-- food search, templates, and saved items where representative data can materialize many rows.
-
-Do not virtualize a surface until measurements demonstrate a material problem. Do not begin charts until stable selectors and measured list performance are recorded.
+- representative high-volume surfaces no longer mount all rows at once;
+- stable domain IDs back list keys;
+- UI, routes, accessibility, keyboard behavior, persistence, and synchronization semantics remain compatible;
+- secondary surfaces were not rewritten without measured need;
+- physical-device profiling is release evidence, not a source-refactor blocker.
 
 # Phase 5 — progress charts
 
-Status: pending stable selectors and measured performance.
+Status: active.
 
-Use installed `react-native-svg` by default.
+Use installed `react-native-svg` by default. Do not add a chart dependency without measured need.
 
-Weight trend:
+## First bounded slice — weight trend selector and chart contract
 
-- accessible 7/30/90-day time series;
-- canonical kg storage with kg/lb presentation;
-- zero and one-entry states.
+1. Inventory the current weight analytics and `ProgressTrendChart` implementation.
+2. Define pure 7/30/90-day selectors over canonical kg entries.
+3. Specify timezone/date bucketing and duplicate-day behavior.
+4. Cover zero-entry, one-entry, sparse, invalid timestamp, kg/lb presentation, and range-switch cases.
+5. Preserve current Progress information architecture and weight-details navigation.
+6. Implement chart changes only after the selector contract is green.
 
-Weekly workout volume:
+## Following slice — weekly workout volume
 
 - pure timezone-aware selector;
 - valid completed sets only;
@@ -149,5 +141,5 @@ Not part of autonomous refactor execution:
 - backend deployment or environment activation;
 - provider-backed Coach staging validation;
 - fixed-SHA cross-repository release gates requiring additional credentials;
-- physical-device accessibility, language, unit, and two-device conflict matrices;
+- physical-device accessibility, language, unit, performance, and two-device conflict matrices;
 - privacy, consent, retention, deletion, and analytics policy work.
