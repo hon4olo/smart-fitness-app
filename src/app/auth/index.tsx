@@ -6,12 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useAppInfrastructure } from '@/context/AppContext';
+import { useProfileState } from '@/context/ProfileStateContext';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 
 export default function AuthLandingScreen() {
-  const { isRestoringState, onboardingCompleted } = useAppContext();
+  const { isRestoringState } = useAppInfrastructure();
+  const { onboardingCompleted } = useProfileState();
   const { isAuthenticated, ready } = useAuthSession();
   const { t } = useLocalization();
   const insets = useSafeAreaInsets();
