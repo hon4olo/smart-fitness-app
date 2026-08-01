@@ -2,40 +2,38 @@
 
 Updated: 2026-08-01
 
-Scope: TypeScript-AST inventory and subsequent focused migrations through mobile code baseline `099994f34a322aa4e2bed8c7933c8a25b55cfc65`.
+Scope: production `useAppContext` consumers after PR #314 on mobile baseline `b5f8ba2ee85bdebbbaf6dd0a18c12bfbea0b5cb2`.
 
 ## Current baseline
 
-- compatibility-context consumers: 16;
-- original baseline before focused boundaries: 40;
-- reduction: 24 consumers, or 60%;
-- pure Workout consumers remaining on compatibility state: 0;
-- pure Nutrition consumers remaining on compatibility state: 1;
-- intentionally mixed Workout readers: 4;
-- no production UI reconstructs the full `AppState` for a bounded edit.
+- compatibility-context consumers: 15;
+- original baseline: 40;
+- reduction: 25 consumers, or 62.5%;
+- pure Workout consumers remaining: 0;
+- pure Nutrition consumers remaining: 0;
+- no production UI reconstructs full `AppState` for a bounded edit.
 
-`AppActions`, `AppInfrastructure`, `WorkoutState`, and `NutritionDataState` are independently memoized. The compatibility context remains only for still-unmigrated pure domains and consumers that combine multiple state domains.
+Focused boundaries currently available:
 
-## Intentionally mixed Workout readers
+- `AppActions`;
+- `AppInfrastructure`;
+- `WorkoutState`;
+- `NutritionDataState`.
 
-These screens still read Workout data together with domains that do not yet have focused state boundaries:
+One internal `AppState`, repository, mutation queue, outbox, and synchronization ownership boundary remain authoritative.
 
-- `src/app/(tabs)/index.tsx` — Home combines Workout, Nutrition, Progress, Profile, and onboarding state;
-- `src/app/(tabs)/progress.tsx` — Progress combines Workout sessions with weight, measurements, and exercises;
-- `src/app/weight-details.tsx` — Weight Details combines Workout sessions with weight, measurements, and exercises;
-- `src/features/coach/screens/CombinedCoachScreen.tsx` — Combined Coach combines Workout, Nutrition, Recovery, and limitations.
+## Intentionally mixed readers
 
-They remain on `useAppContext` intentionally. Each should migrate only after all required domain hooks exist.
+These screens remain on compatibility state until every required domain hook exists:
+
+- `src/app/(tabs)/index.tsx` — Workout, Nutrition, Progress, Profile, and onboarding;
+- `src/app/(tabs)/progress.tsx` — Workout sessions, exercises, weight, and measurements;
+- `src/app/weight-details.tsx` — Workout sessions, exercises, weight, and measurements;
+- `src/features/coach/screens/CombinedCoachScreen.tsx` — Workout, Nutrition, Recovery, and limitations.
 
 ## Remaining compatibility consumers by domain
 
-### Nutrition
-
-- `src/app/nutrition/add-food.tsx` — entries, meal templates, and Nutrition actions.
-
-The Nutrition tab and date picker moved to `useNutritionState` in PR #312.
-
-### Profile and onboarding
+### Progress, Profile, and onboarding
 
 - `src/app/(tabs)/profile.tsx` — `profile`;
 - `src/app/auth/index.tsx` — restore and onboarding status;
@@ -57,36 +55,39 @@ The Nutrition tab and date picker moved to `useNutritionState` in PR #312.
 - Home;
 - Progress;
 - Weight Details;
-- Combined Coach Review.
+- Combined Coach.
 
 ## Completed boundary work
 
-### Stable action and infrastructure access
+### Stable actions and infrastructure
 
-PRs #296 and #298 introduced stable `AppActions` and `AppInfrastructure` hooks and migrated action-only, infrastructure-only, and Workout Session Finish consumers.
+PRs #296 and #298 introduced stable action and infrastructure hooks and migrated action-only and status-only consumers.
 
 ### Typed bounded updater actions
 
-PRs #299 and #300 removed all four full-state reconstruction paths by adding typed functional updater actions for Safety, Recovery, and Profile edits.
+PRs #299 and #300 removed all four full-state reconstruction paths.
 
-### Workout state boundary
+### Workout state
 
-PRs #302–#307 introduced `WorkoutState` and migrated the main Workout flows. PR #310 refreshed the inventory and moved the final seven pure Workout readers.
+PRs #302–#307 and #310 migrated every pure Workout consumer and added permanent source guards.
 
-### Nutrition state boundary
+### Nutrition state
 
-PR #312 introduced memoized `NutritionDataState` containing only:
+PR #312 introduced `NutritionDataState` containing only:
 
 - `foodEntries`;
 - `mealTemplates`;
 - `nutritionTargets`.
 
-It migrated the Nutrition tab and date picker while preserving the existing macro-summary model named `NutritionState`.
+PR #314 migrated Add Food, completing all pure Nutrition consumers. The Nutrition tab, date picker, and Add Food are protected from returning to `useAppContext`.
 
-Source guards prevent every migrated file from returning to `useAppContext`.
+## Next boundary
 
-## Next action
+Introduce the smallest useful Progress state contract, initially considering only:
 
-Migrate Add Food to `useNutritionState` plus stable `useAppActions` without changing its editor, catalog, favorites, library, persistence, synchronization, route, or UI behavior.
+- `weightHistory`;
+- `bodyMeasurements`.
 
-Do not combine the Nutrition boundary with diary virtualization, persistence coalescing, synchronization changes, or an external state library.
+Before implementation, classify current Progress readers precisely. Do not add Workout data to `ProgressState`; mixed Progress screens should compose `useProgressState` with the existing `useWorkoutState`.
+
+Do not combine this boundary with chart work, selector redesign, persistence coalescing, synchronization changes, or an external state library.
