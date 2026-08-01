@@ -6,6 +6,7 @@ export * from './muscleAnalytics';
 export * from './personalRecords';
 export * from './weight';
 export * from './weightTrend';
+export * from './weeklyWorkoutVolume';
 export * from './workoutVolume';
 
 import { getMeasurementInsights } from './measurements';
