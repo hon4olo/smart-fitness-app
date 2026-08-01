@@ -1,16 +1,16 @@
 name: Agent final Workout context migration
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/workout-state-boundary-final
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.event.head_commit.message == 'ci: apply final Workout context migration'
+    if: github.head_ref == 'agent/workout-state-boundary-final'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
