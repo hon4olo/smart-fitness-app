@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, MaxContentWidth, Radii, Spacing } from '@/constants/theme';
-import { useAppContext } from '@/context/AppContext';
+import { useNutritionState } from '@/context/AppContext';
 import { addDays, formatLocalDate } from '@/lib';
 import { getLoggedFoodDates } from '@/lib/nutrition';
 import { useLocalization } from '@/localization';
@@ -25,7 +25,7 @@ export default function NutritionDatePickerScreen() {
   const copy = getNutritionCalendarCopy(locale);
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { foodEntries } = useAppContext();
+  const { foodEntries } = useNutritionState();
   const params = useLocalSearchParams<{ date?: string }>();
   const todayKey = useMemo(() => formatLocalDate(new Date()), []);
   const initialDate =
