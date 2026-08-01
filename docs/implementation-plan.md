@@ -8,12 +8,13 @@ Canonical execution plan for `hon4olo/smart-fitness-app`. Merged implementation 
 
 Mobile code baseline:
 
-- `3ead4fbadb68ed7c6ef44c3fe8e9f41441a2af7a` — final pure Workout-context migration;
+- `099994f34a322aa4e2bed8c7933c8a25b55cfc65` — first Nutrition-state slice;
 - Expo SDK 56, React Native, Expo Router, TypeScript;
 - offline-first repository persistence;
 - ordered observable mutation queue;
 - revision-aware synchronization for supported domains;
-- stable `AppActions`, `AppInfrastructure`, and `WorkoutState` contexts coexist with compatibility `AppContext`;
+- stable `AppActions`, `AppInfrastructure`, `WorkoutState`, and `NutritionDataState` contexts coexist with compatibility `AppContext`;
+- compatibility consumers reduced from 40 to 16;
 - no production UI reconstructs full `AppState` for a bounded edit;
 - no pure Workout consumer remains on compatibility state;
 - blocking Mobile CI covers line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor.
@@ -81,46 +82,48 @@ PRs #302–#307 and #310:
 - defined memoized `WorkoutState` containing only `workouts`, `trainingPrograms`, `exercises`, and `workoutSessions`;
 - migrated all pure Workout consumers;
 - retained four intentionally mixed readers until their other domain hooks exist;
-- reduced compatibility consumers from 40 to 18;
 - added permanent source guards;
 - passed blocking Mobile CI on every code-bearing slice.
+
+Architecture note: `docs/architecture/workout-state-boundary.md`.
+
+## Current target — Nutrition state boundary
+
+Status: in progress; first slice complete.
+
+Contract:
+
+- `NutritionDataState` contains only `foodEntries`, `mealTemplates`, and `nutritionTargets`;
+- the value is memoized from those three state identities;
+- existing macro-summary `NutritionState` remains unchanged;
+- mutations remain in stable `AppActions`;
+- one internal `AppState` remains authoritative.
+
+Completed:
+
+- [x] verify exact Nutrition fields and production consumers;
+- [x] define memoized `NutritionDataState`;
+- [x] expose `useNutritionState`;
+- [x] migrate the Nutrition tab;
+- [x] migrate the Nutrition date picker;
+- [x] add source guards and focused architecture documentation;
+- [x] pass full Mobile CI on exact PR #312 head.
+
+Next bounded slice:
+
+- [ ] migrate `src/app/nutrition/add-food.tsx` to `useNutritionState` plus `useAppActions`;
+- [ ] preserve all editor, catalog, favorites, scanner, library, meal-template, validation, alert, and navigation behavior;
+- [ ] add a source guard preventing Add Food from returning to `useAppContext`;
+- [ ] verify that no pure Nutrition compatibility consumer remains;
+- [ ] keep Home and Combined Coach on compatibility state until all their required domain hooks exist;
+- [ ] pass full Mobile CI on the exact Add Food head.
+
+Do not combine this boundary with diary virtualization, persistence coalescing, sync changes, route/UI redesign, or a state-library migration.
 
 Architecture notes:
 
 - `docs/architecture/app-context-consumer-inventory.md`;
-- `docs/architecture/workout-state-boundary.md`.
-
-## Current target — Nutrition state boundary
-
-Goal: isolate Nutrition reads from unrelated Workout, Progress, Profile, Safety, Recovery, and onboarding updates without changing persistence or synchronization ownership.
-
-Initial contract candidate:
-
-- `foodEntries`;
-- `nutritionTargets`;
-- `mealTemplates`.
-
-The exact type must be derived from current `AppState`; do not add fields without an identified production consumer.
-
-Initial pure consumers:
-
-- `src/app/(tabs)/nutrition.tsx`;
-- `src/app/nutrition/date-picker.tsx`;
-- `src/app/nutrition/add-food.tsx`.
-
-Tasks:
-
-- [ ] verify the exact current Nutrition fields and consumer dependencies;
-- [ ] define memoized `NutritionState` containing only required Nutrition arrays;
-- [ ] expose `useNutritionState` while retaining one internal `AppState`;
-- [ ] keep Nutrition mutations in stable `AppActions`;
-- [ ] migrate the Nutrition tab and date picker first;
-- [ ] migrate Add Food separately because it combines multiple actions and local editor state;
-- [ ] add source guards preventing migrated consumers from returning to `useAppContext`;
-- [ ] keep Home and Combined Coach on compatibility state until all their required domain hooks exist;
-- [ ] pass full Mobile CI on every bounded slice.
-
-Do not combine this boundary with diary virtualization, persistence coalescing, sync changes, route/UI redesign, or a state-library migration.
+- `docs/architecture/nutrition-state-boundary.md`.
 
 ## Later focused state boundaries
 
@@ -259,4 +262,4 @@ Every code-bearing mobile slice requires focused tests, TypeScript, the complete
 
 # Immediate next action
 
-Verify the exact Nutrition fields in current `AppState`, introduce the smallest useful memoized `NutritionState`, and migrate the Nutrition tab plus date picker without changing persistence, synchronization, routes, or UI.
+Migrate Add Food to focused Nutrition state and stable actions without changing persistence, synchronization, editor behavior, routes, or UI.
