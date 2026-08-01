@@ -43,4 +43,11 @@ describe('Profile state boundary', () => {
     expect(appProviderIndex).toBeGreaterThanOrEqual(0);
     expect(profileProviderIndex).toBeGreaterThan(appProviderIndex);
   });
+
+  test('Profile tab reads only focused Profile state', () => {
+    const source = readSource('src/app/(tabs)/profile.tsx');
+
+    expect(source).toContain('useProfileState');
+    expect(source).not.toContain('useAppContext');
+  });
 });
