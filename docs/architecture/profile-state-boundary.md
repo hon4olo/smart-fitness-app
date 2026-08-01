@@ -2,7 +2,7 @@
 
 Updated: 2026-08-01
 
-Status: provider foundation and three consumer migrations complete.
+Status: provider foundation and all current pure Profile consumer migrations complete.
 
 ## Purpose
 
@@ -43,12 +43,19 @@ The following consumers now read `profile` through `useProfileState` and keep mu
 
 Profile validation, unit conversion, local form state, alerts, routes, and save behavior remain unchanged.
 
+## Completed slice 4 — Profile Goals composition
+
+`src/features/profile/ProfileGoalsSection.tsx` now composes:
+
+- `useProfileState` for `profile`;
+- `useProgressState` for `weightHistory`;
+- `useAppActions` for profile and nutrition target updates.
+
+Goal validation, current-weight fallback, nutrition recalculation, confirmation alerts, local form state, and UI behavior remain unchanged.
+
 ## Next slices
 
-Migrate remaining Profile readers:
-
-- Profile Goals by composing `useProfileState`, `useProgressState`, and stable actions;
-- onboarding and Home only after all required domain hooks are available.
+Rebuild the compatibility-consumer inventory and classify remaining readers before migrating onboarding or Home. Those screens should move only after every required domain hook is available.
 
 ## Explicit exclusions
 
