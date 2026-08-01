@@ -126,20 +126,42 @@ const benchmarkState = async (
   };
 };
 
-describe('AppState repository benchmark capture', () => {
-  test('captures default, representative, and stress repository costs', async () => {
+const assertValidTiming = (value: number) => {
+  expect(Number.isFinite(value)).toBe(true);
+  expect(value).toBeGreaterThanOrEqual(0);
+};
+
+describe('AppState repository performance budgets', () => {
+  test('keeps deterministic snapshots within the reviewed size budgets', async () => {
     const results = [
       await benchmarkState('default', defaultState, 30),
       await benchmarkState('representative', createRepresentativeAppState(), 15),
       await benchmarkState('stress', createStressAppState(), 7),
     ];
 
-    console.log(`APP_STATE_BENCHMARK_RESULTS=${JSON.stringify(results)}`);
+    if (process.env.APP_STATE_BENCHMARK_LOG === '1') {
+      console.log(`APP_STATE_BENCHMARK_RESULTS=${JSON.stringify(results)}`);
+    }
 
-    expect(results[1].serializedBytes).toBeGreaterThan(results[0].serializedBytes);
-    expect(results[2].serializedBytes).toBeGreaterThan(results[1].serializedBytes);
+    expect(results.map((result) => result.label)).toEqual([
+      'default',
+      'representative',
+      'stress',
+    ]);
+    expect(results.map((result) => result.serializedBytes)).toEqual([
+      12685,
+      262315,
+      1114421,
+    ]);
+    expect(results[0].serializedBytes).toBeLessThanOrEqual(25_000);
+    expect(results[1].serializedBytes).toBeLessThanOrEqual(350_000);
+    expect(results[2].serializedBytes).toBeLessThanOrEqual(1_500_000);
 
-    // Temporary capture gate: replaced with stable assertions after CI output is recorded.
-    expect('benchmark-captured').toBe('update-results-document');
+    for (const result of results) {
+      assertValidTiming(result.stringifyMedianMs);
+      assertValidTiming(result.parseMedianMs);
+      assertValidTiming(result.repositorySaveMedianMs);
+      assertValidTiming(result.repositoryLoadMedianMs);
+    }
   });
 });
