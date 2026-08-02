@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `c969c7b76a3a331953510181e68f97e1a505eade`;
-- backend `main`: `1eefe77d7260721fc7f3b5a2c0f85e6a962583c8`;
+- mobile `main`: `cf2250ac2d1806914fd8c01da417a527c01064c0`;
+- backend `main`: `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -24,6 +24,8 @@ Before this documentation synchronization slice:
 - backend PR #94 merge: `a2d4f67db3000785facb11e2d69cacb8cda03bc3`;
 - backend PR #95 exact green head: `ab30ee7b31458b69409ba7c00116397fad07887e`;
 - backend PR #95 merge: `1eefe77d7260721fc7f3b5a2c0f85e6a962583c8`;
+- backend PR #96 exact green head: `6ec65413b4c3164bcf176d41230d817e203b8095`;
+- backend PR #96 merge: `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -153,16 +155,49 @@ No credential, real provider call, provider account, bucket, public ACL, CDN, DN
 
 ## Phase P2 — production worker entrypoints and orchestration
 
-Status: active next phase.
+tive. Shared runtime and managed-media cleanup process support are merged; P2 is not complete.
 
-- [ ] add bounded one-shot CLI entrypoints for media moderation, derivative delivery, retention cleanup, expired-upload recovery, and retryable failed operations;
-- [ ] add optional continuous worker mode without changing the underlying claim and lease contracts;
-- [ ] support graceful shutdown, abort signals, bounded concurrency, lease heartbeat where required, retry backoff, maximum attempts, and deterministic exit codes;
-- [ ] preserve oldest-due claims, stale-worker recovery, exact state-version revalidation, legal-hold blocking, and dependency-ordered tombstone purge;
-- [ ] expose privacy-safe worker readiness and aggregate operation status without asset owner IDs, object keys, OCR text, or media bytes;
-- [ ] add systemd unit and timer templates plus Docker Compose service templates;
-- [ ] document process ordering, crash recovery, duplicate process behavior, and emergency disable procedures;
-- [ ] do not start or schedule these workers in any environment during source implementation.
+dence:
+
+PR #96 exact green head: `6ec65413b4c3164bcf176d41230d817e203b8095`;
+PR #96 merge: `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`;
+ad passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health;
+PR #97 was closed unmerged as an old-base duplicate after its useful stop-between-claims invariant was retained below.
+
+cess runtime:
+
+bounded one-shot and continuous execution modes without changing underlying domain claims or leases;
+date batch size, poll interval, optional maximum iterations, and processed counts;
+ only after idle work and continue immediately after a non-empty batch;
+ort abortable idle waits, `SIGINT`, `SIGTERM`, deterministic aggregate summaries, and deterministic exit codes;
+e process resources in `finally` and keep raw exceptions out of direct process output;
+rve graceful shutdown between individual claimed operations for services whose batch method can process more than one claim;
+shared bounded failure classification, retry backoff, maximum attempts, and heartbeat only where required by operation duration.
+
+dia cleanup entrypoint:
+
+ose the existing cleanup service and repositories with configured private storage and immutable delivery providers;
+ closed before work when required provider readiness is unavailable;
+erve oldest-due claims, unique claim tokens, lease expiry, exact state-version revalidation, legal-hold blocking, stale release, dependency ordering, tombstone purge, append-only audit, and idempotent provider deletion;
+pt no owner ID, asset ID, object key, state version, claim token, cleanup target, or private payload from CLI input;
+ only versioned aggregate worker, mode, stop-reason, iteration, processed, idle, and duration fields;
+ one-shot and continuous modes source-only and unscheduled.
+
+worker entrypoints:
+
+bounded media-moderation processing and expired-claim recovery entrypoints;
+bounded derivative-delivery processing and expired-claim recovery entrypoints;
+bounded expired-upload and retryable-failure entrypoints where current repositories expose safe claim contracts;
+erve partial-publication cleanup, stale-worker rejection, provider attempt metadata, and fail-closed moderation policy;
+se privacy-safe aggregate readiness and operation status across worker types.
+
+mplates and operations:
+
+systemd unit and timer templates plus Docker Compose service templates;
+ment process ordering, duplicate-process behavior, crash recovery, rollout, rollback, and emergency disable procedures;
+ot start or schedule workers in any environment during source implementation.
+
+ial, provider account, real provider call, bucket, CDN, DNS, deployment, migration execution outside CI, worker scheduling, public upload activation, or production environment change was performed.
 
 ## Phase P3 — classifier, OCR, and provider transport readiness
 
