@@ -1,0 +1,166 @@
+name: Apply managed avatar mobile slice
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/s7-5-mobile-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/social-managed-avatar-s7-5'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/social-managed-avatar-s7-5
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Expo SDK 56 compatible image modules
+        run: npx expo install expo-image-picker@~56.0.22 expo-image-manipulator@~56.0.23
+      - name: Apply bounded integration edits
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          api_path = Path('src/api/social/api.ts')
+          api = api_path.read_text()
+          avatar_block = """  if (input.avatarUrl !== undefined) {
+            payload.avatarUrl = input.avatarUrl === null ? null : input.avatarUrl.trim();
+          }
+          """
+          if api.count(avatar_block) != 1:
+              raise SystemExit(f'api avatar block count: {api.count(avatar_block)}')
+          api_path.write_text(api.replace(avatar_block, ''))
+
+          test_path = Path('src/api/social/api.test.ts')
+          test = test_path.read_text()
+          if test.count('      avatarUrl: null,\n') != 2:
+              raise SystemExit(f'api test avatar lines: {test.count("      avatarUrl: null,\\n")}')
+          test_path.write_text(test.replace('      avatarUrl: null,\n', ''))
+
+          index_path = Path('src/api/social/index.ts')
+          index = index_path.read_text()
+          export_block = """
+          export {
+            SOCIAL_MEDIA_API_ERROR_CODES,
+            SOCIAL_MEDIA_MODERATION_DECISIONS,
+            SOCIAL_MEDIA_SCHEMA_VERSION,
+            SOCIAL_MEDIA_STATES,
+            SOCIAL_MEDIA_STATE_REASON_CODES,
+            SOCIAL_MEDIA_UPLOAD_TYPES,
+            type BindSocialManagedAvatarInput,
+            type BindSocialManagedAvatarResult,
+            type CreateSocialMediaUploadInput,
+            type CreateSocialMediaUploadResult,
+            type SignedSocialMediaUploadDto,
+            type SocialMediaApiErrorCode,
+            type SocialMediaOwnerAssetDto,
+            type SocialMediaPublicDescriptorDto,
+            type SocialMediaState,
+            type SocialMediaStateReasonCode,
+            type SocialMediaUploadType,
+          } from './media-contracts';
+          export {
+            parseBindManagedAvatarResponse,
+            parseCreateSocialMediaUploadResponse,
+            parseOwnManagedAvatarResponse,
+            parseSocialMediaAssetResponse,
+            parseSocialMediaOwnerAssetDto,
+            parseSocialMediaPublicDescriptorDto,
+          } from './media-parsers';
+          export {
+            SignedMediaUploadError,
+            uploadSignedSocialMedia,
+            type SignedMediaUploadFailure,
+          } from './signed-media-upload';
+          """
+          if "from './media-contracts'" in index:
+              raise SystemExit('media exports already exist')
+          index_path.write_text(index.rstrip() + '\n' + export_block)
+
+          card_path = Path('src/features/social/SocialManagedAvatarCard.tsx')
+          card = card_path.read_text()
+          if card.count('colors.surfaceMuted') != 4 or card.count('Radii.full') != 2:
+              raise SystemExit('avatar card theme target count mismatch')
+          card = card.replace('colors.surfaceMuted', 'colors.surfaceSecondary')
+          card = card.replace('Radii.full', 'Radii.pill')
+          card_path.write_text(card)
+
+          app_path = Path('app.json')
+          app = json.loads(app_path.read_text())
+          plugins = app['expo']['plugins']
+          if any(
+              item == 'expo-image-picker' or
+              (isinstance(item, list) and item and item[0] == 'expo-image-picker')
+              for item in plugins
+          ):
+              raise SystemExit('image picker plugin already exists')
+          router_index = plugins.index('expo-router')
+          plugins.insert(
+              router_index + 1,
+              [
+                  'expo-image-picker',
+                  {
+                      'photosPermission': 'Allow Smart Fitness to select a profile photo.',
+                      'cameraPermission': False,
+                      'microphonePermission': False,
+                  },
+              ],
+          )
+          app_path.write_text(json.dumps(app, indent=2, ensure_ascii=False) + '\n')
+          PY
+      - name: Format targeted files
+        run: >-
+          npx prettier --write
+          app.json package.json package-lock.json
+          src/api/social/api.ts
+          src/api/social/api.test.ts
+          src/api/social/combined-api.ts
+          src/api/social/contracts.ts
+          src/api/social/index.ts
+          src/api/social/media-api.ts
+          src/api/social/media-contracts.ts
+          src/api/social/media-parsers.ts
+          src/api/social/media-parsers.test.ts
+          src/api/social/signed-media-upload.ts
+          src/features/social/SocialManagedAvatarCard.tsx
+          src/features/social/screens/SocialProfileEditorScreen.tsx
+          src/features/social/socialManagedAvatarCopy.ts
+          src/features/social/socialManagedAvatarDraftStore.ts
+          src/features/social/socialManagedAvatarImage.ts
+          src/features/social/socialManagedAvatarModel.ts
+          src/features/social/socialManagedAvatarModel.test.ts
+          src/features/social/socialProfileCopy.ts
+          src/features/social/socialProfileForm.ts
+          src/features/social/socialProfileForm.test.ts
+          src/features/social/useSocialManagedAvatar.ts
+      - name: Validate source slice
+        shell: bash
+        run: |
+          npx tsc --noEmit
+          npx vitest run \
+            src/api/social/api.test.ts \
+            src/api/social/media-parsers.test.ts \
+            src/features/social/socialManagedAvatarModel.test.ts \
+            src/features/social/socialProfileForm.test.ts \
+            --maxWorkers=1 --no-file-parallelism
+      - name: Publish validated source commit
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -- .github/workflows/s7-5-mobile-inspect.yml .github/workflows/s7-5-mobile-apply.yml
+          git add -- app.json package.json package-lock.json src
+          git diff --cached --check
+          git commit -m "feat: add managed social avatar flow"
+          git push origin HEAD:agent/social-managed-avatar-s7-5
