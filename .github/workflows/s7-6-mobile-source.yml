@@ -1,3 +1,4 @@
+# Retry after updating remaining workout-post DTO v2 fixtures.
 name: Validate Social S7.6 mobile source
 
 on:
