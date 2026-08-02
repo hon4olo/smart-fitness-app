@@ -26,8 +26,8 @@ Completed implementation history remains in merged pull requests and focused roa
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `b95f696b3176ca8597f3cd36bb499b3d9c5971ce`;
-- backend `main`: `0e2829d91b077eec9fb60d25390b038ada0676db`;
+- mobile `main`: `c3e3aca3d7593386924569b4ceeaac2c4a72c56f`;
+- backend `main`: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -52,6 +52,8 @@ Before this documentation synchronization slice:
 - backend PR #102 merge: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
 - backend PR #103 exact green head: `02675ab50683c4745f7f1a3c5cc05b081016bb15`;
 - backend PR #103 merge: `0e2829d91b077eec9fb60d25390b038ada0676db`;
+- backend PR #104 exact green head: `7c684cc9426d33b4a9ec4e52cb818966ae71fdac`;
+- backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -228,7 +230,7 @@ P2 source completion does not activate workers or managed-media product behavior
 
 ### P3 — classifier and OCR readiness
 
-Status: active. Provider-neutral transport is merged, and the Amazon Rekognition `DetectModerationLabels` classifier request/parser contract is source-complete; classifier signing/transport composition, OCR selection, factories, readiness, and activation remain open.
+Status: active. Provider-neutral transport and the complete Amazon Rekognition `DetectModerationLabels` classifier source boundary are merged; OCR selection/runtime, composition-root support, readiness, and activation remain open.
 
 Backend PR #102, exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, merge `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`:
 
@@ -251,15 +253,26 @@ Backend PR #103, exact green head `02675ab50683c4745f7f1a3c5cc05b081016bb15`, me
 - retained constant non-reflective errors and deterministic no-network conformance coverage;
 - did not add credentials, signing, endpoint configuration, network calls, factory support, readiness, workers, or product capability changes.
 
+Backend PR #104, exact green head `7c684cc9426d33b4a9ec4e52cb818966ae71fdac`, merge `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`:
+
+- added a pinned standard Rekognition endpoint contract for moderation-capable regions;
+- added a separate service-correct SigV4 signer scoped to `rekognition` without reusing S3-only assumptions;
+- composed the strict classifier request/parser through exactly one injected bounded HTTP transport call per provider invocation;
+- promoted bounded Rekognition throughput/throttling HTTP `400` errors before circuit accounting;
+- mapped timeout, network, circuit, retryable/terminal HTTP, malformed-response, model-drift, and runtime-configuration outcomes into the existing media classifier result contract;
+- preserved retry ownership in `runMediaClassifier` and added deterministic retry-then-success integration coverage;
+- documented the absence of caller cancellation in the current provider interface instead of inventing an adapter-local contract;
+- made no real provider call and did not change factories, environment schema, source readiness, workers, product capabilities, or activation.
+
 Remaining P3 boundary:
 
-- add a trusted region-derived Rekognition endpoint contract and service-correct SigV4 signing;
-- compose the classifier request through the shared bounded HTTP transport and map only bounded transport outcomes into the existing provider result contract;
-- add classifier conformance for retryable and terminal statuses, timeout, cancellation, rate limits, circuit-open state, stale workers, and secret non-disclosure;
 - select and document the OCR provider API contract before implementing its request builder and strict versioned response parser;
+- compose exactly one bounded OCR transport attempt through trusted endpoint/authentication and the shared HTTP/circuit boundary;
 - map only validated OCR outputs into the existing internal OCR signals without changing deterministic policy;
-- retain bounded provider/model/parser metadata without raw responses or OCR plaintext;
-- enable source readiness in provider factories and production validation only after both selected adapters are implemented and tested;
+- preserve runner-owned retries, timeout bounds, leases, stale-result handling, and secret non-disclosure;
+- retain bounded provider/model/parser metadata without raw responses, signed headers, image bytes, endpoints, credentials, or OCR plaintext;
+- compose classifier and OCR providers only in the backend application root after the OCR adapter is complete;
+- update environment schema, source-support validation, factories, and readiness only after both selected adapters and conformance boundaries are complete;
 - keep credentials, real calls, staging configuration, managed-media product enablement, and calibration outside autonomous source work.
 
 ### P4 — moderation calibration harness
@@ -303,7 +316,7 @@ Remaining P3 boundary:
 
 ## Current execution order
 
-1. P3 provider transport and selected classifier/OCR adapters.
+1. P3 selected OCR adapter and classifier/OCR composition/readiness.
 2. P4 moderation calibration harness.
 3. P5 password-reset mobile, links, templates, and delivery readiness.
 4. P6 deployment policies, smoke scripts, and runbooks.
@@ -362,4 +375,4 @@ Do not begin without explicit product prioritization:
 
 ## New-chat starter prompt
 
-> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, backend `docs/architecture/social-media-worker-runtime.md`, and backend `docs/architecture/provider-http-transport.md`; then inspect only code and tests relevant to the selected bounded slice. P0, P1, and P2 are source-complete. P3 transport foundation is complete through backend PR #102 exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, merge `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`; the selected Amazon Rekognition classifier request/parser contract is complete through backend PR #103 exact green head `02675ab50683c4745f7f1a3c5cc05b081016bb15`, merge `0e2829d91b077eec9fb60d25390b038ada0676db`. The classifier API contract is selected, but Rekognition signing/transport composition is incomplete; the OCR API contract is not selected, provider factories remain unavailable, and managed-media capabilities remain disabled. Continue with the smallest complete Rekognition classifier runtime slice: trusted region-derived endpoint construction, service-correct SigV4 signing, shared transport/circuit integration, bounded result mapping, and deterministic failure conformance; keep OCR work blocked until an explicit documented OCR API contract is selected. Do not invent a generic provider payload or make a provider source-ready without a selected contract. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
+> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, backend `docs/architecture/social-media-worker-runtime.md`, and backend `docs/architecture/provider-http-transport.md`; then inspect only code and tests relevant to the selected bounded slice. P0, P1, and P2 are source-complete. P3 transport foundation is complete through backend PR #102 exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, merge `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`; the selected Amazon Rekognition classifier request/parser contract is complete through backend PR #103 exact green head `02675ab50683c4745f7f1a3c5cc05b081016bb15`, merge `0e2829d91b077eec9fb60d25390b038ada0676db`. The Rekognition classifier runtime is complete through backend PR #104 exact green head `7c684cc9426d33b4a9ec4e52cb818966ae71fdac`, merge `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`. The classifier source boundary is complete, but the OCR API contract is not selected, provider factories remain unavailable, and managed-media capabilities remain disabled. Continue with the smallest complete OCR slice: select and document one provider API contract, then add strict bounded request construction, exact versioned response parsing, provider-neutral OCR mapping, one-attempt transport/circuit integration, runner-owned retry conformance, and secret non-disclosure without changing factories or readiness yet. Do not invent a generic provider payload or make a provider source-ready without a selected contract. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.

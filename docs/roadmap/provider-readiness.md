@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `b95f696b3176ca8597f3cd36bb499b3d9c5971ce`;
-- backend `main`: `0e2829d91b077eec9fb60d25390b038ada0676db`;
+- mobile `main`: `c3e3aca3d7593386924569b4ceeaac2c4a72c56f`;
+- backend `main`: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -38,6 +38,8 @@ Before this documentation synchronization slice:
 - backend PR #102 merge: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
 - backend PR #103 exact green head: `02675ab50683c4745f7f1a3c5cc05b081016bb15`;
 - backend PR #103 merge: `0e2829d91b077eec9fb60d25390b038ada0676db`;
+- backend PR #104 exact green head: `7c684cc9426d33b4a9ec4e52cb818966ae71fdac`;
+- backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -201,7 +203,7 @@ P2 source completion does not imply infrastructure readiness or activation. No c
 
 ## Phase P3 — classifier, OCR, and provider transport readiness
 
-Status: active. Provider-neutral transport and the Amazon Rekognition classifier request/parser contract are merged; classifier signing/transport composition, OCR selection, factories, readiness, and activation remain open.
+Status: active. Provider-neutral transport and the complete Amazon Rekognition classifier source boundary are merged; OCR selection/runtime, composition-root support, readiness, and activation remain open.
 
 Merged evidence:
 
@@ -209,7 +211,9 @@ Merged evidence:
 - backend PR #102 merge: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
 - backend PR #103 exact green head: `02675ab50683c4745f7f1a3c5cc05b081016bb15`;
 - backend PR #103 merge: `0e2829d91b077eec9fb60d25390b038ada0676db`;
-- both exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+- backend PR #104 exact green head: `7c684cc9426d33b4a9ec4e52cb818966ae71fdac`;
+- backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;
+- all three exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 Provider-neutral runtime:
 
@@ -221,17 +225,19 @@ Provider-neutral runtime:
 - [x] add deterministic transport conformance for timeout, cancellation, network failure, malformed metadata, declared/streamed overflow, rate limiting, retryable and terminal statuses, unsafe requests, circuit behavior, and secret non-disclosure;
 - [x] validate the selected classifier response through a strict moderation-model-v7 parser;
 - [x] map validated classifier categories into existing internal signals without changing deterministic domain policy;
-- [ ] compose the classifier request/parser through trusted endpoint construction, service-correct signing, shared transport, and bounded provider-result mapping;
+- [x] compose the classifier request/parser through trusted endpoint construction, service-correct signing, exactly one shared transport attempt, bounded circuit containment, and the existing provider-result mapping;
 - [ ] validate and map the selected OCR provider through its own strict versioned parser;
-- [ ] retain parser, provider, model, policy, and attempt metadata through the runtime result boundary without raw responses or OCR plaintext;
-- [ ] complete provider-adapter conformance for unknown category, duplicate result, malformed JSON, retryable failure, terminal failure, cancellation, rate limit, circuit-open state, stale-worker behavior, and secret non-disclosure.
+- [x] retain bounded classifier provider/model/latency output while preserving runner-owned parser, policy, attempt, and aggregate-latency metadata without raw responses;
+- [ ] retain equivalent bounded OCR provider/model/parser metadata without raw responses or OCR plaintext;
+- [x] complete classifier conformance for unknown category, duplicate result, malformed JSON, retryable/terminal HTTP outcomes, timeout, circuit-open state, runner-owned retries, model drift, and secret non-disclosure;
+- [ ] complete equivalent OCR conformance, including OCR-plaintext non-disclosure and stale-result behavior.
 
 Provider-specific adapters:
 
 - [x] select and document Amazon Rekognition `DetectModerationLabels` as the classifier provider API contract;
 - [x] implement the selected classifier request builder and strict response parser;
-- [ ] add a trusted region-derived Rekognition endpoint and service-correct SigV4 signing;
-- [ ] integrate the classifier through the shared provider HTTP transport and bounded circuit containment;
+- [x] add a trusted region-derived Rekognition endpoint and service-correct SigV4 signing;
+- [x] integrate the classifier through one shared provider HTTP transport attempt and bounded circuit containment while preserving runner-owned retries;
 - [ ] select and document the OCR provider API contract;
 - [ ] implement the selected OCR request builder and strict response parser;
 - [ ] compose selected adapters only in the backend application root;
@@ -239,7 +245,7 @@ Provider-specific adapters:
 - [ ] keep credentials supplied only by backend environment variables or the deployment secret store;
 - [ ] keep adapters and managed-media product capabilities disabled until explicit staging configuration and P4 calibration.
 
-No API key or real provider call was required for the transport or classifier contract slices. The classifier runtime integration remains incomplete, and OCR selection is still required before OCR request and response parsing can begin.
+No API key or real provider call was required for the transport or classifier slices. The classifier source boundary is complete, and OCR selection is still required before OCR request, response, and runtime integration can begin.
 
 No credential, provider account, network call, deployment, worker activation, public upload activation, or production environment change was performed.
 
@@ -342,7 +348,7 @@ Engineering drafts do not constitute legal approval.
 
 ## Execution order
 
-1. P3 selected classifier runtime integration and selected OCR adapter.
+1. P3 selected OCR adapter and classifier/OCR composition/readiness.
 2. P4 moderation calibration harness.
 3. P5 password-reset mobile, deep-link, template, and delivery readiness.
 4. P6 deployment policies, configuration templates, smoke scripts, and runbooks.
