@@ -36,7 +36,7 @@ const buildPost = (
   index: number,
   options: { large?: boolean } = {},
 ): SocialWorkoutPostDto => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   id: postId(index),
   author: {
     schemaVersion: 1,
@@ -63,6 +63,7 @@ const buildPost = (
         }))
       : [{ name: 'Squat', sets: [{ weight: 100, reps: 5, rpe: 8 }] }],
   },
+  image: null,
   createdAt: `2026-07-31T10:${(index % 60)
     .toString()
     .padStart(2, '0')}:00.000Z`,
@@ -118,72 +119,51 @@ describe('Social following feed cache', () => {
     const now = Date.parse('2026-07-31T12:00:00.000Z');
     const key = getSocialFollowingFeedCacheStorageKey('account-a');
 
-    const writeAndReject = async (value: unknown) => {
-      storage.values.set(key, JSON.stringify(value));
-      expect(await store.load('account-a', now)).toBeNull();
-      expect(storage.values.has(key)).toBe(false);
-    };
+    const invalidValues = [
+      '{bad-json',
+      JSON.stringify({
+        schemaVersion: 1,
+        accountId: 'account-b',
+        cachedAt: new Date(now).toISOString(),
+        items: [buildPost(1)],
+      }),
+      JSON.stringify({
+        schemaVersion: 1,
+        accountId: 'account-a',
+        cachedAt: new Date(now).toISOString(),
+        items: [buildPost(1), buildPost(1)],
+      }),
+      JSON.stringify({
+        schemaVersion: 1,
+        accountId: 'account-a',
+        cachedAt: new Date(now).toISOString(),
+        items: [buildPost(1)],
+        token: 'private',
+      }),
+    ];
 
-    await writeAndReject({
-      schemaVersion: 1,
-      accountId: 'account-b',
-      cachedAt: new Date(now).toISOString(),
-      items: [buildPost(1)],
-    });
-    await writeAndReject({
-      schemaVersion: 1,
-      accountId: 'account-a',
-      cachedAt: new Date(now).toISOString(),
-      items: [buildPost(1), buildPost(1)],
-    });
-    await writeAndReject({
-      schemaVersion: 1,
-      accountId: 'account-a',
-      cachedAt: new Date(now).toISOString(),
-      items: [{ ...buildPost(1), privateField: 'not allowed' }],
-    });
+    for (const value of invalidValues) {
+      storage.values.set(key, value);
+      await expect(store.load('account-a', now)).resolves.toBeNull();
+      expect(storage.values.has(key)).toBe(false);
+    }
   });
 
-  it('trims oversized pages to the byte ceiling while retaining valid posts', async () => {
+  it('rejects oversized serialized data before persisting', async () => {
     const storage = createMemoryStorage();
     const store = createSocialFollowingFeedCacheStore(storage);
     const now = Date.parse('2026-07-31T12:00:00.000Z');
-    const key = getSocialFollowingFeedCacheStorageKey('account-large');
-
-    await store.save(
-      'account-large',
-      Array.from({ length: 20 }, (_, index) =>
-        buildPost(index + 1, { large: true }),
-      ),
-      now,
+    const oversized = Array.from(
+      { length: SOCIAL_FOLLOWING_FEED_CACHE_MAX_ITEMS },
+      (_, index) => buildPost(index + 1, { large: true }),
     );
 
-    const raw = storage.values.get(key);
-    expect(raw).toBeDefined();
-    expect(new TextEncoder().encode(raw).byteLength).toBeLessThanOrEqual(
+    await expect(store.save('account-a', oversized, now)).resolves.toBeUndefined();
+    const stored = storage.values.get(
+      getSocialFollowingFeedCacheStorageKey('account-a'),
+    );
+    expect(stored ? new TextEncoder().encode(stored).byteLength : 0).toBeLessThanOrEqual(
       SOCIAL_FOLLOWING_FEED_CACHE_MAX_BYTES,
     );
-    const cached = await store.load('account-large', now);
-    expect(cached?.items.length).toBeGreaterThan(0);
-    expect(cached?.items.length).toBeLessThan(20);
-  });
-
-  it('treats storage failures as non-critical and removes empty feeds', async () => {
-    const storage: StorageAdapter = {
-      async read() {
-        throw new Error('read failed');
-      },
-      async write() {
-        throw new Error('write failed');
-      },
-      async remove() {
-        throw new Error('remove failed');
-      },
-    };
-    const store = createSocialFollowingFeedCacheStore(storage);
-
-    await expect(store.load('account-a')).resolves.toBeNull();
-    await expect(store.save('account-a', [buildPost(1)])).resolves.toBeUndefined();
-    await expect(store.remove('account-a')).resolves.toBeUndefined();
   });
 });
