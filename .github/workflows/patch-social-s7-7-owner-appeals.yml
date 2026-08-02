@@ -1,0 +1,36 @@
+name: Patch Social S7.7 owner appeal checkpoint
+
+on:
+  push:
+    branches:
+      - docs/social-s7-7-owner-appeals
+    paths:
+      - .github/workflows/patch-social-s7-7-owner-appeals.yml
+      - scripts/patch-social-s7-7-owner-appeals.py
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/social-s7-7-owner-appeals
+          fetch-depth: 0
+      - name: Patch roadmap
+        run: python scripts/patch-social-s7-7-owner-appeals.py
+      - name: Validate and publish
+        run: |
+          git diff --check
+          grep -q 'Merged backend PR #89' ROADMAP_PROGRESS.md
+          grep -q 'reviewer byte-view/export provider boundary' ROADMAP_PROGRESS.md
+          test ! -e scripts/patch-social-s7-7-owner-appeals.py
+          test ! -e .github/workflows/patch-social-s7-7-owner-appeals.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'docs: record Social S7.7 owner appeals'
+          git push origin HEAD:docs/social-s7-7-owner-appeals
