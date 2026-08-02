@@ -5,6 +5,8 @@ const MAX_PREVIEW_URI_LENGTH = 4_096;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 
+// Persist only restart-safe local state. Signed upload URLs, headers and auth data
+// remain ephemeral and must be reacquired through the authenticated API flow.
 export type SocialManagedAvatarDraft = {
   schemaVersion: 1;
   assetId: string;
