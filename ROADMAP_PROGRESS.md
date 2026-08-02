@@ -24,10 +24,12 @@ Completed implementation history remains in merged pull requests and focused roa
 
 ## Verified repository baseline
 
-Before the current docs branch:
+Before this documentation synchronization slice:
 
-- mobile `main`: `f4f923e41fb4c1f6de653186fa551f806594acab`;
-- backend `main`: `c6c9177230425194c3ce5508f9e6bf350ed6d697`;
+- mobile `main`: `4e2f7a0ef1dad2d1e1ec05ec533d484e54ae7cd0`;
+- backend `main`: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
+- backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
+- backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -108,11 +110,26 @@ Goal: prepare mobile and backend so later activation requires provider selection
 
 ### P0 — provider configuration and capabilities
 
-- provider-neutral selectors and factories;
+Backend foundation merged in PR #92 from exact green head `97f363221b77fc69041ab19d713e9d9c9124ef9d` as merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`:
+
+- provider-neutral selectors and composition-root factories;
 - separate `configured`, `ready`, and `enabled` states;
 - fail-closed production validation;
-- redacted readiness diagnostics;
-- versioned backend capabilities and strict localized mobile gating.
+- privacy-safe redacted readiness representation;
+- strict versioned backend capability response for managed avatars, workout-post images, media moderation, immutable media delivery, and password reset;
+- safe disabled behavior when configuration is absent;
+- credentials and settings remain inert without explicit product enablement.
+
+Remaining P0 mobile boundary:
+
+- strict versioned capability parser;
+- rejection of unknown critical fields and versions;
+- account/session-safe capability loading and refresh;
+- no requests into known-disabled upload or password-reset pipelines;
+- EN/RU bounded states for unavailable, temporarily unavailable, configuration-required, and recheck-required behavior;
+- preservation of existing offline, auth, navigation, draft, and polling boundaries.
+
+No real provider adapter, credential, deployment, worker, upload, or password-reset email activation was added by the backend foundation.
 
 ### P1 — storage and immutable delivery adapters
 
@@ -175,7 +192,7 @@ Goal: prepare mobile and backend so later activation requires provider selection
 
 ## Current execution order
 
-1. P0 provider configuration and capability foundation.
+1. Complete the remaining P0 mobile capability parser, account/session-safe refresh, localized gating, and control suppression.
 2. P1 S3-compatible storage and immutable delivery adapters.
 3. P2 worker entrypoints and process templates.
 4. P3 provider transport and selected classifier/OCR adapters.
@@ -237,4 +254,4 @@ Do not begin without explicit product prioritization:
 
 ## New-chat starter prompt
 
-> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, and `docs/architecture/app-context-consumer-inventory.md`; then inspect only code and tests relevant to the selected bounded slice. Start with the first incomplete task in Phase P0: provider-neutral backend configuration and factories, explicit `configured`/`ready`/`enabled` states, fail-closed production validation, versioned backend capabilities, and strict localized mobile gating. Preserve all existing media lifecycle, moderation, delivery, review, appeal, retention, legal-hold, cleanup, password-reset, authentication, sync, idempotency, revision, localization, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
+> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, and `docs/architecture/app-context-consumer-inventory.md`; then inspect only code and tests relevant to the selected bounded slice. P0 backend configuration and capability foundation was merged in backend PR #92 from exact green head `97f363221b77fc69041ab19d713e9d9c9124ef9d` as merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`. Start with the remaining P0 mobile boundary: strict versioned capability parsing, rejection of unknown critical fields and versions, account/session-safe loading and refresh, suppression of known-disabled requests and controls, and bounded localized EN/RU unavailable states. Preserve all existing media lifecycle, moderation, delivery, review, appeal, retention, legal-hold, cleanup, password-reset, authentication, sync, idempotency, revision, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
