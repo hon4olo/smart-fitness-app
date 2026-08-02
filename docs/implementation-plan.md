@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `9c7eca92793b175c2bbff541a94bc9d1c29e76c2`;
-- backend `main`: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
+- mobile `main`: `4ea33fcbb20458676b12536cd3662eec35bb9000`;
+- backend `main`: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -30,6 +30,8 @@ Before this documentation synchronization slice:
 - backend PR #100 merge: `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`;
 - backend PR #101 exact green head: `cc261cfe01c82d8b18888195fc8e4eec1ee56558`;
 - backend PR #101 merge: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
+- backend PR #102 exact green head: `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`;
+- backend PR #102 merge: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -144,16 +146,33 @@ Completed source boundary:
 - deterministic template/readiness tests and operational runbook;
 - no deployment, scheduling, credentials, provider calls, environment activation, public uploads, or product enablement.
 
+## Current P3 status
+
+The provider-neutral HTTP transport and failure-containment foundation are source-complete.
+
+Backend PR #102, exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, merge `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`:
+
+- added bounded HTTPS GET/POST transport with caller cancellation, internal timeout, manual redirects, no-store requests, omitted credentials, safe headers, and bounded request/response bytes;
+- added strict status classification and bounded Retry-After/RateLimit metadata;
+- added constant redacted transport errors and no internal retry loop;
+- added optional bounded circuit containment with one half-open probe;
+- added deterministic no-network conformance tests and architecture documentation;
+- preserved provider-runner retry ownership, moderation policy, worker leases, provider factories, production source support, readiness, and product disablement.
+
 ## Next bounded slice
 
-Start P3 with the provider-neutral transport and conformance foundation:
+P3 provider-specific work requires an explicitly selected documented classifier or OCR provider API contract.
 
-- audit current classifier/OCR provider contracts, unavailable providers, provider runner, configuration bounds, and existing deterministic policy inputs;
-- add a backend-only bounded HTTP transport with abortable timeout, cancellation, response-size limits, strict status handling, rate-limit metadata, and redacted errors;
-- define retryable versus terminal transport outcomes without changing existing domain policy or worker leases;
-- add reusable conformance tests for timeout, cancellation, malformed response, oversized response, unknown status/category, rate limiting, retryable failure, terminal failure, and secret non-disclosure;
-- keep provider-specific request/response parsers deferred until a provider API is selected;
-- keep classifier/OCR readiness unavailable and managed-media product capabilities disabled.
+After selection, implement one adapter at a time:
+
+- strict endpoint-relative request construction through the merged provider HTTP transport;
+- exact versioned response parser that rejects malformed JSON, unknown required fields, unsupported categories, duplicates, non-finite values, and incompatible versions;
+- mapping into the existing internal classifier or OCR contract without changing deterministic moderation policy;
+- bounded provider/model/parser metadata without raw payloads or OCR plaintext;
+- conformance coverage for success, retryable and terminal HTTP outcomes, timeout, cancellation, rate limit, malformed response, unknown category, duplicate result, stale worker, circuit-open state, and secret non-disclosure;
+- composition-root source support only after the adapter is complete.
+
+Do not create an invented generic provider payload, mark `external_http` source-ready, or change classifier/OCR capability readiness until provider-specific adapters are merged.
 
 No deployment, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized.
 
