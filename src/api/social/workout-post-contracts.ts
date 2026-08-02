@@ -1,5 +1,5 @@
-import type { SocialProfileDto } from './contracts';
-import type { SocialMediaPublicDescriptorDto } from './media-contracts';
+import type { SocialProfileDto } from "./contracts";
+import type { SocialMediaPublicDescriptorDto } from "./media-contracts";
 
 export const SOCIAL_WORKOUT_POST_DTO_SCHEMA_VERSION = 2 as const;
 export const SOCIAL_WORKOUT_SNAPSHOT_SCHEMA_VERSION = 1 as const;

@@ -29,7 +29,8 @@ export function SocialWorkoutPostImage({
       style={[
         styles.postImageFrame,
         { aspectRatio: descriptor.aspectRatio, backgroundColor },
-      ]}>
+      ]}
+    >
       <Image
         resizeMode="cover"
         source={{ uri: variant.url }}

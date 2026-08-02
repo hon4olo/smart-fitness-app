@@ -1,16 +1,24 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet } from "react-native";
 
-import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
+import {
+  Colors,
+  MaxContentWidth,
+  Radii,
+  Spacing,
+  Typography,
+} from "@/constants/theme";
 
-export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark) =>
+export const createSocialWorkoutPostSurfaceStyles = (
+  colors: typeof Colors.dark,
+) =>
   StyleSheet.create({
     backButton: {
-      alignItems: 'center',
+      alignItems: "center",
       borderColor: colors.borderSubtle,
       borderRadius: Radii.large,
       borderWidth: StyleSheet.hairlineWidth,
       height: 44,
-      justifyContent: 'center',
+      justifyContent: "center",
       width: 44,
     },
     backLabel: { color: colors.textPrimary, fontSize: 32, lineHeight: 34 },
@@ -31,8 +39,8 @@ export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark)
       lineHeight: Typography.cardTitle.lineHeight,
     },
     commentActions: {
-      alignItems: 'center',
-      flexDirection: 'row',
+      alignItems: "center",
+      flexDirection: "row",
       gap: Spacing.one,
     },
     commentBody: {
@@ -43,56 +51,56 @@ export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark)
     commentCard: {
       backgroundColor: colors.backgroundSelected,
       borderColor: colors.borderSubtle,
-      borderCurve: 'continuous',
+      borderCurve: "continuous",
       borderRadius: Radii.medium,
       borderWidth: StyleSheet.hairlineWidth,
       gap: Spacing.two,
       padding: Spacing.three,
     },
     commentDeleteButton: {
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       minHeight: 32,
       paddingHorizontal: Spacing.two,
     },
     commentDeleteLabel: {
       color: colors.error,
       fontSize: Typography.caption.fontSize,
-      fontWeight: '700',
+      fontWeight: "700",
       lineHeight: Typography.caption.lineHeight,
     },
     commentHeader: {
-      alignItems: 'flex-start',
-      flexDirection: 'row',
+      alignItems: "flex-start",
+      flexDirection: "row",
       gap: Spacing.two,
-      justifyContent: 'space-between',
+      justifyContent: "space-between",
     },
     commentHeaderCopy: { flex: 1, gap: 2 },
     commentInput: { minHeight: 96 },
     commentReportButton: {
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       minHeight: 32,
       paddingHorizontal: Spacing.two,
     },
     commentReportLabel: {
       color: colors.textSecondary,
       fontSize: Typography.caption.fontSize,
-      fontWeight: '700',
+      fontWeight: "700",
       lineHeight: Typography.caption.lineHeight,
     },
-    container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
+    container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: "100%" },
     content: {
-      alignItems: 'center',
+      alignItems: "center",
       paddingHorizontal: Spacing.four,
       paddingTop: Spacing.four,
     },
     detailLabel: {
       color: colors.textSecondary,
       fontSize: Typography.caption.fontSize,
-      fontWeight: '700',
+      fontWeight: "700",
       letterSpacing: 0.5,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
     },
     detailValue: {
       color: colors.textPrimary,
@@ -109,11 +117,15 @@ export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark)
     eyebrow: {
       color: colors.accent,
       fontSize: Typography.caption.fontSize,
-      fontWeight: '800',
+      fontWeight: "800",
       letterSpacing: 1.2,
     },
     headerCopy: { flex: 1, gap: Spacing.one },
-    headerRow: { alignItems: 'flex-start', flexDirection: 'row', gap: Spacing.three },
+    headerRow: {
+      alignItems: "flex-start",
+      flexDirection: "row",
+      gap: Spacing.three,
+    },
     metaText: {
       color: colors.textSecondary,
       fontSize: Typography.caption.fontSize,
@@ -132,7 +144,7 @@ export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark)
       fontSize: Typography.caption.fontSize,
       lineHeight: Typography.caption.lineHeight,
     },
-    metricRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+    metricRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
     metricValue: {
       color: colors.textPrimary,
       fontSize: Typography.label.fontSize,
@@ -140,14 +152,18 @@ export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark)
       lineHeight: Typography.label.lineHeight,
     },
     postCard: { gap: Spacing.three },
-    postHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: Spacing.three },
+    postHeader: {
+      alignItems: "flex-start",
+      flexDirection: "row",
+      gap: Spacing.three,
+    },
     postHeaderCopy: { flex: 1, gap: Spacing.one },
-    postImage: { height: '100%', width: '100%' },
+    postImage: { height: "100%", width: "100%" },
     postImageFrame: {
-      borderCurve: 'continuous',
+      borderCurve: "continuous",
       borderRadius: Radii.medium,
-      overflow: 'hidden',
-      width: '100%',
+      overflow: "hidden",
+      width: "100%",
     },
     postTitle: {
       color: colors.textPrimary,
@@ -158,11 +174,11 @@ export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark)
     pressed: { opacity: 0.72 },
     screen: { backgroundColor: colors.background, flex: 1 },
     setRow: {
-      alignItems: 'center',
+      alignItems: "center",
       borderTopColor: colors.borderSubtle,
       borderTopWidth: StyleSheet.hairlineWidth,
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.three,
       paddingTop: Spacing.two,
     },
@@ -181,7 +197,7 @@ export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark)
     username: {
       color: colors.accent,
       fontSize: Typography.caption.fontSize,
-      fontWeight: '700',
+      fontWeight: "700",
       lineHeight: Typography.caption.lineHeight,
     },
   });

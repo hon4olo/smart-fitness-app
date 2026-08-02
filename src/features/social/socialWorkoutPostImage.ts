@@ -9,20 +9,17 @@ export type SelectedSocialWorkoutPostImage = {
   height: number;
 };
 
-export type PreparedSocialWorkoutPostImage =
-  SelectedSocialWorkoutPostImage & {
-    mediaType: "image/jpeg";
-    byteSize: number;
-  };
+export type PreparedSocialWorkoutPostImage = SelectedSocialWorkoutPostImage & {
+  mediaType: "image/jpeg";
+  byteSize: number;
+};
 
 const MAX_LONG_EDGE = 2_048;
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 const toSelectedImage = (
   result:
-    | ImagePicker.ImagePickerResult
-    | ImagePicker.ImagePickerErrorResult
-    | null,
+    ImagePicker.ImagePickerResult | ImagePicker.ImagePickerErrorResult | null,
 ): SelectedSocialWorkoutPostImage | null => {
   if (!result || "code" in result) {
     if (result && "code" in result) {

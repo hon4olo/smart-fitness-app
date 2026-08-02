@@ -251,10 +251,7 @@ export const useSocialWorkoutPostMedia = ({
       return;
     }
     const recoveryKey = `${accountId}:${sessionId}`;
-    if (
-      operation !== "idle" ||
-      recoveredPendingKey.current === recoveryKey
-    ) {
+    if (operation !== "idle" || recoveredPendingKey.current === recoveryKey) {
       return;
     }
     recoveredPendingKey.current = recoveryKey;

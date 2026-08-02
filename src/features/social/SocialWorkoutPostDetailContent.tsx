@@ -1,19 +1,19 @@
-import { Text, View } from 'react-native';
+import { Text, View } from "react-native";
 
-import type { SocialWorkoutPostDto, SocialWorkoutPostSetDto } from '@/api/social';
-import { AppCard } from '@/components/ui/AppCard';
-import {
-  formatLocalizedNumber,
-  type SupportedLocale,
-} from '@/localization';
+import type {
+  SocialWorkoutPostDto,
+  SocialWorkoutPostSetDto,
+} from "@/api/social";
+import { AppCard } from "@/components/ui/AppCard";
+import { formatLocalizedNumber, type SupportedLocale } from "@/localization";
 
-import { SocialWorkoutPostImage } from './SocialWorkoutPostImage';
-import type { SocialWorkoutPostSurfaceCopy } from './socialWorkoutPostSurfaceCopy';
+import { SocialWorkoutPostImage } from "./SocialWorkoutPostImage";
+import type { SocialWorkoutPostSurfaceCopy } from "./socialWorkoutPostSurfaceCopy";
 import {
   countSocialWorkoutPostSets,
   formatSocialWorkoutPostDate,
-} from './socialWorkoutPostSurfaceModel';
-import type { SocialWorkoutPostSurfaceStyles } from './screens/SocialWorkoutPostSurface.styles';
+} from "./socialWorkoutPostSurfaceModel";
+import type { SocialWorkoutPostSurfaceStyles } from "./screens/SocialWorkoutPostSurface.styles";
 
 type SocialWorkoutPostDetailContentProps = {
   copy: SocialWorkoutPostSurfaceCopy;
@@ -65,7 +65,11 @@ export function SocialWorkoutPostDetailContent({
               />
             ) : null}
             {post.workout.exercises !== undefined ? (
-              <Metric label={copy.exercises} styles={styles} value={`${exerciseCount}`} />
+              <Metric
+                label={copy.exercises}
+                styles={styles}
+                value={`${exerciseCount}`}
+              />
             ) : null}
             {setCount > 0 ? (
               <Metric label={copy.sets} styles={styles} value={`${setCount}`} />
@@ -84,7 +88,10 @@ export function SocialWorkoutPostDetailContent({
       </AppCard>
 
       {post.workout.exercises?.map((exercise, exerciseIndex) => (
-        <AppCard key={`${exercise.name}-${exerciseIndex}`} style={styles.exerciseCard}>
+        <AppCard
+          key={`${exercise.name}-${exerciseIndex}`}
+          style={styles.exerciseCard}
+        >
           <Text style={styles.exerciseName}>{exercise.name}</Text>
           {exercise.sets?.map((set, setIndex) => (
             <SetRow

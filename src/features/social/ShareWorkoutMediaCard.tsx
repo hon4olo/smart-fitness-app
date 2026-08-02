@@ -58,7 +58,9 @@ export function ShareWorkoutMediaCard({
           />
         ) : null}
 
-        {operationLabel ? <Text style={styles.body}>{operationLabel}</Text> : null}
+        {operationLabel ? (
+          <Text style={styles.body}>{operationLabel}</Text>
+        ) : null}
         {controller.uploadProgress !== null ? (
           <View style={styles.progressTrack}>
             <View
