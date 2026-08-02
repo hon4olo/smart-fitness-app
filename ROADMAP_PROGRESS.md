@@ -26,14 +26,16 @@ Completed implementation history remains in merged pull requests and focused roa
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
-- backend `main`: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
+- mobile `main`: `e69185cb3a61f2c802a6c87ca33f8c168e1beb79`;
+- backend `main`: `a2d4f67db3000785facb11e2d69cacb8cda03bc3`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
 - backend PR #93 merge: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
 - mobile PR #363 exact green head: `ebda5b78713e0313bf088a54b299b6a943131074`;
 - mobile PR #363 merge: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
+- backend PR #94 exact green head: `f0a199ac4c797d6b025fb48226502a7edddcab9e`;
+- backend PR #94 merge: `a2d4f67db3000785facb11e2d69cacb8cda03bc3`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -145,12 +147,28 @@ No real provider adapter, credential, deployment, worker, upload, or password-re
 
 ### P1 — storage and immutable delivery adapters
 
-Status: active next phase.
+tive. The private S3-compatible object-storage slice is merged; immutable media delivery and bounded prefix cleanup remain active.
 
-- S3-compatible private quarantine and moderation storage;
-- narrowly scoped presigned uploads and bounded private reads;
-- immutable derivative publication and trusted CDN URL construction;
-- checksum, namespace, duplicate, expiry, and cleanup conformance tests.
+ #94, exact green head `f0a199ac4c797d6b025fb48226502a7edddcab9e`, merge `a2d4f67db3000785facb11e2d69cacb8cda03bc3`:
+
+pendency-free S3 Signature Version 4 primitives and bounded HTTPS transport;
+production S3-compatible private object-storage adapter behind the existing provider-neutral contract;
+ivate quarantine uploads to exact method, object key, content type, content length, signed headers, and expiry;
+gned `HEAD`, bounded private `GET`, conditional immutable private `PUT`, and idempotent exact-object deletion;
+tadata, checksum, namespace, expiry, duplicate-write, malformed-response, and privacy-safe conformance coverage;
+ the adapter only in the backend composition root;
+y private object storage operationally ready while preserving disabled product behavior.
+
+P1 boundary:
+
+e derivative upload with exact JPEG metadata and SHA-256 verification;
+ max-age=31536000, immutable` enforcement;
+configured delivery-base URL construction;
+to replace an existing key with different bytes;
+exact-prefix listing and cleanup for validated managed-media asset prefixes;
+publication recovery and reusable immutable-delivery conformance tests.
+
+dia product capabilities remain unavailable until delivery, classifier, and OCR providers are ready and the explicit product flag is enabled. No real provider call, credential, bucket, CDN, deployment, worker, or upload activation was performed.
 
 ### P2 — worker entrypoints and orchestration
 
@@ -267,4 +285,4 @@ Do not begin without explicit product prioritization:
 
 ## New-chat starter prompt
 
-> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, and `docs/architecture/app-context-consumer-inventory.md`; then inspect only code and tests relevant to the selected bounded slice. P0 is complete: backend PR #92 exact green head `97f363221b77fc69041ab19d713e9d9c9124ef9d`, merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`; backend PR #93 exact green head `d3a1f19ed419fe96111925ebe37e36ad855a67de`, merge `84e4100b85d24bfee04be2dbea0130fd95be3370`; mobile PR #363 exact green head `ebda5b78713e0313bf088a54b299b6a943131074`, merge `ac468c103db07ecb6b550535ed77aa72898fb68d`. Start with the first bounded P1 backend slice: audit the existing object-storage and media-delivery contracts, implement the smallest complete S3-compatible private-storage or immutable-delivery adapter boundary with strict configuration and deterministic conformance tests, and preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, retention, legal-hold, cleanup, password-reset, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
+> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, and `docs/architecture/app-context-consumer-inventory.md`; then inspect only code and tests relevant to the selected bounded slice. P0 is complete: backend PR #92 exact green head `97f363221b77fc69041ab19d713e9d9c9124ef9d`, merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`; backend PR #93 exact green head `d3a1f19ed419fe96111925ebe37e36ad855a67de`, merge `84e4100b85d24bfee04be2dbea0130fd95be3370`; mobile PR #363 exact green head `ebda5b78713e0313bf088a54b299b6a943131074`, merge `ac468c103db07ecb6b550535ed77aa72898fb68d`. Backend PR #94 completed the private S3-compatible object-storage slice from exact green head `f0a199ac4c797d6b025fb48226502a7edddcab9e` as merge `a2d4f67db3000785facb11e2d69cacb8cda03bc3`. Start with the next bounded P1 backend slice: implement immutable media delivery using the shared SigV4 and bounded transport primitives, trusted public URL construction, immutable cache metadata, and validated asset-prefix cleanup with deterministic conformance tests, and preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, retention, legal-hold, cleanup, password-reset, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.

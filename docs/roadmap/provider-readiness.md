@@ -12,14 +12,16 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
-- backend `main`: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
+- mobile `main`: `e69185cb3a61f2c802a6c87ca33f8c168e1beb79`;
+- backend `main`: `a2d4f67db3000785facb11e2d69cacb8cda03bc3`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
 - backend PR #93 merge: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
 - mobile PR #363 exact green head: `ebda5b78713e0313bf088a54b299b6a943131074`;
 - mobile PR #363 merge: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
+- backend PR #94 exact green head: `f0a199ac4c797d6b025fb48226502a7edddcab9e`;
+- backend PR #94 merge: `a2d4f67db3000785facb11e2d69cacb8cda03bc3`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -101,39 +103,49 @@ No real provider adapter, credential, provider call, backend deployment, worker 
 
 ## Phase P1 — S3-compatible private storage and immutable delivery adapters
 
-Status: active next phase.
+tive. Private object storage is merged; immutable delivery and validated prefix cleanup remain incomplete.
 
-Private object storage:
+vate-storage evidence:
 
-- [ ] implement a production S3-compatible adapter usable with AWS S3, Cloudflare R2, Backblaze B2 S3 API, MinIO, or another explicitly configured compatible endpoint;
-- [ ] create narrowly scoped presigned private `PUT` uploads with exact method, content type, content length, expiry, and key namespace;
-- [ ] implement bounded `HEAD`, bounded private `GET`, exact-object deletion, and exact-prefix deletion;
-- [ ] verify returned metadata, content length, media type, checksum or ETag semantics, and missing-object behavior;
-- [ ] reject path traversal, foreign namespaces, public ACLs, unbounded reads, arbitrary client keys, and unsafe endpoint configuration;
-- [ ] keep quarantine and moderation-master objects private.
+PR #94 exact green head: `f0a199ac4c797d6b025fb48226502a7edddcab9e`;
+PR #94 merge: `a2d4f67db3000785facb11e2d69cacb8cda03bc3`;
+ad passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
-Immutable delivery:
+ject storage:
 
-- [ ] implement immutable derivative upload with SHA-256 verification and exact JPEG metadata;
-- [ ] enforce `public, max-age=31536000, immutable` for public variants;
-- [ ] refuse replacement of an existing key with different content;
-- [ ] implement exact object and asset-prefix cleanup with partial-publication recovery;
-- [ ] build public URLs only from a configured trusted CDN or delivery base URL;
-- [ ] preserve owner-opaque public paths and strict named variant sets.
+ement a production S3-compatible adapter usable with AWS S3, Cloudflare R2, Backblaze B2 S3 API, MinIO, or another explicitly configured compatible endpoint;
+te narrowly scoped presigned private `PUT` uploads with exact method, content type, content length, expiry, signed headers, and key namespace;
+ement signed `HEAD`, bounded private `GET`, conditional immutable private `PUT`, and idempotent exact-object deletion;
+fy returned content length, media type, ETag, last-modified metadata, optional SHA-256 metadata, and missing-object behavior;
+ct path traversal, foreign namespaces, unsafe endpoint configuration, unbounded reads, mutable replacement, malformed metadata, and inconsistent response bytes;
+ quarantine and moderation-master objects private and compose the concrete provider only in the application root;
+bounded prefix operations only through an exact validated managed-media prefix contract where cleanup requires them.
 
-Validation:
+delivery:
 
-- [ ] add a reusable storage conformance suite covering signing, expiry, MIME and size mismatch, missing objects, bounded reads, duplicate writes, idempotent deletion, prefix isolation, checksum mismatch, and partial cleanup;
-- [ ] retain deterministic in-memory providers for unit and PostgreSQL integration tests;
-- [ ] do not require real credentials in CI.
+ement immutable derivative upload with SHA-256 verification and exact JPEG metadata;
+rce `public, max-age=31536000, immutable` for public variants;
+se replacement of an existing key with different content;
+ement exact object and asset-prefix cleanup with partial-publication recovery;
+d public URLs only from a configured trusted CDN or delivery base URL;
+erve owner-opaque public paths and strict named variant sets.
 
-First bounded P1 slice:
+:
 
-- audit current object-storage and media-delivery contracts, composition-root runtime, call sites, and tests;
-- choose the smallest complete adapter boundary rather than implementing both providers end to end in one PR;
-- add strict provider configuration and deterministic conformance tests without real network calls;
-- preserve P0 safe defaults and production fail-closed validation;
-- do not create buckets, configure public access, connect a CDN, or make real provider calls.
+deterministic signing and private-storage conformance coverage for expiry, MIME and size binding, missing objects, bounded reads, duplicate writes, idempotent exact deletion, namespace isolation, checksum mismatch, malformed metadata, and secret non-disclosure;
+nd the reusable conformance suite for immutable publication, bounded prefix enumeration and deletion, prefix isolation, cleanup replay, and partial-publication recovery;
+in deterministic in-memory providers for unit and PostgreSQL integration tests;
+ CI independent of real credentials and network calls.
+
+ed P1 slice:
+
+e merged SigV4 and bounded HTTPS transport primitives for immutable delivery;
+ct list/delete support only for exact validated asset prefixes;
+vider-specific XML or HTTP payloads inside the adapter;
+ delivery-worker state-version, lease, stale-worker, partial-cleanup, and approval-transition boundaries;
+ aggregate capability unavailable until delivery, classifier, and OCR readiness and explicit product enablement are all true.
+
+r credential, real call, bucket, public ACL, CDN, deployment, worker activation, public upload activation, or production environment change was performed.
 
 ## Phase P2 — production worker entrypoints and orchestration
 
