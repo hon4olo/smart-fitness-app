@@ -1,4 +1,4 @@
-# Retry after updating remaining workout-post DTO v2 fixtures.
+# Retry after updating all remaining workout-post DTO v2 fixtures.
 name: Validate Social S7.6 mobile source
 
 on:
@@ -25,7 +25,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Apply bounded API payload patch
+      - name: Apply bounded source patches
         shell: bash
         run: |
           python - <<'PY'
@@ -77,12 +77,33 @@ jobs:
           if source.count(old) != 1:
               raise SystemExit('workout post payload target mismatch')
           path.write_text(source.replace(old, new))
+
+          test_path = Path('src/api/social/api.test.ts')
+          test = test_path.read_text()
+          old_fixture = '''      schemaVersion: 1,
+                id: "00000000-0000-4000-8000-000000000001",
+                author: profile,
+                caption: "Training day",
+                workout: { schemaVersion: 1, title: "Upper body" },
+                createdAt: "2026-07-31T09:00:00.000Z",
+          '''
+          new_fixture = '''      schemaVersion: 2,
+                id: "00000000-0000-4000-8000-000000000001",
+                author: profile,
+                caption: "Training day",
+                workout: { schemaVersion: 1, title: "Upper body" },
+                image: null,
+                createdAt: "2026-07-31T09:00:00.000Z",
+          '''
+          if test.count(old_fixture) != 1:
+              raise SystemExit('following feed fixture target mismatch')
+          test_path.write_text(test.replace(old_fixture, new_fixture))
           PY
       - name: Format changed source
         shell: bash
         run: |
           mapfile -t files < <(git diff --name-only origin/main...HEAD -- '*.ts' '*.tsx')
-          files+=(src/api/social/api.ts)
+          files+=(src/api/social/api.ts src/api/social/api.test.ts)
           npx prettier --write "${files[@]}"
       - name: Validate source
         shell: bash
