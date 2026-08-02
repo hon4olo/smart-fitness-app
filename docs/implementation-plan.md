@@ -6,10 +6,12 @@ This file contains the current verified baseline, active source program, executi
 
 ## Verified baseline
 
-Before the current docs branch:
+Before this documentation synchronization slice:
 
-- mobile `main`: `f4f923e41fb4c1f6de653186fa551f806594acab`;
-- backend `main`: `c6c9177230425194c3ce5508f9e6bf350ed6d697`;
+- mobile `main`: `4e2f7a0ef1dad2d1e1ec05ec533d484e54ae7cd0`;
+- backend `main`: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
+- backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
+- backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -47,18 +49,37 @@ The program includes:
 9. privacy-safe diagnostics, fixed-SHA release gating, and Android source preparation;
 10. technical privacy, legal, and analytics prerequisites.
 
+## Current P0 status
+
+The backend provider configuration and capability foundation was merged in backend PR #92 from exact green head `97f363221b77fc69041ab19d713e9d9c9124ef9d` as merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`.
+
+Merged backend scope:
+
+- provider-neutral selectors for private object storage, immutable media delivery, media classifier, OCR, and password-reset delivery;
+- composition-root provider factories;
+- explicit `configured`, `ready`, and `enabled` states;
+- credentials and settings remain inert without explicit product enablement;
+- strict fail-closed production validation for unsafe, incomplete, memory, unavailable, and source-unsupported enabled configurations;
+- privacy-safe configuration/readiness representation;
+- strict versioned authenticated backend capability response for managed avatars, workout-post images, media moderation, immutable media delivery, and password reset;
+- safe disabled behavior when configuration is absent.
+
+No real provider adapter, credential, provider call, deployment, worker activation, public upload activation, or production password-reset email activation was added.
+
 ## Next bounded slice
 
-Start with Phase P0 from `docs/roadmap/provider-readiness.md`:
+Complete the remaining mobile boundary of Phase P0 from `docs/roadmap/provider-readiness.md`:
 
-- backend provider-neutral configuration selectors;
-- explicit `configured`, `ready`, and `enabled` states;
-- strict production fail-closed validation;
-- provider factories at the composition root;
-- versioned backend capability response;
-- strict mobile capability parsing and localized gating.
+- add a strict versioned parser for the backend capability response;
+- reject unknown critical fields and unsupported versions;
+- add account/session-safe capability loading and refresh;
+- hide or disable unavailable upload and password-reset controls;
+- do not send requests into a known-disabled pipeline;
+- add bounded EN/RU states for unavailable, temporarily unavailable, configuration-required, and recheck-required behavior;
+- never expose raw backend, provider, status, or error text;
+- preserve current offline, auth, navigation, draft, and polling boundaries.
 
-P0 must not connect a real provider or require credentials. Existing disabled behavior remains the safe default.
+The remaining P0 mobile slice must not connect a real provider or require credentials. Existing disabled behavior remains the safe default.
 
 ## Execution rules
 
