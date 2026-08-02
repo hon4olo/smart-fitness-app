@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 MOBILE_MAIN = "720273195668d3663ec35ba7baca090127ee1b15"
 BACKEND_MAIN = "37d4c91cafdeedde122e344fbaca78d00f1c70be"
@@ -13,11 +12,20 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
-def replace_pattern(text: str, pattern: str, replacement: str, label: str) -> str:
-    updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
-    if count != 1:
-        raise SystemExit(f"{label}: expected one match, found {count}")
-    return updated
+def replace_section(
+    text: str,
+    start_marker: str,
+    end_marker: str,
+    replacement: str,
+    label: str,
+) -> str:
+    start = text.find(start_marker)
+    if start < 0:
+        raise SystemExit(f"{label}: start marker missing")
+    end = text.find(end_marker, start + len(start_marker))
+    if end < 0:
+        raise SystemExit(f"{label}: end marker missing")
+    return text[:start] + replacement + text[end:]
 
 
 def update_baseline(text: str, label: str) -> str:
@@ -34,12 +42,14 @@ def update_baseline(text: str, label: str) -> str:
         f"{label} backend baseline",
     )
     marker = "- backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;"
-    addition = (
+    return replace_once(
+        text,
+        marker,
         marker
         + f"\n- backend PR #105 exact green head: `{PR105_HEAD}`;"
-        + f"\n- backend PR #105 merge: `{BACKEND_MAIN}`;"
+        + f"\n- backend PR #105 merge: `{BACKEND_MAIN}`;",
+        f"{label} PR105 evidence",
     )
-    return replace_once(text, marker, addition, f"{label} PR105 evidence")
 
 
 roadmap_path = Path("ROADMAP_PROGRESS.md")
@@ -51,7 +61,10 @@ roadmap = replace_once(
     "roadmap P3 status",
 )
 pr104_end = "- made no real provider call and did not change factories, environment schema, source readiness, workers, product capabilities, or activation."
-pr105_block = f"""{pr104_end}
+roadmap = replace_once(
+    roadmap,
+    pr104_end,
+    f"""{pr104_end}
 
 Backend PR #105, exact green head `{PR105_HEAD}`, merge `{BACKEND_MAIN}`:
 
@@ -62,11 +75,13 @@ Backend PR #105, exact green head `{PR105_HEAD}`, merge `{BACKEND_MAIN}`:
 - composed exactly one bounded OCR HTTP/circuit attempt per provider invocation and preserved retry ownership in `runMediaOcr`;
 - mapped timeout, network, circuit, throttling, retryable/terminal HTTP, malformed-response, model-drift, and runtime-configuration outcomes into existing `ocr_*` result codes;
 - added deterministic no-network contract/runtime conformance and excluded raw provider payloads, messages, signed headers, image bytes, endpoints, credentials, and OCR plaintext from errors and logs;
-- made no real provider call and did not change factories, environment schema, production source support, readiness, workers, product capabilities, or activation."""
-roadmap = replace_once(roadmap, pr104_end, pr105_block, "roadmap PR105 summary")
-roadmap = replace_pattern(
+- made no real provider call and did not change factories, environment schema, production source support, readiness, workers, product capabilities, or activation.""",
+    "roadmap PR105 summary",
+)
+roadmap = replace_section(
     roadmap,
-    r"Remaining P3 boundary:\n\n(?:- .*\n)+\n### P4",
+    "Remaining P3 boundary:\n",
+    "### P4 — moderation calibration harness",
     """Remaining P3 boundary:
 
 - add backend-only configuration for the selected Rekognition classifier and OCR adapters without committing credentials;
@@ -77,7 +92,7 @@ roadmap = replace_pattern(
 - add deterministic factory, redaction, configuration, readiness-manifest, capability, and production-validation coverage without real network calls;
 - keep credentials, real calls, staging configuration, managed-media product enablement, and P4 calibration outside autonomous source work.
 
-### P4""",
+""",
     "roadmap remaining P3",
 )
 roadmap = replace_once(
@@ -86,22 +101,22 @@ roadmap = replace_once(
     "1. P3 classifier/OCR composition-root configuration, source support, and readiness.",
     "roadmap execution order",
 )
-roadmap = replace_pattern(
-    roadmap,
-    r"> Continue autonomous work on the Smart Fitness Provider and Release Readiness program\..*\Z",
-    f"""> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, backend `docs/architecture/social-media-worker-runtime.md`, backend `docs/architecture/provider-http-transport.md`, backend `docs/architecture/amazon-rekognition-classifier.md`, and backend `docs/architecture/amazon-rekognition-ocr.md`; then inspect only code and tests relevant to the selected bounded slice. P0, P1, and P2 are source-complete. P3 provider transport and Amazon Rekognition classifier/OCR source boundaries are complete through backend PR #105 exact green head `{PR105_HEAD}`, merge `{BACKEND_MAIN}`. Provider factories, environment schema, production source support, operational readiness, and managed-media capabilities remain disabled. Continue with the smallest complete composition-root slice: add strict backend-only configuration for the selected Rekognition classifier and OCR adapters, compose them only in the application root through the existing bounded transport/circuit boundaries, update source-support validation only for complete adapters, and add deterministic configuration/factory/readiness/redaction coverage. Keep configured, ready, and enabled states separate; credentials alone must not activate any capability. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
-""",
-    "roadmap starter prompt",
-)
+starter = "> Continue autonomous work on the Smart Fitness Provider and Release Readiness program."
+starter_index = roadmap.find(starter)
+if starter_index < 0:
+    raise SystemExit("roadmap starter prompt missing")
+roadmap = roadmap[:starter_index] + f"""> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, backend `docs/architecture/social-media-worker-runtime.md`, backend `docs/architecture/provider-http-transport.md`, backend `docs/architecture/amazon-rekognition-classifier.md`, and backend `docs/architecture/amazon-rekognition-ocr.md`; then inspect only code and tests relevant to the selected bounded slice. P0, P1, and P2 are source-complete. P3 provider transport and Amazon Rekognition classifier/OCR source boundaries are complete through backend PR #105 exact green head `{PR105_HEAD}`, merge `{BACKEND_MAIN}`. Provider factories, environment schema, production source support, operational readiness, and managed-media capabilities remain disabled. Continue with the smallest complete composition-root slice: add strict backend-only configuration for the selected Rekognition classifier and OCR adapters, compose them only in the application root through the existing bounded transport/circuit boundaries, update source-support validation only for complete adapters, and add deterministic configuration/factory/readiness/redaction coverage. Keep configured, ready, and enabled states separate; credentials alone must not activate any capability. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
+"""
 roadmap_path.write_text(roadmap)
 
 
 plan_path = Path("docs/implementation-plan.md")
 plan = update_baseline(plan_path.read_text(), "implementation plan")
+plan_marker = "- preserved absent factory support, environment schema, source readiness, product capability enablement, credentials, real calls, and deployment."
 plan = replace_once(
     plan,
-    "- preserved absent factory support, environment schema, source readiness, product capability enablement, credentials, real calls, and deployment.",
-    f"""- preserved absent factory support, environment schema, source readiness, product capability enablement, credentials, real calls, and deployment.
+    plan_marker,
+    f"""{plan_marker}
 
 Backend PR #105, exact green head `{PR105_HEAD}`, merge `{BACKEND_MAIN}`:
 
@@ -116,9 +131,10 @@ Backend PR #105, exact green head `{PR105_HEAD}`, merge `{BACKEND_MAIN}`:
 - preserved absent factory support, environment schema, production source readiness, product capability enablement, credentials, real calls, and deployment.""",
     "implementation PR105 summary",
 )
-plan = replace_pattern(
+plan = replace_section(
     plan,
-    r"## Next bounded slice\n\n.*?\n\nNo deployment, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized\.",
+    "## Next bounded slice\n",
+    "## Execution rules",
     """## Next bounded slice
 
 Complete the selected classifier/OCR composition-root and source-readiness boundary without activating providers:
@@ -132,7 +148,9 @@ Complete the selected classifier/OCR composition-root and source-readiness bound
 - add deterministic configuration, factory, source-support, production-validation, worker-readiness, capability, and secret non-disclosure coverage without network calls;
 - do not mark operational readiness true without complete runtime settings, and do not enable managed-media product behavior or public uploads.
 
-No deployment, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized.""",
+No deployment, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized.
+
+""",
     "implementation next slice",
 )
 plan_path.write_text(plan)
