@@ -250,7 +250,7 @@ Failure and review policy:
 
 ## Phase S7 — safe media ingestion, compression, moderation, and delivery
 
-Status: source-complete through managed avatars and bounded one-image workout posts; manual review, appeal, retention, and cleanup operations remain active.
+Status: source-complete through managed avatars, bounded one-image workout posts, internal manual review, owner appeals, reviewer evidence export, lifecycle retention, legal holds, and restart-safe cleanup. Moderation calibration and authorized staging/release validation remain.
 
 Arbitrary remote `avatarUrl` values are transitional and must not be treated as a secure long-term media contract. User media must move to server-owned asset IDs and immutable approved variants.
 
@@ -308,7 +308,7 @@ Product rollout:
 - [x] keep images with `pending`, `review_required`, or `rejected` status out of profiles, feeds, notifications, and public post DTOs;
 - [x] use asynchronous media status polling or bounded refresh rather than keeping the upload request open through full processing;
 - [x] add localized upload, compression, pending-moderation, rejected, review-required, offline, retry, and deleted-asset states;
-- [ ] add manual review and appeal operations before broad public image rollout;
+- [x] add manual review and appeal operations before broad public image rollout;
 - [ ] measure storage per approved asset, derivative-generation latency, cache hit rate, upload failure rate, moderation latency, and false-positive outcomes without adding behavioural advertising analytics.
 
 ## Deferred beyond Social MVP
@@ -352,7 +352,7 @@ Do not begin without explicit prioritization:
 20. [x] S6 synchronous moderation for captions, comments, display names, and bios.
 21. [x] S7 object storage, quarantine, managed-avatar migration, normalization, compression, and variants.
 22. [x] S7 one-image workout-post contract with image moderation, OCR, placeholders, CDN delivery, and mobile states.
-23. [ ] Manual review, appeal, retention, threshold calibration, and false-positive validation.
+23. [ ] Calibrate moderation thresholds and validate false-positive, retention, cleanup, deletion, account-cleanup, privacy, and legal-hold behavior in authorized staging.
 24. [ ] Multi-image posts, WebP/AVIF negotiation, and further media optimization only after the bounded first version is stable.
 
 ## Release boundary
