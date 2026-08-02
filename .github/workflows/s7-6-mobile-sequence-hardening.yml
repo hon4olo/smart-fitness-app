@@ -1,0 +1,87 @@
+name: Validate Social S7.6 sequence guards
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/s7-6-mobile-sequence-hardening.yml
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.head_ref == 'agent/social-workout-post-image-s7-6'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/social-workout-post-image-s7-6
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Guard late media callbacks
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/features/social/useSocialWorkoutPostMedia.ts')
+          source = path.read_text()
+
+          old_progress = '''          onProgress: setUploadProgress,
+          '''
+          new_progress = '''          onProgress: (value) => {
+            if (isCurrent(requestSequence)) setUploadProgress(value);
+          },
+          '''
+          if source.count(old_progress) != 1:
+              raise SystemExit('upload progress target mismatch')
+          source = source.replace(old_progress, new_progress)
+
+          old_recovery = '''    recoveredPendingKey.current = recoveryKey;
+            void recoverPendingSocialWorkoutPostImage()
+              .then((selected) => {
+                if (selected) void uploadSelected(selected);
+              })
+              .catch((error: unknown) => {
+                setErrorMessage(getSocialWorkoutPostMediaErrorMessage(error, copy));
+              });
+          '''
+          new_recovery = '''    recoveredPendingKey.current = recoveryKey;
+            const requestSequence = sequence.current;
+            void recoverPendingSocialWorkoutPostImage()
+              .then((selected) => {
+                if (selected && isCurrent(requestSequence)) {
+                  void uploadSelected(selected);
+                }
+              })
+              .catch((error: unknown) => {
+                if (isCurrent(requestSequence)) {
+                  setErrorMessage(getSocialWorkoutPostMediaErrorMessage(error, copy));
+                }
+              });
+          '''
+          if source.count(old_recovery) != 1:
+              raise SystemExit('pending recovery target mismatch')
+          path.write_text(source.replace(old_recovery, new_recovery))
+          PY
+      - name: Format and validate
+        shell: bash
+        run: |
+          npx prettier --write src/features/social/useSocialWorkoutPostMedia.ts
+          npx tsc --noEmit
+          npm test
+      - name: Publish hardening
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- src/features/social/useSocialWorkoutPostMedia.ts
+          git diff --cached --check
+          git commit -m 'fix: guard late workout media callbacks'
+          git push origin HEAD:agent/social-workout-post-image-s7-6
