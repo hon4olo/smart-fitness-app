@@ -3,8 +3,8 @@ import {
   isApiError,
   type ApiClient,
   type HttpMethod,
-} from '@/api/client';
-import { getMobileApiBaseUrl } from '@/api/config';
+} from "@/api/client";
+import { getMobileApiBaseUrl } from "@/api/config";
 
 import type {
   ListSocialProfilesInput,
@@ -14,38 +14,38 @@ import type {
   SocialProfileViewDto,
   SocialRelationshipDto,
   UpsertOwnSocialProfileInput,
-} from './contracts';
+} from "./contracts";
 import {
   parseOwnSocialProfileResponse,
   parseSocialProfileListPageResponse,
   parseSocialProfileResponse,
   parseSocialProfileViewResponse,
   parseSocialRelationshipResponse,
-} from './parsers';
+} from "./parsers";
 import type {
   CreateSocialWorkoutCommentInput,
   ListSocialWorkoutCommentsInput,
   SocialWorkoutCommentDto,
   SocialWorkoutCommentPageDto,
-} from './workout-comment-contracts';
+} from "./workout-comment-contracts";
 import {
   parseDeleteSocialWorkoutCommentResponse,
   parseSocialWorkoutCommentPageResponse,
   parseSocialWorkoutCommentResponse,
-} from './workout-comment-parsers';
+} from "./workout-comment-parsers";
 import type {
   CreateSocialWorkoutPostInput,
   ListSocialWorkoutPostsInput,
   SocialWorkoutPostDto,
   SocialWorkoutPostPageDto,
-} from './workout-post-contracts';
+} from "./workout-post-contracts";
 import {
   parseDeleteSocialWorkoutPostResponse,
   parseSocialWorkoutPostPageResponse,
   parseSocialWorkoutPostResponse,
-} from './workout-post-parsers';
-import type { SocialWorkoutReactionDto } from './workout-reaction-contracts';
-import { parseSocialWorkoutReactionResponse } from './workout-reaction-parsers';
+} from "./workout-post-parsers";
+import type { SocialWorkoutReactionDto } from "./workout-reaction-contracts";
+import { parseSocialWorkoutReactionResponse } from "./workout-reaction-parsers";
 
 const defaultApiClient = createApiClient({
   baseUrl: getMobileApiBaseUrl(),
@@ -60,13 +60,13 @@ const requirePathSegment = (value: string, label: string): string => {
 };
 
 const requireUsernamePath = (username: string): string =>
-  requirePathSegment(username, 'Social username');
+  requirePathSegment(username, "Social username");
 
 const requirePostIdPath = (postId: string): string =>
-  requirePathSegment(postId, 'Social workout post ID');
+  requirePathSegment(postId, "Social workout post ID");
 
 const requireCommentIdPath = (commentId: string): string =>
-  requirePathSegment(commentId, 'Social workout comment ID');
+  requirePathSegment(commentId, "Social workout comment ID");
 
 const buildUpsertPayload = (
   input: UpsertOwnSocialProfileInput,
@@ -80,9 +80,6 @@ const buildUpsertPayload = (
   }
   if (input.bio !== undefined) {
     payload.bio = input.bio === null ? null : input.bio.trim();
-  }
-  if (input.avatarUrl !== undefined) {
-    payload.avatarUrl = input.avatarUrl === null ? null : input.avatarUrl.trim();
   }
   if (input.visibility !== undefined) {
     payload.visibility = input.visibility;
@@ -108,11 +105,13 @@ const buildWorkoutCommentPayload = (
   const body = input.body.trim();
   const idempotencyKey = input.idempotencyKey.trim();
   if (body.length < 1 || body.length > 500) {
-    throw new Error('Social workout comment body must be between 1 and 500 characters');
+    throw new Error(
+      "Social workout comment body must be between 1 and 500 characters",
+    );
   }
   if (idempotencyKey.length < 16 || idempotencyKey.length > 128) {
     throw new Error(
-      'Social workout comment idempotency key must be between 16 and 128 characters',
+      "Social workout comment idempotency key must be between 16 and 128 characters",
     );
   }
   return { body, idempotencyKey };
@@ -124,7 +123,11 @@ const buildListQuery = (
 ): string => {
   const query: string[] = [];
   if (input.limit !== undefined) {
-    if (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 50) {
+    if (
+      !Number.isSafeInteger(input.limit) ||
+      input.limit < 1 ||
+      input.limit > 50
+    ) {
       throw new Error(`${label} limit must be between 1 and 50`);
     }
     query.push(`limit=${input.limit}`);
@@ -134,13 +137,13 @@ const buildListQuery = (
     if (!cursor) throw new Error(`${label} cursor must not be empty`);
     query.push(`cursor=${encodeURIComponent(cursor)}`);
   }
-  return query.length > 0 ? `?${query.join('&')}` : '';
+  return query.length > 0 ? `?${query.join("&")}` : "";
 };
 
 const buildSocialProfileListPath = (
   path: string,
   input: ListSocialProfilesInput = {},
-): string => `${path}${buildListQuery(input, 'Social profile list')}`;
+): string => `${path}${buildListQuery(input, "Social profile list")}`;
 
 const buildWorkoutPostListPath = (
   username: string,
@@ -148,12 +151,12 @@ const buildWorkoutPostListPath = (
 ): string =>
   `/v1/social/profiles/${requireUsernamePath(username)}/workout-posts${buildListQuery(
     input,
-    'Social workout post',
+    "Social workout post",
   )}`;
 
 const buildFollowingFeedPath = (
   input: ListSocialWorkoutPostsInput = {},
-): string => `/v1/social/feed${buildListQuery(input, 'Social feed')}`;
+): string => `/v1/social/feed${buildListQuery(input, "Social feed")}`;
 
 const buildWorkoutReactionPath = (postId: string): string =>
   `/v1/social/workout-posts/${requirePostIdPath(postId)}/reaction`;
@@ -167,7 +170,7 @@ const buildWorkoutCommentListPath = (
 ): string =>
   `${buildWorkoutCommentPath(postId)}${buildListQuery(
     input,
-    'Social workout comment',
+    "Social workout comment",
   )}`;
 
 const requestWithAuth = async <TBody = unknown>(
@@ -187,24 +190,30 @@ const requestWithAuth = async <TBody = unknown>(
     });
 
   const accessToken = await auth.getAccessToken();
-  if (!accessToken) throw new Error('Social authentication is required');
+  if (!accessToken) throw new Error("Social authentication is required");
 
   try {
     return await perform(accessToken);
   } catch (error) {
     if (!isApiError(error) || error.status !== 401) throw error;
     const refreshedToken = await auth.refreshAccessToken();
-    if (!refreshedToken) throw new Error('Social authentication expired');
+    if (!refreshedToken) throw new Error("Social authentication expired");
     return perform(refreshedToken);
   }
 };
 
 export type SocialApi = {
   getOwnProfile(): Promise<SocialProfileDto | null>;
-  upsertOwnProfile(input: UpsertOwnSocialProfileInput): Promise<SocialProfileDto>;
+  upsertOwnProfile(
+    input: UpsertOwnSocialProfileInput,
+  ): Promise<SocialProfileDto>;
   getProfile(username: string): Promise<SocialProfileViewDto>;
-  listFollowers(input?: ListSocialProfilesInput): Promise<SocialProfileListPageDto>;
-  listFollowing(input?: ListSocialProfilesInput): Promise<SocialProfileListPageDto>;
+  listFollowers(
+    input?: ListSocialProfilesInput,
+  ): Promise<SocialProfileListPageDto>;
+  listFollowing(
+    input?: ListSocialProfilesInput,
+  ): Promise<SocialProfileListPageDto>;
   listIncomingFollowRequests(
     input?: ListSocialProfilesInput,
   ): Promise<SocialProfileListPageDto>;
@@ -218,7 +227,9 @@ export type SocialApi = {
   rejectFollowRequest(username: string): Promise<SocialRelationshipDto>;
   block(username: string): Promise<SocialRelationshipDto>;
   unblock(username: string): Promise<SocialRelationshipDto>;
-  createWorkoutPost(input: CreateSocialWorkoutPostInput): Promise<SocialWorkoutPostDto>;
+  createWorkoutPost(
+    input: CreateSocialWorkoutPostInput,
+  ): Promise<SocialWorkoutPostDto>;
   getWorkoutPost(postId: string): Promise<SocialWorkoutPostDto>;
   listWorkoutPosts(
     username: string,
@@ -247,7 +258,7 @@ export const createSocialApi = (
   apiClient: ApiClient = defaultApiClient,
 ): SocialApi => {
   const relationRequest = async (
-    method: 'POST' | 'DELETE',
+    method: "POST" | "DELETE",
     path: string,
   ): Promise<SocialRelationshipDto> =>
     parseSocialRelationshipResponse(
@@ -262,7 +273,7 @@ export const createSocialApi = (
       await requestWithAuth(
         auth,
         apiClient,
-        'GET',
+        "GET",
         buildSocialProfileListPath(path, input),
       ),
     );
@@ -271,11 +282,11 @@ export const createSocialApi = (
     path: string,
   ): Promise<SocialWorkoutPostPageDto> =>
     parseSocialWorkoutPostPageResponse(
-      await requestWithAuth(auth, apiClient, 'GET', path),
+      await requestWithAuth(auth, apiClient, "GET", path),
     );
 
   const workoutReactionRequest = async (
-    method: 'GET' | 'PUT' | 'DELETE',
+    method: "GET" | "PUT" | "DELETE",
     postId: string,
   ): Promise<SocialWorkoutReactionDto> =>
     parseSocialWorkoutReactionResponse(
@@ -289,14 +300,14 @@ export const createSocialApi = (
 
   const removeFollow = (username: string): Promise<SocialRelationshipDto> =>
     relationRequest(
-      'DELETE',
+      "DELETE",
       `/v1/social/profiles/${requireUsernamePath(username)}/follow`,
     );
 
   return {
     async getOwnProfile() {
       return parseOwnSocialProfileResponse(
-        await requestWithAuth(auth, apiClient, 'GET', '/v1/social/profile'),
+        await requestWithAuth(auth, apiClient, "GET", "/v1/social/profile"),
       );
     },
 
@@ -305,8 +316,8 @@ export const createSocialApi = (
         await requestWithAuth(
           auth,
           apiClient,
-          'PUT',
-          '/v1/social/profile',
+          "PUT",
+          "/v1/social/profile",
           buildUpsertPayload(input),
         ),
       );
@@ -317,31 +328,31 @@ export const createSocialApi = (
         await requestWithAuth(
           auth,
           apiClient,
-          'GET',
+          "GET",
           `/v1/social/profiles/${requireUsernamePath(username)}`,
         ),
       );
     },
 
     listFollowers(input = {}) {
-      return listProfiles('/v1/social/followers', input);
+      return listProfiles("/v1/social/followers", input);
     },
 
     listFollowing(input = {}) {
-      return listProfiles('/v1/social/following', input);
+      return listProfiles("/v1/social/following", input);
     },
 
     listIncomingFollowRequests(input = {}) {
-      return listProfiles('/v1/social/follow-requests/incoming', input);
+      return listProfiles("/v1/social/follow-requests/incoming", input);
     },
 
     listOutgoingFollowRequests(input = {}) {
-      return listProfiles('/v1/social/follow-requests/outgoing', input);
+      return listProfiles("/v1/social/follow-requests/outgoing", input);
     },
 
     follow(username) {
       return relationRequest(
-        'POST',
+        "POST",
         `/v1/social/profiles/${requireUsernamePath(username)}/follow`,
       );
     },
@@ -351,28 +362,28 @@ export const createSocialApi = (
 
     approveFollowRequest(username) {
       return relationRequest(
-        'POST',
+        "POST",
         `/v1/social/follow-requests/${requireUsernamePath(username)}/approve`,
       );
     },
 
     rejectFollowRequest(username) {
       return relationRequest(
-        'POST',
+        "POST",
         `/v1/social/follow-requests/${requireUsernamePath(username)}/reject`,
       );
     },
 
     block(username) {
       return relationRequest(
-        'POST',
+        "POST",
         `/v1/social/profiles/${requireUsernamePath(username)}/block`,
       );
     },
 
     unblock(username) {
       return relationRequest(
-        'DELETE',
+        "DELETE",
         `/v1/social/profiles/${requireUsernamePath(username)}/block`,
       );
     },
@@ -382,8 +393,8 @@ export const createSocialApi = (
         await requestWithAuth(
           auth,
           apiClient,
-          'POST',
-          '/v1/social/workout-posts',
+          "POST",
+          "/v1/social/workout-posts",
           buildWorkoutPostPayload(input),
         ),
       );
@@ -394,7 +405,7 @@ export const createSocialApi = (
         await requestWithAuth(
           auth,
           apiClient,
-          'GET',
+          "GET",
           `/v1/social/workout-posts/${requirePostIdPath(postId)}`,
         ),
       );
@@ -413,22 +424,22 @@ export const createSocialApi = (
         await requestWithAuth(
           auth,
           apiClient,
-          'DELETE',
+          "DELETE",
           `/v1/social/workout-posts/${requirePostIdPath(postId)}`,
         ),
       );
     },
 
     getWorkoutPostReaction(postId) {
-      return workoutReactionRequest('GET', postId);
+      return workoutReactionRequest("GET", postId);
     },
 
     reactToWorkoutPost(postId) {
-      return workoutReactionRequest('PUT', postId);
+      return workoutReactionRequest("PUT", postId);
     },
 
     unreactToWorkoutPost(postId) {
-      return workoutReactionRequest('DELETE', postId);
+      return workoutReactionRequest("DELETE", postId);
     },
 
     async listWorkoutPostComments(postId, input = {}) {
@@ -436,7 +447,7 @@ export const createSocialApi = (
         await requestWithAuth(
           auth,
           apiClient,
-          'GET',
+          "GET",
           buildWorkoutCommentListPath(postId, input),
         ),
       );
@@ -447,7 +458,7 @@ export const createSocialApi = (
         await requestWithAuth(
           auth,
           apiClient,
-          'POST',
+          "POST",
           buildWorkoutCommentPath(postId),
           buildWorkoutCommentPayload(input),
         ),
@@ -459,7 +470,7 @@ export const createSocialApi = (
         await requestWithAuth(
           auth,
           apiClient,
-          'DELETE',
+          "DELETE",
           `${buildWorkoutCommentPath(postId)}/${requireCommentIdPath(commentId)}`,
         ),
       );
