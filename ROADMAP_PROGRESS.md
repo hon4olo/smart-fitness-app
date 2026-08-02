@@ -26,10 +26,14 @@ Completed implementation history remains in merged pull requests and focused roa
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `4e2f7a0ef1dad2d1e1ec05ec533d484e54ae7cd0`;
-- backend `main`: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
+- mobile `main`: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
+- backend `main`: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
+- backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
+- backend PR #93 merge: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
+- mobile PR #363 exact green head: `ebda5b78713e0313bf088a54b299b6a943131074`;
+- mobile PR #363 merge: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -110,28 +114,38 @@ Goal: prepare mobile and backend so later activation requires provider selection
 
 ### P0 — provider configuration and capabilities
 
-Backend foundation merged in PR #92 from exact green head `97f363221b77fc69041ab19d713e9d9c9124ef9d` as merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`:
+Status: source-complete and merged.
+
+Backend PR #92, exact green head `97f363221b77fc69041ab19d713e9d9c9124ef9d`, merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`:
 
 - provider-neutral selectors and composition-root factories;
 - separate `configured`, `ready`, and `enabled` states;
 - fail-closed production validation;
 - privacy-safe redacted readiness representation;
-- strict versioned backend capability response for managed avatars, workout-post images, media moderation, immutable media delivery, and password reset;
+- strict versioned capability response for managed avatars, workout-post images, media moderation, immutable media delivery, and password reset;
 - safe disabled behavior when configuration is absent;
 - credentials and settings remain inert without explicit product enablement.
 
-Remaining P0 mobile boundary:
+Backend PR #93, exact green head `d3a1f19ed419fe96111925ebe37e36ad855a67de`, merge `84e4100b85d24bfee04be2dbea0130fd95be3370`:
 
-- strict versioned capability parser;
-- rejection of unknown critical fields and versions;
-- account/session-safe capability loading and refresh;
-- no requests into known-disabled upload or password-reset pipelines;
-- EN/RU bounded states for unavailable, temporarily unavailable, configuration-required, and recheck-required behavior;
-- preservation of existing offline, auth, navigation, draft, and polling boundaries.
+- made the privacy-safe capability bootstrap available before authentication so password-reset availability can be checked without a bearer token;
+- preserved the same strict provider-neutral DTO and disclosure boundary.
 
-No real provider adapter, credential, deployment, worker, upload, or password-reset email activation was added by the backend foundation.
+Mobile PR #363, exact green head `ebda5b78713e0313bf088a54b299b6a943131074`, merge `ac468c103db07ecb6b550535ed77aa72898fb68d`:
+
+- exact-key and exact-version fail-closed capability parsing;
+- rejection of unknown critical fields, unsupported versions, and inconsistent state;
+- account/session-scoped loading, cancellation, stale-response rejection, and recheck behavior;
+- bounded EN/RU unavailable, temporarily unavailable, configuration-required, checking, and recheck-required states;
+- password-reset, managed-avatar, and workout-post image controls and requests gated by confirmed capability readiness;
+- text-only workout-post publication preserved when image capability is unavailable;
+- existing offline, auth, navigation, draft, polling, media lifecycle, and privacy boundaries preserved.
+
+No real provider adapter, credential, deployment, worker, upload, or password-reset email activation was added by P0.
 
 ### P1 — storage and immutable delivery adapters
+
+Status: active next phase.
 
 - S3-compatible private quarantine and moderation storage;
 - narrowly scoped presigned uploads and bounded private reads;
@@ -163,7 +177,7 @@ No real provider adapter, credential, deployment, worker, upload, or password-re
 - localized mobile forgot/reset routes and strict API states;
 - validated app/universal links and token hygiene;
 - production delivery adapter and EN/RU email templates;
-- operational capability gating and provider-failure coverage.
+- provider-failure coverage and capability-gated activation.
 
 ### P6 — deployment templates and runbooks
 
@@ -192,16 +206,15 @@ No real provider adapter, credential, deployment, worker, upload, or password-re
 
 ## Current execution order
 
-1. Complete the remaining P0 mobile capability parser, account/session-safe refresh, localized gating, and control suppression.
-2. P1 S3-compatible storage and immutable delivery adapters.
-3. P2 worker entrypoints and process templates.
-4. P3 provider transport and selected classifier/OCR adapters.
-5. P4 moderation calibration harness.
-6. P5 password-reset mobile, links, templates, and delivery readiness.
-7. P6 deployment policies, smoke scripts, and runbooks.
-8. P7 backend-owned conflict choices and then mobile UI.
-9. P8 diagnostics, fixed-SHA release source gate, and Android source preparation.
-10. P9 technical privacy, legal, and analytics prerequisites.
+1. P1 S3-compatible private storage and immutable delivery adapters.
+2. P2 worker entrypoints and process templates.
+3. P3 provider transport and selected classifier/OCR adapters.
+4. P4 moderation calibration harness.
+5. P5 password-reset mobile, links, templates, and delivery readiness.
+6. P6 deployment policies, smoke scripts, and runbooks.
+7. P7 backend-owned conflict choices and then mobile UI.
+8. P8 diagnostics, fixed-SHA release source gate, and Android source preparation.
+9. P9 technical privacy, legal, and analytics prerequisites.
 
 Each phase may be divided into bounded backend, mobile, and documentation PRs. After every backend slice, synchronize this mobile roadmap with exact head and merge SHAs.
 
@@ -254,4 +267,4 @@ Do not begin without explicit product prioritization:
 
 ## New-chat starter prompt
 
-> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, and `docs/architecture/app-context-consumer-inventory.md`; then inspect only code and tests relevant to the selected bounded slice. P0 backend configuration and capability foundation was merged in backend PR #92 from exact green head `97f363221b77fc69041ab19d713e9d9c9124ef9d` as merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`. Start with the remaining P0 mobile boundary: strict versioned capability parsing, rejection of unknown critical fields and versions, account/session-safe loading and refresh, suppression of known-disabled requests and controls, and bounded localized EN/RU unavailable states. Preserve all existing media lifecycle, moderation, delivery, review, appeal, retention, legal-hold, cleanup, password-reset, authentication, sync, idempotency, revision, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
+> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, and `docs/architecture/app-context-consumer-inventory.md`; then inspect only code and tests relevant to the selected bounded slice. P0 is complete: backend PR #92 exact green head `97f363221b77fc69041ab19d713e9d9c9124ef9d`, merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`; backend PR #93 exact green head `d3a1f19ed419fe96111925ebe37e36ad855a67de`, merge `84e4100b85d24bfee04be2dbea0130fd95be3370`; mobile PR #363 exact green head `ebda5b78713e0313bf088a54b299b6a943131074`, merge `ac468c103db07ecb6b550535ed77aa72898fb68d`. Start with the first bounded P1 backend slice: audit the existing object-storage and media-delivery contracts, implement the smallest complete S3-compatible private-storage or immutable-delivery adapter boundary with strict configuration and deterministic conformance tests, and preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, retention, legal-hold, cleanup, password-reset, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.

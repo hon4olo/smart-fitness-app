@@ -12,10 +12,14 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `4e2f7a0ef1dad2d1e1ec05ec533d484e54ae7cd0`;
-- backend `main`: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
+- mobile `main`: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
+- backend `main`: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
+- backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
+- backend PR #93 merge: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
+- mobile PR #363 exact green head: `ebda5b78713e0313bf088a54b299b6a943131074`;
+- mobile PR #363 merge: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -50,13 +54,18 @@ Do not replace these contracts with provider-specific domain models. Provider id
 
 ## Phase P0 — provider configuration and capability foundation
 
-Status: backend foundation merged; mobile capability consumption remains active.
+Status: source-complete and merged.
 
-Merged backend evidence:
+Merged evidence:
 
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
-- exact head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+- backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
+- backend PR #93 merge: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
+- mobile PR #363 exact green head: `ebda5b78713e0313bf088a54b299b6a943131074`;
+- mobile PR #363 merge: `ac468c103db07ecb6b550535ed77aa72898fb68d`.
+
+Backend PR #92 exact head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health. Backend PR #93 passed the same blocking Backend CI. Mobile PR #363 passed repository and changed-file line audits, TypeScript, Coach and sync contract tests, 1174 regression tests, Expo export, and Expo Doctor.
 
 Backend:
 
@@ -72,21 +81,27 @@ Cross-repository capability contract:
 
 - [x] add a versioned backend capability response for managed avatars, workout-post images, media moderation, media delivery, and password reset;
 - [x] distinguish source availability from operational readiness and product enablement;
-- [ ] add strict fail-closed mobile parsing and account/session-safe refresh behavior;
-- [ ] hide or disable unavailable controls without sending requests into a known-disabled pipeline;
-- [ ] localize bounded unavailable, temporarily unavailable, configuration-required, and recheck-required states in English and Russian.
+- [x] expose the privacy-safe capability bootstrap before authentication so pre-auth password reset can be gated without hard-coded assumptions;
+- [x] add strict fail-closed mobile parsing and account/session-safe refresh behavior;
+- [x] hide or disable unavailable controls without sending requests into a known-disabled pipeline;
+- [x] localize bounded unavailable, temporarily unavailable, configuration-required, checking, and recheck-required states in English and Russian.
 
-The merged backend response is authenticated, strict, versioned, provider-neutral, and privacy-safe. It does not expose provider names, secret names or values, endpoints, buckets, regions, email, object keys, signed URLs, provider payloads, raw internal errors, or user data.
+The merged backend response is public, strict, versioned, provider-neutral, and privacy-safe. It does not expose provider names, secret names or values, endpoints, buckets, regions, email, object keys, signed URLs, provider payloads, raw internal errors, or user data.
 
 Acceptance criteria:
 
 - [x] production cannot accidentally activate a partially configured provider;
 - [x] missing credentials preserve disabled behavior rather than causing startup-time secret leakage or request-time ambiguity;
-- [ ] mobile behavior is determined by a strict backend capability contract, not hard-coded assumptions.
+- [x] mobile behavior is determined by a strict backend capability contract, not hard-coded assumptions;
+- [x] password-reset, managed-avatar, and workout-post image requests are blocked until the corresponding capability is confirmed available;
+- [x] text-only workout-post publication remains available when workout-post images are disabled;
+- [x] account and session transitions clear capability state, abort prior loading, and ignore stale responses.
 
 No real provider adapter, credential, provider call, backend deployment, worker activation, public upload activation, or production password-reset email activation was performed.
 
 ## Phase P1 — S3-compatible private storage and immutable delivery adapters
+
+Status: active next phase.
 
 Private object storage:
 
@@ -111,6 +126,14 @@ Validation:
 - [ ] add a reusable storage conformance suite covering signing, expiry, MIME and size mismatch, missing objects, bounded reads, duplicate writes, idempotent deletion, prefix isolation, checksum mismatch, and partial cleanup;
 - [ ] retain deterministic in-memory providers for unit and PostgreSQL integration tests;
 - [ ] do not require real credentials in CI.
+
+First bounded P1 slice:
+
+- audit current object-storage and media-delivery contracts, composition-root runtime, call sites, and tests;
+- choose the smallest complete adapter boundary rather than implementing both providers end to end in one PR;
+- add strict provider configuration and deterministic conformance tests without real network calls;
+- preserve P0 safe defaults and production fail-closed validation;
+- do not create buckets, configure public access, connect a CDN, or make real provider calls.
 
 ## Phase P2 — production worker entrypoints and orchestration
 
@@ -158,12 +181,12 @@ No API key is required to implement adapters and parsers against documented requ
 
 Mobile:
 
-- [ ] add localized `Forgot password` and `Reset password` routes and screens;
+- [ ] complete the localized `Forgot password` and `Reset password` release boundary against an operational delivery provider;
 - [ ] preserve the generic accepted response so account existence is not disclosed;
-- [ ] add strict password validation, invalid or expired token handling, success state, and forced return to sign-in;
-- [ ] add a validated app-link or universal-link route for reset tokens;
+- [ ] retain strict password validation, invalid or expired token handling, success state, and forced return to sign-in;
+- [ ] complete validated app-link or universal-link configuration for reset tokens;
 - [ ] keep reset tokens out of ordinary persisted application state, logs, analytics, and navigation history after completion;
-- [ ] add accessibility and strict API parser coverage.
+- [ ] complete accessibility and strict API parser coverage for the activated flow.
 
 Backend delivery:
 
@@ -172,7 +195,8 @@ Backend delivery:
 - [ ] construct links only from a configured trusted application-link base URL;
 - [ ] preserve token invalidation when delivery fails;
 - [ ] add timeout, provider rejection, malformed response, duplicate request, cooldown, replay, expiry, and redacted-log tests;
-- [x] add password-reset capability gating to the backend contract so the mobile flow can appear only when delivery is operationally ready.
+- [x] add password-reset capability gating to the backend contract so the mobile flow can appear only when delivery is operationally ready;
+- [x] gate pre-auth mobile navigation and direct reset requests through the strict capability response.
 
 External activation later requires a verified sender domain, DNS records, provider credentials, backend deployment, deep-link domain configuration, and physical-device validation.
 
@@ -241,16 +265,15 @@ Engineering drafts do not constitute legal approval.
 
 ## Execution order
 
-1. Complete the remaining P0 mobile capability parser, account/session-safe refresh, localized gating, and control suppression.
-2. P1 S3-compatible private storage and immutable delivery adapters.
-3. P2 production worker entrypoints and orchestration.
-4. P3 provider transport plus selected classifier and OCR adapters.
-5. P4 moderation calibration harness.
-6. P5 password-reset mobile, deep-link, template, and delivery readiness.
-7. P6 deployment policies, configuration templates, smoke scripts, and runbooks.
-8. P7 explicit sync conflict-choice contract.
-9. P8 diagnostics, fixed-SHA release gate, and Android source preparation.
-10. P9 technical privacy, legal, and analytics prerequisites.
+1. P1 S3-compatible private storage and immutable delivery adapters.
+2. P2 production worker entrypoints and orchestration.
+3. P3 provider transport plus selected classifier and OCR adapters.
+4. P4 moderation calibration harness.
+5. P5 password-reset mobile, deep-link, template, and delivery readiness.
+6. P6 deployment policies, configuration templates, smoke scripts, and runbooks.
+7. P7 explicit sync conflict-choice contract.
+8. P8 diagnostics, fixed-SHA release gate, and Android source preparation.
+9. P9 technical privacy, legal, and analytics prerequisites.
 
 A phase may be divided into bounded backend, mobile, and docs pull requests. After each backend slice, synchronize the canonical mobile roadmap documents.
 

@@ -8,14 +8,19 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `4e2f7a0ef1dad2d1e1ec05ec533d484e54ae7cd0`;
-- backend `main`: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
+- mobile `main`: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
+- backend `main`: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
+- backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
+- backend PR #93 merge: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
+- mobile PR #363 exact green head: `ebda5b78713e0313bf088a54b299b6a943131074`;
+- mobile PR #363 merge: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
 - Social S0-S6 and managed-media S7.1-S7.7 source boundaries are complete;
+- Provider and Release Readiness P0 is source-complete;
 - public media uploads and real providers remain disabled;
 - the single AsyncStorage `AppState` snapshot remains the approved local-state architecture;
 - the reviewed local-state evidence, budgets, and reopen criteria remain canonical in `docs/architecture/local-state-performance-decision.md`;
@@ -49,11 +54,11 @@ The program includes:
 9. privacy-safe diagnostics, fixed-SHA release gating, and Android source preparation;
 10. technical privacy, legal, and analytics prerequisites.
 
-## Current P0 status
+## Completed P0 status
 
-The backend provider configuration and capability foundation was merged in backend PR #92 from exact green head `97f363221b77fc69041ab19d713e9d9c9124ef9d` as merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`.
+Provider configuration and capability foundation is source-complete.
 
-Merged backend scope:
+Backend PR #92, exact green head `97f363221b77fc69041ab19d713e9d9c9124ef9d`, merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`:
 
 - provider-neutral selectors for private object storage, immutable media delivery, media classifier, OCR, and password-reset delivery;
 - composition-root provider factories;
@@ -61,25 +66,45 @@ Merged backend scope:
 - credentials and settings remain inert without explicit product enablement;
 - strict fail-closed production validation for unsafe, incomplete, memory, unavailable, and source-unsupported enabled configurations;
 - privacy-safe configuration/readiness representation;
-- strict versioned authenticated backend capability response for managed avatars, workout-post images, media moderation, immutable media delivery, and password reset;
+- strict versioned backend capability response for managed avatars, workout-post images, media moderation, immutable media delivery, and password reset;
 - safe disabled behavior when configuration is absent.
+
+Backend PR #93, exact green head `d3a1f19ed419fe96111925ebe37e36ad855a67de`, merge `84e4100b85d24bfee04be2dbea0130fd95be3370`:
+
+- public pre-auth access to the same privacy-safe capability bootstrap;
+- no expansion of public DTO content or provider disclosure.
+
+Mobile PR #363, exact green head `ebda5b78713e0313bf088a54b299b6a943131074`, merge `ac468c103db07ecb6b550535ed77aa72898fb68d`:
+
+- exact-key and exact-version capability parser;
+- rejection of unknown critical fields, unsupported versions, and inconsistent states;
+- account/session-safe loading, cancellation, stale-response rejection, refresh, and recheck behavior;
+- bounded EN/RU states without raw backend or provider text;
+- password-reset, managed-avatar, and workout-post image controls and requests blocked until capability readiness is confirmed;
+- text-only workout-post publication preserved when image capability is unavailable;
+- existing offline, auth, navigation, draft, polling, sync, and persistence boundaries preserved.
 
 No real provider adapter, credential, provider call, deployment, worker activation, public upload activation, or production password-reset email activation was added.
 
 ## Next bounded slice
 
-Complete the remaining mobile boundary of Phase P0 from `docs/roadmap/provider-readiness.md`:
+Begin Phase P1 from `docs/roadmap/provider-readiness.md` with the smallest complete backend adapter boundary.
 
-- add a strict versioned parser for the backend capability response;
-- reject unknown critical fields and unsupported versions;
-- add account/session-safe capability loading and refresh;
-- hide or disable unavailable upload and password-reset controls;
-- do not send requests into a known-disabled pipeline;
-- add bounded EN/RU states for unavailable, temporarily unavailable, configuration-required, and recheck-required behavior;
-- never expose raw backend, provider, status, or error text;
-- preserve current offline, auth, navigation, draft, and polling boundaries.
+Required first-step audit:
 
-The remaining P0 mobile slice must not connect a real provider or require credentials. Existing disabled behavior remains the safe default.
+- current private object-storage contracts and deterministic memory provider;
+- current immutable media-delivery contracts and deterministic memory provider;
+- composition-root provider runtime and production validation from P0;
+- upload signing, bounded private reads, immutable derivative publication, deletion, and cleanup call sites;
+- existing tests for media lifecycle, checksums, state versions, idempotency, leases, retention, and cleanup.
+
+Implementation direction:
+
+- select one bounded adapter slice rather than implementing all storage and delivery behavior at once;
+- prefer reusable S3-compatible request/signing primitives and strict configuration types that can support AWS S3, R2, B2 S3 API, MinIO, or another configured compatible endpoint;
+- add deterministic conformance tests without real credentials or network calls;
+- preserve safe disabled defaults and fail-closed production startup;
+- do not create buckets, configure public access, connect a CDN, or make real provider calls.
 
 ## Execution rules
 
@@ -111,8 +136,8 @@ The remaining P0 mobile slice must not connect a real provider or require creden
 - Provider credentials alone must not enable a product capability.
 - Production startup must fail closed when an enabled capability has incomplete or unsafe configuration.
 - In-memory and unavailable providers remain test/development fallbacks and cannot satisfy enabled production readiness.
-- Mobile must hide or disable a known-unavailable operation through a strict capability contract rather than issuing a doomed request.
-- Missing provider configuration must preserve current disabled behavior.
+- Mobile hides or disables known-unavailable operations through the strict capability contract rather than issuing doomed requests.
+- Missing provider configuration preserves current disabled behavior.
 
 ## Work allowed now
 
