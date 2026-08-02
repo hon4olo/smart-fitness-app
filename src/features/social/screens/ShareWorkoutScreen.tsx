@@ -28,10 +28,12 @@ import { createUuid } from '@/lib/ids';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
+import { ShareWorkoutMediaCard } from '../ShareWorkoutMediaCard';
 import {
   getSocialContentModerationMessage,
   isSocialContentModerationUiState,
 } from '../socialContentModerationUi';
+import { isSocialWorkoutPostMediaBusy } from '../socialWorkoutPostMediaModel';
 import { getSocialRateLimitMessage } from '../socialRateLimitCopy';
 import { getShareWorkoutCopy } from '../shareWorkoutCopy';
 import {
@@ -43,6 +45,7 @@ import {
   updateSocialWorkoutShareControl,
   type ShareWorkoutError,
 } from '../shareWorkoutModel';
+import { useSocialWorkoutPostMedia } from '../useSocialWorkoutPostMedia';
 import { createShareWorkoutStyles } from './ShareWorkoutScreen.styles';
 
 type PublishState = 'editing' | 'publishing' | 'profile_required' | 'success';
@@ -61,8 +64,13 @@ export default function ShareWorkoutScreen() {
   const styles = useMemo(() => createShareWorkoutStyles(colors), [colors]);
   const { isRestoringState } = useAppInfrastructure();
   const { workoutSessions } = useWorkoutState();
-  const { ready, isAuthenticated, refresh, session: authSession } =
-    useAuthSession();
+  const {
+    ready,
+    isAuthenticated,
+    profile: accountProfile,
+    refresh,
+    session: authSession,
+  } = useAuthSession();
   const { syncNow } = useWeightSync();
   const [caption, setCaption] = useState('');
   const [controls, setControls] = useState<SocialWorkoutShareControls>(
@@ -91,6 +99,14 @@ export default function ShareWorkoutScreen() {
     [authSession?.tokens.accessToken, refresh],
   );
   const socialApi = useMemo(() => createSocialApi(auth), [auth]);
+  const media = useSocialWorkoutPostMedia({
+    accountId: accountProfile?.id ?? null,
+    sessionId,
+    api: socialApi,
+    copy,
+  });
+  const mediaBusy = isSocialWorkoutPostMediaBusy(media.operation);
+  const mediaWaiting = media.hasImageDraft && !media.attachment;
 
   const errorMessage = useMemo(() => {
     if (rateLimitError) return rateLimitError;
@@ -111,17 +127,19 @@ export default function ShareWorkoutScreen() {
     setRateLimitError(null);
   };
 
+  const canPublish = () =>
+    !mediaWaiting &&
+    !mediaBusy &&
+    canPublishSocialWorkout(caption, controls, Boolean(media.attachment));
+
   const publish = async () => {
     if (
       !workoutSession ||
       publishState === 'publishing' ||
-      shareWorkoutErrorRequiresEdit(error)
+      shareWorkoutErrorRequiresEdit(error) ||
+      !canPublish()
     ) {
-      return;
-    }
-    if (!canPublishSocialWorkout(caption, controls)) {
-      setRateLimitError(null);
-      setError('empty');
+      if (mediaWaiting) media.clearError();
       return;
     }
 
@@ -140,7 +158,9 @@ export default function ShareWorkoutScreen() {
         caption: caption.trim() || null,
         idempotencyKey: idempotencyKey.current,
         share: controls,
+        ...(media.attachment ? { image: media.attachment } : {}),
       });
+      await media.releaseAfterPublish();
       setPublishState('success');
     } catch (publishError) {
       const rateLimitMessage = getSocialRateLimitMessage(publishError, locale);
@@ -161,7 +181,8 @@ export default function ShareWorkoutScreen() {
 
   const confirmPublish = () => {
     if (shareWorkoutErrorRequiresEdit(error)) return;
-    if (!canPublishSocialWorkout(caption, controls)) {
+    if (mediaWaiting || mediaBusy) return;
+    if (!canPublishSocialWorkout(caption, controls, Boolean(media.attachment))) {
       setRateLimitError(null);
       setError('empty');
       return;
@@ -324,6 +345,12 @@ export default function ShareWorkoutScreen() {
               </View>
             </AppCard>
 
+            <ShareWorkoutMediaCard
+              controller={media}
+              copy={copy}
+              styles={styles}
+            />
+
             <AppCard>
               <View style={styles.section}>
                 <Text style={styles.label}>{copy.caption}</Text>
@@ -344,6 +371,8 @@ export default function ShareWorkoutScreen() {
                 <PrimaryButton
                   disabled={
                     publishState === 'publishing' ||
+                    mediaWaiting ||
+                    mediaBusy ||
                     shareWorkoutErrorRequiresEdit(error)
                   }
                   label={
