@@ -51,6 +51,7 @@ type UseSocialWorkoutPostMediaInput = {
   sessionId: string;
   api: SocialApi;
   copy: SocialWorkoutPostMediaCopy;
+  enabled: boolean;
 };
 
 export type SocialWorkoutPostMediaController = {
@@ -73,6 +74,7 @@ export const useSocialWorkoutPostMedia = ({
   sessionId,
   api,
   copy,
+  enabled,
 }: UseSocialWorkoutPostMediaInput): SocialWorkoutPostMediaController => {
   const sequence = useRef(0);
   const abortController = useRef<AbortController | null>(null);
@@ -85,8 +87,8 @@ export const useSocialWorkoutPostMedia = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const attachment = useMemo(
-    () => getApprovedSocialWorkoutPostMediaInput(asset),
-    [asset],
+    () => (enabled ? getApprovedSocialWorkoutPostMediaInput(asset) : null),
+    [asset, enabled],
   );
 
   const isCurrent = useCallback(
@@ -111,6 +113,7 @@ export const useSocialWorkoutPostMedia = ({
       assetId: string,
       requestSequence: number,
     ): Promise<SocialMediaOwnerAssetDto> => {
+      if (!enabled) throw new Error("Workout image capability unavailable");
       const next = await api.getMediaAsset(assetId);
       if (!isCurrent(requestSequence)) return next;
       if (next.assetType !== "workout_post_image") {
@@ -121,21 +124,21 @@ export const useSocialWorkoutPostMedia = ({
       if (next.state === "deleted") await clearDraft(requestSequence);
       return next;
     },
-    [api, clearDraft, isCurrent],
+    [api, clearDraft, enabled, isCurrent],
   );
 
   const pollAsset = useCallback(
     async (assetId: string, requestSequence: number): Promise<void> => {
-      if (!isCurrent(requestSequence)) return;
+      if (!enabled || !isCurrent(requestSequence)) return;
       setOperation("polling");
       for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
-        if (!isCurrent(requestSequence)) return;
+        if (!enabled || !isCurrent(requestSequence)) return;
         const next = await refreshAsset(assetId, requestSequence);
         if (isTerminal(next)) return;
         await wait(POLL_INTERVAL_MS);
       }
     },
-    [isCurrent, refreshAsset],
+    [enabled, isCurrent, refreshAsset],
   );
 
   const load = useCallback(async () => {
@@ -145,7 +148,7 @@ export const useSocialWorkoutPostMedia = ({
     setPreviewUri(null);
     setUploadProgress(null);
     setErrorMessage(null);
-    if (!accountId || !sessionId) {
+    if (!accountId || !sessionId || !enabled) {
       setOperation("idle");
       return;
     }
@@ -171,7 +174,7 @@ export const useSocialWorkoutPostMedia = ({
     } finally {
       if (isCurrent(requestSequence)) setOperation("idle");
     }
-  }, [accountId, api, clearDraft, copy, isCurrent, sessionId]);
+  }, [accountId, api, clearDraft, copy, enabled, isCurrent, sessionId]);
 
   useEffect(() => {
     void load();
@@ -183,7 +186,7 @@ export const useSocialWorkoutPostMedia = ({
 
   const uploadSelected = useCallback(
     async (selected: SelectedSocialWorkoutPostImage): Promise<void> => {
-      if (!accountId || !sessionId) return;
+      if (!accountId || !sessionId || !enabled) return;
       const requestSequence = ++sequence.current;
       setPreviewUri(selected.uri);
       setErrorMessage(null);
@@ -191,7 +194,7 @@ export const useSocialWorkoutPostMedia = ({
       setOperation("preparing");
       try {
         const prepared = await prepareSocialWorkoutPostImage(selected);
-        if (!isCurrent(requestSequence)) return;
+        if (!enabled || !isCurrent(requestSequence)) return;
         setPreviewUri(prepared.uri);
         const created = await api.createWorkoutPostImageUpload({
           schemaVersion: 1,
@@ -207,7 +210,7 @@ export const useSocialWorkoutPostMedia = ({
           assetId: created.asset.assetId,
           previewUri: prepared.uri,
         });
-        if (!isCurrent(requestSequence)) return;
+        if (!enabled || !isCurrent(requestSequence)) return;
         setAsset(created.asset);
         const controller = new AbortController();
         abortController.current = controller;
@@ -223,13 +226,13 @@ export const useSocialWorkoutPostMedia = ({
           },
           signal: controller.signal,
         });
-        if (!isCurrent(requestSequence)) return;
+        if (!enabled || !isCurrent(requestSequence)) return;
         setOperation("completing");
         const completed = await api.completeMediaUpload(
           created.asset.assetId,
           created.asset.stateVersion,
         );
-        if (!isCurrent(requestSequence)) return;
+        if (!enabled || !isCurrent(requestSequence)) return;
         setAsset(completed);
         await pollAsset(completed.assetId, requestSequence);
       } catch (error) {
@@ -243,18 +246,18 @@ export const useSocialWorkoutPostMedia = ({
         }
       }
     },
-    [accountId, api, copy, isCurrent, pollAsset, sessionId],
+    [accountId, api, copy, enabled, isCurrent, pollAsset, sessionId],
   );
 
   const chooseImage = useCallback(async () => {
-    if (!accountId || !sessionId || operation !== "idle") return;
+    if (!accountId || !sessionId || !enabled || operation !== "idle") return;
     const requestSequence = sequence.current;
     const previousAsset = asset;
     setErrorMessage(null);
     setOperation("selecting");
     try {
       const selected = await selectSocialWorkoutPostImage();
-      if (!selected || !isCurrent(requestSequence)) {
+      if (!selected || !enabled || !isCurrent(requestSequence)) {
         if (isCurrent(requestSequence)) setOperation("idle");
         return;
       }
@@ -264,9 +267,9 @@ export const useSocialWorkoutPostMedia = ({
           previousAsset.assetId,
           previousAsset.stateVersion,
         );
-        if (!isCurrent(requestSequence)) return;
+        if (!enabled || !isCurrent(requestSequence)) return;
         await clearDraft(requestSequence);
-        if (!isCurrent(requestSequence)) return;
+        if (!enabled || !isCurrent(requestSequence)) return;
       }
       await uploadSelected(selected);
     } catch (error) {
@@ -281,6 +284,7 @@ export const useSocialWorkoutPostMedia = ({
     asset,
     clearDraft,
     copy,
+    enabled,
     isCurrent,
     operation,
     sessionId,
@@ -288,7 +292,7 @@ export const useSocialWorkoutPostMedia = ({
   ]);
 
   useEffect(() => {
-    if (!accountId || !sessionId) {
+    if (!accountId || !sessionId || !enabled) {
       recoveredPendingKey.current = null;
       return;
     }
@@ -300,7 +304,7 @@ export const useSocialWorkoutPostMedia = ({
     const requestSequence = sequence.current;
     void recoverPendingSocialWorkoutPostImage()
       .then((selected) => {
-        if (selected && isCurrent(requestSequence)) {
+        if (selected && enabled && isCurrent(requestSequence)) {
           void uploadSelected(selected);
         }
       })
@@ -309,10 +313,10 @@ export const useSocialWorkoutPostMedia = ({
           setErrorMessage(getSocialWorkoutPostMediaErrorMessage(error, copy));
         }
       });
-  }, [accountId, copy, operation, sessionId, uploadSelected]);
+  }, [accountId, copy, enabled, operation, sessionId, uploadSelected]);
 
   const refresh = useCallback(async () => {
-    if (operation !== "idle" || !asset) return;
+    if (!enabled || operation !== "idle" || !asset) return;
     const requestSequence = sequence.current;
     setErrorMessage(null);
     setOperation("loading");
@@ -325,10 +329,10 @@ export const useSocialWorkoutPostMedia = ({
     } finally {
       if (isCurrent(requestSequence)) setOperation("idle");
     }
-  }, [asset, copy, isCurrent, operation, refreshAsset]);
+  }, [asset, copy, enabled, isCurrent, operation, refreshAsset]);
 
   const remove = useCallback(async () => {
-    if (operation !== "idle") return;
+    if (!enabled || operation !== "idle") return;
     const requestSequence = sequence.current;
     const target = asset;
     setErrorMessage(null);
@@ -346,7 +350,7 @@ export const useSocialWorkoutPostMedia = ({
     } finally {
       if (isCurrent(requestSequence)) setOperation("idle");
     }
-  }, [api, asset, clearDraft, copy, isCurrent, operation]);
+  }, [api, asset, clearDraft, copy, enabled, isCurrent, operation]);
 
   const releaseAfterPublish = useCallback(async () => {
     const requestSequence = ++sequence.current;
@@ -366,7 +370,7 @@ export const useSocialWorkoutPostMedia = ({
     operation,
     uploadProgress,
     errorMessage,
-    hasImageDraft: Boolean(asset || previewUri),
+    hasImageDraft: enabled && Boolean(asset || previewUri),
     chooseImage,
     refresh,
     remove,
