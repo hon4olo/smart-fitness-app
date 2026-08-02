@@ -23,8 +23,8 @@ Read this index together with:
 
 At this update:
 
-- mobile `main`: `846a6c24ea658e3afca4a66506ecd53add69c011`;
-- backend `main`: `ca479965a38ade831dd0fb8993bbd7a4d5d68111`;
+- mobile `main`: `33764007e9599655eeb13be29a33738e83078626`;
+- backend `main`: `7dea48e9001a218f5b5b51db8907a46d2c7bffb6`;
 - open mobile pull requests before this docs-only branch: none;
 - open backend pull requests: none.
 
@@ -81,7 +81,7 @@ Production moderation-provider activation remains disabled until separately conf
 
 ## Social S7 managed media
 
-Status: S7.1-S7.6 and the first S7.7 internal-review slice are source-complete and merged. Owner appeal plus bounded retention/cleanup operations remain active. Public media upload remains disabled.
+Status: S7.1-S7.6 and the first two S7.7 operations slices are source-complete and merged. Reviewer evidence export plus broader bounded retention/cleanup operations remain active. Public media upload remains disabled.
 
 ### S7.1 Media domain and lifecycle — complete
 
@@ -203,16 +203,31 @@ Completed:
 - direct audit mutation is blocked while account deletion can cascade asset-owned audit history;
 - migration `0030`, idempotency, migrated schema, PostgreSQL Social API, full Vitest, production startup, and health are green.
 
+### S7.7 Owner appeals and rejected evidence — second slice complete
+
+Merged backend PR #89:
+
+- exact green head: `d7b1a1e79b515ffa3016869188501a24241e7218`;
+- merge SHA: `7dea48e9001a218f5b5b51db8907a46d2c7bffb6`.
+
+Completed:
+
+- owner-only appeal submission and status reads for eligible rejected managed-media assets;
+- strict bounded reason/statement contracts, normalized idempotency keys, ownership checks, rate limits, and state-version CAS;
+- appealed assets reopen only to non-public `review_required` and cannot publish without an explicit operator decision;
+- pending appeal context is available only to the internal review queue and resolves atomically with approval or rejection;
+- rejected evidence is retained for fourteen days, closes exactly at expiry, and becomes cleanup-eligible only after the deadline;
+- submission evidence is immutable while account and asset deletion retain cascade-safe behavior;
+- migration `0031`, concurrency, duplicate, stale-state, expiry, cleanup, account-cascade, PostgreSQL Social API, full Vitest, production startup, and health are green.
+
 ### S7.7 Remaining active work
 
-Do not start automatically after this checkpoint. Remaining source work is:
+Remaining source work is:
 
-- owner-visible appeal submission for eligible rejected media, with bounded reason codes/text, idempotency, rate limits, and no automatic publication;
-- keep appealed or reopened assets non-public until an explicit operator decision;
 - reviewer byte-view/export provider boundary without exposing private object credentials or adding a public staff API;
-- bounded retention deadlines for quarantine uploads, moderation masters, rejected/failed/review evidence, approved originals, derivatives, and deletion tombstones;
+- bounded retention deadlines for quarantine uploads, moderation masters, failed/review evidence, approved originals, derivatives, and deletion tombstones;
 - restart-safe cleanup claims, retries, stale-worker recovery, deletion races, account deletion, legal-hold-safe boundaries, and privacy-safe audit records;
-- exact authorization, ownership, duplicate, stale-state, appeal eligibility, decision transition, retention, cleanup, and account-deletion tests.
+- exact authorization, stale-state, export eligibility, retention, cleanup, legal-hold, and account-deletion tests.
 
 ## Activation and release boundary
 
@@ -261,11 +276,11 @@ Do not begin without explicit product prioritization:
 
 ## Next execution order
 
-1. Resume only when explicitly requested.
-2. Continue S7.7 with owner appeal and bounded retention/cleanup contracts.
-3. Complete false-positive, stale-worker, deletion, account-cleanup, privacy, and legal validation before any public media activation.
+1. Continue S7.7 with the reviewer byte-view/export provider boundary.
+2. Complete broader lifecycle retention deadlines and restart-safe cleanup claims.
+3. Complete false-positive, stale-worker, deletion, account-cleanup, privacy, legal-hold, and export validation before any public media activation.
 4. Run staging, physical-device, release, and rollback gates only with the required authorization and configuration.
 
 ## New-chat starter prompt
 
-> Continue the Smart Fitness roadmap from `ROADMAP_PROGRESS.md`. Social S7.1-S7.6 and the first S7.7 internal manual-review slice are source-complete. The next unstarted slice is S7.7 owner appeal plus bounded retention/cleanup operations. At the start, verify exact `main` and open PRs for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, this roadmap, `docs/roadmap/social-network.md`, and only the files relevant to the requested slice. Reuse the merged managed-media lifecycle, manual-review CAS/audit, strict owner/public descriptors, signed private upload, moderation, delivery, deletion, cleanup, and one-image workout-post contracts. Keep reviewed, appealed, rejected, failed, pending, and deleted assets non-public unless an explicit valid transition approves them. Do not publish OTA, create/install native builds, deploy backend changes, execute migrations outside CI, activate staging/production, configure credentials, connect real storage/CDN/moderation providers, or enable public image uploads without explicit authorization.
+> Continue the Smart Fitness roadmap from `ROADMAP_PROGRESS.md`. Social S7.1-S7.6 plus the S7.7 internal manual-review and owner-appeal slices are source-complete. The next unstarted slice is the reviewer byte-view/export provider boundary, followed by broader bounded retention and restart-safe cleanup operations. At the start, verify exact `main` and open PRs for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, this roadmap, `docs/roadmap/social-network.md`, and only the files relevant to the requested slice. Reuse the merged managed-media lifecycle, manual-review CAS/audit, owner appeal, strict owner/public descriptors, private object-storage boundary, moderation, delivery, deletion, cleanup, and one-image workout-post contracts. Keep reviewed, appealed, rejected, failed, pending, and deleted assets non-public unless an explicit valid transition approves them. Do not publish OTA, create/install native builds, deploy backend changes, execute migrations outside CI, activate staging/production, configure credentials, connect real storage/CDN/moderation providers, or enable public image uploads without explicit authorization.
