@@ -12,6 +12,13 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
+def replace_first(text: str, old: str, new: str, label: str) -> str:
+    index = text.find(old)
+    if index < 0:
+        raise SystemExit(f"{label}: match missing")
+    return text[:index] + new + text[index + len(old) :]
+
+
 def replace_section(
     text: str,
     start_marker: str,
@@ -29,26 +36,26 @@ def replace_section(
 
 
 def update_baseline(text: str, label: str) -> str:
-    text = replace_once(
+    text = replace_first(
         text,
         "- mobile `main`: `c3e3aca3d7593386924569b4ceeaac2c4a72c56f`;",
         f"- mobile `main`: `{MOBILE_MAIN}`;",
         f"{label} mobile baseline",
     )
-    text = replace_once(
+    text = replace_first(
         text,
         "- backend `main`: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;",
         f"- backend `main`: `{BACKEND_MAIN}`;",
         f"{label} backend baseline",
     )
     marker = "- backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;"
-    return replace_once(
+    return replace_first(
         text,
         marker,
         marker
         + f"\n- backend PR #105 exact green head: `{PR105_HEAD}`;"
         + f"\n- backend PR #105 merge: `{BACKEND_MAIN}`;",
-        f"{label} PR105 evidence",
+        f"{label} PR105 baseline evidence",
     )
 
 
@@ -168,7 +175,7 @@ provider = replace_once(
     provider,
     "- backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;\n- all three exact heads passed",
     f"- backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;\n- backend PR #105 exact green head: `{PR105_HEAD}`;\n- backend PR #105 merge: `{BACKEND_MAIN}`;\n- all four exact heads passed",
-    "provider PR105 evidence",
+    "provider P3 PR105 evidence",
 )
 provider = replace_once(
     provider,
