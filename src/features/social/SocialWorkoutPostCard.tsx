@@ -7,6 +7,7 @@ import {
   type SupportedLocale,
 } from '@/localization';
 
+import { SocialWorkoutPostImage } from './SocialWorkoutPostImage';
 import type { SocialWorkoutPostSurfaceCopy } from './socialWorkoutPostSurfaceCopy';
 import {
   countSocialWorkoutPostSets,
@@ -51,6 +52,9 @@ export function SocialWorkoutPostCard({
           <Text style={styles.username}>@{post.author.username}</Text>
         </View>
 
+        {post.image ? (
+          <SocialWorkoutPostImage descriptor={post.image} styles={styles} />
+        ) : null}
         {post.caption ? <Text style={styles.caption}>{post.caption}</Text> : null}
 
         <View style={styles.metricRow}>
