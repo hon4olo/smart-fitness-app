@@ -14,6 +14,13 @@ def replace_once(content: str, old: str, new: str, label: str) -> str:
     return content.replace(old, new, 1)
 
 
+def replace_first(content: str, old: str, new: str, label: str) -> str:
+    count = content.count(old)
+    if count < 1:
+        raise RuntimeError(f"{label}: expected at least one match, found {count}")
+    return content.replace(old, new, 1)
+
+
 def common_baseline(content: str, label: str) -> str:
     content = replace_once(
         content,
@@ -32,7 +39,7 @@ def common_baseline(content: str, label: str) -> str:
         f"- backend PR #103 exact green head: `{PR_103_HEAD}`;\n"
         f"- backend PR #103 merge: `{BACKEND_AFTER}`;"
     )
-    return replace_once(
+    return replace_first(
         content,
         f"- backend PR #102 merge: `{BACKEND_BEFORE}`;",
         evidence,
