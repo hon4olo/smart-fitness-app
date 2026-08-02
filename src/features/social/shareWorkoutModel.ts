@@ -113,8 +113,10 @@ export const buildShareWorkoutPreview = (
 export const canPublishSocialWorkout = (
   caption: string,
   controls: SocialWorkoutShareControls,
+  hasApprovedImage = false,
 ): boolean =>
   Boolean(caption.trim()) ||
+  hasApprovedImage ||
   Object.values(normalizeSocialWorkoutShareControls(controls)).some(Boolean);
 
 export const getShareWorkoutError = (error: unknown): ShareWorkoutError => {
@@ -132,7 +134,13 @@ export const getShareWorkoutError = (error: unknown): ShareWorkoutError => {
   if (
     socialCode === 'SOCIAL_RELATION_BLOCKED' ||
     socialCode === 'SOCIAL_WORKOUT_POST_EMPTY' ||
-    socialCode === 'SOCIAL_WORKOUT_SOURCE_TOO_LARGE'
+    socialCode === 'SOCIAL_WORKOUT_SOURCE_TOO_LARGE' ||
+    socialCode === 'SOCIAL_WORKOUT_POST_MEDIA_NOT_FOUND' ||
+    socialCode === 'SOCIAL_WORKOUT_POST_MEDIA_INVALID_TYPE' ||
+    socialCode === 'SOCIAL_WORKOUT_POST_MEDIA_NOT_APPROVED' ||
+    socialCode === 'SOCIAL_WORKOUT_POST_MEDIA_STALE_STATE' ||
+    socialCode === 'SOCIAL_WORKOUT_POST_MEDIA_ALREADY_ATTACHED' ||
+    socialCode === 'SOCIAL_WORKOUT_POST_IDEMPOTENCY_KEY_REUSE'
   ) {
     return 'unavailable';
   }
