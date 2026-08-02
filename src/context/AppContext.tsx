@@ -239,6 +239,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         scheduleStateMutation({ label: 'Apply synchronized data', nextState });
         return nextState;
       });
+      return true;
     },
     [scheduleStateMutation],
   );
