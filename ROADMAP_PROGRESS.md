@@ -23,8 +23,8 @@ Read this index together with:
 
 At this update:
 
-- mobile `main`: `4b4a8f06daaba7f546067bb5c4403902e24e7c50`;
-- backend `main`: `0a2b9d0a9e7f1d3bd3f5a31cf8ef201abc3bdff1`;
+- mobile `main`: `3b7f7098c479d946df6d141d9f17a183bee4de77`;
+- backend `main`: `c6c9177230425194c3ce5508f9e6bf350ed6d697`;
 - open mobile pull requests before this docs-only branch: none;
 - open backend pull requests: none.
 
@@ -81,7 +81,7 @@ Production moderation-provider activation remains disabled until separately conf
 
 ## Social S7 managed media
 
-Status: S7.1-S7.6 and the first three S7.7 operations slices are source-complete and merged. Broader bounded retention and restart-safe cleanup operations remain active. Public media upload remains disabled.
+Status: S7.1-S7.6 and four bounded S7.7 operations slices are source-complete and merged. The source-level manual-review, appeal, evidence-export, lifecycle-retention, legal-hold, and restart-safe cleanup boundaries are complete. Provider calibration and authorized staging/release validation remain. Public media upload remains disabled.
 
 ### S7.1 Media domain and lifecycle — complete
 
@@ -236,13 +236,31 @@ Completed:
 - append-only privacy-safe audit excludes owner IDs, object keys, output paths, credentials, raw provider payloads, and OCR plaintext;
 - migration `0032`, CLI parsing and file safety, integrity failures, races, immutability, account cascade, PostgreSQL Social API, full Vitest, production startup, and health are green.
 
-### S7.7 Remaining active work
+### S7.7 Lifecycle retention and restart-safe cleanup — fourth slice complete
 
-Remaining source work is:
+Merged backend PR #91:
 
-- bounded retention deadlines for quarantine uploads, moderation masters, failed/review evidence, approved originals, derivatives, and deletion tombstones;
-- restart-safe cleanup claims, retries, stale-worker recovery, deletion races, account deletion, legal-hold-safe boundaries, and privacy-safe audit records;
-- exact authorization, stale-state, retention, cleanup, legal-hold, and account-deletion tests.
+- exact green head: `24dc3b3d7f4193ccd92ec76b996b6d539eabd8be`;
+- merge SHA: `c6c9177230425194c3ce5508f9e6bf350ed6d697`.
+
+Completed:
+
+- lifecycle-derived deadlines cover abandoned quarantine uploads, thirty-day review evidence, existing fourteen-day rejected evidence, failed evidence, approved private origins, deleted delivery derivatives, and thirty-day metadata tombstones;
+- bounded cleanup operations persist due time, exact expected state version, claim token, lease expiry, attempt count, failure code, and completion state;
+- oldest-due `FOR UPDATE SKIP LOCKED` claims, expired-lease recovery, bounded retries, and state-version revalidation make restart and stale-worker behavior deterministic;
+- active internal legal holds block scheduled cleanup, direct cleanup, and account cleanup before any bytes or metadata are removed;
+- deletion ordering requires private-origin and delivery-derivative cleanup before metadata tombstone purge;
+- append-only privacy-safe cleanup audit excludes owner IDs, object keys, credentials, provider payloads, OCR plaintext, and raw media data;
+- migration `0033`, deadline materialization, stale-claim refresh, lease recovery, legal hold, deletion ordering, immutability, account cascade, PostgreSQL Social integration, full Vitest, production startup, and health are green.
+
+### S7.7 Remaining validation and activation work
+
+No additional S7 lifecycle source boundary is currently open. Remaining work requires explicit authorization or external configuration:
+
+- wire and schedule the cleanup runner only in an authorized deployment environment;
+- calibrate image-moderation thresholds and false-positive handling against a representative staging corpus;
+- validate retention, cleanup, legal-hold procedures, and immutable delivery deletion against configured object storage and CDN providers;
+- complete staging, physical-device, release, rollback, legal-policy, and operational runbook gates before enabling public media uploads.
 
 ## Activation and release boundary
 
@@ -291,11 +309,12 @@ Do not begin without explicit product prioritization:
 
 ## Next execution order
 
-1. Continue S7.7 with broader lifecycle retention deadlines and restart-safe cleanup claims.
-2. Complete stale-worker, deletion-race, account-cleanup, legal-hold-safe, and privacy-safe audit boundaries.
-3. Complete false-positive, retention, cleanup, deletion, account-cleanup, privacy, and legal-hold validation before any public media activation.
-4. Run staging, physical-device, release, and rollback gates only with the required authorization and configuration.
+1. Keep public media uploads disabled and obtain explicit authorization before wiring a cleanup schedule or real media providers.
+2. Calibrate moderation thresholds and false-positive outcomes in staging against representative fitness imagery.
+3. Validate real-provider retention, cleanup, deletion, account-cleanup, privacy, and legal-hold procedures.
+4. Complete legal-policy, physical-device, release, and rollback gates before any public media activation.
+5. Resume another source roadmap program only after product prioritization.
 
 ## New-chat starter prompt
 
-> Continue the Smart Fitness roadmap from `ROADMAP_PROGRESS.md`. Social S7.1-S7.6 plus the S7.7 internal manual-review, owner-appeal, and reviewer-evidence-export slices are source-complete. The next unstarted slice is broader bounded retention and restart-safe cleanup operations. At the start, verify exact `main` and open PRs for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, this roadmap, `docs/roadmap/social-network.md`, and only the files relevant to the requested slice. Reuse the merged managed-media lifecycle, manual-review CAS/audit, owner appeal, reviewer evidence export, strict owner/public descriptors, private object-storage boundary, moderation, delivery, deletion, cleanup, and one-image workout-post contracts. Keep reviewed, appealed, rejected, failed, pending, and deleted assets non-public unless an explicit valid transition approves them. Do not publish OTA, create/install native builds, deploy backend changes, execute migrations outside CI, activate staging/production, configure credentials, connect real storage/CDN/moderation providers, or enable public image uploads without explicit authorization.
+> Continue the Smart Fitness roadmap from `ROADMAP_PROGRESS.md`. Social S7.1-S7.6 plus the S7.7 internal manual-review, owner-appeal, reviewer-evidence-export, and lifecycle-retention/restart-safe-cleanup slices are source-complete. No further S7 lifecycle source boundary is open before authorized staging and provider validation. At the start, verify exact `main` and open PRs for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, this roadmap, `docs/roadmap/social-network.md`, and only the files relevant to the requested slice. Reuse the merged managed-media lifecycle, manual-review CAS/audit, owner appeal, reviewer evidence export, strict owner/public descriptors, private object-storage boundary, moderation, delivery, deletion, cleanup, and one-image workout-post contracts. Keep reviewed, appealed, rejected, failed, pending, and deleted assets non-public unless an explicit valid transition approves them. Do not publish OTA, create/install native builds, deploy backend changes, execute migrations outside CI, activate staging/production, configure credentials, connect real storage/CDN/moderation providers, or enable public image uploads without explicit authorization.
