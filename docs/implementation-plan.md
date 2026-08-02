@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `720273195668d3663ec35ba7baca090127ee1b15`;
-- backend `main`: `37d4c91cafdeedde122e344fbaca78d00f1c70be`;
+- mobile `main`: `22f8a8b0b9c888ae38d612d19bc9735d01003f28`;
+- backend `main`: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -38,6 +38,8 @@ Before this documentation synchronization slice:
 - backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;
 - backend PR #105 exact green head: `47237518847f1135629ca730cce9fd442508cb4d`;
 - backend PR #105 merge: `37d4c91cafdeedde122e344fbaca78d00f1c70be`;
+- backend PR #106 exact green head: `cecb34a3044110cf252fe845217d199ddad7afd8`;
+- backend PR #106 merge: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -196,20 +198,32 @@ Backend PR #105, exact green head `47237518847f1135629ca730cce9fd442508cb4d`, me
 - retained constant non-reflective failures without raw provider payloads, messages, signed headers, image bytes, endpoints, credentials, or OCR plaintext;
 - preserved absent factory support, environment schema, production source readiness, product capability enablement, credentials, real calls, and deployment.
 
-## Next bounded slice
+Backend PR #106, exact green head `cecb34a3044110cf252fe845217d199ddad7afd8`, merge `95c923c146b0abcad7f97ed7073616cf30ad8bab`:
 
-Complete the selected classifier/OCR composition-root and source-readiness boundary without activating providers:
+- replaced unsupported generic classifier/OCR selectors with explicit `amazon_rekognition` selectors;
+- added strict shared backend-only Rekognition environment inputs without committing values;
+- rejected incomplete, malformed, unsupported, fallback, and unsafe enabled production configuration;
+- composed both selected adapters only in the application root through one bounded transport and independent circuits;
+- preserved runner-owned attempts/timeouts and safe unavailable defaults;
+- updated source support, configured/ready state, capabilities, and worker readiness while keeping product enablement separate;
+- added deterministic configuration, factory, production-validation, capability, readiness, redaction, and no-network tests;
+- made no real provider call and performed no deployment, worker scheduling, environment activation, product enablement, or public upload activation.
 
-- add strict backend-only Rekognition configuration for region, bounded timeout, access-key identifier, secret access key, and optional session token;
-- keep credentials represented only as runtime environment inputs and redacted from summaries, errors, capabilities, readiness manifests, and logs;
-- compose classifier and OCR providers only in the backend application root through the existing bounded HTTP transport and explicitly scoped circuit containment;
-- preserve independent provider-runner retry ownership and keep adapter transport timeout at or below the configured runner attempt timeout;
-- update source-support validation only for the selected fully implemented adapters while preserving separate configured, ready, and enabled states;
-- keep absent/incomplete settings fail-closed and preserve unavailable providers as the safe default;
-- add deterministic configuration, factory, source-support, production-validation, worker-readiness, capability, and secret non-disclosure coverage without network calls;
-- do not mark operational readiness true without complete runtime settings, and do not enable managed-media product behavior or public uploads.
+## P3 completion and next bounded slice
 
-No deployment, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized.
+P3 is source-complete. Runtime settings can configure and construct the selected adapters, but no provider account or environment has been activated and no real-call or calibration evidence exists.
+
+Begin P4 with a source-only moderation calibration harness:
+
+- define a strict versioned local manifest with opaque case IDs, bounded fitness-specific categories, expected policy outcomes, and local file references;
+- keep image bytes, OCR plaintext, credentials, signed URLs, provider payloads, owner identity, and free-form notes out of reports;
+- run injected classifier and OCR providers through the existing provider runners, OCR text moderator, and deterministic fitness-aware media policy;
+- produce aggregate allow/review/reject, expected/mismatched, false-positive, false-negative, timeout, malformed, unavailable, and category counts;
+- support bounded JSON and CSV aggregate outputs suitable for threshold review without per-case sensitive values;
+- add deterministic synthetic/no-network fixtures and tests, plus corpus access, retention, and deletion documentation;
+- do not claim calibration or change production thresholds until an authorized representative staging corpus is run externally.
+
+No credentials, real provider call, deployment, migration execution outside CI, worker scheduling, environment activation, product enablement, public upload activation, OTA, or native build is authorized.
 
 ## Execution rules
 

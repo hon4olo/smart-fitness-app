@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `720273195668d3663ec35ba7baca090127ee1b15`;
-- backend `main`: `37d4c91cafdeedde122e344fbaca78d00f1c70be`;
+- mobile `main`: `22f8a8b0b9c888ae38d612d19bc9735d01003f28`;
+- backend `main`: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -42,6 +42,8 @@ Before this documentation synchronization slice:
 - backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;
 - backend PR #105 exact green head: `47237518847f1135629ca730cce9fd442508cb4d`;
 - backend PR #105 merge: `37d4c91cafdeedde122e344fbaca78d00f1c70be`;
+- backend PR #106 exact green head: `cecb34a3044110cf252fe845217d199ddad7afd8`;
+- backend PR #106 merge: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -205,7 +207,7 @@ P2 source completion does not imply infrastructure readiness or activation. No c
 
 ## Phase P3 — classifier, OCR, and provider transport readiness
 
-Status: active. Provider-neutral transport and the complete Amazon Rekognition classifier and OCR source boundaries are merged; composition-root support, environment schema, production source support, readiness, and activation remain open.
+Status: source-complete and merged. Transport, classifier/OCR contracts and runtimes, strict backend-only configuration, composition-root factories, production source support, privacy-safe readiness, and deterministic conformance are complete. External activation and calibration remain open.
 
 Merged evidence:
 
@@ -217,7 +219,9 @@ Merged evidence:
 - backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;
 - backend PR #105 exact green head: `47237518847f1135629ca730cce9fd442508cb4d`;
 - backend PR #105 merge: `37d4c91cafdeedde122e344fbaca78d00f1c70be`;
-- all four exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+- backend PR #106 exact green head: `cecb34a3044110cf252fe845217d199ddad7afd8`;
+- backend PR #106 merge: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
+- all five exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 Provider-neutral runtime:
 
@@ -244,23 +248,25 @@ Provider-specific adapters:
 - [x] integrate the classifier through one shared provider HTTP transport attempt and bounded circuit containment while preserving runner-owned retries;
 - [x] select and document Amazon Rekognition `DetectText` as the OCR provider API contract;
 - [x] implement the selected OCR request builder, strict response parser, approved-operation signing, and one-attempt runtime adapter;
-- [ ] compose selected adapters only in the backend application root;
-- [ ] update production source-support validation only after both required adapters are complete;
-- [ ] keep credentials supplied only by backend environment variables or the deployment secret store;
-- [ ] keep adapters and managed-media product capabilities disabled until explicit staging configuration and P4 calibration.
+- [x] compose selected adapters only in the backend application root through a shared bounded transport and independent circuit instances;
+- [x] update production source-support validation only for the complete selected adapters, with incomplete or unsafe enabled configuration rejected;
+- [x] define credentials only as backend runtime environment inputs; no credential values are committed or exposed through summaries, capabilities, readiness, or logs;
+- [x] keep safe defaults and product flags disabled; credentials/configuration alone do not enable managed-media capabilities, and staging activation remains external.
 
-No API key or real provider call was required for the transport, classifier, or OCR slices. Both selected adapter source boundaries are complete; composition-root configuration, source-support validation, operational readiness, and product activation remain separate open gates.
+No API key or real provider call was required for P3 source implementation. Both adapters, strict configuration, composition-root factories, production source support, and privacy-safe readiness are complete; provider-account access, real-call evidence, staging calibration, and product activation remain external gates.
 
 No credential, provider account, network call, deployment, worker activation, public upload activation, or production environment change was performed.
 
-Next source slice:
+P3 activation boundary:
 
-- add strict backend-only Rekognition runtime configuration without committing credentials;
-- compose both adapters only in the application root through bounded shared transport and explicitly scoped circuit instances;
-- update source-support validation and factories only for the complete selected adapters;
-- preserve separate configured, ready, and enabled states and safe unavailable defaults;
-- add deterministic factory, configuration, production-validation, worker-readiness, capability, redaction, and no-network coverage;
-- keep operational activation, real credentials/calls, managed-media enablement, public uploads, and P4 calibration outside this source slice.
+- no credential values, provider accounts, real calls, deployment, worker activation, public uploads, or production environment changes were performed;
+- complete settings may make the source runtime configured and ready, but do not prove account access, quotas, latency, or moderation quality;
+- managed-media product flags remain disabled unless explicitly enabled later;
+- P4 aggregate calibration evidence and authorized staging validation are required before any production activation decision.
+
+## Phase P4 — moderation calibration harness
+
+Status: active for source-only harness implementation; representative corpus execution and calibration claims remain external.
 
 ## Phase P4 — moderation calibration harness
 

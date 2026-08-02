@@ -26,8 +26,8 @@ Completed implementation history remains in merged pull requests and focused roa
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `720273195668d3663ec35ba7baca090127ee1b15`;
-- backend `main`: `37d4c91cafdeedde122e344fbaca78d00f1c70be`;
+- mobile `main`: `22f8a8b0b9c888ae38d612d19bc9735d01003f28`;
+- backend `main`: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -56,6 +56,8 @@ Before this documentation synchronization slice:
 - backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;
 - backend PR #105 exact green head: `47237518847f1135629ca730cce9fd442508cb4d`;
 - backend PR #105 merge: `37d4c91cafdeedde122e344fbaca78d00f1c70be`;
+- backend PR #106 exact green head: `cecb34a3044110cf252fe845217d199ddad7afd8`;
+- backend PR #106 merge: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -232,7 +234,7 @@ P2 source completion does not activate workers or managed-media product behavior
 
 ### P3 — classifier and OCR readiness
 
-Status: active. Provider-neutral transport and the complete Amazon Rekognition classifier and OCR source boundaries are merged; composition-root support, environment schema, production source support, readiness, and activation remain open.
+Status: source-complete and merged. Provider-neutral transport, strict Amazon Rekognition classifier/OCR adapters, backend-only configuration, composition-root factories, production source support, privacy-safe readiness, and deterministic conformance are complete. Credentials, real calls, staging calibration, product enablement, deployment, and public uploads remain external activation gates.
 
 Backend PR #102, exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, merge `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`:
 
@@ -277,17 +279,26 @@ Backend PR #105, exact green head `47237518847f1135629ca730cce9fd442508cb4d`, me
 - added deterministic no-network contract/runtime conformance and excluded raw provider payloads, messages, signed headers, image bytes, endpoints, credentials, and OCR plaintext from errors and logs;
 - made no real provider call and did not change factories, environment schema, production source support, readiness, workers, product capabilities, or activation.
 
-Remaining P3 boundary:
+Backend PR #106, exact green head `cecb34a3044110cf252fe845217d199ddad7afd8`, merge `95c923c146b0abcad7f97ed7073616cf30ad8bab`:
 
-- add backend-only configuration for the selected Rekognition classifier and OCR adapters without committing credentials;
-- compose both adapters only in the backend application root, reusing one bounded transport and explicitly scoped circuit instances;
-- validate region, timeout, access-key identifier, secret/session-token presence, and selector combinations through the existing strict configuration boundary;
-- update production source-support validation only for the fully implemented selected adapters while keeping configured, ready, and enabled states separate;
-- preserve safe unavailable defaults when settings are absent and fail closed for incomplete or unsafe enabled production configuration;
-- add deterministic factory, redaction, configuration, readiness-manifest, capability, and production-validation coverage without real network calls;
-- keep credentials, real calls, staging configuration, managed-media product enablement, and P4 calibration outside autonomous source work.
+- replaced unsupported generic classifier/OCR selectors with explicit `amazon_rekognition` selectors;
+- added strict shared Rekognition region, access-key identifier, secret access key, optional session token, and bounded timeout inputs;
+- rejected incomplete, unsupported-region, malformed, fallback, and unsafe enabled production configuration;
+- composed the classifier and OCR adapters only in the backend application root through one bounded HTTP transport and independent circuit breakers;
+- preserved provider-runner retry ownership and kept each adapter timeout aligned with its runner attempt timeout;
+- updated source-support and readiness so complete settings are configured/ready while product enablement remains a separate explicit flag;
+- added deterministic environment, factory, capability, worker-readiness, redaction, and no-network coverage;
+- committed no credential values, made no real provider call, and performed no deployment, scheduling, environment activation, product enablement, or public upload activation.
 
-### P4 — moderation calibration harness
+P3 activation boundary:
+
+- source completion does not prove provider-account access, quotas, latency, model behavior, or fitness-specific moderation quality;
+- credentials must be supplied later through the deployment environment or secret store and must not be committed;
+- real provider calls, authorized staging corpus work, thresholds, product flags, workers, and public uploads require explicit authorization;
+- absent settings preserve unavailable behavior, and credentials alone do not enable managed-media capabilities;
+- P4 must produce aggregate calibration evidence before any production enablement decision.
+
+### P4 — moderation calibration harness### P4 — moderation calibration harness
 
 - local authorized-corpus manifest;
 - aggregate allow/review/reject and false-positive/false-negative reporting;
@@ -328,13 +339,12 @@ Remaining P3 boundary:
 
 ## Current execution order
 
-1. P3 classifier/OCR composition-root configuration, source support, and readiness.
-2. P4 moderation calibration harness.
-3. P5 password-reset mobile, links, templates, and delivery readiness.
-4. P6 deployment policies, smoke scripts, and runbooks.
-5. P7 backend-owned conflict choices and then mobile UI.
-6. P8 diagnostics, fixed-SHA release source gate, and Android source preparation.
-7. P9 technical privacy, legal, and analytics prerequisites.
+1. P4 moderation calibration harness.
+2. P5 password-reset mobile, links, templates, and delivery readiness.
+3. P6 deployment policies, smoke scripts, and runbooks.
+4. P7 backend-owned conflict choices and then mobile UI.
+5. P8 diagnostics, fixed-SHA release source gate, and Android source preparation.
+6. P9 technical privacy, legal, and analytics prerequisites.
 
 Each phase may be divided into bounded backend, mobile, and documentation PRs. After every backend slice, synchronize this mobile roadmap with exact head and merge SHAs.
 
@@ -387,4 +397,4 @@ Do not begin without explicit product prioritization:
 
 ## New-chat starter prompt
 
-> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, backend `docs/architecture/social-media-worker-runtime.md`, backend `docs/architecture/provider-http-transport.md`, backend `docs/architecture/amazon-rekognition-classifier.md`, and backend `docs/architecture/amazon-rekognition-ocr.md`; then inspect only code and tests relevant to the selected bounded slice. P0, P1, and P2 are source-complete. P3 provider transport and Amazon Rekognition classifier/OCR source boundaries are complete through backend PR #105 exact green head `47237518847f1135629ca730cce9fd442508cb4d`, merge `37d4c91cafdeedde122e344fbaca78d00f1c70be`. Provider factories, environment schema, production source support, operational readiness, and managed-media capabilities remain disabled. Continue with the smallest complete composition-root slice: add strict backend-only configuration for the selected Rekognition classifier and OCR adapters, compose them only in the application root through the existing bounded transport/circuit boundaries, update source-support validation only for complete adapters, and add deterministic configuration/factory/readiness/redaction coverage. Keep configured, ready, and enabled states separate; credentials alone must not activate any capability. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
+> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. First verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, backend `docs/architecture/social-media-worker-runtime.md`, backend `docs/architecture/provider-http-transport.md`, backend `docs/architecture/amazon-rekognition-classifier.md`, and backend `docs/architecture/amazon-rekognition-ocr.md`; then inspect only code and tests relevant to the selected bounded slice. P0 through P3 are source-complete. P3 completion evidence: backend PR #106 exact green head `cecb34a3044110cf252fe845217d199ddad7afd8`, merge `95c923c146b0abcad7f97ed7073616cf30ad8bab`. The source includes strict Amazon Rekognition classifier/OCR adapters, backend-only configuration, composition-root factories, source support, privacy-safe readiness, and deterministic no-network conformance. No credentials, real provider calls, staging calibration, deployment, worker scheduling, public uploads, or product activation were performed. Continue with the smallest complete P4 calibration-harness slice: define a strict local manifest and bounded fitness-specific expected outcomes, execute injected classifier/OCR providers through the existing deterministic media policy, produce aggregate privacy-safe JSON/CSV reports, and add deterministic fixtures/tests that require no real media or credentials. Do not claim calibration, tune production thresholds, or make real provider calls; representative authorized staging corpus execution remains external. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without direct authorization.
