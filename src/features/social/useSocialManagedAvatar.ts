@@ -30,6 +30,7 @@ type UseSocialManagedAvatarInput = {
   accountId: string | null;
   api: SocialApi;
   copy: SocialManagedAvatarCopy;
+  enabled: boolean;
   profileExists: boolean;
 };
 
@@ -68,6 +69,7 @@ export const useSocialManagedAvatar = ({
   accountId,
   api,
   copy,
+  enabled,
   profileExists,
 }: UseSocialManagedAvatarInput): SocialManagedAvatarController => {
   const sequence = useRef(0);
@@ -92,6 +94,7 @@ export const useSocialManagedAvatar = ({
   const bindApproved = useCallback(
     async (asset: SocialMediaOwnerAssetDto): Promise<void> => {
       if (
+        !enabled ||
         !profileExists ||
         asset.state !== "approved" ||
         !asset.publicDescriptor
@@ -107,31 +110,33 @@ export const useSocialManagedAvatar = ({
       setCurrentAsset(bound.asset);
       await clearDraft();
     },
-    [api, clearDraft, profileExists],
+    [api, clearDraft, enabled, profileExists],
   );
 
   const refreshCandidate = useCallback(
     async (assetId: string): Promise<SocialMediaOwnerAssetDto> => {
+      if (!enabled) throw new Error("Managed avatar capability unavailable");
       const asset = await api.getMediaAsset(assetId);
       setCandidateAsset(asset);
       if (asset.state === "approved") await bindApproved(asset);
       if (asset.state === "deleted") await clearDraft();
       return asset;
     },
-    [api, bindApproved, clearDraft],
+    [api, bindApproved, clearDraft, enabled],
   );
 
   const pollCandidate = useCallback(
     async (assetId: string, requestSequence: number): Promise<void> => {
+      if (!enabled) return;
       setOperation("polling");
       for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
-        if (requestSequence !== sequence.current) return;
+        if (!enabled || requestSequence !== sequence.current) return;
         const asset = await refreshCandidate(assetId);
         if (asset.state === "approved" || isCandidateTerminal(asset)) return;
         await wait(POLL_INTERVAL_MS);
       }
     },
-    [refreshCandidate],
+    [enabled, refreshCandidate],
   );
 
   const load = useCallback(async () => {
@@ -142,7 +147,7 @@ export const useSocialManagedAvatar = ({
     setPreviewUri(null);
     setUploadProgress(null);
     setErrorMessage(null);
-    if (!accountId) {
+    if (!accountId || !enabled) {
       setOperation("idle");
       return;
     }
@@ -174,7 +179,7 @@ export const useSocialManagedAvatar = ({
     } finally {
       if (requestSequence === sequence.current) setOperation("idle");
     }
-  }, [accountId, api, bindApproved, clearDraft, copy]);
+  }, [accountId, api, bindApproved, clearDraft, copy, enabled]);
 
   useEffect(() => {
     void load();
@@ -186,7 +191,7 @@ export const useSocialManagedAvatar = ({
 
   const uploadSelected = useCallback(
     async (selected: SelectedSocialAvatarImage): Promise<void> => {
-      if (!accountId || !profileExists) return;
+      if (!accountId || !enabled || !profileExists) return;
       const requestSequence = ++sequence.current;
       setPreviewUri(selected.uri);
       setErrorMessage(null);
@@ -194,7 +199,7 @@ export const useSocialManagedAvatar = ({
       setOperation("preparing");
       try {
         const prepared = await prepareSocialAvatarImage(selected);
-        if (requestSequence !== sequence.current) return;
+        if (!enabled || requestSequence !== sequence.current) return;
         setPreviewUri(prepared.uri);
         const created = await api.createAvatarUpload({
           schemaVersion: 1,
@@ -220,7 +225,7 @@ export const useSocialManagedAvatar = ({
           onProgress: setUploadProgress,
           signal: controller.signal,
         });
-        if (requestSequence !== sequence.current) return;
+        if (!enabled || requestSequence !== sequence.current) return;
         setOperation("completing");
         const completed = await api.completeMediaUpload(
           created.asset.assetId,
@@ -239,11 +244,13 @@ export const useSocialManagedAvatar = ({
         }
       }
     },
-    [accountId, api, copy, pollCandidate, profileExists],
+    [accountId, api, copy, enabled, pollCandidate, profileExists],
   );
 
   const chooseImage = useCallback(async () => {
-    if (!accountId || !profileExists || operation !== "idle") return;
+    if (!accountId || !enabled || !profileExists || operation !== "idle") {
+      return;
+    }
     setErrorMessage(null);
     setOperation("selecting");
     try {
@@ -257,10 +264,10 @@ export const useSocialManagedAvatar = ({
       setErrorMessage(getSocialManagedAvatarErrorMessage(error, copy));
       setOperation("idle");
     }
-  }, [accountId, copy, operation, profileExists, uploadSelected]);
+  }, [accountId, copy, enabled, operation, profileExists, uploadSelected]);
 
   useEffect(() => {
-    if (!accountId) {
+    if (!accountId || !enabled) {
       recoveredPendingAccount.current = null;
       return;
     }
@@ -274,15 +281,15 @@ export const useSocialManagedAvatar = ({
     recoveredPendingAccount.current = accountId;
     void recoverPendingSocialAvatarImage()
       .then((selected) => {
-        if (selected) void uploadSelected(selected);
+        if (selected && enabled) void uploadSelected(selected);
       })
       .catch((error: unknown) => {
         setErrorMessage(getSocialManagedAvatarErrorMessage(error, copy));
       });
-  }, [accountId, copy, operation, profileExists, uploadSelected]);
+  }, [accountId, copy, enabled, operation, profileExists, uploadSelected]);
 
   const refresh = useCallback(async () => {
-    if (operation !== "idle") return;
+    if (!enabled || operation !== "idle") return;
     setErrorMessage(null);
     setOperation("loading");
     try {
@@ -296,10 +303,10 @@ export const useSocialManagedAvatar = ({
     } finally {
       setOperation("idle");
     }
-  }, [api, candidateAsset, copy, operation, refreshCandidate]);
+  }, [api, candidateAsset, copy, enabled, operation, refreshCandidate]);
 
   const remove = useCallback(async () => {
-    if (operation !== "idle") return;
+    if (!enabled || operation !== "idle") return;
     const target = candidateAsset ?? currentAsset;
     if (!target || target.state === "deleted") return;
     setErrorMessage(null);
@@ -320,7 +327,7 @@ export const useSocialManagedAvatar = ({
     } finally {
       setOperation("idle");
     }
-  }, [api, candidateAsset, clearDraft, copy, currentAsset, operation]);
+  }, [api, candidateAsset, clearDraft, copy, currentAsset, enabled, operation]);
 
   return {
     currentAsset,
