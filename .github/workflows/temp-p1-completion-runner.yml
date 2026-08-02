@@ -34,9 +34,10 @@ jobs:
           run_line = source.index('        run: |', start)
           end = source.index('      - name: Commit canonical synchronization', run_line)
           block = source[run_line + 1:end]
-          if any(line and not line.startswith('          ') for line in block):
-              raise SystemExit('Unexpected roadmap script indentation')
-          code = '\n'.join(line[10:] if line else '' for line in block)
+          code = '\n'.join(
+              line[10:] if line.startswith('          ') else line
+              for line in block
+          )
           exec(compile(code, 'temp-p1-completion-sync', 'exec'))
       - name: Commit canonical synchronization
         if: steps.detect.outputs.needed == 'true'
