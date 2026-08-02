@@ -1,0 +1,161 @@
+name: Synchronize Social S7 roadmap
+
+on:
+  push:
+    branches:
+      - chore/roadmap-social-s7-4-complete
+    paths:
+      - .github/workflows/roadmap-s7-4-close.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/roadmap-social-s7-4-complete
+          fetch-depth: 0
+      - name: Update canonical roadmap documents
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          progress_path = Path('ROADMAP_PROGRESS.md')
+          progress = progress_path.read_text()
+          replacements = {
+              '- mobile `main`: `63e00a7d39c828e703fbd5cbfbd3a9e3e6c372a7`;': '- mobile `main`: `ec8d987ffa839fcbd28b4f29f57029f3f0ea81ae`;',
+              '- backend `main`: `494c4a075f0911339a3493bd506c5c4ac33721fc`;': '- backend `main`: `918383fe832256f370668293b5264373c5239256`;',
+              'Status: backend S7.1-S7.3 source-complete and merged; S7.4 approved derivatives and delivery is the active slice.': 'Status: backend S7.1-S7.4 source-complete and merged; S7.5 managed mobile avatars is the active slice.',
+          }
+          for old, new in replacements.items():
+              if progress.count(old) != 1:
+                  raise SystemExit(f'expected one ROADMAP_PROGRESS target: {old!r}, found {progress.count(old)}')
+              progress = progress.replace(old, new)
+
+          start = progress.index('### S7.4 Approved derivatives and delivery — active')
+          end = progress.index('### S7.5 Mobile managed-avatar flow', start)
+          s74 = '''### S7.4 Approved derivatives and delivery — complete
+
+Merged backend PR #85:
+
+- exact green head: `f94ff7efd26a65b0a91c025836f706f4a8a1855c`;
+- merge SHA: `918383fe832256f370668293b5264373c5239256`.
+
+Completed contract:
+
+- public variants are generated only from internally allowed assets that remain private until publication;
+- exact named avatar variants `64 / 128 / 256 / 512` and workout-post variants `320 / 640 / 1080 / 1440`;
+- strict versioned descriptors with asset ID, dimensions, aspect ratio, average-color placeholder, and immutable named variants;
+- provider-neutral managed delivery with content-hashed object keys, HTTPS URL boundaries, and immutable cache contracts;
+- state-version and worker-token compare-and-swap publication into `approved`;
+- partial-generation cleanup, bounded retry, duplicate-run handling, expired-lease recovery, stale-result rejection, and deletion-race protection;
+- quarantine, normalized-master, and public-prefix cleanup across approval, terminal deletion, restart recovery, and account deletion;
+- database-authoritative monotonic cleanup timestamps;
+- migration `0027`, unit coverage, migrated-schema coverage, PostgreSQL delivery-worker coverage, full backend regression, and production health validation.
+
+No real object-storage credentials, CDN activation, deployment, migration execution outside CI, or public image-upload activation was performed.
+
+'''
+          progress = progress[:start] + s74 + progress[end:]
+
+          progress = progress.replace(
+              '### S7.5 Mobile managed-avatar flow\n\nAfter S7.4 backend contracts merge:',
+              '### S7.5 Mobile managed-avatar flow — active\n\nImplement next:',
+          )
+
+          order_start = progress.index('## Immediate execution order')
+          prompt_start = progress.index('## New-chat starter prompt', order_start)
+          order = '''## Immediate execution order
+
+1. Implement S7.5 managed mobile avatars against the merged owner-state, upload, status, descriptor, retry, deletion, and cleanup contracts.
+2. Implement S7.6 the bounded one-image workout-post flow after managed avatars are stable.
+3. Define and implement manual review/appeal and retention operations.
+4. Run staging calibration, physical-device, release, rollback, privacy, and legal gates only with the required authorization and configuration.
+
+'''
+          progress = progress[:order_start] + order + progress[prompt_start:]
+
+          prompt_heading = progress.index('## New-chat starter prompt')
+          prompt = '''## New-chat starter prompt
+
+> Continue the Smart Fitness roadmap from `ROADMAP_PROGRESS.md`, with Social S7.5 managed mobile avatars as the active source-code slice. Work autonomously through meaningful bounded slices instead of stopping after micro-changes. At the start, verify exact `main` and open PRs for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/roadmap/social-network.md`, and only the files relevant to the current slice. Do not restart already completed Social S0-S7.4 work. Replace free-form avatar URL editing with the merged managed-media owner and public descriptor contracts; support selection, local preview, bounded UX-only preprocessing, upload progress, processing/moderation status, retry, rejection, deletion, offline, and expired-session states. Preserve the private-data versus Social boundary, existing routes/contracts, localization, block/restriction enforcement, and file-size limits. Verify Expo SDK 56 compatibility before any native dependency and do not add dependencies without approval. Run full blocking CI, inspect review threads, and merge only exact green heads. Do not publish OTA, create/install native builds, deploy backend changes, execute migrations, activate staging/production, configure credentials, connect real storage/CDN/moderation providers, or enable public image uploads without explicit authorization.
+'''
+          progress = progress[:prompt_heading] + prompt
+          progress_path.write_text(progress)
+
+          social_path = Path('docs/roadmap/social-network.md')
+          social = social_path.read_text()
+          old_status = 'Status: architecture approved; implementation not started.'
+          new_status = 'Status: backend ingestion, normalization, moderation, approved derivatives, delivery, and cleanup (S7.1-S7.4) are source-complete; S7.5 managed mobile avatars is active.'
+          if social.count(old_status) != 1:
+              raise SystemExit(f'expected one social status target, found {social.count(old_status)}')
+          social = social.replace(old_status, new_status)
+
+          marker = 'Arbitrary remote `avatarUrl` values are transitional and must not be treated as a secure long-term media contract. User media must move to server-owned asset IDs and immutable approved variants.\n'
+          progress_note = '''
+Backend source completion:
+
+- S7.1 media lifecycle and ownership: backend PR #82;
+- S7.2 private quarantine upload boundary: backend PR #83;
+- S7.3 normalization, privacy, OCR, and image moderation: backend PR #84;
+- S7.4 approved derivatives, immutable descriptors, managed delivery, and complete cleanup: backend PR #85, merge `918383fe832256f370668293b5264373c5239256`.
+
+Real storage/CDN/moderation providers and public uploads remain disabled. The active slice is the mobile managed-avatar flow.
+'''
+          if social.count(marker) != 1:
+              raise SystemExit(f'expected one social marker, found {social.count(marker)}')
+          social = social.replace(marker, marker + progress_note)
+
+          backend_done = [
+              'add `social_media_assets` and versioned media-state metadata in PostgreSQL; never store image bytes in PostgreSQL;',
+              'use S3-compatible object storage with private quarantine objects and narrowly scoped signed upload/download operations;',
+              'accept only bounded JPEG, HEIC/HEIF, and PNG inputs in the first version; reject animated GIF/APNG and unsupported containers;',
+              'enforce configurable input limits targeting at most 15 MiB and approximately 40 megapixels before decode;',
+              'verify real file signatures and decoded dimensions rather than trusting extension or client MIME;',
+              'defend against decompression bombs, malformed files, excessive dimensions, and repeated abusive uploads;',
+              'remove EXIF, GPS, device metadata, embedded thumbnails, and unsupported color-profile data on the server;',
+              'keep original uploads private and temporary, then delete them after a terminal decision or a separately approved bounded evidence-retention period;',
+              'use SHA-256 and perceptual hashes for integrity, idempotency, duplicate detection, and repeat-abuse investigation without exposing hashes publicly.',
+              'create a normalized moderation master with a long edge around 1,600–2,048 pixels so AI and OCR inspect the same visible pixels later delivered to users;',
+              'generate public derivatives only after `allow` to avoid permanent storage and processing cost for rejected content;',
+              'generate avatar variants targeting 64, 128, 256, and 512 pixels;',
+              'generate post variants targeting 320, 640, 1,080, and 1,440 pixels, with an optional 2,048-pixel detail variant only when justified;',
+              'generate a tiny blurred preview, BlurHash, or ThumbHash for immediate layout-stable rendering;',
+              'begin with normalized JPEG derivatives and add WebP/AVIF negotiation only after the basic pipeline is stable;',
+              'return a strict media descriptor containing asset ID, dimensions, aspect ratio, placeholder, and named variants instead of one arbitrary image URL;',
+              'account deletion must remove metadata and schedule deletion of every owned quarantine, master, derivative, and CDN-origin object.',
+          ]
+          for text in backend_done:
+              old = f'- [ ] {text}'
+              new = f'- [x] {text}'
+              if social.count(old) != 1:
+                  raise SystemExit(f'expected one checklist target: {text!r}, found {social.count(old)}')
+              social = social.replace(old, new)
+
+          old_delivery = '- [ ] publish immutable content-hashed URLs through a CDN with long-lived cache headers;'
+          new_delivery = '- [x] define provider-neutral immutable content-hashed delivery URLs and long-lived cache contracts; real CDN activation remains separate;'
+          if social.count(old_delivery) != 1:
+              raise SystemExit(f'expected delivery checklist target, found {social.count(old_delivery)}')
+          social = social.replace(old_delivery, new_delivery)
+
+          old_item = '21. [ ] S7 object storage, quarantine, managed-avatar migration, normalization, compression, and variants.'
+          new_item = '21. [ ] S7.5 managed-avatar migration, UX-only preprocessing, upload/status/retry/deletion states, and approved descriptor rendering.'
+          if social.count(old_item) != 1:
+              raise SystemExit(f'expected immediate-order target, found {social.count(old_item)}')
+          social = social.replace(old_item, new_item)
+          social_path.write_text(social)
+          PY
+      - name: Commit docs and remove transport workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -- .github/workflows/roadmap-s7-4-close.yml
+          git add -- ROADMAP_PROGRESS.md docs/roadmap/social-network.md
+          git diff --cached --check
+          git commit -m "docs: close Social S7.4 and activate S7.5"
+          git push origin HEAD:chore/roadmap-social-s7-4-complete
