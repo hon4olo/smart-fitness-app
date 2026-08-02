@@ -72,6 +72,7 @@ export const useSocialManagedAvatar = ({
 }: UseSocialManagedAvatarInput): SocialManagedAvatarController => {
   const sequence = useRef(0);
   const abortController = useRef<AbortController | null>(null);
+  const recoveredPendingAccount = useRef<string | null>(null);
   const [currentAsset, setCurrentAsset] =
     useState<SocialMediaOwnerAssetDto | null>(null);
   const [candidateAsset, setCandidateAsset] =
@@ -136,22 +137,24 @@ export const useSocialManagedAvatar = ({
   const load = useCallback(async () => {
     const requestSequence = ++sequence.current;
     abortController.current?.abort();
-    setOperation("loading");
+    setCurrentAsset(null);
+    setCandidateAsset(null);
+    setPreviewUri(null);
+    setUploadProgress(null);
     setErrorMessage(null);
+    if (!accountId) {
+      setOperation("idle");
+      return;
+    }
+    setOperation("loading");
     try {
       const [attached, draft] = await Promise.all([
         api.getOwnManagedAvatar(),
-        accountId
-          ? loadSocialManagedAvatarDraft(accountId)
-          : Promise.resolve(null),
+        loadSocialManagedAvatarDraft(accountId),
       ]);
       if (requestSequence !== sequence.current) return;
       setCurrentAsset(attached);
-      if (!draft) {
-        setCandidateAsset(null);
-        setPreviewUri(null);
-        return;
-      }
+      if (!draft) return;
       setPreviewUri(draft.previewUri);
       const candidate = await api.getMediaAsset(draft.assetId);
       if (requestSequence !== sequence.current) return;
@@ -257,11 +260,26 @@ export const useSocialManagedAvatar = ({
   }, [accountId, copy, operation, profileExists, uploadSelected]);
 
   useEffect(() => {
-    if (!accountId || !profileExists || operation !== "idle") return;
-    void recoverPendingSocialAvatarImage().then((selected) => {
-      if (selected) void uploadSelected(selected);
-    });
-  }, [accountId, operation, profileExists, uploadSelected]);
+    if (!accountId) {
+      recoveredPendingAccount.current = null;
+      return;
+    }
+    if (
+      !profileExists ||
+      operation !== "idle" ||
+      recoveredPendingAccount.current === accountId
+    ) {
+      return;
+    }
+    recoveredPendingAccount.current = accountId;
+    void recoverPendingSocialAvatarImage()
+      .then((selected) => {
+        if (selected) void uploadSelected(selected);
+      })
+      .catch((error: unknown) => {
+        setErrorMessage(getSocialManagedAvatarErrorMessage(error, copy));
+      });
+  }, [accountId, copy, operation, profileExists, uploadSelected]);
 
   const refresh = useCallback(async () => {
     if (operation !== "idle") return;
