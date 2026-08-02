@@ -74,7 +74,7 @@ export const getSocialManagedAvatarOperationLabel = (
 
 export const isSocialManagedAvatarBusy = (
   operation: SocialManagedAvatarOperation,
-): boolean => operation !== "idle" && operation !== "loading";
+): boolean => operation !== "idle";
 
 export const canRefreshSocialManagedAvatar = (
   asset: SocialMediaOwnerAssetDto | null,
