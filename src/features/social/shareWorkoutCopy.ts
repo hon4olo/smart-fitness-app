@@ -85,7 +85,7 @@ export const getShareWorkoutCopy = (locale: SupportedLocale) =>
         sessionExpired: "Сессия истекла. Войдите снова.",
         unavailable: "Эту тренировку нельзя опубликовать с выбранными данными.",
         genericError: "Не удалось опубликовать тренировку. Повторите попытку.",
-        emptyError: "Выберите хотя бы одно поле, добавьте подпись или фото.",
+        emptyError: "Выберите хотя бы одно поле или добавьте подпись.",
         retry: "Повторить",
         back: "Назад",
       }
@@ -170,8 +170,7 @@ export const getShareWorkoutCopy = (locale: SupportedLocale) =>
         unavailable:
           "This workout cannot be published with the selected details.",
         genericError: "The workout could not be published. Try again.",
-        emptyError:
-          "Select at least one field, add a caption, or attach a photo.",
+        emptyError: "Select at least one workout field or add a caption.",
         retry: "Retry",
         back: "Back",
       };

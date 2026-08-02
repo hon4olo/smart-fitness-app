@@ -127,9 +127,7 @@ export default function ShareWorkoutScreen() {
   };
 
   const canPublish = () =>
-    !mediaWaiting &&
-    !mediaBusy &&
-    canPublishSocialWorkout(caption, controls, Boolean(media.attachment));
+    !mediaWaiting && !mediaBusy && canPublishSocialWorkout(caption, controls);
 
   const publish = async () => {
     if (
@@ -181,9 +179,7 @@ export default function ShareWorkoutScreen() {
   const confirmPublish = () => {
     if (shareWorkoutErrorRequiresEdit(error)) return;
     if (mediaWaiting || mediaBusy) return;
-    if (
-      !canPublishSocialWorkout(caption, controls, Boolean(media.attachment))
-    ) {
+    if (!canPublishSocialWorkout(caption, controls)) {
       setRateLimitError(null);
       setError("empty");
       return;
