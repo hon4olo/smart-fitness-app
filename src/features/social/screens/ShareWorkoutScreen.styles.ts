@@ -80,6 +80,27 @@ export const createShareWorkoutStyles = (colors: typeof Colors.light) =>
       letterSpacing: 0.4,
       textTransform: 'uppercase',
     },
+    mediaHeader: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+      gap: Spacing.two,
+    },
+    mediaHeaderCopy: {
+      flex: 1,
+      gap: 2,
+    },
+    mediaPreview: {
+      aspectRatio: 4 / 3,
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: 12,
+      width: '100%',
+    },
+    mediaWarning: {
+      color: colors.warning,
+      fontSize: 14,
+      fontWeight: '700',
+      lineHeight: 20,
+    },
     pressed: {
       opacity: 0.72,
     },
@@ -110,6 +131,18 @@ export const createShareWorkoutStyles = (colors: typeof Colors.light) =>
       color: colors.textPrimary,
       fontSize: 15,
       fontWeight: '800',
+    },
+    progressFill: {
+      backgroundColor: colors.accent,
+      borderRadius: 999,
+      height: '100%',
+    },
+    progressTrack: {
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: 999,
+      height: 8,
+      overflow: 'hidden',
+      width: '100%',
     },
     screen: {
       backgroundColor: colors.background,
