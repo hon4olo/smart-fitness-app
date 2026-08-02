@@ -46,7 +46,7 @@ roadmap_path = Path("ROADMAP_PROGRESS.md")
 roadmap = update_baseline(roadmap_path.read_text(), "roadmap")
 roadmap = replace_once(
     roadmap,
-    "Status: active. Provider-neutral transport and the complete Amazon Rekognition classifier source boundary are merged; OCR selection/runtime, composition-root support, readiness, and activation remain open.",
+    "Status: active. Provider-neutral transport and the complete Amazon Rekognition `DetectModerationLabels` classifier source boundary are merged; OCR selection/runtime, composition-root support, readiness, and activation remain open.",
     "Status: active. Provider-neutral transport and the complete Amazon Rekognition classifier and OCR source boundaries are merged; composition-root support, environment schema, production source support, readiness, and activation remain open.",
     "roadmap P3 status",
 )
