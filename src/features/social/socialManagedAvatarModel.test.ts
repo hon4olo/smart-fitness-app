@@ -9,6 +9,7 @@ import {
   canRetrySocialManagedAvatar,
   getSocialManagedAvatarErrorMessage,
   getSocialManagedAvatarStatusPresentation,
+  isSocialManagedAvatarBusy,
 } from "./socialManagedAvatarModel";
 
 const copy = getSocialManagedAvatarCopy("en");
@@ -24,6 +25,12 @@ describe("managed avatar presentation model", () => {
     expect(
       getSocialManagedAvatarStatusPresentation(asset("processing"), copy),
     ).toEqual({ title: copy.processingTitle, body: copy.processingBody });
+  });
+
+  it("disables actions for every operation except idle", () => {
+    expect(isSocialManagedAvatarBusy("idle")).toBe(false);
+    expect(isSocialManagedAvatarBusy("loading")).toBe(true);
+    expect(isSocialManagedAvatarBusy("uploading")).toBe(true);
   });
 
   it("maps bounded server and transport errors without raw details", () => {
