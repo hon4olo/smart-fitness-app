@@ -1,0 +1,32 @@
+name: Inspect mobile managed avatar surface
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/s7-5-mobile-inspect.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    if: github.head_ref == 'agent/social-managed-avatar-s7-5'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: List relevant files
+        shell: bash
+        run: |
+          echo '=== PACKAGE ==='
+          cat package.json
+          echo '=== SOCIAL API FILES ==='
+          find src/api/social -maxdepth 2 -type f -print 2>/dev/null | sort
+          echo '=== SOCIAL FEATURE FILES ==='
+          find src -type f \( -iname '*social*' -o -iname '*profile*' -o -iname '*locale*' -o -iname '*translation*' \) -print | sort
+          echo '=== AVATAR REFERENCES ==='
+          grep -RInE 'avatarUrl|avatar URL|avatar_url|avatar' src --include='*.ts' --include='*.tsx' | head -n 500 || true
+          echo '=== IMAGE/PICKER REFERENCES ==='
+          grep -RInE 'ImagePicker|image-picker|manipulator|FileSystem|XMLHttpRequest|uploadAsync|FormData' src package.json --include='*.ts' --include='*.tsx' --include='package.json' | head -n 300 || true
+          echo '=== I18N ROOTS ==='
+          find src -maxdepth 4 -type f \( -iname '*en*' -o -iname '*ru*' -o -iname '*i18n*' \) -print | sort | head -n 300
