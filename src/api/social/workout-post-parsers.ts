@@ -1,3 +1,4 @@
+import { parseSocialMediaPublicDescriptorDto } from './media-parsers';
 import { parseSocialProfileDto } from './parsers';
 import {
   SOCIAL_WORKOUT_POST_DTO_SCHEMA_VERSION,
@@ -159,6 +160,7 @@ export const parseSocialWorkoutPostDto = (
       'author',
       'caption',
       'workout',
+      'image',
       'createdAt',
     ]) ||
     value.schemaVersion !== SOCIAL_WORKOUT_POST_DTO_SCHEMA_VERSION ||
@@ -171,12 +173,19 @@ export const parseSocialWorkoutPostDto = (
     throw new Error('Invalid social workout post response');
   }
 
+  const image =
+    value.image === null ? null : parseSocialMediaPublicDescriptorDto(value.image);
+  if (image && image.assetType !== 'workout_post_image') {
+    throw new Error('Invalid social workout post response');
+  }
+
   return {
     schemaVersion: SOCIAL_WORKOUT_POST_DTO_SCHEMA_VERSION,
     id: value.id,
     author: parseSocialProfileDto(value.author),
     caption: value.caption,
     workout: parseSocialWorkoutSnapshotDto(value.workout),
+    image,
     createdAt: value.createdAt,
   };
 };
