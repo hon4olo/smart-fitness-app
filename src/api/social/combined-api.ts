@@ -10,6 +10,7 @@ import {
   type SocialCapabilityApi,
 } from './capability-api';
 import type { SocialApiAuth } from './contracts';
+import { createSocialMediaApi, type SocialMediaApi } from './media-api';
 import {
   createSocialNotificationApi,
   type SocialNotificationApi,
@@ -27,6 +28,7 @@ const defaultApiClient = createApiClient({
 
 export type SocialApi = BaseSocialApi &
   SocialCapabilityApi &
+  SocialMediaApi &
   SocialNotificationApi &
   SocialReportApi;
 
@@ -36,6 +38,7 @@ export const createSocialApi = (
 ): SocialApi => ({
   ...createBaseSocialApi(auth, apiClient),
   ...createSocialCapabilityApi(auth, apiClient),
+  ...createSocialMediaApi(auth, apiClient),
   ...createSocialNotificationApi(auth, apiClient),
   ...createSocialReportApi(auth, apiClient),
 });
