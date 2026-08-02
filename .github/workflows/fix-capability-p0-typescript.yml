@@ -1,7 +1,8 @@
 name: Temporary Capability P0 Type Fix
 
 on:
-  pull_request:
+  push:
+    branches: [agent/mobile-capability-gating-p0]
 
 permissions:
   contents: write
@@ -11,10 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout PR branch
+      - name: Checkout branch
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Restore boolean return
         shell: python
@@ -42,6 +41,8 @@ jobs:
     [scheduleStateMutation],
   );
 """
+          if after in content:
+              raise SystemExit(0)
           if before not in content:
               raise SystemExit('Expected AppContext block not found')
           path.write_text(content.replace(before, after, 1))
@@ -56,4 +57,4 @@ jobs:
             exit 0
           fi
           git commit -m "fix: restore limitation mutation result"
-          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
