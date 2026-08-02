@@ -10,10 +10,12 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 ## Verified starting baseline
 
-Before this roadmap branch:
+Before this documentation synchronization slice:
 
-- mobile `main`: `f4f923e41fb4c1f6de653186fa551f806594acab`;
-- backend `main`: `c6c9177230425194c3ce5508f9e6bf350ed6d697`;
+- mobile `main`: `4e2f7a0ef1dad2d1e1ec05ec533d484e54ae7cd0`;
+- backend `main`: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
+- backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
+- backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -48,31 +50,41 @@ Do not replace these contracts with provider-specific domain models. Provider id
 
 ## Phase P0 — provider configuration and capability foundation
 
-Status: next source phase.
+Status: backend foundation merged; mobile capability consumption remains active.
+
+Merged backend evidence:
+
+- backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
+- backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
+- exact head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 Backend:
 
-- [ ] define provider-neutral configuration selectors for private object storage, immutable media delivery, media classifier, OCR, and password-reset delivery;
-- [ ] separate `configured`, `ready`, and `enabled` states so credentials alone cannot activate a feature;
-- [ ] add strict production validation for provider names, endpoints, regions, bucket names, public base URLs, timeouts, retry limits, worker concurrency, and feature flags;
-- [ ] reject production startup when an enabled feature would use an in-memory, unavailable, or incomplete provider;
-- [ ] keep safe defaults disabled and preserve current behavior when no provider configuration exists;
-- [ ] add redacted configuration summaries and privacy-safe readiness diagnostics;
-- [ ] add provider factories at the composition root rather than in routes or domain services.
+- [x] define provider-neutral configuration selectors for private object storage, immutable media delivery, media classifier, OCR, and password-reset delivery;
+- [x] separate `configured`, `ready`, and `enabled` states so credentials alone cannot activate a feature;
+- [x] add strict production validation for provider names, endpoints, regions, bucket names, public base URLs, timeouts, retry limits, worker concurrency, and feature flags;
+- [x] reject production startup when an enabled feature would use an in-memory, unavailable, incomplete, or source-unsupported provider;
+- [x] keep safe defaults disabled and preserve current behavior when no provider configuration exists;
+- [x] add redacted configuration summaries and privacy-safe readiness representation;
+- [x] add provider factories at the composition root rather than in routes or domain services.
 
 Cross-repository capability contract:
 
-- [ ] add a versioned backend capability response for managed avatars, workout-post images, media moderation, media delivery, and password reset;
-- [ ] distinguish source availability from operational readiness and product enablement;
+- [x] add a versioned backend capability response for managed avatars, workout-post images, media moderation, media delivery, and password reset;
+- [x] distinguish source availability from operational readiness and product enablement;
 - [ ] add strict fail-closed mobile parsing and account/session-safe refresh behavior;
 - [ ] hide or disable unavailable controls without sending requests into a known-disabled pipeline;
-- [ ] localize bounded unavailable, temporarily unavailable, and configuration-required states in English and Russian.
+- [ ] localize bounded unavailable, temporarily unavailable, configuration-required, and recheck-required states in English and Russian.
+
+The merged backend response is authenticated, strict, versioned, provider-neutral, and privacy-safe. It does not expose provider names, secret names or values, endpoints, buckets, regions, email, object keys, signed URLs, provider payloads, raw internal errors, or user data.
 
 Acceptance criteria:
 
-- production cannot accidentally activate a partially configured provider;
-- missing credentials preserve disabled behavior rather than causing startup-time secret leakage or request-time ambiguity;
-- mobile behavior is determined by a strict backend capability contract, not hard-coded assumptions.
+- [x] production cannot accidentally activate a partially configured provider;
+- [x] missing credentials preserve disabled behavior rather than causing startup-time secret leakage or request-time ambiguity;
+- [ ] mobile behavior is determined by a strict backend capability contract, not hard-coded assumptions.
+
+No real provider adapter, credential, provider call, backend deployment, worker activation, public upload activation, or production password-reset email activation was performed.
 
 ## Phase P1 — S3-compatible private storage and immutable delivery adapters
 
@@ -160,7 +172,7 @@ Backend delivery:
 - [ ] construct links only from a configured trusted application-link base URL;
 - [ ] preserve token invalidation when delivery fails;
 - [ ] add timeout, provider rejection, malformed response, duplicate request, cooldown, replay, expiry, and redacted-log tests;
-- [ ] add password-reset capability gating so the mobile flow appears only when delivery is operationally ready.
+- [x] add password-reset capability gating to the backend contract so the mobile flow can appear only when delivery is operationally ready.
 
 External activation later requires a verified sender domain, DNS records, provider credentials, backend deployment, deep-link domain configuration, and physical-device validation.
 
@@ -229,7 +241,7 @@ Engineering drafts do not constitute legal approval.
 
 ## Execution order
 
-1. P0 provider configuration and capability foundation.
+1. Complete the remaining P0 mobile capability parser, account/session-safe refresh, localized gating, and control suppression.
 2. P1 S3-compatible private storage and immutable delivery adapters.
 3. P2 production worker entrypoints and orchestration.
 4. P3 provider transport plus selected classifier and OCR adapters.
