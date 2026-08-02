@@ -142,6 +142,13 @@ export const createSocialWorkoutPostSurfaceStyles = (colors: typeof Colors.dark)
     postCard: { gap: Spacing.three },
     postHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: Spacing.three },
     postHeaderCopy: { flex: 1, gap: Spacing.one },
+    postImage: { height: '100%', width: '100%' },
+    postImageFrame: {
+      borderCurve: 'continuous',
+      borderRadius: Radii.medium,
+      overflow: 'hidden',
+      width: '100%',
+    },
     postTitle: {
       color: colors.textPrimary,
       fontSize: Typography.cardTitle.fontSize,
