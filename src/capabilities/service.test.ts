@@ -53,7 +53,9 @@ describe('capability service', () => {
       'https://api.example.test/v1/capabilities',
     );
     expect(requestInit?.method).toBe('GET');
-    expect(requestInit?.signal).toBe(controller.signal);
+    expect(requestInit?.signal).toBeInstanceOf(AbortSignal);
+    controller.abort();
+    expect(requestInit?.signal?.aborted).toBe(true);
     expect(new Headers(requestInit?.headers).has('authorization')).toBe(false);
   });
 
