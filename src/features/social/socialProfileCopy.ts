@@ -9,7 +9,7 @@ const en = {
   eyebrow: 'SOCIAL',
   title: 'Social profile',
   subtitle:
-    'Create the public identity used for profiles, follows, and future workout sharing.',
+    'Create the public identity used for profiles, follows, and workout sharing.',
   signInTitle: 'Sign in required',
   signInBody: 'Sign in before creating or editing a social profile.',
   signInAction: 'Sign in',
@@ -24,9 +24,6 @@ const en = {
   bio: 'Bio',
   bioPlaceholder: 'Training focus, experience, or a short introduction',
   bioHelp: 'Up to 280 characters.',
-  avatarUrl: 'Avatar URL',
-  avatarPlaceholder: 'https://example.com/avatar.png',
-  avatarHelp: 'Optional public image URL. Uploads are not available yet.',
   visibility: 'Profile visibility',
   visibilityHelp:
     'Public profiles can be followed immediately. Private profiles approve follow requests.',
@@ -43,7 +40,6 @@ const en = {
   validationDisplayNameRequired: 'Enter a display name.',
   validationDisplayNameLength: 'Display name must be 80 characters or less.',
   validationBioLength: 'Bio must be 280 characters or less.',
-  validationAvatarUrl: 'Enter a valid full URL or leave this field empty.',
   errorUsernameTaken: 'That username is already taken.',
   errorOffline: 'Connect to the internet and try again.',
   errorSessionExpired: 'Your session expired. Sign in again.',
@@ -61,7 +57,7 @@ const ru: SocialProfileCopy = {
   eyebrow: 'СОЦИАЛЬНЫЙ ПРОФИЛЬ',
   title: 'Социальный профиль',
   subtitle:
-    'Создайте публичную идентичность для профилей, подписок и будущей публикации тренировок.',
+    'Создайте публичную идентичность для профилей, подписок и публикации тренировок.',
   signInTitle: 'Требуется вход',
   signInBody: 'Войдите в аккаунт, чтобы создать или изменить социальный профиль.',
   signInAction: 'Войти',
@@ -76,9 +72,6 @@ const ru: SocialProfileCopy = {
   bio: 'О себе',
   bioPlaceholder: 'Направление тренировок, опыт или короткое описание',
   bioHelp: 'Не более 280 символов.',
-  avatarUrl: 'URL аватара',
-  avatarPlaceholder: 'https://example.com/avatar.png',
-  avatarHelp: 'Необязательная публичная ссылка на изображение. Загрузка файлов пока недоступна.',
   visibility: 'Видимость профиля',
   visibilityHelp:
     'На публичные профили подписываются сразу. Закрытые профили подтверждают запросы.',
@@ -95,7 +88,6 @@ const ru: SocialProfileCopy = {
   validationDisplayNameRequired: 'Введите отображаемое имя.',
   validationDisplayNameLength: 'Отображаемое имя должно содержать не более 80 символов.',
   validationBioLength: 'Описание должно содержать не более 280 символов.',
-  validationAvatarUrl: 'Введите корректный полный URL или оставьте поле пустым.',
   errorUsernameTaken: 'Это имя пользователя уже занято.',
   errorOffline: 'Подключитесь к интернету и повторите попытку.',
   errorSessionExpired: 'Сессия истекла. Войдите снова.',
