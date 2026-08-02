@@ -25,9 +25,9 @@ Read this index together with:
 
 At this update:
 
-- mobile `main`: `1a1fd4f12752ab1bd7782fffcc1877a30965e96e`;
-- backend `main`: `3f6c907efcfa503bd4beaf12b072c4e5b4573362`;
-- open mobile pull requests: none;
+- mobile `main`: `63e00a7d39c828e703fbd5cbfbd3a9e3e6c372a7`;
+- backend `main`: `494c4a075f0911339a3493bd506c5c4ac33721fc`;
+- open mobile pull requests before this docs-only branch: none;
 - open backend pull requests: none.
 
 Always recheck exact `main` and open pull requests before changing code.
@@ -85,59 +85,104 @@ Do not restart Social work from profiles, follow graph, workout posts, feed, rea
 
 ## Active source-code program — Social S7 managed media
 
-Status: architecture approved; implementation not started.
+Status: backend S7.1-S7.3 source-complete and merged; S7.4 approved derivatives and delivery is the active slice.
 
 Goal: replace arbitrary remote avatar URLs and text-only workout posts with a bounded, server-owned, privacy-safe image pipeline. Public image upload must remain disabled until the complete quarantine, validation, moderation, derivative, deletion, and account-cleanup contract is implemented and validated.
 
-### S7.1 Media domain and lifecycle contracts
+### S7.1 Media domain and lifecycle contracts — complete
 
-- Add versioned `social_media_assets` metadata and explicit owner/type/state fields in PostgreSQL.
-- Define strict public and internal DTOs using asset IDs and named immutable variants rather than arbitrary URLs.
-- Define states such as upload pending, quarantined, processing, review required, approved, rejected, failed, and deleted.
-- Define ownership, idempotency, account-deletion cascade, retention, restart recovery, and stale-processing behavior.
-- Keep image bytes outside PostgreSQL.
+Merged backend PR #82:
 
-### S7.2 Private quarantine upload boundary
+- exact green head: `c8a904fbd36bcfc0239b433344a1e6199f8697d2`;
+- merge SHA: `44af28822f2ab8e27dec0449ba9d948671be4c64`.
 
-- Introduce a provider-neutral S3-compatible object-storage abstraction.
-- Use narrowly scoped signed uploads to private quarantine storage.
-- Accept only bounded JPEG, HEIC/HEIF, and PNG inputs initially; reject animated and unsupported formats.
-- Verify real file signatures, decode validity, pixel dimensions, and configured byte/pixel limits.
-- Defend against malformed files, decompression bombs, repeated abusive uploads, and cross-owner access.
-- Keep originals private and temporary.
+Completed contract:
 
-### S7.3 Normalization, privacy, and image moderation
+- versioned `social_media_assets` metadata with explicit owner, asset type, state, timestamps, terminal states, and PostgreSQL account-deletion cascade;
+- strict lifecycle transitions, state-version compare-and-swap, worker leases, stale-result protection, idempotency, retention, restart recovery, and deletion semantics;
+- separate internal, owner, and public DTO boundaries;
+- public descriptors use asset IDs and named immutable variants rather than user-supplied URLs;
+- image bytes remain outside PostgreSQL.
 
-- Normalize orientation and color space.
-- Remove EXIF, GPS, embedded thumbnails, device metadata, and unsupported profiles server-side.
-- Produce a normalized moderation master.
-- Run image classification, OCR, and OCR-text moderation through strict provider-neutral contracts.
-- Add a fitness-specific deterministic policy so ordinary adult gym photos, sportswear, posing, bodybuilding stages, and non-erotic progress photos are not automatically classified as explicit content.
-- Never claim or persist a precise age inferred from appearance; combine possible-minor and sexual-content signals conservatively.
-- Keep uncertain cases non-public in `review_required`.
+No migration was executed outside CI and no storage credentials or public uploads were activated.
 
-### S7.4 Approved derivatives and delivery
+### S7.2 Private quarantine upload boundary — complete
 
-- Generate public derivatives only after approval.
-- Generate bounded avatar and workout-post sizes plus a layout-stable placeholder.
-- Publish immutable content-hashed URLs through a CDN or equivalent approved delivery boundary.
-- Return strict descriptors containing asset ID, dimensions, aspect ratio, placeholder, and named variants.
-- Support deletion of quarantine, master, variants, and origin objects during account deletion or terminal cleanup.
+Merged backend PR #83:
+
+- exact green head: `a7d02235ef29a471891d552449546e3f8d72a941`;
+- merge SHA: `b8a5d725f30cca0c3fddf79161709651141bb83a`.
+
+Completed contract:
+
+- provider-neutral private object-storage interface and deterministic in-memory provider;
+- narrowly scoped signed PUT uploads into versioned private quarantine keys;
+- bounded JPEG, HEIC/HEIF, and PNG acceptance;
+- explicit GIF, APNG, AVIF, unsupported-container, malformed-file, MIME-mismatch, byte-limit, dimension-limit, pixel-limit, and decompression-bomb rejection;
+- authoritative signature, decode, owner, idempotency, duplicate-delivery, stale-state, expiry, deletion, and abuse-rate-limit checks;
+- metadata-only migration and PostgreSQL/API/unit coverage;
+- uploads remain disabled by default.
+
+No real object-storage adapter, credentials, public bucket, CDN, deployment, or public upload activation was added.
+
+### S7.3 Normalization, privacy, and image moderation — complete
+
+Merged backend PR #84:
+
+- exact green head: `6554c60834c754eb9211b226a29d38429dea48ea`;
+- merge SHA: `494c4a075f0911339a3493bd506c5c4ac33721fc`.
+
+Completed contract:
+
+- private orientation and color normalization with bounded metadata-stripped sRGB JPEG moderation masters;
+- removal of EXIF, GPS, device metadata, embedded thumbnails, orientation metadata, and unsupported profiles from normalized output;
+- strict versioned provider-neutral image-classifier and OCR contracts;
+- OCR text rerouted through the existing typed text-moderation boundary;
+- deterministic fitness-aware policy covering ordinary adult gym photos, sportswear, posing, bodybuilding stages, and non-erotic progress photos without automatic explicit classification;
+- no exact age inference or persistence; possible-minor signals are used conservatively only with additional safety signals;
+- uncertain cases remain non-public in `review_required`;
+- allowed moderation results remain private in `quarantined` until S7.4 creates approved immutable delivery variants;
+- CAS worker claims, lease recovery, duplicate-run handling, stale-result rejection, restart recovery, and deletion cleanup of quarantine and moderation-master objects;
+- PostgreSQL stores only bounded metadata, signals, hashes, and decisions—never image bytes, OCR plaintext, raw provider responses, exact inferred age, or chain-of-thought;
+- migration `0026` and full unit/PostgreSQL coverage for provider failure, timeout, malformed output, duplicate run, stale worker, cleanup, and fitness false positives.
+
+No real classifier, OCR provider, credentials, deployment, migration execution outside CI, or public media activation was performed.
+
+### S7.4 Approved derivatives and delivery — active
+
+Implement next:
+
+- generate public variants only from internally allowed, still-private assets;
+- create bounded named avatar and workout-post variants;
+- create a layout-stable placeholder such as BlurHash, ThumbHash, or a reviewed equivalent;
+- use immutable content-hashed object keys and delivery URLs;
+- return a strict descriptor containing asset ID, dimensions, aspect ratio, placeholder, and named variants;
+- keep the delivery boundary CDN-neutral and provider-neutral;
+- make transition to public `approved` atomic with the descriptor and protected by state version and worker token;
+- delete quarantine, normalized master, derivatives, and origin objects during terminal cleanup and account deletion;
+- cover partial generation failure, retry, duplicate worker run, stale generation result, deletion race, and cleanup recovery;
+- keep real storage credentials, CDN activation, and public image uploads disabled.
 
 ### S7.5 Mobile managed-avatar flow
 
-- Replace free-form avatar URL editing with managed selection, local preview, upload progress, moderation status, retry, rejection, and deletion states.
-- Add bounded client preprocessing for orientation, resizing, and compression where a reviewed native dependency is justified.
-- Treat all client validation and EXIF removal as UX optimization only; server validation remains authoritative.
-- Preserve existing social profile ownership, localization, visibility, block, and moderation contracts.
+After S7.4 backend contracts merge:
+
+- replace free-form avatar URL editing with managed selection, local preview, compression/upload progress, moderation status, retry, rejection, deletion, offline, and expired-session states;
+- review actual Expo SDK 56 compatibility before adding any native dependency;
+- treat client preprocessing as UX optimization only; server validation remains authoritative;
+- localize all new visible copy;
+- do not create a native build without explicit authorization.
 
 ### S7.6 One-image workout-post flow
 
-- Add at most one moderated image per workout post before considering multi-image posts.
-- Keep the private completed workout and public immutable post snapshot separate.
-- Keep pending, review-required, rejected, failed, and deleted assets out of public profiles, feeds, notifications, and post DTOs.
-- Use bounded polling or refresh for asynchronous processing rather than holding the upload request open.
-- Add localized offline, retry, compression, upload, processing, moderation, rejection, and removed-asset states.
+After managed avatars are stable:
+
+- add at most one moderated image per workout post before considering multi-image posts;
+- keep the private completed workout and public immutable post snapshot separate;
+- keep pending, review-required, rejected, failed, and deleted assets out of public profiles, feeds, notifications, and post DTOs;
+- use bounded polling or refresh rather than holding an upload request open;
+- add localized offline, retry, compression, upload, processing, moderation, rejection, and removed-asset states;
+- preserve current share controls and explicit final publication confirmation.
 
 ### S7 exit criteria
 
@@ -206,15 +251,12 @@ Do not begin without explicit product prioritization:
 
 ## Immediate execution order
 
-1. Implement S7.1 backend media metadata, strict state machine, ownership, idempotency, deletion, and tests without activating storage credentials.
-2. Implement S7.2 provider-neutral object-storage and signed quarantine-upload contracts with deterministic fake-provider tests.
-3. Implement S7.3 validation, normalization, metadata removal, moderation orchestration, OCR, policy, and stale-worker recovery.
-4. Implement S7.4 approved variants, descriptors, deletion lifecycle, and CDN-neutral delivery contracts.
-5. Implement S7.5 managed mobile avatars after backend contracts are merged.
-6. Implement S7.6 the bounded one-image workout-post flow after managed avatars and media descriptors are stable.
-7. Define and implement manual review/appeal and retention operations.
-8. Run staging calibration, physical-device, release, rollback, privacy, and legal gates only with the required authorization and configuration.
+1. Implement S7.4 approved derivatives, immutable descriptors, deletion lifecycle, and CDN-neutral delivery contracts without real credentials or public activation.
+2. Implement S7.5 managed mobile avatars after the backend descriptor and cleanup contracts merge.
+3. Implement S7.6 the bounded one-image workout-post flow after managed avatars are stable.
+4. Define and implement manual review/appeal and retention operations.
+5. Run staging calibration, physical-device, release, rollback, privacy, and legal gates only with the required authorization and configuration.
 
 ## New-chat starter prompt
 
-> Continue the Smart Fitness roadmap from `ROADMAP_PROGRESS.md`, with Social S7 managed media as the active source-code program. Work autonomously through meaningful bounded slices instead of stopping after micro-changes. At the start, verify exact `main` and open PRs for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/roadmap/social-network.md`, and only the files relevant to the current slice. Do not restart already completed Social S0-S6 work. Begin with S7.1: backend `social_media_assets` metadata, strict versioned state/DTO contracts, ownership, idempotency, deletion/account-cleanup semantics, migration and tests, while keeping image bytes outside PostgreSQL and public uploads disabled. Then proceed through provider-neutral quarantine storage, validation/normalization/privacy stripping, image moderation/OCR and fitness-specific policy, approved variants, managed avatars, and one-image workout posts. Preserve the private-data versus Social boundary, existing routes/contracts, localization, block/restriction enforcement, and file-size limits. Run full blocking CI, inspect review threads, and merge only exact green heads. Do not publish OTA, create/install native builds, deploy backend changes, execute migrations, activate staging/production, configure credentials, or enable public image uploads without my explicit request.
+> Continue the Smart Fitness roadmap from `ROADMAP_PROGRESS.md`, with Social S7.4 approved derivatives and delivery as the active source-code slice. Work autonomously through meaningful bounded slices instead of stopping after micro-changes. At the start, verify exact `main` and open PRs for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/roadmap/social-network.md`, and only the files relevant to the current slice. Do not restart already completed Social S0-S7.3 work. Implement backend approved derivatives only after internal moderation allow, with bounded avatar/workout-post variants, a layout-stable placeholder, immutable content-hashed keys, a strict media descriptor, CDN-neutral delivery, atomic approved transition, and full cleanup/retry/stale-worker/deletion-race tests. Preserve the private-data versus Social boundary, existing routes/contracts, localization, block/restriction enforcement, and file-size limits. Run full blocking CI, inspect review threads, and merge only exact green heads. Do not publish OTA, create/install native builds, deploy backend changes, execute migrations, activate staging/production, configure credentials, connect real storage/CDN/moderation providers, or enable public image uploads without explicit authorization.
