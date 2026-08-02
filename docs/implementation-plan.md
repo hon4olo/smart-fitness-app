@@ -2,66 +2,119 @@
 
 Updated: 2026-08-02
 
-This file contains only the current verified baseline, active constraints, and the next decision gate. Completed implementation history belongs in merged PRs and focused architecture documents.
+This file contains the current verified baseline, active source program, execution order, and authorization boundary. Detailed tasks live in `docs/roadmap/provider-readiness.md`. Completed implementation history remains in merged pull requests and focused architecture and roadmap documents.
 
 ## Verified baseline
 
-- Mobile baseline before the current closure PR: `4c750182a86dc49a1a820579cd11fcbf595dc4d7`.
-- Backend `main`: `3f6c907efcfa503bd4beaf12b072c4e5b4573362`.
-- Production `useAppContext` consumers: `0`.
-- Focused state boundaries, persistence ordering, high-volume list virtualization, and Progress charts are complete.
-- The single AsyncStorage `AppState` snapshot remains the approved local-state architecture.
-- Blocking Mobile CI covers repository and changed-file line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor.
+Before the current docs branch:
 
-## Local-state decision
+- mobile `main`: `f4f923e41fb4c1f6de653186fa551f806594acab`;
+- backend `main`: `c6c9177230425194c3ce5508f9e6bf350ed6d697`;
+- open mobile pull requests: none;
+- open backend pull requests: none;
+- production `useAppContext` consumers: `0`;
+- Social S0-S6 and managed-media S7.1-S7.7 source boundaries are complete;
+- public media uploads and real providers remain disabled;
+- the single AsyncStorage `AppState` snapshot remains the approved local-state architecture;
+- blocking Mobile CI covers repository and changed-file line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor;
+- blocking Backend CI covers lint, formatting, build, migrations, schema and PostgreSQL integration, full regression, startup, and health.
 
-Status: complete after the current closure PR.
+Always verify current exact `main` and open pull requests in both repositories before starting a slice.
 
-Evidence:
+## Active source program
 
-- deterministic default, representative, and stress snapshots;
-- top-level domain size analysis;
-- development-only save and restore measurements;
-- actual `LocalAppRepository` save/load benchmark;
-- support-only release-device diagnostics for real AsyncStorage bytes and durations.
+Status: approved for autonomous source preparation.
 
-Decision:
+Goal: prepare mobile and backend provider integrations so later activation consists of provider selection, credentials, infrastructure creation, deployment, staging validation, native builds, and explicit feature enablement rather than additional core application work.
 
-- retain the single AsyncStorage snapshot;
-- do not add SQLite or domain partitioning now;
-- treat completed workout sessions and food entries as the first candidates only if measured growth later reopens the gate;
-- keep migration design and implementation separate.
+Canonical detailed roadmap:
 
-Detailed results, budgets, and reopen criteria are in `docs/architecture/local-state-performance-decision.md`.
+- `docs/roadmap/provider-readiness.md`.
+
+The program includes:
+
+1. provider configuration, factories, readiness validation, and cross-repository capability contracts;
+2. S3-compatible private object storage and immutable delivery adapters;
+3. production worker entrypoints, process templates, recovery, and readiness;
+4. classifier and OCR transport, strict adapters, and conformance tests;
+5. moderation calibration tooling;
+6. password-reset mobile flow, deep links, templates, and delivery adapter;
+7. environment templates, storage/CDN/email policies, smoke scripts, and operational runbooks;
+8. backend-owned explicit sync conflict choices before destructive mobile UI;
+9. privacy-safe diagnostics, fixed-SHA release gating, and Android source preparation;
+10. technical privacy, legal, and analytics prerequisites.
+
+## Next bounded slice
+
+Start with Phase P0 from `docs/roadmap/provider-readiness.md`:
+
+- backend provider-neutral configuration selectors;
+- explicit `configured`, `ready`, and `enabled` states;
+- strict production fail-closed validation;
+- provider factories at the composition root;
+- versioned backend capability response;
+- strict mobile capability parsing and localized gating.
+
+P0 must not connect a real provider or require credentials. Existing disabled behavior remains the safe default.
+
+## Execution rules
+
+- Continue through one meaningful bounded phase or subphase rather than stopping after every micro-change.
+- Inspect existing routes, services, repositories, modules, schemas, tests, and mobile parsers before adding abstractions.
+- Reuse current media lifecycle, moderation, delivery, cleanup, appeal, review, password-reset, authentication, sync, and localization contracts.
+- Keep provider-specific SDKs, model IDs, payloads, credentials, and raw responses behind backend adapters.
+- Keep mobile provider-neutral and backend-only for all provider calls.
+- Use branches and pull requests.
+- Run the repository's complete blocking CI.
+- Inspect review threads.
+- Merge only the exact fully green head.
+- After a backend phase, update the canonical mobile roadmap documents with exact head and merge SHAs.
 
 ## Invariants
 
-- Preserve persisted schemas, stable IDs, canonical units, authentication, revisions, idempotency, conflicts, completed history, routes, and explicit Coach confirmations.
-- Keep actions in `AppActions`, operational status in `AppInfrastructure`, and domain data in focused state hooks.
-- Do not debounce or compact outbox-bearing operations without a new semantic contract.
-- Do not add Zustand, Jotai, SQLite, another persistence layer, or a chart dependency without new measured evidence.
-- Keep hand-written source files at or below 500 physical lines.
-- Merge only exact green heads.
-- Do not publish OTA, build/install native binaries, deploy backend changes, activate environments, or change credentials without explicit authorization.
+- Preserve persisted schemas, stable IDs, canonical units, authentication, revisions, idempotency, conflicts, completed history, explicit Coach confirmations, media state versions, worker leases, retention deadlines, legal holds, and append-only audit.
+- Keep private fitness data in the existing offline-first revision-aware private-data boundary.
+- Keep Social data server-authoritative and separate from private `AppState` synchronization.
+- Reviewed, pending, appealed, rejected, failed, and deleted media remain non-public unless an explicit valid transition approves them.
+- Mobile never contains provider secrets or calls object storage, CDN, moderation, OCR, email, or model providers directly.
+- Never expose raw provider responses, OCR plaintext, object keys, signed URLs, tokens, email, private payloads, or full idempotency keys in logs, diagnostics, DTOs, or user-visible copy.
+- New user-facing copy uses the localization layer and bounded display mappings.
+- Keep every new hand-written source or architecture file at or below 500 physical lines.
+- Do not introduce SQLite, another persistence layer, a second backend, Firebase, or Supabase.
 
-## Next decision gate
+## Safe-default requirements
 
-There is no remaining approved autonomous source-refactor phase after the current PR. Select the next bounded slice from one of these inputs:
+- Provider credentials alone must not enable a product capability.
+- Production startup must fail closed when an enabled capability has incomplete or unsafe configuration.
+- In-memory and unavailable providers remain test/development fallbacks and cannot satisfy enabled production readiness.
+- Mobile must hide or disable a known-unavailable operation through a strict capability contract rather than issuing a doomed request.
+- Missing provider configuration must preserve current disabled behavior.
 
-1. a reproducible user-visible defect;
-2. release-candidate smoke evidence;
-3. supported-device performance or accessibility evidence;
-4. a backend contract gap;
-5. a separately approved product priority.
+## Work allowed now
 
-Do not invent speculative architecture work to keep the roadmap populated.
+- backend and mobile source changes;
+- provider adapters written against public provider contracts without real credentials;
+- deterministic tests, provider conformance suites, fixtures, and CI changes;
+- CLI and worker entrypoints that are not started in an environment;
+- Docker Compose, systemd, environment, policy, smoke, and runbook templates;
+- email templates and deep-link source configuration;
+- technical privacy and legal drafts clearly marked as non-approved;
+- documentation updates and exact-green PR merges.
 
-## Work requiring explicit authorization or additional inputs
+## Work requiring explicit authorization or external inputs
 
-- OTA publication or native build/install;
-- physical-device cold-start, offline-restart, accessibility, EN/RU/unit, and second-device matrices;
-- fixed-SHA cross-repository release gate requiring repository-token access;
-- provider-backed Coach staging validation requiring model configuration and credentials;
-- backend deployment or environment activation;
-- destructive local-versus-account conflict controls requiring a new ownership/revision/audit contract;
-- privacy, consent, retention, deletion, and analytics policy requirements.
+- credentials, secret-store, DNS, sender-domain, bucket, CDN, or provider-account configuration;
+- real provider calls or staging calibration;
+- repository-token setup and execution of the fixed-SHA release gate;
+- backend deployment or migration execution outside CI;
+- worker scheduling or environment activation;
+- OTA publication;
+- native build or device installation;
+- physical-device, second-device, accessibility, EN/RU/unit, offline-restart, and release matrices;
+- public media upload enablement;
+- production password-reset email activation;
+- legal approval.
+
+## Completion gate
+
+The source program is complete only when the criteria in `docs/roadmap/provider-readiness.md` are satisfied and both repositories have exact fully green merged heads. Source completion does not imply deployment, provider activation, device validation, or public release.
