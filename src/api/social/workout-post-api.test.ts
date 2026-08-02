@@ -16,11 +16,12 @@ const profile = {
 };
 
 const post = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   id: '4d1792e8-7fe8-4dde-96c9-760f696529a8',
   author: profile,
   caption: 'Solid session',
   workout: { schemaVersion: 1, title: 'Upper body' },
+  image: null,
   createdAt: '2026-07-31T09:00:00.000Z',
 };
 
@@ -33,7 +34,7 @@ const createClient = (request: ReturnType<typeof vi.fn>): ApiClient =>
   ({ request }) as unknown as ApiClient;
 
 describe('social workout post API', () => {
-  it('sends the exact explicit share controls and trims bounded text', async () => {
+  it('sends exact share controls and an approved image binding', async () => {
     const request = vi.fn().mockResolvedValue({ post });
     const api = createSocialApi(createAuth(), createClient(request));
 
@@ -51,6 +52,11 @@ describe('social workout post API', () => {
           repetitions: true,
           rpe: false,
           volume: true,
+        },
+        image: {
+          schemaVersion: 1,
+          assetId: '  77fe3b62-e922-4f7c-822e-c5cf4a2acf21  ',
+          expectedStateVersion: 6,
         },
       }),
     ).resolves.toEqual(post);
@@ -71,6 +77,11 @@ describe('social workout post API', () => {
           repetitions: true,
           rpe: false,
           volume: true,
+        },
+        image: {
+          schemaVersion: 1,
+          assetId: '77fe3b62-e922-4f7c-822e-c5cf4a2acf21',
+          expectedStateVersion: 6,
         },
       },
       headers: { authorization: 'Bearer access-token' },
