@@ -30,7 +30,7 @@ describe('managed avatar presentation model', () => {
     expect(
       getSocialManagedAvatarErrorMessage(
         new ApiError({
-          code: 'service_unavailable',
+          code: 'unavailable',
           message: 'private implementation detail',
           status: 503,
           body: { code: 'SOCIAL_MEDIA_UPLOADS_UNAVAILABLE' },
