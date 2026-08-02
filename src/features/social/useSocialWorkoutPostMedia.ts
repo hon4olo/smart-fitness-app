@@ -218,7 +218,9 @@ export const useSocialWorkoutPostMedia = ({
           byteSize: prepared.byteSize,
           mediaType: prepared.mediaType,
           upload: created.upload,
-          onProgress: setUploadProgress,
+          onProgress: (value) => {
+            if (isCurrent(requestSequence)) setUploadProgress(value);
+          },
           signal: controller.signal,
         });
         if (!isCurrent(requestSequence)) return;
@@ -295,12 +297,17 @@ export const useSocialWorkoutPostMedia = ({
       return;
     }
     recoveredPendingKey.current = recoveryKey;
+    const requestSequence = sequence.current;
     void recoverPendingSocialWorkoutPostImage()
       .then((selected) => {
-        if (selected) void uploadSelected(selected);
+        if (selected && isCurrent(requestSequence)) {
+          void uploadSelected(selected);
+        }
       })
       .catch((error: unknown) => {
-        setErrorMessage(getSocialWorkoutPostMediaErrorMessage(error, copy));
+        if (isCurrent(requestSequence)) {
+          setErrorMessage(getSocialWorkoutPostMediaErrorMessage(error, copy));
+        }
       });
   }, [accountId, copy, operation, sessionId, uploadSelected]);
 
