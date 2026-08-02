@@ -1,14 +1,14 @@
-import { Image } from 'expo-image';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Image } from "expo-image";
+import { Alert, StyleSheet, Text, View } from "react-native";
 
-import { DestructiveButton } from '@/components/ui/DestructiveButton';
-import { InlineError } from '@/components/ui/InlineError';
-import { PrimaryButton } from '@/components/ui/PrimaryButton';
-import { SecondaryButton } from '@/components/ui/SecondaryButton';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { DestructiveButton } from "@/components/ui/DestructiveButton";
+import { InlineError } from "@/components/ui/InlineError";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { SecondaryButton } from "@/components/ui/SecondaryButton";
+import { Colors, Radii, Spacing, Typography } from "@/constants/theme";
+import { useAppTheme } from "@/theme/AppThemeProvider";
 
-import type { SocialManagedAvatarCopy } from './socialManagedAvatarCopy';
+import type { SocialManagedAvatarCopy } from "./socialManagedAvatarCopy";
 import {
   canRefreshSocialManagedAvatar,
   canRetrySocialManagedAvatar,
@@ -16,8 +16,8 @@ import {
   getSocialManagedAvatarOperationLabel,
   getSocialManagedAvatarStatusPresentation,
   isSocialManagedAvatarBusy,
-} from './socialManagedAvatarModel';
-import type { SocialManagedAvatarController } from './useSocialManagedAvatar';
+} from "./socialManagedAvatarModel";
+import type { SocialManagedAvatarController } from "./useSocialManagedAvatar";
 
 type SocialManagedAvatarCardProps = {
   controller: SocialManagedAvatarController;
@@ -50,10 +50,10 @@ export function SocialManagedAvatarCard({
       copy.deleteTitle,
       hasCandidate ? copy.deleteDraftBody : copy.deleteCurrentBody,
       [
-        { text: copy.cancel, style: 'cancel' },
+        { text: copy.cancel, style: "cancel" },
         {
           text: copy.deleteAction,
-          style: 'destructive',
+          style: "destructive",
           onPress: () => void controller.remove(),
         },
       ],
@@ -121,7 +121,8 @@ export function SocialManagedAvatarCard({
         <View
           accessibilityLabel={`${Math.round(controller.uploadProgress * 100)}%`}
           accessibilityRole="progressbar"
-          style={styles.progressTrack}>
+          style={styles.progressTrack}
+        >
           <View
             style={[
               styles.progressFill,
@@ -136,9 +137,11 @@ export function SocialManagedAvatarCard({
       <PrimaryButton
         disabled={!controller.profileExists || busy}
         label={
-          controller.previewUri || controller.currentAsset ? copy.change : copy.select
+          controller.previewUri || controller.currentAsset
+            ? copy.change
+            : copy.select
         }
-        loading={controller.operation === 'selecting'}
+        loading={controller.operation === "selecting"}
         onPress={() => void controller.chooseImage()}
       />
       {canRefreshSocialManagedAvatar(controller.candidateAsset) ? (
@@ -148,7 +151,8 @@ export function SocialManagedAvatarCard({
           onPress={() => void controller.refresh()}
         />
       ) : null}
-      {controller.errorMessage || canRetrySocialManagedAvatar(controller.candidateAsset) ? (
+      {controller.errorMessage ||
+      canRetrySocialManagedAvatar(controller.candidateAsset) ? (
         <SecondaryButton
           disabled={!controller.profileExists || busy}
           label={copy.retry}
@@ -159,7 +163,7 @@ export function SocialManagedAvatarCard({
         <DestructiveButton
           disabled={busy}
           label={copy.remove}
-          loading={controller.operation === 'deleting'}
+          loading={controller.operation === "deleting"}
           onPress={confirmRemove}
         />
       ) : null}
@@ -170,7 +174,7 @@ export function SocialManagedAvatarCard({
 const createStyles = (colors: typeof Colors.dark) =>
   StyleSheet.create({
     avatar: {
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: colors.surfaceSecondary,
       borderRadius: 48,
       height: 96,
       width: 96,
@@ -182,20 +186,20 @@ const createStyles = (colors: typeof Colors.dark) =>
       lineHeight: Typography.caption.lineHeight,
     },
     emptyAvatar: {
-      alignItems: 'center',
-      backgroundColor: colors.surfaceMuted,
+      alignItems: "center",
+      backgroundColor: colors.surfaceSecondary,
       borderColor: colors.borderSubtle,
       borderRadius: 48,
       borderWidth: StyleSheet.hairlineWidth,
       height: 96,
-      justifyContent: 'center',
+      justifyContent: "center",
       padding: Spacing.two,
       width: 96,
     },
     emptyAvatarText: {
       color: colors.textMuted,
       fontSize: Typography.caption.fontSize,
-      textAlign: 'center',
+      textAlign: "center",
     },
     heading: { gap: Spacing.one },
     note: {
@@ -206,26 +210,26 @@ const createStyles = (colors: typeof Colors.dark) =>
     operation: {
       color: colors.accent,
       fontSize: Typography.caption.fontSize,
-      fontWeight: '700',
+      fontWeight: "700",
     },
     previewColumn: { gap: Spacing.one },
     previewLabel: {
       color: colors.textSecondary,
       fontSize: Typography.caption.fontSize,
-      fontWeight: '700',
+      fontWeight: "700",
     },
-    previewRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.four },
+    previewRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.four },
     progressFill: {
       backgroundColor: colors.accent,
-      borderRadius: Radii.full,
-      height: '100%',
+      borderRadius: Radii.pill,
+      height: "100%",
     },
     progressTrack: {
-      backgroundColor: colors.surfaceMuted,
-      borderRadius: Radii.full,
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: Radii.pill,
       height: 6,
-      overflow: 'hidden',
-      width: '100%',
+      overflow: "hidden",
+      width: "100%",
     },
     statusBody: {
       color: colors.textSecondary,
@@ -233,7 +237,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       lineHeight: Typography.caption.lineHeight,
     },
     statusBox: {
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: colors.surfaceSecondary,
       borderColor: colors.borderSubtle,
       borderRadius: Radii.medium,
       borderWidth: StyleSheet.hairlineWidth,
@@ -243,7 +247,7 @@ const createStyles = (colors: typeof Colors.dark) =>
     statusTitle: {
       color: colors.textPrimary,
       fontSize: Typography.body.fontSize,
-      fontWeight: '700',
+      fontWeight: "700",
     },
     title: {
       color: colors.textPrimary,

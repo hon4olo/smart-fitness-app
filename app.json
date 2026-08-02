@@ -30,6 +30,14 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Smart Fitness to select a profile photo.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
       "expo-image",
       "expo-secure-store",
       [

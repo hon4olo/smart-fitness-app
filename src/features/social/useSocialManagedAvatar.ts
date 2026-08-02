@@ -1,27 +1,27 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   uploadSignedSocialMedia,
   type SocialApi,
   type SocialMediaOwnerAssetDto,
-} from '@/api/social';
+} from "@/api/social";
 
-import type { SocialManagedAvatarCopy } from './socialManagedAvatarCopy';
+import type { SocialManagedAvatarCopy } from "./socialManagedAvatarCopy";
 import {
   clearSocialManagedAvatarDraft,
   loadSocialManagedAvatarDraft,
   saveSocialManagedAvatarDraft,
-} from './socialManagedAvatarDraftStore';
+} from "./socialManagedAvatarDraftStore";
 import {
   prepareSocialAvatarImage,
   recoverPendingSocialAvatarImage,
   selectSocialAvatarImage,
   type SelectedSocialAvatarImage,
-} from './socialManagedAvatarImage';
+} from "./socialManagedAvatarImage";
 import {
   getSocialManagedAvatarErrorMessage,
   type SocialManagedAvatarOperation,
-} from './socialManagedAvatarModel';
+} from "./socialManagedAvatarModel";
 
 const POLL_ATTEMPTS = 12;
 const POLL_INTERVAL_MS = 2_000;
@@ -59,10 +59,10 @@ const createIdempotencyKey = (): string => {
 };
 
 const isCandidateTerminal = (asset: SocialMediaOwnerAssetDto): boolean =>
-  asset.state === 'review_required' ||
-  asset.state === 'rejected' ||
-  asset.state === 'failed' ||
-  asset.state === 'deleted';
+  asset.state === "review_required" ||
+  asset.state === "rejected" ||
+  asset.state === "failed" ||
+  asset.state === "deleted";
 
 export const useSocialManagedAvatar = ({
   accountId,
@@ -78,7 +78,7 @@ export const useSocialManagedAvatar = ({
     useState<SocialMediaOwnerAssetDto | null>(null);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [operation, setOperation] =
-    useState<SocialManagedAvatarOperation>('loading');
+    useState<SocialManagedAvatarOperation>("loading");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -90,10 +90,14 @@ export const useSocialManagedAvatar = ({
 
   const bindApproved = useCallback(
     async (asset: SocialMediaOwnerAssetDto): Promise<void> => {
-      if (!profileExists || asset.state !== 'approved' || !asset.publicDescriptor) {
+      if (
+        !profileExists ||
+        asset.state !== "approved" ||
+        !asset.publicDescriptor
+      ) {
         return;
       }
-      setOperation('binding');
+      setOperation("binding");
       const bound = await api.bindOwnManagedAvatar({
         schemaVersion: 1,
         assetId: asset.assetId,
@@ -109,8 +113,8 @@ export const useSocialManagedAvatar = ({
     async (assetId: string): Promise<SocialMediaOwnerAssetDto> => {
       const asset = await api.getMediaAsset(assetId);
       setCandidateAsset(asset);
-      if (asset.state === 'approved') await bindApproved(asset);
-      if (asset.state === 'deleted') await clearDraft();
+      if (asset.state === "approved") await bindApproved(asset);
+      if (asset.state === "deleted") await clearDraft();
       return asset;
     },
     [api, bindApproved, clearDraft],
@@ -118,11 +122,11 @@ export const useSocialManagedAvatar = ({
 
   const pollCandidate = useCallback(
     async (assetId: string, requestSequence: number): Promise<void> => {
-      setOperation('polling');
+      setOperation("polling");
       for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
         if (requestSequence !== sequence.current) return;
         const asset = await refreshCandidate(assetId);
-        if (asset.state === 'approved' || isCandidateTerminal(asset)) return;
+        if (asset.state === "approved" || isCandidateTerminal(asset)) return;
         await wait(POLL_INTERVAL_MS);
       }
     },
@@ -132,12 +136,14 @@ export const useSocialManagedAvatar = ({
   const load = useCallback(async () => {
     const requestSequence = ++sequence.current;
     abortController.current?.abort();
-    setOperation('loading');
+    setOperation("loading");
     setErrorMessage(null);
     try {
       const [attached, draft] = await Promise.all([
         api.getOwnManagedAvatar(),
-        accountId ? loadSocialManagedAvatarDraft(accountId) : Promise.resolve(null),
+        accountId
+          ? loadSocialManagedAvatarDraft(accountId)
+          : Promise.resolve(null),
       ]);
       if (requestSequence !== sequence.current) return;
       setCurrentAsset(attached);
@@ -149,18 +155,21 @@ export const useSocialManagedAvatar = ({
       setPreviewUri(draft.previewUri);
       const candidate = await api.getMediaAsset(draft.assetId);
       if (requestSequence !== sequence.current) return;
-      if (candidate.assetId === attached?.assetId || candidate.state === 'deleted') {
+      if (
+        candidate.assetId === attached?.assetId ||
+        candidate.state === "deleted"
+      ) {
         await clearDraft();
         return;
       }
       setCandidateAsset(candidate);
-      if (candidate.state === 'approved') await bindApproved(candidate);
+      if (candidate.state === "approved") await bindApproved(candidate);
     } catch (error) {
       if (requestSequence === sequence.current) {
         setErrorMessage(getSocialManagedAvatarErrorMessage(error, copy));
       }
     } finally {
-      if (requestSequence === sequence.current) setOperation('idle');
+      if (requestSequence === sequence.current) setOperation("idle");
     }
   }, [accountId, api, bindApproved, clearDraft, copy]);
 
@@ -179,14 +188,14 @@ export const useSocialManagedAvatar = ({
       setPreviewUri(selected.uri);
       setErrorMessage(null);
       setUploadProgress(null);
-      setOperation('preparing');
+      setOperation("preparing");
       try {
         const prepared = await prepareSocialAvatarImage(selected);
         if (requestSequence !== sequence.current) return;
         setPreviewUri(prepared.uri);
         const created = await api.createAvatarUpload({
           schemaVersion: 1,
-          assetType: 'avatar',
+          assetType: "avatar",
           mediaType: prepared.mediaType,
           byteSize: prepared.byteSize,
           idempotencyKey: createIdempotencyKey(),
@@ -198,7 +207,7 @@ export const useSocialManagedAvatar = ({
         });
         const controller = new AbortController();
         abortController.current = controller;
-        setOperation('uploading');
+        setOperation("uploading");
         setUploadProgress(0);
         await uploadSignedSocialMedia({
           uri: prepared.uri,
@@ -209,7 +218,7 @@ export const useSocialManagedAvatar = ({
           signal: controller.signal,
         });
         if (requestSequence !== sequence.current) return;
-        setOperation('completing');
+        setOperation("completing");
         const completed = await api.completeMediaUpload(
           created.asset.assetId,
           created.asset.stateVersion,
@@ -222,7 +231,7 @@ export const useSocialManagedAvatar = ({
         }
       } finally {
         if (requestSequence === sequence.current) {
-          setOperation('idle');
+          setOperation("idle");
           setUploadProgress(null);
         }
       }
@@ -231,33 +240,33 @@ export const useSocialManagedAvatar = ({
   );
 
   const chooseImage = useCallback(async () => {
-    if (!accountId || !profileExists || operation !== 'idle') return;
+    if (!accountId || !profileExists || operation !== "idle") return;
     setErrorMessage(null);
-    setOperation('selecting');
+    setOperation("selecting");
     try {
       const selected = await selectSocialAvatarImage();
       if (!selected) {
-        setOperation('idle');
+        setOperation("idle");
         return;
       }
       await uploadSelected(selected);
     } catch (error) {
       setErrorMessage(getSocialManagedAvatarErrorMessage(error, copy));
-      setOperation('idle');
+      setOperation("idle");
     }
   }, [accountId, copy, operation, profileExists, uploadSelected]);
 
   useEffect(() => {
-    if (!accountId || !profileExists || operation !== 'idle') return;
+    if (!accountId || !profileExists || operation !== "idle") return;
     void recoverPendingSocialAvatarImage().then((selected) => {
       if (selected) void uploadSelected(selected);
     });
   }, [accountId, operation, profileExists, uploadSelected]);
 
   const refresh = useCallback(async () => {
-    if (operation !== 'idle') return;
+    if (operation !== "idle") return;
     setErrorMessage(null);
-    setOperation('loading');
+    setOperation("loading");
     try {
       if (candidateAsset) {
         await refreshCandidate(candidateAsset.assetId);
@@ -267,18 +276,21 @@ export const useSocialManagedAvatar = ({
     } catch (error) {
       setErrorMessage(getSocialManagedAvatarErrorMessage(error, copy));
     } finally {
-      setOperation('idle');
+      setOperation("idle");
     }
   }, [api, candidateAsset, copy, operation, refreshCandidate]);
 
   const remove = useCallback(async () => {
-    if (operation !== 'idle') return;
+    if (operation !== "idle") return;
     const target = candidateAsset ?? currentAsset;
-    if (!target || target.state === 'deleted') return;
+    if (!target || target.state === "deleted") return;
     setErrorMessage(null);
-    setOperation('deleting');
+    setOperation("deleting");
     try {
-      const deleted = await api.deleteMediaAsset(target.assetId, target.stateVersion);
+      const deleted = await api.deleteMediaAsset(
+        target.assetId,
+        target.stateVersion,
+      );
       if (candidateAsset) {
         setCandidateAsset(deleted);
         await clearDraft();
@@ -288,7 +300,7 @@ export const useSocialManagedAvatar = ({
     } catch (error) {
       setErrorMessage(getSocialManagedAvatarErrorMessage(error, copy));
     } finally {
-      setOperation('idle');
+      setOperation("idle");
     }
   }, [api, candidateAsset, clearDraft, copy, currentAsset, operation]);
 

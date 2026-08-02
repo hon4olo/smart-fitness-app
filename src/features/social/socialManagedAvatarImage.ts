@@ -1,7 +1,7 @@
-import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
 
-import { SocialManagedAvatarImageError } from './socialManagedAvatarErrors';
+import { SocialManagedAvatarImageError } from "./socialManagedAvatarErrors";
 
 export type SelectedSocialAvatarImage = {
   uri: string;
@@ -10,7 +10,7 @@ export type SelectedSocialAvatarImage = {
 };
 
 export type PreparedSocialAvatarImage = SelectedSocialAvatarImage & {
-  mediaType: 'image/jpeg';
+  mediaType: "image/jpeg";
   byteSize: number;
 };
 
@@ -18,11 +18,12 @@ const MAX_LONG_EDGE = 2_048;
 const MAX_AVATAR_BYTES = 8 * 1024 * 1024;
 
 const toSelectedImage = (
-  result: ImagePicker.ImagePickerResult | ImagePicker.ImagePickerErrorResult | null,
+  result:
+    ImagePicker.ImagePickerResult | ImagePicker.ImagePickerErrorResult | null,
 ): SelectedSocialAvatarImage | null => {
-  if (!result || 'code' in result) {
-    if (result && 'code' in result) {
-      throw new SocialManagedAvatarImageError('selection_failed');
+  if (!result || "code" in result) {
+    if (result && "code" in result) {
+      throw new SocialManagedAvatarImageError("selection_failed");
     }
     return null;
   }
@@ -30,56 +31,58 @@ const toSelectedImage = (
   const asset = result.assets?.[0];
   if (
     !asset ||
-    asset.type !== 'image' ||
+    asset.type !== "image" ||
     !asset.uri ||
     !Number.isFinite(asset.width) ||
     !Number.isFinite(asset.height) ||
     asset.width < 1 ||
     asset.height < 1
   ) {
-    throw new SocialManagedAvatarImageError('unsupported_image');
+    throw new SocialManagedAvatarImageError("unsupported_image");
   }
   return { uri: asset.uri, width: asset.width, height: asset.height };
 };
 
-export const selectSocialAvatarImage = async (): Promise<SelectedSocialAvatarImage | null> => {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) {
-    throw new SocialManagedAvatarImageError('permission_denied');
-  }
-  try {
-    return toSelectedImage(
-      await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        exif: false,
-        mediaTypes: ['images'],
-        quality: 1,
-        selectionLimit: 1,
-      }),
-    );
-  } catch (error) {
-    if (error instanceof SocialManagedAvatarImageError) throw error;
-    throw new SocialManagedAvatarImageError('selection_failed');
-  }
-};
+export const selectSocialAvatarImage =
+  async (): Promise<SelectedSocialAvatarImage | null> => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      throw new SocialManagedAvatarImageError("permission_denied");
+    }
+    try {
+      return toSelectedImage(
+        await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: true,
+          aspect: [1, 1],
+          exif: false,
+          mediaTypes: ["images"],
+          quality: 1,
+          selectionLimit: 1,
+        }),
+      );
+    } catch (error) {
+      if (error instanceof SocialManagedAvatarImageError) throw error;
+      throw new SocialManagedAvatarImageError("selection_failed");
+    }
+  };
 
-export const recoverPendingSocialAvatarImage = async (): Promise<SelectedSocialAvatarImage | null> => {
-  try {
-    return toSelectedImage(await ImagePicker.getPendingResultAsync());
-  } catch (error) {
-    if (error instanceof SocialManagedAvatarImageError) throw error;
-    return null;
-  }
-};
+export const recoverPendingSocialAvatarImage =
+  async (): Promise<SelectedSocialAvatarImage | null> => {
+    try {
+      return toSelectedImage(await ImagePicker.getPendingResultAsync());
+    } catch (error) {
+      if (error instanceof SocialManagedAvatarImageError) throw error;
+      return null;
+    }
+  };
 
 const getBlobSize = async (uri: string): Promise<number> => {
   try {
     const response = await fetch(uri);
-    if (!response.ok) throw new Error('Image cache entry was not readable');
+    if (!response.ok) throw new Error("Image cache entry was not readable");
     return (await response.blob()).size;
   } catch {
-    throw new SocialManagedAvatarImageError('processing_failed');
+    throw new SocialManagedAvatarImageError("processing_failed");
   }
 };
 
@@ -105,7 +108,7 @@ const renderJpeg = async (
     uri: saved.uri,
     width: saved.width,
     height: saved.height,
-    mediaType: 'image/jpeg',
+    mediaType: "image/jpeg",
     byteSize: await getBlobSize(saved.uri),
   };
 };
@@ -118,9 +121,9 @@ export const prepareSocialAvatarImage = async (
     if (primary.byteSize <= MAX_AVATAR_BYTES) return primary;
     const fallback = await renderJpeg(selected, 0.72);
     if (fallback.byteSize <= MAX_AVATAR_BYTES) return fallback;
-    throw new SocialManagedAvatarImageError('too_large');
+    throw new SocialManagedAvatarImageError("too_large");
   } catch (error) {
     if (error instanceof SocialManagedAvatarImageError) throw error;
-    throw new SocialManagedAvatarImageError('processing_failed');
+    throw new SocialManagedAvatarImageError("processing_failed");
   }
 };

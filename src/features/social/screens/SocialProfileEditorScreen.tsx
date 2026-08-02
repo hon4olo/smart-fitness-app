@@ -1,35 +1,48 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { createSocialApi, type SocialProfileVisibility } from '@/api/social';
-import { AppCard } from '@/components/ui/AppCard';
-import { FormField } from '@/components/ui/FormField';
-import { InlineError } from '@/components/ui/InlineError';
-import { LoadingState } from '@/components/ui/LoadingState';
-import { PrimaryButton } from '@/components/ui/PrimaryButton';
-import { SecondaryButton } from '@/components/ui/SecondaryButton';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { Colors, MaxContentWidth, Radii, Spacing, Typography } from '@/constants/theme';
-import { useAuthSession } from '@/hooks/useAuthSession';
-import { useLocalization } from '@/localization';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { createSocialApi, type SocialProfileVisibility } from "@/api/social";
+import { AppCard } from "@/components/ui/AppCard";
+import { FormField } from "@/components/ui/FormField";
+import { InlineError } from "@/components/ui/InlineError";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { SecondaryButton } from "@/components/ui/SecondaryButton";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import {
+  Colors,
+  MaxContentWidth,
+  Radii,
+  Spacing,
+  Typography,
+} from "@/constants/theme";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { useLocalization } from "@/localization";
+import { useAppTheme } from "@/theme/AppThemeProvider";
 
-import { SocialManagedAvatarCard } from '../SocialManagedAvatarCard';
-import { getSocialManagedAvatarCopy } from '../socialManagedAvatarCopy';
-import { getSocialProfileCopy } from '../socialProfileCopy';
+import { SocialManagedAvatarCard } from "../SocialManagedAvatarCard";
+import { getSocialManagedAvatarCopy } from "../socialManagedAvatarCopy";
+import { getSocialProfileCopy } from "../socialProfileCopy";
 import {
   buildSocialProfileInput,
   createSocialProfileFormValues,
   getSocialProfileRequestError,
   validateSocialProfileForm,
   type SocialProfileFormValues,
-} from '../socialProfileForm';
-import { getSocialRateLimitMessage } from '../socialRateLimitCopy';
-import { useSocialManagedAvatar } from '../useSocialManagedAvatar';
+} from "../socialProfileForm";
+import { getSocialRateLimitMessage } from "../socialRateLimitCopy";
+import { useSocialManagedAvatar } from "../useSocialManagedAvatar";
 
-type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
+type LoadStatus = "idle" | "loading" | "ready" | "error";
 
 export default function SocialProfileEditorScreen() {
   const router = useRouter();
@@ -38,13 +51,19 @@ export default function SocialProfileEditorScreen() {
   const { locale, t } = useLocalization();
   const copy = getSocialProfileCopy(locale);
   const avatarCopy = getSocialManagedAvatarCopy(locale);
-  const { isAuthenticated, profile: accountProfile, ready, refresh, session } = useAuthSession();
+  const {
+    isAuthenticated,
+    profile: accountProfile,
+    ready,
+    refresh,
+    session,
+  } = useAuthSession();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const requestSequence = useRef(0);
-  const [loadStatus, setLoadStatus] = useState<LoadStatus>('idle');
+  const [loadStatus, setLoadStatus] = useState<LoadStatus>("idle");
   const [profileExists, setProfileExists] = useState(false);
   const [values, setValues] = useState<SocialProfileFormValues>(() =>
-    createSocialProfileFormValues(null, ''),
+    createSocialProfileFormValues(null, ""),
   );
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -53,7 +72,8 @@ export default function SocialProfileEditorScreen() {
   const auth = useMemo(
     () => ({
       getAccessToken: async () => session?.tokens.accessToken ?? null,
-      refreshAccessToken: async () => (await refresh())?.tokens.accessToken ?? null,
+      refreshAccessToken: async () =>
+        (await refresh())?.tokens.accessToken ?? null,
     }),
     [refresh, session?.tokens.accessToken],
   );
@@ -70,9 +90,9 @@ export default function SocialProfileEditorScreen() {
       const rateLimitMessage = getSocialRateLimitMessage(error, locale);
       if (rateLimitMessage) return rateLimitMessage;
       const state = getSocialProfileRequestError(error);
-      if (state === 'username_taken') return copy.errorUsernameTaken;
-      if (state === 'offline') return copy.errorOffline;
-      if (state === 'session_expired') return copy.errorSessionExpired;
+      if (state === "username_taken") return copy.errorUsernameTaken;
+      if (state === "offline") return copy.errorOffline;
+      if (state === "session_expired") return copy.errorSessionExpired;
       return copy.errorGeneric;
     },
     [copy, locale],
@@ -81,29 +101,37 @@ export default function SocialProfileEditorScreen() {
   const loadProfile = useCallback(async () => {
     if (!isAuthenticated) return;
     const sequence = ++requestSequence.current;
-    setLoadStatus('loading');
+    setLoadStatus("loading");
     setRequestError(null);
     try {
       const profile = await socialApi.getOwnProfile();
       if (sequence !== requestSequence.current) return;
       setProfileExists(Boolean(profile));
       setValues(
-        createSocialProfileFormValues(profile, accountProfile?.displayName ?? ''),
+        createSocialProfileFormValues(
+          profile,
+          accountProfile?.displayName ?? "",
+        ),
       );
       setSubmitted(false);
-      setLoadStatus('ready');
+      setLoadStatus("ready");
     } catch (error) {
       if (sequence !== requestSequence.current) return;
       setRequestError(requestErrorCopy(error));
-      setLoadStatus('error');
+      setLoadStatus("error");
     }
-  }, [accountProfile?.displayName, isAuthenticated, requestErrorCopy, socialApi]);
+  }, [
+    accountProfile?.displayName,
+    isAuthenticated,
+    requestErrorCopy,
+    socialApi,
+  ]);
 
   useEffect(() => {
     if (!ready) return;
     if (!isAuthenticated) {
       requestSequence.current += 1;
-      setLoadStatus('idle');
+      setLoadStatus("idle");
       setProfileExists(false);
       setRequestError(null);
       return;
@@ -120,22 +148,20 @@ export default function SocialProfileEditorScreen() {
     label: string;
     value: SocialProfileVisibility;
   }> = [
-    { label: copy.visibilityPublic, value: 'public' },
-    { label: copy.visibilityPrivate, value: 'private' },
+    { label: copy.visibilityPublic, value: "public" },
+    { label: copy.visibilityPrivate, value: "private" },
   ];
 
-  const getFieldError = (
-    field: keyof typeof errors,
-  ): string | undefined => {
+  const getFieldError = (field: keyof typeof errors): string | undefined => {
     if (!submitted || !errors[field]) return undefined;
     const code = errors[field];
-    if (field === 'username') {
-      return code === 'required'
+    if (field === "username") {
+      return code === "required"
         ? copy.validationUsernameRequired
         : copy.validationUsernameFormat;
     }
-    if (field === 'displayName') {
-      return code === 'required'
+    if (field === "displayName") {
+      return code === "required"
         ? copy.validationDisplayNameRequired
         : copy.validationDisplayNameLength;
     }
@@ -155,8 +181,15 @@ export default function SocialProfileEditorScreen() {
 
     setSaving(true);
     try {
-      const profile = await socialApi.upsertOwnProfile(buildSocialProfileInput(values));
-      setValues(createSocialProfileFormValues(profile, accountProfile?.displayName ?? ''));
+      const profile = await socialApi.upsertOwnProfile(
+        buildSocialProfileInput(values),
+      );
+      setValues(
+        createSocialProfileFormValues(
+          profile,
+          accountProfile?.displayName ?? "",
+        ),
+      );
       setProfileExists(true);
       setSubmitted(false);
       Alert.alert(copy.savedTitle, copy.savedBody);
@@ -174,14 +207,19 @@ export default function SocialProfileEditorScreen() {
         { paddingBottom: insets.bottom + Spacing.eight },
       ]}
       keyboardShouldPersistTaps="handled"
-      style={styles.screen}>
+      style={styles.screen}
+    >
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <Pressable
-            accessibilityLabel={t('common.back')}
+            accessibilityLabel={t("common.back")}
             accessibilityRole="button"
             onPress={() => router.back()}
-            style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+            style={({ pressed }) => [
+              styles.backButton,
+              pressed && styles.pressed,
+            ]}
+          >
             <Text style={styles.backLabel}>‹</Text>
           </Pressable>
           <View style={styles.headerCopy}>
@@ -191,7 +229,7 @@ export default function SocialProfileEditorScreen() {
           </View>
         </View>
 
-        {!ready || loadStatus === 'loading' ? (
+        {!ready || loadStatus === "loading" ? (
           <AppCard>
             <LoadingState label={copy.loading} />
           </AppCard>
@@ -203,60 +241,63 @@ export default function SocialProfileEditorScreen() {
             <Text style={styles.body}>{copy.signInBody}</Text>
             <PrimaryButton
               label={copy.signInAction}
-              onPress={() => router.push('/auth/sign-in')}
+              onPress={() => router.push("/auth/sign-in")}
             />
           </AppCard>
         ) : null}
 
-        {ready && isAuthenticated && loadStatus === 'error' ? (
+        {ready && isAuthenticated && loadStatus === "error" ? (
           <AppCard>
             <InlineError message={requestError ?? copy.loadError} />
             <SecondaryButton label={copy.retry} onPress={loadProfile} />
           </AppCard>
         ) : null}
 
-        {ready && isAuthenticated && loadStatus === 'ready' ? (
+        {ready && isAuthenticated && loadStatus === "ready" ? (
           <AppCard>
             <FormField
               autoCapitalize="none"
               autoCorrect={false}
-              errorMessage={getFieldError('username')}
+              errorMessage={getFieldError("username")}
               helperText={copy.usernameHelp}
               label={copy.username}
               maxLength={30}
-              onChangeText={(value) => updateValue('username', value)}
+              onChangeText={(value) => updateValue("username", value)}
               placeholder={copy.usernamePlaceholder}
               textContentType="username"
               value={values.username}
             />
             <FormField
               autoCapitalize="words"
-              errorMessage={getFieldError('displayName')}
+              errorMessage={getFieldError("displayName")}
               label={copy.displayName}
               maxLength={80}
-              onChangeText={(value) => updateValue('displayName', value)}
+              onChangeText={(value) => updateValue("displayName", value)}
               placeholder={copy.displayNamePlaceholder}
               value={values.displayName}
             />
             <FormField
-              errorMessage={getFieldError('bio')}
+              errorMessage={getFieldError("bio")}
               helperText={copy.bioHelp}
               label={copy.bio}
               maxLength={280}
               multiline
-              onChangeText={(value) => updateValue('bio', value)}
+              onChangeText={(value) => updateValue("bio", value)}
               placeholder={copy.bioPlaceholder}
               style={styles.multilineInput}
               textAlignVertical="top"
               value={values.bio}
             />
-            <SocialManagedAvatarCard controller={managedAvatar} copy={avatarCopy} />
+            <SocialManagedAvatarCard
+              controller={managedAvatar}
+              copy={avatarCopy}
+            />
             <View style={styles.visibilityGroup}>
               <Text style={styles.label}>{copy.visibility}</Text>
               <Text style={styles.help}>{copy.visibilityHelp}</Text>
               <SegmentedControl
                 accessibilityLabel={copy.visibility}
-                onChange={(value) => updateValue('visibility', value)}
+                onChange={(value) => updateValue("visibility", value)}
                 options={visibilityOptions}
                 value={values.visibility}
               />
@@ -279,12 +320,12 @@ export default function SocialProfileEditorScreen() {
 const createStyles = (colors: typeof Colors.dark) =>
   StyleSheet.create({
     backButton: {
-      alignItems: 'center',
+      alignItems: "center",
       borderColor: colors.borderSubtle,
       borderRadius: Radii.large,
       borderWidth: StyleSheet.hairlineWidth,
       height: 44,
-      justifyContent: 'center',
+      justifyContent: "center",
       width: 44,
     },
     backLabel: { color: colors.textPrimary, fontSize: 32, lineHeight: 34 },
@@ -299,20 +340,24 @@ const createStyles = (colors: typeof Colors.dark) =>
       fontWeight: Typography.cardTitle.fontWeight,
       lineHeight: Typography.cardTitle.lineHeight,
     },
-    container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
+    container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: "100%" },
     content: {
-      alignItems: 'center',
+      alignItems: "center",
       paddingHorizontal: Spacing.four,
       paddingTop: Spacing.four,
     },
     eyebrow: {
       color: colors.accent,
       fontSize: Typography.caption.fontSize,
-      fontWeight: '800',
+      fontWeight: "800",
       letterSpacing: 1.2,
     },
     headerCopy: { flex: 1, gap: Spacing.one },
-    headerRow: { alignItems: 'flex-start', flexDirection: 'row', gap: Spacing.three },
+    headerRow: {
+      alignItems: "flex-start",
+      flexDirection: "row",
+      gap: Spacing.three,
+    },
     help: {
       color: colors.textSecondary,
       fontSize: Typography.caption.fontSize,

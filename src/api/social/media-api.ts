@@ -1,21 +1,24 @@
-import { createApiClient, type ApiClient } from '@/api/client';
-import { getMobileApiBaseUrl } from '@/api/config';
+import { createApiClient, type ApiClient } from "@/api/client";
+import { getMobileApiBaseUrl } from "@/api/config";
 
-import { requestSocialApiWithAuth, requireSocialPathSegment } from './authenticated-request';
-import type { SocialApiAuth } from './contracts';
+import {
+  requestSocialApiWithAuth,
+  requireSocialPathSegment,
+} from "./authenticated-request";
+import type { SocialApiAuth } from "./contracts";
 import type {
   BindSocialManagedAvatarInput,
   BindSocialManagedAvatarResult,
   CreateSocialMediaUploadInput,
   CreateSocialMediaUploadResult,
   SocialMediaOwnerAssetDto,
-} from './media-contracts';
+} from "./media-contracts";
 import {
   parseBindManagedAvatarResponse,
   parseCreateSocialMediaUploadResponse,
   parseOwnManagedAvatarResponse,
   parseSocialMediaAssetResponse,
-} from './media-parsers';
+} from "./media-parsers";
 
 const defaultApiClient = createApiClient({
   baseUrl: getMobileApiBaseUrl(),
@@ -24,7 +27,7 @@ const defaultApiClient = createApiClient({
 });
 
 const requireAssetPath = (assetId: string): string =>
-  requireSocialPathSegment(assetId, 'Managed media asset ID');
+  requireSocialPathSegment(assetId, "Managed media asset ID");
 
 export type SocialMediaApi = {
   createAvatarUpload(
@@ -47,7 +50,7 @@ export type SocialMediaApi = {
 
 const stateVersionBody = (expectedStateVersion: number) => {
   if (!Number.isSafeInteger(expectedStateVersion) || expectedStateVersion < 1) {
-    throw new Error('Managed media state version must be a positive integer');
+    throw new Error("Managed media state version must be a positive integer");
   }
   return { schemaVersion: 1 as const, expectedStateVersion };
 };
@@ -59,21 +62,21 @@ export const createSocialMediaApi = (
   async createAvatarUpload(input) {
     if (
       input.schemaVersion !== 1 ||
-      input.assetType !== 'avatar' ||
+      input.assetType !== "avatar" ||
       !Number.isSafeInteger(input.byteSize) ||
       input.byteSize < 1 ||
       input.byteSize > 8 * 1024 * 1024 ||
       input.idempotencyKey.trim().length < 16 ||
       input.idempotencyKey.trim().length > 128
     ) {
-      throw new Error('Managed avatar upload input is invalid');
+      throw new Error("Managed avatar upload input is invalid");
     }
     return parseCreateSocialMediaUploadResponse(
       await requestSocialApiWithAuth(
         auth,
         apiClient,
-        'POST',
-        '/v1/social/media/uploads',
+        "POST",
+        "/v1/social/media/uploads",
         { ...input, idempotencyKey: input.idempotencyKey.trim() },
       ),
     );
@@ -84,7 +87,7 @@ export const createSocialMediaApi = (
       await requestSocialApiWithAuth(
         auth,
         apiClient,
-        'POST',
+        "POST",
         `/v1/social/media/assets/${requireAssetPath(assetId)}/complete`,
         stateVersionBody(expectedStateVersion),
       ),
@@ -96,7 +99,7 @@ export const createSocialMediaApi = (
       await requestSocialApiWithAuth(
         auth,
         apiClient,
-        'GET',
+        "GET",
         `/v1/social/media/assets/${requireAssetPath(assetId)}`,
       ),
     );
@@ -107,7 +110,7 @@ export const createSocialMediaApi = (
       await requestSocialApiWithAuth(
         auth,
         apiClient,
-        'DELETE',
+        "DELETE",
         `/v1/social/media/assets/${requireAssetPath(assetId)}`,
         stateVersionBody(expectedStateVersion),
       ),
@@ -119,25 +122,28 @@ export const createSocialMediaApi = (
       await requestSocialApiWithAuth(
         auth,
         apiClient,
-        'GET',
-        '/v1/social/profile/avatar',
+        "GET",
+        "/v1/social/profile/avatar",
       ),
     );
   },
 
   async bindOwnManagedAvatar(input) {
     if (input.schemaVersion !== 1) {
-      throw new Error('Managed avatar binding version is invalid');
+      throw new Error("Managed avatar binding version is invalid");
     }
     return parseBindManagedAvatarResponse(
       await requestSocialApiWithAuth(
         auth,
         apiClient,
-        'PUT',
-        '/v1/social/profile/avatar',
+        "PUT",
+        "/v1/social/profile/avatar",
         {
           schemaVersion: 1,
-          assetId: requireSocialPathSegment(input.assetId, 'Managed avatar asset ID'),
+          assetId: requireSocialPathSegment(
+            input.assetId,
+            "Managed avatar asset ID",
+          ),
           expectedStateVersion: stateVersionBody(input.expectedStateVersion)
             .expectedStateVersion,
         },
