@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `4ea33fcbb20458676b12536cd3662eec35bb9000`;
-- backend `main`: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
+- mobile `main`: `b95f696b3176ca8597f3cd36bb499b3d9c5971ce`;
+- backend `main`: `0e2829d91b077eec9fb60d25390b038ada0676db`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -36,6 +36,8 @@ Before this documentation synchronization slice:
 - backend PR #101 merge: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
 - backend PR #102 exact green head: `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`;
 - backend PR #102 merge: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
+- backend PR #103 exact green head: `02675ab50683c4745f7f1a3c5cc05b081016bb15`;
+- backend PR #103 merge: `0e2829d91b077eec9fb60d25390b038ada0676db`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -199,13 +201,15 @@ P2 source completion does not imply infrastructure readiness or activation. No c
 
 ## Phase P3 — classifier, OCR, and provider transport readiness
 
-Status: active. Provider-neutral transport and failure containment are merged; provider-specific adapters remain blocked on provider selection.
+Status: active. Provider-neutral transport and the Amazon Rekognition classifier request/parser contract are merged; classifier signing/transport composition, OCR selection, factories, readiness, and activation remain open.
 
 Merged evidence:
 
 - backend PR #102 exact green head: `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`;
 - backend PR #102 merge: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
-- the exact head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+- backend PR #103 exact green head: `02675ab50683c4745f7f1a3c5cc05b081016bb15`;
+- backend PR #103 merge: `0e2829d91b077eec9fb60d25390b038ada0676db`;
+- both exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 Provider-neutral runtime:
 
@@ -214,16 +218,20 @@ Provider-neutral runtime:
 - [x] parse bounded standard and interoperable rate-limit metadata;
 - [x] block automatic redirects and reject unsafe URLs, credentials, fragments, headers, methods, and sizes;
 - [x] add optional bounded circuit containment without provider identity, endpoint state, or hidden configuration failures;
-- [x] add deterministic conformance for timeout, cancellation, network failure, malformed metadata, declared/streamed overflow, rate limiting, retryable and terminal statuses, unsafe requests, circuit behavior, and secret non-disclosure;
-- [ ] validate selected provider responses through strict versioned parsers;
-- [ ] map selected provider categories into existing internal classifier and OCR signals rather than changing domain policy;
-- [ ] retain parser, provider, model, policy, and attempt version metadata without raw responses or OCR plaintext;
-- [ ] add provider-adapter conformance for unknown category, duplicate result, malformed JSON, retryable failure, terminal failure, cancellation, rate limit, circuit-open state, stale-worker behavior, and secret non-disclosure.
+- [x] add deterministic transport conformance for timeout, cancellation, network failure, malformed metadata, declared/streamed overflow, rate limiting, retryable and terminal statuses, unsafe requests, circuit behavior, and secret non-disclosure;
+- [x] validate the selected classifier response through a strict moderation-model-v7 parser;
+- [x] map validated classifier categories into existing internal signals without changing deterministic domain policy;
+- [ ] compose the classifier request/parser through trusted endpoint construction, service-correct signing, shared transport, and bounded provider-result mapping;
+- [ ] validate and map the selected OCR provider through its own strict versioned parser;
+- [ ] retain parser, provider, model, policy, and attempt metadata through the runtime result boundary without raw responses or OCR plaintext;
+- [ ] complete provider-adapter conformance for unknown category, duplicate result, malformed JSON, retryable failure, terminal failure, cancellation, rate limit, circuit-open state, stale-worker behavior, and secret non-disclosure.
 
 Provider-specific adapters:
 
-- [ ] select and document the classifier provider API contract;
-- [ ] implement the selected classifier request builder and strict response parser;
+- [x] select and document Amazon Rekognition `DetectModerationLabels` as the classifier provider API contract;
+- [x] implement the selected classifier request builder and strict response parser;
+- [ ] add a trusted region-derived Rekognition endpoint and service-correct SigV4 signing;
+- [ ] integrate the classifier through the shared provider HTTP transport and bounded circuit containment;
 - [ ] select and document the OCR provider API contract;
 - [ ] implement the selected OCR request builder and strict response parser;
 - [ ] compose selected adapters only in the backend application root;
@@ -231,7 +239,7 @@ Provider-specific adapters:
 - [ ] keep credentials supplied only by backend environment variables or the deployment secret store;
 - [ ] keep adapters and managed-media product capabilities disabled until explicit staging configuration and P4 calibration.
 
-No API key or real provider call was required for the transport foundation. Provider selection is required before provider-specific request and response parsing can be completed.
+No API key or real provider call was required for the transport or classifier contract slices. The classifier runtime integration remains incomplete, and OCR selection is still required before OCR request and response parsing can begin.
 
 No credential, provider account, network call, deployment, worker activation, public upload activation, or production environment change was performed.
 
@@ -334,14 +342,13 @@ Engineering drafts do not constitute legal approval.
 
 ## Execution order
 
-1. P2 production worker entrypoints and orchestration.
-2. P3 provider transport plus selected classifier and OCR adapters.
-3. P4 moderation calibration harness.
-4. P5 password-reset mobile, deep-link, template, and delivery readiness.
-5. P6 deployment policies, configuration templates, smoke scripts, and runbooks.
-6. P7 explicit sync conflict-choice contract.
-7. P8 diagnostics, fixed-SHA release gate, and Android source preparation.
-8. P9 technical privacy, legal, and analytics prerequisites.
+1. P3 selected classifier runtime integration and selected OCR adapter.
+2. P4 moderation calibration harness.
+3. P5 password-reset mobile, deep-link, template, and delivery readiness.
+4. P6 deployment policies, configuration templates, smoke scripts, and runbooks.
+5. P7 explicit sync conflict-choice contract.
+6. P8 diagnostics, fixed-SHA release gate, and Android source preparation.
+7. P9 technical privacy, legal, and analytics prerequisites.
 
 A phase may be divided into bounded backend, mobile, and docs pull requests. After each backend slice, synchronize the canonical mobile roadmap documents.
 
@@ -363,7 +370,7 @@ The source-preparation program is complete when:
 
 ## Work that remains external after source completion
 
-- select final classifier, OCR, storage, CDN, and email providers where not already chosen;
+- confirm operational use of the selected classifier contract and select final OCR, storage, CDN, and email providers where not already chosen;
 - create accounts, buckets, domains, CDN distributions, sender identities, and DNS records;
 - add credentials and repository tokens;
 - execute migrations and deploy backend changes;

@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `4ea33fcbb20458676b12536cd3662eec35bb9000`;
-- backend `main`: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
+- mobile `main`: `b95f696b3176ca8597f3cd36bb499b3d9c5971ce`;
+- backend `main`: `0e2829d91b077eec9fb60d25390b038ada0676db`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -32,6 +32,8 @@ Before this documentation synchronization slice:
 - backend PR #101 merge: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
 - backend PR #102 exact green head: `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`;
 - backend PR #102 merge: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
+- backend PR #103 exact green head: `02675ab50683c4745f7f1a3c5cc05b081016bb15`;
+- backend PR #103 merge: `0e2829d91b077eec9fb60d25390b038ada0676db`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -159,20 +161,29 @@ Backend PR #102, exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, me
 - added deterministic no-network conformance tests and architecture documentation;
 - preserved provider-runner retry ownership, moderation policy, worker leases, provider factories, production source support, readiness, and product disablement.
 
+Backend PR #103, exact green head `02675ab50683c4745f7f1a3c5cc05b081016bb15`, merge `0e2829d91b077eec9fb60d25390b038ada0676db`:
+
+- selected and documented Amazon Rekognition `DetectModerationLabels` as the classifier API contract;
+- added bounded endpoint-relative JPEG request construction;
+- added strict moderation-model-v7 response and taxonomy parsing;
+- mapped validated labels into existing internal classifier signals without changing deterministic moderation policy;
+- intentionally emitted no inferred fitness context or unsupported safety/privacy signals;
+- added deterministic no-network conformance and constant redacted errors;
+- preserved absent credentials, signing, endpoint configuration, provider factories, readiness, and managed-media product disablement.
+
 ## Next bounded slice
 
-P3 provider-specific work requires an explicitly selected documented classifier or OCR provider API contract.
+Complete the selected Rekognition classifier runtime boundary before changing factories or readiness:
 
-After selection, implement one adapter at a time:
+- construct only a trusted region-derived Rekognition HTTPS endpoint;
+- add service-correct SigV4 signing for `rekognition` without reusing S3-only assumptions;
+- compose the already strict request/parser through the merged provider HTTP transport and circuit containment;
+- map success, retryable, terminal, timeout, cancellation, rate-limit, circuit-open, invalid-response, and unavailable outcomes into the existing bounded provider result contract;
+- preserve worker-runner retry ownership, leases, cancellation, stale-worker handling, and non-reflective errors;
+- retain only bounded provider/model/parser/policy/attempt metadata without raw responses, signed headers, image bytes, endpoints, credentials, or OCR plaintext;
+- add deterministic no-network conformance for signing, transport outcomes, stale workers, and secret non-disclosure.
 
-- strict endpoint-relative request construction through the merged provider HTTP transport;
-- exact versioned response parser that rejects malformed JSON, unknown required fields, unsupported categories, duplicates, non-finite values, and incompatible versions;
-- mapping into the existing internal classifier or OCR contract without changing deterministic moderation policy;
-- bounded provider/model/parser metadata without raw payloads or OCR plaintext;
-- conformance coverage for success, retryable and terminal HTTP outcomes, timeout, cancellation, rate limit, malformed response, unknown category, duplicate result, stale worker, circuit-open state, and secret non-disclosure;
-- composition-root source support only after the adapter is complete.
-
-Do not create an invented generic provider payload, mark `external_http` source-ready, or change classifier/OCR capability readiness until provider-specific adapters are merged.
+OCR remains blocked until an explicit documented OCR provider API contract is selected. Do not mark classifier or OCR factories source-ready, change production capability readiness, or enable managed-media behavior until both required adapters and their complete conformance boundaries are merged.
 
 No deployment, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized.
 

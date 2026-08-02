@@ -26,8 +26,8 @@ Completed implementation history remains in merged pull requests and focused roa
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `4ea33fcbb20458676b12536cd3662eec35bb9000`;
-- backend `main`: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
+- mobile `main`: `b95f696b3176ca8597f3cd36bb499b3d9c5971ce`;
+- backend `main`: `0e2829d91b077eec9fb60d25390b038ada0676db`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -50,6 +50,8 @@ Before this documentation synchronization slice:
 - backend PR #101 merge: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
 - backend PR #102 exact green head: `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`;
 - backend PR #102 merge: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
+- backend PR #103 exact green head: `02675ab50683c4745f7f1a3c5cc05b081016bb15`;
+- backend PR #103 merge: `0e2829d91b077eec9fb60d25390b038ada0676db`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -226,7 +228,7 @@ P2 source completion does not activate workers or managed-media product behavior
 
 ### P3 — classifier and OCR readiness
 
-Status: active. The provider-neutral HTTP transport and failure-containment foundation are merged; provider-specific classifier/OCR adapters remain blocked on provider contract selection.
+Status: active. Provider-neutral transport is merged, and the Amazon Rekognition `DetectModerationLabels` classifier request/parser contract is source-complete; classifier signing/transport composition, OCR selection, factories, readiness, and activation remain open.
 
 Backend PR #102, exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, merge `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`:
 
@@ -239,13 +241,24 @@ Backend PR #102, exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, me
 - added deterministic conformance coverage for redirect blocking, rate limits, malformed metadata, declared and streamed overflow, timeout, cancellation, network failure, unsafe requests, redaction, circuit state, and strict bounds;
 - made no network calls and did not change provider factories, configuration support, classifier/OCR readiness, workers, or product capabilities.
 
+Backend PR #103, exact green head `02675ab50683c4745f7f1a3c5cc05b081016bb15`, merge `0e2829d91b077eec9fb60d25390b038ada0676db`:
+
+- selected and documented Amazon Rekognition `DetectModerationLabels` as the classifier API contract;
+- added bounded endpoint-relative JPEG-byte request construction with a fixed minimum confidence and response budget;
+- added a strict moderation-model-v7 parser with exact field, hierarchy, duplicate, model, taxonomy, size, and unknown-label rejection;
+- mapped only validated labels into the existing internal classifier categories and risk contexts without changing moderation policy;
+- intentionally emitted no fitness context and no unsupported possible-minor, personal-data, or spam/scam signal;
+- retained constant non-reflective errors and deterministic no-network conformance coverage;
+- did not add credentials, signing, endpoint configuration, network calls, factory support, readiness, workers, or product capability changes.
+
 Remaining P3 boundary:
 
-- select and document the classifier provider API contract before implementing its request builder and strict versioned response parser;
+- add a trusted region-derived Rekognition endpoint contract and service-correct SigV4 signing;
+- compose the classifier request through the shared bounded HTTP transport and map only bounded transport outcomes into the existing provider result contract;
+- add classifier conformance for retryable and terminal statuses, timeout, cancellation, rate limits, circuit-open state, stale workers, and secret non-disclosure;
 - select and document the OCR provider API contract before implementing its request builder and strict versioned response parser;
-- map only validated provider outputs into the existing internal classifier and OCR signals without changing deterministic policy;
+- map only validated OCR outputs into the existing internal OCR signals without changing deterministic policy;
 - retain bounded provider/model/parser metadata without raw responses or OCR plaintext;
-- add adapter conformance for malformed JSON, unknown or duplicate categories, retryable and terminal transport outcomes, cancellation, rate limits, stale workers, and secret non-disclosure;
 - enable source readiness in provider factories and production validation only after both selected adapters are implemented and tested;
 - keep credentials, real calls, staging configuration, managed-media product enablement, and calibration outside autonomous source work.
 
@@ -349,4 +362,4 @@ Do not begin without explicit product prioritization:
 
 ## New-chat starter prompt
 
-> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, backend `docs/architecture/social-media-worker-runtime.md`, and backend `docs/architecture/provider-http-transport.md`; then inspect only code and tests relevant to the selected bounded slice. P0, P1, and P2 are source-complete. P3 transport foundation is complete through backend PR #102 exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, merge `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`. Provider-specific classifier and OCR adapters are not selected, provider factories remain unavailable, and managed-media capabilities remain disabled. Continue only after identifying an explicitly selected documented provider API contract; then implement the smallest complete classifier or OCR adapter with strict request construction, exact response parsing, mapping into existing internal signals, transport/circuit integration, bounded metadata, and deterministic conformance tests. Do not invent a generic provider payload or make a provider source-ready without a selected contract. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
+> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, backend `docs/architecture/social-media-worker-runtime.md`, and backend `docs/architecture/provider-http-transport.md`; then inspect only code and tests relevant to the selected bounded slice. P0, P1, and P2 are source-complete. P3 transport foundation is complete through backend PR #102 exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, merge `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`; the selected Amazon Rekognition classifier request/parser contract is complete through backend PR #103 exact green head `02675ab50683c4745f7f1a3c5cc05b081016bb15`, merge `0e2829d91b077eec9fb60d25390b038ada0676db`. The classifier API contract is selected, but Rekognition signing/transport composition is incomplete; the OCR API contract is not selected, provider factories remain unavailable, and managed-media capabilities remain disabled. Continue with the smallest complete Rekognition classifier runtime slice: trusted region-derived endpoint construction, service-correct SigV4 signing, shared transport/circuit integration, bounded result mapping, and deterministic failure conformance; keep OCR work blocked until an explicit documented OCR API contract is selected. Do not invent a generic provider payload or make a provider source-ready without a selected contract. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
