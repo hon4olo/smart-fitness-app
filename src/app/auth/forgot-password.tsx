@@ -7,6 +7,10 @@ import {
   resolvePasswordResetSubmissionError,
   validateForgotPassword,
 } from '@/auth/passwordResetModel';
+import {
+  CapabilityStatusNotice,
+  useCapabilityGate,
+} from '@/capabilities';
 import { AppCard } from '@/components/ui/AppCard';
 import { FormField } from '@/components/ui/FormField';
 import { InlineError } from '@/components/ui/InlineError';
@@ -26,6 +30,7 @@ export default function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useLocalization();
   const { requestPasswordReset } = useAuthSession();
+  const passwordReset = useCapabilityGate('passwordReset');
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState<string | undefined>();
   const [formError, setFormError] = useState<string | null>(null);
@@ -33,7 +38,7 @@ export default function ForgotPasswordScreen() {
   const [accepted, setAccepted] = useState(false);
 
   const handleSubmit = async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || !passwordReset.canUse) return;
     const errors = validateForgotPassword(email);
     setEmailError(errors.email);
     setFormError(null);
@@ -77,7 +82,15 @@ export default function ForgotPasswordScreen() {
             }
           />
           <AppCard>
-            {accepted ? (
+            {!passwordReset.canUse ? (
+              <>
+                <CapabilityStatusNotice gate={passwordReset} />
+                <SecondaryButton
+                  label={t('passwordReset.backToSignIn')}
+                  onPress={() => router.replace('/auth/sign-in')}
+                />
+              </>
+            ) : accepted ? (
               <SecondaryButton
                 label={t('passwordReset.backToSignIn')}
                 onPress={() => router.replace('/auth/sign-in')}

@@ -1,6 +1,10 @@
 import { Image } from "expo-image";
 import { Alert, StyleSheet, Text, View } from "react-native";
 
+import {
+  CapabilityStatusNotice,
+  type CapabilityGate,
+} from "@/capabilities";
 import { DestructiveButton } from "@/components/ui/DestructiveButton";
 import { InlineError } from "@/components/ui/InlineError";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
@@ -20,11 +24,13 @@ import {
 import type { SocialManagedAvatarController } from "./useSocialManagedAvatar";
 
 type SocialManagedAvatarCardProps = {
+  capability: CapabilityGate;
   controller: SocialManagedAvatarController;
   copy: SocialManagedAvatarCopy;
 };
 
 export function SocialManagedAvatarCard({
+  capability,
   controller,
   copy,
 }: SocialManagedAvatarCardProps) {
@@ -59,6 +65,18 @@ export function SocialManagedAvatarCard({
       ],
     );
   };
+
+  if (!capability.canUse) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.heading}>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.description}>{copy.description}</Text>
+        </View>
+        <CapabilityStatusNotice gate={capability} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

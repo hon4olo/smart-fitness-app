@@ -3,6 +3,10 @@ import { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import {
+  CapabilityStatusNotice,
+  useCapabilityGate,
+} from '@/capabilities';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
@@ -15,6 +19,7 @@ export default function AuthLandingScreen() {
   const { isRestoringState } = useAppInfrastructure();
   const { onboardingCompleted } = useProfileState();
   const { isAuthenticated, ready } = useAuthSession();
+  const passwordReset = useCapabilityGate('passwordReset');
   const { t } = useLocalization();
   const insets = useSafeAreaInsets();
 
@@ -50,11 +55,15 @@ export default function AuthLandingScreen() {
             onPress={() => router.push('/auth/sign-in')}
             variant="secondary"
           />
-          <AppButton
-            label={t('passwordReset.forgot.link')}
-            onPress={() => router.push('/auth/forgot-password')}
-            variant="secondary"
-          />
+          {passwordReset.canUse ? (
+            <AppButton
+              label={t('passwordReset.forgot.link')}
+              onPress={() => router.push('/auth/forgot-password')}
+              variant="secondary"
+            />
+          ) : (
+            <CapabilityStatusNotice gate={passwordReset} />
+          )}
           <AppButton
             label={t('common.continue')}
             onPress={() => router.replace(onboardingCompleted ? '/' : '/onboarding')}

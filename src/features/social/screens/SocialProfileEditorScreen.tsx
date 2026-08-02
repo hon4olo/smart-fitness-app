@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { createSocialApi, type SocialProfileVisibility } from "@/api/social";
+import { useCapabilityGate } from "@/capabilities";
 import { AppCard } from "@/components/ui/AppCard";
 import { FormField } from "@/components/ui/FormField";
 import { InlineError } from "@/components/ui/InlineError";
@@ -51,6 +52,7 @@ export default function SocialProfileEditorScreen() {
   const { locale, t } = useLocalization();
   const copy = getSocialProfileCopy(locale);
   const avatarCopy = getSocialManagedAvatarCopy(locale);
+  const avatarCapability = useCapabilityGate("managedAvatars");
   const {
     isAuthenticated,
     profile: accountProfile,
@@ -82,6 +84,7 @@ export default function SocialProfileEditorScreen() {
     accountId: accountProfile?.id ?? null,
     api: socialApi,
     copy: avatarCopy,
+    enabled: avatarCapability.canUse,
     profileExists,
   });
 
@@ -289,6 +292,7 @@ export default function SocialProfileEditorScreen() {
               value={values.bio}
             />
             <SocialManagedAvatarCard
+              capability={avatarCapability}
               controller={managedAvatar}
               copy={avatarCopy}
             />

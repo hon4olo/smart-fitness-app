@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { createSocialApi, type SocialWorkoutShareControls } from "@/api/social";
+import { useCapabilityGate } from "@/capabilities";
 import { AppCard } from "@/components/ui/AppCard";
 import { InlineError } from "@/components/ui/InlineError";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -58,6 +59,7 @@ export default function ShareWorkoutScreen() {
   const { colors } = useAppTheme();
   const { locale, t } = useLocalization();
   const copy = getShareWorkoutCopy(locale);
+  const imageCapability = useCapabilityGate("workoutPostImages");
   const styles = useMemo(() => createShareWorkoutStyles(colors), [colors]);
   const { isRestoringState } = useAppInfrastructure();
   const { workoutSessions } = useWorkoutState();
@@ -103,6 +105,7 @@ export default function ShareWorkoutScreen() {
     sessionId,
     api: socialApi,
     copy,
+    enabled: imageCapability.canUse,
   });
   const mediaBusy = isSocialWorkoutPostMediaBusy(media.operation);
   const mediaWaiting = media.hasImageDraft && !media.attachment;
@@ -345,6 +348,7 @@ export default function ShareWorkoutScreen() {
             </AppCard>
 
             <ShareWorkoutMediaCard
+              capability={imageCapability}
               controller={media}
               copy={copy}
               styles={styles}
