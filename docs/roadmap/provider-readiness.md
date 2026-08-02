@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `8a5ea3f7ae2bf7df425a568b85a2404b1b6d72a7`;
-- backend `main`: `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`;
+- mobile `main`: `9c7eca92793b175c2bbff541a94bc9d1c29e76c2`;
+- backend `main`: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -32,6 +32,8 @@ Before this documentation synchronization slice:
 - backend PR #99 merge: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
 - backend PR #100 exact green head: `5fb21ca3b5d63fee89bf0e3db65b2bf37ba672fd`;
 - backend PR #100 merge: `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`;
+- backend PR #101 exact green head: `cc261cfe01c82d8b18888195fc8e4eec1ee56558`;
+- backend PR #101 merge: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -161,7 +163,7 @@ No credential, real provider call, provider account, bucket, public ACL, CDN, DN
 
 ## Phase P2 — production worker entrypoints and orchestration
 
-Status: active final orchestration boundary. All planned media process entrypoints are merged; readiness, retry ownership, templates, and runbooks remain incomplete.
+Status: source-complete and merged.
 
 Merged evidence:
 
@@ -173,38 +175,29 @@ Merged evidence:
 - backend PR #99 merge: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
 - backend PR #100 exact green head: `5fb21ca3b5d63fee89bf0e3db65b2bf37ba672fd`;
 - backend PR #100 merge: `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`;
+- backend PR #101 exact green head: `cc261cfe01c82d8b18888195fc8e4eec1ee56558`;
+- backend PR #101 merge: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
 - all exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
-Shared process runtime:
+Acceptance criteria:
 
-- [x] add bounded one-shot and continuous execution modes without changing domain claims or leases;
-- [x] validate batch size, poll interval, optional maximum iterations, processed counts, and per-operation `0|1` results;
-- [x] poll only after idle work and continue immediately after a non-empty iteration;
-- [x] support abortable idle waits, `SIGINT`, `SIGTERM`, deterministic aggregate summaries, and deterministic exit codes;
-- [x] close process resources in `finally` and keep raw exceptions out of direct process output;
-- [x] observe graceful shutdown between individual operations through the shared batch helper.
+- [x] bounded one-shot and continuous runtime with deterministic aggregate output and exit codes;
+- [x] graceful shutdown between individual operations and abortable idle polling;
+- [x] cleanup, derivative-delivery, moderation, recovery, and stale-upload expiry process entrypoints;
+- [x] strict versioned worker readiness without database access, provider calls, provider identities, endpoints, secrets, IDs, object keys, OCR text, or media bytes;
+- [x] provider-level versus process-level retry ownership documented and tested;
+- [x] bounded external restart backoff without in-process retry multiplication;
+- [x] lease budgets and heartbeat decisions recorded for every operation;
+- [x] disabled-by-default systemd unit/timer and manual Docker Compose templates;
+- [x] process ordering, duplicate-process, crash-recovery, rollout, rollback, emergency-disable, and capability-enable runbook;
+- [x] deterministic source tests for readiness, strict parsing, privacy, gating, timers, restart behavior, and template commands;
+- [x] no worker started or scheduled in any environment during source implementation.
 
-Process entrypoints:
-
-- [x] managed-media cleanup with existing claims, legal holds, dependency ordering, tombstone purge, and append-only audit;
-- [x] derivative-delivery processing and expired-claim recovery with immutable publication and partial cleanup;
-- [x] media-moderation processing and expired-claim recovery with normalization, classifier, OCR, text policy, and manual-review routing;
-- [x] stale private-upload expiry through `expireStaleUploads(1)` with deletion before terminal CAS and retry when deletion fails;
-- [x] keep every process source-only, unscheduled, and incapable of accepting IDs, object keys, OCR text, media bytes, provider payloads, or credentials from CLI input.
-
-Final orchestration work:
-
-- [ ] add a strict versioned privacy-safe readiness summary for each worker and operation;
-- [ ] document provider-level versus process-level retry ownership and add only bounded non-duplicative backoff;
-- [ ] record lease budgets and heartbeat decisions for cleanup, delivery, moderation, and expiry;
-- [ ] add disabled-by-default systemd unit/timer templates and Docker Compose service templates;
-- [ ] document process ordering, duplicate-process behavior, crash recovery, rollout, rollback, emergency disable, and capability enablement order;
-- [ ] prove templates and readiness parsers through deterministic tests without credentials or real processes;
-- [ ] do not start or schedule workers in any environment during source implementation.
-
-No credential, provider account, real provider call, bucket, CDN, DNS, deployment, migration execution outside CI, worker scheduling, public upload activation, or production environment change was performed.
+P2 source completion does not imply infrastructure readiness or activation. No credential, provider account, real provider call, bucket, CDN, DNS, deployment, migration execution outside CI, unit installation, timer enablement, Docker worker startup, public upload activation, or production environment change was performed.
 
 ## Phase P3 — classifier, OCR, and provider transport readiness
+
+Status: active next phase.
 
 Provider-neutral runtime:
 
