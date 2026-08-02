@@ -25,8 +25,8 @@ Read this index together with:
 
 At this update:
 
-- mobile `main`: `aa693a959a16b20c125c4358d31c2107624a5258`;
-- backend `main`: `86f773c92d682c5a42e090a00a7be8908e881c0b`;
+- mobile `main`: `7583e6cda4694b8ff9c0690235712f6b876ec235`;
+- backend `main`: `6a492cc1636108e52de5eae91bbed217c81c81a5`;
 - open mobile pull requests before this docs-only branch: none;
 - open backend pull requests: none.
 
@@ -84,7 +84,7 @@ Production moderation-provider activation remains disabled until separately conf
 
 ## Active source-code program — Social S7 managed media
 
-Status: backend S7.1-S7.5 and mobile S7.5 are source-complete and merged. S7.6 bounded one-image workout posts is the active source-code slice.
+Status: Social S7.1-S7.6 is source-complete and merged across backend and mobile. S7.7 manual review, appeal, and retention operations is the active source-code slice.
 
 Goal: replace arbitrary remote image inputs and text-only workout posts with a bounded, server-owned, privacy-safe media pipeline. Public image upload remains disabled until provider configuration, deployment, device validation, moderation operations, and release gates are explicitly authorized.
 
@@ -189,21 +189,54 @@ Activation boundary:
 - no OTA/EAS publish, native build, device install, backend deployment, migration execution, credentials change, real storage/CDN/moderation-provider activation, or public media activation was performed;
 - the new native Expo modules and config plugin require a future explicitly authorized native build and physical-device validation before runtime release claims.
 
-### S7.6 One-image workout-post flow — active
+### S7.6 One-image workout-post flow — source-complete
 
-Implement next:
+Merged backend PR #87:
 
-- add at most one moderated image per workout post before considering multi-image posts;
-- reuse the merged managed-media lifecycle rather than creating a second upload system;
-- keep the private completed workout and immutable public post snapshot separate;
-- bind an image only by owned asset ID and expected state version;
-- keep pending, review-required, rejected, failed, deleted, and stale assets out of public profiles, feeds, notifications, and workout-post DTOs;
-- preserve existing share controls and explicit final publication confirmation;
-- use bounded polling or explicit refresh rather than holding an upload request open;
-- add localized selection, preview, compression, upload progress, offline, retry, processing, review, rejection, removed-asset, stale-state, and expired-session states;
-- treat client preprocessing as UX optimization only; server validation remains authoritative;
-- add exact ownership, replacement, post-deletion, asset-deletion, account-deletion, idempotency, block/restriction, report-evidence, and privacy tests;
-- do not create a native build or activate a real provider without explicit authorization.
+- exact green head: `3cd3e9aa5815edf7968f0aecaa9377cb3414e7ee`;
+- merge SHA: `6a492cc1636108e52de5eae91bbed217c81c81a5`.
+
+Completed backend contract:
+
+- at most one approved owner-scoped `workout_post_image` asset can bind to an immutable workout-post snapshot by asset ID and expected state version;
+- ownership, type, approval, state-version, idempotency, already-attached, deletion, account-deletion, report-evidence, and restriction/block boundaries are enforced transactionally;
+- public workout-post DTO schema version 2 projects only a strict nullable approved descriptor and never exposes quarantine/master object data or private storage details;
+- asset deletion removes the public projection without rewriting the immutable workout snapshot;
+- migration, PostgreSQL API, deletion-race, account-cascade, and full backend CI coverage are green.
+
+Merged mobile PR #355:
+
+- exact green head: `dea24b1f3fb7c5a7359818f527808ff9d2c1a14e`;
+- merge SHA: `7583e6cda4694b8ff9c0690235712f6b876ec235`.
+
+Completed mobile source flow:
+
+- workout-post DTO v2 and managed image descriptors fail closed on unknown, malformed, wrong-type, private-object, or untrusted URL data;
+- the existing Expo SDK 56 picker/manipulator/signed-upload lifecycle is reused for a single optional local preview and bounded JPEG preprocessing;
+- upload progress, completion, processing, review-required, approved, rejected, failed, deleted, stale, offline, expiry, session, retry, refresh, replacement, and removal states are localized in English and Russian;
+- publication remains explicitly confirmed, preserves existing share controls, and binds media only after approval;
+- restart-safe account/session draft state stores only asset ID and local preview URI;
+- replacement cleanup and asynchronous state updates are sequence-isolated across account/session changes, late upload progress, and pending picker recovery;
+- approved variants render in cards, profile lists, following feed, and post detail, while non-public or deleted assets project as `image: null`;
+- line audits, TypeScript, contract tests, 1164-test regression, iOS/Android/Web export, and Expo Doctor are green.
+
+Activation boundary:
+
+- no OTA/EAS publish, native build, device install, backend deployment, migration execution outside CI, credentials change, real storage/CDN/moderation-provider activation, or public media activation was performed;
+- physical-device validation still requires a future explicitly authorized matching native build.
+
+### S7.7 Manual review, appeal, and retention operations — active
+
+Implement next as source-only bounded contracts:
+
+- add an operator-only queue for media assets in `review_required`, separate from the public Social API and existing report queue;
+- support explicit audited operator decisions to approve or reject a reviewed asset without trusting provider output or exposing private object details;
+- add owner-visible appeal submission for eligible rejected media with bounded reason codes/text, idempotency, rate limits, and no automatic publication;
+- keep appealed or reopened assets non-public until a new explicit terminal operator decision;
+- define bounded retention deadlines for quarantine uploads, moderation masters, rejected/failed/review evidence, approved originals, derivatives, and deletion tombstones;
+- add restart-safe cleanup claims, retries, stale-worker recovery, deletion races, account deletion, legal-hold-safe boundaries, and privacy-safe audit records;
+- add exact authorization, ownership, duplicate, stale-state, appeal eligibility, decision transition, retention, cleanup, and account-deletion tests;
+- do not add a public staff/admin HTTP API, activate real providers, deploy, execute migrations outside CI, or enable public uploads without explicit authorization.
 
 ### S7 exit criteria
 
@@ -272,10 +305,10 @@ Do not begin without explicit product prioritization:
 
 ## Immediate execution order
 
-1. Implement S7.6 the bounded one-image workout-post flow against the merged managed-media lifecycle.
-2. Define and implement manual review/appeal and retention operations.
+1. Define and implement S7.7 operator manual review, owner appeal, and bounded retention/cleanup contracts.
+2. Complete source-level false-positive, stale-worker, deletion, account-cleanup, and privacy validation for the managed-media pipeline.
 3. Run staging calibration, physical-device, release, rollback, privacy, and legal gates only with the required authorization and configuration.
 
 ## New-chat starter prompt
 
-> Continue the Smart Fitness roadmap from `ROADMAP_PROGRESS.md`, with Social S7.6 bounded one-image workout posts as the active source-code slice. Work autonomously through meaningful bounded slices instead of stopping after micro-changes. At the start, verify exact `main` and open PRs for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/roadmap/social-network.md`, and only the files relevant to the current slice. Do not restart already completed Social S0-S7.5 work. Reuse the merged managed-media asset lifecycle, strict owner/public descriptors, signed private upload, bounded status polling, deletion, cleanup, and moderation states. Add at most one image to a workout post, keep the private completed workout separate from its immutable public snapshot, keep non-approved assets out of public DTOs and notifications, preserve existing share controls and explicit final publication confirmation, localize all new states, and keep client preprocessing UX-only. Run full blocking CI, inspect review threads, and merge only exact green heads. Do not publish OTA, create/install native builds, deploy backend changes, execute migrations, activate staging/production, configure credentials, connect real storage/CDN/moderation providers, or enable public image uploads without explicit authorization.
+> Continue the Smart Fitness roadmap from `ROADMAP_PROGRESS.md`, with Social S7.7 manual media review, owner appeal, and bounded retention/cleanup operations as the active source-code slice. Work autonomously through meaningful bounded slices instead of stopping after micro-changes. At the start, verify exact `main` and open PRs for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/roadmap/social-network.md`, and only the files relevant to the current slice. Do not restart already completed Social S0-S7.6 work. Reuse the merged managed-media lifecycle, strict owner/public descriptors, signed private upload, moderation, delivery, deletion, cleanup, and one-image workout-post contracts. Keep review-required and appealed assets non-public, keep operator actions audited and separate from public APIs, make retention and cleanup restart-safe, localize owner-visible appeal states, and preserve private workout/profile boundaries. Run full blocking CI, inspect review threads, and merge only exact green heads. Do not publish OTA, create/install native builds, deploy backend changes, execute migrations outside CI, activate staging/production, configure credentials, connect real storage/CDN/moderation providers, or enable public image uploads without explicit authorization.

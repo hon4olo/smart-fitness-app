@@ -1,6 +1,6 @@
 # Social network roadmap
 
-Updated: 2026-08-01
+Updated: 2026-08-02
 
 ## Product objective
 
@@ -225,8 +225,8 @@ Deterministic preprocessing and policy:
 - [x] define categories for explicit sexual content, nudity, possible minor safety, graphic violence, hate, harassment, self-harm, personal data/doxxing, spam/scams, and dangerous fitness or medical claims;
 - [x] make the model return typed signals only; the deterministic policy worker owns `allow`, `review_required`, and `reject`;
 - [x] prohibit provider output from overriding hard policy rules or existing block/restriction enforcement;
-- [ ] use a fitness-specific image policy so ordinary adult workout photos, posing, sportswear, bodybuilding stages, and non-erotic progress photos are not automatically treated as explicit content;
-- [ ] never claim or persist a precise age inferred from appearance; combine possible-minor signals with sexual-content signals conservatively;
+- [x] use a fitness-specific image policy so ordinary adult workout photos, posing, sportswear, bodybuilding stages, and non-erotic progress photos are not automatically treated as explicit content;
+- [x] never claim or persist a precise age inferred from appearance; combine possible-minor signals with sexual-content signals conservatively;
 - [x] keep false-positive-sensitive cases in `review_required` rather than silently deleting them.
 
 Initial text surfaces:
@@ -250,7 +250,7 @@ Failure and review policy:
 
 ## Phase S7 — safe media ingestion, compression, moderation, and delivery
 
-Status: architecture approved; implementation not started.
+Status: source-complete through managed avatars and bounded one-image workout posts; manual review, appeal, retention, and cleanup operations remain active.
 
 Arbitrary remote `avatarUrl` values are transitional and must not be treated as a secure long-term media contract. User media must move to server-owned asset IDs and immutable approved variants.
 
@@ -303,11 +303,11 @@ Server derivatives and delivery:
 
 Product rollout:
 
-- [ ] migrate avatars from arbitrary URLs to managed approved media assets;
-- [ ] add one moderated image per workout post before supporting multi-image posts;
-- [ ] keep images with `pending`, `review_required`, or `rejected` status out of profiles, feeds, notifications, and public post DTOs;
-- [ ] use asynchronous media status polling or bounded refresh rather than keeping the upload request open through full processing;
-- [ ] add localized upload, compression, pending-moderation, rejected, review-required, offline, retry, and deleted-asset states;
+- [x] migrate avatars from arbitrary URLs to managed approved media assets;
+- [x] add one moderated image per workout post before supporting multi-image posts;
+- [x] keep images with `pending`, `review_required`, or `rejected` status out of profiles, feeds, notifications, and public post DTOs;
+- [x] use asynchronous media status polling or bounded refresh rather than keeping the upload request open through full processing;
+- [x] add localized upload, compression, pending-moderation, rejected, review-required, offline, retry, and deleted-asset states;
 - [ ] add manual review and appeal operations before broad public image rollout;
 - [ ] measure storage per approved asset, derivative-generation latency, cache hit rate, upload failure rate, moderation latency, and false-positive outcomes without adding behavioural advertising analytics.
 
@@ -350,8 +350,8 @@ Do not begin without explicit prioritization:
 18. [ ] Legal policy review and physical-device release matrix for the existing Social surface.
 19. [x] S6 policy/categories/contracts, provider boundary, persistence, and deterministic decision worker.
 20. [x] S6 synchronous moderation for captions, comments, display names, and bios.
-21. [ ] S7 object storage, quarantine, managed-avatar migration, normalization, compression, and variants.
-22. [ ] S7 one-image workout-post contract with image moderation, OCR, placeholders, CDN delivery, and mobile states.
+21. [x] S7 object storage, quarantine, managed-avatar migration, normalization, compression, and variants.
+22. [x] S7 one-image workout-post contract with image moderation, OCR, placeholders, CDN delivery, and mobile states.
 23. [ ] Manual review, appeal, retention, threshold calibration, and false-positive validation.
 24. [ ] Multi-image posts, WebP/AVIF negotiation, and further media optimization only after the bounded first version is stable.
 
