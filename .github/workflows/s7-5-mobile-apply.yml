@@ -44,9 +44,10 @@ jobs:
 
           test_path = Path('src/api/social/api.test.ts')
           test = test_path.read_text()
-          if test.count('      avatarUrl: null,\n') != 2:
-              raise SystemExit(f'api test avatar lines: {test.count("      avatarUrl: null,\\n")}')
-          test_path.write_text(test.replace('      avatarUrl: null,\n', ''))
+          avatar_line = '      avatarUrl: null,\n'
+          if test.count(avatar_line) != 2:
+              raise SystemExit(f'api test avatar lines: {test.count(avatar_line)}')
+          test_path.write_text(test.replace(avatar_line, ''))
 
           index_path = Path('src/api/social/index.ts')
           index = index_path.read_text()
