@@ -33,14 +33,25 @@ jobs:
           import json
 
           api_path = Path('src/api/social/api.ts')
-          api = api_path.read_text()
-          avatar_block = """  if (input.avatarUrl !== undefined) {
-            payload.avatarUrl = input.avatarUrl === null ? null : input.avatarUrl.trim();
-          }
-          """
-          if api.count(avatar_block) != 1:
-              raise SystemExit(f'api avatar block count: {api.count(avatar_block)}')
-          api_path.write_text(api.replace(avatar_block, ''))
+          api_lines = api_path.read_text().splitlines(keepends=True)
+          targets = [
+              index
+              for index, line in enumerate(api_lines)
+              if line.strip() == 'if (input.avatarUrl !== undefined) {'
+          ]
+          if len(targets) != 1:
+              raise SystemExit(f'api avatar block targets: {len(targets)}')
+          index = targets[0]
+          expected = [
+              'if (input.avatarUrl !== undefined) {',
+              'payload.avatarUrl = input.avatarUrl === null ? null : input.avatarUrl.trim();',
+              '}',
+          ]
+          actual = [line.strip() for line in api_lines[index:index + 3]]
+          if actual != expected:
+              raise SystemExit(f'api avatar block shape: {actual!r}')
+          del api_lines[index:index + 3]
+          api_path.write_text(''.join(api_lines))
 
           test_path = Path('src/api/social/api.test.ts')
           test = test_path.read_text()
@@ -50,7 +61,7 @@ jobs:
           test_path.write_text(test.replace(avatar_line, ''))
 
           index_path = Path('src/api/social/index.ts')
-          index = index_path.read_text()
+          index_text = index_path.read_text()
           export_block = """
           export {
             SOCIAL_MEDIA_API_ERROR_CODES,
@@ -85,9 +96,9 @@ jobs:
             type SignedMediaUploadFailure,
           } from './signed-media-upload';
           """
-          if "from './media-contracts'" in index:
+          if "from './media-contracts'" in index_text:
               raise SystemExit('media exports already exist')
-          index_path.write_text(index.rstrip() + '\n' + export_block)
+          index_path.write_text(index_text.rstrip() + '\n' + export_block)
 
           card_path = Path('src/features/social/SocialManagedAvatarCard.tsx')
           card = card_path.read_text()
