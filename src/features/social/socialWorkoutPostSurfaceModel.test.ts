@@ -11,7 +11,7 @@ import {
 } from './socialWorkoutPostSurfaceModel';
 
 const post = (id: string): SocialWorkoutPostDto => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   id,
   author: {
     schemaVersion: 1,
@@ -31,6 +31,7 @@ const post = (id: string): SocialWorkoutPostDto => ({
       { name: 'Pull-up' },
     ],
   },
+  image: null,
   createdAt: '2026-07-31T08:15:00.000Z',
 });
 
