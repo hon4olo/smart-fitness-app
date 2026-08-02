@@ -16,6 +16,8 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLocalization } from '@/localization';
 import { useAppTheme } from '@/theme/AppThemeProvider';
 
+import { SocialManagedAvatarCard } from '../SocialManagedAvatarCard';
+import { getSocialManagedAvatarCopy } from '../socialManagedAvatarCopy';
 import { getSocialProfileCopy } from '../socialProfileCopy';
 import {
   buildSocialProfileInput,
@@ -25,6 +27,7 @@ import {
   type SocialProfileFormValues,
 } from '../socialProfileForm';
 import { getSocialRateLimitMessage } from '../socialRateLimitCopy';
+import { useSocialManagedAvatar } from '../useSocialManagedAvatar';
 
 type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -34,10 +37,12 @@ export default function SocialProfileEditorScreen() {
   const { colors } = useAppTheme();
   const { locale, t } = useLocalization();
   const copy = getSocialProfileCopy(locale);
+  const avatarCopy = getSocialManagedAvatarCopy(locale);
   const { isAuthenticated, profile: accountProfile, ready, refresh, session } = useAuthSession();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const requestSequence = useRef(0);
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('idle');
+  const [profileExists, setProfileExists] = useState(false);
   const [values, setValues] = useState<SocialProfileFormValues>(() =>
     createSocialProfileFormValues(null, ''),
   );
@@ -53,6 +58,12 @@ export default function SocialProfileEditorScreen() {
     [refresh, session?.tokens.accessToken],
   );
   const socialApi = useMemo(() => createSocialApi(auth), [auth]);
+  const managedAvatar = useSocialManagedAvatar({
+    accountId: accountProfile?.id ?? null,
+    api: socialApi,
+    copy: avatarCopy,
+    profileExists,
+  });
 
   const requestErrorCopy = useCallback(
     (error: unknown): string => {
@@ -75,6 +86,7 @@ export default function SocialProfileEditorScreen() {
     try {
       const profile = await socialApi.getOwnProfile();
       if (sequence !== requestSequence.current) return;
+      setProfileExists(Boolean(profile));
       setValues(
         createSocialProfileFormValues(profile, accountProfile?.displayName ?? ''),
       );
@@ -92,6 +104,7 @@ export default function SocialProfileEditorScreen() {
     if (!isAuthenticated) {
       requestSequence.current += 1;
       setLoadStatus('idle');
+      setProfileExists(false);
       setRequestError(null);
       return;
     }
@@ -126,8 +139,7 @@ export default function SocialProfileEditorScreen() {
         ? copy.validationDisplayNameRequired
         : copy.validationDisplayNameLength;
     }
-    if (field === 'bio') return copy.validationBioLength;
-    return copy.validationAvatarUrl;
+    return copy.validationBioLength;
   };
 
   const updateValue = <Key extends keyof SocialProfileFormValues>(
@@ -145,6 +157,7 @@ export default function SocialProfileEditorScreen() {
     try {
       const profile = await socialApi.upsertOwnProfile(buildSocialProfileInput(values));
       setValues(createSocialProfileFormValues(profile, accountProfile?.displayName ?? ''));
+      setProfileExists(true);
       setSubmitted(false);
       Alert.alert(copy.savedTitle, copy.savedBody);
     } catch (error) {
@@ -237,19 +250,7 @@ export default function SocialProfileEditorScreen() {
               textAlignVertical="top"
               value={values.bio}
             />
-            <FormField
-              autoCapitalize="none"
-              autoCorrect={false}
-              errorMessage={getFieldError('avatarUrl')}
-              helperText={copy.avatarHelp}
-              keyboardType="url"
-              label={copy.avatarUrl}
-              maxLength={2048}
-              onChangeText={(value) => updateValue('avatarUrl', value)}
-              placeholder={copy.avatarPlaceholder}
-              textContentType="URL"
-              value={values.avatarUrl}
-            />
+            <SocialManagedAvatarCard controller={managedAvatar} copy={avatarCopy} />
             <View style={styles.visibilityGroup}>
               <Text style={styles.label}>{copy.visibility}</Text>
               <Text style={styles.help}>{copy.visibilityHelp}</Text>
