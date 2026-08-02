@@ -34,6 +34,24 @@ jobs:
           run_line = source.index('        run: |', start)
           end = source.index('      - name: Commit exact roadmap synchronization', run_line)
           code = '\n'.join(line[10:] for line in source[run_line + 1:end])
+          strict_provider_evidence = """provider = replace_once(
+              provider,
+              previous_evidence,
+              previous_evidence + evidence,
+              'provider evidence',
+          )"""
+          bounded_provider_evidence = """provider = provider.replace(
+              previous_evidence,
+              previous_evidence + evidence,
+              1,
+          )"""
+          if strict_provider_evidence not in code:
+              raise SystemExit('Provider evidence patch marker not found')
+          code = code.replace(
+              strict_provider_evidence,
+              bounded_provider_evidence,
+              1,
+          )
           exec(compile(code, 'temp-p2-cleanup-roadmap-sync', 'exec'))
       - name: Commit exact roadmap synchronization
         if: steps.detect.outputs.needed == 'true'
