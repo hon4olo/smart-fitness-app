@@ -1,0 +1,286 @@
+# Provider and Release Readiness Roadmap
+
+Updated: 2026-08-02
+
+## Objective
+
+Prepare the mobile application and backend so later activation is limited to provider selection, credentials, infrastructure creation, deployment, staging validation, native builds, and feature-flag changes.
+
+This is an approved autonomous source program. It does not authorize connecting real providers, changing credentials, deploying backend changes, running migrations outside CI, publishing OTA updates, creating or installing native builds, or enabling public media uploads.
+
+## Verified starting baseline
+
+Before this roadmap branch:
+
+- mobile `main`: `f4f923e41fb4c1f6de653186fa551f806594acab`;
+- backend `main`: `c6c9177230425194c3ce5508f9e6bf350ed6d697`;
+- open mobile pull requests: none;
+- open backend pull requests: none.
+
+Always recheck both exact `main` commits and open pull requests before starting a slice.
+
+## Existing foundation to reuse
+
+The source already includes:
+
+- private managed-media lifecycle metadata and state transitions;
+- private quarantine upload contracts and narrowly scoped signed PUT semantics;
+- server-side image validation, normalization, metadata removal, classifier and OCR contracts;
+- approved derivative generation and immutable public descriptors;
+- managed avatar and one-image workout-post mobile flows;
+- manual review, owner appeals, reviewer evidence export, retention deadlines, legal holds, restart-safe cleanup claims, and append-only audit;
+- provider-neutral password-reset delivery with hashed one-time tokens, expiry, replay rejection, and all-session revocation;
+- strict mobile trust-boundary parsing, EN/RU localization, offline recovery, and blocking CI.
+
+Do not replace these contracts with provider-specific domain models. Provider identifiers, SDK payloads, credentials, and raw responses remain behind backend adapters.
+
+## Global invariants
+
+- Keep safe defaults disabled.
+- Mobile never contains provider credentials or calls storage, moderation, OCR, email, or AI providers directly.
+- Provider-specific payloads do not leak into routes, domain DTOs, public descriptors, mobile contracts, logs, or diagnostics.
+- Unknown or malformed provider results fail closed.
+- Reviewed, pending, rejected, failed, appealed, and deleted media remain non-public unless a valid explicit transition approves them.
+- Preserve ownership checks, state versions, idempotency, leases, retries, retention, legal holds, account cascade, and immutable audit.
+- Never log tokens, email, object keys, signed URLs, raw images, OCR plaintext, provider payloads, private workout data, or full idempotency keys.
+- Keep every new hand-written source or architecture file at or below 500 physical lines.
+- Merge only exact fully green heads.
+
+## Phase P0 — provider configuration and capability foundation
+
+Status: next source phase.
+
+Backend:
+
+- [ ] define provider-neutral configuration selectors for private object storage, immutable media delivery, media classifier, OCR, and password-reset delivery;
+- [ ] separate `configured`, `ready`, and `enabled` states so credentials alone cannot activate a feature;
+- [ ] add strict production validation for provider names, endpoints, regions, bucket names, public base URLs, timeouts, retry limits, worker concurrency, and feature flags;
+- [ ] reject production startup when an enabled feature would use an in-memory, unavailable, or incomplete provider;
+- [ ] keep safe defaults disabled and preserve current behavior when no provider configuration exists;
+- [ ] add redacted configuration summaries and privacy-safe readiness diagnostics;
+- [ ] add provider factories at the composition root rather than in routes or domain services.
+
+Cross-repository capability contract:
+
+- [ ] add a versioned backend capability response for managed avatars, workout-post images, media moderation, media delivery, and password reset;
+- [ ] distinguish source availability from operational readiness and product enablement;
+- [ ] add strict fail-closed mobile parsing and account/session-safe refresh behavior;
+- [ ] hide or disable unavailable controls without sending requests into a known-disabled pipeline;
+- [ ] localize bounded unavailable, temporarily unavailable, and configuration-required states in English and Russian.
+
+Acceptance criteria:
+
+- production cannot accidentally activate a partially configured provider;
+- missing credentials preserve disabled behavior rather than causing startup-time secret leakage or request-time ambiguity;
+- mobile behavior is determined by a strict backend capability contract, not hard-coded assumptions.
+
+## Phase P1 — S3-compatible private storage and immutable delivery adapters
+
+Private object storage:
+
+- [ ] implement a production S3-compatible adapter usable with AWS S3, Cloudflare R2, Backblaze B2 S3 API, MinIO, or another explicitly configured compatible endpoint;
+- [ ] create narrowly scoped presigned private `PUT` uploads with exact method, content type, content length, expiry, and key namespace;
+- [ ] implement bounded `HEAD`, bounded private `GET`, exact-object deletion, and exact-prefix deletion;
+- [ ] verify returned metadata, content length, media type, checksum or ETag semantics, and missing-object behavior;
+- [ ] reject path traversal, foreign namespaces, public ACLs, unbounded reads, arbitrary client keys, and unsafe endpoint configuration;
+- [ ] keep quarantine and moderation-master objects private.
+
+Immutable delivery:
+
+- [ ] implement immutable derivative upload with SHA-256 verification and exact JPEG metadata;
+- [ ] enforce `public, max-age=31536000, immutable` for public variants;
+- [ ] refuse replacement of an existing key with different content;
+- [ ] implement exact object and asset-prefix cleanup with partial-publication recovery;
+- [ ] build public URLs only from a configured trusted CDN or delivery base URL;
+- [ ] preserve owner-opaque public paths and strict named variant sets.
+
+Validation:
+
+- [ ] add a reusable storage conformance suite covering signing, expiry, MIME and size mismatch, missing objects, bounded reads, duplicate writes, idempotent deletion, prefix isolation, checksum mismatch, and partial cleanup;
+- [ ] retain deterministic in-memory providers for unit and PostgreSQL integration tests;
+- [ ] do not require real credentials in CI.
+
+## Phase P2 — production worker entrypoints and orchestration
+
+- [ ] add bounded one-shot CLI entrypoints for media moderation, derivative delivery, retention cleanup, expired-upload recovery, and retryable failed operations;
+- [ ] add optional continuous worker mode without changing the underlying claim and lease contracts;
+- [ ] support graceful shutdown, abort signals, bounded concurrency, lease heartbeat where required, retry backoff, maximum attempts, and deterministic exit codes;
+- [ ] preserve oldest-due claims, stale-worker recovery, exact state-version revalidation, legal-hold blocking, and dependency-ordered tombstone purge;
+- [ ] expose privacy-safe worker readiness and aggregate operation status without asset owner IDs, object keys, OCR text, or media bytes;
+- [ ] add systemd unit and timer templates plus Docker Compose service templates;
+- [ ] document process ordering, crash recovery, duplicate process behavior, and emergency disable procedures;
+- [ ] do not start or schedule these workers in any environment during source implementation.
+
+## Phase P3 — classifier, OCR, and provider transport readiness
+
+Provider-neutral runtime:
+
+- [ ] add a bounded backend HTTP transport for provider adapters with abortable timeouts, response-size limits, retry classification, rate-limit handling, and redacted errors;
+- [ ] add circuit-breaking or equivalent bounded failure containment without hiding persistent configuration failures;
+- [ ] validate every external response through strict versioned parsers;
+- [ ] map provider categories into the existing internal classifier and OCR signals rather than changing domain policy per provider;
+- [ ] retain parser, provider, model, policy, and attempt version metadata without raw responses or OCR plaintext;
+- [ ] add a reusable provider conformance suite for timeout, malformed response, unknown category, duplicate result, cancellation, retryable failure, non-retryable failure, and stale-worker behavior.
+
+Provider-specific adapters:
+
+- [ ] implement the selected classifier adapter after the provider API is chosen;
+- [ ] implement the selected OCR adapter after the provider API is chosen;
+- [ ] keep credentials supplied only by backend environment variables or the deployment secret store;
+- [ ] keep adapters disabled until explicit staging configuration.
+
+No API key is required to implement adapters and parsers against documented request and response contracts. Provider selection is required before final provider-specific parsing can be completed.
+
+## Phase P4 — moderation calibration harness
+
+- [ ] add an internal CLI that reads a local manifest of representative test images and expected outcomes;
+- [ ] run selected classifier and OCR adapters through the existing deterministic fitness-aware policy;
+- [ ] report aggregate allow, review, reject, false-positive, false-negative, timeout, malformed, and unavailable counts;
+- [ ] group results by bounded categories such as ordinary gym photos, sportswear, bodybuilding stages, progress photos, possible minors, sexual context, violence, text overlays, prohibited content, and ambiguous cases;
+- [ ] exclude raw images, OCR plaintext, signed URLs, credentials, owner identity, and provider payloads from reports;
+- [ ] support JSON and CSV aggregate output suitable for threshold review;
+- [ ] document corpus handling, access, retention, and deletion requirements;
+- [ ] do not claim calibration until the harness is run against a representative authorized staging corpus.
+
+## Phase P5 — password-reset product and delivery readiness
+
+Mobile:
+
+- [ ] add localized `Forgot password` and `Reset password` routes and screens;
+- [ ] preserve the generic accepted response so account existence is not disclosed;
+- [ ] add strict password validation, invalid or expired token handling, success state, and forced return to sign-in;
+- [ ] add a validated app-link or universal-link route for reset tokens;
+- [ ] keep reset tokens out of ordinary persisted application state, logs, analytics, and navigation history after completion;
+- [ ] add accessibility and strict API parser coverage.
+
+Backend delivery:
+
+- [ ] add a production password-reset delivery adapter for the selected mail provider or an approved generic transport;
+- [ ] add plain-text and HTML templates with expiry and security guidance in English and Russian;
+- [ ] construct links only from a configured trusted application-link base URL;
+- [ ] preserve token invalidation when delivery fails;
+- [ ] add timeout, provider rejection, malformed response, duplicate request, cooldown, replay, expiry, and redacted-log tests;
+- [ ] add password-reset capability gating so the mobile flow appears only when delivery is operationally ready.
+
+External activation later requires a verified sender domain, DNS records, provider credentials, backend deployment, deep-link domain configuration, and physical-device validation.
+
+## Phase P6 — deployment configuration, policies, and runbooks
+
+- [ ] expand `.env.example` without adding secrets;
+- [ ] document staging and production configuration matrices and required secret names;
+- [ ] prepare private bucket, public-delivery bucket or namespace, CORS, lifecycle, encryption, public-access, and CDN-origin policy templates;
+- [ ] document sender-domain DNS, link-domain association, and provider callback requirements where applicable;
+- [ ] define migration order, backend rollout order, worker startup order, capability enablement order, and rollback order;
+- [ ] add smoke scripts for configuration validation, signed upload, processing, delivery, deletion, password reset, and capability status using non-production fixtures;
+- [ ] document key rotation, provider outage, emergency media disable, cleanup pause, legal hold, and rollback procedures;
+- [ ] keep all commands non-destructive by default and require explicit environment targeting.
+
+## Phase P7 — explicit sync conflict-choice contract
+
+Backend first:
+
+- [ ] define ownership-safe, revisioned, idempotent conflict-resolution operations;
+- [ ] support `keep_local` and `keep_server` only with exact expected conflict and entity revisions;
+- [ ] permit `merge` only for domains with an explicitly documented deterministic merge contract;
+- [ ] reject stale, already resolved, foreign, malformed, or incompatible choices;
+- [ ] persist immutable bounded resolution audit without raw entity payloads;
+- [ ] define rollback or compensating behavior before destructive resolution is exposed.
+
+Mobile second:
+
+- [ ] add conflict detail and choice UI only after the backend contract is merged;
+- [ ] show bounded domain, timestamps, and consequences without raw local or server payload values;
+- [ ] require explicit confirmation for destructive choices;
+- [ ] preserve offline retry and exact idempotency identity.
+
+Do not implement client-only overwrite or merge behavior.
+
+## Phase P8 — diagnostics, release gate, and Android source preparation
+
+Diagnostics:
+
+- [ ] complete privacy-safe auth-refresh and API failure categories;
+- [ ] add aggregate provider readiness, worker, retry, and cleanup status without secrets or user content;
+- [ ] add bounded user-facing recovery copy only where an actionable recovery exists.
+
+Release gate:
+
+- [ ] define a cross-repository compatibility manifest containing exact mobile and backend SHAs plus contract versions;
+- [ ] make the gate fail closed on mismatched SHAs or incompatible contract versions;
+- [ ] document minimum repository-token scope and secret setup;
+- [ ] keep actual token configuration and release-gate execution outside autonomous source work.
+
+Android source preparation:
+
+- [ ] audit permissions, image-picker configuration, app links, network security, environment injection, release profiles, native modules, and build-time validation;
+- [ ] verify source configuration through Expo export and Expo Doctor;
+- [ ] do not claim Android runtime completion without an authorized native build and physical-device test.
+
+## Phase P9 — privacy, legal, and analytics prerequisites
+
+- [ ] produce a technical data inventory for media, moderation, appeals, evidence, retention, legal holds, email delivery, and provider subprocessors;
+- [ ] document current deletion and retention behavior as implemented rather than aspirational behavior;
+- [ ] prepare engineering drafts for Privacy Policy, Terms of Service, Community Guidelines additions, acceptable-use rules, and appeal wording;
+- [ ] mark third-party provider names and final jurisdictions as placeholders until provider selection and legal review;
+- [ ] define analytics consent, identity separation, event taxonomy, retention, deletion, and account-cleanup requirements before adding an analytics SDK;
+- [ ] preserve the prohibition on health values, body values, calories, macros, limitations, exercise values, food names, email, tokens, revealing IDs, and free text in analytics.
+
+Engineering drafts do not constitute legal approval.
+
+## Execution order
+
+1. P0 provider configuration and capability foundation.
+2. P1 S3-compatible private storage and immutable delivery adapters.
+3. P2 production worker entrypoints and orchestration.
+4. P3 provider transport plus selected classifier and OCR adapters.
+5. P4 moderation calibration harness.
+6. P5 password-reset mobile, deep-link, template, and delivery readiness.
+7. P6 deployment policies, configuration templates, smoke scripts, and runbooks.
+8. P7 explicit sync conflict-choice contract.
+9. P8 diagnostics, fixed-SHA release gate, and Android source preparation.
+10. P9 technical privacy, legal, and analytics prerequisites.
+
+A phase may be divided into bounded backend, mobile, and docs pull requests. After each backend slice, synchronize the canonical mobile roadmap documents.
+
+## Source-preparation definition of done
+
+The source-preparation program is complete when:
+
+- production provider adapters and factories exist behind strict configuration;
+- CI uses deterministic providers and provider conformance tests without real credentials;
+- production refuses incomplete enabled configuration;
+- capabilities prevent mobile exposure of unavailable operations;
+- worker entrypoints, service templates, smoke scripts, and runbooks exist but are not activated;
+- password reset is source-complete on backend and mobile, including deep links and templates;
+- calibration tooling exists without claiming real calibration;
+- destructive sync conflict choices are backend-owned and auditable before mobile exposure;
+- release and privacy diagnostics remain content-free and secret-free;
+- Android and cross-repository release source configuration is prepared;
+- all exact heads pass blocking CI and are merged.
+
+## Work that remains external after source completion
+
+- select final classifier, OCR, storage, CDN, and email providers where not already chosen;
+- create accounts, buckets, domains, CDN distributions, sender identities, and DNS records;
+- add credentials and repository tokens;
+- execute migrations and deploy backend changes;
+- start and schedule workers;
+- run authorized staging integration and moderation calibration;
+- perform iOS and Android native builds and physical-device matrices;
+- rehearse rollout and rollback;
+- obtain legal approval;
+- explicitly enable capabilities, media uploads, and public release.
+
+## Prohibited activation boundary
+
+Do not perform or claim any of the following without a direct request:
+
+- credential or secret changes;
+- real provider calls or account configuration;
+- backend deployment or migration execution outside CI;
+- worker scheduling in an environment;
+- staging or production activation;
+- OTA/EAS publish;
+- native build or device installation;
+- public media upload enablement;
+- production password-reset email activation.
