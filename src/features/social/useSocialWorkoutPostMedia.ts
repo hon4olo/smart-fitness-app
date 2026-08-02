@@ -186,6 +186,7 @@ export const useSocialWorkoutPostMedia = ({
           byteSize: prepared.byteSize,
           idempotencyKey: createIdempotencyKey(),
         });
+        if (requestSequence !== sequence.current) return;
         if (created.asset.assetType !== "workout_post_image") {
           throw new Error("Invalid workout post media asset type");
         }
@@ -194,6 +195,7 @@ export const useSocialWorkoutPostMedia = ({
           assetId: created.asset.assetId,
           previewUri: prepared.uri,
         });
+        if (requestSequence !== sequence.current) return;
         const controller = new AbortController();
         abortController.current = controller;
         setOperation("uploading");
@@ -212,6 +214,7 @@ export const useSocialWorkoutPostMedia = ({
           created.asset.assetId,
           created.asset.stateVersion,
         );
+        if (requestSequence !== sequence.current) return;
         setAsset(completed);
         await pollAsset(completed.assetId, requestSequence);
       } catch (error) {
@@ -230,20 +233,33 @@ export const useSocialWorkoutPostMedia = ({
 
   const chooseImage = useCallback(async () => {
     if (!accountId || !sessionId || operation !== "idle") return;
+    const requestSequence = sequence.current;
+    const previousAsset = asset;
     setErrorMessage(null);
     setOperation("selecting");
     try {
       const selected = await selectSocialWorkoutPostImage();
-      if (!selected) {
-        setOperation("idle");
+      if (!selected || requestSequence !== sequence.current) {
+        if (requestSequence === sequence.current) setOperation("idle");
         return;
+      }
+      if (previousAsset && previousAsset.state !== "deleted") {
+        setOperation("deleting");
+        await api.deleteMediaAsset(
+          previousAsset.assetId,
+          previousAsset.stateVersion,
+        );
+        if (requestSequence !== sequence.current) return;
+        await clearDraft();
       }
       await uploadSelected(selected);
     } catch (error) {
-      setErrorMessage(getSocialWorkoutPostMediaErrorMessage(error, copy));
-      setOperation("idle");
+      if (requestSequence === sequence.current) {
+        setErrorMessage(getSocialWorkoutPostMediaErrorMessage(error, copy));
+        setOperation("idle");
+      }
     }
-  }, [accountId, copy, operation, sessionId, uploadSelected]);
+  }, [accountId, api, asset, clearDraft, copy, operation, sessionId, uploadSelected]);
 
   useEffect(() => {
     if (!accountId || !sessionId) {
