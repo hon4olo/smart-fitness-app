@@ -29,46 +29,51 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path('src/features/social/useSocialWorkoutPostMedia.ts')
           source = path.read_text()
 
-          old_progress = '''          onProgress: setUploadProgress,
-          '''
-          new_progress = '''          onProgress: (value) => {
-            if (isCurrent(requestSequence)) setUploadProgress(value);
-          },
-          '''
-          if source.count(old_progress) != 1:
+          source, progress_count = re.subn(
+              r'(?m)^(\s*)onProgress: setUploadProgress,$',
+              lambda match: (
+                  f'{match.group(1)}onProgress: (value) => {{\n'
+                  f'{match.group(1)}  if (isCurrent(requestSequence)) setUploadProgress(value);\n'
+                  f'{match.group(1)}}},'
+              ),
+              source,
+              count=1,
+          )
+          if progress_count != 1:
               raise SystemExit('upload progress target mismatch')
-          source = source.replace(old_progress, new_progress)
 
-          old_recovery = '''    recoveredPendingKey.current = recoveryKey;
-            void recoverPendingSocialWorkoutPostImage()
-              .then((selected) => {
-                if (selected) void uploadSelected(selected);
-              })
-              .catch((error: unknown) => {
+          recovery_pattern = re.compile(
+              r'    recoveredPendingKey\.current = recoveryKey;\n'
+              r'    void recoverPendingSocialWorkoutPostImage\(\)\n'
+              r'      \.then\(\(selected\) => \{\n'
+              r'        if \(selected\) void uploadSelected\(selected\);\n'
+              r'      \}\)\n'
+              r'      \.catch\(\(error: unknown\) => \{\n'
+              r'        setErrorMessage\(getSocialWorkoutPostMediaErrorMessage\(error, copy\)\);\n'
+              r'      \}\);'
+          )
+          recovery = '''    recoveredPendingKey.current = recoveryKey;
+          const requestSequence = sequence.current;
+          void recoverPendingSocialWorkoutPostImage()
+            .then((selected) => {
+              if (selected && isCurrent(requestSequence)) {
+                void uploadSelected(selected);
+              }
+            })
+            .catch((error: unknown) => {
+              if (isCurrent(requestSequence)) {
                 setErrorMessage(getSocialWorkoutPostMediaErrorMessage(error, copy));
-              });
-          '''
-          new_recovery = '''    recoveredPendingKey.current = recoveryKey;
-            const requestSequence = sequence.current;
-            void recoverPendingSocialWorkoutPostImage()
-              .then((selected) => {
-                if (selected && isCurrent(requestSequence)) {
-                  void uploadSelected(selected);
-                }
-              })
-              .catch((error: unknown) => {
-                if (isCurrent(requestSequence)) {
-                  setErrorMessage(getSocialWorkoutPostMediaErrorMessage(error, copy));
-                }
-              });
-          '''
-          if source.count(old_recovery) != 1:
+              }
+            });'''
+          source, recovery_count = recovery_pattern.subn(recovery, source, count=1)
+          if recovery_count != 1:
               raise SystemExit('pending recovery target mismatch')
-          path.write_text(source.replace(old_recovery, new_recovery))
+          path.write_text(source)
           PY
       - name: Format and validate
         shell: bash
