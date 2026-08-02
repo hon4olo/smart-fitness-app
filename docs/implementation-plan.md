@@ -24,6 +24,8 @@ Always verify current exact `main` and open pull requests in both repositories b
 
 ## Active source program
 
+There is no remaining approved autonomous source-refactor phase. The active work is the separately approved Provider and Release Readiness source-preparation program.
+
 Status: approved for autonomous source preparation.
 
 Goal: prepare mobile and backend provider integrations so later activation consists of provider selection, credentials, infrastructure creation, deployment, staging validation, native builds, and explicit feature enablement rather than additional core application work.
