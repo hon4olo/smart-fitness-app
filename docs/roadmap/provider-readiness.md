@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `7695b3ff1116fae667e0dbbfd1f11baa9ae4d455`;
-- backend `main`: `34104bec69533fbe89bbaa53cef0884119c13e38`;
+- mobile `main`: `fa09d0f3948a8b579ca3fbe91b2e1b44c7bda6aa`;
+- backend `main`: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -28,6 +28,8 @@ Before this documentation synchronization slice:
 - backend PR #96 merge: `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`;
 - backend PR #98 exact green head: `565d60f99cf20cac7fb7c3bf0dcef01d737048ca`;
 - backend PR #98 merge: `34104bec69533fbe89bbaa53cef0884119c13e38`;
+- backend PR #99 exact green head: `6c1a2efe46e435d990df5a5dc39afe07562339f6`;
+- backend PR #99 merge: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -157,7 +159,7 @@ No credential, real provider call, provider account, bucket, public ACL, CDN, DN
 
 ## Phase P2 — production worker entrypoints and orchestration
 
-Status: active. Cleanup and derivative-delivery process boundaries are merged; moderation and operational templates remain incomplete.
+Status: active. Cleanup, derivative-delivery, and media-moderation process boundaries are merged; stale-upload expiry and operational orchestration remain incomplete.
 
 Merged evidence:
 
@@ -165,7 +167,9 @@ Merged evidence:
 - backend PR #96 merge: `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`;
 - backend PR #98 exact green head: `565d60f99cf20cac7fb7c3bf0dcef01d737048ca`;
 - backend PR #98 merge: `34104bec69533fbe89bbaa53cef0884119c13e38`;
-- both exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+- backend PR #99 exact green head: `6c1a2efe46e435d990df5a5dc39afe07562339f6`;
+- backend PR #99 merge: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
+- all exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 Shared process runtime:
 
@@ -192,11 +196,20 @@ Derivative-delivery entrypoint:
 - [x] accept no IDs, object keys, tokens, prefixes, URLs, or provider payloads from CLI input;
 - [x] expose only versioned aggregate worker, operation, mode, stop-reason, iteration, processed, idle, and duration fields.
 
+Media-moderation entrypoint:
+
+- [x] add bounded ready-asset processing through `processReadyBatch(1)`;
+- [x] add bounded expired-processing recovery through `recoverExpiredProcessing(1)`;
+- [x] compose private storage, deterministic normalization, classifier, OCR, and OCR text moderation only in the process composition boundary;
+- [x] preserve source checksum, MIME and length validation, metadata removal, normalized-master persistence, provider attempt metadata, deterministic fitness-aware policy, manual-review routing, exact state versions, processing tokens, leases, stale-result behavior, failed-state recording, and recovery;
+- [x] fail closed unless private storage, classifier, and OCR are operationally ready;
+- [x] keep OCR text, media bytes, provider payloads, IDs, object keys, and credentials out of CLI input and process output.
+
 Remaining worker entrypoints:
 
-- [ ] add bounded media-moderation processing and expired-claim recovery entrypoints;
-- [ ] add bounded expired-upload and retryable-failure entrypoints where current repositories expose safe claim contracts;
-- [ ] preserve provider attempt metadata, fail-closed moderation policy, manual-review routing, stale-worker cleanup, and exact state-version behavior;
+- [ ] add a bounded stale-upload expiry entrypoint through `expireStaleUploads(1)`;
+- [ ] preserve oldest-expired ordering, private-object deletion before terminal CAS, exact state versions, failure retention, and retry when storage deletion fails;
+- [ ] add only other retryable-failure entrypoints backed by explicit existing claims or idempotent service contracts;
 - [ ] expose privacy-safe aggregate readiness and operation status across worker types.
 
 Process templates and operations:

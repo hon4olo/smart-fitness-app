@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `7695b3ff1116fae667e0dbbfd1f11baa9ae4d455`;
-- backend `main`: `34104bec69533fbe89bbaa53cef0884119c13e38`;
+- mobile `main`: `fa09d0f3948a8b579ca3fbe91b2e1b44c7bda6aa`;
+- backend `main`: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -24,6 +24,8 @@ Before this documentation synchronization slice:
 - backend PR #96 merge: `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`;
 - backend PR #98 exact green head: `565d60f99cf20cac7fb7c3bf0dcef01d737048ca`;
 - backend PR #98 merge: `34104bec69533fbe89bbaa53cef0884119c13e38`;
+- backend PR #99 exact green head: `6c1a2efe46e435d990df5a5dc39afe07562339f6`;
+- backend PR #99 merge: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -117,7 +119,7 @@ Storage and delivery readiness remains separate from product enablement. Aggrega
 
 ## Current P2 status
 
-P2 is active. The shared runtime, cleanup worker, per-claim shutdown boundary, and derivative-delivery process/recovery entrypoint are merged.
+P2 is active. Shared runtime, cleanup, derivative-delivery processing/recovery, and media-moderation processing/recovery are merged.
 
 Backend PR #96, exact green head `6ec65413b4c3164bcf176d41230d817e203b8095`, merge `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`:
 
@@ -127,22 +129,29 @@ Backend PR #96, exact green head `6ec65413b4c3164bcf176d41230d817e203b8095`, mer
 
 Backend PR #98, exact green head `565d60f99cf20cac7fb7c3bf0dcef01d737048ca`, merge `34104bec69533fbe89bbaa53cef0884119c13e38`:
 
-- added `runWorkerClaimBatch`, which processes existing service claims one at a time and observes abort before the next claim;
-- hardened cleanup so shutdown is observed between individual cleanup claims;
-- added derivative-delivery `process` and expired-processing `recover` operations through the existing delivery worker;
-- preserved exact state versions, processing tokens, leases, master integrity, immutable variants, stale-worker rejection, partial-publication cleanup, claim release, recovery, approval completion, and origin-cleanup ordering;
-- added bounded one-shot/continuous modes, readiness failure, privacy-safe aggregate output, resource cleanup, and deterministic tests;
+- added per-claim abort observation;
+- hardened cleanup shutdown;
+- added derivative-delivery processing and expired-processing recovery through existing worker contracts.
+
+Backend PR #99, exact green head `6c1a2efe46e435d990df5a5dc39afe07562339f6`, merge `ec42dc864a56311e04997a3bd76f400e0bde129f`:
+
+- added media-moderation processing and expired-processing recovery through the existing moderation worker;
+- composed private storage, normalization, classifier, OCR, and OCR text moderation only in the process composition boundary;
+- preserved checksum validation, normalized-master integrity, provider attempt metadata, deterministic policy, manual-review routing, exact state versions, tokens, leases, stale-result handling, failed-state recording, and recovery;
+- added bounded one-shot/continuous execution, readiness failure, privacy-safe aggregate output, resource cleanup, and deterministic tests;
 - added no scheduling, deployment, provider activation, credentials, or lifecycle changes.
 
 ## Next bounded slice
 
-Continue P2 with the media-moderation process boundary:
+Continue P2 with stale upload expiry:
 
-- audit the current moderation worker factory dependencies: private storage, image normalizer, classifier, OCR, text moderator, cleanup service, repositories, and provider runtime;
-- add bounded `process` and expired-claim `recover` operations using the merged shared runtime and per-claim batch helper;
-- preserve normalization, checksum validation, classifier/OCR attempt metadata, deterministic fitness-aware policy, manual-review routing, stale-result cleanup, claim release, state versions, and legal/retention boundaries;
-- expose only aggregate process results and bounded failure categories without asset IDs, object keys, media bytes, OCR text, provider payloads, credentials, or raw exceptions;
-- keep provider-specific adapters unavailable until P3 provider selection and keep every worker unscheduled.
+- compose the existing upload repository, private storage, image validator, cleanup service, and `SocialMediaUploadService` without enabling public uploads;
+- add a source-only expiry operation that invokes `expireStaleUploads(1)` through the shared per-claim runtime;
+- preserve oldest-expired ordering, exact state versions, private-object deletion before `upload_expired` terminal CAS, immediate retention eligibility, and safe retry when object deletion fails;
+- expose only aggregate process results and bounded failure categories without IDs, object keys, signed URLs, media bytes, provider payloads, credentials, or raw exceptions;
+- keep the worker unscheduled and leave public media capabilities disabled.
+
+After the expiry boundary, audit the remaining retry/backoff, aggregate readiness, process-template, and runbook work before declaring P2 source-complete.
 
 No deployment, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized.
 

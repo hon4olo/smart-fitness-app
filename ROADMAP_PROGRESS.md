@@ -26,8 +26,8 @@ Completed implementation history remains in merged pull requests and focused roa
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `7695b3ff1116fae667e0dbbfd1f11baa9ae4d455`;
-- backend `main`: `34104bec69533fbe89bbaa53cef0884119c13e38`;
+- mobile `main`: `fa09d0f3948a8b579ca3fbe91b2e1b44c7bda6aa`;
+- backend `main`: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -42,6 +42,8 @@ Before this documentation synchronization slice:
 - backend PR #96 merge: `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`;
 - backend PR #98 exact green head: `565d60f99cf20cac7fb7c3bf0dcef01d737048ca`;
 - backend PR #98 merge: `34104bec69533fbe89bbaa53cef0884119c13e38`;
+- backend PR #99 exact green head: `6c1a2efe46e435d990df5a5dc39afe07562339f6`;
+- backend PR #99 merge: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -180,7 +182,7 @@ No credentials, real provider calls, provider accounts, buckets, public ACLs, CD
 
 ### P2 — worker entrypoints and orchestration
 
-Status: active. Shared runtime, cleanup, and derivative-delivery process boundaries are merged; moderation and operational orchestration remain incomplete.
+Status: active. Shared runtime plus cleanup, derivative-delivery, and moderation process boundaries are merged; upload expiry and operational orchestration remain incomplete.
 
 Backend PR #96, exact green head `6ec65413b4c3164bcf176d41230d817e203b8095`, merge `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`:
 
@@ -194,18 +196,24 @@ Backend PR #98, exact green head `565d60f99cf20cac7fb7c3bf0dcef01d737048ca`, mer
 - added a reusable per-claim batch boundary that checks abort before every next claimed operation;
 - hardened cleanup shutdown so no new cleanup claim starts after `SIGINT` or `SIGTERM` is observed;
 - added source-only derivative-delivery `process` and expired-claim `recover` operations;
-- reused existing delivery ownership, state versions, processing tokens, leases, moderation-master integrity, immutable publication, stale-worker rejection, partial-publication cleanup, and recovery contracts;
-- added bounded one-shot and continuous execution, privacy-safe aggregate output, readiness failure, resource-close, and regression coverage;
-- accepted no owner IDs, asset IDs, object keys, processing tokens, state versions, prefixes, URLs, or provider payloads from CLI input.
+- reused existing delivery ownership, state versions, processing tokens, leases, moderation-master integrity, immutable publication, stale-worker rejection, partial-publication cleanup, and recovery contracts.
+
+Backend PR #99, exact green head `6c1a2efe46e435d990df5a5dc39afe07562339f6`, merge `ec42dc864a56311e04997a3bd76f400e0bde129f`:
+
+- added source-only media-moderation `process` and expired-claim `recover` operations on the shared runtime;
+- composed the existing moderation repository, image normalizer, HEIC decoder, private storage, classifier, OCR, and OCR text-moderation orchestrator;
+- failed closed unless private storage, classifier, and OCR are operationally ready;
+- preserved source checksum, MIME and length validation, metadata stripping, private moderation-master persistence, provider attempt metadata, deterministic fitness-aware policy, manual-review routing, state versions, processing tokens, leases, stale-result behavior, failed-state recording, and expired recovery;
+- accepted no owner IDs, asset IDs, object keys, OCR text, media bytes, provider payloads, or credentials from CLI input.
 
 Remaining P2 boundary:
 
-- media-moderation processing and expired-claim recovery entrypoints;
-- bounded upload-expiry and retryable-failure entrypoints where existing repositories expose safe claims;
-- shared failure classification, safe retry backoff, maximum-attempt policy, and heartbeat only where measured operation duration requires it;
-- privacy-safe aggregate readiness across all worker types;
-- systemd unit/timer and Docker Compose templates plus process ordering, duplicate-process, crash-recovery, rollout, rollback, and emergency-disable runbooks;
-- no worker deployment, scheduling, environment activation, or product enablement during source implementation.
+- add a bounded stale-upload expiry entrypoint through the existing `expireStaleUploads(1)` path;
+- preserve oldest-expired ordering, private-object deletion before terminal CAS, state versions, failure retention, and retry-on-storage-failure behavior;
+- classify the remaining safe retry boundaries, bounded backoff, maximum attempts, and heartbeat only where measured operation duration requires it;
+- expose privacy-safe aggregate readiness across all worker types;
+- add systemd unit/timer and Docker Compose templates plus process ordering, duplicate-process, crash-recovery, rollout, rollback, and emergency-disable runbooks;
+- do not deploy, schedule, activate, or enable workers during source implementation.
 
 ### P3 — classifier and OCR readiness
 
@@ -315,4 +323,4 @@ Do not begin without explicit product prioritization:
 
 ## New-chat starter prompt
 
-> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, and backend `docs/architecture/social-media-worker-runtime.md`; then inspect only code and tests relevant to the selected bounded slice. P0 and P1 are complete. P2 is active: backend PR #96 merged the shared runtime and cleanup process, and backend PR #98 exact green head `565d60f99cf20cac7fb7c3bf0dcef01d737048ca`, merge `34104bec69533fbe89bbaa53cef0884119c13e38`, added per-claim shutdown plus derivative-delivery processing and expired-claim recovery. Continue with the smallest complete media-moderation processing/recovery entrypoint using existing provider runtime, normalization, classifier, OCR, text-policy, claim-token, lease, state-version, stale-worker, cleanup, and audit contracts. Preserve all lifecycle, ownership, CAS, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
+> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, and backend `docs/architecture/social-media-worker-runtime.md`; then inspect only code and tests relevant to the selected bounded slice. P0 and P1 are complete. P2 is active through backend PR #99 exact green head `6c1a2efe46e435d990df5a5dc39afe07562339f6`, merge `ec42dc864a56311e04997a3bd76f400e0bde129f`: the shared runtime, per-claim shutdown, cleanup, derivative-delivery processing/recovery, and media-moderation processing/recovery entrypoints are merged. Continue with the smallest complete stale-upload expiry entrypoint using the existing `SocialMediaUploadService.expireStaleUploads`, oldest-expired repository ordering, private storage deletion, exact state-version CAS, failed-state retention, and shared per-claim runtime. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
