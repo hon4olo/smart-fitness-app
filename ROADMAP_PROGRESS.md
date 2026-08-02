@@ -23,8 +23,8 @@ Read this index together with:
 
 At this update:
 
-- mobile `main`: `33764007e9599655eeb13be29a33738e83078626`;
-- backend `main`: `7dea48e9001a218f5b5b51db8907a46d2c7bffb6`;
+- mobile `main`: `4b4a8f06daaba7f546067bb5c4403902e24e7c50`;
+- backend `main`: `0a2b9d0a9e7f1d3bd3f5a31cf8ef201abc3bdff1`;
 - open mobile pull requests before this docs-only branch: none;
 - open backend pull requests: none.
 
@@ -81,7 +81,7 @@ Production moderation-provider activation remains disabled until separately conf
 
 ## Social S7 managed media
 
-Status: S7.1-S7.6 and the first two S7.7 operations slices are source-complete and merged. Reviewer evidence export plus broader bounded retention/cleanup operations remain active. Public media upload remains disabled.
+Status: S7.1-S7.6 and the first three S7.7 operations slices are source-complete and merged. Broader bounded retention and restart-safe cleanup operations remain active. Public media upload remains disabled.
 
 ### S7.1 Media domain and lifecycle — complete
 
@@ -220,14 +220,29 @@ Completed:
 - submission evidence is immutable while account and asset deletion retain cascade-safe behavior;
 - migration `0031`, concurrency, duplicate, stale-state, expiry, cleanup, account-cascade, PostgreSQL Social API, full Vitest, production startup, and health are green.
 
+### S7.7 Review evidence export — third slice complete
+
+Merged backend PR #90:
+
+- exact green head: `6496cb9f73c51f526e18afe0d0e5e402a42d8d8e`;
+- merge SHA: `0a2b9d0a9e7f1d3bd3f5a31cf8ef201abc3bdff1`.
+
+Completed:
+
+- internal-only export of normalized moderation-master bytes for current `review_required` assets, with no public or staff HTTP API;
+- provider-neutral bounded private-object reads with exact private-key namespace, JPEG media type, byte-length, and SHA-256 integrity verification;
+- state-version and row-lock revalidation make decision, cleanup, deletion, or evidence-replacement races fail closed;
+- exclusive mode-`0600` output creation prevents accidental overwrite;
+- append-only privacy-safe audit excludes owner IDs, object keys, output paths, credentials, raw provider payloads, and OCR plaintext;
+- migration `0032`, CLI parsing and file safety, integrity failures, races, immutability, account cascade, PostgreSQL Social API, full Vitest, production startup, and health are green.
+
 ### S7.7 Remaining active work
 
 Remaining source work is:
 
-- reviewer byte-view/export provider boundary without exposing private object credentials or adding a public staff API;
 - bounded retention deadlines for quarantine uploads, moderation masters, failed/review evidence, approved originals, derivatives, and deletion tombstones;
 - restart-safe cleanup claims, retries, stale-worker recovery, deletion races, account deletion, legal-hold-safe boundaries, and privacy-safe audit records;
-- exact authorization, stale-state, export eligibility, retention, cleanup, legal-hold, and account-deletion tests.
+- exact authorization, stale-state, retention, cleanup, legal-hold, and account-deletion tests.
 
 ## Activation and release boundary
 
@@ -276,11 +291,11 @@ Do not begin without explicit product prioritization:
 
 ## Next execution order
 
-1. Continue S7.7 with the reviewer byte-view/export provider boundary.
-2. Complete broader lifecycle retention deadlines and restart-safe cleanup claims.
-3. Complete false-positive, stale-worker, deletion, account-cleanup, privacy, legal-hold, and export validation before any public media activation.
+1. Continue S7.7 with broader lifecycle retention deadlines and restart-safe cleanup claims.
+2. Complete stale-worker, deletion-race, account-cleanup, legal-hold-safe, and privacy-safe audit boundaries.
+3. Complete false-positive, retention, cleanup, deletion, account-cleanup, privacy, and legal-hold validation before any public media activation.
 4. Run staging, physical-device, release, and rollback gates only with the required authorization and configuration.
 
 ## New-chat starter prompt
 
-> Continue the Smart Fitness roadmap from `ROADMAP_PROGRESS.md`. Social S7.1-S7.6 plus the S7.7 internal manual-review and owner-appeal slices are source-complete. The next unstarted slice is the reviewer byte-view/export provider boundary, followed by broader bounded retention and restart-safe cleanup operations. At the start, verify exact `main` and open PRs for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, this roadmap, `docs/roadmap/social-network.md`, and only the files relevant to the requested slice. Reuse the merged managed-media lifecycle, manual-review CAS/audit, owner appeal, strict owner/public descriptors, private object-storage boundary, moderation, delivery, deletion, cleanup, and one-image workout-post contracts. Keep reviewed, appealed, rejected, failed, pending, and deleted assets non-public unless an explicit valid transition approves them. Do not publish OTA, create/install native builds, deploy backend changes, execute migrations outside CI, activate staging/production, configure credentials, connect real storage/CDN/moderation providers, or enable public image uploads without explicit authorization.
+> Continue the Smart Fitness roadmap from `ROADMAP_PROGRESS.md`. Social S7.1-S7.6 plus the S7.7 internal manual-review, owner-appeal, and reviewer-evidence-export slices are source-complete. The next unstarted slice is broader bounded retention and restart-safe cleanup operations. At the start, verify exact `main` and open PRs for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, this roadmap, `docs/roadmap/social-network.md`, and only the files relevant to the requested slice. Reuse the merged managed-media lifecycle, manual-review CAS/audit, owner appeal, reviewer evidence export, strict owner/public descriptors, private object-storage boundary, moderation, delivery, deletion, cleanup, and one-image workout-post contracts. Keep reviewed, appealed, rejected, failed, pending, and deleted assets non-public unless an explicit valid transition approves them. Do not publish OTA, create/install native builds, deploy backend changes, execute migrations outside CI, activate staging/production, configure credentials, connect real storage/CDN/moderation providers, or enable public image uploads without explicit authorization.
