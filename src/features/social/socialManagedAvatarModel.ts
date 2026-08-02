@@ -1,12 +1,10 @@
 import { isApiError } from '@/api/client';
-import {
-  getSocialApiErrorCode,
-  SignedMediaUploadError,
-  type SocialMediaOwnerAssetDto,
-} from '@/api/social';
+import { getSocialApiErrorCode } from '@/api/social/error-parsers';
+import type { SocialMediaOwnerAssetDto } from '@/api/social/media-contracts';
+import { SignedMediaUploadError } from '@/api/social/signed-media-upload';
 
 import type { SocialManagedAvatarCopy } from './socialManagedAvatarCopy';
-import { SocialManagedAvatarImageError } from './socialManagedAvatarImage';
+import { SocialManagedAvatarImageError } from './socialManagedAvatarErrors';
 
 export type SocialManagedAvatarOperation =
   | 'idle'
@@ -115,7 +113,6 @@ export const getSocialManagedAvatarErrorMessage = (
     if (error.code === 'expired') return copy.uploadExpired;
     if (error.code === 'size_mismatch') return copy.processingFailed;
     if (error.code === 'network') return copy.offline;
-    if (error.code === 'rejected') return copy.genericError;
     return copy.genericError;
   }
 
