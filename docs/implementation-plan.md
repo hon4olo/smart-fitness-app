@@ -16,6 +16,7 @@ Before the current docs branch:
 - Social S0-S6 and managed-media S7.1-S7.7 source boundaries are complete;
 - public media uploads and real providers remain disabled;
 - the single AsyncStorage `AppState` snapshot remains the approved local-state architecture;
+- the reviewed local-state evidence, budgets, and reopen criteria remain canonical in `docs/architecture/local-state-performance-decision.md`;
 - blocking Mobile CI covers repository and changed-file line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor;
 - blocking Backend CI covers lint, formatting, build, migrations, schema and PostgreSQL integration, full regression, startup, and health.
 
