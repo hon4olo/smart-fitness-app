@@ -8,14 +8,16 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
-- backend `main`: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
+- mobile `main`: `e69185cb3a61f2c802a6c87ca33f8c168e1beb79`;
+- backend `main`: `a2d4f67db3000785facb11e2d69cacb8cda03bc3`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
 - backend PR #93 merge: `84e4100b85d24bfee04be2dbea0130fd95be3370`;
 - mobile PR #363 exact green head: `ebda5b78713e0313bf088a54b299b6a943131074`;
 - mobile PR #363 merge: `ac468c103db07ecb6b550535ed77aa72898fb68d`;
+- backend PR #94 exact green head: `f0a199ac4c797d6b025fb48226502a7edddcab9e`;
+- backend PR #94 merge: `a2d4f67db3000785facb11e2d69cacb8cda03bc3`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -86,25 +88,35 @@ Mobile PR #363, exact green head `ebda5b78713e0313bf088a54b299b6a943131074`, mer
 
 No real provider adapter, credential, provider call, deployment, worker activation, public upload activation, or production password-reset email activation was added.
 
-## Next bounded slice
+## Current P1 status
 
-Begin Phase P1 from `docs/roadmap/provider-readiness.md` with the smallest complete backend adapter boundary.
+bounded P1 backend slice was merged in backend PR #94 from exact green head `f0a199ac4c797d6b025fb48226502a7edddcab9e` as merge `a2d4f67db3000785facb11e2d69cacb8cda03bc3`.
 
-Required first-step audit:
+private-storage scope:
 
-- current private object-storage contracts and deterministic memory provider;
-- current immutable media-delivery contracts and deterministic memory provider;
-- composition-root provider runtime and production validation from P0;
-- upload signing, bounded private reads, immutable derivative publication, deletion, and cleanup call sites;
-- existing tests for media lifecycle, checksums, state versions, idempotency, leases, retention, and cleanup.
+cy-free, provider-neutral S3 Signature Version 4 and bounded HTTPS transport primitives;
+on S3-compatible private object storage selected only in the composition root;
+ scoped presigned quarantine `PUT` uploads with exact key, method, MIME, size, signed headers, and expiry;
+HEAD`, bounded private `GET`, conditional immutable private `PUT`, and idempotent exact-object deletion;
+length, content type, ETag, last-modified, and optional SHA-256 validation;
+sed namespace, endpoint, malformed-response, duplicate-write, checksum, and bounded-read behavior;
+istic conformance tests without credentials or real network calls.
 
-Implementation direction:
+e provider may be `configured` and `ready`, but credentials still do not enable the product. Aggregate managed-media capabilities remain unavailable because immutable delivery, classifier, and OCR adapters are not operationally ready.
 
-- select one bounded adapter slice rather than implementing all storage and delivery behavior at once;
-- prefer reusable S3-compatible request/signing primitives and strict configuration types that can support AWS S3, R2, B2 S3 API, MinIO, or another configured compatible endpoint;
-- add deterministic conformance tests without real credentials or network calls;
-- preserve safe disabled defaults and fail-closed production startup;
-- do not create buckets, configure public access, connect a CDN, or make real provider calls.
+unded slice
+
+1 with the immutable media-delivery adapter:
+
+e merged SigV4 and bounded HTTPS primitives rather than introducing provider SDK payloads into domain code;
+nly strict named JPEG variants under owner-opaque content-hashed keys;
+HA-256, content length, content type, ETag or metadata, and immutable cache-control;
+utable replacement and unsafe public-base URLs;
+t bounded exact-prefix listing and cleanup only for validated managed-media asset prefixes;
+plicate writes, missing objects, prefix isolation, partial publication, cleanup replay, malformed responses, and redacted errors;
+the provider only at the application root and keep product enablement disabled.
+
+ials, buckets, public access, CDN, real provider calls, deployment, workers, or environment activation are required or authorized.
 
 ## Execution rules
 
