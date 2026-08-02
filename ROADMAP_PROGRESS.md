@@ -26,8 +26,8 @@ Completed implementation history remains in merged pull requests and focused roa
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `9c7eca92793b175c2bbff541a94bc9d1c29e76c2`;
-- backend `main`: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
+- mobile `main`: `4ea33fcbb20458676b12536cd3662eec35bb9000`;
+- backend `main`: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -48,6 +48,8 @@ Before this documentation synchronization slice:
 - backend PR #100 merge: `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`;
 - backend PR #101 exact green head: `cc261cfe01c82d8b18888195fc8e4eec1ee56558`;
 - backend PR #101 merge: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
+- backend PR #102 exact green head: `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`;
+- backend PR #102 merge: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -224,12 +226,28 @@ P2 source completion does not activate workers or managed-media product behavior
 
 ### P3 — classifier and OCR readiness
 
-Status: active next phase.
+Status: active. The provider-neutral HTTP transport and failure-containment foundation are merged; provider-specific classifier/OCR adapters remain blocked on provider contract selection.
 
-- bounded provider transport, timeout, cancellation, retry, rate-limit, and redaction behavior;
-- strict provider-specific parsers after provider selection;
-- mapping into existing internal signals and deterministic policy;
-- reusable conformance tests without credentials in CI.
+Backend PR #102, exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, merge `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`:
+
+- added a backend-only HTTPS transport with bounded URL, headers, request bytes, timeout, response bytes, redirect behavior, and caller cancellation;
+- performs exactly one transport attempt so existing provider runners retain retry ownership;
+- added strict success, retryable-failure, and terminal-failure HTTP classification;
+- added bounded standard rate-limit metadata parsing;
+- added generic redacted errors for invalid request, cancellation, timeout, network failure, oversized response, invalid response, and open circuit;
+- added optional bounded circuit containment with one half-open probe and no provider identity or endpoint state;
+- added deterministic conformance coverage for redirect blocking, rate limits, malformed metadata, declared and streamed overflow, timeout, cancellation, network failure, unsafe requests, redaction, circuit state, and strict bounds;
+- made no network calls and did not change provider factories, configuration support, classifier/OCR readiness, workers, or product capabilities.
+
+Remaining P3 boundary:
+
+- select and document the classifier provider API contract before implementing its request builder and strict versioned response parser;
+- select and document the OCR provider API contract before implementing its request builder and strict versioned response parser;
+- map only validated provider outputs into the existing internal classifier and OCR signals without changing deterministic policy;
+- retain bounded provider/model/parser metadata without raw responses or OCR plaintext;
+- add adapter conformance for malformed JSON, unknown or duplicate categories, retryable and terminal transport outcomes, cancellation, rate limits, stale workers, and secret non-disclosure;
+- enable source readiness in provider factories and production validation only after both selected adapters are implemented and tested;
+- keep credentials, real calls, staging configuration, managed-media product enablement, and calibration outside autonomous source work.
 
 ### P4 — moderation calibration harness
 
@@ -331,4 +349,4 @@ Do not begin without explicit product prioritization:
 
 ## New-chat starter prompt
 
-> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, and backend `docs/architecture/social-media-worker-runtime.md`; then inspect only code and tests relevant to the selected bounded slice. P0, P1, and P2 are source-complete. P2 completed through backend PR #101 exact green head `cc261cfe01c82d8b18888195fc8e4eec1ee56558`, merge `237d83eb25688e2a72157ea8e199b724bd9426e2`; no worker, provider, upload, or environment was activated. Start P3 with a bounded provider-neutral HTTP transport and reusable conformance suite for classifier/OCR adapters: abortable timeout, response-size limit, strict status handling, rate-limit parsing, retry classification, redacted errors, cancellation, malformed responses, unknown categories, and bounded circuit/failure containment. Do not select or implement a provider-specific parser until a provider contract is explicitly chosen; keep current unavailable providers and managed-media product capabilities disabled. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.
+> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, backend `docs/architecture/social-media-worker-runtime.md`, and backend `docs/architecture/provider-http-transport.md`; then inspect only code and tests relevant to the selected bounded slice. P0, P1, and P2 are source-complete. P3 transport foundation is complete through backend PR #102 exact green head `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`, merge `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`. Provider-specific classifier and OCR adapters are not selected, provider factories remain unavailable, and managed-media capabilities remain disabled. Continue only after identifying an explicitly selected documented provider API contract; then implement the smallest complete classifier or OCR adapter with strict request construction, exact response parsing, mapping into existing internal signals, transport/circuit integration, bounded metadata, and deterministic conformance tests. Do not invent a generic provider payload or make a provider source-ready without a selected contract. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.

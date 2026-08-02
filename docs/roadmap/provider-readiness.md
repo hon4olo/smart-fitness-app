@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `9c7eca92793b175c2bbff541a94bc9d1c29e76c2`;
-- backend `main`: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
+- mobile `main`: `4ea33fcbb20458676b12536cd3662eec35bb9000`;
+- backend `main`: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -34,6 +34,8 @@ Before this documentation synchronization slice:
 - backend PR #100 merge: `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`;
 - backend PR #101 exact green head: `cc261cfe01c82d8b18888195fc8e4eec1ee56558`;
 - backend PR #101 merge: `237d83eb25688e2a72157ea8e199b724bd9426e2`;
+- backend PR #102 exact green head: `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`;
+- backend PR #102 merge: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -197,25 +199,41 @@ P2 source completion does not imply infrastructure readiness or activation. No c
 
 ## Phase P3 — classifier, OCR, and provider transport readiness
 
-Status: active next phase.
+Status: active. Provider-neutral transport and failure containment are merged; provider-specific adapters remain blocked on provider selection.
+
+Merged evidence:
+
+- backend PR #102 exact green head: `b7aa65cdd22d47b914fcb83e7bb674129b6c1c35`;
+- backend PR #102 merge: `1d98e50aa9014bca59a7ed7a51ef3803f296dae3`;
+- the exact head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 Provider-neutral runtime:
 
-- [ ] add a bounded backend HTTP transport for provider adapters with abortable timeouts, response-size limits, retry classification, rate-limit handling, and redacted errors;
-- [ ] add circuit-breaking or equivalent bounded failure containment without hiding persistent configuration failures;
-- [ ] validate every external response through strict versioned parsers;
-- [ ] map provider categories into the existing internal classifier and OCR signals rather than changing domain policy per provider;
+- [x] add a bounded backend HTTPS transport with abortable timeout, caller cancellation, response-size limits, strict status handling, and redacted errors;
+- [x] perform exactly one transport attempt so existing provider runners retain bounded retry ownership;
+- [x] parse bounded standard and interoperable rate-limit metadata;
+- [x] block automatic redirects and reject unsafe URLs, credentials, fragments, headers, methods, and sizes;
+- [x] add optional bounded circuit containment without provider identity, endpoint state, or hidden configuration failures;
+- [x] add deterministic conformance for timeout, cancellation, network failure, malformed metadata, declared/streamed overflow, rate limiting, retryable and terminal statuses, unsafe requests, circuit behavior, and secret non-disclosure;
+- [ ] validate selected provider responses through strict versioned parsers;
+- [ ] map selected provider categories into existing internal classifier and OCR signals rather than changing domain policy;
 - [ ] retain parser, provider, model, policy, and attempt version metadata without raw responses or OCR plaintext;
-- [ ] add a reusable provider conformance suite for timeout, malformed response, unknown category, duplicate result, cancellation, retryable failure, non-retryable failure, and stale-worker behavior.
+- [ ] add provider-adapter conformance for unknown category, duplicate result, malformed JSON, retryable failure, terminal failure, cancellation, rate limit, circuit-open state, stale-worker behavior, and secret non-disclosure.
 
 Provider-specific adapters:
 
-- [ ] implement the selected classifier adapter after the provider API is chosen;
-- [ ] implement the selected OCR adapter after the provider API is chosen;
+- [ ] select and document the classifier provider API contract;
+- [ ] implement the selected classifier request builder and strict response parser;
+- [ ] select and document the OCR provider API contract;
+- [ ] implement the selected OCR request builder and strict response parser;
+- [ ] compose selected adapters only in the backend application root;
+- [ ] update production source-support validation only after both required adapters are complete;
 - [ ] keep credentials supplied only by backend environment variables or the deployment secret store;
-- [ ] keep adapters disabled until explicit staging configuration.
+- [ ] keep adapters and managed-media product capabilities disabled until explicit staging configuration and P4 calibration.
 
-No API key is required to implement adapters and parsers against documented request and response contracts. Provider selection is required before final provider-specific parsing can be completed.
+No API key or real provider call was required for the transport foundation. Provider selection is required before provider-specific request and response parsing can be completed.
+
+No credential, provider account, network call, deployment, worker activation, public upload activation, or production environment change was performed.
 
 ## Phase P4 — moderation calibration harness
 
