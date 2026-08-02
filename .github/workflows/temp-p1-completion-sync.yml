@@ -1,0 +1,285 @@
+name: Temporary P1 Completion Sync
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Update canonical roadmaps
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          mobile_main = 'c969c7b76a3a331953510181e68f97e1a505eade'
+          backend_main = '1eefe77d7260721fc7f3b5a2c0f85e6a962583c8'
+          p1_storage_head = 'f0a199ac4c797d6b025fb48226502a7edddcab9e'
+          p1_storage_merge = 'a2d4f67db3000785facb11e2d69cacb8cda03bc3'
+          p1_delivery_head = 'ab30ee7b31458b69409ba7c00116397fad07887e'
+          p1_delivery_merge = backend_main
+
+          def replace_once(text, before, after, label):
+              count = text.count(before)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one match, found {count}')
+              return text.replace(before, after, 1)
+
+          def replace_section(text, start, end, replacement, label):
+              pattern = re.compile(re.escape(start) + r'.*?(?=' + re.escape(end) + r')', re.S)
+              updated, count = pattern.subn(replacement.rstrip() + '\n\n', text, count=1)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one section, found {count}')
+              return updated
+
+          evidence_line = (
+              f'- backend PR #95 exact green head: `{p1_delivery_head}`;\n'
+              f'- backend PR #95 merge: `{p1_delivery_merge}`;\n'
+          )
+
+          roadmap_path = Path('ROADMAP_PROGRESS.md')
+          roadmap = roadmap_path.read_text()
+          roadmap = replace_once(
+              roadmap,
+              '- mobile `main`: `e69185cb3a61f2c802a6c87ca33f8c168e1beb79`;\n- backend `main`: `a2d4f67db3000785facb11e2d69cacb8cda03bc3`;',
+              f'- mobile `main`: `{mobile_main}`;\n- backend `main`: `{backend_main}`;',
+              'roadmap baseline',
+          )
+          roadmap = replace_once(
+              roadmap,
+              f'- backend PR #94 merge: `{p1_storage_merge}`;\n',
+              f'- backend PR #94 merge: `{p1_storage_merge}`;\n' + evidence_line,
+              'roadmap P1 evidence',
+          )
+          roadmap_p1 = f'''### P1 — storage and immutable delivery adapters
+
+Status: source-complete and merged.
+
+Backend PR #94, exact green head `{p1_storage_head}`, merge `{p1_storage_merge}`:
+
+- added dependency-free S3 Signature Version 4 primitives and a bounded HTTPS transport;
+- added a production S3-compatible private object-storage adapter behind the existing provider-neutral contract;
+- bound private quarantine uploads to exact method, object key, content type, content length, signed headers, and expiry;
+- added signed `HEAD`, bounded private `GET`, conditional immutable private `PUT`, and idempotent exact-object deletion;
+- added fail-closed metadata, checksum, namespace, expiry, duplicate-write, malformed-response, and secret-nondisclosure coverage;
+- composed the concrete private provider only in the backend composition root.
+
+Backend PR #95, exact green head `{p1_delivery_head}`, merge `{p1_delivery_merge}`:
+
+- reused the shared SigV4 and bounded HTTPS primitives for immutable media delivery;
+- added strict canonical owner-opaque asset prefixes and content-hashed JPEG variant keys;
+- added conditional immutable uploads with exact SHA-256, MIME, length, cache-control, and no-overwrite semantics;
+- added strict `HEAD` validation and trusted origin-only public delivery URL construction;
+- added bounded `ListObjectsV2` parsing, pagination, exact-prefix isolation, idempotent exact deletion, partial-cleanup recovery, and safe replay;
+- kept provider XML and HTTP details inside the adapter and concrete selection inside the composition root;
+- added deterministic namespace, signing, XML, pagination, malformed-response, duplicate-write, cleanup, and redaction conformance tests.
+
+P1 completion preserves disabled product behavior. Storage and delivery may be configured and operationally ready, but managed-media product capabilities remain unavailable until classifier and OCR providers are ready and the explicit product flag is enabled.
+
+No credentials, real provider calls, provider accounts, buckets, public ACLs, CDN, DNS, deployment, worker activation, public uploads, or production environment changes were performed.'''
+          roadmap = replace_section(
+              roadmap,
+              '### P1 — storage and immutable delivery adapters',
+              '### P2 — worker entrypoints and orchestration',
+              roadmap_p1,
+              'roadmap P1 section',
+          )
+          roadmap = replace_once(
+              roadmap,
+              '### P2 — worker entrypoints and orchestration\n\n- bounded moderation, delivery, retention-cleanup, expiry, and retry entrypoints;',
+              '### P2 — worker entrypoints and orchestration\n\nStatus: active next phase.\n\n- bounded moderation, delivery, retention-cleanup, expiry, and retry entrypoints;',
+              'roadmap P2 status',
+          )
+          roadmap_order = '''## Current execution order
+
+1. P2 worker entrypoints and process templates.
+2. P3 provider transport and selected classifier/OCR adapters.
+3. P4 moderation calibration harness.
+4. P5 password-reset mobile, links, templates, and delivery readiness.
+5. P6 deployment policies, smoke scripts, and runbooks.
+6. P7 backend-owned conflict choices and then mobile UI.
+7. P8 diagnostics, fixed-SHA release source gate, and Android source preparation.
+8. P9 technical privacy, legal, and analytics prerequisites.
+
+Each phase may be divided into bounded backend, mobile, and documentation PRs. After every backend slice, synchronize this mobile roadmap with exact head and merge SHAs.'''
+          roadmap = replace_section(
+              roadmap,
+              '## Current execution order',
+              '## Source work allowed now',
+              roadmap_order,
+              'roadmap execution order',
+          )
+          roadmap_prompt = f'''## New-chat starter prompt
+
+> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, and `docs/architecture/app-context-consumer-inventory.md`; then inspect only code and tests relevant to the selected bounded slice. P0 is complete through backend PR #92 merge `7b557a216a3e08b043941f2863c6ae64c68b0cf0`, backend PR #93 merge `84e4100b85d24bfee04be2dbea0130fd95be3370`, and mobile PR #363 merge `ac468c103db07ecb6b550535ed77aa72898fb68d`. P1 is complete: backend PR #94 exact green head `{p1_storage_head}`, merge `{p1_storage_merge}`; backend PR #95 exact green head `{p1_delivery_head}`, merge `{p1_delivery_merge}`. Start Phase P2 with the first bounded backend worker-entrypoint slice after auditing existing moderation, delivery, retention-cleanup, expired-upload recovery, retry, claim, lease, heartbeat, shutdown, and process-readiness boundaries. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, password-reset, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.'''
+          pattern = re.compile(r'## New-chat starter prompt\n\n>[\s\S]*\Z')
+          roadmap, count = pattern.subn(roadmap_prompt, roadmap, count=1)
+          if count != 1:
+              raise SystemExit('roadmap starter prompt not found')
+          roadmap_path.write_text(roadmap)
+
+          implementation_path = Path('docs/implementation-plan.md')
+          implementation = implementation_path.read_text()
+          implementation = replace_once(
+              implementation,
+              '- mobile `main`: `e69185cb3a61f2c802a6c87ca33f8c168e1beb79`;\n- backend `main`: `a2d4f67db3000785facb11e2d69cacb8cda03bc3`;',
+              f'- mobile `main`: `{mobile_main}`;\n- backend `main`: `{backend_main}`;',
+              'implementation baseline',
+          )
+          implementation = replace_once(
+              implementation,
+              f'- backend PR #94 merge: `{p1_storage_merge}`;\n',
+              f'- backend PR #94 merge: `{p1_storage_merge}`;\n' + evidence_line,
+              'implementation P1 evidence',
+          )
+          implementation_p1 = f'''## Completed P1 status
+
+S3-compatible private storage and immutable delivery are source-complete.
+
+Backend PR #94, exact green head `{p1_storage_head}`, merge `{p1_storage_merge}`:
+
+- provider-neutral SigV4 and bounded HTTPS primitives;
+- production S3-compatible private object storage selected only in the composition root;
+- exact presigned quarantine uploads, signed metadata reads, bounded private reads, conditional immutable private writes, and idempotent exact deletion;
+- strict namespace, metadata, checksum, duplicate-write, malformed-response, and redaction coverage.
+
+Backend PR #95, exact green head `{p1_delivery_head}`, merge `{p1_delivery_merge}`:
+
+- production S3-compatible immutable delivery selected only in the composition root;
+- canonical owner-opaque asset prefixes and content-hashed named JPEG variants;
+- SHA-256, MIME, length, immutable cache-control, no-overwrite, strict metadata, and trusted public-base validation;
+- bounded URL-encoded `ListObjectsV2`, pagination-token validation, exact-prefix isolation, exact deletion, partial-cleanup recovery, and safe replay;
+- deterministic conformance tests without credentials or real network calls.
+
+Storage and delivery readiness remains separate from product enablement. Aggregate managed-media capabilities remain unavailable until classifier and OCR providers are operationally ready and the explicit product flag is enabled.
+
+## Next bounded slice
+
+Start Phase P2 with a backend audit and the smallest complete worker-entrypoint boundary:
+
+- inventory existing moderation, derivative-delivery, retention-cleanup, expired-upload recovery, and retry services and claim/lease APIs;
+- add provider-neutral one-shot process entrypoints without starting or scheduling them in any environment;
+- define bounded concurrency, abort and graceful-shutdown behavior, deterministic exit codes, and privacy-safe aggregate results;
+- reuse existing oldest-due claims, state-version revalidation, stale-worker recovery, legal-hold blocking, dependency ordering, and append-only audit;
+- keep worker IDs, asset IDs, object keys, OCR text, media bytes, provider payloads, credentials, and private data out of process diagnostics;
+- add deterministic source and process-contract tests before any continuous mode or service templates.
+
+No deployment, migration execution outside CI, worker scheduling, environment activation, credential change, or real provider call is authorized.'''
+          implementation = replace_section(
+              implementation,
+              '## Current P1 status',
+              '## Execution rules',
+              implementation_p1,
+              'implementation P1 section',
+          )
+          implementation_path.write_text(implementation)
+
+          provider_path = Path('docs/roadmap/provider-readiness.md')
+          provider = provider_path.read_text()
+          provider = replace_once(
+              provider,
+              '- mobile `main`: `e69185cb3a61f2c802a6c87ca33f8c168e1beb79`;\n- backend `main`: `a2d4f67db3000785facb11e2d69cacb8cda03bc3`;',
+              f'- mobile `main`: `{mobile_main}`;\n- backend `main`: `{backend_main}`;',
+              'provider baseline',
+          )
+          provider = replace_once(
+              provider,
+              f'- backend PR #94 merge: `{p1_storage_merge}`;\n',
+              f'- backend PR #94 merge: `{p1_storage_merge}`;\n' + evidence_line,
+              'provider P1 evidence',
+          )
+          provider_p1 = f'''## Phase P1 — S3-compatible private storage and immutable delivery adapters
+
+Status: source-complete and merged.
+
+Merged evidence:
+
+- backend PR #94 exact green head: `{p1_storage_head}`;
+- backend PR #94 merge: `{p1_storage_merge}`;
+- backend PR #95 exact green head: `{p1_delivery_head}`;
+- backend PR #95 merge: `{p1_delivery_merge}`;
+- both exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+
+Private object storage:
+
+- [x] implement a production S3-compatible adapter usable with AWS S3, Cloudflare R2, Backblaze B2 S3 API, MinIO, or another explicitly configured compatible endpoint;
+- [x] create narrowly scoped presigned private `PUT` uploads with exact method, content type, content length, expiry, signed headers, and key namespace;
+- [x] implement signed `HEAD`, bounded private `GET`, conditional immutable private `PUT`, and idempotent exact-object deletion;
+- [x] verify returned content length, media type, ETag, last-modified metadata, optional SHA-256 metadata, and missing-object behavior;
+- [x] reject path traversal, foreign namespaces, unsafe endpoint configuration, unbounded reads, mutable replacement, malformed metadata, and inconsistent response bytes;
+- [x] keep quarantine and moderation-master objects private and compose the concrete provider only in the application root;
+- [x] use exact known private object deletion and reserve bounded prefix enumeration for the validated immutable asset-prefix cleanup contract that requires it.
+
+Immutable delivery:
+
+- [x] implement immutable derivative upload with SHA-256 verification and exact JPEG metadata;
+- [x] enforce `public, max-age=31536000, immutable` for public variants;
+- [x] refuse replacement of an existing key with different content;
+- [x] implement exact object and validated asset-prefix cleanup with bounded pagination and partial-publication recovery;
+- [x] build public URLs only from a configured trusted HTTPS origin base URL;
+- [x] preserve owner-opaque canonical asset paths and strict content-hashed named variant keys.
+
+Validation:
+
+- [x] add deterministic signing and private-storage conformance coverage for expiry, MIME and size binding, missing objects, bounded reads, duplicate writes, idempotent exact deletion, namespace isolation, checksum mismatch, malformed metadata, and secret non-disclosure;
+- [x] extend conformance coverage for immutable publication, strict XML parsing, bounded prefix enumeration and deletion, pagination, prefix isolation, cleanup replay, and partial-publication recovery;
+- [x] retain deterministic in-memory providers for unit and PostgreSQL integration tests;
+- [x] keep CI independent of real credentials and network calls.
+
+Acceptance criteria:
+
+- [x] storage and delivery concrete providers are selected only in the composition root;
+- [x] provider credentials and complete settings do not enable managed-media product behavior;
+- [x] unsafe or incomplete enabled production configuration remains fail-closed;
+- [x] provider-specific HTTP and XML payloads do not enter routes, domain DTOs, public descriptors, mobile contracts, logs, or diagnostics;
+- [x] existing approval transitions, state versions, leases, retries, manual review, appeals, retention, legal holds, cleanup claims, and append-only audit remain unchanged.
+
+No credential, real provider call, provider account, bucket, public ACL, CDN, DNS, deployment, worker activation, public upload activation, or production environment change was performed.'''
+          provider = replace_section(
+              provider,
+              '## Phase P1 — S3-compatible private storage and immutable delivery adapters',
+              '## Phase P2 — production worker entrypoints and orchestration',
+              provider_p1,
+              'provider P1 section',
+          )
+          provider = replace_once(
+              provider,
+              '## Phase P2 — production worker entrypoints and orchestration\n\n- [ ] add bounded one-shot CLI entrypoints',
+              '## Phase P2 — production worker entrypoints and orchestration\n\nStatus: active next phase.\n\n- [ ] add bounded one-shot CLI entrypoints',
+              'provider P2 status',
+          )
+          provider_order = '''## Execution order
+
+1. P2 production worker entrypoints and orchestration.
+2. P3 provider transport plus selected classifier and OCR adapters.
+3. P4 moderation calibration harness.
+4. P5 password-reset mobile, deep-link, template, and delivery readiness.
+5. P6 deployment policies, configuration templates, smoke scripts, and runbooks.
+6. P7 explicit sync conflict-choice contract.
+7. P8 diagnostics, fixed-SHA release gate, and Android source preparation.
+8. P9 technical privacy, legal, and analytics prerequisites.
+
+A phase may be divided into bounded backend, mobile, and docs pull requests. After each backend slice, synchronize the canonical mobile roadmap documents.'''
+          provider = replace_section(
+              provider,
+              '## Execution order',
+              '## Source-preparation definition of done',
+              provider_order,
+              'provider execution order',
+          )
+          provider_path.write_text(provider)
+      - name: Commit canonical synchronization
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ROADMAP_PROGRESS.md docs/implementation-plan.md docs/roadmap/provider-readiness.md
+          git commit -m "docs: mark provider readiness P1 complete"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
