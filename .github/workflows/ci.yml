@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -152,45 +152,3 @@ jobs:
 
       - name: Expo Doctor
         run: npx expo-doctor
-
-  sync-roadmap:
-    if: github.head_ref == 'agent/p3-rekognition-ocr-roadmap-sync'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source branch
-        uses: actions/checkout@v4
-        with:
-          ref: agent/p3-rekognition-ocr-roadmap-sync
-          fetch-depth: 0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Synchronize roadmap files
-        run: python scripts/sync-rekognition-ocr-roadmap.py
-
-      - name: Format roadmap files
-        run: >-
-          npx prettier --write
-          ROADMAP_PROGRESS.md
-          docs/implementation-plan.md
-          docs/roadmap/provider-readiness.md
-
-      - name: Restore trusted CI and remove temporary script
-        run: |
-          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
-          rm scripts/sync-rekognition-ocr-roadmap.py
-
-      - name: Commit clean documentation head
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A
-          git commit -m "docs: record Rekognition OCR runtime"
-          git push origin HEAD:agent/p3-rekognition-ocr-roadmap-sync

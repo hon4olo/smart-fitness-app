@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `c3e3aca3d7593386924569b4ceeaac2c4a72c56f`;
-- backend `main`: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;
+- mobile `main`: `720273195668d3663ec35ba7baca090127ee1b15`;
+- backend `main`: `37d4c91cafdeedde122e344fbaca78d00f1c70be`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -36,6 +36,8 @@ Before this documentation synchronization slice:
 - backend PR #103 merge: `0e2829d91b077eec9fb60d25390b038ada0676db`;
 - backend PR #104 exact green head: `7c684cc9426d33b4a9ec4e52cb818966ae71fdac`;
 - backend PR #104 merge: `3d2e8cdeb0b0f3d9767a5416e59e06caa4d006c3`;
+- backend PR #105 exact green head: `47237518847f1135629ca730cce9fd442508cb4d`;
+- backend PR #105 merge: `37d4c91cafdeedde122e344fbaca78d00f1c70be`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -182,19 +184,30 @@ Backend PR #104, exact green head `7c684cc9426d33b4a9ec4e52cb818966ae71fdac`, me
 - retained constant non-reflective errors and excluded raw payloads, signed headers, image bytes, endpoints, and credentials;
 - preserved absent factory support, environment schema, source readiness, product capability enablement, credentials, real calls, and deployment.
 
+Backend PR #105, exact green head `47237518847f1135629ca730cce9fd442508cb4d`, merge `37d4c91cafdeedde122e344fbaca78d00f1c70be`:
+
+- selected and documented Amazon Rekognition `DetectText` as the OCR API contract;
+- added fixed bounded JPEG-byte request construction with an explicit confidence threshold;
+- added strict text-model-major-3 parsing, line/word relationship validation, 100-word enforcement, and line-only text projection;
+- reused only the pinned Rekognition endpoint and approved-operation SigV4 boundaries;
+- composed exactly one bounded OCR transport/circuit attempt per provider invocation;
+- preserved retry ownership in `runMediaOcr` and existing worker lease, state-version, CAS, and stale-result behavior;
+- mapped bounded transport, HTTP, throttling, parsing, model, and configuration outcomes into the existing OCR provider result contract;
+- retained constant non-reflective failures without raw provider payloads, messages, signed headers, image bytes, endpoints, credentials, or OCR plaintext;
+- preserved absent factory support, environment schema, production source readiness, product capability enablement, credentials, real calls, and deployment.
+
 ## Next bounded slice
 
-Complete the OCR source boundary before changing provider factories or readiness:
+Complete the selected classifier/OCR composition-root and source-readiness boundary without activating providers:
 
-- select and document one OCR provider API contract rather than inventing a generic payload;
-- add bounded request construction and a strict versioned response parser;
-- map only validated OCR output into the existing provider-neutral OCR contract without retaining raw OCR plaintext;
-- use a trusted endpoint and provider-correct authentication through exactly one shared bounded HTTP/circuit attempt per provider invocation;
-- map timeout, network, retryable/terminal HTTP, malformed response, model/version drift, and configuration outcomes into the existing OCR provider result contract;
-- preserve provider-runner retry ownership, attempt bounds, worker leases, state-version/CAS handling, stale-result rejection, and non-reflective errors;
-- add deterministic no-network conformance for request/signing, parsing, transport outcomes, retry ownership, and secret/plaintext non-disclosure.
-
-Do not compose classifier or OCR providers in the application root, add environment schema or credentials, update production source support, mark factories ready, or enable managed-media behavior until the OCR adapter and both complete conformance boundaries are merged.
+- add strict backend-only Rekognition configuration for region, bounded timeout, access-key identifier, secret access key, and optional session token;
+- keep credentials represented only as runtime environment inputs and redacted from summaries, errors, capabilities, readiness manifests, and logs;
+- compose classifier and OCR providers only in the backend application root through the existing bounded HTTP transport and explicitly scoped circuit containment;
+- preserve independent provider-runner retry ownership and keep adapter transport timeout at or below the configured runner attempt timeout;
+- update source-support validation only for the selected fully implemented adapters while preserving separate configured, ready, and enabled states;
+- keep absent/incomplete settings fail-closed and preserve unavailable providers as the safe default;
+- add deterministic configuration, factory, source-support, production-validation, worker-readiness, capability, and secret non-disclosure coverage without network calls;
+- do not mark operational readiness true without complete runtime settings, and do not enable managed-media product behavior or public uploads.
 
 No deployment, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized.
 
