@@ -114,10 +114,8 @@ export const buildShareWorkoutPreview = (
 export const canPublishSocialWorkout = (
   caption: string,
   controls: SocialWorkoutShareControls,
-  hasApprovedImage = false,
 ): boolean =>
   Boolean(caption.trim()) ||
-  hasApprovedImage ||
   Object.values(normalizeSocialWorkoutShareControls(controls)).some(Boolean);
 
 export const getShareWorkoutError = (error: unknown): ShareWorkoutError => {
