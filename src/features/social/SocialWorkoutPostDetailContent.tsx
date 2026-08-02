@@ -7,6 +7,7 @@ import {
   type SupportedLocale,
 } from '@/localization';
 
+import { SocialWorkoutPostImage } from './SocialWorkoutPostImage';
 import type { SocialWorkoutPostSurfaceCopy } from './socialWorkoutPostSurfaceCopy';
 import {
   countSocialWorkoutPostSets,
@@ -49,6 +50,9 @@ export function SocialWorkoutPostDetailContent({
           <Text style={styles.username}>@{post.author.username}</Text>
         </View>
 
+        {post.image ? (
+          <SocialWorkoutPostImage descriptor={post.image} styles={styles} />
+        ) : null}
         <Text style={styles.caption}>{post.caption ?? copy.noCaption}</Text>
 
         {hasWorkoutDetails ? (
