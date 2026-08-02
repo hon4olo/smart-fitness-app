@@ -1,6 +1,7 @@
 import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 
 import { AuthProvider } from '@/auth';
+import { CapabilityProvider } from '@/capabilities';
 import { defaultState as defaultAppState } from '@/data/defaults';
 import { getLastWorkoutSession as getLastWorkoutSessionFromState } from '@/lib/appState';
 import {
@@ -94,6 +95,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [isRestoringState, setIsRestoringState] = useState(true);
   const {
     authService,
+    capabilityService,
     queueStore,
     repository,
     syncCoordinator,
@@ -237,7 +239,6 @@ export function AppProvider({ children }: PropsWithChildren) {
         scheduleStateMutation({ label: 'Apply synchronized data', nextState });
         return nextState;
       });
-      return true;
     },
     [scheduleStateMutation],
   );
@@ -427,30 +428,32 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   return (
     <AuthProvider service={authService}>
-      <AppActionsContext.Provider value={actions}>
-        <AppInfrastructureContext.Provider value={infrastructure}>
-          <NutritionDataStateContext.Provider value={nutritionState}>
-            <WorkoutStateContext.Provider value={workoutState}>
-              <AppContext.Provider value={value}>
-                <SyncProvider
-                  metadataStore={weightSyncMetadataStore}
-                  queueStore={queueStore}
-                  replaceState={replaceState}
-                  state={state}
-                  syncCoordinator={syncCoordinator}>
-                  {children}
-                </SyncProvider>
-                <AppMutationFailureNotice
-                  failure={mutationFailure}
-                  onDismiss={dismissMutationFailure}
-                  onRetry={retryFailedMutation}
-                  pendingCount={pendingMutationCount}
-                />
-              </AppContext.Provider>
-            </WorkoutStateContext.Provider>
-          </NutritionDataStateContext.Provider>
-        </AppInfrastructureContext.Provider>
-      </AppActionsContext.Provider>
+      <CapabilityProvider service={capabilityService}>
+        <AppActionsContext.Provider value={actions}>
+          <AppInfrastructureContext.Provider value={infrastructure}>
+            <NutritionDataStateContext.Provider value={nutritionState}>
+              <WorkoutStateContext.Provider value={workoutState}>
+                <AppContext.Provider value={value}>
+                  <SyncProvider
+                    metadataStore={weightSyncMetadataStore}
+                    queueStore={queueStore}
+                    replaceState={replaceState}
+                    state={state}
+                    syncCoordinator={syncCoordinator}>
+                    {children}
+                  </SyncProvider>
+                  <AppMutationFailureNotice
+                    failure={mutationFailure}
+                    onDismiss={dismissMutationFailure}
+                    onRetry={retryFailedMutation}
+                    pendingCount={pendingMutationCount}
+                  />
+                </AppContext.Provider>
+              </WorkoutStateContext.Provider>
+            </NutritionDataStateContext.Provider>
+          </AppInfrastructureContext.Provider>
+        </AppActionsContext.Provider>
+      </CapabilityProvider>
     </AuthProvider>
   );
 }
