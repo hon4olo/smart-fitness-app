@@ -1,19 +1,7 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 
-export type SocialManagedAvatarImageErrorCode =
-  | 'permission_denied'
-  | 'selection_failed'
-  | 'unsupported_image'
-  | 'processing_failed'
-  | 'too_large';
-
-export class SocialManagedAvatarImageError extends Error {
-  constructor(readonly code: SocialManagedAvatarImageErrorCode) {
-    super(code);
-    this.name = 'SocialManagedAvatarImageError';
-  }
-}
+import { SocialManagedAvatarImageError } from './socialManagedAvatarErrors';
 
 export type SelectedSocialAvatarImage = {
   uri: string;
