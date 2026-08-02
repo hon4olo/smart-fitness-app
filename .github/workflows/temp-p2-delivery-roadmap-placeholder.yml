@@ -1,0 +1,10 @@
+name: Temporary P2 Delivery Roadmap Placeholder
+
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo placeholder
