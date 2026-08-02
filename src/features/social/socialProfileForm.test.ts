@@ -26,7 +26,6 @@ describe('social profile form model', () => {
       username: 'coach_ivan',
       displayName: 'Ivan',
       bio: '',
-      avatarUrl: '',
       visibility: 'private',
     });
     expect(createSocialProfileFormValues(null, '  Account Name  ').displayName).toBe(
@@ -34,37 +33,33 @@ describe('social profile form model', () => {
     );
   });
 
-  it('validates bounded public fields and fails closed for malformed values', () => {
+  it('validates bounded public text fields and fails closed', () => {
     expect(
       validateSocialProfileForm({
         username: 'bad-name',
         displayName: '',
         bio: 'x'.repeat(281),
-        avatarUrl: 'not-a-url',
         visibility: 'public',
       }),
     ).toEqual({
       username: 'format',
       displayName: 'required',
       bio: 'length',
-      avatarUrl: 'invalid',
     });
   });
 
-  it('builds an explicit bounded payload and clears blank optional fields', () => {
+  it('builds an explicit payload without an arbitrary avatar URL', () => {
     expect(
       buildSocialProfileInput({
         username: '  Coach_Ivan  ',
         displayName: '  Ivan  ',
         bio: '   ',
-        avatarUrl: '   ',
         visibility: 'public',
       }),
     ).toEqual({
       username: 'Coach_Ivan',
       displayName: 'Ivan',
       bio: null,
-      avatarUrl: null,
       visibility: 'public',
     });
   });
