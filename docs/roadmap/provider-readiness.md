@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `fa09d0f3948a8b579ca3fbe91b2e1b44c7bda6aa`;
-- backend `main`: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
+- mobile `main`: `8a5ea3f7ae2bf7df425a568b85a2404b1b6d72a7`;
+- backend `main`: `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -30,6 +30,8 @@ Before this documentation synchronization slice:
 - backend PR #98 merge: `34104bec69533fbe89bbaa53cef0884119c13e38`;
 - backend PR #99 exact green head: `6c1a2efe46e435d990df5a5dc39afe07562339f6`;
 - backend PR #99 merge: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
+- backend PR #100 exact green head: `5fb21ca3b5d63fee89bf0e3db65b2bf37ba672fd`;
+- backend PR #100 merge: `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -159,7 +161,7 @@ No credential, real provider call, provider account, bucket, public ACL, CDN, DN
 
 ## Phase P2 — production worker entrypoints and orchestration
 
-Status: active. Cleanup, derivative-delivery, and media-moderation process boundaries are merged; stale-upload expiry and operational orchestration remain incomplete.
+Status: active final orchestration boundary. All planned media process entrypoints are merged; readiness, retry ownership, templates, and runbooks remain incomplete.
 
 Merged evidence:
 
@@ -169,53 +171,35 @@ Merged evidence:
 - backend PR #98 merge: `34104bec69533fbe89bbaa53cef0884119c13e38`;
 - backend PR #99 exact green head: `6c1a2efe46e435d990df5a5dc39afe07562339f6`;
 - backend PR #99 merge: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
+- backend PR #100 exact green head: `5fb21ca3b5d63fee89bf0e3db65b2bf37ba672fd`;
+- backend PR #100 merge: `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`;
 - all exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 Shared process runtime:
 
 - [x] add bounded one-shot and continuous execution modes without changing domain claims or leases;
-- [x] validate batch size, poll interval, optional maximum iterations, processed counts, and per-claim `0|1` results;
+- [x] validate batch size, poll interval, optional maximum iterations, processed counts, and per-operation `0|1` results;
 - [x] poll only after idle work and continue immediately after a non-empty iteration;
 - [x] support abortable idle waits, `SIGINT`, `SIGTERM`, deterministic aggregate summaries, and deterministic exit codes;
 - [x] close process resources in `finally` and keep raw exceptions out of direct process output;
-- [x] observe graceful shutdown between individual claimed operations through the shared per-claim batch helper;
-- [ ] add shared bounded failure classification, retry backoff, maximum attempts, and heartbeat only where required by measured operation duration.
+- [x] observe graceful shutdown between individual operations through the shared batch helper.
 
-Managed-media cleanup entrypoint:
+Process entrypoints:
 
-- [x] compose the existing cleanup service and repositories with configured private storage and immutable delivery providers;
-- [x] preserve oldest-due claims, claim tokens, lease expiry, exact state versions, legal holds, stale release, dependency ordering, tombstone purge, append-only audit, and idempotent provider deletion;
-- [x] process cleanup operations one claim at a time and stop before the next claim after abort;
-- [x] keep one-shot and continuous modes source-only and unscheduled.
+- [x] managed-media cleanup with existing claims, legal holds, dependency ordering, tombstone purge, and append-only audit;
+- [x] derivative-delivery processing and expired-claim recovery with immutable publication and partial cleanup;
+- [x] media-moderation processing and expired-claim recovery with normalization, classifier, OCR, text policy, and manual-review routing;
+- [x] stale private-upload expiry through `expireStaleUploads(1)` with deletion before terminal CAS and retry when deletion fails;
+- [x] keep every process source-only, unscheduled, and incapable of accepting IDs, object keys, OCR text, media bytes, provider payloads, or credentials from CLI input.
 
-Derivative-delivery entrypoint:
+Final orchestration work:
 
-- [x] add bounded ready-asset processing through `processReadyBatch(1)`;
-- [x] add bounded expired-processing recovery through `recoverExpiredProcessing(1)`;
-- [x] preserve ownership, state versions, processing tokens, leases, master integrity, strict derivative generation, immutable publication, stale-worker rejection, partial cleanup, release, recovery, approval completion, and private-origin cleanup ordering;
-- [x] accept no IDs, object keys, tokens, prefixes, URLs, or provider payloads from CLI input;
-- [x] expose only versioned aggregate worker, operation, mode, stop-reason, iteration, processed, idle, and duration fields.
-
-Media-moderation entrypoint:
-
-- [x] add bounded ready-asset processing through `processReadyBatch(1)`;
-- [x] add bounded expired-processing recovery through `recoverExpiredProcessing(1)`;
-- [x] compose private storage, deterministic normalization, classifier, OCR, and OCR text moderation only in the process composition boundary;
-- [x] preserve source checksum, MIME and length validation, metadata removal, normalized-master persistence, provider attempt metadata, deterministic fitness-aware policy, manual-review routing, exact state versions, processing tokens, leases, stale-result behavior, failed-state recording, and recovery;
-- [x] fail closed unless private storage, classifier, and OCR are operationally ready;
-- [x] keep OCR text, media bytes, provider payloads, IDs, object keys, and credentials out of CLI input and process output.
-
-Remaining worker entrypoints:
-
-- [ ] add a bounded stale-upload expiry entrypoint through `expireStaleUploads(1)`;
-- [ ] preserve oldest-expired ordering, private-object deletion before terminal CAS, exact state versions, failure retention, and retry when storage deletion fails;
-- [ ] add only other retryable-failure entrypoints backed by explicit existing claims or idempotent service contracts;
-- [ ] expose privacy-safe aggregate readiness and operation status across worker types.
-
-Process templates and operations:
-
-- [ ] add systemd unit and timer templates plus Docker Compose service templates;
-- [ ] document process ordering, duplicate-process behavior, crash recovery, rollout, rollback, and emergency disable procedures;
+- [ ] add a strict versioned privacy-safe readiness summary for each worker and operation;
+- [ ] document provider-level versus process-level retry ownership and add only bounded non-duplicative backoff;
+- [ ] record lease budgets and heartbeat decisions for cleanup, delivery, moderation, and expiry;
+- [ ] add disabled-by-default systemd unit/timer templates and Docker Compose service templates;
+- [ ] document process ordering, duplicate-process behavior, crash recovery, rollout, rollback, emergency disable, and capability enablement order;
+- [ ] prove templates and readiness parsers through deterministic tests without credentials or real processes;
 - [ ] do not start or schedule workers in any environment during source implementation.
 
 No credential, provider account, real provider call, bucket, CDN, DNS, deployment, migration execution outside CI, worker scheduling, public upload activation, or production environment change was performed.

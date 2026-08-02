@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `fa09d0f3948a8b579ca3fbe91b2e1b44c7bda6aa`;
-- backend `main`: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
+- mobile `main`: `8a5ea3f7ae2bf7df425a568b85a2404b1b6d72a7`;
+- backend `main`: `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -26,6 +26,8 @@ Before this documentation synchronization slice:
 - backend PR #98 merge: `34104bec69533fbe89bbaa53cef0884119c13e38`;
 - backend PR #99 exact green head: `6c1a2efe46e435d990df5a5dc39afe07562339f6`;
 - backend PR #99 merge: `ec42dc864a56311e04997a3bd76f400e0bde129f`;
+- backend PR #100 exact green head: `5fb21ca3b5d63fee89bf0e3db65b2bf37ba672fd`;
+- backend PR #100 merge: `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -119,39 +121,34 @@ Storage and delivery readiness remains separate from product enablement. Aggrega
 
 ## Current P2 status
 
-P2 is active. Shared runtime, cleanup, derivative-delivery processing/recovery, and media-moderation processing/recovery are merged.
+P2 is active at its final orchestration boundary. Shared runtime plus cleanup, derivative-delivery, moderation, recovery, and stale-upload expiry entrypoints are merged.
 
-Backend PR #96, exact green head `6ec65413b4c3164bcf176d41230d817e203b8095`, merge `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`:
+Backend PR #96 merged the bounded one-shot/continuous process loop, cleanup entrypoint, aggregate output, exit codes, abortable polling, and resource cleanup.
 
-- added the provider-neutral bounded one-shot and continuous process loop;
-- added the source-only cleanup worker around existing cleanup claims and providers;
-- added deterministic aggregate output, exit codes, abortable polling, resource close, and privacy tests.
+Backend PR #98 merged per-operation abort observation plus derivative-delivery processing and expired-processing recovery.
 
-Backend PR #98, exact green head `565d60f99cf20cac7fb7c3bf0dcef01d737048ca`, merge `34104bec69533fbe89bbaa53cef0884119c13e38`:
+Backend PR #99, exact green head `6c1a2efe46e435d990df5a5dc39afe07562339f6`, merge `ec42dc864a56311e04997a3bd76f400e0bde129f`, merged media-moderation processing and expired-processing recovery through existing normalization, provider, policy, token, lease, and state-version contracts.
 
-- added per-claim abort observation;
-- hardened cleanup shutdown;
-- added derivative-delivery processing and expired-processing recovery through existing worker contracts.
+Backend PR #100, exact green head `5fb21ca3b5d63fee89bf0e3db65b2bf37ba672fd`, merge `6a2b7f1a1196ee66b4e3ad4f049afcef561981f9`:
 
-Backend PR #99, exact green head `6c1a2efe46e435d990df5a5dc39afe07562339f6`, merge `ec42dc864a56311e04997a3bd76f400e0bde129f`:
-
-- added media-moderation processing and expired-processing recovery through the existing moderation worker;
-- composed private storage, normalization, classifier, OCR, and OCR text moderation only in the process composition boundary;
-- preserved checksum validation, normalized-master integrity, provider attempt metadata, deterministic policy, manual-review routing, exact state versions, tokens, leases, stale-result handling, failed-state recording, and recovery;
-- added bounded one-shot/continuous execution, readiness failure, privacy-safe aggregate output, resource cleanup, and deterministic tests;
-- added no scheduling, deployment, provider activation, credentials, or lifecycle changes.
+- added stale private-upload expiry through the existing `expireStaleUploads(1)` service path;
+- preserved oldest-expired selection, private deletion before terminal CAS, exact state versions, terminal retention eligibility, and retry when deletion fails;
+- kept uploads disabled and added no claim, lease, route, DTO, schema, or lifecycle transition;
+- added bounded process, abort, readiness, close, privacy, and deletion-order tests.
 
 ## Next bounded slice
 
-Continue P2 with stale upload expiry:
+Complete the final P2 orchestration source boundary:
 
-- compose the existing upload repository, private storage, image validator, cleanup service, and `SocialMediaUploadService` without enabling public uploads;
-- add a source-only expiry operation that invokes `expireStaleUploads(1)` through the shared per-claim runtime;
-- preserve oldest-expired ordering, exact state versions, private-object deletion before `upload_expired` terminal CAS, immediate retention eligibility, and safe retry when object deletion fails;
-- expose only aggregate process results and bounded failure categories without IDs, object keys, signed URLs, media bytes, provider payloads, credentials, or raw exceptions;
-- keep the worker unscheduled and leave public media capabilities disabled.
+- derive a strict versioned worker-readiness summary from existing provider configuration and process dependency matrices;
+- keep the summary privacy-safe and independent from user data, IDs, object keys, endpoints, credentials, and provider names;
+- document retry ownership so provider-level attempts are not multiplied by process-level retries;
+- add bounded continuous-mode backoff only where the existing domain contract marks retry safe;
+- audit lease budgets and record the heartbeat decision per worker;
+- add disabled-by-default systemd unit/timer and Docker Compose templates without environment activation;
+- add runbooks for process order, duplicate workers, crash recovery, rollout, rollback, emergency disable, and later capability enablement.
 
-After the expiry boundary, audit the remaining retry/backoff, aggregate readiness, process-template, and runbook work before declaring P2 source-complete.
+P2 may be marked source-complete only after full Backend CI, exact-green merge, canonical mobile roadmap synchronization, and confirmation that no environment was activated.
 
 No deployment, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized.
 
