@@ -1,0 +1,249 @@
+name: Temporary P2 Cleanup Roadmap Sync
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Detect pending synchronization
+        id: detect
+        run: |
+          if grep -q 'backend PR #96 exact green head' ROADMAP_PROGRESS.md; then
+            echo 'needed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'needed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Update canonical P2 status
+        if: steps.detect.outputs.needed == 'true'
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          mobile_main = 'cf2250ac2d1806914fd8c01da417a527c01064c0'
+          backend_main = 'b6fe1fa4d7f42960f0e0544f256466faa3cf9b49'
+          p2_head = '6ec65413b4c3164bcf176d41230d817e203b8095'
+          p2_merge = backend_main
+
+          def replace_once(text, before, after, label):
+              count = text.count(before)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one match, found {count}')
+              return text.replace(before, after, 1)
+
+          def replace_section(text, start, end, replacement, label):
+              pattern = re.compile(re.escape(start) + r'.*?(?=' + re.escape(end) + r')', re.S)
+              updated, count = pattern.subn(replacement.rstrip() + '\n\n', text, count=1)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one section, found {count}')
+              return updated
+
+          evidence = (
+              f'- backend PR #96 exact green head: `{p2_head}`;\n'
+              f'- backend PR #96 merge: `{p2_merge}`;\n'
+          )
+          baseline_before = (
+              '- mobile `main`: `c969c7b76a3a331953510181e68f97e1a505eade`;\n'
+              '- backend `main`: `1eefe77d7260721fc7f3b5a2c0f85e6a962583c8`;'
+          )
+          baseline_after = (
+              f'- mobile `main`: `{mobile_main}`;\n'
+              f'- backend `main`: `{backend_main}`;'
+          )
+          previous_evidence = (
+              '- backend PR #95 merge: `1eefe77d7260721fc7f3b5a2c0f85e6a962583c8`;\n'
+          )
+
+          roadmap_path = Path('ROADMAP_PROGRESS.md')
+          roadmap = roadmap_path.read_text()
+          roadmap = replace_once(
+              roadmap,
+              baseline_before,
+              baseline_after,
+              'roadmap baseline',
+          )
+          roadmap = replace_once(
+              roadmap,
+              previous_evidence,
+              previous_evidence + evidence,
+              'roadmap evidence',
+          )
+          roadmap_p2 = f'''### P2 — worker entrypoints and orchestration
+
+Status: active. The shared bounded runtime and managed-media cleanup entrypoint are merged; other worker and process-management boundaries remain incomplete.
+
+Backend PR #96, exact green head `{p2_head}`, merge `{p2_merge}`:
+
+- added a provider-neutral bounded process loop with one-shot and continuous modes;
+- bounded batch size, polling interval, optional maximum iterations, processed counts, idle polling, and duration summaries;
+- added abortable idle waits, `SIGINT`/`SIGTERM` handling, deterministic aggregate JSON, deterministic exit codes, and resource cleanup;
+- added `social:media-cleanup-worker` composition around the existing restart-safe cleanup service and repositories;
+- preserved oldest-due claims, claim tokens, lease expiry, exact state-version revalidation, legal holds, stale release, dependency ordering, tombstone purge, append-only audit, and idempotent provider deletion;
+- required configured private storage and immutable delivery readiness without enabling the managed-media product;
+- accepted no owner ID, asset ID, object key, claim token, state version, cleanup target, provider payload, or private value from CLI input;
+- added deterministic loop, CLI, readiness, close, privacy, and failure-path tests plus an architecture boundary document.
+
+Remaining P2 boundary:
+
+- harden graceful shutdown between individual cleanup claims rather than only between bounded service batches;
+- add moderation processing and expired-claim recovery entrypoints;
+- add derivative-delivery processing and expired-claim recovery entrypoints;
+- add bounded expiry and retryable-failure entrypoints where existing domain contracts support them;
+- add failure classification, safe retry backoff, maximum-attempt policy, and heartbeat only where operation duration requires it;
+- add privacy-safe aggregate readiness across worker types;
+- add systemd unit/timer and Docker Compose templates plus process-ordering, duplicate-process, crash-recovery, rollout, rollback, and emergency-disable documentation;
+- do not start, schedule, deploy, or activate workers during source implementation.
+
+The conflicting old-base cleanup PR #97 was closed as superseded by #96; its useful stop-between-claims invariant remains explicitly tracked above.'''
+          roadmap = replace_section(
+              roadmap,
+              '### P2 — worker entrypoints and orchestration',
+              '### P3 — classifier and OCR readiness',
+              roadmap_p2,
+              'roadmap P2',
+          )
+          prompt = f'''> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. Do not rely only on this prompt: first verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, and backend `docs/architecture/social-media-worker-runtime.md`; then inspect only code and tests relevant to the selected bounded slice. P0 and P1 are complete through backend PR #95 merge `1eefe77d7260721fc7f3b5a2c0f85e6a962583c8`. P2 is active: backend PR #96 exact green head `{p2_head}`, merge `{p2_merge}`, added the shared bounded worker runtime and source-only managed-media cleanup entrypoint. Continue with the next bounded P2 backend slice: first carry forward graceful shutdown between individual claims, then add the smallest complete moderation or derivative-delivery processing/recovery entrypoint using existing claims, leases, state versions, stale-worker recovery, cleanup, and provider-runtime contracts. Preserve all lifecycle, ownership, CAS, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without my direct request.'''
+          roadmap = re.sub(
+              r'> Continue autonomous work on the Smart Fitness Provider and Release Readiness program\.[\s\S]*$',
+              prompt,
+              roadmap,
+              count=1,
+          )
+          roadmap_path.write_text(roadmap)
+
+          implementation_path = Path('docs/implementation-plan.md')
+          implementation = implementation_path.read_text()
+          implementation = replace_once(
+              implementation,
+              baseline_before,
+              baseline_after,
+              'implementation baseline',
+          )
+          implementation = replace_once(
+              implementation,
+              previous_evidence,
+              previous_evidence + evidence,
+              'implementation evidence',
+          )
+          implementation_p2 = f'''## Current P2 status
+
+The first bounded P2 backend slice was merged in backend PR #96 from exact green head `{p2_head}` as merge `{p2_merge}`.
+
+Completed cleanup-worker scope:
+
+- a shared provider-neutral bounded process loop with one-shot and continuous modes;
+- batch, polling, maximum-iteration, processed-count, idle-count, duration, and abort boundaries;
+- abortable idle waits plus direct CLI `SIGINT` and `SIGTERM` handling;
+- deterministic aggregate JSON and bounded exit codes without raw errors or private identifiers;
+- a source-only managed-media cleanup worker composed from the existing cleanup service, repositories, private storage, and immutable delivery providers;
+- strict readiness failure when required storage or delivery providers are unavailable;
+- preservation of existing cleanup claims, leases, state versions, legal holds, stale release, dependency ordering, tombstone purge, append-only audit, and idempotent deletion;
+- deterministic process-loop, CLI, privacy, close, and failure-path tests;
+- no worker scheduling, deployment, environment activation, provider call, credential, or product enablement.
+
+P2 remains active. Duplicate old-base PR #97 was closed as superseded; its stronger stop-between-individual-claims behavior is retained as a required follow-up rather than lost.
+
+## Next bounded slice
+
+Continue P2 on current backend `main`:
+
+- add an abort-aware per-claim runner so graceful shutdown is observed between individual cleanup claims;
+- reuse that boundary for the smallest complete moderation or derivative-delivery processing and expired-claim recovery entrypoint;
+- preserve existing worker ownership, claim-token, lease, exact-state-version, stale-result, partial-publication cleanup, and fail-closed provider behavior;
+- add bounded aggregate results and error classification without IDs, object keys, media bytes, OCR text, provider payloads, credentials, or raw exceptions;
+- do not add scheduling or service templates until the processing and recovery entrypoints share one verified runtime contract.
+
+No deployment, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized.'''
+          implementation = replace_section(
+              implementation,
+              '## Next bounded slice',
+              '## Execution rules',
+              implementation_p2,
+              'implementation P2',
+          )
+          implementation_path.write_text(implementation)
+
+          provider_path = Path('docs/roadmap/provider-readiness.md')
+          provider = provider_path.read_text()
+          provider = replace_once(
+              provider,
+              baseline_before,
+              baseline_after,
+              'provider baseline',
+          )
+          provider = replace_once(
+              provider,
+              previous_evidence,
+              previous_evidence + evidence,
+              'provider evidence',
+          )
+          provider_p2 = f'''## Phase P2 — production worker entrypoints and orchestration
+
+Status: active. Shared runtime and managed-media cleanup process support are merged; P2 is not complete.
+
+Merged evidence:
+
+- backend PR #96 exact green head: `{p2_head}`;
+- backend PR #96 merge: `{p2_merge}`;
+- exact head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health;
+- backend PR #97 was closed unmerged as an old-base duplicate after its useful stop-between-claims invariant was retained below.
+
+Shared process runtime:
+
+- [x] add bounded one-shot and continuous execution modes without changing underlying domain claims or leases;
+- [x] validate batch size, poll interval, optional maximum iterations, and processed counts;
+- [x] poll only after idle work and continue immediately after a non-empty batch;
+- [x] support abortable idle waits, `SIGINT`, `SIGTERM`, deterministic aggregate summaries, and deterministic exit codes;
+- [x] close process resources in `finally` and keep raw exceptions out of direct process output;
+- [ ] observe graceful shutdown between individual claimed operations for services whose batch method can process more than one claim;
+- [ ] add shared bounded failure classification, retry backoff, maximum attempts, and heartbeat only where required by operation duration.
+
+Managed-media cleanup entrypoint:
+
+- [x] compose the existing cleanup service and repositories with configured private storage and immutable delivery providers;
+- [x] fail closed before work when required provider readiness is unavailable;
+- [x] preserve oldest-due claims, unique claim tokens, lease expiry, exact state-version revalidation, legal-hold blocking, stale release, dependency ordering, tombstone purge, append-only audit, and idempotent provider deletion;
+- [x] accept no owner ID, asset ID, object key, state version, claim token, cleanup target, or private payload from CLI input;
+- [x] emit only versioned aggregate worker, mode, stop-reason, iteration, processed, idle, and duration fields;
+- [x] keep one-shot and continuous modes source-only and unscheduled.
+
+Remaining worker entrypoints:
+
+- [ ] add bounded media-moderation processing and expired-claim recovery entrypoints;
+- [ ] add bounded derivative-delivery processing and expired-claim recovery entrypoints;
+- [ ] add bounded expired-upload and retryable-failure entrypoints where current repositories expose safe claim contracts;
+- [ ] preserve partial-publication cleanup, stale-worker rejection, provider attempt metadata, and fail-closed moderation policy;
+- [ ] expose privacy-safe aggregate readiness and operation status across worker types.
+
+Process templates and operations:
+
+- [ ] add systemd unit and timer templates plus Docker Compose service templates;
+- [ ] document process ordering, duplicate-process behavior, crash recovery, rollout, rollback, and emergency disable procedures;
+- [ ] do not start or schedule workers in any environment during source implementation.
+
+No credential, provider account, real provider call, bucket, CDN, DNS, deployment, migration execution outside CI, worker scheduling, public upload activation, or production environment change was performed.'''
+          provider = replace_section(
+              provider,
+              '## Phase P2 — production worker entrypoints and orchestration',
+              '## Phase P3 — classifier, OCR, and provider transport readiness',
+              provider_p2,
+              'provider P2',
+          )
+          provider_path.write_text(provider)
+      - name: Commit exact roadmap synchronization
+        if: steps.detect.outputs.needed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ROADMAP_PROGRESS.md docs/implementation-plan.md docs/roadmap/provider-readiness.md
+          git commit -m "docs: record P2 cleanup worker slice"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
