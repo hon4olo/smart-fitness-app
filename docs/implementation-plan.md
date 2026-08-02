@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `cf2250ac2d1806914fd8c01da417a527c01064c0`;
-- backend `main`: `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`;
+- mobile `main`: `7695b3ff1116fae667e0dbbfd1f11baa9ae4d455`;
+- backend `main`: `34104bec69533fbe89bbaa53cef0884119c13e38`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -22,6 +22,8 @@ Before this documentation synchronization slice:
 - backend PR #95 merge: `1eefe77d7260721fc7f3b5a2c0f85e6a962583c8`;
 - backend PR #96 exact green head: `6ec65413b4c3164bcf176d41230d817e203b8095`;
 - backend PR #96 merge: `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`;
+- backend PR #98 exact green head: `565d60f99cf20cac7fb7c3bf0dcef01d737048ca`;
+- backend PR #98 merge: `34104bec69533fbe89bbaa53cef0884119c13e38`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -115,33 +117,34 @@ Storage and delivery readiness remains separate from product enablement. Aggrega
 
 ## Current P2 status
 
-bounded P2 backend slice was merged in backend PR #96 from exact green head `6ec65413b4c3164bcf176d41230d817e203b8095` as merge `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`.
+P2 is active. The shared runtime, cleanup worker, per-claim shutdown boundary, and derivative-delivery process/recovery entrypoint are merged.
 
-cleanup-worker scope:
+Backend PR #96, exact green head `6ec65413b4c3164bcf176d41230d817e203b8095`, merge `b6fe1fa4d7f42960f0e0544f256466faa3cf9b49`:
 
- provider-neutral bounded process loop with one-shot and continuous modes;
-olling, maximum-iteration, processed-count, idle-count, duration, and abort boundaries;
-e idle waits plus direct CLI `SIGINT` and `SIGTERM` handling;
-istic aggregate JSON and bounded exit codes without raw errors or private identifiers;
--only managed-media cleanup worker composed from the existing cleanup service, repositories, private storage, and immutable delivery providers;
-eadiness failure when required storage or delivery providers are unavailable;
-tion of existing cleanup claims, leases, state versions, legal holds, stale release, dependency ordering, tombstone purge, append-only audit, and idempotent deletion;
-istic process-loop, CLI, privacy, close, and failure-path tests;
-r scheduling, deployment, environment activation, provider call, credential, or product enablement.
+- added the provider-neutral bounded one-shot and continuous process loop;
+- added the source-only cleanup worker around existing cleanup claims and providers;
+- added deterministic aggregate output, exit codes, abortable polling, resource close, and privacy tests.
 
- active. Duplicate old-base PR #97 was closed as superseded; its stronger stop-between-individual-claims behavior is retained as a required follow-up rather than lost.
+Backend PR #98, exact green head `565d60f99cf20cac7fb7c3bf0dcef01d737048ca`, merge `34104bec69533fbe89bbaa53cef0884119c13e38`:
 
-unded slice
+- added `runWorkerClaimBatch`, which processes existing service claims one at a time and observes abort before the next claim;
+- hardened cleanup so shutdown is observed between individual cleanup claims;
+- added derivative-delivery `process` and expired-processing `recover` operations through the existing delivery worker;
+- preserved exact state versions, processing tokens, leases, master integrity, immutable variants, stale-worker rejection, partial-publication cleanup, claim release, recovery, approval completion, and origin-cleanup ordering;
+- added bounded one-shot/continuous modes, readiness failure, privacy-safe aggregate output, resource cleanup, and deterministic tests;
+- added no scheduling, deployment, provider activation, credentials, or lifecycle changes.
 
-2 on current backend `main`:
+## Next bounded slice
 
-bort-aware per-claim runner so graceful shutdown is observed between individual cleanup claims;
-at boundary for the smallest complete moderation or derivative-delivery processing and expired-claim recovery entrypoint;
- existing worker ownership, claim-token, lease, exact-state-version, stale-result, partial-publication cleanup, and fail-closed provider behavior;
-ded aggregate results and error classification without IDs, object keys, media bytes, OCR text, provider payloads, credentials, or raw exceptions;
-dd scheduling or service templates until the processing and recovery entrypoints share one verified runtime contract.
+Continue P2 with the media-moderation process boundary:
 
-ent, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized.
+- audit the current moderation worker factory dependencies: private storage, image normalizer, classifier, OCR, text moderator, cleanup service, repositories, and provider runtime;
+- add bounded `process` and expired-claim `recover` operations using the merged shared runtime and per-claim batch helper;
+- preserve normalization, checksum validation, classifier/OCR attempt metadata, deterministic fitness-aware policy, manual-review routing, stale-result cleanup, claim release, state versions, and legal/retention boundaries;
+- expose only aggregate process results and bounded failure categories without asset IDs, object keys, media bytes, OCR text, provider payloads, credentials, or raw exceptions;
+- keep provider-specific adapters unavailable until P3 provider selection and keep every worker unscheduled.
+
+No deployment, migration execution outside CI, worker scheduling, environment activation, credential change, real provider call, public upload activation, OTA, or native build is authorized.
 
 ## Execution rules
 
