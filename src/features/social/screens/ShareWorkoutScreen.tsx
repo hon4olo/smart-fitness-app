@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -7,33 +7,32 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  createSocialApi,
-  type SocialWorkoutShareControls,
-} from '@/api/social';
-import { AppCard } from '@/components/ui/AppCard';
-import { InlineError } from '@/components/ui/InlineError';
-import { LoadingState } from '@/components/ui/LoadingState';
-import { PrimaryButton } from '@/components/ui/PrimaryButton';
-import { SecondaryButton } from '@/components/ui/SecondaryButton';
-import { Spacing } from '@/constants/theme';
-import { useAppInfrastructure, useWorkoutState } from '@/context/AppContext';
-import { useWeightSync } from '@/context/SyncContext';
-import { useAuthSession } from '@/hooks/useAuthSession';
-import { createUuid } from '@/lib/ids';
-import { useLocalization } from '@/localization';
-import { useAppTheme } from '@/theme/AppThemeProvider';
+import { createSocialApi, type SocialWorkoutShareControls } from "@/api/social";
+import { AppCard } from "@/components/ui/AppCard";
+import { InlineError } from "@/components/ui/InlineError";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { SecondaryButton } from "@/components/ui/SecondaryButton";
+import { Spacing } from "@/constants/theme";
+import { useAppInfrastructure, useWorkoutState } from "@/context/AppContext";
+import { useWeightSync } from "@/context/SyncContext";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { createUuid } from "@/lib/ids";
+import { useLocalization } from "@/localization";
+import { useAppTheme } from "@/theme/AppThemeProvider";
 
+import { ShareWorkoutMediaCard } from "../ShareWorkoutMediaCard";
 import {
   getSocialContentModerationMessage,
   isSocialContentModerationUiState,
-} from '../socialContentModerationUi';
-import { getSocialRateLimitMessage } from '../socialRateLimitCopy';
-import { getShareWorkoutCopy } from '../shareWorkoutCopy';
+} from "../socialContentModerationUi";
+import { isSocialWorkoutPostMediaBusy } from "../socialWorkoutPostMediaModel";
+import { getSocialRateLimitMessage } from "../socialRateLimitCopy";
+import { getShareWorkoutCopy } from "../shareWorkoutCopy";
 import {
   buildShareWorkoutPreview,
   canPublishSocialWorkout,
@@ -42,13 +41,14 @@ import {
   shareWorkoutErrorRequiresEdit,
   updateSocialWorkoutShareControl,
   type ShareWorkoutError,
-} from '../shareWorkoutModel';
-import { createShareWorkoutStyles } from './ShareWorkoutScreen.styles';
+} from "../shareWorkoutModel";
+import { useSocialWorkoutPostMedia } from "../useSocialWorkoutPostMedia";
+import { createShareWorkoutStyles } from "./ShareWorkoutScreen.styles";
 
-type PublishState = 'editing' | 'publishing' | 'profile_required' | 'success';
+type PublishState = "editing" | "publishing" | "profile_required" | "success";
 
 const readSessionId = (value: string | string[] | undefined): string =>
-  (Array.isArray(value) ? value[0] : value)?.trim() ?? '';
+  (Array.isArray(value) ? value[0] : value)?.trim() ?? "";
 
 export default function ShareWorkoutScreen() {
   const router = useRouter();
@@ -61,15 +61,20 @@ export default function ShareWorkoutScreen() {
   const styles = useMemo(() => createShareWorkoutStyles(colors), [colors]);
   const { isRestoringState } = useAppInfrastructure();
   const { workoutSessions } = useWorkoutState();
-  const { ready, isAuthenticated, refresh, session: authSession } =
-    useAuthSession();
+  const {
+    ready,
+    isAuthenticated,
+    profile: accountProfile,
+    refresh,
+    session: authSession,
+  } = useAuthSession();
   const { syncNow } = useWeightSync();
-  const [caption, setCaption] = useState('');
+  const [caption, setCaption] = useState("");
   const [controls, setControls] = useState<SocialWorkoutShareControls>(
     DEFAULT_SOCIAL_WORKOUT_SHARE_CONTROLS,
   );
-  const [publishState, setPublishState] = useState<PublishState>('editing');
-  const [error, setError] = useState<ShareWorkoutError | 'empty' | null>(null);
+  const [publishState, setPublishState] = useState<PublishState>("editing");
+  const [error, setError] = useState<ShareWorkoutError | "empty" | null>(null);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   const idempotencyKey = useRef(`social-workout-post:${createUuid()}`);
 
@@ -79,7 +84,9 @@ export default function ShareWorkoutScreen() {
   );
   const preview = useMemo(
     () =>
-      workoutSession ? buildShareWorkoutPreview(workoutSession, controls) : null,
+      workoutSession
+        ? buildShareWorkoutPreview(workoutSession, controls)
+        : null,
     [controls, workoutSession],
   );
   const auth = useMemo(
@@ -91,18 +98,26 @@ export default function ShareWorkoutScreen() {
     [authSession?.tokens.accessToken, refresh],
   );
   const socialApi = useMemo(() => createSocialApi(auth), [auth]);
+  const media = useSocialWorkoutPostMedia({
+    accountId: accountProfile?.id ?? null,
+    sessionId,
+    api: socialApi,
+    copy,
+  });
+  const mediaBusy = isSocialWorkoutPostMediaBusy(media.operation);
+  const mediaWaiting = media.hasImageDraft && !media.attachment;
 
   const errorMessage = useMemo(() => {
     if (rateLimitError) return rateLimitError;
     if (isSocialContentModerationUiState(error)) {
       return getSocialContentModerationMessage(error, locale);
     }
-    if (error === 'empty') return copy.emptyError;
-    if (error === 'source_not_ready') return copy.sourceNotReady;
-    if (error === 'offline') return copy.offline;
-    if (error === 'session_expired') return copy.sessionExpired;
-    if (error === 'unavailable') return copy.unavailable;
-    if (error === 'generic') return copy.genericError;
+    if (error === "empty") return copy.emptyError;
+    if (error === "source_not_ready") return copy.sourceNotReady;
+    if (error === "offline") return copy.offline;
+    if (error === "session_expired") return copy.sessionExpired;
+    if (error === "unavailable") return copy.unavailable;
+    if (error === "generic") return copy.genericError;
     return null;
   }, [copy, error, locale, rateLimitError]);
 
@@ -111,26 +126,26 @@ export default function ShareWorkoutScreen() {
     setRateLimitError(null);
   };
 
+  const canPublish = () =>
+    !mediaWaiting && !mediaBusy && canPublishSocialWorkout(caption, controls);
+
   const publish = async () => {
     if (
       !workoutSession ||
-      publishState === 'publishing' ||
-      shareWorkoutErrorRequiresEdit(error)
+      publishState === "publishing" ||
+      shareWorkoutErrorRequiresEdit(error) ||
+      !canPublish()
     ) {
-      return;
-    }
-    if (!canPublishSocialWorkout(caption, controls)) {
-      setRateLimitError(null);
-      setError('empty');
+      if (mediaWaiting) media.clearError();
       return;
     }
 
-    setPublishState('publishing');
+    setPublishState("publishing");
     clearError();
     try {
       const profile = await socialApi.getOwnProfile();
       if (!profile) {
-        setPublishState('profile_required');
+        setPublishState("profile_required");
         return;
       }
 
@@ -140,20 +155,22 @@ export default function ShareWorkoutScreen() {
         caption: caption.trim() || null,
         idempotencyKey: idempotencyKey.current,
         share: controls,
+        ...(media.attachment ? { image: media.attachment } : {}),
       });
-      setPublishState('success');
+      await media.releaseAfterPublish();
+      setPublishState("success");
     } catch (publishError) {
       const rateLimitMessage = getSocialRateLimitMessage(publishError, locale);
       if (rateLimitMessage) {
-        setPublishState('editing');
+        setPublishState("editing");
         setRateLimitError(rateLimitMessage);
         return;
       }
       const state = getShareWorkoutError(publishError);
-      if (state === 'profile_required') {
-        setPublishState('profile_required');
+      if (state === "profile_required") {
+        setPublishState("profile_required");
       } else {
-        setPublishState('editing');
+        setPublishState("editing");
         setError(state);
       }
     }
@@ -161,13 +178,14 @@ export default function ShareWorkoutScreen() {
 
   const confirmPublish = () => {
     if (shareWorkoutErrorRequiresEdit(error)) return;
+    if (mediaWaiting || mediaBusy) return;
     if (!canPublishSocialWorkout(caption, controls)) {
       setRateLimitError(null);
-      setError('empty');
+      setError("empty");
       return;
     }
     Alert.alert(copy.publishTitle, copy.publishBody, [
-      { text: t('common.cancel'), style: 'cancel' },
+      { text: t("common.cancel"), style: "cancel" },
       { text: copy.publishConfirm, onPress: () => void publish() },
     ]);
   };
@@ -187,7 +205,8 @@ export default function ShareWorkoutScreen() {
         { paddingBottom: insets.bottom + Spacing.six },
       ]}
       keyboardShouldPersistTaps="handled"
-      style={styles.screen}>
+      style={styles.screen}
+    >
       <View style={styles.container}>
         <View style={styles.header}>
           <Pressable
@@ -197,7 +216,8 @@ export default function ShareWorkoutScreen() {
             style={({ pressed }) => [
               styles.backButton,
               pressed && styles.pressed,
-            ]}>
+            ]}
+          >
             <Text style={styles.backLabel}>‹</Text>
           </Pressable>
           <View style={styles.headerCopy}>
@@ -212,7 +232,7 @@ export default function ShareWorkoutScreen() {
             <Text style={styles.body}>{copy.signInBody}</Text>
             <PrimaryButton
               label={copy.signIn}
-              onPress={() => router.push('/auth/sign-in')}
+              onPress={() => router.push("/auth/sign-in")}
             />
           </AppCard>
         ) : null}
@@ -223,44 +243,44 @@ export default function ShareWorkoutScreen() {
             <Text style={styles.body}>{copy.missingBody}</Text>
             <SecondaryButton
               label={copy.done}
-              onPress={() => router.replace('/workouts')}
+              onPress={() => router.replace("/workouts")}
             />
           </AppCard>
         ) : null}
 
         {isAuthenticated &&
         workoutSession &&
-        publishState === 'profile_required' ? (
+        publishState === "profile_required" ? (
           <AppCard>
             <Text style={styles.cardTitle}>{copy.profileTitle}</Text>
             <Text style={styles.body}>{copy.profileBody}</Text>
             <PrimaryButton
               label={copy.createProfile}
-              onPress={() => router.push('/settings/social-profile')}
+              onPress={() => router.push("/settings/social-profile")}
             />
             <SecondaryButton
               label={copy.back}
-              onPress={() => setPublishState('editing')}
+              onPress={() => setPublishState("editing")}
             />
           </AppCard>
         ) : null}
 
-        {isAuthenticated && workoutSession && publishState === 'success' ? (
+        {isAuthenticated && workoutSession && publishState === "success" ? (
           <AppCard>
             <Text style={styles.successMark}>✓</Text>
             <Text style={styles.cardTitle}>{copy.successTitle}</Text>
             <Text style={styles.body}>{copy.successBody}</Text>
             <PrimaryButton
               label={copy.done}
-              onPress={() => router.replace('/workouts')}
+              onPress={() => router.replace("/workouts")}
             />
           </AppCard>
         ) : null}
 
         {isAuthenticated &&
         workoutSession &&
-        publishState !== 'success' &&
-        publishState !== 'profile_required' ? (
+        publishState !== "success" &&
+        publishState !== "profile_required" ? (
           <>
             <AppCard>
               <View style={styles.section}>
@@ -324,6 +344,12 @@ export default function ShareWorkoutScreen() {
               </View>
             </AppCard>
 
+            <ShareWorkoutMediaCard
+              controller={media}
+              copy={copy}
+              styles={styles}
+            />
+
             <AppCard>
               <View style={styles.section}>
                 <Text style={styles.label}>{copy.caption}</Text>
@@ -343,15 +369,17 @@ export default function ShareWorkoutScreen() {
                 <InlineError message={errorMessage} />
                 <PrimaryButton
                   disabled={
-                    publishState === 'publishing' ||
+                    publishState === "publishing" ||
+                    mediaWaiting ||
+                    mediaBusy ||
                     shareWorkoutErrorRequiresEdit(error)
                   }
                   label={
-                    publishState === 'publishing'
+                    publishState === "publishing"
                       ? copy.publishing
                       : copy.publish
                   }
-                  loading={publishState === 'publishing'}
+                  loading={publishState === "publishing"}
                   onPress={confirmPublish}
                 />
               </View>
@@ -379,26 +407,26 @@ function ShareFieldRows({
     label: string;
     disabled?: boolean;
   }> = [
-    { key: 'title', label: copy.workoutTitle },
-    { key: 'duration', label: copy.duration },
-    { key: 'exercises', label: copy.exercises },
-    { key: 'sets', label: copy.sets, disabled: !controls.exercises },
+    { key: "title", label: copy.workoutTitle },
+    { key: "duration", label: copy.duration },
+    { key: "exercises", label: copy.exercises },
+    { key: "sets", label: copy.sets, disabled: !controls.exercises },
     {
-      key: 'load',
+      key: "load",
       label: copy.load,
       disabled: !controls.exercises || !controls.sets,
     },
     {
-      key: 'repetitions',
+      key: "repetitions",
       label: copy.repetitions,
       disabled: !controls.exercises || !controls.sets,
     },
     {
-      key: 'rpe',
+      key: "rpe",
       label: copy.rpe,
       disabled: !controls.exercises || !controls.sets,
     },
-    { key: 'volume', label: copy.volume },
+    { key: "volume", label: copy.volume },
   ];
 
   return rows.map((row) => (
@@ -409,7 +437,7 @@ function ShareFieldRows({
         onValueChange={(value) => onChange(row.key, value)}
         style={styles.switchControl}
         thumbColor="#FFFFFF"
-        trackColor={{ false: '#475569', true: '#14B8A6' }}
+        trackColor={{ false: "#475569", true: "#14B8A6" }}
         value={controls[row.key]}
       />
     </View>

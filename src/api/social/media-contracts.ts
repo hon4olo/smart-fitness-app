@@ -167,13 +167,24 @@ export type SignedSocialMediaUploadDto = {
   expiresAt: string;
 };
 
+export type SocialMediaAssetType = "avatar" | "workout_post_image";
+
 export type CreateSocialMediaUploadInput = {
   schemaVersion: typeof SOCIAL_MEDIA_UPLOAD_SCHEMA_VERSION;
-  assetType: "avatar";
+  assetType: SocialMediaAssetType;
   mediaType: SocialMediaUploadType;
   byteSize: number;
   idempotencyKey: string;
 };
+
+export type CreateSocialAvatarUploadInput = CreateSocialMediaUploadInput & {
+  assetType: "avatar";
+};
+
+export type CreateSocialWorkoutPostImageUploadInput =
+  CreateSocialMediaUploadInput & {
+    assetType: "workout_post_image";
+  };
 
 export type CreateSocialMediaUploadResult = {
   asset: SocialMediaOwnerAssetDto;

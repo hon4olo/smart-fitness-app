@@ -1,18 +1,16 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from "react-native";
 
-import type { SocialWorkoutPostDto } from '@/api/social';
-import { AppCard } from '@/components/ui/AppCard';
-import {
-  formatLocalizedNumber,
-  type SupportedLocale,
-} from '@/localization';
+import type { SocialWorkoutPostDto } from "@/api/social";
+import { AppCard } from "@/components/ui/AppCard";
+import { formatLocalizedNumber, type SupportedLocale } from "@/localization";
 
-import type { SocialWorkoutPostSurfaceCopy } from './socialWorkoutPostSurfaceCopy';
+import { SocialWorkoutPostImage } from "./SocialWorkoutPostImage";
+import type { SocialWorkoutPostSurfaceCopy } from "./socialWorkoutPostSurfaceCopy";
 import {
   countSocialWorkoutPostSets,
   formatSocialWorkoutPostDate,
-} from './socialWorkoutPostSurfaceModel';
-import type { SocialWorkoutPostSurfaceStyles } from './screens/SocialWorkoutPostSurface.styles';
+} from "./socialWorkoutPostSurfaceModel";
+import type { SocialWorkoutPostSurfaceStyles } from "./screens/SocialWorkoutPostSurface.styles";
 
 type SocialWorkoutPostCardProps = {
   copy: SocialWorkoutPostSurfaceCopy;
@@ -37,7 +35,8 @@ export function SocialWorkoutPostCard({
       accessibilityLabel={`${copy.openPost}: ${post.workout.title ?? copy.untitledWorkout}`}
       accessibilityRole="button"
       onPress={() => onOpen(post.id)}
-      style={({ pressed }) => pressed && styles.pressed}>
+      style={({ pressed }) => pressed && styles.pressed}
+    >
       <AppCard style={styles.postCard}>
         <View style={styles.postHeader}>
           <View style={styles.postHeaderCopy}>
@@ -51,7 +50,12 @@ export function SocialWorkoutPostCard({
           <Text style={styles.username}>@{post.author.username}</Text>
         </View>
 
-        {post.caption ? <Text style={styles.caption}>{post.caption}</Text> : null}
+        {post.image ? (
+          <SocialWorkoutPostImage descriptor={post.image} styles={styles} />
+        ) : null}
+        {post.caption ? (
+          <Text style={styles.caption}>{post.caption}</Text>
+        ) : null}
 
         <View style={styles.metricRow}>
           {post.workout.durationMinutes !== undefined ? (
@@ -62,7 +66,11 @@ export function SocialWorkoutPostCard({
             />
           ) : null}
           {post.workout.exercises !== undefined ? (
-            <Metric label={copy.exercises} styles={styles} value={`${exerciseCount}`} />
+            <Metric
+              label={copy.exercises}
+              styles={styles}
+              value={`${exerciseCount}`}
+            />
           ) : null}
           {setCount > 0 ? (
             <Metric label={copy.sets} styles={styles} value={`${setCount}`} />

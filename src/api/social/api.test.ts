@@ -34,11 +34,12 @@ const listPage = {
 const workoutPostPage = {
   items: [
     {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: "00000000-0000-4000-8000-000000000001",
       author: profile,
       caption: "Training day",
       workout: { schemaVersion: 1, title: "Upper body" },
+      image: null,
       createdAt: "2026-07-31T09:00:00.000Z",
     },
   ],

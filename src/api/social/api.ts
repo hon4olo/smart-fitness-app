@@ -90,14 +90,33 @@ const buildUpsertPayload = (
 
 const buildWorkoutPostPayload = (
   input: CreateSocialWorkoutPostInput,
-): CreateSocialWorkoutPostInput => ({
-  sourceWorkoutSessionId: input.sourceWorkoutSessionId.trim(),
-  idempotencyKey: input.idempotencyKey.trim(),
-  share: { ...input.share },
-  ...(input.caption !== undefined
-    ? { caption: input.caption === null ? null : input.caption.trim() }
-    : {}),
-});
+): CreateSocialWorkoutPostInput => {
+  const payload: CreateSocialWorkoutPostInput = {
+    sourceWorkoutSessionId: input.sourceWorkoutSessionId.trim(),
+    idempotencyKey: input.idempotencyKey.trim(),
+    share: { ...input.share },
+    ...(input.caption !== undefined
+      ? { caption: input.caption === null ? null : input.caption.trim() }
+      : {}),
+  };
+  if (input.image) {
+    const assetId = input.image.assetId.trim();
+    if (
+      input.image.schemaVersion !== 1 ||
+      !assetId ||
+      !Number.isSafeInteger(input.image.expectedStateVersion) ||
+      input.image.expectedStateVersion < 1
+    ) {
+      throw new Error("Social workout post image input is invalid");
+    }
+    payload.image = {
+      schemaVersion: 1,
+      assetId,
+      expectedStateVersion: input.image.expectedStateVersion,
+    };
+  }
+  return payload;
+};
 
 const buildWorkoutCommentPayload = (
   input: CreateSocialWorkoutCommentInput,

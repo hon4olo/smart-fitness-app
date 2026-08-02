@@ -1,7 +1,9 @@
-import type { SocialProfileDto } from './contracts';
+import type { SocialProfileDto } from "./contracts";
+import type { SocialMediaPublicDescriptorDto } from "./media-contracts";
 
-export const SOCIAL_WORKOUT_POST_DTO_SCHEMA_VERSION = 1 as const;
+export const SOCIAL_WORKOUT_POST_DTO_SCHEMA_VERSION = 2 as const;
 export const SOCIAL_WORKOUT_SNAPSHOT_SCHEMA_VERSION = 1 as const;
+export const SOCIAL_WORKOUT_POST_MEDIA_SCHEMA_VERSION = 1 as const;
 
 export type SocialWorkoutPostSetDto = {
   weight?: number;
@@ -28,6 +30,7 @@ export type SocialWorkoutPostDto = {
   author: SocialProfileDto;
   caption: string | null;
   workout: SocialWorkoutSnapshotDto;
+  image: SocialMediaPublicDescriptorDto | null;
   createdAt: string;
 };
 
@@ -47,11 +50,18 @@ export type SocialWorkoutShareControls = {
   volume: boolean;
 };
 
+export type SocialWorkoutPostMediaInput = {
+  schemaVersion: typeof SOCIAL_WORKOUT_POST_MEDIA_SCHEMA_VERSION;
+  assetId: string;
+  expectedStateVersion: number;
+};
+
 export type CreateSocialWorkoutPostInput = {
   sourceWorkoutSessionId: string;
   caption?: string | null;
   idempotencyKey: string;
   share: SocialWorkoutShareControls;
+  image?: SocialWorkoutPostMediaInput;
 };
 
 export type ListSocialWorkoutPostsInput = {
