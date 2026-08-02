@@ -14,6 +14,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
+      - name: Narrow baseline evidence insertion to first occurrence
+        run: >-
+          sed -i
+          's/return replace_once(text, marker, evidence, "PR99 baseline evidence")/return text.replace(marker, evidence, 1)/'
+          .github/scripts/temp-sync-p2-moderation.py
       - name: Synchronize canonical P2 moderation status
         run: python .github/scripts/temp-sync-p2-moderation.py
       - name: Commit exact roadmap synchronization
