@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `22f8a8b0b9c888ae38d612d19bc9735d01003f28`;
-- backend `main`: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
+- mobile `main`: `4e7149c6f36787580a4f21161c7c4dd4f434f5b4`;
+- backend `main`: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -40,6 +40,8 @@ Before this documentation synchronization slice:
 - backend PR #105 merge: `37d4c91cafdeedde122e344fbaca78d00f1c70be`;
 - backend PR #106 exact green head: `cecb34a3044110cf252fe845217d199ddad7afd8`;
 - backend PR #106 merge: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
+- backend PR #107 exact green head: `ce50efbd088200c572116b62bf627dc25e026b11`;
+- backend PR #107 merge: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -209,19 +211,27 @@ Backend PR #106, exact green head `cecb34a3044110cf252fe845217d199ddad7afd8`, me
 - added deterministic configuration, factory, production-validation, capability, readiness, redaction, and no-network tests;
 - made no real provider call and performed no deployment, worker scheduling, environment activation, product enablement, or public upload activation.
 
-## P3 completion and next bounded slice
+## P4 calibration status and next bounded slice
 
-P3 is source-complete. Runtime settings can configure and construct the selected adapters, but no provider account or environment has been activated and no real-call or calibration evidence exists.
+Backend PR #107, exact green head `ce50efbd088200c572116b62bf627dc25e026b11`, merge `db5ee5ab50c760619dfa254618b5f2de64f2e044`, completed the provider-injected calibration core:
 
-Begin P4 with a source-only moderation calibration harness:
+- strict versioned manifest, opaque IDs, safe relative JPEG paths, expected outcomes, and bounded fitness-specific categories;
+- existing classifier/OCR provider runners, injected OCR text moderation, and existing deterministic media policy;
+- aggregate actual/expected decisions, mismatches, false-positive/false-negative, undetermined, and bounded failure counts;
+- aggregate-only deterministic JSON/CSV output with no case/path/media/OCR/provider/secret/identity/error details;
+- synthetic no-network tests and architecture documentation;
+- no corpus, real image, credential, real call, threshold/policy change, deployment, activation, or calibration claim.
 
-- define a strict versioned local manifest with opaque case IDs, bounded fitness-specific categories, expected policy outcomes, and local file references;
-- keep image bytes, OCR plaintext, credentials, signed URLs, provider payloads, owner identity, and free-form notes out of reports;
-- run injected classifier and OCR providers through the existing provider runners, OCR text moderator, and deterministic fitness-aware media policy;
-- produce aggregate allow/review/reject, expected/mismatched, false-positive, false-negative, timeout, malformed, unavailable, and category counts;
-- support bounded JSON and CSV aggregate outputs suitable for threshold review without per-case sensitive values;
-- add deterministic synthetic/no-network fixtures and tests, plus corpus access, retention, and deletion documentation;
-- do not claim calibration or change production thresholds until an authorized representative staging corpus is run externally.
+Complete the source-only CLI/filesystem boundary next:
+
+- add strict bounded CLI parsing for corpus root, manifest, JSON output, and optional CSV output;
+- canonicalize the corpus root and reject absolute manifest image paths, traversal, symlink escapes, non-regular files, unsupported MIME/signatures, and over-limit manifest/image bytes;
+- compose the selected classifier/OCR providers and OCR text moderator only after configuration validation, without reflecting secrets or OCR text;
+- write reports with exclusive creation, mode `0600`, no overwrite, deterministic content, and partial-output cleanup;
+- emit only bounded versioned aggregate process status and deterministic exit codes;
+- add deterministic filesystem, parser, output, failure, interruption, redaction, and no-network tests;
+- add operational corpus authorization, access, retention, deletion, and result-review procedures;
+- do not run a representative corpus, make a real provider call, tune thresholds, or claim calibration in autonomous source work.
 
 No credentials, real provider call, deployment, migration execution outside CI, worker scheduling, environment activation, product enablement, public upload activation, OTA, or native build is authorized.
 
