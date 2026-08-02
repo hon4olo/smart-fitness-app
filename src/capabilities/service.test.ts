@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { createApiClient } from '@/api/client';
 
@@ -26,12 +26,18 @@ const responseBody = {
 
 describe('capability service', () => {
   it('loads the public versioned response and forwards cancellation', async () => {
-    const fetchImpl = vi.fn<typeof fetch>(async () =>
-      new Response(JSON.stringify(responseBody), {
+    let requestCount = 0;
+    let requestUrl: RequestInfo | URL | null = null;
+    let requestInit: RequestInit | undefined;
+    const fetchImpl: typeof fetch = async (input, init) => {
+      requestCount += 1;
+      requestUrl = input;
+      requestInit = init;
+      return new Response(JSON.stringify(responseBody), {
         status: 200,
         headers: { 'content-type': 'application/json' },
-      }),
-    );
+      });
+    };
     const apiClient = createApiClient({
       baseUrl: 'https://api.example.test',
       fetchImpl,
@@ -42,16 +48,17 @@ describe('capability service', () => {
       createCapabilityService(apiClient).load(controller.signal),
     ).resolves.toEqual(responseBody.capabilities);
 
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchImpl.mock.calls[0] ?? [];
-    expect(url).toBe('https://api.example.test/v1/capabilities');
-    expect(init?.method).toBe('GET');
-    expect(init?.signal).toBe(controller.signal);
-    expect(init?.headers).not.toMatchObject({ Authorization: expect.anything() });
+    expect(requestCount).toBe(1);
+    expect(String(requestUrl)).toBe(
+      'https://api.example.test/v1/capabilities',
+    );
+    expect(requestInit?.method).toBe('GET');
+    expect(requestInit?.signal).toBe(controller.signal);
+    expect(new Headers(requestInit?.headers).has('authorization')).toBe(false);
   });
 
   it('fails closed when the response contains an unknown critical field', async () => {
-    const fetchImpl = vi.fn<typeof fetch>(async () =>
+    const fetchImpl: typeof fetch = async () =>
       new Response(
         JSON.stringify({
           ...responseBody,
@@ -64,8 +71,7 @@ describe('capability service', () => {
           status: 200,
           headers: { 'content-type': 'application/json' },
         },
-      ),
-    );
+      );
 
     await expect(
       createCapabilityService(
