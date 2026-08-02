@@ -1,0 +1,72 @@
+name: Validate Social S7.6 publish contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/s7-6-mobile-hardening.yml
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.head_ref == 'agent/social-workout-post-image-s7-6'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/social-workout-post-image-s7-6
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Align client publish guard with backend
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          screen_path = Path('src/features/social/screens/ShareWorkoutScreen.tsx')
+          screen = screen_path.read_text()
+          old = 'canPublishSocialWorkout(caption, controls, Boolean(media.attachment))'
+          if screen.count(old) != 2:
+              raise SystemExit('publish guard call count mismatch')
+          screen_path.write_text(screen.replace(old, 'canPublishSocialWorkout(caption, controls)'))
+
+          copy_path = Path('src/features/social/shareWorkoutCopy.ts')
+          copy = copy_path.read_text()
+          replacements = {
+              'Выберите хотя бы одно поле, добавьте подпись или фото.': 'Выберите хотя бы одно поле или добавьте подпись.',
+              'Select at least one field, add a caption, or attach a photo.': 'Select at least one workout field or add a caption.',
+          }
+          for old_text, new_text in replacements.items():
+              if copy.count(old_text) != 1:
+                  raise SystemExit(f'copy target mismatch: {old_text}')
+              copy = copy.replace(old_text, new_text)
+          copy_path.write_text(copy)
+          PY
+      - name: Format and validate
+        shell: bash
+        run: |
+          npx prettier --write \
+            src/features/social/screens/ShareWorkoutScreen.tsx \
+            src/features/social/shareWorkoutCopy.ts \
+            src/features/social/shareWorkoutModel.ts
+          npx tsc --noEmit
+          npx vitest run \
+            src/features/social/shareWorkoutModel.test.ts \
+            src/api/social/workout-post-api.test.ts \
+            src/api/social/workout-post-parsers.test.ts
+      - name: Publish hardening
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- src
+          git diff --cached --check
+          git commit -m 'fix: align workout image publish guard'
+          git push origin HEAD:agent/social-workout-post-image-s7-6
