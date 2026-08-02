@@ -10,6 +10,7 @@ import {
   createMigratingTokenManager,
   resumePendingLocalAccountCleanup,
 } from '@/auth';
+import { createCapabilityService } from '@/capabilities';
 import { createSyncCoordinator, type SyncCoordinator } from '@/cloud';
 import { createProductionCloudProvider } from '@/cloud/createProductionCloudProvider';
 import { defaultState as defaultAppState } from '@/data/defaults';
@@ -64,6 +65,10 @@ export function useAppInfrastructure(
     [storageAdapter],
   );
   const apiClient = useMemo(() => createApiClient({ baseUrl: getMobileApiBaseUrl() }), []);
+  const capabilityService = useMemo(
+    () => createCapabilityService(apiClient),
+    [apiClient],
+  );
   const cloudProvider = useMemo(
     () => createProductionCloudProvider({ apiClient, authService }),
     [apiClient, authService],
@@ -119,6 +124,7 @@ export function useAppInfrastructure(
 
   return {
     authService,
+    capabilityService,
     queueStore,
     repository,
     syncCoordinator,
