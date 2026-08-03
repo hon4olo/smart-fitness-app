@@ -2,298 +2,214 @@
 
 Updated: 2026-08-03
 
-This document is the canonical current execution plan for the mobile and backend repositories. Detailed Provider and Release Readiness tasks live in `docs/roadmap/provider-readiness.md`. Completed implementation history remains in merged pull requests and focused architecture and operations documents.
+This is the canonical execution plan for `hon4olo/smart-fitness-app` and `hon4olo/smart-fitness-backend`. Detailed provider and release-readiness gates live in `docs/roadmap/provider-readiness.md`. Completed implementation detail belongs in merged pull requests and focused architecture or operations documents rather than repeated historical prose here.
 
 ## Verified baseline
 
-Before this documentation synchronization slice:
+Baseline before this documentation-only synchronization slice:
 
-- mobile `main`: `b0410af9766dc6257476875b1d16ba7571fd0e51`;
-- backend `main`: `a2b89e7942683a867ebc4632968ddfe3df55f232`;
-- backend PR #121 exact green head: `786f2e750b64ece2e7f591b5579dc706322f794b`;
-- backend PR #121 merge: `a2b89e7942683a867ebc4632968ddfe3df55f232`;
-- open mobile pull requests before this documentation slice: none;
-- open backend pull requests after PR #121 merge: none;
-- public media uploads, real provider-backed media processing, and password-reset delivery remain disabled;
-- no provider account, credential, deployment, worker schedule, DNS mutation, native build, or production activation is implied by source completion.
+- mobile `main`: `1ff31e0ca92a7b94808eef36694a756e9fb24473`;
+- backend `main`: `4af6db678ef7d7457ab5221157524363605635ba`;
+- open mobile pull requests: none;
+- open backend pull requests: none after backend PR #127 merged;
+- public managed-media uploads, provider-backed media processing, immutable public delivery, and password-reset delivery remain disabled;
+- no source-complete item implies provider account setup, credentials, infrastructure, deployment, worker scheduling, DNS changes, native builds, staging execution, capability activation, or production activation.
 
-Always re-check exact `main` and open pull requests in both repositories before starting another slice.
+Always re-check exact `main`, open pull requests, `AGENTS.md`, this plan, and relevant architecture or operations documents before another slice.
 
 ## Product and architecture baseline
 
-The approved product remains an Expo / React Native offline-first mobile application backed by the existing Fastify/PostgreSQL service.
+Smart Fitness remains an Expo / React Native offline-first mobile application backed by the existing Fastify/PostgreSQL service.
 
-The canonical local-state evidence and reviewed decision remain in `docs/architecture/local-state-performance-decision.md`. The current single AsyncStorage `AppState` snapshot remains the approved local persistence architecture.
+Approved boundaries:
 
-Implemented private-data domains include:
+- the single AsyncStorage `AppState` snapshot remains the accepted local persistence architecture;
+- private data remains revision-aware and restart-safe through the existing sync, conflict, tombstone, retry, and refresh-token contracts;
+- Coach flows remain deterministic, structured, and explicit-confirmation based;
+- Social source boundaries include profiles, graph, posts, reactions, comments, notifications, reports, moderation, review, appeals, retention, cleanup, managed avatars, and workout-post media;
+- media remains private through quarantine, validation, moderation, derivative generation, delivery, expiry, recovery, and deletion boundaries;
+- the mobile client never stores provider credentials or calls object storage, CDN, classifier, OCR, email, or model providers directly;
+- unavailable provider-backed operations remain hidden or fail closed through strict capability contracts.
 
-- authentication and profile;
-- workout tracking, templates, sessions, programs, and custom exercises;
-- Nutrition diary, targets, meal templates, and account-scoped library items;
-- weight, body measurements, recovery, limitations, and progress analytics;
-- revision-aware synchronization with idempotency, tombstones, conflict persistence, restart recovery, and token refresh;
-- deterministic and structured Nutrition, Strength, Safety & Recovery, and Combined Coach flows with explicit confirmation.
+`docs/architecture/app-context-consumer-inventory.md` records no remaining production `useAppContext` consumers. There is no approved general application-state refactor phase.
 
-Implemented Social source boundaries include:
+## Program order
 
-- profiles, follow graph, workout posts, reactions, comments, notifications, reports, moderation, review, appeals, retention, cleanup, managed avatars, and workout-post media;
-- private quarantine storage, normalization, classifier/OCR moderation, immutable derivative delivery, deletion, expiry, recovery, and worker entrypoints;
-- strict capability gating so unavailable provider operations are not exposed to mobile.
+1. **P6 — Provider deployment configuration, source-prepared staging evidence, and operational runbooks.**
+2. **P7 — Backend-owned explicit sync-conflict resolution contract, then mobile UI.**
+3. **P8 — Diagnostics, exact-SHA release gates, and Android source preparation.**
+4. **P9 — Technical privacy, legal, consent, retention, and analytics prerequisites.**
 
-The mobile client never contains provider credentials or calls storage, CDN, classifier, OCR, email, or model providers directly.
+Do not start a later phase merely because an earlier source slice is blocked by external authorization. Record the block and continue only with an independent source-only slice that preserves existing contracts.
 
-## Active source program
+## Phase status
 
-There is no remaining approved autonomous source-refactor phase. The active work is the Provider and Release Readiness source-preparation program.
+### P0 — Provider configuration and capability contracts
 
-Goal: make later provider activation consist of externally authorized account configuration, credentials, infrastructure, deployment, staging validation, native builds, and explicit capability enablement rather than additional core application development.
+**Source-complete.**
 
-Execution order:
+Provider-neutral selectors and factories, configured/ready/enabled states, fail-closed production validation, privacy-safe backend capability DTOs, strict mobile parsing, and unavailable-operation gating are implemented.
 
-1. P6 deployment configuration, policies, smoke scripts, and operational runbooks.
-2. P7 backend-owned explicit sync conflict choices, followed by mobile UI.
-3. P8 diagnostics, fixed-SHA release gating, and Android source preparation.
-4. P9 technical privacy, legal, and analytics prerequisites.
+### P1 — Private object storage and immutable delivery
 
-## Provider-readiness phase status
+**Source-complete.**
 
-### P0 — provider configuration and capability contracts
+S3-compatible private quarantine storage, conditional immutable writes, exact deletion, owner-opaque content-hashed public variants, strict metadata/checksum/prefix handling, pagination, cleanup, and replay behavior are implemented.
 
-Source-complete.
+### P2 — Worker entrypoints and orchestration
 
-- provider-neutral selectors and factories;
-- explicit configured, ready, and enabled states;
-- fail-closed production validation;
-- privacy-safe public and authenticated capability contracts;
-- strict mobile parsing and unavailable-operation gating.
+**Source-complete.**
 
-### P1 — private object storage and immutable delivery
+Cleanup, upload expiry, moderation, moderation recovery, derivative delivery, and delivery recovery have bounded entrypoints, readiness contracts, graceful shutdown, explicit retry ownership, and deployment templates.
 
-Source-complete.
+### P3 — Classifier and OCR providers
 
-- S3-compatible private quarantine storage;
-- conditional immutable writes and exact deletion;
-- owner-opaque, content-hashed public variants;
-- strict metadata, checksum, prefix, pagination, cleanup, and replay behavior.
+**Source-complete for selected contracts.**
 
-### P2 — worker entrypoints and source orchestration
+Amazon Rekognition classifier and OCR adapters implement bounded transport, retry, timeout, parsing, redaction, and conformance contracts. No quality, quota, or production-readiness claim exists without authorized non-production evidence.
 
-Source-complete.
+### P4 — Moderation calibration tooling
 
-- cleanup, delivery, moderation, recovery, and upload-expiry entrypoints;
-- bounded one-shot and continuous runtimes;
-- privacy-safe worker readiness manifest;
-- systemd and manual Docker Compose templates;
-- explicit retry ownership, lease budgets, graceful shutdown, and emergency-disable boundaries.
+**Source-complete.**
 
-### P3 — classifier and OCR providers
+Aggregate-only calibration tooling, fail-closed corpus/output handling, provider injection, role separation, and deterministic offline coverage are implemented. Threshold or policy changes remain explicit decisions.
 
-Source-complete for the selected source contracts.
+### P5 — Password reset
 
-- strict provider-neutral interfaces;
-- Amazon Rekognition classifier and OCR adapters;
-- bounded transport, retry, timeout, parsing, redaction, and conformance coverage;
-- no production quality or quota claim without authorized staging evidence.
+**Source-complete across backend and mobile.**
 
-### P4 — moderation calibration tooling
+Hashed one-time tokens, cooldown, expiry, replay rejection, delivery-failure invalidation, password replacement, all-session revocation, generic accepted responses, Resend templates, trusted reset route, capability-gated mobile flows, iOS associated-domain source configuration, Android app-link source configuration, and placeholder association templates are implemented.
 
-Source-complete.
+Operational password reset still requires externally authorized provider/DNS/domain/deployment/native-build/device evidence and explicit enablement.
 
-- aggregate-only calibration core and CLI;
-- fail-closed local corpus and output boundaries;
-- provider injection without real credentials in CI;
-- separate corpus, operator, reviewer, policy, deletion, and incident ownership;
-- no threshold or product-state change during autonomous source work.
+## P6 — Current provider and staging-readiness program
 
-### P5 — password-reset product and delivery
+### Completed backend foundations
 
-Source-complete across backend and mobile.
+| PR | Exact green head | Merge SHA | Result |
+|---|---|---|---|
+| #113 | `3e366e803f91d4d563d0b1e70cc189381534cd18` | `bad69c42325e7156215e7fdba45962ade3372ef1` | Environment templates and staging/production configuration matrix |
+| #114 | `9e9408ec87a6c6fc0786cd66c8272b502dbb5790` | `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5` | Storage, delivery, CORS, lifecycle, encryption, public-access, and CDN-origin policies |
+| #116 | `12ba41f2176079fbb4fbe13fc07e3016c16f5049` | `288425d9e8608c56f814af74274301c3940a371c` | Resend DNS classes, AASA, Digital Asset Links, trusted reset route, and send-only callback boundary |
+| #117 | `ce0555570c7686fd22306d5ac6769c9cafd81e0c` | `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1` | Rollout, worker ordering, staged enablement, rollback, and evidence contracts |
+| #118 | `b91cd1feef7b3ff494e86ba133ac95037fbea677` | `64c04872e0ede26f87dd6017877e15ab218bccc1` | Fail-closed staging smoke-runner foundation |
+| #119 | `2d2ae0aca373ce471ade00c9e721b3c3f2557643` | `15c1a939df06d84a38525f1558a2fa7a4ae2754f` | Secret-safe synthetic auth/session scenario |
+| #120 | `ccbb98c164efada298a9768d329f9150757ecbf1` | `1de40eb713a810bdc8875acebccd61d3b8f8d059` | Private-quarantine managed-media lifecycle core |
+| #121 | `786f2e750b64ece2e7f591b5579dc706322f794b` | `a2b89e7942683a867ebc4632968ddfe3df55f232` | Exact-owner staging operational adapter and bounded signed upload transport |
+| #122 | `1c5cdadfd39e63eacff479e416ddd3bbe8c093e4` | `bd7f4499a455252b663c8687dda1e5f4a4d5f327` | Managed-media staging composition core |
+| #123 | `822a2ce030457c6914dd5ce224150cdddd7b6827` | `06c955ff57a75ea73921fd8e676787a4ebc2e0ae` | Callback-form synthetic auth/session lease |
+| #124 | `cc6760f43184db7919334d45da189ab5b7257b16` | `e527693b817a3bba2b3b1c8c509f9f5911e3741b` | Confirmation-first redacted managed-media CLI and production-shaped runtime binding |
+| #125 | `01c0e210d57f83ce9034840f88bd79f471d93771` | `ebf48cbb3004f105fe00048a729a771bcd204f64` | Callback-form replay-verified private-quarantine lease |
+| #126 | `3023d189ad6f1fce358eb1a4f606ddb1b16e793a` | `f20fd85de5cae3bfbbb45018ec4c5cc1246780ff` | Exact-owner moderation processing/replay core composed with quarantine cleanup |
+| #127 | `51915512a05d8aa2bc7f81cfac33867145454d7f` | `4af6db678ef7d7457ab5221157524363605635ba` | Configured-ready moderation runtime and exact-owner operational adapter |
 
-- hashed one-time tokens, cooldown, expiry, replay rejection, delivery-failure invalidation, password replacement, and all-session revocation;
-- generic accepted responses that do not disclose account existence;
-- bounded EN/RU Resend templates and strict send contract;
-- exact trusted HTTPS reset route and capability-gated mobile forgot/reset flows;
-- source-prepared iOS associated-domain and Android app-link configuration;
-- placeholder-only sender-domain, AASA, and Digital Asset Links templates.
+PR #127 full Backend CI passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup with `/health` verification.
 
-Operational password reset still requires an account, credential, verified sender, owned link domain, deployed association files, backend deployment, a matching native build, real non-production evidence, physical-device validation, and explicit enablement.
+### Completed mobile managed-media composition
 
-## P6 current source boundary
+| PR | Exact green head | Merge SHA | Result |
+|---|---|---|---|
+| #396 | `aeacf4af597f61e03e87dd4b15467fc9f0456a19` | `e6b8773e7fe9ac0c1e2f87444cfdf8bb99b43ea7` | Managed-avatar/workout-post composition analysis and dependency direction |
+| #397 | `057b5331a7f7c2658ca1726f8ac7c8ee8668e2ae` | `d7b20506363c6be65b7ea7a2bd10b79f01038b23` | Shared upload composition adopted by workout-post media |
+| #398 | `ea6b3094807b8ad751200659e5b594d0c484104f` | `146cfd36808d37f49810eca4ec46d2e084c8d6d6` | Shared upload composition adopted by managed avatars |
+| #399 | `9aaff9fe2cd4d1a67dc85605b03e1712b4df3ffb` | `e9c923056bbc04a26db7061dcb892d56e6ab0c73` | Shared bounded managed-media polling |
+| #400 | `10aae4a0ff074193ce5a9e5016694cd25e719fbc` | `1ff31e0ca92a7b94808eef36694a756e9fb24473` | Residual composition audit and stop conditions |
 
-Completed backend evidence:
+Mobile composition stops here unless a concrete third consumer or demonstrated defect justifies another shared boundary. Do not create a generic React upload hook, universal draft store, or universal cleanup policy speculatively.
 
-- PR #113, exact green head `3e366e803f91d4d563d0b1e70cc189381534cd18`, merge `bad69c42325e7156215e7fdba45962ade3372ef1`: environment templates and staging/production configuration matrix;
-- PR #114, exact green head `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`, merge `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`: private-storage, immutable-delivery, CORS, lifecycle, encryption, public-access, and CDN-origin policies;
-- PR #116, exact green head `12ba41f2176079fbb4fbe13fc07e3016c16f5049`, merge `288425d9e8608c56f814af74274301c3940a371c`: Resend DNS classes, Apple AASA, Android Digital Asset Links, exact reset route, environment isolation, and send-only callback boundary;
-- PR #117, exact green head `ce0555570c7686fd22306d5ac6769c9cafd81e0c`, merge `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`: rollout and rollback ordering.
-- PR #118, exact green head `b91cd1feef7b3ff494e86ba133ac95037fbea677`, merge `64c04872e0ede26f87dd6017877e15ab218bccc1`: fail-closed staging smoke-runner foundation with strict disabled-capability verification and privacy-safe evidence.
-- PR #119, exact green head `2d2ae0aca373ce471ade00c9e721b3c3f2557643`, merge `15c1a939df06d84a38525f1558a2fa7a4ae2754f`: secret-safe synthetic auth/session scenario with replay cleanup and privacy-safe evidence.
-- PR #120, exact green head `ccbb98c164efada298a9768d329f9150757ecbf1`, merge `1de40eb713a810bdc8875acebccd61d3b8f8d059`: pre-enablement managed-media lifecycle core with private-quarantine replays, bounded cleanup, and privacy-safe evidence.
-- PR #121, exact green head `786f2e750b64ece2e7f591b5579dc706322f794b`, merge `a2b89e7942683a867ebc4632968ddfe3df55f232`: staging managed-media operational adapter with explicit internal execution and bounded signed upload transport.
-
-PR #117 added:
-
-- a placeholder-only machine-readable contract for explicit environment, change ID, exact mobile/backend SHAs, owners, evidence, and authorization gates;
-- rollout order: preflight → migration approval → migrations → backend with capabilities disabled → worker readiness → recovery-first worker startup → pre-enablement verification → one-at-a-time capability enablement → post-enablement verification;
-- worker order: upload expiry → cleanup → delivery recovery → moderation recovery → moderation processing → derivative delivery processing;
-- staged enablement order: password-reset delivery, then managed-media uploads, with independent approval and observation;
-- rollback order: freeze → disable capabilities → stop worker scheduling → preserve state/evidence → schema-compatible backend rollback → credential/provider response when required → verification;
-- explicit prohibition on automatic down migration, destructive schema/data rollback, legal-hold removal, audit deletion, claim/state-token clearing, and generic credential revocation;
-- repeated target confirmation for staging and production mutations;
-- privacy-safe aggregate evidence only;
-- deterministic tests locking phase order, capability gates, secret-free templates, and destructive-command exclusions.
-
-The exact PR #117 head passed:
-
-- lint and formatting;
-- TypeScript build;
-- production configuration validation;
-- migrations and migration idempotency;
-- migrated-schema integration;
-- PostgreSQL Social API integration;
-- the complete Vitest suite;
-- production startup and `/health` validation.
-
-### Completed P6 slice — staging smoke-runner foundation
-
-Backend PR #118, exact green head `b91cd1feef7b3ff494e86ba133ac95037fbea677`, merge `64c04872e0ede26f87dd6017877e15ab218bccc1`, added:
-
-- one fail-closed runner that accepts only an explicit `staging` target, trusted HTTPS DNS hostname, approved synthetic fixture namespace, change ID, exact backend SHA, and matching confirmation before network access;
-- rejection of production, localhost, direct IP, HTTP, embedded credentials, mismatched allowlists, unsafe paths, excessive steps, and unbounded timeouts;
-- mandatory synthetic fixture references for every mutating step;
-- exactly one strict `GET /v1/capabilities` verification using the released schema, a 64 KiB response bound, and `enabled === false` checks for every provider-backed product capability;
-- sequential bounded execution with no automatic retry and stop-on-first transport, status, or verification failure;
-- privacy-safe evidence without response bodies, request bodies, raw errors, tokens, email, signed URLs, object keys, OCR text, media, provider payloads, or raw user identifiers;
-- a redacted CLI, placeholder-only plan, operational runbook, and deterministic injected-transport tests;
-- explicit documentation that this is the safe execution/evidence foundation rather than completed end-to-end provider smoke evidence.
-
-The exact PR #118 head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup/health.
-
-### Completed P6 slice — synthetic auth/session scenario
-
-Backend PR #119, exact green head `2d2ae0aca373ce471ade00c9e721b3c3f2557643`, merge `15c1a939df06d84a38525f1558a2fa7a4ae2754f`, added:
-
-- an exact-confirmation synthetic auth/session scenario over released `/v1/auth/register`, `/login`, `/me`, `/refresh`, and `/account` contracts;
-- strict synthetic-fixture scoping for email local part and device name before any request;
-- in-memory-only email, password, access token, refresh token, user ID, device ID, session ID, and parsed auth responses;
-- controlled replay cleanup: register `409` may continue only through successful login with the same synthetic credentials;
-- strict user/device/session relationship validation before and after refresh;
-- synthetic account deletion followed by `401` verification for the refreshed access token;
-- bounded response reads, no redirects, no automatic retry, and fixed privacy-safe evidence categories;
-- deterministic coverage for new account, interrupted-run replay, refresh, cleanup, revocation, malformed responses, identity mismatch, invalid confirmation, non-synthetic identity rejection, unexpected status, and transport redaction;
-- an explicit source-only boundary: no standalone CLI, real staging execution, email delivery, media upload, deployment, or activation.
-
-The exact PR #119 head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup/health. Both new hand-written TypeScript files remain below 500 physical lines.
-
-### Completed P6 slice — pre-enablement managed-media lifecycle core
-
-Backend PR #120, exact green head `ccbb98c164efada298a9768d329f9150757ecbf1`, merge `1de40eb713a810bdc8875acebccd61d3b8f8d059`, added:
-
-- an injected internal operational adapter boundary because the released public upload route correctly returns `503` while `SOCIAL_MEDIA_UPLOADS_ENABLED=false`;
-- no hidden staging HTTP route and no temporary public capability enablement;
-- strict synthetic fixture and idempotency scoping, PNG/JPEG byte limits, and approved signed-upload DNS host validation;
-- pre- and post-scenario public capability-disabled checks;
-- private upload creation, exact create replay, signed `PUT`, completion, exact completion replay, owner read, deletion, and exact deletion replay;
-- strict `upload_pending` → `quarantined` → `deleted` invariants with public descriptor required absent;
-- memory-only asset ID, state versions, source hash, signed URL/headers, idempotency key, and fixture bytes;
-- one bounded best-effort cleanup after post-create failure, including the regression case where a strict create DTO contains identity but violates lifecycle invariants;
-- fixed privacy-safe evidence with no dynamic IDs, URLs, headers, object keys, hashes, provider payloads, media bytes, request/response bodies, or raw exceptions;
-- deterministic no-network tests for successful lifecycle, replays, capability regressions, unsafe signed scope, malformed responses, identity mismatch, cleanup success/failure, and non-synthetic fixtures;
-- explicit scope stopping at private quarantine: worker processing, moderation, immutable delivery, expiry, and cleanup-worker evidence remain separate.
-
-The exact PR #120 head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup/health. Every new hand-written TypeScript file remains below 500 physical lines.
-
-### Completed P6 slice — managed-media staging operational adapter
-
-Backend PR #121, exact green head `786f2e750b64ece2e7f591b5579dc706322f794b`, merge `a2b89e7942683a867ebc4632968ddfe3df55f232`, added:
-
-- an internal adapter factory requiring literal `staging_pre_enablement` mode and one validated synthetic owner UUID;
-- explicit `executionEnabled: true` only for the internal `SocialMediaUploadService` instance while the public capability flag remains unchanged and separately verified;
-- one-owner binding for private upload creation, completion, owner-scoped read, and deletion;
-- the existing `SocialMediaUploadRepository` and owner DTO conversion rather than a new persistence or API path;
-- a bounded one-shot signed `PUT` transport with exact URL/headers/bytes, redirect rejection, `AbortController` timeout, `2xx`-only acceptance, no automatic retry, and no response-body read;
-- generic missing-asset and upload failures without owner ID, asset ID, provider body, signed URL, headers, object key, or raw error leakage;
-- deterministic injected service/repository/provider/fetch tests for explicit internal execution, owner isolation, delivery wiring, signed upload construction, non-`2xx` failure, and timeout abort;
-- source-only documentation confirming that no endpoint, CLI, provider call, public capability enablement, deployment, worker startup, or production action was added.
-
-The exact PR #121 head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup/health. Both new hand-written TypeScript files remain below 500 physical lines.
-
-### Active P6 slice — managed-media staging composition and redacted CLI
-
-Next source work:
-
-- compose the strict generic staging plan and exact confirmation with public disabled-capability verification;
-- create or recover one synthetic auth/session account, retain its user/access/refresh credentials only in memory, and derive the synthetic owner UUID from the strict auth response;
-- create provider runtime with the public media capability disabled while requiring configured-ready private storage and any dependencies needed by the selected private-quarantine scenario;
-- bind the configured database, providers, image validator, synthetic owner, operational adapter, and managed-media lifecycle core;
-- load synthetic auth secrets and fixture bytes from explicit non-repository files only after confirmation, with bounded file size and create-only evidence output;
-- perform synthetic media cleanup and synthetic account deletion on success, plus one bounded best-effort cleanup path after failure;
-- emit one composed evidence document containing only fixed outcomes from capability, auth, media, and cleanup stages;
-- keep all CI deterministic and offline through injected runtime, auth, service, provider, file, and clock dependencies;
-- keep real staging/provider execution, deployment, workers, credentials, DNS, native builds, and capability activation external.
-
-Subsequent managed-media slices must add bounded processing/recovery polling, immutable delivery validation, stale-upload expiry, cleanup-worker evidence, and authorized worker-order composition.
-
-Password-reset delivery/expiry/replay/session-revocation scenario composition remains the next separate P6 slice after managed media.
-
-Remaining P6 work after the managed-media scenario slice:
-
-- key rotation;
-- provider outage handling;
-- emergency media disable;
-- cleanup pause;
-- legal-hold procedures;
-- consolidated rollback operations;
-- non-destructive default command wrappers with explicit environment targeting.
-
-## Execution rules
-
-- Work from exact current `main` on a bounded branch.
-- Inspect actual code, contracts, operations documents, and tests before changing source.
-- Preserve released mobile compatibility unless the task explicitly coordinates a contract migration.
-- Use existing provider-neutral adapters, capability contracts, media state machines, worker leases, authentication, sync, and localization boundaries.
-- Keep every new hand-written source or architecture file at or below 500 physical lines.
-- Run the repository's complete blocking CI.
-- Inspect review threads.
-- Merge only the exact fully green head.
-- After a backend slice, synchronize this plan and `docs/roadmap/provider-readiness.md` with exact head and merge SHAs.
-
-## Invariants
-
-- Provider credentials alone never enable a capability.
-- Enabled production configuration fails closed when incomplete or unsafe.
-- In-memory and unavailable providers cannot satisfy enabled production readiness.
-- Product capability enablement remains separate from provider configuration and worker scheduling.
-- Migrations precede the new backend; backend health precedes worker startup; workers and smoke evidence precede managed-media enablement.
-- Disable capabilities before worker shutdown or code rollback.
-- Code rollback requires current-schema compatibility; otherwise prefer a forward fix.
-- Data deletion, legal-hold removal, audit deletion, and destructive down migration are not rollback mechanisms.
-- Private fitness data remains in the offline-first revision-aware boundary.
-- Social data remains server-authoritative and separate from private `AppState` synchronization.
-- Reviewed, pending, appealed, rejected, failed, held, and cleanup-eligible media never become public without a valid explicit transition.
-- Hidden chain-of-thought, provider payloads, secrets, tokens, signed URLs, object keys, OCR plaintext, email, and private payloads never enter logs, DTOs, diagnostics, analytics, or user-visible copy.
-
-## Work allowed autonomously
-
-- bounded backend and mobile source changes;
-- deterministic tests and offline provider conformance fixtures;
-- disabled-by-default CLI, worker, policy, smoke, and runbook templates;
-- capability, parser, privacy-safe diagnostics, and CI source changes;
-- documentation synchronization and exact-green PR merges.
-
-## Work requiring direct authorization or external inputs
-
-- credentials, secret-store values, provider accounts, buckets, CDN, sender identities, or DNS;
-- real provider calls or staging calibration;
-- backend deployment or migration execution outside CI;
-- worker installation, scheduling, or environment activation;
-- public media uploads or production password-reset delivery;
-- repository-token configuration and fixed-SHA release-gate execution;
-- OTA/EAS publication;
-- native build, installation, or physical-device testing;
-- production activation or rollback execution;
-- legal approval.
-
-## Completion gate
-
-The source-preparation program is complete only when the checklist in `docs/roadmap/provider-readiness.md` is satisfied and both repositories contain exact fully green merged heads. Source completion does not imply operational readiness, provider activation, deployment, device validation, or public release.
+### Active next P6 slice
+
+**Compose the configured moderation runtime with the replay-verified private-quarantine lease and the exact-owner moderation processing core.**
+
+Required source behavior:
+
+1. accept only the strict staging plan and exact confirmation already used by the managed-media command;
+2. verify released public capabilities disabled before runtime or provider access;
+3. obtain the synthetic owner only through the existing auth/session lease;
+4. create the configured moderation runtime only after storage/classifier/OCR readiness and disabled-capability checks pass;
+5. pass the quarantine lease asset only to the exact-owner moderation adapter;
+6. validate processing, idempotent replay, owner readback, capability disablement, and mandatory deletion through existing cores;
+7. close configured resources on every success/failure path;
+8. emit fixed aggregate evidence only;
+9. keep CI deterministic and offline through injected dependencies;
+10. perform no global `processReadyBatch`, global recovery scan, real provider request, real staging request, deployment, capability mutation, or worker scheduling.
+
+### Ordered remaining P6 backlog
+
+After the active composition slice, continue in small independent PRs:
+
+1. exact-owner expired-processing recovery contract and implementation;
+2. derivative-delivery processing and exact-owner recovery evidence;
+3. immutable delivery observation and replay evidence;
+4. stale-upload expiry evidence;
+5. cleanup-worker evidence, including bounded partial failure and replay;
+6. authorized worker-order composition using only synthetic-owned work;
+7. password-reset staging composition and redacted evidence;
+8. consolidated operational runbooks and evidence checklist;
+9. real non-production provider/staging execution only after direct authorization and required accounts, credentials, infrastructure, deployment, and ownership are available.
+
+Global batch or recovery methods must not be used in a synthetic scenario when they may select unrelated staging rows. Add an exact-owner repository/service contract first.
+
+## P7 — Explicit sync-conflict resolution
+
+**Not started.**
+
+Required order:
+
+1. define a backend-owned conflict-choice contract with strict validation, authorization, idempotency, revision semantics, and deterministic tests;
+2. expose only the minimum authenticated API after the backend contract is stable;
+3. add mobile strict parsing and account-scoped presentation/UI;
+4. preserve current automatic merge and retry behavior for non-user-resolvable conflicts;
+5. add restart, stale-choice, tombstone, and concurrent-update coverage.
+
+Do not start with mobile UI or infer conflict semantics in the client.
+
+## P8 — Diagnostics and release preparation
+
+**Not started.**
+
+Planned source work:
+
+- privacy-safe diagnostics and operator evidence without secrets, raw provider payloads, media, OCR text, tokens, or user identifiers;
+- exact mobile/backend SHA release gates and artifact provenance;
+- Android package/link configuration audit and source preparation;
+- release rollback verification that preserves schema/data compatibility.
+
+Native builds, installation, TestFlight/Play distribution, OTA/EAS publication, and store submission remain external actions requiring direct authorization.
+
+## P9 — Privacy, legal, consent, retention, and analytics prerequisites
+
+**Not started.**
+
+Planned source work:
+
+- data inventory and processing-purpose mapping;
+- consent and withdrawal contracts where required;
+- retention/deletion/appeal/legal-hold alignment;
+- analytics event minimization and identifier policy;
+- user-facing privacy and account-deletion requirements;
+- technical evidence needed by legal/policy review.
+
+No legal-compliance claim may be made from source implementation alone.
+
+## Permanent authorization boundaries
+
+Do not perform any of the following without a direct user request for that exact action:
+
+- create or change provider accounts, credentials, secrets, buckets, CDN distributions, DNS, sender domains, or callback configuration;
+- deploy backend or workers, run migrations outside CI, change worker schedules, or activate capabilities;
+- execute real staging/provider smoke scenarios;
+- perform native builds, install builds on devices, publish OTA/EAS updates, submit stores, or activate production;
+- use production user data, unrelated staging data, or unbounded/global worker selection for synthetic evidence;
+- run destructive rollback, down migration, data deletion, legal-hold removal, audit deletion, or generic credential revocation.
+
+## Validation policy for every source PR
+
+- start from current exact `main`;
+- keep one coherent slice and preserve public contracts unless the phase explicitly changes them;
+- maintain the repository line-limit policy;
+- add deterministic tests for changed behavior and failure paths;
+- run the repository’s complete CI on the exact final head;
+- inspect review threads, reviews, and comments;
+- merge only the exact green head;
+- record the exact head and merge SHA in the canonical roadmap when the slice changes phase status.
