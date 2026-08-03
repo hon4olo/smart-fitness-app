@@ -1,0 +1,37 @@
+name: P6 storage policy roadmap trim
+
+on:
+  push:
+    branches:
+      - agent/p6-storage-policy-roadmap-sync
+
+permissions:
+  contents: write
+
+jobs:
+  trim:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/p6-storage-policy-roadmap-sync
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Trim and format roadmap
+        run: |
+          python scripts/trim-p6-storage-policy-roadmap.py
+          npx prettier --write docs/roadmap/provider-readiness.md
+          rm -f \
+            .github/workflows/p6-storage-policy-roadmap-trim.yml \
+            scripts/trim-p6-storage-policy-roadmap.py
+      - name: Commit trimmed roadmap
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "docs: fit provider roadmap line budget"
+          git push origin HEAD:agent/p6-storage-policy-roadmap-sync
