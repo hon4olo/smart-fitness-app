@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `ef048d41f47487fe079afb1b5ac4b49edea36d76`;
-- backend `main`: `44604b216bef723680fdd12f3a5d9d100bb70e3b`;
+- mobile `main`: `19bb637d900941e5721d63a8e673089c27d11ad1`;
+- backend `main`: `bad69c42325e7156215e7fdba45962ade3372ef1`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -58,6 +58,10 @@ Before this documentation synchronization slice:
 - mobile PR #382 merge: `521f6202cf9782f299d14c4b3f92920d5c65d3cc`;
 - mobile PR #383 exact green head: `4e596dd3f6abd44284e0baf8509f19296c24178b`;
 - mobile PR #383 merge: `ef048d41f47487fe079afb1b5ac4b49edea36d76`;
+- mobile PR #384 exact green head: `f6c238434fe3632cef697210bad5dc73b68c7b40`;
+- mobile PR #384 merge: `19bb637d900941e5721d63a8e673089c27d11ad1`;
+- backend PR #113 exact green head: `3e366e803f91d4d563d0b1e70cc189381534cd18`;
+- backend PR #113 merge: `bad69c42325e7156215e7fdba45962ade3372ef1`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -276,6 +280,28 @@ P5 autonomous source preparation is complete. The next approved source phase is 
 Operational password reset remains unavailable until an authorized environment supplies a verified sender domain, Resend account and credential, exact owned HTTPS link domain, Apple and Android association files, backend deployment and migration execution, a new native build, real non-production delivery evidence, physical-device validation, and explicit capability enablement.
 
 No credential, sender-domain, DNS, association-file deployment, provider account, real delivery, backend deployment, migration execution outside CI, environment activation, OTA/EAS publication, native build, device installation, or production capability activation was performed.
+
+## P6 current source boundary
+
+Backend PR #113, exact green head `3e366e803f91d4d563d0b1e70cc189381534cd18`, merge `bad69c42325e7156215e7fdba45962ade3372ef1`, completed the first P6 deployment-configuration slice:
+
+- expanded `.env.example` and `.env.production.example` with the complete managed-media, Rekognition, worker, and Resend configuration surface;
+- kept every new product enablement flag `false` and every production provider selector `unavailable` by default;
+- kept provider credentials blank, backend-only, and explicitly classified as secret operational inputs;
+- documented separate staging and production matrices, explicit environment targeting, required secret names, cross-repository reset-link matching, and fail-closed preparation order;
+- added deterministic tests for complete template coverage, duplicate environment keys, safe defaults, blank provider secrets, documentation coverage, and credential-shaped values;
+- passed lint, formatting, TypeScript build, production configuration validation, all migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the full Vitest suite, and production startup/health;
+- made no credential, account, bucket, CDN, domain, DNS, association-file, provider-call, migration execution outside CI, deployment, worker-startup, environment-activation, capability-enablement, OTA, or native-build change.
+
+The active P6 boundary is now storage and delivery policy preparation:
+
+- prepare provider-neutral private-bucket and immutable-delivery bucket or namespace policy templates;
+- define CORS, encryption, public-access blocking, lifecycle, retention, no-overwrite, and CDN-origin constraints that match the implemented storage adapters;
+- keep templates non-destructive, placeholder-only, and independently scoped for staging and production;
+- add deterministic policy-shape and secret-free tests without creating infrastructure or selecting an account-specific provider;
+- leave sender-domain DNS, link association, smoke scripts, rollout order, key rotation, outage handling, legal hold, and rollback as later bounded P6 slices.
+
+No infrastructure creation, credential configuration, provider call, deployment, worker scheduling, environment activation, capability enablement, OTA/EAS publication, native build, or device installation is authorized.
 
 ## Execution rules
 
