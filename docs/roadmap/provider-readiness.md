@@ -151,7 +151,7 @@ External operational gates:
 
 ## Phase P6 — deployment configuration, policies, smoke scripts, and runbooks
 
-Status: active. Configuration, policy, rollout/rollback ordering, the fail-closed runner, and the secret-safe synthetic auth/session scenario are source-complete. Managed-media scenario contracts are next.
+Status: active. Configuration, policy, rollout/rollback ordering, the fail-closed runner, synthetic auth/session scenario, and pre-enablement managed-media lifecycle core are source-complete. The staging operational adapter is next.
 
 ### Merged evidence
 
@@ -161,6 +161,7 @@ Status: active. Configuration, policy, rollout/rollback ordering, the fail-close
 - backend PR #117 exact green head `ce0555570c7686fd22306d5ac6769c9cafd81e0c`, merge `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`;
 - backend PR #118 exact green head `b91cd1feef7b3ff494e86ba133ac95037fbea677`, merge `64c04872e0ede26f87dd6017877e15ab218bccc1`;
 - backend PR #119 exact green head `2d2ae0aca373ce471ade00c9e721b3c3f2557643`, merge `15c1a939df06d84a38525f1558a2fa7a4ae2754f`;
+- backend PR #120 exact green head `ccbb98c164efada298a9768d329f9150757ecbf1`, merge `1de40eb713a810bdc8875acebccd61d3b8f8d059`;
 - all exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 ### Checklist
@@ -172,7 +173,9 @@ Status: active. Configuration, policy, rollout/rollback ordering, the fail-close
 - [x] define migration order, backend rollout order, worker startup order, capability enablement order, verification, disablement, and rollback order;
 - [x] add the fail-closed staging smoke-runner foundation with exact target/change/SHA confirmation, strict disabled-capability verification, synthetic mutation boundaries, and privacy-safe evidence;
 - [x] add a secret-safe synthetic auth/session scenario with register-conflict replay cleanup, refresh, account deletion, and revoked-session verification;
-- [ ] add managed-media signed upload, processing, delivery, deletion, cleanup, replay, and idempotency scenarios using synthetic non-production fixtures;
+- [x] add the pre-enablement managed-media private-quarantine lifecycle core with signed upload, create/complete/delete replay checks, disabled-capability verification, and bounded failure cleanup;
+- [ ] add the staging operational adapter and redacted CLI that compose synthetic auth, configured internal services/providers, and fixture loading without enabling the public capability;
+- [ ] add managed-media processing, recovery, immutable delivery, stale-upload expiry, cleanup-worker, and authorized worker-order scenarios using synthetic non-production fixtures;
 - [ ] add password-reset delivery, expiry, invalid/replayed token, password replacement, and session-revocation scenarios using approved non-production fixtures;
 - [ ] document key rotation, provider outage, emergency media disable, cleanup pause, legal hold, and consolidated rollback procedures;
 - [ ] make operational wrappers non-destructive by default and require explicit environment targeting.
@@ -232,21 +235,37 @@ Backend PR #119 exact green head `2d2ae0aca373ce471ade00c9e721b3c3f2557643`, mer
 - [x] deterministic offline tests included in the canonical `tests/**/*.test.ts` suite;
 - [x] explicit documentation that no standalone CLI or real staging execution is included yet.
 
-### Next bounded slice — managed-media staging scenario contracts
+### Completed pre-enablement managed-media lifecycle core
+
+Backend PR #120 exact green head `ccbb98c164efada298a9768d329f9150757ecbf1`, merge `1de40eb713a810bdc8875acebccd61d3b8f8d059`, completed:
+
+- [x] explicit internal operational adapter boundary instead of a hidden HTTP route or temporary public capability enablement;
+- [x] synthetic fixture/idempotency scope and bounded PNG/JPEG validation;
+- [x] approved HTTPS signed-upload hostname, expiry, content type, and exact content length checks;
+- [x] public capability-disabled verification before and after execution;
+- [x] create, signed upload, complete, owner read, delete, and exact create/complete/delete replay validation;
+- [x] strict private-quarantine state and source invariants with no public descriptor;
+- [x] memory-only dynamic media values and fixed privacy-safe evidence;
+- [x] bounded best-effort cleanup after any post-create failure;
+- [x] regression coverage proving strict create identity is retained before lifecycle and signed-scope checks;
+- [x] deterministic no-network tests in the canonical backend suite;
+- [x] source and test files below 500 physical lines.
+
+### Next bounded slice — managed-media staging operational adapter
 
 Required source behavior:
 
-- [ ] compose generic capability verification and synthetic authentication through one bounded execution/evidence contract;
-- [ ] strict memory-only capture of access token, asset ID, state version, signed upload URL/headers, and immutable public descriptor;
-- [ ] released `POST /v1/social/media/uploads` creation with exact synthetic idempotency and controlled replay;
-- [ ] bounded external signed `PUT` of one approved synthetic JPEG/PNG fixture without redirect or evidence leakage;
-- [ ] released upload-completion call and strict owner-asset parsing;
-- [ ] bounded polling over documented asset states with no unbounded wait or provider retry;
-- [ ] processing/recovery, immutable delivery, exact deletion, stale-upload expiry, cleanup, and replay/idempotency checks;
-- [ ] disabled-capability verification before and after applicable pre-enablement execution;
-- [ ] privacy-safe evidence containing no token, email, password, asset ID, signed URL, headers, object key, public URL, provider payload, OCR text, or media bytes;
-- [ ] deterministic no-network tests through injected API, upload, time, and fixture transports;
-- [ ] no invented route, production target, provider account mutation, deployment, worker scheduling, native build, or activation command.
+- [ ] compose the generic disabled-capability verifier and secret-safe synthetic auth/session lifecycle around the managed-media core;
+- [ ] bind one synthetic owner to `SocialMediaUploadService` through the configured database, private storage, image validator, cleanup service, and optional delivery provider;
+- [ ] permit only the internal operational service instance to execute while the public capability contract remains disabled;
+- [ ] provide a bounded signed-upload `PUT` transport with exact method/headers/body, no redirect, no automatic retry, and accepted-status validation;
+- [ ] load synthetic fixture bytes and auth/provider secrets only through explicit approved paths or secret stores after exact staging confirmation;
+- [ ] delete the synthetic media and account on success and perform one bounded cleanup path after failure;
+- [ ] emit one composed evidence file without tokens, email, password, user/asset IDs, state versions, signed URL/headers, object keys, source hashes, provider payloads, or media bytes;
+- [ ] add deterministic offline tests for service wiring, capability-disable invariants, secret lifetime, upload transport, cleanup ordering, and interrupted-run recovery;
+- [ ] no public route bypass, invented endpoint, production target, deployment, worker scheduling, native build, or activation command.
+
+Subsequent slices must cover processing/recovery polling, immutable delivery, stale-upload expiry, cleanup workers, and worker-order evidence.
 
 Password-reset scenario composition remains a separate subsequent P6 slice. Actual provider staging execution remains external and requires direct authorization.
 

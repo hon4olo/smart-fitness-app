@@ -8,12 +8,12 @@ This document is the canonical current execution plan for the mobile and backend
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `287afe06ddc893a7b52d1b7db4ca04cef272e46f`;
-- backend `main`: `15c1a939df06d84a38525f1558a2fa7a4ae2754f`;
-- backend PR #119 exact green head: `2d2ae0aca373ce471ade00c9e721b3c3f2557643`;
-- backend PR #119 merge: `15c1a939df06d84a38525f1558a2fa7a4ae2754f`;
+- mobile `main`: `6e64b91eb5f7ed297e516aecb1baee16d4f4a698`;
+- backend `main`: `1de40eb713a810bdc8875acebccd61d3b8f8d059`;
+- backend PR #120 exact green head: `ccbb98c164efada298a9768d329f9150757ecbf1`;
+- backend PR #120 merge: `1de40eb713a810bdc8875acebccd61d3b8f8d059`;
 - open mobile pull requests before this documentation slice: none;
-- open backend pull requests after PR #119 merge: none;
+- open backend pull requests after PR #120 merge: none;
 - public media uploads, real provider-backed media processing, and password-reset delivery remain disabled;
 - no provider account, credential, deployment, worker schedule, DNS mutation, native build, or production activation is implied by source completion.
 
@@ -128,6 +128,7 @@ Completed backend evidence:
 - PR #117, exact green head `ce0555570c7686fd22306d5ac6769c9cafd81e0c`, merge `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`: rollout and rollback ordering.
 - PR #118, exact green head `b91cd1feef7b3ff494e86ba133ac95037fbea677`, merge `64c04872e0ede26f87dd6017877e15ab218bccc1`: fail-closed staging smoke-runner foundation with strict disabled-capability verification and privacy-safe evidence.
 - PR #119, exact green head `2d2ae0aca373ce471ade00c9e721b3c3f2557643`, merge `15c1a939df06d84a38525f1558a2fa7a4ae2754f`: secret-safe synthetic auth/session scenario with replay cleanup and privacy-safe evidence.
+- PR #120, exact green head `ccbb98c164efada298a9768d329f9150757ecbf1`, merge `1de40eb713a810bdc8875acebccd61d3b8f8d059`: pre-enablement managed-media lifecycle core with private-quarantine replays, bounded cleanup, and privacy-safe evidence.
 
 PR #117 added:
 
@@ -183,19 +184,38 @@ Backend PR #119, exact green head `2d2ae0aca373ce471ade00c9e721b3c3f2557643`, me
 
 The exact PR #119 head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup/health. Both new hand-written TypeScript files remain below 500 physical lines.
 
-### Active P6 slice — managed-media staging scenario contracts
+### Completed P6 slice — pre-enablement managed-media lifecycle core
+
+Backend PR #120, exact green head `ccbb98c164efada298a9768d329f9150757ecbf1`, merge `1de40eb713a810bdc8875acebccd61d3b8f8d059`, added:
+
+- an injected internal operational adapter boundary because the released public upload route correctly returns `503` while `SOCIAL_MEDIA_UPLOADS_ENABLED=false`;
+- no hidden staging HTTP route and no temporary public capability enablement;
+- strict synthetic fixture and idempotency scoping, PNG/JPEG byte limits, and approved signed-upload DNS host validation;
+- pre- and post-scenario public capability-disabled checks;
+- private upload creation, exact create replay, signed `PUT`, completion, exact completion replay, owner read, deletion, and exact deletion replay;
+- strict `upload_pending` → `quarantined` → `deleted` invariants with public descriptor required absent;
+- memory-only asset ID, state versions, source hash, signed URL/headers, idempotency key, and fixture bytes;
+- one bounded best-effort cleanup after post-create failure, including the regression case where a strict create DTO contains identity but violates lifecycle invariants;
+- fixed privacy-safe evidence with no dynamic IDs, URLs, headers, object keys, hashes, provider payloads, media bytes, request/response bodies, or raw exceptions;
+- deterministic no-network tests for successful lifecycle, replays, capability regressions, unsafe signed scope, malformed responses, identity mismatch, cleanup success/failure, and non-synthetic fixtures;
+- explicit scope stopping at private quarantine: worker processing, moderation, immutable delivery, expiry, and cleanup-worker evidence remain separate.
+
+The exact PR #120 head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup/health. Every new hand-written TypeScript file remains below 500 physical lines.
+
+### Active P6 slice — managed-media staging operational adapter
 
 Next source work:
 
-- compose the auth scenario with the generic disabled-capability runner through one bounded, redacted CLI/evidence boundary;
-- add typed memory-only capture for access tokens, asset IDs, state versions, signed upload URL/headers, and immutable delivery descriptors;
-- call the released `POST /v1/social/media/uploads` contract with exact synthetic idempotency identity and strict response parsing;
-- transfer one approved synthetic media fixture through the returned signed `PUT` without storing URL, headers, object key, or media bytes in evidence;
-- complete the upload through the released asset route and poll bounded owner-visible state transitions;
-- validate processing/recovery observation, immutable delivery, exact deletion, stale-upload expiry, cleanup, and controlled replay/idempotency behavior;
-- require strict disabled-capability verification around every applicable pre-enablement scenario;
-- keep all tests offline and deterministic through injected API, upload, clock, and fixture transports;
+- bind the lifecycle core to one synthetic owner through the secret-safe auth/session contract from PR #119;
+- construct an internal staging adapter from the configured database, `SocialMediaUploadService`, private object storage, image validator, optional delivery provider, and a strict public capability verifier;
+- instantiate the internal service with operational execution allowed while the public capability contract remains disabled;
+- provide a bounded signed-upload transport that rejects redirects and unexpected statuses without reading or persisting provider response bodies;
+- guarantee synthetic account and asset cleanup on success, failure, and interrupted-run replay;
+- add a redacted CLI that loads secrets and fixture bytes through approved non-repository paths only after exact staging confirmation;
+- keep CI fully offline through injected database/service/provider/transport fixtures;
 - keep real staging/provider execution, deployment, workers, credentials, DNS, native builds, and capability activation external.
+
+Subsequent managed-media slices must add bounded processing/recovery polling, immutable delivery validation, stale-upload expiry, cleanup-worker evidence, and authorized worker-order composition.
 
 Password-reset delivery/expiry/replay/session-revocation scenario composition remains the next separate P6 slice after managed media.
 
