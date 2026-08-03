@@ -9,6 +9,11 @@ const DNS_LABEL_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u;
 type AndroidIntentFilter = NonNullable<
   NonNullable<ExpoConfig['android']>['intentFilters']
 >[number];
+type AndroidIntentFilterData = NonNullable<AndroidIntentFilter['data']> extends infer Data
+  ? Data extends ReadonlyArray<infer Entry>
+    ? Entry
+    : Data
+  : never;
 
 export type PasswordResetAppLink = {
   baseUrl: string;
@@ -67,6 +72,13 @@ export const parsePasswordResetAppLink = (
   };
 };
 
+const toIntentFilterData = (
+  data: AndroidIntentFilter['data'],
+): AndroidIntentFilterData[] => {
+  if (!data) return [];
+  return Array.isArray(data) ? data : [data];
+};
+
 const isPasswordResetIntentFilter = (
   filter: AndroidIntentFilter,
   link: PasswordResetAppLink,
@@ -75,12 +87,12 @@ const isPasswordResetIntentFilter = (
   filter.autoVerify === true &&
   filter.category?.includes('BROWSABLE') === true &&
   filter.category.includes('DEFAULT') &&
-  filter.data?.some(
+  toIntentFilterData(filter.data).some(
     (entry) =>
       entry.scheme === 'https' &&
       entry.host === link.hostname &&
       entry.pathPrefix === link.path,
-  ) === true;
+  );
 
 export const withPasswordResetAppLink = (
   config: ExpoConfig,
