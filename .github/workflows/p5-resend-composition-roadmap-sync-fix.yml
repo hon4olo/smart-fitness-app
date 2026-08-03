@@ -1,0 +1,172 @@
+name: P5 Resend composition roadmap sync fix
+
+on:
+  push:
+    branches:
+      - agent/p5-resend-composition-roadmap-sync
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/p5-resend-composition-roadmap-sync
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply exact P5 evidence sync
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_section(text: str, start: str, end: str, replacement: str) -> str:
+              start_index = text.index(start)
+              end_index = text.index(end, start_index)
+              return text[:start_index] + replacement.rstrip() + '\n\n' + text[end_index:]
+
+          plan_path = Path('docs/implementation-plan.md')
+          plan = plan_path.read_text()
+          old_baseline = '- mobile `main`: `1e4bcb4dbd7d7aba8ee16ada91602e21ee401e44`;\n- backend `main`: `ecd8a2e425b032be323b9852ba9e60221a1ca968`;'
+          new_baseline = '- mobile `main`: `cf3de6bd746493ffbf8d4d3159c302dadb6c5c30`;\n- backend `main`: `44604b216bef723680fdd12f3a5d9d100bb70e3b`;'
+          if old_baseline not in plan:
+              raise SystemExit('implementation baseline not found')
+          plan = plan.replace(old_baseline, new_baseline, 1)
+          evidence_anchor = '- backend PR #111 merge: `ecd8a2e425b032be323b9852ba9e60221a1ca968`;\n'
+          evidence = evidence_anchor + '- mobile PR #381 exact green head: `e57d84e89499f34c3cdaf46b73a76548d80b4e16`;\n- mobile PR #381 merge: `cf3de6bd746493ffbf8d4d3159c302dadb6c5c30`;\n- backend PR #112 exact green head: `ef779e42f6d28f4c8c103a4a2961d1ee8c26b436`;\n- backend PR #112 merge: `44604b216bef723680fdd12f3a5d9d100bb70e3b`;\n'
+          if evidence_anchor not in plan:
+              raise SystemExit('implementation evidence anchor not found')
+          plan = plan.replace(evidence_anchor, evidence, 1)
+          plan_section = '''## P5 current source boundary
+
+The existing backend and mobile foundation remains unchanged:
+
+- generic accepted responses do not disclose account existence;
+- hashed one-time tokens retain cooldown, expiry, replay rejection, undelivered-token invalidation, password replacement, and all-session revocation;
+- localized capability-gated forgot/reset routes retain strict API states, password validation, token hygiene, success handling, and forced return to sign-in;
+- production app/universal-link configuration and physical-device validation remain open.
+
+Backend PR #110, exact green head `54fe3bcf57745caddb1177ef6c75453befed407f`, merge `2c683c95274409aa5958033e96cb8acf67ca8b56`, completed the selected Resend request, bilingual template, trusted reset-link, strict parser, deterministic idempotency, and no-network contract boundary.
+
+Backend PR #111, exact green head `1f0d08ff6eccec676c94bd231e974ad98cdd5176`, merge `ecd8a2e425b032be323b9852ba9e60221a1ca968`, completed the production-shaped bounded Resend runtime, adapter-owned retry and failure mapping, stable request identity, strict success parsing, provider-message discard, final constant error, and token-invalidation preservation.
+
+Backend PR #112, exact green head `ef779e42f6d28f4c8c103a4a2961d1ee8c26b436`, merge `44604b216bef723680fdd12f3a5d9d100bb70e3b`, completed the backend configuration, composition, readiness, and capability boundary:
+
+- replaced the generic `external_http` selector with the explicit `resend` selector;
+- added strict backend-only API-key, sender-address, trusted HTTPS reset-route, timeout, and attempt configuration;
+- kept the fixed Resend endpoint in source and rejected incomplete, malformed, fallback, unavailable, or unsafe enabled production configuration;
+- composed the adapter only in the application provider root through the shared bounded provider HTTP transport;
+- preserved separate source-supported, configured, ready, and explicitly enabled states;
+- kept complete credentials inert until the password-reset product flag is enabled;
+- retained unavailable fail-closed defaults, generic accepted responses, and provider-neutral service and route contracts;
+- added deterministic no-network environment, factory, fixed-endpoint, readiness, capability, and secret-redaction coverage;
+- made no credential, sender-domain, DNS, provider-account, real-delivery, deployment, environment-activation, or capability-enablement change.
+
+The backend Resend delivery source boundary is complete. Complete release-grade mobile app/universal-link source configuration next without performing a native build or activation:
+
+- select the exact trusted HTTPS reset route already consumed by the mobile reset screen and backend link builder;
+- add production iOS universal-link and Android app-link source configuration with explicit host/path scoping and no broad catch-all routing;
+- keep token parsing strict, bounded, non-persistent, and removed from navigation state after completion or rejection;
+- preserve capability gating, generic accepted responses, sign-in cleanup, localized EN/RU copy, and existing authentication/session behavior;
+- add deterministic route, host/path rejection, duplicate-token, invalid/expired-token, completion cleanup, cold-start, warm-navigation, and accessibility coverage that does not require a native build;
+- document the external association-file, DNS/domain, native-build, physical-device, and real-delivery gates without claiming them complete.
+'''
+          plan = replace_section(
+              plan,
+              '## P5 active source boundary',
+              'No credential, sender-domain, DNS, provider-account, real delivery, backend deployment, migration execution outside CI, environment activation, OTA, or native build is authorized.',
+              plan_section,
+          )
+          if 'backend PR #112 exact green head' not in plan:
+              raise SystemExit('implementation PR #112 evidence missing')
+          plan_path.write_text(plan)
+
+          roadmap_path = Path('docs/roadmap/provider-readiness.md')
+          roadmap = roadmap_path.read_text()
+          roadmap_section = '''## Phase P5 — password-reset product and delivery readiness
+
+Status: active. The provider-neutral token/session backend foundation, localized mobile forgot/reset flow, selected Resend request/template/parser contract, bounded runtime, strict configuration, application-root composition, readiness, and capability gating are merged. Release-grade app/universal links, real delivery, physical-device validation, and activation remain open.
+
+Merged evidence:
+
+- backend PR #60 exact head: `af192c4fbe48c82f1d8e3ac5c7f020c2949fe72f`;
+- backend PR #60 merge: `5aa7fa35b0d3e89fe1e824266fd659d1296a61a3`;
+- mobile PR #200 exact head: `5ff6cdb50fe04e35d7294d241e37ea46924c06c2`;
+- mobile PR #200 merge: `1b77802bb765a1a3db6b8dcd1f081c210049a2d0`;
+- backend PR #110 exact green head: `54fe3bcf57745caddb1177ef6c75453befed407f`;
+- backend PR #110 merge: `2c683c95274409aa5958033e96cb8acf67ca8b56`;
+- backend PR #111 exact green head: `1f0d08ff6eccec676c94bd231e974ad98cdd5176`;
+- backend PR #111 merge: `ecd8a2e425b032be323b9852ba9e60221a1ca968`;
+- backend PR #112 exact green head: `ef779e42f6d28f4c8c103a4a2961d1ee8c26b436`;
+- backend PR #112 merge: `44604b216bef723680fdd12f3a5d9d100bb70e3b`;
+- backend PR #110, PR #111, and PR #112 passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+
+Mobile:
+
+- [x] add localized capability-gated `Forgot password` and `Reset password` source routes with strict API states;
+- [x] preserve the generic accepted response so account existence is not disclosed;
+- [x] retain strict password validation, invalid/expired-token handling, success state, session cleanup, and forced return to sign-in;
+- [ ] complete validated production app-link or universal-link configuration for reset tokens;
+- [x] keep reset tokens out of ordinary persisted application state, logs, analytics, and post-completion navigation state;
+- [x] retain source-level accessibility labels, localized copy, and strict request/response parser coverage;
+- [ ] perform authorized native-build and physical-device deep-link validation after source configuration is complete.
+
+Backend delivery:
+
+- [x] preserve hashed one-time tokens, cooldown, expiry, replay rejection, undelivered-token invalidation, password replacement, and all-session revocation;
+- [x] select and document Resend `POST /emails` as the concrete provider API contract;
+- [x] add bounded EN/RU plain-text and HTML template source with expiry and security guidance;
+- [x] construct links only from an exact trusted HTTPS application reset-route base;
+- [x] add fixed bounded request construction, non-token idempotency identity, strict success parsing, and contract-level redaction tests;
+- [x] add the production-shaped Resend runtime through the shared bounded provider HTTP transport;
+- [x] add explicit bounded retry ownership and timeout/network/cancellation/rate-limit/idempotency/server/authentication/sender-validation/security/malformed-response mapping;
+- [x] compose the complete adapter in the backend application root and replace the generic `external_http` selector with the documented `resend` selector;
+- [x] update production source-support validation and password-reset configured/ready state only after complete runtime/factory conformance;
+- [x] preserve token invalidation when final delivery fails through the existing password-reset service boundary;
+- [x] retain password-reset capability gating in the backend contract and pre-auth mobile navigation.
+
+Next bounded slice — mobile app/universal-link source configuration:
+
+- select and document the exact trusted HTTPS reset route shared with the backend link builder;
+- add production iOS universal-link and Android app-link source configuration with explicit domain and path scoping and no broad catch-all routing;
+- preserve strict bounded token parsing, capability gating, generic accepted responses, localized copy, session cleanup, and forced return to sign-in;
+- ensure rejected, completed, or replaced tokens do not remain in ordinary persisted state, logs, analytics, or post-completion navigation state;
+- add deterministic source-level coverage for accepted host/path, rejected host/path/scheme, cold-start and warm-navigation routing, duplicate token handling, invalid/expired responses, completion cleanup, and accessibility labels;
+- verify source configuration through blocking Mobile CI, Expo export, and Expo Doctor;
+- keep association files, DNS/domain ownership, real email delivery, OTA/EAS publish, native builds, physical-device testing, deployment, and capability activation external.
+
+External activation later requires a verified sender domain, DNS records, provider account and credentials, backend deployment, production link-domain association, real non-production delivery evidence, physical-device validation, and explicit capability enablement.
+'''
+          roadmap = replace_section(
+              roadmap,
+              '## Phase P5 — password-reset product and delivery readiness',
+              '## Phase P6 — deployment configuration, policies, and runbooks',
+              roadmap_section,
+          )
+          old_order = '1. P5 password-reset runtime, composition, deep-link, and delivery readiness.'
+          if old_order not in roadmap:
+              raise SystemExit('roadmap execution order not found')
+          roadmap = roadmap.replace(
+              old_order,
+              '1. P5 password-reset app/universal-link source and delivery readiness.',
+              1,
+          )
+          if 'backend PR #112 exact green head' not in roadmap:
+              raise SystemExit('roadmap PR #112 evidence missing')
+          roadmap_path.write_text(roadmap)
+          PY
+          npx prettier --write docs/implementation-plan.md docs/roadmap/provider-readiness.md
+      - name: Commit synchronized roadmap
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/implementation-plan.md docs/roadmap/provider-readiness.md
+          git diff --cached --quiet && exit 0
+          git commit -m "docs: record Resend composition readiness"
+          git push origin HEAD:agent/p5-resend-composition-roadmap-sync
