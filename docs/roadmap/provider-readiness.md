@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `f815a38ba92c5432e59adfb52b2b67da4877376f`;
-- backend `main`: `c8d315113881e81f7b6c8522bfb5b439b4b36972`;
+- mobile `main`: `1c49a6f7fd236c30e0539b510d6818470a356273`;
+- backend `main`: `2c683c95274409aa5958033e96cb8acf67ca8b56`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -50,6 +50,8 @@ Before this documentation synchronization slice:
 - backend PR #108 merge: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
 - backend PR #109 exact green head: `d3b6a1599352a79a4dd2bb8d361148d605de3ec3`;
 - backend PR #109 merge: `c8d315113881e81f7b6c8522bfb5b439b4b36972`;
+- backend PR #110 exact green head: `54fe3bcf57745caddb1177ef6c75453befed407f`;
+- backend PR #110 merge: `2c683c95274409aa5958033e96cb8acf67ca8b56`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -300,26 +302,51 @@ No corpus, real media, credential values, provider account, real provider call, 
 
 ## Phase P5 — password-reset product and delivery readiness
 
+Status: active. The provider-neutral token/session backend foundation and localized mobile forgot/reset source flow exist. Resend is the selected delivery API contract, and its request, trusted reset-link, bilingual templates, strict success parser, idempotency identity, and deterministic no-network conformance are merged. Runtime transport, provider failure/retry mapping, composition/readiness, release-grade app/universal links, real delivery, and activation remain open.
+
+Merged evidence:
+
+- backend PR #60 exact head: `af192c4fbe48c82f1d8e3ac5c7f020c2949fe72f`;
+- backend PR #60 merge: `5aa7fa35b0d3e89fe1e824266fd659d1296a61a3`;
+- mobile PR #200 exact head: `5ff6cdb50fe04e35d7294d241e37ea46924c06c2`;
+- mobile PR #200 merge: `1b77802bb765a1a3db6b8dcd1f081c210049a2d0`;
+- backend PR #110 exact green head: `54fe3bcf57745caddb1177ef6c75453befed407f`;
+- backend PR #110 merge: `2c683c95274409aa5958033e96cb8acf67ca8b56`;
+- backend PR #110 passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+
 Mobile:
 
-- [ ] complete the localized `Forgot password` and `Reset password` release boundary against an operational delivery provider;
-- [ ] preserve the generic accepted response so account existence is not disclosed;
-- [ ] retain strict password validation, invalid or expired token handling, success state, and forced return to sign-in;
-- [ ] complete validated app-link or universal-link configuration for reset tokens;
-- [ ] keep reset tokens out of ordinary persisted application state, logs, analytics, and navigation history after completion;
-- [ ] complete accessibility and strict API parser coverage for the activated flow.
+- [x] add localized capability-gated `Forgot password` and `Reset password` source routes with strict API states;
+- [x] preserve the generic accepted response so account existence is not disclosed;
+- [x] retain strict password validation, invalid/expired-token handling, success state, session cleanup, and forced return to sign-in;
+- [ ] complete validated production app-link or universal-link configuration for reset tokens;
+- [x] keep reset tokens out of ordinary persisted application state, logs, analytics, and post-completion navigation state;
+- [x] retain source-level accessibility labels, localized copy, and strict request/response parser coverage;
+- [ ] perform authorized native-build and physical-device deep-link validation after source configuration is complete.
 
 Backend delivery:
 
-- [ ] add a production password-reset delivery adapter for the selected mail provider or an approved generic transport;
-- [ ] add plain-text and HTML templates with expiry and security guidance in English and Russian;
-- [ ] construct links only from a configured trusted application-link base URL;
-- [ ] preserve token invalidation when delivery fails;
-- [ ] add timeout, provider rejection, malformed response, duplicate request, cooldown, replay, expiry, and redacted-log tests;
-- [x] add password-reset capability gating to the backend contract so the mobile flow can appear only when delivery is operationally ready;
-- [x] gate pre-auth mobile navigation and direct reset requests through the strict capability response.
+- [x] preserve hashed one-time tokens, cooldown, expiry, replay rejection, undelivered-token invalidation, password replacement, and all-session revocation;
+- [x] select and document Resend `POST /emails` as the concrete provider API contract;
+- [x] add bounded EN/RU plain-text and HTML template source with expiry and security guidance;
+- [x] construct links only from an exact trusted HTTPS application reset-route base;
+- [x] add fixed bounded request construction, non-token idempotency identity, strict success parsing, and contract-level redaction tests;
+- [ ] add the production-shaped Resend runtime through the shared bounded provider HTTP transport;
+- [ ] add explicit bounded retry ownership and timeout/network/cancellation/rate-limit/idempotency/server/authentication/sender-validation/security/malformed-response mapping;
+- [ ] compose the complete adapter in the backend application root and replace the generic `external_http` selector with the documented Resend selector;
+- [ ] update production source-support validation and password-reset readiness only after complete runtime/factory conformance;
+- [x] preserve token invalidation when final delivery fails through the existing password-reset service boundary;
+- [x] retain password-reset capability gating in the backend contract and pre-auth mobile navigation.
 
-External activation later requires a verified sender domain, DNS records, provider credentials, backend deployment, deep-link domain configuration, and physical-device validation.
+Next bounded slice:
+
+- implement only the Resend runtime transport and failure/retry mapping;
+- perform one shared transport call per attempt with a stable idempotency identity;
+- parse only bounded provider error identifiers required for classification and ignore provider messages;
+- add deterministic no-network conformance for retryable/terminal outcomes and secret/email/token/reset-link/provider-payload non-disclosure;
+- do not change environment selectors, composition root, readiness, capabilities, mobile routes, or activation in that runtime PR.
+
+External activation later requires a verified sender domain, DNS records, provider account and credentials, backend deployment, production link-domain association, real non-production delivery evidence, physical-device validation, and explicit capability enablement.
 
 ## Phase P6 — deployment configuration, policies, and runbooks
 
@@ -386,13 +413,11 @@ Engineering drafts do not constitute legal approval.
 
 ## Execution order
 
-1. P3 selected OCR adapter and classifier/OCR composition/readiness.
-2. P4 moderation calibration harness.
-3. P5 password-reset mobile, deep-link, template, and delivery readiness.
-4. P6 deployment policies, configuration templates, smoke scripts, and runbooks.
-5. P7 explicit sync conflict-choice contract.
-6. P8 diagnostics, fixed-SHA release gate, and Android source preparation.
-7. P9 technical privacy, legal, and analytics prerequisites.
+1. P5 password-reset runtime, composition, deep-link, and delivery readiness.
+2. P6 deployment policies, configuration templates, smoke scripts, and runbooks.
+3. P7 explicit sync conflict-choice contract.
+4. P8 diagnostics, fixed-SHA release gate, and Android source preparation.
+5. P9 technical privacy, legal, and analytics prerequisites.
 
 A phase may be divided into bounded backend, mobile, and docs pull requests. After each backend slice, synchronize the canonical mobile roadmap documents.
 
