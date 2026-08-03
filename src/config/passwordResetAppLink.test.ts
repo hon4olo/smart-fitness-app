@@ -6,7 +6,7 @@ import {
   PASSWORD_RESET_ROUTE_PATH,
   parsePasswordResetAppLink,
   withPasswordResetAppLink,
-} from './passwordResetAppLink';
+} from '../../app.config';
 
 const baseConfig = (): ExpoConfig => ({
   name: 'smart-fitness-app',
