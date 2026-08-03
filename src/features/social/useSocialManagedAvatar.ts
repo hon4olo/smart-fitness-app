@@ -6,6 +6,7 @@ import {
   type SocialMediaOwnerAssetDto,
 } from "@/api/social";
 
+import { pollManagedMediaAsset } from "./managedMediaPolling";
 import { runManagedMediaUploadComposition } from "./managedMediaUploadComposition";
 import type { SocialManagedAvatarCopy } from "./socialManagedAvatarCopy";
 import {
@@ -48,9 +49,6 @@ export type SocialManagedAvatarController = {
   remove(): Promise<void>;
   clearError(): void;
 };
-
-const wait = (milliseconds: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 const createIdempotencyKey = (): string => {
   const randomUuid = globalThis.crypto?.randomUUID?.();
@@ -130,12 +128,15 @@ export const useSocialManagedAvatar = ({
     async (assetId: string, requestSequence: number): Promise<void> => {
       if (!enabled) return;
       setOperation("polling");
-      for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
-        if (!enabled || requestSequence !== sequence.current) return;
-        const asset = await refreshCandidate(assetId);
-        if (asset.state === "approved" || isCandidateTerminal(asset)) return;
-        await wait(POLL_INTERVAL_MS);
-      }
+      await pollManagedMediaAsset({
+        assetId,
+        attempts: POLL_ATTEMPTS,
+        intervalMs: POLL_INTERVAL_MS,
+        isCurrent: () => enabled && requestSequence === sequence.current,
+        refreshAsset: refreshCandidate,
+        isTerminal: (asset) =>
+          asset.state === "approved" || isCandidateTerminal(asset),
+      });
     },
     [enabled, refreshCandidate],
   );
