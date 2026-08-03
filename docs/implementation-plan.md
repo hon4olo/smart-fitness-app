@@ -23,6 +23,8 @@ Always re-check exact `main` and open pull requests in both repositories before 
 
 The approved product remains an Expo / React Native offline-first mobile application backed by the existing Fastify/PostgreSQL service.
 
+The canonical local-state evidence and reviewed decision remain in `docs/architecture/local-state-performance-decision.md`. The current single AsyncStorage `AppState` snapshot remains the approved local persistence architecture.
+
 Implemented private-data domains include:
 
 - authentication and profile;
@@ -42,7 +44,7 @@ The mobile client never contains provider credentials or calls storage, CDN, cla
 
 ## Active source program
 
-There is no remaining approved autonomous general refactor phase. The active work is the Provider and Release Readiness source-preparation program.
+There is no remaining approved autonomous source-refactor phase. The active work is the Provider and Release Readiness source-preparation program.
 
 Goal: make later provider activation consist of externally authorized account configuration, credentials, infrastructure, deployment, staging validation, native builds, and explicit capability enablement rather than additional core application development.
 
