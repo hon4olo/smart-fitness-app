@@ -1,42 +1,94 @@
-# Mobile Managed-Media Composition Analysis
+# Mobile Managed-Media Composition Audit
 
 Updated: 2026-08-03
 
 ## Scope
 
-This slice records the current mobile managed-media architecture and identifies a bounded composition seam shared by managed avatars and workout-post images.
+This document records the implemented mobile managed-media composition boundary after the initial architecture analysis and four independently validated slices.
 
-It does not change runtime behavior, public API contracts, persistence schemas, capability flags, dependencies, Expo configuration, native projects, provider configuration, credentials, deployment, OTA/EAS state, or production activation.
+It defines what is now shared, what intentionally remains domain-specific, and where further abstraction would add coupling rather than remove technical debt.
 
-Verified baselines before this slice:
+This audit does not change runtime behavior, public API contracts, persistence schemas, capability flags, dependencies, Expo configuration, native projects, provider configuration, credentials, deployment, OTA/EAS state, or production activation.
 
-- mobile `main`: `7de40845e56f1618af5a64562974550673e45130`;
+## Verified baselines
+
+Current verified repository state after the completed slices:
+
+- mobile `main`: `e9c923056bbc04a26db7061dcb892d56e6ab0c73`;
 - backend `main`: `06c955ff57a75ea73921fd8e676787a4ebc2e0ae`;
+- no open mobile or backend pull requests after mobile PR #399 merged.
+
+Backend composition prerequisites:
+
 - backend PR #122 exact green head: `1c5cdadfd39e63eacff479e416ddd3bbe8c093e4`;
 - backend PR #122 merge: `bd7f4499a455252b663c8687dda1e5f4a4d5f327`;
 - backend PR #123 exact green head: `822a2ce030457c6914dd5ce224150cdddd7b6827`;
-- backend PR #123 merge: `06c955ff57a75ea73921fd8e676787a4ebc2e0ae`;
-- no open mobile or backend pull requests after backend PR #123 merged.
+- backend PR #123 merge: `06c955ff57a75ea73921fd8e676787a4ebc2e0ae`.
 
-Backend PR #122 added the injected staging composition core. Backend PR #123 added the reusable callback-form synthetic auth lease and proved integration with that composition. Neither change enabled a public media capability or performed a real staging call.
+Backend PR #122 added the injected staging managed-media composition core. Backend PR #123 added the reusable callback-form synthetic auth lease and proved that an owner-bound composed scenario can run before mandatory account deletion and session-revocation verification. Neither PR enabled a public capability or made a real staging call.
 
-## Existing mobile layers
+## Completed mobile slices
 
-### Strict contracts and parsers
+### PR #396 — architecture analysis
 
-`src/api/social/media-contracts.ts` and `src/api/social/media-parsers.ts` own the fail-closed DTO boundary for:
+- exact green head: `aeacf4af597f61e03e87dd4b15467fc9f0456a19`;
+- merge: `e6b8773e7fe9ac0c1e2f87444cfdf8bb99b43ea7`;
+- Mobile CI run: #1646.
 
-- owner media assets;
-- signed uploads;
-- managed public descriptors;
-- avatar binding;
-- lifecycle states and state versions.
+The slice mapped strict contracts/parsers, authenticated API transport, signed upload, image preparation, restart-safe drafts, capability gates, and the two feature controllers. It identified the safe shared lifecycle without changing runtime behavior.
 
-This remains the only place where untrusted backend media payloads become typed mobile data. A composition refactor must not weaken exact-key, schema-version, asset-type, URL, state, or state-version validation.
+### PR #397 — upload composition and workout-post adoption
 
-### Authenticated media API
+- exact green head: `057b5331a7f7c2658ca1726f8ac7c8ee8668e2ae`;
+- merge: `d7b20506363c6be65b7ea7a2bd10b79f01038b23`;
+- Mobile CI run: #1648.
 
-`src/api/social/media-api.ts` owns released authenticated HTTP operations:
+The slice added `managedMediaUploadComposition.ts` and migrated only the workout-post image create/upload/complete path.
+
+### PR #398 — managed-avatar adoption
+
+- exact green head: `ea6b3094807b8ad751200659e5b594d0c484104f`;
+- merge: `146cfd36808d37f49810eca4ec46d2e084c8d6d6`;
+- Mobile CI run: #1650.
+
+The slice adopted the same upload composition core for managed avatars while preserving current-versus-candidate separation and approved-only binding.
+
+### PR #399 — bounded polling extraction
+
+- exact green head: `9aaff9fe2cd4d1a67dc85605b03e1712b4df3ffb`;
+- merge: `e9c923056bbc04a26db7061dcb892d56e6ab0c73`;
+- Mobile CI run: #1652.
+
+The slice added `managedMediaPolling.ts` and replaced only the duplicated bounded polling loops. Domain-specific refresh, validation, binding, attachment, and cleanup remained in their controllers.
+
+Every listed Mobile CI run passed:
+
+- repository file line audit;
+- changed-file line limit;
+- TypeScript;
+- Coach and sync contract tests;
+- complete regression suite;
+- Expo export;
+- Expo Doctor.
+
+## Current shared layers
+
+### Strict contract boundary
+
+`src/api/social/media-contracts.ts` and `src/api/social/media-parsers.ts` remain the only trust boundary where untrusted backend media payloads become typed mobile data.
+
+The composition modules do not parse raw responses and do not weaken:
+
+- exact schema versions;
+- exact asset types;
+- owner asset lifecycle states;
+- state-version validation;
+- public descriptor validation;
+- signed upload URL/header validation.
+
+### Authenticated API transport
+
+`src/api/social/media-api.ts` remains responsible for released authenticated HTTP operations:
 
 - create private upload;
 - complete upload;
@@ -44,194 +96,185 @@ This remains the only place where untrusted backend media payloads become typed 
 - delete one owned asset;
 - read and bind the current managed avatar.
 
-It validates asset path segments, create inputs, idempotency-key bounds, and positive expected state versions before requests. It must remain transport-focused and must not absorb picker, draft, polling, UI, or domain policy.
+The API layer remains independent from picker, draft, polling, React state, and domain policy.
 
 ### Signed upload transport
 
-`src/api/social/signed-media-upload.ts` owns the direct signed `PUT` boundary. It:
+`src/api/social/signed-media-upload.ts` remains responsible for the direct signed `PUT` boundary:
 
-- reads the selected local file;
-- verifies exact byte size;
-- preserves the expected media type;
-- rejects expired upload grants;
-- sends only the signed URL and headers returned by the backend;
-- supports progress and cancellation;
-- maps local-file, size, network, rejection, expiry, and abort failures to bounded codes.
+- local-file read;
+- exact byte-size verification;
+- media-type preservation;
+- signed-grant expiry check;
+- upload progress;
+- abort support;
+- bounded transport failures.
 
-The signed URL and headers are ephemeral and are not persisted. This transport should remain independent from avatar and workout-post policy.
+Signed URLs and signed headers remain ephemeral and are never persisted.
 
-### Domain-specific image preparation
+### Upload composition core
 
-The current image-selection and preprocessing modules are intentionally separate:
+`src/features/social/managedMediaUploadComposition.ts` now owns only the mechanics shared by both current consumers:
 
-- `socialManagedAvatarImage.ts` for avatar selection, recovery, resize, and compression;
-- `socialWorkoutPostImage.ts` for workout-post image selection, recovery, resize, and compression.
+```text
+create private upload
+→ validate created owner asset
+→ persist restart-safe draft identity
+→ verify request is current
+→ signed PUT with bounded progress
+→ verify request is current
+→ complete with exact created state version
+→ validate completed owner asset
+→ publish completed owner asset
+```
 
-Their output shapes are similar, but crop/aspect, dimensions, quality, picker recovery, and user-facing policy may diverge. A shared composition layer may consume prepared media, but should not merge these modules prematurely.
+The core exposes narrow callbacks for:
 
-### Domain-specific draft persistence
+- create;
+- draft persistence;
+- signed upload;
+- completion;
+- domain asset validation;
+- current-request checks;
+- stage, progress, and asset publication.
 
-Restart-safe drafts are also intentionally separate:
+It does not know about React, localization, account/session key construction, avatar binding, workout-post publication, or public rendering.
+
+### Bounded polling core
+
+`src/features/social/managedMediaPolling.ts` owns only:
+
+- exact attempt and interval bounds;
+- current-request cancellation before each refresh;
+- one caller-supplied refresh per attempt;
+- caller-supplied terminal-state detection;
+- the existing wait after each non-terminal attempt;
+- terminal, exhausted, and cancelled outcomes.
+
+It does not decide how an asset is refreshed, validated, bound, attached, deleted, or presented.
+
+## Intentionally domain-specific layers
+
+### Image selection and preprocessing
+
+These remain separate:
+
+- `socialManagedAvatarImage.ts`;
+- `socialWorkoutPostImage.ts`.
+
+Their crop/aspect, dimensions, quality, picker recovery, and user-facing policies may diverge. A shared prepared-media shape is sufficient; a common picker/preprocessor would create unnecessary coupling.
+
+### Restart-safe drafts
+
+These remain separate:
 
 - managed-avatar drafts are account-scoped;
-- workout-post media drafts are account-and-session-scoped.
+- workout-post drafts are account-and-session-scoped.
 
-Both persist only asset identity and local preview URI. They do not persist tokens, signed URLs, signed headers, private bytes, or backend response bodies. A shared composition layer must depend on a narrow draft adapter rather than inventing one universal storage key or schema.
+Both persist only asset identity and local preview URI. They do not persist tokens, signed grants, headers, private bytes, or backend response bodies.
 
-### Feature controllers
+A universal draft key or schema would increase the risk of cross-account or cross-session leakage.
 
-`useSocialManagedAvatar.ts` and `useSocialWorkoutPostMedia.ts` currently compose the full client lifecycle inside React hooks.
+### Managed avatar controller
 
-Both controllers perform the same structural sequence:
+`useSocialManagedAvatar.ts` remains responsible for:
 
-1. capability/account precondition;
-2. sequence isolation and cancellation of stale work;
-3. image preparation;
-4. upload creation with a bounded idempotency key;
-5. restart-safe draft persistence;
-6. signed upload with progress and abort support;
-7. completion with exact state version;
-8. bounded owner-asset polling;
-9. refresh, delete, and draft cleanup;
-10. bounded localized error mapping.
+- profile existence precondition;
+- current attached avatar versus replacement candidate;
+- preserving the current approved avatar while a candidate is pending or rejected;
+- approved-only binding with a public descriptor;
+- account-scoped recovery;
+- candidate/current deletion policy;
+- localized avatar errors.
 
-The duplication is architectural rather than merely syntactic: each hook currently owns orchestration, state transitions, cancellation, polling, and cleanup in addition to domain policy and React presentation state.
+### Workout-post media controller
 
-## Required domain differences
+`useSocialWorkoutPostMedia.ts` remains responsible for:
 
-A reusable composition layer must preserve these differences rather than erase them.
+- account-and-session-scoped draft ownership;
+- replacement deletion before a new upload;
+- exact `workout_post_image` validation;
+- approved-only post attachment;
+- publication blocking while a selected asset is non-approved;
+- local draft release after successful publication;
+- localized workout-post media errors.
 
-### Managed avatar
+## Preserved security and correctness boundaries
 
-- keeps both a currently attached asset and a replacement candidate;
-- preserves the current approved avatar while a replacement is pending or rejected;
-- binds only an approved candidate with a public descriptor;
-- requires an existing Social profile;
-- uses an account-scoped draft;
-- deletion can target either the candidate or current avatar.
+The completed extraction preserves:
 
-### Workout-post image
-
-- owns at most one draft asset for one account and workout session;
-- produces an attachment only for an approved `workout_post_image` asset;
-- blocks publication while a selected asset is non-approved;
-- releases local draft state after successful post publication;
-- replacing or removing a draft may delete the previous private asset;
-- uses an account-and-session-scoped draft.
-
-These policies belong in thin domain adapters/controllers above the reusable lifecycle composition.
-
-## Current capability boundary
-
-Managed avatar and workout-post image operations are gated by strict backend capability state. When the capability is unavailable, the hooks must stop before picker recovery, upload creation, signed transfer, completion, polling, binding, refresh, or deletion.
-
-The refactor must preserve:
-
-- fail-closed behavior before capability confirmation;
-- cancellation and stale-response isolation across account/session changes;
-- text-only workout-post publication when image capability is unavailable;
+- fail-closed capability gating before picker recovery or any media request;
+- account/session sequence isolation;
+- signed upload cancellation on stale work;
+- exact created asset ID and state version at completion;
+- no automatic create or complete retry;
+- no signed grant persistence;
+- no direct provider or storage SDK in mobile;
 - no raw backend/provider/status/error text in presentation;
-- no direct provider or storage SDK in mobile.
+- current avatar preservation during replacement processing;
+- text-only workout-post publication when image capability is unavailable;
+- domain-specific cleanup that cannot generically delete a bound avatar or published post asset.
 
-## Composition seam
+## Residual duplication audit
 
-The appropriate reusable seam is the private client lifecycle from a prepared local media item through one owned terminal asset:
+The remaining similarities are not currently suitable for another generic layer.
 
-```text
-prepared local media
-→ create private upload
-→ persist restart-safe draft
-→ signed PUT
-→ complete with exact state version
-→ bounded owner polling
-→ terminal owner asset
-→ domain-specific bind/attach/delete/release policy
-```
+### Idempotency-key generation
 
-The composition layer should own only cross-domain mechanics:
+Both controllers generate a bounded key, but use domain-specific prefixes and invoke generation at different domain decision points. Extracting a generic helper would save only a few lines while hiding useful identity context. Keep local unless a third consumer appears or key policy becomes centrally versioned.
 
-- operation sequencing;
-- cancellation checks;
-- create/upload/complete ordering;
-- bounded polling;
-- progress forwarding;
-- exact state-version use;
-- generic cleanup hooks;
-- typed lifecycle outcomes.
+### Sequence and abort ownership
 
-It should not own:
+Both hooks use sequence refs and abort controllers, but ownership is tied to React lifecycle, account/session changes, picker recovery, replacement, and publication release. A generic controller would need domain callbacks for nearly every transition and would increase indirection.
 
-- React rendering or localized copy;
-- image picker configuration or preprocessing policy;
-- account/session key construction;
-- avatar binding rules;
-- workout-post attachment rules;
-- publication eligibility;
-- public descriptor rendering;
-- capability loading;
-- raw API parsing;
-- persistence implementation.
+### Restore, refresh, delete, and cleanup
 
-## Dependency direction
+The shapes look similar but the invariants differ:
 
-The intended dependency direction is:
+- avatar restore compares candidate identity with the attached asset and may bind;
+- workout restore validates session ownership and attachment type;
+- avatar delete can target candidate or current asset;
+- workout delete releases one session draft;
+- avatar cleanup can change the public profile;
+- workout cleanup must not remove an already published post asset.
+
+These operations should remain explicit in domain controllers.
+
+### Error mapping and visible state
+
+Avatar and workout-post media use different copy and policy outcomes. Centralizing errors would either leak raw failure detail or create a large cross-domain mapping table. Keep bounded domain mapping.
+
+## Composition boundary decision
+
+For the current two consumers, the mobile composition layer is source-complete at:
 
 ```text
-screen/card
-→ domain hook/controller
-→ managed-media composition layer
-→ narrow draft/API/signed-upload/time ports
-→ existing strict API clients and storage modules
+strict API and signed transport
+→ shared upload composition
+→ shared bounded polling
+→ domain controller policy
+→ presentation
 ```
 
-The composition layer must not import screens, cards, localization, Expo Router, profile forms, post forms, or provider-specific code.
+Do not introduce a generic managed-media React hook, universal draft store, universal cleanup policy, or combined avatar/workout controller without a concrete third consumer or a demonstrated correctness defect.
 
-## Risks to prevent
+## Next bounded work
 
-- A generic hook that combines avatar and workout-post UI state would increase coupling rather than reduce it.
-- Moving strict parsing into the composition layer would duplicate the trust boundary.
-- Persisting signed upload grants for restart recovery would expand secret lifetime and is prohibited.
-- Reusing one draft key shape could cause cross-account or cross-session leakage.
-- Automatic retry of create or complete without preserving the same idempotency identity and state version could violate server contracts.
-- Polling without sequence isolation could materialize stale asset state after account, session, replacement, or capability changes.
-- A cleanup abstraction must not delete a currently bound approved avatar or a published post asset.
-- Error normalization must remain bounded and domain presentation must stay localized.
+The next safe step is not another abstraction pass. It is a targeted residual integration audit against future media consumers and canonical roadmap synchronization.
 
-## Independent follow-on slices
+A future implementation slice should begin only when one of these conditions is true:
 
-### Slice 2 — composition-layer extraction
+1. a third managed-media consumer needs the same upload/polling mechanics;
+2. an observed defect shows that sequence, cleanup, or terminal-state policy is inconsistent;
+3. released API contracts add a new lifecycle phase requiring shared orchestration;
+4. product requirements introduce multi-asset composition with explicit ownership semantics.
 
-Create a focused non-React module and pure lifecycle state model without migrating either feature flow. The diff should establish dependency direction only and preserve all current behavior.
+Until then, preserve the current small shared cores and keep domain behavior visible.
 
-### Slice 3 — narrow interfaces
+## Audit exit criteria
 
-Add explicit ports for:
-
-- create/complete/read/delete media operations;
-- signed upload;
-- draft save/clear;
-- bounded wait/clock;
-- cancellation/current-request checks;
-- domain cleanup callbacks.
-
-No interface should expose tokens, signed grants after upload, raw responses, or provider details.
-
-### Slice 4 — minimal implementation
-
-Migrate one flow first, preferably workout-post media because it has one draft asset and no separate current-versus-candidate binding state. Keep the managed-avatar hook unchanged until the first migration is green.
-
-### Slice 5 — deterministic tests
-
-Cover exact operation order, idempotency identity preservation, state-version use, signed-upload expiry/failure mapping, cancellation, stale-sequence isolation, polling bounds, terminal states, draft cleanup, and callback failure containment.
-
-### Slice 6 — second-flow adoption
-
-Only after the first migrated flow is green, adapt managed-avatar composition while preserving current-avatar/candidate separation and approved-only binding. This must be a separate PR.
-
-## Exit criteria for this analysis slice
-
-- current layers and dependency direction are explicit;
-- shared mechanics are separated from domain policy;
-- security, privacy, persistence, capability, and cancellation invariants are recorded;
-- subsequent work is divided into independently reviewable PRs;
-- no runtime or activation behavior changes in this slice.
+- exact completed PR and merge evidence is recorded;
+- shared mechanics and domain policy are explicitly separated;
+- remaining duplication has been evaluated rather than automatically extracted;
+- security, persistence, capability, and cancellation boundaries remain explicit;
+- no runtime or activation behavior changes in this audit slice.
