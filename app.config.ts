@@ -11,5 +11,17 @@ const environment = (
   }
 ).process?.env;
 
+const requireStaticExpoConfig = (
+  config: ConfigContext['config'],
+): ExpoConfig => {
+  if (!config.name || !config.slug) {
+    throw new Error('Static Expo configuration must define name and slug');
+  }
+  return config as ExpoConfig;
+};
+
 export default ({ config }: ConfigContext): ExpoConfig =>
-  withPasswordResetAppLink(config, environment?.[PASSWORD_RESET_APP_LINK_ENV]);
+  withPasswordResetAppLink(
+    requireStaticExpoConfig(config),
+    environment?.[PASSWORD_RESET_APP_LINK_ENV],
+  );
