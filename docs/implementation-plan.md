@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `1e4bcb4dbd7d7aba8ee16ada91602e21ee401e44`;
-- backend `main`: `ecd8a2e425b032be323b9852ba9e60221a1ca968`;
+- mobile `main`: `cf3de6bd746493ffbf8d4d3159c302dadb6c5c30`;
+- backend `main`: `44604b216bef723680fdd12f3a5d9d100bb70e3``;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -50,6 +50,10 @@ Before this documentation synchronization slice:
 - backend PR #110 merge: `2c683c95274409aa5958033e96cb8acf67ca8b56`;
 - backend PR #111 exact green head: `1f0d08ff6eccec676c94bd231e974ad98cdd5176`;
 - backend PR #111 merge: `ecd8a2e425b032be323b9852ba9e60221a1ca968`;
+- mobile PR #381 exact green head: `e57d84e89499f34c3cdaf46b73a76548d80b4e16`;
+- mobile PR #381 merge: `cf3de6bd746493ffbf8d4d3159c302dadb6c5c30`;
+- backend PR #112 exact green head: `ef779e42f6d28f4c8c103a4a2961d1ee8c26b436`;
+- backend PR #112 merge: `44604b216bef723680fdd12f3a5d9d100bb70e3b`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -235,47 +239,39 @@ Backend PR #109, exact green head `d3b6a1599352a79a4dd2bb8d361148d605de3ec3`, me
 
 P4 autonomous source preparation is complete. Corpus collection, credentials, provider-account validation, real calls, representative non-production execution, quota/latency evidence, aggregate review, threshold or policy proposals, product enablement, public uploads, production activation, and every calibration claim remain external and require direct authorization.
 
-## P5 active source boundary
+## P5 current source boundary
 
 The existing backend and mobile foundation remains unchanged:
 
 - generic accepted responses do not disclose account existence;
 - hashed one-time tokens retain cooldown, expiry, replay rejection, undelivered-token invalidation, password replacement, and all-session revocation;
 - localized capability-gated forgot/reset routes retain strict API states, password validation, token hygiene, success handling, and forced return to sign-in;
-- production app/universal-link configuration, provider operation, and physical-device validation remain open.
+- production app/universal-link configuration and physical-device validation remain open.
 
-Backend PR #110, exact green head `54fe3bcf57745caddb1177ef6c75453befed407f`, merge `2c683c95274409aa5958033e96cb8acf67ca8b56`, completed the selected Resend request/template/parser source contract:
+Backend PR #110, exact green head `54fe3bcf57745caddb1177ef6c75453bfed407f`, merge `2c683c95274409aa5958033e96cb8acf67ca8b56`, completed the selected Resend request, bilingual template, trusted reset-link, strict parser, deterministic idempotency, and no-network contract boundary.
 
-- fixed `POST https://api.resend.com/emails` endpoint and bounded Bearer, JSON, user-agent, and idempotency headers;
-- trusted HTTPS reset-route construction with one URL-encoded token query parameter;
-- bounded bilingual EN/RU subject, plain-text, and HTML content with exact expiry and security guidance;
-- exact request fields limited to sender, one recipient, subject, HTML, and plain text;
-- strict bounded success parsing and constant non-reflective request/parser failures;
-- deterministic no-network contract, link, template, idempotency, malformed-response, and API-key non-disclosure tests;
-- no account, credential, sender/domain, DNS, network call, runtime retry, factory, environment selector, readiness, capability, deployment, or activation change.
+Backend PR #111, exact green head `1f0d08ff6eccec676c94bd231e974ad98cdd5176`, merge `ecd8a2e425b032be323b9852ba9e60221a1ca968`, completed the production-shaped bounded Resend runtime, adapter-owned retry and failure mapping, stable request identity, strict success parsing, provider-message discard, final constant error, and token-invalidation preservation.
 
-Backend PR #111, exact green head `1f0d08ff6eccec676c94bd231e974ad98cdd5176`, merge `ecd8a2e425b032be323b9852ba9e60221a1ca968`, completed the production-shaped Resend runtime boundary:
+Backend PR #112, exact green head `ef779e42f6d28f4c8c103a4a2961d1ee8c26b436`, merge `44604b216bef723680fdd12f3a5d9d100bb70e3b`, completed the backend configuration, composition, readiness, and capability boundary:
 
-- one bounded shared provider HTTP call per adapter attempt with a fixed request body and stable deterministic idempotency identity;
-- at most three adapter-owned attempts with bounded timeout, capped Retry-After, and injected deterministic sleep;
-- strict HTTP-200 success parsing with provider message-ID discard;
-- bounded documented Resend error-name classification while ignoring messages and unknown fields;
-- retry only for timeout/network/open-circuit, transient HTTP, `5xx`, rate-limit, and concurrent-idempotency outcomes;
-- terminal authentication, sender, validation, quota, invalid-idempotency, security, cancellation, malformed-success, and contract-drift outcomes;
-- one constant final delivery error preserving password-reset token invalidation after final failure;
-- deterministic no-network runtime, retry, terminal, malformed-success, optional-transport-field, and redaction coverage;
-- no environment selector, composition root, source-support/readiness, capability, route, database, mobile, credential, provider account, real delivery, deployment, or activation change.
+- replaced the generic `external_http` selector with the explicit `resend` selector;
+- added strict backend-only API-key, sender-address, trusted HTTPS reset-route, timeout, and attempt configuration;
+- kept the fixed Resend endpoint in source and rejected incomplete, malformed, fallback, unavailable, or unsafe enabled production configuration;
+- composed the adapter only in the application provider root through the shared bounded provider HTTP transport;
+- preserved separate source-supported, configured, ready, and explicitly enabled states;
+- kept complete credentials inert until the password-reset product flag is enabled;
+- retained unavailable fail-closed defaults, generic accepted responses, and provider-neutral service and route contracts;
+- added deterministic no-network environment, factory, fixed-endpoint, readiness, capability, and secret-redaction coverage;
+- made no credential, sender-domain, DNS, provider-account, real-delivery, deployment, environment-activation, or capability-enablement change.
 
-Complete the Resend backend composition and readiness boundary next without activating delivery:
+The backend Resend delivery source boundary is complete. Complete release-grade mobile app/universal-link source configuration next without performing a native build or activation:
 
-- add an explicit `resend` selector and strict environment schema for API key, verified sender, trusted reset-route base, bounded transport timeout, and required direct-HTTP user agent;
-- keep all values backend-only and redact provider identity, secrets, email, token, reset URL, sender, request body, provider payload/message/ID, endpoint, and full idempotency key from summaries, capabilities, errors, and logs;
-- compose the complete Resend adapter only in the application root through the existing shared bounded HTTP transport and explicitly scoped circuit containment;
-- update production source-support validation only for the complete selected adapter and reject incomplete, malformed, fallback, unavailable, or unsafe enabled production configuration;
-- preserve separate configured, ready, and enabled states, unavailable safe defaults, generic accepted responses, and explicit product-flag ownership;
-- add deterministic environment, factory, source-support, production-validation, readiness, capability, redaction, and no-network tests;
-- defer release-grade mobile app/universal-link source configuration to the following bounded mobile slice;
-- keep sender-domain/DNS setup, provider account/credentials, real delivery, deployment, OTA/native builds, physical-device validation, and production activation external.
+- select the exact trusted HTTPS reset route already consumed by the mobile reset screen and backend link builder;
+- add production iOS universal-link and Android app-link source configuration with explicit host/path scoping and no broad catch-all routing;
+- keep token parsing strict, bounded, non-persistent, and removed from navigation state after completion or rejection;
+- preserve capability gating, generic accepted responses, sign-in cleanup, localized EN/RU copy, and existing authentication/session behavior;
+- add deterministic route, host/path rejection, duplicate-token, invalid/expired-token, completion cleanup, cold-start, warm-navigation, and accessibility coverage that does not require a native build;
+- document the external association-file, DNS/domain, native-build, physical-device, and real-delivery gates without claiming them complete.
 
 No credential, sender-domain, DNS, provider-account, real delivery, backend deployment, migration execution outside CI, environment activation, OTA, or native build is authorized.
 
