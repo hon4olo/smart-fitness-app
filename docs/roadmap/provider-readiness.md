@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `4e7149c6f36787580a4f21161c7c4dd4f434f5b4`;
-- backend `main`: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
+- mobile `main`: `2aaaa59dff69729e0d0f0310b96e92ba6544b2d4`;
+- backend `main`: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -46,6 +46,8 @@ Before this documentation synchronization slice:
 - backend PR #106 merge: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
 - backend PR #107 exact green head: `ce50efbd088200c572116b62bf627dc25e026b11`;
 - backend PR #107 merge: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
+- backend PR #108 exact green head: `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`;
+- backend PR #108 merge: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -268,17 +270,30 @@ P3 activation boundary:
 
 ## Phase P4 — moderation calibration harness
 
-Status: active. The provider-injected aggregate calibration core is merged; CLI/filesystem safety, operational corpus procedures, and representative authorized execution remain open.
+Status: active. The strict provider-injected calibration core and bounded local CLI/filesystem/reporting source boundary are merged. A source-only operator runbook remains; representative authorized execution and every calibration claim remain external.
 
-- [ ] add an internal CLI that reads a local manifest of representative test images and expected outcomes;
-- [x] add the strict versioned manifest and provider-injected calibration core through backend PR #107 exact green head `ce50efbd088200c572116b62bf627dc25e026b11`, merge `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
-- [x] run injected classifier and OCR adapters through the existing provider runners, injected OCR text moderation, and deterministic fitness-aware policy; selected-provider CLI composition remains open;
+Merged evidence:
+
+- backend PR #107 exact green head: `ce50efbd088200c572116b62bf627dc25e026b11`;
+- backend PR #107 merge: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
+- backend PR #108 exact green head: `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`;
+- backend PR #108 merge: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
+- both exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+
+- [x] add the strict versioned manifest and provider-injected calibration core;
+- [x] add an internal CLI with strict bounded arguments and deterministic aggregate process states/exit codes;
+- [x] read manifest and JPEG files only inside an explicitly selected canonical local corpus root with traversal, absolute-path, backslash, symlink, non-regular-file, malformed-manifest, invalid-JPEG, and size rejection;
+- [x] run configured classifier and OCR adapters through the existing provider runners, pure OCR text moderation, and deterministic fitness-aware policy without opening the database;
 - [x] report aggregate allow, review, reject, expected/mismatched, false-positive, false-negative, undetermined, input, timeout, invalid, unavailable, and failed counts;
-- [x] group results by the bounded ordinary-gym, sportswear, bodybuilding-stage, progress-photo, possible-minor, sexual-context, violence, text-overlay, prohibited-content, and ambiguous-case categories;
-- [x] exclude case IDs, paths, raw images, OCR plaintext, signed URLs, credentials, identity, provider payloads/messages/identifiers, endpoints, free text, and exception details from reports;
-- [x] support deterministic aggregate-only JSON and CSV output suitable for later threshold review;
-- [ ] complete operational corpus authorization, canonical-root access, retention, deletion, and result-review procedures; the architecture-level privacy and corpus boundary is documented;
-- [ ] do not claim calibration until the harness is run against a representative authorized staging corpus.
+- [x] group results by bounded ordinary-gym, sportswear, bodybuilding-stage, progress-photo, possible-minor, sexual-context, violence, text-overlay, prohibited-content, and ambiguous-case categories;
+- [x] exclude case IDs, roots/paths, raw images/hashes, OCR plaintext, signed URLs, credentials, identity, provider payloads/messages/identifiers, endpoints, free text, and exception details from reports and process output;
+- [x] support deterministic aggregate-only JSON and CSV output with explicit paths, exclusive no-overwrite creation, mode `0600`, synchronization, and rollback after partial failure;
+- [x] observe interruption before the next case while preserving existing provider-attempt/timeout ownership and avoiding an invented cancellation contract;
+- [x] add deterministic filesystem, CLI, text-policy, output, composition, interruption, redaction, and no-network coverage;
+- [ ] add an operator-facing non-production runbook covering exact invocation, fail-closed preflight, authorized corpus purpose/provenance/access/retention/deletion, aggregate review ownership, threshold-decision boundaries, private evidence, cleanup verification, and accidental-inclusion incident response;
+- [ ] do not claim calibration until the harness is run against a representative authorized non-production corpus with explicit approval and reviewed aggregate evidence.
+
+No corpus, real media, credential values, provider account, real provider call, threshold/policy change, route, database schema, deployment, worker scheduling, environment activation, product enablement, public upload, OTA, native build, or calibration claim was added or performed.
 
 ## Phase P5 — password-reset product and delivery readiness
 

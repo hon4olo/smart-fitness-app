@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `4e7149c6f36787580a4f21161c7c4dd4f434f5b4`;
-- backend `main`: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
+- mobile `main`: `2aaaa59dff69729e0d0f0310b96e92ba6544b2d4`;
+- backend `main`: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -42,6 +42,8 @@ Before this documentation synchronization slice:
 - backend PR #106 merge: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
 - backend PR #107 exact green head: `ce50efbd088200c572116b62bf627dc25e026b11`;
 - backend PR #107 merge: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
+- backend PR #108 exact green head: `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`;
+- backend PR #108 merge: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -218,22 +220,31 @@ Backend PR #107, exact green head `ce50efbd088200c572116b62bf627dc25e026b11`, me
 - strict versioned manifest, opaque IDs, safe relative JPEG paths, expected outcomes, and bounded fitness-specific categories;
 - existing classifier/OCR provider runners, injected OCR text moderation, and existing deterministic media policy;
 - aggregate actual/expected decisions, mismatches, false-positive/false-negative, undetermined, and bounded failure counts;
-- aggregate-only deterministic JSON/CSV output with no case/path/media/OCR/provider/secret/identity/error details;
+- aggregate-only deterministic JSON/CSV rendering with no case/path/media/OCR/provider/secret/identity/error details;
 - synthetic no-network tests and architecture documentation;
 - no corpus, real image, credential, real call, threshold/policy change, deployment, activation, or calibration claim.
 
-Complete the source-only CLI/filesystem boundary next:
+Backend PR #108, exact green head `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`, merge `a0f97680189b6daa05a2b5fc22a469d687df23c9`, completed the bounded CLI/filesystem/reporting source boundary:
 
-- add strict bounded CLI parsing for corpus root, manifest, JSON output, and optional CSV output;
-- canonicalize the corpus root and reject absolute manifest image paths, traversal, symlink escapes, non-regular files, unsupported MIME/signatures, and over-limit manifest/image bytes;
-- compose the selected classifier/OCR providers and OCR text moderator only after configuration validation, without reflecting secrets or OCR text;
-- write reports with exclusive creation, mode `0600`, no overwrite, deterministic content, and partial-output cleanup;
-- emit only bounded versioned aggregate process status and deterministic exit codes;
-- add deterministic filesystem, parser, output, failure, interruption, redaction, and no-network tests;
-- add operational corpus authorization, access, retention, deletion, and result-review procedures;
-- do not run a representative corpus, make a real provider call, tune thresholds, or claim calibration in autonomous source work.
+- strict CLI arguments for corpus root, manifest, JSON output, and optional CSV output with deterministic aggregate exit states;
+- canonical-root containment with traversal, absolute-path, backslash, symlink, non-regular-file, size, malformed-manifest, and invalid-JPEG rejection;
+- existing JPEG validation, classifier/OCR runners, configured provider composition, and pure non-persisting OCR text moderation;
+- exclusive mode-`0600` no-overwrite JSON/CSV output, deterministic content, synchronization, and partial-output rollback;
+- interruption observation before the next sequential case without inventing provider cancellation;
+- deterministic filesystem, parser, text-policy, output, composition, interruption, redaction, and no-network tests;
+- aggregate-only reports/process output with no case IDs, roots/paths, media bytes/hashes, OCR plaintext, provider payloads/messages/identifiers, endpoints, credentials, identity, free text, or exception details;
+- no corpus, real call, threshold/policy change, route, database change, deployment, scheduling, activation, public upload, or calibration claim.
 
-No credentials, real provider call, deployment, migration execution outside CI, worker scheduling, environment activation, product enablement, public upload activation, OTA, or native build is authorized.
+Complete the remaining source-only operator-runbook boundary next:
+
+- document the exact non-production CLI invocation shape without credential values or destructive defaults;
+- require fail-closed configuration, provider readiness, canonical-root, manifest, output-parent, disk-space, and no-existing-output preflight;
+- define authorized corpus purpose/provenance, minimum access, bounded retention, secure deletion, and accidental-inclusion incident handling;
+- define aggregate result review ownership, threshold-decision ownership, and the prohibition on treating synthetic tests as quality evidence;
+- define interruption/retry rules, private output handling, report/corpus deletion verification, and privacy-safe operator evidence;
+- keep representative corpus execution, real provider calls, provider-account/quota/latency evidence, threshold changes, product enablement, public uploads, and every calibration claim external.
+
+No credentials, real provider call, corpus execution, deployment, migration execution outside CI, worker scheduling, environment activation, product enablement, public upload activation, OTA, or native build is authorized.
 
 ## Execution rules
 
