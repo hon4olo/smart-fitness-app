@@ -3,9 +3,27 @@ from pathlib import Path
 WORKFLOW_PATH = Path(
     '.github/workflows/p5-password-reset-completion-roadmap.yml'
 )
+PLAN_PATH = Path('docs/implementation-plan.md')
 START_MARKER = "          python - <<'PY'\n"
 END_MARKER = "          PY\n"
 INDENT = '          '
+
+plan = PLAN_PATH.read_text()
+malformed_backend_baseline = (
+    '- backend `main`: `44604b216bef723680fdd12f3a5d9d100bb70e3``;'
+)
+normalized_backend_baseline = (
+    '- backend `main`: `44604b216bef723680fdd12f3a5d9d100bb70e3b``;'
+)
+if plan.count(malformed_backend_baseline) != 1:
+    raise SystemExit('malformed backend baseline marker missing')
+PLAN_PATH.write_text(
+    plan.replace(
+        malformed_backend_baseline,
+        normalized_backend_baseline,
+        1,
+    )
+)
 
 workflow = WORKFLOW_PATH.read_text()
 start = workflow.find(START_MARKER)
