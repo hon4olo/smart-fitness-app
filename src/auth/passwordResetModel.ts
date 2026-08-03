@@ -1,5 +1,7 @@
 import { isApiError } from '@/api/client';
 
+import { isValidPasswordResetToken } from './passwordResetLink';
+
 export type ForgotPasswordErrors = {
   email?: string;
 };
@@ -25,7 +27,7 @@ export const validateResetPassword = (input: {
   confirmPassword: string;
 }): ResetPasswordErrors => {
   const errors: ResetPasswordErrors = {};
-  if (input.token.trim().length < 32) {
+  if (!isValidPasswordResetToken(input.token.trim())) {
     errors.token = 'This reset link is invalid or incomplete.';
   }
   if (!input.newPassword) {
@@ -43,6 +45,17 @@ export const validateResetPassword = (input: {
 
 export type PasswordResetSubmissionMode = 'forgot' | 'reset';
 
+export const isRejectedPasswordResetTokenError = (error: unknown): boolean =>
+  isApiError(error) &&
+  (error.code === 'validation_error' ||
+    error.code === 'unauthorized' ||
+    error.code === 'not_found' ||
+    error.code === 'conflict' ||
+    error.status === 400 ||
+    error.status === 401 ||
+    error.status === 404 ||
+    error.status === 409);
+
 export const resolvePasswordResetSubmissionError = (
   error: unknown,
   mode: PasswordResetSubmissionMode,
@@ -59,17 +72,7 @@ export const resolvePasswordResetSubmissionError = (
   if (error.code === 'rate_limited' || error.status === 429) {
     return 'Too many attempts. Wait a moment and try again.';
   }
-  if (
-    mode === 'reset' &&
-    (error.code === 'validation_error' ||
-      error.code === 'unauthorized' ||
-      error.code === 'not_found' ||
-      error.code === 'conflict' ||
-      error.status === 400 ||
-      error.status === 401 ||
-      error.status === 404 ||
-      error.status === 409)
-  ) {
+  if (mode === 'reset' && isRejectedPasswordResetTokenError(error)) {
     return 'This reset link is invalid or expired. Request a new one.';
   }
   if (error.code === 'unavailable' || (error.status ?? 0) >= 500) {
