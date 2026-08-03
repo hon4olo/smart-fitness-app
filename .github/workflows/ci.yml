@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -16,7 +16,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: agent/p6-domain-association-roadmap-sync
           fetch-depth: 0
 
       - name: Set up Node.js
@@ -27,20 +26,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Synchronize domain association roadmap once
-        run: |
-          python scripts/run-p6-domain-association-roadmap-sync.py
-          npx prettier --write \
-            docs/implementation-plan.md \
-            docs/roadmap/provider-readiness.md
-          git checkout origin/main -- .github/workflows/ci.yml
-          rm -f scripts/run-p6-domain-association-roadmap-sync.py
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A
-          git commit -m "docs: record password reset domain readiness"
-          git push origin HEAD:agent/p6-domain-association-roadmap-sync
 
       - name: Repository file line audit
         id: repository-lines
