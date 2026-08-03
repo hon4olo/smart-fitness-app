@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `f815a38ba92c5432e59adfb52b2b67da4877376f`;
-- backend `main`: `c8d315113881e81f7b6c8522bfb5b439b4b36972`;
+- mobile `main`: `1c49a6f7fd236c30e0539b510d6818470a356273`;
+- backend `main`: `2c683c95274409aa5958033e96cb8acf67ca8b56`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -46,6 +46,8 @@ Before this documentation synchronization slice:
 - backend PR #108 merge: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
 - backend PR #109 exact green head: `d3b6a1599352a79a4dd2bb8d361148d605de3ec3`;
 - backend PR #109 merge: `c8d315113881e81f7b6c8522bfb5b439b4b36972`;
+- backend PR #110 exact green head: `54fe3bcf57745caddb1177ef6c75453befed407f`;
+- backend PR #110 merge: `2c683c95274409aa5958033e96cb8acf67ca8b56`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -233,16 +235,33 @@ P4 autonomous source preparation is complete. Corpus collection, credentials, pr
 
 ## P5 active source boundary
 
-Audit the current password-reset mobile and backend boundaries before implementation, then continue with the smallest complete source-only slice:
+The existing backend and mobile foundation remains unchanged:
 
-- preserve the generic accepted response so account existence is never disclosed;
-- preserve hashed one-time token expiry, replay rejection, delivery-failure invalidation, and all-session revocation;
-- select and document a concrete mail-provider API contract or explicitly approved generic transport before adding provider-specific request/response code;
-- keep credentials and provider calls backend-only and add bounded timeout, provider rejection, malformed-response, retry, redaction, and no-network conformance;
-- construct reset links only from a configured trusted application-link base URL;
-- add EN/RU plain-text and HTML templates with bounded expiry and security guidance;
-- complete mobile forgot/reset route, strict API state, app/universal-link source handling, token hygiene, forced return to sign-in, accessibility, and capability-gated behavior where still missing;
-- keep sender-domain/DNS setup, credentials, real email delivery, deployment, OTA/native build, physical-device deep-link validation, and production activation external.
+- generic accepted responses do not disclose account existence;
+- hashed one-time tokens retain cooldown, expiry, replay rejection, undelivered-token invalidation, password replacement, and all-session revocation;
+- localized capability-gated forgot/reset routes retain strict API states, password validation, token hygiene, success handling, and forced return to sign-in;
+- production app/universal-link configuration, provider operation, and physical-device validation remain open.
+
+Backend PR #110, exact green head `54fe3bcf57745caddb1177ef6c75453befed407f`, merge `2c683c95274409aa5958033e96cb8acf67ca8b56`, completed the selected Resend request/template/parser source contract:
+
+- fixed `POST https://api.resend.com/emails` endpoint and bounded Bearer, JSON, user-agent, and idempotency headers;
+- trusted HTTPS reset-route construction with one URL-encoded token query parameter;
+- bounded bilingual EN/RU subject, plain-text, and HTML content with exact expiry and security guidance;
+- exact request fields limited to sender, one recipient, subject, HTML, and plain text;
+- strict bounded success parsing and constant non-reflective request/parser failures;
+- deterministic no-network contract, link, template, idempotency, malformed-response, and API-key non-disclosure tests;
+- no account, credential, sender/domain, DNS, network call, runtime retry, factory, environment selector, readiness, capability, deployment, or activation change.
+
+Complete the Resend runtime boundary next without changing factory/config/readiness:
+
+- use the existing bounded provider HTTP transport and fixed Resend endpoint;
+- perform exactly one transport call per adapter attempt and preserve one stable idempotency key across bounded adapter-owned retries;
+- define explicit maximum attempts, timeout bounds, and injected sleep/clock behavior without retry multiplication;
+- classify only bounded official status/error identifiers and ignore provider messages and unknown fields;
+- map final success/failure into the existing `PasswordResetDelivery.send()` contract so the password-reset service continues consuming undelivered tokens after final failure;
+- add deterministic timeout, cancellation, network, rate-limit, idempotency/conflict, server, authentication, sender-validation, security, malformed-success, terminal/retryable, and redaction tests without network access;
+- keep email, token, reset URL, API key, sender, provider payload/message/ID, endpoint, body, and full idempotency key out of errors and logs;
+- defer environment selector replacement, composition root, source-support validation, readiness, capabilities, mobile app/universal links, credentials, real delivery, deployment, and activation to later bounded slices.
 
 No credential, sender-domain, DNS, provider-account, real delivery, backend deployment, migration execution outside CI, environment activation, OTA, or native build is authorized.
 
