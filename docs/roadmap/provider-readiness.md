@@ -304,31 +304,35 @@ No corpus, real media, credential values, provider account, real provider call, 
 
 ## Phase P5 — password-reset product and delivery readiness
 
-Status: active. The provider-neutral token/session backend foundation, localized mobile forgot/reset flow, selected Resend request/template/parser contract, bounded runtime, strict configuration, application-root composition, readiness, and capability gating are merged. Release-grade app/universal links, real delivery, physical-device validation, and activation remain open.
+Status: source-complete. Backend token/session behavior, selected Resend contract/runtime/configuration/composition/readiness, localized mobile forgot/reset flow, and production app/universal-link source preparation are merged. Provider accounts, credentials, domains, association files, deployment, real delivery, native builds, physical-device validation, and activation remain external.
 
 Merged evidence:
 
 - backend PR #60 exact head: `af192c4fbe48c82f1d8e3ac5c7f020c294e9fe72f`;
 - backend PR #60 merge: `5aa7fa35b0d3e89fe1e824266fd659d1296a61a3`;
-- mobile PR #200 exact head: `5ff6cdb50fe04e35e7294d241f37ea46924c06c2`;
+- mobile PR #200 exact head: `5ff6cdb50fe04e35d7294d241f37ea46924c06c2`;
 - mobile PR #200 merge: `1b77802bb765a1a3db6b8dcd1f081c210049a2d0`;
-- backend PR #110 exact green head: `54fe3bcf57745caddb1177ef6c75453bfed407f`;
+- backend PR #110 exact green head: `54fe3bcf57745caddb1177ef6c75453befed407f`;
 - backend PR #110 merge: `2c683c95274409aa5958033e96cb8acf67ca8b56`;
 - backend PR #111 exact green head: `1f0d08ff6eccec676c94bd231e974ad98cdd5176`;
 - backend PR #111 merge: `ecd8a2e425b032be323b9852ba9e60221a1ca968`;
 - backend PR #112 exact green head: `ef779e42f6d28f4c8c103a4a2961d1ee8c26b436`;
 - backend PR #112 merge: `44604b216bef723680fdd12f3a5d9d100bb70e3b`;
-- backend PR #110, PR #111, and PR #112 passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+- mobile PR #383 exact green head: `4e596dd3f6abd44284e0baf8509f19296c24178b`;
+- mobile PR #383 merge: `ef048d41f47487fe079afb1b5ac4b49edea36d76`;
+- the exact backend heads passed full Backend CI;
+- the exact mobile PR #383 head passed repository and changed-file line audits, TypeScript, Coach/sync contracts, full regression, Expo export, and Expo Doctor.
 
 Mobile:
 
 - [x] add localized capability-gated `Forgot password` and `Reset password` source routes with strict API states;
 - [x] preserve the generic accepted response so account existence is not disclosed;
 - [x] retain strict password validation, invalid/expired-token handling, success state, session cleanup, and forced return to sign-in;
-- [ ] complete validated production app-link or universal-link configuration for reset tokens;
-- [x] keep reset tokens out of ordinary persisted application state, logs, analytics, and post-completion navigation state;
-- [x] retain source-level accessibility labels, localized copy, and strict request/response parser coverage;
-- [ ] perform authorized native-build and physical-device deep-link validation after source configuration is complete.
+- [x] complete fail-closed production app/universal-link source configuration for the exact HTTPS reset route;
+- [x] reject broad hosts/paths/schemes and duplicate, malformed, padded, short, or long token parameters before reset submission;
+- [x] remove rejected or completed token material from navigation state and keep tokens out of ordinary persisted state, logs, diagnostics, analytics, and user-visible copy;
+- [x] retain source-level accessibility labels, localized copy, strict request/response parser coverage, and deterministic link/token configuration tests;
+- [ ] perform authorized native-build and physical-device deep-link validation after domain association and environment configuration exist.
 
 Backend delivery:
 
@@ -338,23 +342,23 @@ Backend delivery:
 - [x] construct links only from an exact trusted HTTPS application reset-route base;
 - [x] add fixed bounded request construction, non-token idempotency identity, strict success parsing, and contract-level redaction tests;
 - [x] add the production-shaped Resend runtime through the shared bounded provider HTTP transport;
-- [x] add explicit bounded retry ownership and timeout/network/cancellation/rate-limit/idempotency/server/authentication/sender-validation/security/malformed-response mapping;
-- [x] compose the complete adapter in the backend application root and replace the generic `external_http` selector with the documented `resend` selector;
-- [x] update production source-support validation and password-reset configured/ready state only after complete runtime/factory conformance;
-- [x] preserve token invalidation when final delivery fails through the existing password-reset service boundary;
+- [x] add explicit bounded retry ownership and terminal/transient provider failure mapping;
+- [x] compose the complete adapter in the backend application root behind the explicit `resend` selector;
+- [x] update production validation and password-reset configured/ready state only for complete safe composition;
+- [x] preserve token invalidation when final delivery fails;
 - [x] retain password-reset capability gating in the backend contract and pre-auth mobile navigation.
 
-Next bounded slice — mobile app/universal-link source configuration:
+P5 source completion does not constitute operational readiness. External activation requires:
 
-- select and document the exact trusted HTTPS reset route shared with the backend link builder;
-- add production iOS universal-link and Android app-link source configuration with explicit domain and path scoping and no broad catch-all routing;
-- preserve strict bounded token parsing, capability gating, generic accepted responses, localized copy, session cleanup, and forced return to sign-in;
-- ensure rejected, completed, or replaced tokens do not remain in ordinary persisted state, logs, analytics, or post-completion navigation state;
-- add deterministic source-level coverage for accepted host/path, rejected host/path/scheme, cold-start and warm-navigation routing, duplicate token handling, invalid/expired responses, completion cleanup, and accessibility labels;
-- verify source configuration through blocking Mobile CI, Expo export, and Expo Doctor;
-- keep association files, DNS/domain ownership, real email delivery, OTA/EAS publish, native builds, physical-device testing, deployment, and capability activation external.
+- a Resend account, API key, verified sender identity/domain, and approved secret-store configuration;
+- one owned HTTPS link domain configured identically in backend and mobile build environments;
+- deployed Apple App Site Association and Android Digital Asset Links files scoped to `/auth/reset-password`;
+- backend migration execution and deployment in an explicitly targeted non-production environment;
+- a new native build carrying the associated-domain entitlement and verified intent filter;
+- real non-production delivery, expiry, replay, invalidation, reauthentication, cold-start, warm-navigation, and physical-device evidence;
+- explicit password-reset capability enablement only after those gates pass.
 
-External activation later requires a verified sender domain, DNS records, provider account and credentials, backend deployment, production link-domain association, real non-production delivery evidence, physical-device validation, and explicit capability enablement.
+No provider account, credential, sender/domain, DNS, association-file deployment, real email, backend deployment, migration execution outside CI, OTA/EAS publication, native build/install, device validation, or activation was performed during source preparation.
 
 ## Phase P6 — deployment configuration, policies, and runbooks
 
@@ -421,11 +425,10 @@ Engineering drafts do not constitute legal approval.
 
 ## Execution order
 
-1. P5 password-reset app/universal-link source and delivery readiness.
-2. P6 deployment policies, configuration templates, smoke scripts, and runbooks.
-3. P7 explicit sync conflict-choice contract.
-4. P8 diagnostics, fixed-SHA release gate, and Android source preparation.
-5. P9 technical privacy, legal, and analytics prerequisites.
+1. P6 deployment policies, configuration templates, smoke scripts, and runbooks.
+2. P7 explicit sync conflict-choice contract.
+3. P8 diagnostics, fixed-SHA release gate, and Android source preparation.
+4. P9 technical privacy, legal, and analytics prerequisites.
 
 A phase may be divided into bounded backend, mobile, and docs pull requests. After each backend slice, synchronize the canonical mobile roadmap documents.
 
