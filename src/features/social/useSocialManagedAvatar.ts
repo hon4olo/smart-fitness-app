@@ -6,6 +6,7 @@ import {
   type SocialMediaOwnerAssetDto,
 } from "@/api/social";
 
+import { runManagedMediaUploadComposition } from "./managedMediaUploadComposition";
 import type { SocialManagedAvatarCopy } from "./socialManagedAvatarCopy";
 import {
   clearSocialManagedAvatarDraft,
@@ -201,38 +202,42 @@ export const useSocialManagedAvatar = ({
         const prepared = await prepareSocialAvatarImage(selected);
         if (!enabled || requestSequence !== sequence.current) return;
         setPreviewUri(prepared.uri);
-        const created = await api.createAvatarUpload({
-          schemaVersion: 1,
-          assetType: "avatar",
-          mediaType: prepared.mediaType,
-          byteSize: prepared.byteSize,
-          idempotencyKey: createIdempotencyKey(),
-        });
-        setCandidateAsset(created.asset);
-        await saveSocialManagedAvatarDraft(accountId, {
-          assetId: created.asset.assetId,
-          previewUri: prepared.uri,
-        });
         const controller = new AbortController();
         abortController.current = controller;
-        setOperation("uploading");
-        setUploadProgress(0);
-        await uploadSignedSocialMedia({
-          uri: prepared.uri,
-          byteSize: prepared.byteSize,
-          mediaType: prepared.mediaType,
-          upload: created.upload,
+        const result = await runManagedMediaUploadComposition({
+          prepared,
+          createUpload: () =>
+            api.createAvatarUpload({
+              schemaVersion: 1,
+              assetType: "avatar",
+              mediaType: prepared.mediaType,
+              byteSize: prepared.byteSize,
+              idempotencyKey: createIdempotencyKey(),
+            }),
+          persistDraft: (createdAsset) => {
+            setCandidateAsset(createdAsset);
+            return saveSocialManagedAvatarDraft(accountId, {
+              assetId: createdAsset.assetId,
+              previewUri: prepared.uri,
+            });
+          },
+          uploadSigned: uploadSignedSocialMedia,
+          completeUpload: (assetId, expectedStateVersion) =>
+            api.completeMediaUpload(assetId, expectedStateVersion),
+          validateAsset: (candidate) => {
+            if (candidate.assetType !== "avatar") {
+              throw new Error("Invalid managed avatar asset type");
+            }
+          },
+          isCurrent: () => enabled && requestSequence === sequence.current,
+          onAsset: setCandidateAsset,
+          onStage: setOperation,
           onProgress: setUploadProgress,
           signal: controller.signal,
         });
-        if (!enabled || requestSequence !== sequence.current) return;
-        setOperation("completing");
-        const completed = await api.completeMediaUpload(
-          created.asset.assetId,
-          created.asset.stateVersion,
-        );
-        setCandidateAsset(completed);
-        await pollCandidate(completed.assetId, requestSequence);
+        if (result.outcome === "completed") {
+          await pollCandidate(result.asset.assetId, requestSequence);
+        }
       } catch (error) {
         if (requestSequence === sequence.current) {
           setErrorMessage(getSocialManagedAvatarErrorMessage(error, copy));
