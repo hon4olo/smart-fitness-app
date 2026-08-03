@@ -8,12 +8,12 @@ This document is the canonical current execution plan for the mobile and backend
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `b8c8f4c6b36268594932ac4be37ab02bb350b258`;
-- backend `main`: `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`;
-- backend PR #117 exact green head: `ce0555570c7686fd22306d5ac6769c9cafd81e0c`;
-- backend PR #117 merge: `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`;
-- open mobile pull requests: none;
-- open backend pull requests: none;
+- mobile `main`: `5f2ea018e3ab58648821e16aa523bd86c297c412`;
+- backend `main`: `64c04872e0ede26f87dd6017877e15ab218bccc1`;
+- backend PR #118 exact green head: `b91cd1feef7b3ff494e86ba133ac95037fbea677`;
+- backend PR #118 merge: `64c04872e0ede26f87dd6017877e15ab218bccc1`;
+- open mobile pull requests before this documentation slice: none;
+- open backend pull requests after PR #118 merge: none;
 - public media uploads, real provider-backed media processing, and password-reset delivery remain disabled;
 - no provider account, credential, deployment, worker schedule, DNS mutation, native build, or production activation is implied by source completion.
 
@@ -126,6 +126,7 @@ Completed backend evidence:
 - PR #114, exact green head `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`, merge `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`: private-storage, immutable-delivery, CORS, lifecycle, encryption, public-access, and CDN-origin policies;
 - PR #116, exact green head `12ba41f2176079fbb4fbe13fc07e3016c16f5049`, merge `288425d9e8608c56f814af74274301c3940a371c`: Resend DNS classes, Apple AASA, Android Digital Asset Links, exact reset route, environment isolation, and send-only callback boundary;
 - PR #117, exact green head `ce0555570c7686fd22306d5ac6769c9cafd81e0c`, merge `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`: rollout and rollback ordering.
+- PR #118, exact green head `b91cd1feef7b3ff494e86ba133ac95037fbea677`, merge `64c04872e0ede26f87dd6017877e15ab218bccc1`: fail-closed staging smoke-runner foundation with strict disabled-capability verification and privacy-safe evidence.
 
 PR #117 added:
 
@@ -150,19 +151,34 @@ The exact PR #117 head passed:
 - the complete Vitest suite;
 - production startup and `/health` validation.
 
-### Active P6 slice — bounded non-production smoke scripts
+### Completed P6 slice — staging smoke-runner foundation
+
+Backend PR #118, exact green head `b91cd1feef7b3ff494e86ba133ac95037fbea677`, merge `64c04872e0ede26f87dd6017877e15ab218bccc1`, added:
+
+- one fail-closed runner that accepts only an explicit `staging` target, trusted HTTPS DNS hostname, approved synthetic fixture namespace, change ID, exact backend SHA, and matching confirmation before network access;
+- rejection of production, localhost, direct IP, HTTP, embedded credentials, mismatched allowlists, unsafe paths, excessive steps, and unbounded timeouts;
+- mandatory synthetic fixture references for every mutating step;
+- exactly one strict `GET /v1/capabilities` verification using the released schema, a 64 KiB response bound, and `enabled === false` checks for every provider-backed product capability;
+- sequential bounded execution with no automatic retry and stop-on-first transport, status, or verification failure;
+- privacy-safe evidence without response bodies, request bodies, raw errors, tokens, email, signed URLs, object keys, OCR text, media, provider payloads, or raw user identifiers;
+- a redacted CLI, placeholder-only plan, operational runbook, and deterministic injected-transport tests;
+- explicit documentation that this is the safe execution/evidence foundation rather than completed end-to-end provider smoke evidence.
+
+The exact PR #118 head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup/health.
+
+### Active P6 slice — authenticated staging scenario contracts
 
 Next source work:
 
-- add a fail-closed smoke runner that requires an explicit `staging` target, exact API base, approved fixture identity, and explicit confirmation before any network or mutation;
-- add read-only configuration and capability-status checks;
-- add bounded synthetic flows for signed upload, processing, immutable delivery, deletion, and password reset;
-- preserve exact idempotency, anti-enumeration, expiry, replay, invalidation, cleanup, and capability-disabled verification;
-- emit only bounded privacy-safe evidence without credentials, tokens, email, signed URLs, object keys, OCR text, media bytes, raw identifiers, or provider payloads;
-- keep CI deterministic and offline through injected transports and fixtures;
+- define bounded synthetic authentication without persisting access tokens, refresh tokens, email, passwords, or raw auth responses in evidence;
+- add typed secret-in-memory value capture for asset IDs, state versions, signed upload instructions, and reset tokens without exposing them to process output or evidence;
+- compose the released managed-media create, signed upload, complete, status/poll, immutable-delivery, delete, expiry, recovery, cleanup, replay, and idempotency contracts;
+- compose the released password-reset accepted-response, approved non-production delivery, expiry, invalid-token, replay, invalidation, password replacement, and session-revocation contracts;
+- require disabled-capability verification around applicable pre-enablement flows;
+- keep all CI deterministic and offline through injected transports, synthetic fixtures, and strict response parsers;
 - keep real provider calls, deployment, migration execution outside CI, worker scheduling, DNS, native builds, device testing, and capability activation external.
 
-Remaining P6 work after the smoke-script slice:
+Remaining P6 work after the authenticated-scenario slice:
 
 - key rotation;
 - provider outage handling;
