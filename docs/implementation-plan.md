@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `19bb637d900941e5721d63a8e673089c27d11ad1`;
-- backend `main`: `bad69c42325e7156215e7fdba45962ade3372ef1`;
+- mobile `main`: `25bbefa7621fefa0ec6bafafc34aec867f3638f1`;
+- backend `main`: `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -62,6 +62,10 @@ Before this documentation synchronization slice:
 - mobile PR #384 merge: `19bb637d900941e5721d63a8e673089c27d11ad1`;
 - backend PR #113 exact green head: `3e366e803f91d4d563d0b1e70cc189381534cd18`;
 - backend PR #113 merge: `bad69c42325e7156215e7fdba45962ade3372ef1`;
+- mobile PR #385 exact green head: `9b7605bf53e3b4a6ca1f437f1ff89f44ade1c821`;
+- mobile PR #385 merge: `25bbefa7621fefa0ec6bafafc34aec867f3638f1`;
+- backend PR #114 exact green head: `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`;
+- backend PR #114 merge: `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -283,25 +287,32 @@ No credential, sender-domain, DNS, association-file deployment, provider account
 
 ## P6 current source boundary
 
-Backend PR #113, exact green head `3e366e803f91d4d563d0b1e70cc189381534cd18`, merge `bad69c42325e7156215e7fdba45962ade3372ef1`, completed the first P6 deployment-configuration slice:
+Backend PR #113, exact green head `3e366e803f91d4d563d0b1e70cc189381534cd18`, merge `bad69c42325e7156215e7fdba45962ade3372ef1`, completed the fail-closed environment-template and staging/production configuration-matrix slice:
 
 - expanded `.env.example` and `.env.production.example` with the complete managed-media, Rekognition, worker, and Resend configuration surface;
-- kept every new product enablement flag `false` and every production provider selector `unavailable` by default;
-- kept provider credentials blank, backend-only, and explicitly classified as secret operational inputs;
-- documented separate staging and production matrices, explicit environment targeting, required secret names, cross-repository reset-link matching, and fail-closed preparation order;
-- added deterministic tests for complete template coverage, duplicate environment keys, safe defaults, blank provider secrets, documentation coverage, and credential-shaped values;
-- passed lint, formatting, TypeScript build, production configuration validation, all migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the full Vitest suite, and production startup/health;
-- made no credential, account, bucket, CDN, domain, DNS, association-file, provider-call, migration execution outside CI, deployment, worker-startup, environment-activation, capability-enablement, OTA, or native-build change.
+- kept every product enablement flag `false`, every production provider selector `unavailable`, and every provider credential blank by default;
+- documented explicit environment targeting, required secret names, cross-repository reset-link matching, and fail-closed preparation order;
+- added deterministic drift and credential-shape coverage.
 
-The active P6 boundary is now storage and delivery policy preparation:
+Backend PR #114, exact green head `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`, merge `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`, completed the storage and immutable-delivery policy-template slice:
 
-- prepare provider-neutral private-bucket and immutable-delivery bucket or namespace policy templates;
-- define CORS, encryption, public-access blocking, lifecycle, retention, no-overwrite, and CDN-origin constraints that match the implemented storage adapters;
-- keep templates non-destructive, placeholder-only, and independently scoped for staging and production;
-- add deterministic policy-shape and secret-free tests without creating infrastructure or selecting an account-specific provider;
-- leave sender-domain DNS, link association, smoke scripts, rollout order, key rotation, outage handling, legal hold, and rollback as later bounded P6 slices.
+- added provider-neutral private managed-media storage, immutable delivery-origin, and CDN-origin design contracts;
+- aligned exact private and public prefixes, bounded object sizes, required metadata, SHA-256 content addressing, conditional no-overwrite writes, and immutable cache controls with the implemented S3-compatible adapters;
+- required blocked origin public access, HTTPS, encryption at rest, exact CORS origins, least-privilege backend and CDN identities, and separation of private storage from public delivery;
+- kept deletion, retention deadlines, appeals, and legal holds application-owned and prohibited independent age-based expiration for managed prefixes;
+- documented explicit staging/production translation and external application gates without provider-specific apply commands;
+- added deterministic parsing, contract-alignment, unsafe-public-access, placeholder, and credential-shape coverage;
+- passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
-No infrastructure creation, credential configuration, provider call, deployment, worker scheduling, environment activation, capability enablement, OTA/EAS publication, native build, or device installation is authorized.
+The active P6 boundary is now sender and link-domain infrastructure documentation:
+
+- document verified sender-domain DNS requirements for Resend without selecting or configuring a real domain;
+- document Apple App Site Association and Android Digital Asset Links ownership, hosting, path, application-ID, and signing-certificate requirements;
+- document provider callback requirements only where a selected provider contract actually needs them;
+- keep all examples placeholder-only, non-destructive, and explicitly scoped to staging or production;
+- leave DNS mutation, domain verification, association-file deployment, provider-account changes, real delivery, native builds, and physical-device validation external.
+
+No provider account, credential, bucket, CDN, domain, DNS, association-file deployment, policy application, real provider call, backend deployment, worker startup, environment activation, capability enablement, OTA/EAS publication, native build, or device installation was performed.
 
 ## Execution rules
 

@@ -362,31 +362,37 @@ No provider account, credential, sender/domain, DNS, association-file deployment
 
 ## Phase P6 — deployment configuration, policies, and runbooks
 
-Status: active. The complete fail-closed environment template and staging/production configuration-matrix slice is merged. Storage/CDN policy templates are next.
+Status: active. Environment templates, the staging/production configuration matrix, and provider-neutral storage/CDN policy templates are source-complete. Sender-domain and link-domain infrastructure documentation is next.
 
 Merged evidence:
 
 - backend PR #113 exact green head: `3e366e803f91d4d563d0b1e70cc189381534cd18`;
 - backend PR #113 merge: `bad69c42325e7156215e7fdba45962ade3372ef1`;
-- the exact head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+- backend PR #114 exact green head: `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`;
+- backend PR #114 merge: `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`;
+- both exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 - [x] expand `.env.example` without adding secrets;
 - [x] document staging and production configuration matrices and required secret names;
-- [ ] prepare private bucket, public-delivery bucket or namespace, CORS, lifecycle, encryption, public-access, and CDN-origin policy templates;
+- [x] prepare private bucket, public-delivery bucket or namespace, CORS, lifecycle, encryption, public-access, and CDN-origin policy templates;
 - [ ] document sender-domain DNS, link-domain association, and provider callback requirements where applicable;
 - [ ] define migration order, backend rollout order, worker startup order, capability enablement order, and rollback order;
 - [ ] add smoke scripts for configuration validation, signed upload, processing, delivery, deletion, password reset, and capability status using non-production fixtures;
 - [ ] document key rotation, provider outage, emergency media disable, cleanup pause, legal hold, and rollback procedures;
 - [ ] keep all commands non-destructive by default and require explicit environment targeting.
 
-Next bounded slice — storage and immutable-delivery policy templates:
+Completed storage and immutable-delivery policy boundary:
 
-- define separate private quarantine and immutable public-delivery resources or namespaces;
-- prepare provider-neutral CORS, encryption-at-rest, public-access blocking, retention/lifecycle, no-overwrite, deletion, and CDN-origin policy templates;
-- align policy requirements with the implemented S3-compatible object-storage and delivery adapter contracts;
-- require explicit staging or production placeholders and least-privilege identities without real account IDs, bucket names, domains, or credentials;
-- add deterministic template-shape, unsafe-public-access rejection, placeholder, and secret-free coverage;
-- keep infrastructure creation, provider selection, account-specific syntax finalization, deployment, real uploads, and capability activation external.
+- separate private quarantine/moderation-master and immutable public-delivery resources or enforceable namespaces;
+- blocked anonymous origin access with HTTPS, encryption at rest, least-privilege identities, exact CORS origins, and CDN-mediated public reads;
+- exact adapter-aligned prefixes, metadata, bounded sizes, conditional no-overwrite writes, SHA-256 content addressing, immutable JPEG caching, and read-only CDN methods;
+- application-owned deletion, retention, appeals, and legal holds; no independent age-based expiry; placeholder-only staging/production translation with deterministic secret-free coverage.
+
+Next bounded slice — sender and link-domain infrastructure documentation:
+
+- document placeholder-only sender-domain DNS ownership, verification, rotation, and rollback requirements;
+- document AASA and `assetlinks.json` hosting, path scope, application identifiers, signing fingerprints, caching, and environment separation;
+- document only required provider callbacks, disabled by default; domain/DNS changes, verification, association deployment, real email, native builds, and device validation remain external.
 
 ## Phase P7 — explicit sync conflict-choice contract
 
