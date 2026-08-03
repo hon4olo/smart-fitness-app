@@ -1,14 +1,14 @@
 # Provider and Release Readiness Roadmap
 
-Updated: 2026-08-03
+Updated: 2026-08-04
 
 This document tracks provider, staging, deployment, diagnostics, native-release, privacy, and analytics readiness. `docs/implementation-plan.md` remains the canonical phase-order document.
 
 ## Current baseline
 
-- mobile `main` before this documentation slice: `de6c8eecdc81fbd6d38b6719f03bd604db5732ee`;
-- backend `main`: `2c7a1801b9bf24d6f16fbe2db4c0345bf19cffbb`;
-- backend provider-readiness source is complete through PR #131;
+- mobile `main` before this documentation slice: `fd2257950df254968b85e476fc2ad3291b908cc0`;
+- backend `main`: `5803ccc79feb96b0d58fa0c12d7eb762cecabbf2`;
+- backend provider-readiness source is complete through PR #134;
 - mobile managed-media composition is complete through PR #400;
 - all public provider-backed capabilities remain disabled;
 - no real provider or staging evidence has been collected by autonomous source work;
@@ -50,6 +50,7 @@ Implemented:
 - immutable conditional writes and exact deletion;
 - delivery descriptors and strict mobile parsing;
 - derivative delivery/recovery worker source boundaries;
+- exact-owner derivative processing, replay, descriptor publication, owner readback, configured runtime binding, immutable-prefix cleanup, and expired-delivery recovery;
 - CDN-origin policy templates.
 
 External requirements remain owned CDN/origin configuration, trusted hostname/TLS, cache/invalidation policy, and authorized derivative/replay/recovery/observation/deletion evidence.
@@ -106,13 +107,22 @@ External requirements remain Resend account/credential, verified sender DNS, own
 - PR #127 — configured-ready moderation runtime and owner-bound adapter;
 - PR #129 — one resource-owning auth/quarantine/moderation composition;
 - PR #130 — exact-owner expired-processing recovery service/runtime/evidence;
-- PR #131 — exact-owner monotonic bounded processing claim, expiry wait, recovery composition, mandatory asset/account cleanup, and configured resource close.
+- PR #131 — exact-owner monotonic bounded moderation claim, expiry wait, recovery composition, mandatory asset/account cleanup, and configured resource close;
+- PR #132 — exact-owner derivative-delivery processing, replay, descriptor publication, owner readback, and capability-disabled evidence;
+- PR #133 — configured production-shaped derivative-delivery runtime over one provider/database resource boundary;
+- PR #134 — exact-owner expired-delivery recovery with immutable-prefix cleanup, stable replay, runtime wiring, and aggregate evidence.
 
 Latest exact backend evidence:
 
-- PR #131 green head: `82674b3e4e2d4d74d38446f7f6af65cb5156b42b`;
-- PR #131 merge: `2c7a1801b9bf24d6f16fbe2db4c0345bf19cffbb`;
-- Backend CI run #957: lint, formatting, TypeScript build, production configuration validation, migrations/idempotency, migrated-schema integration, PostgreSQL Social integration, complete Vitest, and production startup/health passed.
+- PR #132 green head: `4a90e88fc30a1b3c16fc025ef6542d189a0a5ad5`;
+- PR #132 merge: `58f5cd45c9ea7a302e01c31ea93e8e419beb9fd2`;
+- Backend CI run #959 passed;
+- PR #133 green head: `55b2c06892b35addc8855b84cf110495d4853abb`;
+- PR #133 merge: `740bff09e3145ff6e8a64f7832340140efcd5c19`;
+- Backend CI run #961 passed;
+- PR #134 green head: `0a0dd115043da36b3b9999f8e8046d6a3da7592e`;
+- PR #134 merge: `5803ccc79feb96b0d58fa0c12d7eb762cecabbf2`;
+- Backend CI run #970 passed lint, formatting, TypeScript build, production configuration validation, migrations/idempotency, migrated-schema integration, PostgreSQL Social integration, complete Vitest, and production startup/health.
 
 ### Mobile managed-media composition
 
@@ -120,42 +130,45 @@ Mobile PRs #396–#400 established composition boundaries, shared upload/polling
 
 ## Active P6 source slice
 
-### Derivative-delivery processing and exact-owner expired-delivery recovery
+### Exact-owner bounded derivative-delivery lease and full recovery composition
 
-Inspect and extend the existing delivery worker/repository boundaries without introducing a second lifecycle:
+Compose the existing exact-owner processing and recovery boundaries without introducing a second lifecycle or selecting unrelated rows:
 
 ```text
-approved exact-owner moderated asset
-→ owner/asset-scoped derivative delivery claim
-→ normalized private source read
-→ deterministic derivative generation
-→ owner-opaque content-hashed immutable write
-→ exact delivery descriptor publication
-→ owner readback + idempotent replay
-→ bounded exact-owner delivery lease preparation
-→ bounded wait until exact lease expiry
-→ exact-owner delivery recovery
-→ recovery replay + owner readback
-→ mandatory cleanup through existing lease boundaries
+synthetic auth/session lease
+→ private-quarantine upload/validation/normalization
+→ exact-owner moderation allow
+→ owner/asset/state-version delivery claimOwned CAS
+→ fresh token + monotonic bounded lease
+→ bounded injected wait until that exact lease expires
+→ exact-owner immutable-prefix cleanup + recovery CAS
+→ stable recovery replay + owner readback
+→ public capabilities still disabled
+→ mandatory asset cleanup
+→ account cleanup + session revocation
+→ configured resource close
 → fixed aggregate evidence
 ```
 
 Acceptance criteria:
 
-- no global ready-list or expired-delivery selection for synthetic evidence;
-- only the known synthetic owner/asset may be claimed, delivered, expired, or recovered;
-- approved moderation/source prerequisites remain mandatory;
-- existing row-level claim/complete/recovery CAS operations are reused;
-- immutable writes remain conditional and content-addressed;
-- delivery descriptor publishes only after successful immutable write;
-- replay creates no duplicate public object or descriptor drift;
-- exact-owner recovery accepts only the expected next-state replay after a concurrent CAS winner;
+- start from the existing configured delivery runtime and exact-owner recovery service/adapter;
+- claim only the known synthetic owner/asset through `claimOwned`;
+- the lease is monotonic and bounded: `leaseExpiresAt > now`; no backdated expiry fabrication;
+- wait is injected, bounded, and tied to the exact claimed lease;
+- no global ready-list, processing batch, expired-delivery list, or global recovery selection is used;
+- approved moderation and normalized private-source prerequisites remain mandatory;
+- recovery deletes only the exact immutable asset prefix before the existing row-level recovery CAS;
+- replay does not repeat cleanup or advance state again;
+- owner readback accepts only the expected recovered state/version;
 - public capabilities remain disabled before and after evidence;
-- no persistence schema, public route, DTO, moderation policy, retention, or cleanup-policy change;
-- deterministic offline tests inject storage, delivery, image processing, clock/wait, repository, and failure paths;
-- no real staging/provider execution in CI.
+- success and failure both execute existing asset/account/session/resource cleanup boundaries;
+- evidence contains no owner/asset IDs, processing token, lease timestamp, object key, hash, immutable URL, raw row, provider payload, or raw exception;
+- no persistence schema, public route/DTO, lifecycle state/reason, delivery key/descriptor, moderation policy, retry, retention, or cleanup-policy change;
+- deterministic offline tests inject repository, clock, wait, token, storage, delivery, cleanup, and failure paths;
+- no real staging/provider execution, deployment, worker scheduling, capability mutation, migration outside CI, native build, OTA/EAS publication, or production action.
 
-Split processing, recovery, runtime binding, and full composition into bounded PRs where needed.
+Split owner-bound lease preparation and the full resource-owning composition into bounded PRs if required to keep each diff reviewable.
 
 ## Remaining P6 source backlog
 
