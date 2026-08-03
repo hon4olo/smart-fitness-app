@@ -4,22 +4,16 @@ UPDATED_DATE = "2026-08-03"
 MOBILE_MAIN = "f815a38ba92c5432e59adfb52b2b67da4877376f"
 BACKEND_MAIN = "c8d315113881e81f7b6c8522bfb5b439b4b36972"
 PR109_HEAD = "d3b6a1599352a79a4dd2bb8d361148d605de3ec3"
+PR108_MERGE = "a0f97680189b6daa05a2b5fc22a469d687df23c9"
 
 
 def replace_once(text: str, old: str, new: str, label: str) -> str:
-    count = text.count(old)
-    if count != 1:
-        raise SystemExit(f"{label}: expected one match, found {count}")
+    if text.count(old) != 1:
+        raise SystemExit(f"{label}: expected one match, found {text.count(old)}")
     return text.replace(old, new, 1)
 
 
-def replace_section(
-    text: str,
-    start: str,
-    end: str,
-    replacement: str,
-    label: str,
-) -> str:
+def replace_section(text: str, start: str, end: str, replacement: str, label: str) -> str:
     start_index = text.find(start)
     if start_index < 0:
         raise SystemExit(f"{label}: start marker not found")
@@ -30,38 +24,29 @@ def replace_section(
 
 
 def update_baseline(text: str, label: str) -> str:
-    text = replace_once(
-        text,
-        "Updated: 2026-08-02",
-        f"Updated: {UPDATED_DATE}",
-        f"{label} updated date",
-    )
+    text = replace_once(text, "Updated: 2026-08-02", f"Updated: {UPDATED_DATE}", f"{label} date")
     text = replace_once(
         text,
         "- mobile `main`: `2aaaa59dff69729e0d0f0310b96e92ba6544b2d4`;",
         f"- mobile `main`: `{MOBILE_MAIN}`;",
-        f"{label} mobile baseline",
+        f"{label} mobile main",
     )
     text = replace_once(
         text,
-        "- backend `main`: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;",
+        f"- backend `main`: `{PR108_MERGE}`;",
         f"- backend `main`: `{BACKEND_MAIN}`;",
-        f"{label} backend baseline",
+        f"{label} backend main",
     )
-    marker = "- backend PR #108 merge: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;"
+    marker = f"- backend PR #108 merge: `{PR108_MERGE}`;"
+    marker_index = text.find(marker)
+    if marker_index < 0:
+        raise SystemExit(f"{label} PR109 evidence: marker not found")
     addition = (
         marker
         + f"\n- backend PR #109 exact green head: `{PR109_HEAD}`;"
         + f"\n- backend PR #109 merge: `{BACKEND_MAIN}`;"
     )
-    marker_index = text.find(marker)
-if marker_index < 0:
-    raise SystemExit(f"{label} PR109 evidence: marker not found")
-return (
-    text[:marker_index]
-    + addition
-    + text[marker_index + len(marker) :]
-)
+    return text[:marker_index] + addition + text[marker_index + len(marker) :]
 
 
 roadmap_path = Path("ROADMAP_PROGRESS.md")
@@ -78,7 +63,7 @@ Backend PR #107, exact green head `ce50efbd088200c572116b62bf627dc25e026b11`, me
 - added aggregate-only deterministic JSON/CSV rendering and synthetic no-network tests;
 - added no corpus, real media, credential, real call, threshold/policy change, deployment, activation, or calibration claim.
 
-Backend PR #108, exact green head `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`, merge `a0f97680189b6daa05a2b5fc22a469d687df23c9`:
+Backend PR #108, exact green head `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`, merge `{PR108_MERGE}`:
 
 - added strict CLI arguments and deterministic aggregate process states and exit codes;
 - added canonical local corpus containment with traversal, symlink, file-type, size, manifest, and JPEG rejection;
@@ -109,17 +94,17 @@ roadmap = replace_section(
     "### P4 — moderation calibration harness\n",
     "### P5 — password-reset product readiness\n",
     roadmap_p4,
-    "roadmap P4 section",
+    "roadmap P4",
 )
 roadmap = replace_once(
     roadmap,
     "1. P4 moderation calibration operator runbook and external evidence preparation.\n2. P5 password-reset mobile, links, templates, and delivery readiness.\n3. P6 deployment policies, smoke scripts, and runbooks.\n4. P7 backend-owned conflict choices and then mobile UI.\n5. P8 diagnostics, fixed-SHA release source gate, and Android source preparation.\n6. P9 technical privacy, legal, and analytics prerequisites.",
     "1. P5 password-reset mobile, links, templates, and delivery readiness.\n2. P6 deployment policies, smoke scripts, and runbooks.\n3. P7 backend-owned conflict choices and then mobile UI.\n4. P8 diagnostics, fixed-SHA release source gate, and Android source preparation.\n5. P9 technical privacy, legal, and analytics prerequisites.",
-    "roadmap execution order",
+    "roadmap order",
 )
 roadmap_starter = f"""## New-chat starter prompt
 
-> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. First verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/roadmap/release-and-account.md`, `docs/architecture/app-context-consumer-inventory.md`, and the relevant backend provider/password-reset architecture and operations documents; then inspect only code and tests relevant to the selected bounded slice. Provider and Release Readiness P0 through P4 autonomous source preparation are complete through backend PR #109 exact green head `{PR109_HEAD}`, merge `{BACKEND_MAIN}`. No representative calibration corpus was run, no real provider call was made, and no calibration or activation claim exists. Continue with the smallest complete P5 password-reset readiness slice after auditing the current mobile forgot/reset routes, deep-link handling, backend token/delivery contracts, capability gating, tests, and roadmap. Select and document a concrete mail-provider API contract or an explicitly approved generic transport before adding a provider-specific payload. Keep provider calls and credentials backend-only; add strict bounded request/response parsing, timeout/failure/redaction coverage, trusted application-link construction, EN/RU plain-text and HTML templates, token invalidation on delivery failure, and source-only mobile deep-link/state/accessibility coverage as appropriate. Preserve generic accepted responses, one-time token expiry/replay rejection, all-session revocation, capability gating, and token non-persistence. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, sender domains, DNS, provider accounts, call real providers, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without direct authorization.
+> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. First verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/roadmap/release-and-account.md`, `docs/architecture/app-context-consumer-inventory.md`, and the relevant backend provider/password-reset architecture and operations documents. Provider and Release Readiness P0 through P4 autonomous source preparation are complete through backend PR #109 exact green head `{PR109_HEAD}`, merge `{BACKEND_MAIN}`. No representative calibration corpus was run, no real provider call was made, and no calibration or activation claim exists. Continue with the smallest complete P5 password-reset readiness slice after auditing current mobile forgot/reset routes, deep-link handling, backend token/delivery contracts, capability gating, tests, and roadmap. Select and document a concrete mail-provider API contract or an explicitly approved generic transport before adding a provider-specific payload. Keep provider calls and credentials backend-only; preserve generic accepted responses, one-time token expiry/replay rejection, delivery-failure invalidation, all-session revocation, capability gating, and token non-persistence. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, sender domains, DNS, provider accounts, call real providers, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without direct authorization.
 """
 roadmap = roadmap[: roadmap.index("## New-chat starter prompt\n")] + roadmap_starter
 roadmap_path.write_text(roadmap)
@@ -127,11 +112,11 @@ roadmap_path.write_text(roadmap)
 
 plan_path = Path("docs/implementation-plan.md")
 plan = update_baseline(plan_path.read_text(), "implementation plan")
-plan_p4_p5 = f"""## P4 calibration source completion
+plan_section = f"""## P4 calibration source completion
 
 Backend PR #107, exact green head `ce50efbd088200c572116b62bf627dc25e026b11`, merge `db5ee5ab50c760619dfa254618b5f2de64f2e044`, completed the strict provider-injected aggregate calibration core.
 
-Backend PR #108, exact green head `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`, merge `a0f97680189b6daa05a2b5fc22a469d687df23c9`, completed the bounded CLI, canonical local filesystem, provider composition, private no-overwrite reporting, interruption, redaction, and deterministic no-network boundary.
+Backend PR #108, exact green head `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`, merge `{PR108_MERGE}`, completed the bounded CLI, canonical local filesystem, provider composition, private no-overwrite reporting, interruption, redaction, and deterministic no-network boundary.
 
 Backend PR #109, exact green head `{PR109_HEAD}`, merge `{BACKEND_MAIN}`, completed the source-prepared non-production operations boundary:
 
@@ -163,8 +148,8 @@ plan = replace_section(
     plan,
     "## P4 calibration status and next bounded slice\n",
     "## Execution rules\n",
-    plan_p4_p5,
-    "implementation P4/P5 section",
+    plan_section,
+    "implementation P4/P5",
 )
 plan_path.write_text(plan)
 
@@ -180,7 +165,7 @@ Merged evidence:
 - backend PR #107 exact green head: `ce50efbd088200c572116b62bf627dc25e026b11`;
 - backend PR #107 merge: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
 - backend PR #108 exact green head: `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`;
-- backend PR #108 merge: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
+- backend PR #108 merge: `{PR108_MERGE}`;
 - backend PR #109 exact green head: `{PR109_HEAD}`;
 - backend PR #109 merge: `{BACKEND_MAIN}`;
 - all three exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
@@ -205,6 +190,6 @@ provider = replace_section(
     "## Phase P4 — moderation calibration harness\n",
     "## Phase P5 — password-reset product and delivery readiness\n",
     provider_p4,
-    "provider P4 section",
+    "provider P4",
 )
 provider_path.write_text(provider)
