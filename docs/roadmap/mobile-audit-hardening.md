@@ -31,9 +31,9 @@ Current `development`, `preview`, `production`, and `production-internal` EAS pr
 
 Until that contract exists, document internal builds as production-connected and do not treat them as isolated QA clients.
 
-### P2 — bounded sync retry backoff
+### Completed — bounded sync retry backoff
 
-Add a tested bounded delay with jitter between retryable server failures in `createProductionCloudProvider.withServerRetry`. Preserve exact sync payloads, cursors, revisions, and idempotency keys. Define handling for HTTP 429 and `Retry-After` separately before expanding retry classes.
+`createProductionCloudProvider.withServerRetry` now waits for a bounded exponential delay with jitter before its single retry of an HTTP 5xx response. Deterministic tests lock the delay, terminal-error behavior, and two-attempt ceiling. Exact sync payloads, cursors, revisions, and idempotency keys remain unchanged. HTTP 429 and `Retry-After` remain outside this retry class pending a separate contract.
 
 ### P2 — OTA promotion controls
 

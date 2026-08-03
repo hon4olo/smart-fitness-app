@@ -1,173 +1,154 @@
 name: Mobile CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply:
-    if: github.actor != 'github-actions[bot]'
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          ref: agent/sync-retry-backoff
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - name: Apply bounded sync retry backoff
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
 
-          source_path = Path('src/cloud/createProductionCloudProvider.ts')
-          source = source_path.read_text()
-          old = """const withServerRetry = async <T>(operation: () => Promise<T>, attempts = 2): Promise<T> => {
-            let lastError: unknown;
+      - name: Install dependencies
+        run: npm ci
 
-            for (let attempt = 0; attempt < attempts; attempt += 1) {
-              try {
-                return await operation();
-              } catch (error) {
-                lastError = error;
-                const retryable =
-                  isApiError(error) &&
-                  typeof error.status === 'number' &&
-                  error.status >= 500 &&
-                  error.status < 600;
+      - name: Repository file line audit
+        id: repository-lines
+        run: node scripts/check-repository-file-lines.mjs > repository-line-audit.log 2>&1
 
-                if (!retryable || attempt === attempts - 1) {
-                  throw error;
-                }
-              }
-            }
+      - name: Upload repository line audit log
+        if: failure() && steps.repository-lines.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-repository-line-audit-log
+          path: repository-line-audit.log
+          if-no-files-found: error
+          retention-days: 3
 
-            throw lastError instanceof Error ? lastError : new Error('Request failed');
-          };
-          """
-          new = """const SERVER_RETRY_BASE_DELAY_MS = 200;
-          const SERVER_RETRY_JITTER_MS = 100;
+      - name: Changed file line limit
+        run: node scripts/check-changed-file-lines.mjs
 
-          const sleep = (delayMs: number): Promise<void> =>
-            new Promise((resolve) => setTimeout(resolve, delayMs));
+      - name: TypeScript
+        id: typescript
+        run: npx tsc --noEmit > typescript.log 2>&1
 
-          const clampRandom = (value: number): number =>
-            Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+      - name: Upload TypeScript log
+        if: failure() && steps.typescript.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-typescript-log
+          path: typescript.log
+          if-no-files-found: error
+          retention-days: 3
 
-          export const withServerRetry = async <T>(
-            operation: () => Promise<T>,
-            attempts = 2,
-            wait: (delayMs: number) => Promise<void> = sleep,
-            random: () => number = Math.random,
-          ): Promise<T> => {
-            let lastError: unknown;
+      - name: Coach and sync contract tests
+        id: contract-tests
+        run: >-
+          npx vitest run
+          src/auth/createAuthService.session-cache.test.ts
+          src/auth/migrating-token-manager.test.ts
+          src/context/appContext/AppMutationQueue.test.ts
+          src/context/appContext/AppMutationOutboxRecovery.test.ts
+          src/context/applySyncPullResult.concurrent.test.ts
+          src/context/syncConflictCount.test.ts
+          src/context/syncConflictPersistence.test.ts
+          src/api/coach.test.ts
+          src/api/coach.capabilities.v3.test.ts
+          src/api/coach.capabilities.v4.test.ts
+          src/api/coach.capabilities.v5.test.ts
+          src/api/coach.capabilities.v6.test.ts
+          src/api/coach.capabilities.v7.test.ts
+          src/api/coach.safety-recovery.test.ts
+          src/api/coach.combined.test.ts
+          src/api/coach.strength-strategy.test.ts
+          src/api/coach.strength-confirmation.test.ts
+          src/features/coach/combinedCoachViewModel.test.ts
+          src/features/coach/combinedCoachProposalViewModel.test.ts
+          src/features/coach/recoveryCheckInForm.test.ts
+          src/features/coach/userLimitationForm.test.ts
+          src/features/coach/safetyRecoveryLocalSummary.test.ts
+          src/features/coach/safetyRecoveryReviewSnapshot.test.ts
+          src/features/coach/safetyRecoveryViewModel.test.ts
+          src/features/coach/strengthCoachViewModel.test.ts
+          src/features/coach/strengthStrategyViewModel.test.ts
+          src/features/coach/nutritionCoachViewModel.test.ts
+          src/features/nutrition/addFoodModel.test.ts
+          src/features/progress/bodyMeasurementModel.test.ts
+          src/features/progress/safetyRecoveryProgressAnalytics.test.ts
+          src/features/progress/safetyRecoveryWeeklyTrend.test.ts
+          src/features/workouts/workoutHistoryViewModel.test.ts
+          src/features/workouts/workoutSafetyGateModel.test.ts
+          src/features/workouts/workoutSafetySessionMetadata.test.ts
+          src/cloud/createProductionCloudProvider.auth-refresh.test.ts
+          src/cloud/CloudConflictResolver.two-device.test.ts
+          src/cloud/TrainingProgramConflict.two-device.test.ts
+          src/cloud/MealTemplateConflict.two-device.test.ts
+          src/cloud/CustomExerciseConflict.two-device.test.ts
+          src/cloud/BodyMeasurementConflict.two-device.test.ts
+          src/cloud/NutritionTargetConflict.two-device.test.ts
+          src/cloud/SafetyRecoveryConflict.two-device.test.ts
+          src/cloud/SyncCoordinatorDeleteConflict.two-device.test.ts
+          src/cloud/BodyMeasurementSync.test.ts
+          src/cloud/CustomExerciseSyncPlanner.test.ts
+          src/cloud/CustomExerciseRemoteSync.test.ts
+          src/cloud/WorkoutSessionSync.test.ts
+          src/cloud/WorkoutSessionSafetyMetadataSync.test.ts
+          src/cloud/SafetyRecoverySync.test.ts
+          src/cloud/SafetyRecoverySyncPlanner.test.ts
+          src/cloud/WorkoutTemplateSync.test.ts
+          src/cloud/WorkoutTemplateSyncPlanner.test.ts
+          src/cloud/TrainingProgramSync.test.ts
+          src/cloud/TrainingProgramSyncPlanner.test.ts
+          src/storage/WorkoutTemplateSyncMetadataStore.test.ts
+          src/cloud/FoodEntrySync.test.ts
+          src/repositories/FoodEntrySyncingRepository.test.ts
+          src/cloud/MealTemplateSyncPlanner.test.ts
+          src/cloud/MealTemplateRemoteSync.test.ts
+          src/cloud/NutritionTargetSync.test.ts
+          src/repositories/NutritionTargetSyncingRepository.test.ts
+          src/storage/AsyncStorageOperationQueueStore.concurrent.test.ts
+          src/storage/SyncConflictStore.test.ts
+          > contract-tests.log 2>&1
 
-            for (let attempt = 0; attempt < attempts; attempt += 1) {
-              try {
-                return await operation();
-              } catch (error) {
-                lastError = error;
-                const retryable =
-                  isApiError(error) &&
-                  typeof error.status === 'number' &&
-                  error.status >= 500 &&
-                  error.status < 600;
+      - name: Upload contract test log
+        if: failure() && steps.contract-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-contract-test-log
+          path: contract-tests.log
+          if-no-files-found: error
+          retention-days: 3
 
-                if (!retryable || attempt === attempts - 1) {
-                  throw error;
-                }
+      - name: Full regression suite
+        id: regressions
+        run: npm test > regression-tests.log 2>&1
 
-                const exponentialDelay = SERVER_RETRY_BASE_DELAY_MS * 2 ** attempt;
-                const jitter = Math.floor(clampRandom(random()) * SERVER_RETRY_JITTER_MS);
-                await wait(exponentialDelay + jitter);
-              }
-            }
+      - name: Upload regression test log
+        if: failure() && steps.regressions.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-regression-test-log
+          path: regression-tests.log
+          if-no-files-found: error
+          retention-days: 3
 
-            throw lastError instanceof Error ? lastError : new Error('Request failed');
-          };
-          """
-          if source.count(old) != 1:
-              raise SystemExit(f'Expected one retry block, found {source.count(old)}')
-          source_path.write_text(source.replace(old, new, 1))
+      - name: Expo export
+        run: npx expo export --clear
 
-          Path('src/cloud/createProductionCloudProvider.retry.test.ts').write_text("""import { describe, expect, it, vi } from 'vitest';
-
-          import { ApiError } from '@/api/client';
-
-          import { withServerRetry } from './createProductionCloudProvider';
-
-          const serverError = () =>
-            new ApiError({ code: 'unavailable', message: 'server failed', status: 503 });
-
-          describe('production cloud provider server retry', () => {
-            it('waits once before retrying a retryable 5xx failure', async () => {
-              const operation = vi.fn<() => Promise<string>>()
-                .mockRejectedValueOnce(serverError())
-                .mockResolvedValueOnce('ok');
-              const delays: number[] = [];
-
-              await expect(withServerRetry(operation, 2, async (delayMs) => {
-                delays.push(delayMs);
-              }, () => 0.5)).resolves.toBe('ok');
-
-              expect(operation).toHaveBeenCalledTimes(2);
-              expect(delays).toEqual([250]);
-            });
-
-            it('does not wait or retry a non-5xx failure', async () => {
-              const error = new ApiError({ code: 'unauthorized', message: 'no', status: 401 });
-              const operation = vi.fn<() => Promise<string>>().mockRejectedValue(error);
-              const wait = vi.fn<(delayMs: number) => Promise<void>>().mockResolvedValue(undefined);
-
-              await expect(withServerRetry(operation, 2, wait)).rejects.toBe(error);
-              expect(operation).toHaveBeenCalledTimes(1);
-              expect(wait).not.toHaveBeenCalled();
-            });
-
-            it('keeps the retry count bounded when the server remains unavailable', async () => {
-              const error = serverError();
-              const operation = vi.fn<() => Promise<string>>().mockRejectedValue(error);
-              const delays: number[] = [];
-
-              await expect(withServerRetry(operation, 2, async (delayMs) => {
-                delays.push(delayMs);
-              })).rejects.toBe(error);
-
-              expect(operation).toHaveBeenCalledTimes(2);
-              expect(delays).toHaveLength(1);
-              expect(delays[0]).toBeGreaterThanOrEqual(200);
-              expect(delays[0]).toBeLessThanOrEqual(300);
-            });
-          });
-          """)
-
-          roadmap_path = Path('docs/roadmap/mobile-audit-hardening.md')
-          roadmap = roadmap_path.read_text()
-          old_roadmap = """### P2 — bounded sync retry backoff
-
-          Add a tested bounded delay with jitter between retryable server failures in `createProductionCloudProvider.withServerRetry`. Preserve exact sync payloads, cursors, revisions, and idempotency keys. Define handling for HTTP 429 and `Retry-After` separately before expanding retry classes.
-          """
-          new_roadmap = """### Completed — bounded sync retry backoff
-
-          `createProductionCloudProvider.withServerRetry` now waits for a bounded exponential delay with jitter before its single retry of an HTTP 5xx response. Deterministic tests lock the delay, terminal-error behavior, and two-attempt ceiling. Exact sync payloads, cursors, revisions, and idempotency keys remain unchanged. HTTP 429 and `Retry-After` remain outside this retry class pending a separate contract.
-          """
-          if roadmap.count(old_roadmap) != 1:
-              raise SystemExit(f'Expected one roadmap section, found {roadmap.count(old_roadmap)}')
-          roadmap_path.write_text(roadmap.replace(old_roadmap, new_roadmap, 1))
-          PY
-          npx prettier --write src/cloud/createProductionCloudProvider.ts src/cloud/createProductionCloudProvider.retry.test.ts docs/roadmap/mobile-audit-hardening.md
-          npx tsc --noEmit
-          npx vitest run src/cloud/createProductionCloudProvider.retry.test.ts
-          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
-          rm -f .github/workflows/apply-sync-retry-backoff.yml .github/workflows/repair-sync-retry-fixture.yml .sync-retry-backoff-trigger
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add src/cloud/createProductionCloudProvider.ts src/cloud/createProductionCloudProvider.retry.test.ts docs/roadmap/mobile-audit-hardening.md .github/workflows/ci.yml .github/workflows/apply-sync-retry-backoff.yml .github/workflows/repair-sync-retry-fixture.yml .sync-retry-backoff-trigger
-          git commit -m "fix: add bounded sync retry backoff"
-          git push
+      - name: Expo Doctor
+        run: npx expo-doctor

@@ -1,10 +1,19 @@
-import { isApiError, type ApiClient } from '@/api/client';
-import type { AuthService } from '@/auth';
-import { getDefaultSyncCursorStore, type SyncCursorStore } from '@/storage';
+import { isApiError, type ApiClient } from "@/api/client";
+import type { AuthService } from "@/auth";
+import { getDefaultSyncCursorStore, type SyncCursorStore } from "@/storage";
 
-import type { CloudProvider, CloudPullResult, CloudPushResult } from './CloudProvider';
-import type { ConflictRecord, SyncBatch, SyncOperation, SyncState } from './CloudSyncTypes';
-import { toRemoteSyncOperation } from './RemoteSyncEntityAdapters';
+import type {
+  CloudProvider,
+  CloudPullResult,
+  CloudPushResult,
+} from "./CloudProvider";
+import type {
+  ConflictRecord,
+  SyncBatch,
+  SyncOperation,
+  SyncState,
+} from "./CloudSyncTypes";
+import { toRemoteSyncOperation } from "./RemoteSyncEntityAdapters";
 
 export type ProductionCloudProvider = CloudProvider & {
   status(): Promise<SyncState>;
@@ -12,8 +21,11 @@ export type ProductionCloudProvider = CloudProvider & {
 
 export type CreateProductionCloudProviderOptions = {
   apiClient: ApiClient;
-  authService: Pick<AuthService, 'getAccessToken' | 'refresh' | 'getCurrentSession'>;
-  cursorStore?: Pick<SyncCursorStore, 'get'>;
+  authService: Pick<
+    AuthService,
+    "getAccessToken" | "refresh" | "getCurrentSession"
+  >;
+  cursorStore?: Pick<SyncCursorStore, "get">;
   now?: () => string;
 };
 
@@ -23,7 +35,7 @@ type SyncEnvelope = {
   serverTimestamp?: string;
   pendingConflicts?: number;
   lastSuccessfulSync?: string | null;
-  status?: SyncState['status'];
+  status?: SyncState["status"];
   pendingOperations?: number;
   conflictCount?: number;
 };
@@ -42,9 +54,23 @@ type SyncPullResponse = SyncEnvelope & {
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
-const withServerRetry = async <T>(operation: () => Promise<T>, attempts = 2): Promise<T> => {
+const SERVER_RETRY_BASE_DELAY_MS = 200;
+const SERVER_RETRY_JITTER_MS = 100;
+
+const sleep = (delayMs: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, delayMs));
+
+const clampRandom = (value: number): number =>
+  Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+
+export const withServerRetry = async <T>(
+  operation: () => Promise<T>,
+  attempts = 2,
+  wait: (delayMs: number) => Promise<void> = sleep,
+  random: () => number = Math.random,
+): Promise<T> => {
   let lastError: unknown;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -54,23 +80,27 @@ const withServerRetry = async <T>(operation: () => Promise<T>, attempts = 2): Pr
       lastError = error;
       const retryable =
         isApiError(error) &&
-        typeof error.status === 'number' &&
+        typeof error.status === "number" &&
         error.status >= 500 &&
         error.status < 600;
 
       if (!retryable || attempt === attempts - 1) {
         throw error;
       }
+
+      const exponentialDelay = SERVER_RETRY_BASE_DELAY_MS * 2 ** attempt;
+      const jitter = Math.floor(clampRandom(random()) * SERVER_RETRY_JITTER_MS);
+      await wait(exponentialDelay + jitter);
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error('Request failed');
+  throw lastError instanceof Error ? lastError : new Error("Request failed");
 };
 
 const requestWithAuth = async <T>(
   apiClient: ApiClient,
-  authService: CreateProductionCloudProviderOptions['authService'],
-  method: 'GET' | 'POST',
+  authService: CreateProductionCloudProviderOptions["authService"],
+  method: "GET" | "POST",
   path: string,
   body?: unknown,
 ): Promise<T> => {
@@ -85,7 +115,7 @@ const requestWithAuth = async <T>(
 
   const token = await authService.getAccessToken();
   if (!token) {
-    throw new Error('authentication required');
+    throw new Error("authentication required");
   }
 
   try {
@@ -96,9 +126,10 @@ const requestWithAuth = async <T>(
     }
 
     const refreshed = await authService.refresh();
-    const nextToken = refreshed?.tokens.accessToken ?? (await authService.getAccessToken());
+    const nextToken =
+      refreshed?.tokens.accessToken ?? (await authService.getAccessToken());
     if (!nextToken) {
-      throw new Error('authentication required');
+      throw new Error("authentication required");
     }
 
     return withServerRetry(() => perform(nextToken));
@@ -106,17 +137,20 @@ const requestWithAuth = async <T>(
 };
 
 const resolveIdentity = async (
-  authService: CreateProductionCloudProviderOptions['authService'],
+  authService: CreateProductionCloudProviderOptions["authService"],
 ): Promise<{ userId: string; deviceId: string }> => {
   const session = await authService.getCurrentSession();
   if (!session?.user?.id || !session.device?.id) {
-    throw new Error('authentication required');
+    throw new Error("authentication required");
   }
 
   return { userId: session.user.id, deviceId: session.device.id };
 };
 
-const toSyncState = (response: SyncEnvelope, fallback: SyncState['status']): SyncState => ({
+const toSyncState = (
+  response: SyncEnvelope,
+  fallback: SyncState["status"],
+): SyncState => ({
   status: response.status ?? fallback,
   pendingOperations: response.pendingOperations ?? 0,
   conflictCount: response.conflictCount ?? response.pendingConflicts ?? 0,
@@ -130,46 +164,65 @@ const normalizeOperations = (
 ): SyncOperation[] =>
   (values ?? [])
     .filter(isRecord)
-    .map((record) => toRemoteSyncOperation(record, fallbackRevision, fallbackCreatedAt))
+    .map((record) =>
+      toRemoteSyncOperation(record, fallbackRevision, fallbackCreatedAt),
+    )
     .filter((operation): operation is SyncOperation => Boolean(operation));
 
 const normalizeConflictToken = (value: unknown): string =>
-  typeof value === 'string' ? value.trim().toLowerCase().replace(/[^a-z]/g, '') : '';
+  typeof value === "string"
+    ? value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z]/g, "")
+    : "";
 
 const isServerWinsConflict = (value: unknown): value is ConflictRecord => {
   if (!isRecord(value)) return false;
   const status = normalizeConflictToken(value.status);
   const strategy = normalizeConflictToken(value.resolutionStrategy);
-  return status === 'pending' && (strategy === 'serverwins' || strategy === 'remotewins');
+  return (
+    status === "pending" &&
+    (strategy === "serverwins" || strategy === "remotewins")
+  );
 };
 
-const normalizeConflictKey = (entityType: unknown, entityId: unknown): string | null =>
-  typeof entityType === 'string' &&
+const normalizeConflictKey = (
+  entityType: unknown,
+  entityId: unknown,
+): string | null =>
+  typeof entityType === "string" &&
   entityType.trim() &&
-  typeof entityId === 'string' &&
+  typeof entityId === "string" &&
   entityId.trim()
     ? `${entityType.trim()}:${entityId.trim()}`
     : null;
 
 const unresolvedConflictCount = (conflicts: unknown[] | undefined): number =>
-  (conflicts ?? []).filter((conflict) => !isServerWinsConflict(conflict)).length;
+  (conflicts ?? []).filter((conflict) => !isServerWinsConflict(conflict))
+    .length;
 
-const toPushResult = (response: SyncPushResponse, timestamp: string): CloudPushResult => {
+const toPushResult = (
+  response: SyncPushResponse,
+  timestamp: string,
+): CloudPushResult => {
   const revision = response.revision ?? 0;
   const conflicts = Array.isArray(response.conflicts) ? response.conflicts : [];
   const serverWinsConflictKeys = new Set(
     conflicts
       .filter(isServerWinsConflict)
-      .map((conflict) => normalizeConflictKey(conflict.entityType, conflict.entityId))
+      .map((conflict) =>
+        normalizeConflictKey(conflict.entityType, conflict.entityId),
+      )
       .filter((key): key is string => Boolean(key)),
   );
   const appliedOperations = normalizeOperations(
     (response.appliedOperations ?? []).filter((operation) => {
       if (!isRecord(operation)) return false;
-      if (operation.status === 'applied') return true;
-      if (operation.status !== 'conflict') return false;
+      if (operation.status === "applied") return true;
+      if (operation.status !== "conflict") return false;
       return serverWinsConflictKeys.has(
-        normalizeConflictKey(operation.entityType, operation.entityId) ?? '',
+        normalizeConflictKey(operation.entityType, operation.entityId) ?? "",
       );
     }),
     revision,
@@ -178,12 +231,14 @@ const toPushResult = (response: SyncPushResponse, timestamp: string): CloudPushR
   const unresolvedConflicts = unresolvedConflictCount(conflicts);
 
   return {
-    status: response.status ?? (unresolvedConflicts > 0 ? 'conflict' : 'idle'),
+    status: response.status ?? (unresolvedConflicts > 0 ? "conflict" : "idle"),
     pendingOperations: response.pendingOperations ?? 0,
     conflictCount: response.conflictCount ?? unresolvedConflicts,
     lastSyncedAt: response.serverTimestamp,
     ...(response.revision === undefined ? {} : { revision: response.revision }),
-    ...(response.serverTimestamp ? { serverTimestamp: response.serverTimestamp } : {}),
+    ...(response.serverTimestamp
+      ? { serverTimestamp: response.serverTimestamp }
+      : {}),
     ...(appliedOperations.length ? { appliedOperations } : {}),
     ...(Array.isArray(response.conflicts)
       ? { conflicts: conflicts as ConflictRecord[] }
@@ -191,34 +246,42 @@ const toPushResult = (response: SyncPushResponse, timestamp: string): CloudPushR
     ...(Array.isArray(response.duplicateIdempotencyKeys)
       ? {
           duplicateIdempotencyKeys: response.duplicateIdempotencyKeys.filter(
-            (key): key is string => typeof key === 'string',
+            (key): key is string => typeof key === "string",
           ),
         }
       : {}),
   };
 };
 
-const toPullResult = (response: SyncPullResponse, timestamp: string): CloudPullResult => {
-  const changed = (Array.isArray(response.changedEntities) ? response.changedEntities : []).filter(
-    isRecord,
-  );
-  const deleted = (Array.isArray(response.deletedEntities) ? response.deletedEntities : []).filter(
-    isRecord,
-  );
+const toPullResult = (
+  response: SyncPullResponse,
+  timestamp: string,
+): CloudPullResult => {
+  const changed = (
+    Array.isArray(response.changedEntities) ? response.changedEntities : []
+  ).filter(isRecord);
+  const deleted = (
+    Array.isArray(response.deletedEntities) ? response.deletedEntities : []
+  ).filter(isRecord);
   const serverRevision = response.serverRevision ?? response.revision ?? 0;
-  const changedCandidates = changed.filter((record) => record.operationType !== 'delete');
+  const changedCandidates = changed.filter(
+    (record) => record.operationType !== "delete",
+  );
   const changedOperations = normalizeOperations(
     changedCandidates,
     serverRevision,
     timestamp,
   );
   const deletedOperations = normalizeOperations(
-    deleted.map((record) => ({ ...record, operationType: 'delete' })),
+    deleted.map((record) => ({ ...record, operationType: "delete" })),
     serverRevision,
     timestamp,
   );
   const unsupportedEntityCount =
-    changedCandidates.length + deleted.length - changedOperations.length - deletedOperations.length;
+    changedCandidates.length +
+    deleted.length -
+    changedOperations.length -
+    deletedOperations.length;
 
   const conflicts = Array.isArray(response.conflicts) ? response.conflicts : [];
   const unresolvedConflicts = unresolvedConflictCount(conflicts);
@@ -227,13 +290,15 @@ const toPullResult = (response: SyncPullResponse, timestamp: string): CloudPullR
     id: `pull-${response.serverTimestamp ?? timestamp}`,
     operations: [...changedOperations, ...deletedOperations],
     createdAt: response.serverTimestamp ?? timestamp,
-    status: response.status ?? (unresolvedConflicts > 0 ? 'conflict' : 'idle'),
+    status: response.status ?? (unresolvedConflicts > 0 ? "conflict" : "idle"),
     pendingOperations: response.pendingOperations ?? 0,
     conflictCount: response.conflictCount ?? unresolvedConflicts,
     lastSyncedAt: response.serverTimestamp,
     revision: serverRevision,
     serverRevision,
-    ...(response.serverTimestamp ? { serverTimestamp: response.serverTimestamp } : {}),
+    ...(response.serverTimestamp
+      ? { serverTimestamp: response.serverTimestamp }
+      : {}),
     ...(changed.length ? { changedEntities: changed } : {}),
     ...(deleted.length ? { deletedEntities: deleted } : {}),
     ...(Array.isArray(response.conflicts)
@@ -246,7 +311,10 @@ const toPullResult = (response: SyncPullResponse, timestamp: string): CloudPullR
   };
 };
 
-const canPushOperationForUser = (operation: SyncOperation, userId: string): boolean =>
+const canPushOperationForUser = (
+  operation: SyncOperation,
+  userId: string,
+): boolean =>
   !operation.metadata?.userId || operation.metadata.userId === userId;
 
 export const createProductionCloudProvider = ({
@@ -263,17 +331,17 @@ export const createProductionCloudProvider = ({
       const response = await requestWithAuth<SyncEnvelope>(
         apiClient,
         authService,
-        'GET',
-        '/v1/sync/status',
+        "GET",
+        "/v1/sync/status",
       );
-      return toSyncState(response, 'idle');
+      return toSyncState(response, "idle");
     } catch (error) {
       const needsAuthentication =
         (isApiError(error) && error.status === 401) ||
-        (error instanceof Error && error.message === 'authentication required');
+        (error instanceof Error && error.message === "authentication required");
 
       return {
-        status: needsAuthentication ? 'needsAuthentication' : 'error',
+        status: needsAuthentication ? "needsAuthentication" : "error",
         pendingOperations: 0,
         conflictCount: 0,
       };
@@ -291,7 +359,7 @@ export const createProductionCloudProvider = ({
 
       if (operations.length === 0) {
         return {
-          status: 'idle',
+          status: "idle",
           pendingOperations: batch.operations.length,
           conflictCount: 0,
           lastSyncedAt: now(),
@@ -301,18 +369,21 @@ export const createProductionCloudProvider = ({
       const response = await requestWithAuth<SyncPushResponse>(
         apiClient,
         authService,
-        'POST',
-        '/v1/sync/push',
+        "POST",
+        "/v1/sync/push",
         {
           deviceId: identity.deviceId,
           clientRevision: await getClientRevision(identity.userId),
           operations: operations.map((operation) => ({
             entityType: operation.entity,
             entityId: operation.entityId ?? operation.id,
-            operationType: operation.action === 'merge' ? 'upsert' : operation.action,
+            operationType:
+              operation.action === "merge" ? "upsert" : operation.action,
             baseRevision: operation.revision?.number ?? 0,
             idempotencyKey: operation.metadata?.requestId ?? operation.id,
-            ...(operation.payload === undefined ? {} : { payload: operation.payload }),
+            ...(operation.payload === undefined
+              ? {}
+              : { payload: operation.payload }),
           })),
         },
       );
@@ -323,8 +394,8 @@ export const createProductionCloudProvider = ({
       const response = await requestWithAuth<SyncPullResponse>(
         apiClient,
         authService,
-        'POST',
-        '/v1/sync/pull',
+        "POST",
+        "/v1/sync/pull",
         {
           deviceId: identity.deviceId,
           clientRevision: await getClientRevision(identity.userId),
@@ -336,16 +407,26 @@ export const createProductionCloudProvider = ({
       const timestamp = now();
       return {
         id: `snapshot-${timestamp}`,
-        revision: { id: 'local', number: 0, createdAt: timestamp },
+        revision: { id: "local", number: 0, createdAt: timestamp },
         state: {},
         createdAt: timestamp,
       };
     },
     async uploadSnapshot() {
-      return { status: 'idle', pendingOperations: 0, conflictCount: 0, lastSyncedAt: now() };
+      return {
+        status: "idle",
+        pendingOperations: 0,
+        conflictCount: 0,
+        lastSyncedAt: now(),
+      };
     },
     async resolveConflict() {
-      return { status: 'conflict', pendingOperations: 0, conflictCount: 1, lastSyncedAt: now() };
+      return {
+        status: "conflict",
+        pendingOperations: 0,
+        conflictCount: 1,
+        lastSyncedAt: now(),
+      };
     },
   };
 };
