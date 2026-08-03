@@ -33,7 +33,7 @@ Approved boundaries:
 - the mobile client never stores provider credentials or calls object storage, CDN, classifier, OCR, email, or model providers directly;
 - unavailable provider-backed operations remain hidden or fail closed through strict capability contracts.
 
-`docs/architecture/app-context-consumer-inventory.md` records no remaining production `useAppContext` consumers. There is no approved general application-state refactor phase.
+`docs/architecture/app-context-consumer-inventory.md` records no remaining production `useAppContext` consumers. There is no remaining approved autonomous source-refactor phase.
 
 ## Program order
 
