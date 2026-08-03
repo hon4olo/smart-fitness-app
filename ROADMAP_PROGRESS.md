@@ -26,8 +26,8 @@ Completed implementation history remains in merged pull requests and focused roa
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `4e7149c6f36787580a4f21161c7c4dd4f434f5b4`;
-- backend `main`: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
+- mobile `main`: `2aaaa59dff69729e0d0f0310b96e92ba6544b2d4`;
+- backend `main`: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -60,6 +60,8 @@ Before this documentation synchronization slice:
 - backend PR #106 merge: `95c923c146b0abcad7f97ed7073616cf30ad8bab`;
 - backend PR #107 exact green head: `ce50efbd088200c572116b62bf627dc25e026b11`;
 - backend PR #107 merge: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
+- backend PR #108 exact green head: `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`;
+- backend PR #108 merge: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -302,7 +304,7 @@ P3 activation boundary:
 
 ### P4 — moderation calibration harness
 
-Status: active. The strict provider-injected calibration core is merged; safe local corpus I/O, CLI composition, no-overwrite output, and authorized representative execution remain open.
+Status: active. The provider-injected calibration core and bounded local CLI/filesystem/reporting source boundary are merged. A source-only operator runbook remains; representative authorized execution, real provider calls, threshold review, and every calibration claim remain external.
 
 Backend PR #107, exact green head `ce50efbd088200c572116b62bf627dc25e026b11`, merge `db5ee5ab50c760619dfa254618b5f2de64f2e044`:
 
@@ -314,15 +316,25 @@ Backend PR #107, exact green head `ce50efbd088200c572116b62bf627dc25e026b11`, me
 - added synthetic no-network tests and documented metric, retry, corpus, and privacy boundaries;
 - did not add a corpus, real images, credentials, real calls, thresholds, policy changes, routes, database changes, deployment, activation, or calibration claim.
 
+Backend PR #108, exact green head `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`, merge `a0f97680189b6daa05a2b5fc22a469d687df23c9`:
+
+- added strict bounded CLI arguments and deterministic aggregate process states and exit codes;
+- canonicalized an explicitly selected local corpus root and rejected absolute paths, traversal, backslashes, symlinks, non-regular files, malformed manifests, invalid JPEGs, and over-limit files;
+- reused the existing asset-specific JPEG validator and provider attempt/timeout runners;
+- composed configured classifier, OCR, and pure non-persisting OCR text moderation without opening the database;
+- added exclusive no-overwrite mode-`0600` JSON/CSV writes with deterministic content and rollback after partial failure;
+- observed `SIGINT` and `SIGTERM` before the next case while allowing an in-flight bounded provider operation to settle;
+- added deterministic filesystem, text-policy, CLI, output, composition, interruption, redaction, and no-network tests;
+- kept reports and process output free of case IDs, roots/paths, media bytes/hashes, OCR plaintext, provider payloads/messages/identifiers, endpoints, credentials, identity, free text, and exception details;
+- did not add a corpus, real provider call, threshold or policy change, route, database change, deployment, worker scheduling, product enablement, public upload, or calibration claim.
+
 Remaining P4 source boundary:
 
-- add an internal CLI with strict arguments and deterministic exit codes;
-- read manifest and JPEG files only from an explicitly selected canonical local corpus root with symlink/path-escape rejection and bounded file sizes;
-- compose the already selected classifier/OCR providers and OCR text moderator without logging secrets or plaintext;
-- require explicit JSON/CSV output paths, exclusive no-overwrite writes, private file permissions, and cleanup on partial failure;
-- add deterministic filesystem, argument, output, interruption, redaction, and no-network tests;
-- add operational corpus authorization, access, retention, deletion, and result-review procedures;
-- keep representative authorized corpus execution, threshold review, real calls, and all calibration claims external.
+- add an operator-facing non-production runbook with exact CLI invocation shape and fail-closed preflight checks;
+- define corpus authorization, lawful purpose/provenance, access control, bounded retention, secure deletion, and accidental-inclusion incident handling;
+- define aggregate result review ownership, threshold-decision ownership, and explicit prohibition on deriving production thresholds from synthetic tests alone;
+- define report/corpus cleanup evidence and privacy-safe operator logging requirements;
+- keep representative corpus execution, real calls, provider-account/quota/latency evidence, threshold changes, product activation, and calibration claims external.
 
 ### P5 — password-reset product readiness
 
@@ -358,7 +370,7 @@ Remaining P4 source boundary:
 
 ## Current execution order
 
-1. P4 moderation calibration harness.
+1. P4 moderation calibration operator runbook and external evidence preparation.
 2. P5 password-reset mobile, links, templates, and delivery readiness.
 3. P6 deployment policies, smoke scripts, and runbooks.
 4. P7 backend-owned conflict choices and then mobile UI.
@@ -416,4 +428,4 @@ Do not begin without explicit product prioritization:
 
 ## New-chat starter prompt
 
-> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. First verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, backend `docs/architecture/social-media-worker-runtime.md`, backend `docs/architecture/provider-http-transport.md`, backend `docs/architecture/amazon-rekognition-classifier.md`, backend `docs/architecture/amazon-rekognition-ocr.md`, and backend `docs/architecture/media-moderation-calibration.md`; then inspect only code and tests relevant to the selected bounded slice. P0 through P3 are source-complete. P4 calibration core is complete through backend PR #107 exact green head `ce50efbd088200c572116b62bf627dc25e026b11`, merge `db5ee5ab50c760619dfa254618b5f2de64f2e044`. No corpus, real images, credentials, real provider calls, thresholds, deployment, activation, or calibration claim exists. Continue with the smallest complete P4 CLI/filesystem slice: strict CLI arguments and exit codes, canonical local corpus-root containment with symlink/path-escape rejection, bounded manifest/JPEG reads, selected-provider and OCR-text-moderator composition, exclusive mode-0600 JSON/CSV output, partial-failure cleanup, deterministic no-network filesystem tests, and operational corpus handling documentation. Preserve aggregate-only reports and keep case IDs, paths, image bytes, OCR plaintext, provider payloads/messages/identifiers, endpoints, credentials, identity, free text, and exception details out of process output and report files. Representative authorized corpus execution, real calls, threshold review, and calibration claims remain external. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without direct authorization.
+> Continue autonomous work on the Smart Fitness Provider and Release Readiness program. Repositories: mobile `hon4olo/smart-fitness-app`, backend `hon4olo/smart-fitness-backend`. First verify exact current `main` and open PRs in both repositories; read both `AGENTS.md`, mobile `PROJECT_LEARNINGS.md`, `ROADMAP_PROGRESS.md`, `docs/implementation-plan.md`, `docs/roadmap/provider-readiness.md`, `docs/roadmap/social-network.md`, `docs/architecture/app-context-consumer-inventory.md`, backend `docs/architecture/social-media-worker-runtime.md`, backend `docs/architecture/provider-http-transport.md`, backend `docs/architecture/amazon-rekognition-classifier.md`, backend `docs/architecture/amazon-rekognition-ocr.md`, and backend `docs/architecture/media-moderation-calibration.md`; then inspect only code and tests relevant to the selected bounded slice. P0 through P3 are source-complete. P4 calibration core and bounded CLI/filesystem/reporting source boundaries are complete through backend PR #108 exact green head `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`, merge `a0f97680189b6daa05a2b5fc22a469d687df23c9`. No representative corpus has been run and no calibration claim exists. Continue with the smallest complete source-only P4 operator-runbook slice: document exact non-production CLI invocation, fail-closed configuration and filesystem preflight, corpus authorization/provenance/access/retention/deletion requirements, aggregate result-review ownership, threshold-decision boundaries, privacy-safe evidence, cleanup verification, interruption/retry handling, and incident response for accidental unauthorized media. Do not add or run a corpus, make real provider calls, configure credentials, recommend thresholds from synthetic evidence, or claim calibration. Preserve aggregate-only reports and keep case IDs, paths, image bytes/hashes, OCR plaintext, provider payloads/messages/identifiers, endpoints, credentials, identity, free text, and exception details out of process output, reports, and operator logs. Preserve all lifecycle, ownership, state-version, CAS, lease, moderation, review, appeal, evidence, retention, legal-hold, cleanup, authentication, sync, idempotency, localization, offline, navigation, draft, polling, and privacy boundaries. Work through meaningful bounded backend/mobile/docs PRs, run full blocking CI, inspect review threads, and merge only exact fully green heads. Do not configure credentials, call real providers, create buckets/CDN/DNS, deploy backend changes, execute migrations outside CI, schedule workers, activate staging or production, publish OTA/EAS, create/install native builds, enable public media uploads, or activate production password-reset email without direct authorization.
