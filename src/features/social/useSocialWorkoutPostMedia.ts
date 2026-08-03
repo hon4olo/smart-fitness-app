@@ -7,6 +7,7 @@ import {
   type SocialWorkoutPostMediaInput,
 } from "@/api/social";
 
+import { runManagedMediaUploadComposition } from "./managedMediaUploadComposition";
 import {
   clearSocialWorkoutPostMediaDraft,
   loadSocialWorkoutPostMediaDraft,
@@ -196,45 +197,40 @@ export const useSocialWorkoutPostMedia = ({
         const prepared = await prepareSocialWorkoutPostImage(selected);
         if (!enabled || !isCurrent(requestSequence)) return;
         setPreviewUri(prepared.uri);
-        const created = await api.createWorkoutPostImageUpload({
-          schemaVersion: 1,
-          assetType: "workout_post_image",
-          mediaType: prepared.mediaType,
-          byteSize: prepared.byteSize,
-          idempotencyKey: createIdempotencyKey(),
-        });
-        if (created.asset.assetType !== "workout_post_image") {
-          throw new Error("Invalid workout post media asset type");
-        }
-        await saveSocialWorkoutPostMediaDraft(accountId, sessionId, {
-          assetId: created.asset.assetId,
-          previewUri: prepared.uri,
-        });
-        if (!enabled || !isCurrent(requestSequence)) return;
-        setAsset(created.asset);
         const controller = new AbortController();
         abortController.current = controller;
-        setOperation("uploading");
-        setUploadProgress(0);
-        await uploadSignedSocialMedia({
-          uri: prepared.uri,
-          byteSize: prepared.byteSize,
-          mediaType: prepared.mediaType,
-          upload: created.upload,
-          onProgress: (value) => {
-            if (isCurrent(requestSequence)) setUploadProgress(value);
+        const result = await runManagedMediaUploadComposition({
+          prepared,
+          createUpload: () =>
+            api.createWorkoutPostImageUpload({
+              schemaVersion: 1,
+              assetType: "workout_post_image",
+              mediaType: prepared.mediaType,
+              byteSize: prepared.byteSize,
+              idempotencyKey: createIdempotencyKey(),
+            }),
+          persistDraft: (createdAsset) =>
+            saveSocialWorkoutPostMediaDraft(accountId, sessionId, {
+              assetId: createdAsset.assetId,
+              previewUri: prepared.uri,
+            }),
+          uploadSigned: uploadSignedSocialMedia,
+          completeUpload: (assetId, expectedStateVersion) =>
+            api.completeMediaUpload(assetId, expectedStateVersion),
+          validateAsset: (candidate) => {
+            if (candidate.assetType !== "workout_post_image") {
+              throw new Error("Invalid workout post media asset type");
+            }
           },
+          isCurrent: () => enabled && isCurrent(requestSequence),
+          onAsset: setAsset,
+          onStage: setOperation,
+          onProgress: setUploadProgress,
           signal: controller.signal,
         });
-        if (!enabled || !isCurrent(requestSequence)) return;
-        setOperation("completing");
-        const completed = await api.completeMediaUpload(
-          created.asset.assetId,
-          created.asset.stateVersion,
-        );
-        if (!enabled || !isCurrent(requestSequence)) return;
-        setAsset(completed);
-        await pollAsset(completed.assetId, requestSequence);
+        if (result.outcome === "completed") {
+          await pollAsset(result.asset.assetId, requestSequence);
+        }
       } catch (error) {
         if (isCurrent(requestSequence)) {
           setErrorMessage(getSocialWorkoutPostMediaErrorMessage(error, copy));
