@@ -1,12 +1,14 @@
 import type { ExpoConfig } from 'expo/config';
 import { describe, expect, it } from 'vitest';
 
-import {
+import passwordResetAppLinkConfig = require('../../config/password-reset-app-link');
+
+const {
   PASSWORD_RESET_APP_LINK_ENV,
   PASSWORD_RESET_ROUTE_PATH,
   parsePasswordResetAppLink,
   withPasswordResetAppLink,
-} from '../../app.config';
+} = passwordResetAppLinkConfig;
 
 const baseConfig = (): ExpoConfig => ({
   name: 'smart-fitness-app',
