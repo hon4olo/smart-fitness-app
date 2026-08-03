@@ -1,6 +1,6 @@
 # Provider and Release Readiness Roadmap
 
-Updated: 2026-08-02
+Updated: 2026-08-03
 
 ## Objective
 
@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `2aaaa59dff69729e0d0f0310b96e92ba6544b2d4`;
-- backend `main`: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
+- mobile `main`: `f815a38ba92c5432e59adfb52b2b67da4877376f`;
+- backend `main`: `c8d315113881e81f7b6c8522bfb5b439b4b36972`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -48,6 +48,8 @@ Before this documentation synchronization slice:
 - backend PR #107 merge: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
 - backend PR #108 exact green head: `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`;
 - backend PR #108 merge: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
+- backend PR #109 exact green head: `d3b6a1599352a79a4dd2bb8d361148d605de3ec3`;
+- backend PR #109 merge: `c8d315113881e81f7b6c8522bfb5b439b4b36972`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -270,7 +272,7 @@ P3 activation boundary:
 
 ## Phase P4 — moderation calibration harness
 
-Status: active. The strict provider-injected calibration core and bounded local CLI/filesystem/reporting source boundary are merged. A source-only operator runbook remains; representative authorized execution and every calibration claim remain external.
+Status: autonomous source preparation is complete and merged. Representative authorized execution and calibration evidence remain external.
 
 Merged evidence:
 
@@ -278,22 +280,23 @@ Merged evidence:
 - backend PR #107 merge: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
 - backend PR #108 exact green head: `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`;
 - backend PR #108 merge: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
-- both exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+- backend PR #109 exact green head: `d3b6a1599352a79a4dd2bb8d361148d605de3ec3`;
+- backend PR #109 merge: `c8d315113881e81f7b6c8522bfb5b439b4b36972`;
+- all three exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 - [x] add the strict versioned manifest and provider-injected calibration core;
 - [x] add an internal CLI with strict bounded arguments and deterministic aggregate process states/exit codes;
-- [x] read manifest and JPEG files only inside an explicitly selected canonical local corpus root with traversal, absolute-path, backslash, symlink, non-regular-file, malformed-manifest, invalid-JPEG, and size rejection;
-- [x] run configured classifier and OCR adapters through the existing provider runners, pure OCR text moderation, and deterministic fitness-aware policy without opening the database;
-- [x] report aggregate allow, review, reject, expected/mismatched, false-positive, false-negative, undetermined, input, timeout, invalid, unavailable, and failed counts;
-- [x] group results by bounded ordinary-gym, sportswear, bodybuilding-stage, progress-photo, possible-minor, sexual-context, violence, text-overlay, prohibited-content, and ambiguous-case categories;
-- [x] exclude case IDs, roots/paths, raw images/hashes, OCR plaintext, signed URLs, credentials, identity, provider payloads/messages/identifiers, endpoints, free text, and exception details from reports and process output;
-- [x] support deterministic aggregate-only JSON and CSV output with explicit paths, exclusive no-overwrite creation, mode `0600`, synchronization, and rollback after partial failure;
-- [x] observe interruption before the next case while preserving existing provider-attempt/timeout ownership and avoiding an invented cancellation contract;
+- [x] enforce canonical local corpus containment, bounded manifest/JPEG validation, symlink/path-escape rejection, and safe configured-provider composition;
+- [x] report only bounded aggregate category, decision, mismatch, false-positive/false-negative, undetermined, and failure counts;
+- [x] exclude case IDs, roots/paths, media bytes/hashes, OCR plaintext, signed URLs, credentials, identity, provider payloads/messages/identifiers, endpoints, free text, and exception details from reports, process output, and operator evidence;
+- [x] support deterministic aggregate-only JSON/CSV output with explicit paths, exclusive no-overwrite mode `0600`, synchronization, and rollback after partial failure;
+- [x] preserve provider-runner attempt/timeout ownership and bounded interruption before the next case;
 - [x] add deterministic filesystem, CLI, text-policy, output, composition, interruption, redaction, and no-network coverage;
-- [ ] add an operator-facing non-production runbook covering exact invocation, fail-closed preflight, authorized corpus purpose/provenance/access/retention/deletion, aggregate review ownership, threshold-decision boundaries, private evidence, cleanup verification, and accidental-inclusion incident response;
-- [ ] do not claim calibration until the harness is run against a representative authorized non-production corpus with explicit approval and reviewed aggregate evidence.
+- [x] add an operator-facing non-production runbook covering exact invocation, fail-closed preflight, corpus authorization/provenance/access/retention/deletion, aggregate review ownership, threshold-decision boundaries, private evidence, cleanup verification, and accidental-media incident response;
+- [ ] run the harness against a representative authorized non-production corpus with explicit approval, real provider access, reviewed aggregate evidence, and documented deletion verification;
+- [ ] complete provider-account, quota, latency, moderation-quality, threshold/policy, and activation review before any production claim or enablement.
 
-No corpus, real media, credential values, provider account, real provider call, threshold/policy change, route, database schema, deployment, worker scheduling, environment activation, product enablement, public upload, OTA, native build, or calibration claim was added or performed.
+No corpus, real media, credential values, provider account, real provider call, threshold/policy change, route, database schema, deployment, worker scheduling, environment activation, product enablement, public upload, OTA, native build, or calibration claim was added or performed during autonomous source work.
 
 ## Phase P5 — password-reset product and delivery readiness
 

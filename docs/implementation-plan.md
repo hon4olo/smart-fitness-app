@@ -1,6 +1,6 @@
 # Smart Fitness Active Implementation Plan
 
-Updated: 2026-08-02
+Updated: 2026-08-03
 
 This file contains the current verified baseline, active source program, execution order, and authorization boundary. Detailed tasks live in `docs/roadmap/provider-readiness.md`. Completed implementation history remains in merged pull requests and focused architecture and roadmap documents.
 
@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `2aaaa59dff69729e0d0f0310b96e92ba6544b2d4`;
-- backend `main`: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
+- mobile `main`: `f815a38ba92c5432e59adfb52b2b67da4877376f`;
+- backend `main`: `c8d315113881e81f7b6c8522bfb5b439b4b36972`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -44,6 +44,8 @@ Before this documentation synchronization slice:
 - backend PR #107 merge: `db5ee5ab50c760619dfa254618b5f2de64f2e044`;
 - backend PR #108 exact green head: `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`;
 - backend PR #108 merge: `a0f97680189b6daa05a2b5fc22a469d687df23c9`;
+- backend PR #109 exact green head: `d3b6a1599352a79a4dd2bb8d361148d605de3ec3`;
+- backend PR #109 merge: `c8d315113881e81f7b6c8522bfb5b439b4b36972`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -213,38 +215,36 @@ Backend PR #106, exact green head `cecb34a3044110cf252fe845217d199ddad7afd8`, me
 - added deterministic configuration, factory, production-validation, capability, readiness, redaction, and no-network tests;
 - made no real provider call and performed no deployment, worker scheduling, environment activation, product enablement, or public upload activation.
 
-## P4 calibration status and next bounded slice
+## P4 calibration source completion
 
-Backend PR #107, exact green head `ce50efbd088200c572116b62bf627dc25e026b11`, merge `db5ee5ab50c760619dfa254618b5f2de64f2e044`, completed the provider-injected calibration core:
+Backend PR #107, exact green head `ce50efbd088200c572116b62bf627dc25e026b11`, merge `db5ee5ab50c760619dfa254618b5f2de64f2e044`, completed the strict provider-injected aggregate calibration core.
 
-- strict versioned manifest, opaque IDs, safe relative JPEG paths, expected outcomes, and bounded fitness-specific categories;
-- existing classifier/OCR provider runners, injected OCR text moderation, and existing deterministic media policy;
-- aggregate actual/expected decisions, mismatches, false-positive/false-negative, undetermined, and bounded failure counts;
-- aggregate-only deterministic JSON/CSV rendering with no case/path/media/OCR/provider/secret/identity/error details;
-- synthetic no-network tests and architecture documentation;
-- no corpus, real image, credential, real call, threshold/policy change, deployment, activation, or calibration claim.
+Backend PR #108, exact green head `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`, merge `a0f97680189b6daa05a2b5fc22a469d687df23c9`, completed the bounded CLI, canonical local filesystem, provider composition, private no-overwrite reporting, interruption, redaction, and deterministic no-network boundary.
 
-Backend PR #108, exact green head `e13d8f53e9eefad9e9f9ea6513b986a40a9e2760`, merge `a0f97680189b6daa05a2b5fc22a469d687df23c9`, completed the bounded CLI/filesystem/reporting source boundary:
+Backend PR #109, exact green head `d3b6a1599352a79a4dd2bb8d361148d605de3ec3`, merge `c8d315113881e81f7b6c8522bfb5b439b4b36972`, completed the source-prepared non-production operations boundary:
 
-- strict CLI arguments for corpus root, manifest, JSON output, and optional CSV output with deterministic aggregate exit states;
-- canonical-root containment with traversal, absolute-path, backslash, symlink, non-regular-file, size, malformed-manifest, and invalid-JPEG rejection;
-- existing JPEG validation, classifier/OCR runners, configured provider composition, and pure non-persisting OCR text moderation;
-- exclusive mode-`0600` no-overwrite JSON/CSV output, deterministic content, synchronization, and partial-output rollback;
-- interruption observation before the next sequential case without inventing provider cancellation;
-- deterministic filesystem, parser, text-policy, output, composition, interruption, redaction, and no-network tests;
-- aggregate-only reports/process output with no case IDs, roots/paths, media bytes/hashes, OCR plaintext, provider payloads/messages/identifiers, endpoints, credentials, identity, free text, or exception details;
-- no corpus, real call, threshold/policy change, route, database change, deployment, scheduling, activation, public upload, or calibration claim.
+- exact CLI invocation and fail-closed commit/build/configuration/filesystem/output preflight;
+- separate corpus-owner, operator, reviewer, policy-owner, deletion-verifier, and incident-owner responsibilities;
+- lawful-purpose, provenance, minimization, access, retention, secure-deletion, and accidental-media requirements;
+- aggregate-only review, private report handling, interruption/retry, deletion verification, and privacy-safe evidence;
+- explicit prohibition on treating synthetic tests as provider-quality evidence or changing thresholds/product state during calibration operations.
 
-Complete the remaining source-only operator-runbook boundary next:
+P4 autonomous source preparation is complete. Corpus collection, credentials, provider-account validation, real calls, representative non-production execution, quota/latency evidence, aggregate review, threshold or policy proposals, product enablement, public uploads, production activation, and every calibration claim remain external and require direct authorization.
 
-- document the exact non-production CLI invocation shape without credential values or destructive defaults;
-- require fail-closed configuration, provider readiness, canonical-root, manifest, output-parent, disk-space, and no-existing-output preflight;
-- define authorized corpus purpose/provenance, minimum access, bounded retention, secure deletion, and accidental-inclusion incident handling;
-- define aggregate result review ownership, threshold-decision ownership, and the prohibition on treating synthetic tests as quality evidence;
-- define interruption/retry rules, private output handling, report/corpus deletion verification, and privacy-safe operator evidence;
-- keep representative corpus execution, real provider calls, provider-account/quota/latency evidence, threshold changes, product enablement, public uploads, and every calibration claim external.
+## P5 active source boundary
 
-No credentials, real provider call, corpus execution, deployment, migration execution outside CI, worker scheduling, environment activation, product enablement, public upload activation, OTA, or native build is authorized.
+Audit the current password-reset mobile and backend boundaries before implementation, then continue with the smallest complete source-only slice:
+
+- preserve the generic accepted response so account existence is never disclosed;
+- preserve hashed one-time token expiry, replay rejection, delivery-failure invalidation, and all-session revocation;
+- select and document a concrete mail-provider API contract or explicitly approved generic transport before adding provider-specific request/response code;
+- keep credentials and provider calls backend-only and add bounded timeout, provider rejection, malformed-response, retry, redaction, and no-network conformance;
+- construct reset links only from a configured trusted application-link base URL;
+- add EN/RU plain-text and HTML templates with bounded expiry and security guidance;
+- complete mobile forgot/reset route, strict API state, app/universal-link source handling, token hygiene, forced return to sign-in, accessibility, and capability-gated behavior where still missing;
+- keep sender-domain/DNS setup, credentials, real email delivery, deployment, OTA/native build, physical-device deep-link validation, and production activation external.
+
+No credential, sender-domain, DNS, provider-account, real delivery, backend deployment, migration execution outside CI, environment activation, OTA, or native build is authorized.
 
 ## Execution rules
 
