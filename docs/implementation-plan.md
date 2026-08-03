@@ -8,8 +8,8 @@ This file contains the current verified baseline, active source program, executi
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `25bbefa7621fefa0ec6bafafc34aec867f3638f1`;
-- backend `main`: `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`;
+- mobile `main`: `32249cf88781b75e3f50c274510bff87b68250ad`;
+- backend `main`: `288425d9e8608c56f814af74274301c3940a371c`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -66,6 +66,10 @@ Before this documentation synchronization slice:
 - mobile PR #385 merge: `25bbefa7621fefa0ec6bafafc34aec867f3638f1`;
 - backend PR #114 exact green head: `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`;
 - backend PR #114 merge: `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`;
+- mobile PR #386 exact green head: `8076e93c43e53cc0b9e460866745c2baebfd5038`;
+- mobile PR #386 merge: `32249cf88781b75e3f50c274510bff87b68250ad`;
+- backend PR #116 exact green head: `12ba41f2176079fbb4fbe13fc07e3016c16f5049`;
+- backend PR #116 merge: `288425d9e8608c56f814af74274301c3940a371c`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - production `useAppContext` consumers: `0`;
@@ -287,32 +291,27 @@ No credential, sender-domain, DNS, association-file deployment, provider account
 
 ## P6 current source boundary
 
-Backend PR #113, exact green head `3e366e803f91d4d563d0b1e70cc189381534cd18`, merge `bad69c42325e7156215e7fdba45962ade3372ef1`, completed the fail-closed environment-template and staging/production configuration-matrix slice:
+Backend PR #113, exact green head `3e366e803f91d4d563d0b1e70cc189381534cd18`, merge `bad69c42325e7156215e7fdba45962ade3372ef1`, completed fail-closed environment templates and the staging/production configuration matrix.
 
-- expanded `.env.example` and `.env.production.example` with the complete managed-media, Rekognition, worker, and Resend configuration surface;
-- kept every product enablement flag `false`, every production provider selector `unavailable`, and every provider credential blank by default;
-- documented explicit environment targeting, required secret names, cross-repository reset-link matching, and fail-closed preparation order;
-- added deterministic drift and credential-shape coverage.
+Backend PR #114, exact green head `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`, merge `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`, completed provider-neutral private-storage, immutable-delivery, CORS, lifecycle, encryption, public-access, and CDN-origin policy contracts aligned with the implemented S3-compatible adapters.
 
-Backend PR #114, exact green head `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`, merge `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`, completed the storage and immutable-delivery policy-template slice:
+Backend PR #116, exact green head `12ba41f2176079fbb4fbe13fc07e3016c16f5049`, merge `288425d9e8608c56f814af74274301c3940a371c`, completed sender and link-domain association source preparation:
 
-- added provider-neutral private managed-media storage, immutable delivery-origin, and CDN-origin design contracts;
-- aligned exact private and public prefixes, bounded object sizes, required metadata, SHA-256 content addressing, conditional no-overwrite writes, and immutable cache controls with the implemented S3-compatible adapters;
-- required blocked origin public access, HTTPS, encryption at rest, exact CORS origins, least-privilege backend and CDN identities, and separation of private storage from public delivery;
-- kept deletion, retention deadlines, appeals, and legal holds application-owned and prohibited independent age-based expiration for managed prefixes;
-- documented explicit staging/production translation and external application gates without provider-specific apply commands;
-- added deterministic parsing, contract-alignment, unsafe-public-access, placeholder, and credential-shape coverage;
-- passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+- added placeholder-only Resend DKIM/SPF/MX, Apple AASA, and Android Digital Asset Links templates;
+- fixed the source contract to `/auth/reset-password`, `com.dzahard28.smartfitnessapp`, external Apple Team ID, and external Android release signing fingerprint;
+- documented exact HTTPS/no-redirect hosting, staging/production isolation, privacy-safe browser fallback, rollback, and no-token evidence requirements;
+- kept the current Resend integration send-only with no callback route, webhook secret, provider-event persistence, or callback-based readiness claim;
+- added deterministic route, identifier, wildcard-rejection, placeholder, callback-disablement, and credential-shape coverage;
+- passed the complete blocking Backend CI.
 
-The active P6 boundary is now sender and link-domain infrastructure documentation:
+The active P6 boundary is now rollout and rollback ordering:
 
-- document verified sender-domain DNS requirements for Resend without selecting or configuring a real domain;
-- document Apple App Site Association and Android Digital Asset Links ownership, hosting, path, application-ID, and signing-certificate requirements;
-- document provider callback requirements only where a selected provider contract actually needs them;
-- keep all examples placeholder-only, non-destructive, and explicitly scoped to staging or production;
-- leave DNS mutation, domain verification, association-file deployment, provider-account changes, real delivery, native builds, and physical-device validation external.
+- define exact migration, backend, worker, capability-enablement, verification, disablement, and rollback order;
+- require explicit staging or production targeting and fail closed before each irreversible or externally visible transition;
+- preserve current disabled defaults and content-free evidence requirements;
+- leave migration execution outside CI, deployment, worker startup, DNS, real provider calls, native builds, and capability activation external.
 
-No provider account, credential, bucket, CDN, domain, DNS, association-file deployment, policy application, real provider call, backend deployment, worker startup, environment activation, capability enablement, OTA/EAS publication, native build, or device installation was performed.
+No provider account, credential, infrastructure, DNS, association deployment, callback registration, real delivery, backend deployment, worker startup, environment activation, capability enablement, OTA/EAS publication, native build, or device installation was performed.
 
 ## Execution rules
 

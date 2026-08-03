@@ -362,37 +362,37 @@ No provider account, credential, sender/domain, DNS, association-file deployment
 
 ## Phase P6 — deployment configuration, policies, and runbooks
 
-Status: active. Environment templates, the staging/production configuration matrix, and provider-neutral storage/CDN policy templates are source-complete. Sender-domain and link-domain infrastructure documentation is next.
+Status: active. Environment, storage/CDN policy, sender-domain, and link-association source preparation is complete. Rollout and rollback ordering is next.
 
 Merged evidence:
 
-- backend PR #113 exact green head: `3e366e803f91d4d563d0b1e70cc189381534cd18`;
-- backend PR #113 merge: `bad69c42325e7156215e7fdba45962ade3372ef1`;
-- backend PR #114 exact green head: `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`;
-- backend PR #114 merge: `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`;
-- both exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+- backend PR #113 exact green head `3e366e803f91d4d563d0b1e70cc189381534cd18`, merge `bad69c42325e7156215e7fdba45962ade3372ef1`;
+- backend PR #114 exact green head `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`, merge `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`;
+- backend PR #116 exact green head `12ba41f2176079fbb4fbe13fc07e3016c16f5049`, merge `288425d9e8608c56f814af74274301c3940a371c`;
+- all exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 - [x] expand `.env.example` without adding secrets;
 - [x] document staging and production configuration matrices and required secret names;
-- [x] prepare private bucket, public-delivery bucket or namespace, CORS, lifecycle, encryption, public-access, and CDN-origin policy templates;
-- [ ] document sender-domain DNS, link-domain association, and provider callback requirements where applicable;
+- [x] prepare private bucket, public-delivery namespace, CORS, lifecycle, encryption, public-access, and CDN-origin policy templates;
+- [x] document sender-domain DNS, link-domain association, and provider callback requirements where applicable;
 - [ ] define migration order, backend rollout order, worker startup order, capability enablement order, and rollback order;
 - [ ] add smoke scripts for configuration validation, signed upload, processing, delivery, deletion, password reset, and capability status using non-production fixtures;
 - [ ] document key rotation, provider outage, emergency media disable, cleanup pause, legal hold, and rollback procedures;
 - [ ] keep all commands non-destructive by default and require explicit environment targeting.
 
-Completed storage and immutable-delivery policy boundary:
+Completed sender and link-domain boundary:
 
-- separate private quarantine/moderation-master and immutable public-delivery resources or enforceable namespaces;
-- blocked anonymous origin access with HTTPS, encryption at rest, least-privilege identities, exact CORS origins, and CDN-mediated public reads;
-- exact adapter-aligned prefixes, metadata, bounded sizes, conditional no-overwrite writes, SHA-256 content addressing, immutable JPEG caching, and read-only CDN methods;
-- application-owned deletion, retention, appeals, and legal holds; no independent age-based expiry; placeholder-only staging/production translation with deterministic secret-free coverage.
+- placeholder-only Resend DKIM/SPF/MX, Apple AASA, and Android Digital Asset Links templates with exact current route and app identifiers;
+- HTTPS/no-redirect hosting, environment isolation, signing-input, browser-fallback, rollback, and content-free evidence requirements;
+- send-only Resend integration with no callback route, webhook secret, event persistence, or callback-based readiness claim;
+- deterministic path, identifier, wildcard, placeholder, callback, and credential-shape coverage.
 
-Next bounded slice — sender and link-domain infrastructure documentation:
+Next bounded slice — rollout and rollback order:
 
-- document placeholder-only sender-domain DNS ownership, verification, rotation, and rollback requirements;
-- document AASA and `assetlinks.json` hosting, path scope, application identifiers, signing fingerprints, caching, and environment separation;
-- document only required provider callbacks, disabled by default; domain/DNS changes, verification, association deployment, real email, native builds, and device validation remain external.
+- define preflight, migration, backend, worker, capability, verification, disablement, and rollback sequence;
+- distinguish staging rehearsal from production execution and require explicit target confirmation at every command boundary;
+- block capability enablement until provider readiness, workers, association files, smoke evidence, and rollback ownership are confirmed;
+- keep actual deployment, migration execution outside CI, worker scheduling, provider calls, DNS, native builds, and activation external.
 
 ## Phase P7 — explicit sync conflict-choice contract
 
