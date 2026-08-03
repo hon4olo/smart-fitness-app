@@ -1,154 +1,161 @@
-name: Mobile CI
+name: Apply P6 managed-media adapter roadmap sync
 
 on:
-  push:
-    branches: [main]
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  validate:
+  apply:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
+          ref: agent/p6-managed-media-adapter-roadmap
           fetch-depth: 0
+      - name: Synchronize canonical roadmaps
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+          backend_head = '786f2e750b64ece2e7f591b5579dc706322f794b'
+          backend_merge = 'a2b89e7942683a867ebc4632968ddfe3df55f232'
+          mobile_main = 'b0410af9766dc6257476875b1d16ba7571fd0e51'
 
-      - name: Install dependencies
-        run: npm ci
+          implementation_path = Path('docs/implementation-plan.md')
+          implementation = implementation_path.read_text()
+          baseline_start = 'Before this documentation synchronization slice:\n\n'
+          baseline_end = 'Always re-check exact `main` and open pull requests in both repositories before starting another slice.'
+          start = implementation.index(baseline_start) + len(baseline_start)
+          end = implementation.index(baseline_end)
+          implementation = implementation[:start] + f'''- mobile `main`: `{mobile_main}`;
+          - backend `main`: `{backend_merge}`;
+          - backend PR #121 exact green head: `{backend_head}`;
+          - backend PR #121 merge: `{backend_merge}`;
+          - open mobile pull requests before this documentation slice: none;
+          - open backend pull requests after PR #121 merge: none;
+          - public media uploads, real provider-backed media processing, and password-reset delivery remain disabled;
+          - no provider account, credential, deployment, worker schedule, DNS mutation, native build, or production activation is implied by source completion.
 
-      - name: Repository file line audit
-        id: repository-lines
-        run: node scripts/check-repository-file-lines.mjs > repository-line-audit.log 2>&1
+          ''' + implementation[end:]
 
-      - name: Upload repository line audit log
-        if: failure() && steps.repository-lines.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-repository-line-audit-log
-          path: repository-line-audit.log
-          if-no-files-found: error
-          retention-days: 3
+          marker = '- PR #120, exact green head `ccbb98c164efada298a9768d329f9150757ecbf1`, merge `1de40eb713a810bdc8875acebccd61d3b8f8d059`: pre-enablement managed-media lifecycle core with private-quarantine replays, bounded cleanup, and privacy-safe evidence.\n'
+          if implementation.count(marker) != 1:
+              raise SystemExit('Expected one implementation PR #120 marker')
+          implementation = implementation.replace(
+              marker,
+              marker + f'- PR #121, exact green head `{backend_head}`, merge `{backend_merge}`: staging managed-media operational adapter with explicit internal execution and bounded signed upload transport.\n',
+              1,
+          )
 
-      - name: Changed file line limit
-        run: node scripts/check-changed-file-lines.mjs
+          section_start = '### Active P6 slice — managed-media staging operational adapter'
+          section_end = 'Subsequent managed-media slices must add bounded processing/recovery polling, immutable delivery validation, stale-upload expiry, cleanup-worker evidence, and authorized worker-order composition.'
+          start = implementation.index(section_start)
+          end = implementation.index(section_end)
+          section = f'''### Completed P6 slice — managed-media staging operational adapter
 
-      - name: TypeScript
-        id: typescript
-        run: npx tsc --noEmit > typescript.log 2>&1
+          Backend PR #121, exact green head `{backend_head}`, merge `{backend_merge}`, added:
 
-      - name: Upload TypeScript log
-        if: failure() && steps.typescript.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-typescript-log
-          path: typescript.log
-          if-no-files-found: error
-          retention-days: 3
+          - an internal adapter factory requiring literal `staging_pre_enablement` mode and one validated synthetic owner UUID;
+          - explicit `executionEnabled: true` only for the internal `SocialMediaUploadService` instance while the public capability flag remains unchanged and separately verified;
+          - one-owner binding for private upload creation, completion, owner-scoped read, and deletion;
+          - the existing `SocialMediaUploadRepository` and owner DTO conversion rather than a new persistence or API path;
+          - a bounded one-shot signed `PUT` transport with exact URL/headers/bytes, redirect rejection, `AbortController` timeout, `2xx`-only acceptance, no automatic retry, and no response-body read;
+          - generic missing-asset and upload failures without owner ID, asset ID, provider body, signed URL, headers, object key, or raw error leakage;
+          - deterministic injected service/repository/provider/fetch tests for explicit internal execution, owner isolation, delivery wiring, signed upload construction, non-`2xx` failure, and timeout abort;
+          - source-only documentation confirming that no endpoint, CLI, provider call, public capability enablement, deployment, worker startup, or production action was added.
 
-      - name: Coach and sync contract tests
-        id: contract-tests
-        run: >-
-          npx vitest run
-          src/auth/createAuthService.session-cache.test.ts
-          src/auth/migrating-token-manager.test.ts
-          src/context/appContext/AppMutationQueue.test.ts
-          src/context/appContext/AppMutationOutboxRecovery.test.ts
-          src/context/applySyncPullResult.concurrent.test.ts
-          src/context/syncConflictCount.test.ts
-          src/context/syncConflictPersistence.test.ts
-          src/api/coach.test.ts
-          src/api/coach.capabilities.v3.test.ts
-          src/api/coach.capabilities.v4.test.ts
-          src/api/coach.capabilities.v5.test.ts
-          src/api/coach.capabilities.v6.test.ts
-          src/api/coach.capabilities.v7.test.ts
-          src/api/coach.safety-recovery.test.ts
-          src/api/coach.combined.test.ts
-          src/api/coach.strength-strategy.test.ts
-          src/api/coach.strength-confirmation.test.ts
-          src/features/coach/combinedCoachViewModel.test.ts
-          src/features/coach/combinedCoachProposalViewModel.test.ts
-          src/features/coach/recoveryCheckInForm.test.ts
-          src/features/coach/userLimitationForm.test.ts
-          src/features/coach/safetyRecoveryLocalSummary.test.ts
-          src/features/coach/safetyRecoveryReviewSnapshot.test.ts
-          src/features/coach/safetyRecoveryViewModel.test.ts
-          src/features/coach/strengthCoachViewModel.test.ts
-          src/features/coach/strengthStrategyViewModel.test.ts
-          src/features/coach/nutritionCoachViewModel.test.ts
-          src/features/nutrition/addFoodModel.test.ts
-          src/features/progress/bodyMeasurementModel.test.ts
-          src/features/progress/safetyRecoveryProgressAnalytics.test.ts
-          src/features/progress/safetyRecoveryWeeklyTrend.test.ts
-          src/features/workouts/workoutHistoryViewModel.test.ts
-          src/features/workouts/workoutSafetyGateModel.test.ts
-          src/features/workouts/workoutSafetySessionMetadata.test.ts
-          src/cloud/createProductionCloudProvider.auth-refresh.test.ts
-          src/cloud/CloudConflictResolver.two-device.test.ts
-          src/cloud/TrainingProgramConflict.two-device.test.ts
-          src/cloud/MealTemplateConflict.two-device.test.ts
-          src/cloud/CustomExerciseConflict.two-device.test.ts
-          src/cloud/BodyMeasurementConflict.two-device.test.ts
-          src/cloud/NutritionTargetConflict.two-device.test.ts
-          src/cloud/SafetyRecoveryConflict.two-device.test.ts
-          src/cloud/SyncCoordinatorDeleteConflict.two-device.test.ts
-          src/cloud/BodyMeasurementSync.test.ts
-          src/cloud/CustomExerciseSyncPlanner.test.ts
-          src/cloud/CustomExerciseRemoteSync.test.ts
-          src/cloud/WorkoutSessionSync.test.ts
-          src/cloud/WorkoutSessionSafetyMetadataSync.test.ts
-          src/cloud/SafetyRecoverySync.test.ts
-          src/cloud/SafetyRecoverySyncPlanner.test.ts
-          src/cloud/WorkoutTemplateSync.test.ts
-          src/cloud/WorkoutTemplateSyncPlanner.test.ts
-          src/cloud/TrainingProgramSync.test.ts
-          src/cloud/TrainingProgramSyncPlanner.test.ts
-          src/storage/WorkoutTemplateSyncMetadataStore.test.ts
-          src/cloud/FoodEntrySync.test.ts
-          src/repositories/FoodEntrySyncingRepository.test.ts
-          src/cloud/MealTemplateSyncPlanner.test.ts
-          src/cloud/MealTemplateRemoteSync.test.ts
-          src/cloud/NutritionTargetSync.test.ts
-          src/repositories/NutritionTargetSyncingRepository.test.ts
-          src/storage/AsyncStorageOperationQueueStore.concurrent.test.ts
-          src/storage/SyncConflictStore.test.ts
-          > contract-tests.log 2>&1
+          The exact PR #121 head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup/health. Both new hand-written TypeScript files remain below 500 physical lines.
 
-      - name: Upload contract test log
-        if: failure() && steps.contract-tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-contract-test-log
-          path: contract-tests.log
-          if-no-files-found: error
-          retention-days: 3
+          ### Active P6 slice — managed-media staging composition and redacted CLI
 
-      - name: Full regression suite
-        id: regressions
-        run: npm test > regression-tests.log 2>&1
+          Next source work:
 
-      - name: Upload regression test log
-        if: failure() && steps.regressions.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-regression-test-log
-          path: regression-tests.log
-          if-no-files-found: error
-          retention-days: 3
+          - compose the strict generic staging plan and exact confirmation with public disabled-capability verification;
+          - create or recover one synthetic auth/session account, retain its user/access/refresh credentials only in memory, and derive the synthetic owner UUID from the strict auth response;
+          - create provider runtime with the public media capability disabled while requiring configured-ready private storage and any dependencies needed by the selected private-quarantine scenario;
+          - bind the configured database, providers, image validator, synthetic owner, operational adapter, and managed-media lifecycle core;
+          - load synthetic auth secrets and fixture bytes from explicit non-repository files only after confirmation, with bounded file size and create-only evidence output;
+          - perform synthetic media cleanup and synthetic account deletion on success, plus one bounded best-effort cleanup path after failure;
+          - emit one composed evidence document containing only fixed outcomes from capability, auth, media, and cleanup stages;
+          - keep all CI deterministic and offline through injected runtime, auth, service, provider, file, and clock dependencies;
+          - keep real staging/provider execution, deployment, workers, credentials, DNS, native builds, and capability activation external.
 
-      - name: Expo export
-        run: npx expo export --clear
+          Subsequent managed-media slices must add bounded processing/recovery polling, immutable delivery validation, stale-upload expiry, cleanup-worker evidence, and authorized worker-order composition.
+          '''
+          implementation = implementation[:start] + section + implementation[end + len(section_end):]
+          implementation_path.write_text(implementation)
 
-      - name: Expo Doctor
-        run: npx expo-doctor
+          roadmap_path = Path('docs/roadmap/provider-readiness.md')
+          roadmap = roadmap_path.read_text()
+          old_status = 'Status: active. Configuration, policy, rollout/rollback ordering, the fail-closed runner, synthetic auth/session scenario, and pre-enablement managed-media lifecycle core are source-complete. The staging operational adapter is next.'
+          new_status = 'Status: active. Configuration, policy, rollout/rollback ordering, the fail-closed runner, synthetic auth/session scenario, managed-media lifecycle core, and staging operational adapter are source-complete. Staging composition and a redacted CLI are next.'
+          if roadmap.count(old_status) != 1:
+              raise SystemExit('Expected one provider P6 status line')
+          roadmap = roadmap.replace(old_status, new_status, 1)
+
+          roadmap_marker = '- backend PR #120 exact green head `ccbb98c164efada298a9768d329f9150757ecbf1`, merge `1de40eb713a810bdc8875acebccd61d3b8f8d059`;\n'
+          if roadmap.count(roadmap_marker) != 1:
+              raise SystemExit('Expected one provider PR #120 marker')
+          roadmap = roadmap.replace(
+              roadmap_marker,
+              roadmap_marker + f'- backend PR #121 exact green head `{backend_head}`, merge `{backend_merge}`;\n',
+              1,
+          )
+
+          old_check = '- [ ] add the staging operational adapter and redacted CLI that compose synthetic auth, configured internal services/providers, and fixture loading without enabling the public capability;'
+          new_check = '''- [x] add the staging operational adapter with explicit internal execution, one-owner isolation, owner repository reads, and a bounded signed `PUT` transport without enabling the public capability;
+          - [ ] add the redacted staging composition/CLI that combines exact confirmation, disabled capabilities, synthetic auth, configured runtime, fixture loading, adapter/core execution, and bounded cleanup;'''
+          if roadmap.count(old_check) != 1:
+              raise SystemExit('Expected one staging adapter checklist item')
+          roadmap = roadmap.replace(old_check, new_check, 1)
+
+          next_start = '### Next bounded slice — managed-media staging operational adapter'
+          next_end = 'Subsequent slices must cover processing/recovery polling, immutable delivery, stale-upload expiry, cleanup workers, and worker-order evidence.'
+          start = roadmap.index(next_start)
+          end = roadmap.index(next_end)
+          next_section = f'''### Completed managed-media staging operational adapter
+
+          Backend PR #121 exact green head `{backend_head}`, merge `{backend_merge}`, completed:
+
+          - [x] literal staging pre-enablement mode and validated synthetic owner UUID;
+          - [x] explicit internal service execution independent from the unchanged public capability flag;
+          - [x] exact one-owner binding for create, complete, owner read, and delete;
+          - [x] existing repository and owner DTO reuse without a new endpoint or persistence model;
+          - [x] bounded one-shot signed `PUT`, redirect rejection, timeout abort, `2xx`-only status, and no response-body read;
+          - [x] generic privacy-safe failures without provider or dynamic identifiers;
+          - [x] deterministic dependency and fetch tests included in the canonical backend suite;
+          - [x] source and test files below 500 physical lines.
+
+          ### Next bounded slice — managed-media staging composition and redacted CLI
+
+          Required source behavior:
+
+          - [ ] strict plan/confirmation validation before reading auth secrets, provider secrets, database configuration, or fixture bytes;
+          - [ ] public capability verifier proving all provider-backed product capabilities remain disabled before and after execution;
+          - [ ] synthetic auth/session creation or controlled interrupted-run recovery with memory-only credentials and derived synthetic owner UUID;
+          - [ ] configured provider runtime requiring ready private object storage and rejecting missing, unready, memory-only, or public-enabled production-shaped configurations as appropriate;
+          - [ ] configured database, image validator, optional delivery provider, operational adapter, and lifecycle-core composition;
+          - [ ] bounded synthetic fixture file read with accepted media type, byte limit, and no path/content retention in evidence;
+          - [ ] create-only redacted evidence output combining fixed capability, auth, media, cleanup, and account-revocation outcomes;
+          - [ ] synthetic asset/account cleanup on success and one bounded cleanup attempt after failure or interrupted replay;
+          - [ ] deterministic offline tests for confirmation ordering, secret/file lifetime, provider readiness, owner derivation, composition ordering, evidence redaction, cleanup, and CLI failure output;
+          - [ ] no endpoint bypass, public flag mutation, invented route, production target, deployment, worker scheduling, provider-account change, native build, or activation command.
+
+          Subsequent slices must cover processing/recovery polling, immutable delivery, stale-upload expiry, cleanup workers, and worker-order evidence.
+          '''
+          roadmap = roadmap[:start] + next_section + roadmap[end + len(next_end):]
+          roadmap_path.write_text(roadmap)
+          PY
+
+          npx prettier --write docs/implementation-plan.md docs/roadmap/provider-readiness.md
+          node scripts/check-repository-file-lines.mjs
+          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/implementation-plan.md docs/roadmap/provider-readiness.md .github/workflows/ci.yml
+          git commit -m "docs: record managed-media staging adapter"
+          git push
