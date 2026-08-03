@@ -7,6 +7,7 @@ import {
   type SocialWorkoutPostMediaInput,
 } from "@/api/social";
 
+import { pollManagedMediaAsset } from "./managedMediaPolling";
 import { runManagedMediaUploadComposition } from "./managedMediaUploadComposition";
 import {
   clearSocialWorkoutPostMediaDraft,
@@ -28,9 +29,6 @@ import {
 
 const POLL_ATTEMPTS = 12;
 const POLL_INTERVAL_MS = 2_000;
-
-const wait = (milliseconds: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 const createIdempotencyKey = (): string => {
   const randomUuid = globalThis.crypto?.randomUUID?.();
@@ -132,12 +130,15 @@ export const useSocialWorkoutPostMedia = ({
     async (assetId: string, requestSequence: number): Promise<void> => {
       if (!enabled || !isCurrent(requestSequence)) return;
       setOperation("polling");
-      for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
-        if (!enabled || !isCurrent(requestSequence)) return;
-        const next = await refreshAsset(assetId, requestSequence);
-        if (isTerminal(next)) return;
-        await wait(POLL_INTERVAL_MS);
-      }
+      await pollManagedMediaAsset({
+        assetId,
+        attempts: POLL_ATTEMPTS,
+        intervalMs: POLL_INTERVAL_MS,
+        isCurrent: () => enabled && isCurrent(requestSequence),
+        refreshAsset: (currentAssetId) =>
+          refreshAsset(currentAssetId, requestSequence),
+        isTerminal,
+      });
     },
     [enabled, isCurrent, refreshAsset],
   );
