@@ -1,154 +1,161 @@
-name: Mobile CI
+name: Apply P6 smoke roadmap sync
 
 on:
-  push:
-    branches: [main]
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  validate:
+  apply:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
+          ref: agent/p6-smoke-foundation-roadmap
           fetch-depth: 0
+      - name: Synchronize canonical roadmaps
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+          backend_head = 'b91cd1feef7b3ff494e86ba133ac95037fbea677'
+          backend_merge = '64c04872e0ede26f87dd6017877e15ab218bccc1'
+          mobile_main = '5f2ea018e3ab58648821e16aa523bd86c297c412'
 
-      - name: Install dependencies
-        run: npm ci
+          implementation_path = Path('docs/implementation-plan.md')
+          implementation = implementation_path.read_text()
 
-      - name: Repository file line audit
-        id: repository-lines
-        run: node scripts/check-repository-file-lines.mjs > repository-line-audit.log 2>&1
+          baseline_start = 'Before this documentation synchronization slice:\n\n'
+          baseline_end = 'Always re-check exact `main` and open pull requests in both repositories before starting another slice.'
+          start = implementation.index(baseline_start) + len(baseline_start)
+          end = implementation.index(baseline_end)
+          baseline = f'''- mobile `main`: `{mobile_main}`;
+          - backend `main`: `{backend_merge}`;
+          - backend PR #118 exact green head: `{backend_head}`;
+          - backend PR #118 merge: `{backend_merge}`;
+          - open mobile pull requests before this documentation slice: none;
+          - open backend pull requests after PR #118 merge: none;
+          - public media uploads, real provider-backed media processing, and password-reset delivery remain disabled;
+          - no provider account, credential, deployment, worker schedule, DNS mutation, native build, or production activation is implied by source completion.
 
-      - name: Upload repository line audit log
-        if: failure() && steps.repository-lines.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-repository-line-audit-log
-          path: repository-line-audit.log
-          if-no-files-found: error
-          retention-days: 3
+          '''
+          implementation = implementation[:start] + baseline + implementation[end:]
 
-      - name: Changed file line limit
-        run: node scripts/check-changed-file-lines.mjs
+          evidence_marker = '- PR #117, exact green head `ce0555570c7686fd22306d5ac6769c9cafd81e0c`, merge `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`: rollout and rollback ordering.\n'
+          if implementation.count(evidence_marker) != 1:
+              raise SystemExit('Expected one implementation PR #117 evidence marker')
+          implementation = implementation.replace(
+              evidence_marker,
+              evidence_marker + f'- PR #118, exact green head `{backend_head}`, merge `{backend_merge}`: fail-closed staging smoke-runner foundation with strict disabled-capability verification and privacy-safe evidence.\n',
+              1,
+          )
 
-      - name: TypeScript
-        id: typescript
-        run: npx tsc --noEmit > typescript.log 2>&1
+          section_start = '### Active P6 slice — bounded non-production smoke scripts'
+          section_end = 'Remaining P6 work after the smoke-script slice:'
+          start = implementation.index(section_start)
+          end = implementation.index(section_end)
+          replacement = f'''### Completed P6 slice — staging smoke-runner foundation
 
-      - name: Upload TypeScript log
-        if: failure() && steps.typescript.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-typescript-log
-          path: typescript.log
-          if-no-files-found: error
-          retention-days: 3
+          Backend PR #118, exact green head `{backend_head}`, merge `{backend_merge}`, added:
 
-      - name: Coach and sync contract tests
-        id: contract-tests
-        run: >-
-          npx vitest run
-          src/auth/createAuthService.session-cache.test.ts
-          src/auth/migrating-token-manager.test.ts
-          src/context/appContext/AppMutationQueue.test.ts
-          src/context/appContext/AppMutationOutboxRecovery.test.ts
-          src/context/applySyncPullResult.concurrent.test.ts
-          src/context/syncConflictCount.test.ts
-          src/context/syncConflictPersistence.test.ts
-          src/api/coach.test.ts
-          src/api/coach.capabilities.v3.test.ts
-          src/api/coach.capabilities.v4.test.ts
-          src/api/coach.capabilities.v5.test.ts
-          src/api/coach.capabilities.v6.test.ts
-          src/api/coach.capabilities.v7.test.ts
-          src/api/coach.safety-recovery.test.ts
-          src/api/coach.combined.test.ts
-          src/api/coach.strength-strategy.test.ts
-          src/api/coach.strength-confirmation.test.ts
-          src/features/coach/combinedCoachViewModel.test.ts
-          src/features/coach/combinedCoachProposalViewModel.test.ts
-          src/features/coach/recoveryCheckInForm.test.ts
-          src/features/coach/userLimitationForm.test.ts
-          src/features/coach/safetyRecoveryLocalSummary.test.ts
-          src/features/coach/safetyRecoveryReviewSnapshot.test.ts
-          src/features/coach/safetyRecoveryViewModel.test.ts
-          src/features/coach/strengthCoachViewModel.test.ts
-          src/features/coach/strengthStrategyViewModel.test.ts
-          src/features/coach/nutritionCoachViewModel.test.ts
-          src/features/nutrition/addFoodModel.test.ts
-          src/features/progress/bodyMeasurementModel.test.ts
-          src/features/progress/safetyRecoveryProgressAnalytics.test.ts
-          src/features/progress/safetyRecoveryWeeklyTrend.test.ts
-          src/features/workouts/workoutHistoryViewModel.test.ts
-          src/features/workouts/workoutSafetyGateModel.test.ts
-          src/features/workouts/workoutSafetySessionMetadata.test.ts
-          src/cloud/createProductionCloudProvider.auth-refresh.test.ts
-          src/cloud/CloudConflictResolver.two-device.test.ts
-          src/cloud/TrainingProgramConflict.two-device.test.ts
-          src/cloud/MealTemplateConflict.two-device.test.ts
-          src/cloud/CustomExerciseConflict.two-device.test.ts
-          src/cloud/BodyMeasurementConflict.two-device.test.ts
-          src/cloud/NutritionTargetConflict.two-device.test.ts
-          src/cloud/SafetyRecoveryConflict.two-device.test.ts
-          src/cloud/SyncCoordinatorDeleteConflict.two-device.test.ts
-          src/cloud/BodyMeasurementSync.test.ts
-          src/cloud/CustomExerciseSyncPlanner.test.ts
-          src/cloud/CustomExerciseRemoteSync.test.ts
-          src/cloud/WorkoutSessionSync.test.ts
-          src/cloud/WorkoutSessionSafetyMetadataSync.test.ts
-          src/cloud/SafetyRecoverySync.test.ts
-          src/cloud/SafetyRecoverySyncPlanner.test.ts
-          src/cloud/WorkoutTemplateSync.test.ts
-          src/cloud/WorkoutTemplateSyncPlanner.test.ts
-          src/cloud/TrainingProgramSync.test.ts
-          src/cloud/TrainingProgramSyncPlanner.test.ts
-          src/storage/WorkoutTemplateSyncMetadataStore.test.ts
-          src/cloud/FoodEntrySync.test.ts
-          src/repositories/FoodEntrySyncingRepository.test.ts
-          src/cloud/MealTemplateSyncPlanner.test.ts
-          src/cloud/MealTemplateRemoteSync.test.ts
-          src/cloud/NutritionTargetSync.test.ts
-          src/repositories/NutritionTargetSyncingRepository.test.ts
-          src/storage/AsyncStorageOperationQueueStore.concurrent.test.ts
-          src/storage/SyncConflictStore.test.ts
-          > contract-tests.log 2>&1
+          - one fail-closed runner that accepts only an explicit `staging` target, trusted HTTPS DNS hostname, approved synthetic fixture namespace, change ID, exact backend SHA, and matching confirmation before network access;
+          - rejection of production, localhost, direct IP, HTTP, embedded credentials, mismatched allowlists, unsafe paths, excessive steps, and unbounded timeouts;
+          - mandatory synthetic fixture references for every mutating step;
+          - exactly one strict `GET /v1/capabilities` verification using the released schema, a 64 KiB response bound, and `enabled === false` checks for every provider-backed product capability;
+          - sequential bounded execution with no automatic retry and stop-on-first transport, status, or verification failure;
+          - privacy-safe evidence without response bodies, request bodies, raw errors, tokens, email, signed URLs, object keys, OCR text, media, provider payloads, or raw user identifiers;
+          - a redacted CLI, placeholder-only plan, operational runbook, and deterministic injected-transport tests;
+          - explicit documentation that this is the safe execution/evidence foundation rather than completed end-to-end provider smoke evidence.
 
-      - name: Upload contract test log
-        if: failure() && steps.contract-tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-contract-test-log
-          path: contract-tests.log
-          if-no-files-found: error
-          retention-days: 3
+          The exact PR #118 head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup/health.
 
-      - name: Full regression suite
-        id: regressions
-        run: npm test > regression-tests.log 2>&1
+          ### Active P6 slice — authenticated staging scenario contracts
 
-      - name: Upload regression test log
-        if: failure() && steps.regressions.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-regression-test-log
-          path: regression-tests.log
-          if-no-files-found: error
-          retention-days: 3
+          Next source work:
 
-      - name: Expo export
-        run: npx expo export --clear
+          - define bounded synthetic authentication without persisting access tokens, refresh tokens, email, passwords, or raw auth responses in evidence;
+          - add typed secret-in-memory value capture for asset IDs, state versions, signed upload instructions, and reset tokens without exposing them to process output or evidence;
+          - compose the released managed-media create, signed upload, complete, status/poll, immutable-delivery, delete, expiry, recovery, cleanup, replay, and idempotency contracts;
+          - compose the released password-reset accepted-response, approved non-production delivery, expiry, invalid-token, replay, invalidation, password replacement, and session-revocation contracts;
+          - require disabled-capability verification around applicable pre-enablement flows;
+          - keep all CI deterministic and offline through injected transports, synthetic fixtures, and strict response parsers;
+          - keep real provider calls, deployment, migration execution outside CI, worker scheduling, DNS, native builds, device testing, and capability activation external.
 
-      - name: Expo Doctor
-        run: npx expo-doctor
+          Remaining P6 work after the authenticated-scenario slice:'''
+          implementation = implementation[:start] + replacement + implementation[end + len(section_end):]
+          implementation_path.write_text(implementation)
+
+          roadmap_path = Path('docs/roadmap/provider-readiness.md')
+          roadmap = roadmap_path.read_text()
+          old_status = 'Status: active. Configuration, storage/CDN policy, sender/link association, and rollout/rollback ordering source preparation is complete. Bounded non-production smoke scripts are next.'
+          new_status = 'Status: active. Configuration, policy, sender/link association, rollout/rollback ordering, and the fail-closed staging smoke-runner foundation are source-complete. Authenticated scenario contracts are next.'
+          if roadmap.count(old_status) != 1:
+              raise SystemExit('Expected one P6 status line')
+          roadmap = roadmap.replace(old_status, new_status, 1)
+
+          roadmap_evidence = '- backend PR #117 exact green head `ce0555570c7686fd22306d5ac6769c9cafd81e0c`, merge `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`;\n'
+          if roadmap.count(roadmap_evidence) != 1:
+              raise SystemExit('Expected one provider roadmap PR #117 marker')
+          roadmap = roadmap.replace(
+              roadmap_evidence,
+              roadmap_evidence + f'- backend PR #118 exact green head `{backend_head}`, merge `{backend_merge}`;\n',
+              1,
+          )
+
+          old_check = '- [ ] add smoke scripts for configuration validation, capability status, signed upload, processing, delivery, deletion, and password reset using synthetic non-production fixtures;'
+          new_check = '''- [x] add the fail-closed staging smoke-runner foundation with exact target/change/SHA confirmation, strict disabled-capability verification, synthetic mutation boundaries, and privacy-safe evidence;
+          - [ ] add authenticated scenario contracts for signed upload, processing, delivery, deletion, cleanup, replay, idempotency, and password reset using synthetic non-production fixtures;'''
+          if roadmap.count(old_check) != 1:
+              raise SystemExit('Expected one P6 smoke checklist item')
+          roadmap = roadmap.replace(old_check, new_check, 1)
+
+          next_start = '### Next bounded slice — non-production smoke scripts'
+          next_end = '### Remaining P6 operational runbooks'
+          start = roadmap.index(next_start)
+          end = roadmap.index(next_end)
+          next_section = f'''### Completed smoke-runner foundation
+
+          Backend PR #118 exact green head `{backend_head}`, merge `{backend_merge}`, completed:
+
+          - [x] explicit `staging` target, trusted HTTPS API hostname, approved synthetic fixture namespace, change ID, exact backend SHA, and separate confirmation;
+          - [x] production, localhost, IP, HTTP, credential-bearing, mismatched, unsafe-path, excessive-step, and excessive-timeout rejection;
+          - [x] exactly one strict `GET /v1/capabilities` verification with a 64 KiB response limit and all product capabilities required disabled;
+          - [x] synthetic namespace enforcement for every mutation;
+          - [x] sequential stop-on-first-failure execution with no automatic retry;
+          - [x] bounded privacy-safe JSON evidence and redacted CLI failures;
+          - [x] deterministic offline CI coverage through injected transports and fixtures;
+          - [x] explicit documentation that the foundation does not itself prove end-to-end provider flows.
+
+          ### Next bounded slice — authenticated staging scenario contracts
+
+          Required source behavior:
+
+          - [ ] bounded synthetic account/session setup with secrets retained only in memory and never copied to evidence or process output;
+          - [ ] strict typed response capture for access tokens, refresh tokens, asset IDs, state versions, signed upload instructions, and reset tokens;
+          - [ ] released-route managed-media upload creation and exact idempotency replay;
+          - [ ] bounded signed private upload transfer using an approved synthetic media fixture;
+          - [ ] upload completion, status polling, processing/recovery observation, immutable delivery validation, deletion, stale-upload expiry, and cleanup validation;
+          - [ ] password-reset accepted-response, approved mailbox delivery boundary, expiry, invalid/replayed token, delivery invalidation, password replacement, and all-session revocation validation;
+          - [ ] strict capability-disabled verification around applicable pre-enablement scenarios;
+          - [ ] no response body, token, email, password, signed URL, object key, raw identifier, provider payload, OCR text, or media bytes in evidence;
+          - [ ] deterministic no-network tests for every parser, secret lifetime, replay, polling, timeout, cleanup, and failure boundary;
+          - [ ] no invented route, production target, provider-account mutation, secret change, infrastructure creation, deployment, worker scheduling, native build, or activation command.
+
+          Actual real-provider staging execution remains external and requires direct authorization after the scenario contracts are merged.
+
+          '''
+          roadmap = roadmap[:start] + next_section + roadmap[end:]
+          roadmap_path.write_text(roadmap)
+          PY
+
+          npx prettier --write docs/implementation-plan.md docs/roadmap/provider-readiness.md
+          node scripts/check-repository-file-lines.mjs
+          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/implementation-plan.md docs/roadmap/provider-readiness.md .github/workflows/ci.yml
+          git commit -m "docs: record staging smoke runner foundation"
+          git push
