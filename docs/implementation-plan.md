@@ -8,12 +8,12 @@ This document is the canonical current execution plan for the mobile and backend
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `5f2ea018e3ab58648821e16aa523bd86c297c412`;
-- backend `main`: `64c04872e0ede26f87dd6017877e15ab218bccc1`;
-- backend PR #118 exact green head: `b91cd1feef7b3ff494e86ba133ac95037fbea677`;
-- backend PR #118 merge: `64c04872e0ede26f87dd6017877e15ab218bccc1`;
+- mobile `main`: `287afe06ddc893a7b52d1b7db4ca04cef272e46f`;
+- backend `main`: `15c1a939df06d84a38525f1558a2fa7a4ae2754f`;
+- backend PR #119 exact green head: `2d2ae0aca373ce471ade00c9e721b3c3f2557643`;
+- backend PR #119 merge: `15c1a939df06d84a38525f1558a2fa7a4ae2754f`;
 - open mobile pull requests before this documentation slice: none;
-- open backend pull requests after PR #118 merge: none;
+- open backend pull requests after PR #119 merge: none;
 - public media uploads, real provider-backed media processing, and password-reset delivery remain disabled;
 - no provider account, credential, deployment, worker schedule, DNS mutation, native build, or production activation is implied by source completion.
 
@@ -127,6 +127,7 @@ Completed backend evidence:
 - PR #116, exact green head `12ba41f2176079fbb4fbe13fc07e3016c16f5049`, merge `288425d9e8608c56f814af74274301c3940a371c`: Resend DNS classes, Apple AASA, Android Digital Asset Links, exact reset route, environment isolation, and send-only callback boundary;
 - PR #117, exact green head `ce0555570c7686fd22306d5ac6769c9cafd81e0c`, merge `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`: rollout and rollback ordering.
 - PR #118, exact green head `b91cd1feef7b3ff494e86ba133ac95037fbea677`, merge `64c04872e0ede26f87dd6017877e15ab218bccc1`: fail-closed staging smoke-runner foundation with strict disabled-capability verification and privacy-safe evidence.
+- PR #119, exact green head `2d2ae0aca373ce471ade00c9e721b3c3f2557643`, merge `15c1a939df06d84a38525f1558a2fa7a4ae2754f`: secret-safe synthetic auth/session scenario with replay cleanup and privacy-safe evidence.
 
 PR #117 added:
 
@@ -166,19 +167,39 @@ Backend PR #118, exact green head `b91cd1feef7b3ff494e86ba133ac95037fbea677`, me
 
 The exact PR #118 head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup/health.
 
-### Active P6 slice — authenticated staging scenario contracts
+### Completed P6 slice — synthetic auth/session scenario
+
+Backend PR #119, exact green head `2d2ae0aca373ce471ade00c9e721b3c3f2557643`, merge `15c1a939df06d84a38525f1558a2fa7a4ae2754f`, added:
+
+- an exact-confirmation synthetic auth/session scenario over released `/v1/auth/register`, `/login`, `/me`, `/refresh`, and `/account` contracts;
+- strict synthetic-fixture scoping for email local part and device name before any request;
+- in-memory-only email, password, access token, refresh token, user ID, device ID, session ID, and parsed auth responses;
+- controlled replay cleanup: register `409` may continue only through successful login with the same synthetic credentials;
+- strict user/device/session relationship validation before and after refresh;
+- synthetic account deletion followed by `401` verification for the refreshed access token;
+- bounded response reads, no redirects, no automatic retry, and fixed privacy-safe evidence categories;
+- deterministic coverage for new account, interrupted-run replay, refresh, cleanup, revocation, malformed responses, identity mismatch, invalid confirmation, non-synthetic identity rejection, unexpected status, and transport redaction;
+- an explicit source-only boundary: no standalone CLI, real staging execution, email delivery, media upload, deployment, or activation.
+
+The exact PR #119 head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the complete Vitest suite, and production startup/health. Both new hand-written TypeScript files remain below 500 physical lines.
+
+### Active P6 slice — managed-media staging scenario contracts
 
 Next source work:
 
-- define bounded synthetic authentication without persisting access tokens, refresh tokens, email, passwords, or raw auth responses in evidence;
-- add typed secret-in-memory value capture for asset IDs, state versions, signed upload instructions, and reset tokens without exposing them to process output or evidence;
-- compose the released managed-media create, signed upload, complete, status/poll, immutable-delivery, delete, expiry, recovery, cleanup, replay, and idempotency contracts;
-- compose the released password-reset accepted-response, approved non-production delivery, expiry, invalid-token, replay, invalidation, password replacement, and session-revocation contracts;
-- require disabled-capability verification around applicable pre-enablement flows;
-- keep all CI deterministic and offline through injected transports, synthetic fixtures, and strict response parsers;
-- keep real provider calls, deployment, migration execution outside CI, worker scheduling, DNS, native builds, device testing, and capability activation external.
+- compose the auth scenario with the generic disabled-capability runner through one bounded, redacted CLI/evidence boundary;
+- add typed memory-only capture for access tokens, asset IDs, state versions, signed upload URL/headers, and immutable delivery descriptors;
+- call the released `POST /v1/social/media/uploads` contract with exact synthetic idempotency identity and strict response parsing;
+- transfer one approved synthetic media fixture through the returned signed `PUT` without storing URL, headers, object key, or media bytes in evidence;
+- complete the upload through the released asset route and poll bounded owner-visible state transitions;
+- validate processing/recovery observation, immutable delivery, exact deletion, stale-upload expiry, cleanup, and controlled replay/idempotency behavior;
+- require strict disabled-capability verification around every applicable pre-enablement scenario;
+- keep all tests offline and deterministic through injected API, upload, clock, and fixture transports;
+- keep real staging/provider execution, deployment, workers, credentials, DNS, native builds, and capability activation external.
 
-Remaining P6 work after the authenticated-scenario slice:
+Password-reset delivery/expiry/replay/session-revocation scenario composition remains the next separate P6 slice after managed media.
+
+Remaining P6 work after the managed-media scenario slice:
 
 - key rotation;
 - provider outage handling;

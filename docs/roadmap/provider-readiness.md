@@ -151,7 +151,7 @@ External operational gates:
 
 ## Phase P6 — deployment configuration, policies, smoke scripts, and runbooks
 
-Status: active. Configuration, policy, sender/link association, rollout/rollback ordering, and the fail-closed staging smoke-runner foundation are source-complete. Authenticated scenario contracts are next.
+Status: active. Configuration, policy, rollout/rollback ordering, the fail-closed runner, and the secret-safe synthetic auth/session scenario are source-complete. Managed-media scenario contracts are next.
 
 ### Merged evidence
 
@@ -160,6 +160,7 @@ Status: active. Configuration, policy, sender/link association, rollout/rollback
 - backend PR #116 exact green head `12ba41f2176079fbb4fbe13fc07e3016c16f5049`, merge `288425d9e8608c56f814af74274301c3940a371c`;
 - backend PR #117 exact green head `ce0555570c7686fd22306d5ac6769c9cafd81e0c`, merge `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`;
 - backend PR #118 exact green head `b91cd1feef7b3ff494e86ba133ac95037fbea677`, merge `64c04872e0ede26f87dd6017877e15ab218bccc1`;
+- backend PR #119 exact green head `2d2ae0aca373ce471ade00c9e721b3c3f2557643`, merge `15c1a939df06d84a38525f1558a2fa7a4ae2754f`;
 - all exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 ### Checklist
@@ -170,7 +171,9 @@ Status: active. Configuration, policy, sender/link association, rollout/rollback
 - [x] document sender-domain DNS, link-domain association, and current send-only callback requirements;
 - [x] define migration order, backend rollout order, worker startup order, capability enablement order, verification, disablement, and rollback order;
 - [x] add the fail-closed staging smoke-runner foundation with exact target/change/SHA confirmation, strict disabled-capability verification, synthetic mutation boundaries, and privacy-safe evidence;
-- [ ] add authenticated scenario contracts for signed upload, processing, delivery, deletion, cleanup, replay, idempotency, and password reset using synthetic non-production fixtures;
+- [x] add a secret-safe synthetic auth/session scenario with register-conflict replay cleanup, refresh, account deletion, and revoked-session verification;
+- [ ] add managed-media signed upload, processing, delivery, deletion, cleanup, replay, and idempotency scenarios using synthetic non-production fixtures;
+- [ ] add password-reset delivery, expiry, invalid/replayed token, password replacement, and session-revocation scenarios using approved non-production fixtures;
 - [ ] document key rotation, provider outage, emergency media disable, cleanup pause, legal hold, and consolidated rollback procedures;
 - [ ] make operational wrappers non-destructive by default and require explicit environment targeting.
 
@@ -215,22 +218,37 @@ Backend PR #118 exact green head `b91cd1feef7b3ff494e86ba133ac95037fbea677`, mer
 - [x] deterministic offline CI coverage through injected transports and fixtures;
 - [x] explicit documentation that the foundation does not itself prove end-to-end provider flows.
 
-### Next bounded slice — authenticated staging scenario contracts
+### Completed synthetic auth/session scenario
+
+Backend PR #119 exact green head `2d2ae0aca373ce471ade00c9e721b3c3f2557643`, merge `15c1a939df06d84a38525f1558a2fa7a4ae2754f`, completed:
+
+- [x] exact staging plan confirmation before secret parsing or network access;
+- [x] synthetic-fixture-scoped email and device identity;
+- [x] released-route register, controlled existing-account login, `/me`, refresh, refreshed `/me`, account deletion, and revoked-session verification;
+- [x] strict bounded auth and `/me` response parsing;
+- [x] memory-only email, password, access/refresh tokens, and dynamic user/device/session identifiers;
+- [x] interrupted-run replay cleanup without treating register conflict as success;
+- [x] fixed evidence fields with no secrets, dynamic identifiers, request bodies, response bodies, or raw errors;
+- [x] deterministic offline tests included in the canonical `tests/**/*.test.ts` suite;
+- [x] explicit documentation that no standalone CLI or real staging execution is included yet.
+
+### Next bounded slice — managed-media staging scenario contracts
 
 Required source behavior:
 
-- [ ] bounded synthetic account/session setup with secrets retained only in memory and never copied to evidence or process output;
-- [ ] strict typed response capture for access tokens, refresh tokens, asset IDs, state versions, signed upload instructions, and reset tokens;
-- [ ] released-route managed-media upload creation and exact idempotency replay;
-- [ ] bounded signed private upload transfer using an approved synthetic media fixture;
-- [ ] upload completion, status polling, processing/recovery observation, immutable delivery validation, deletion, stale-upload expiry, and cleanup validation;
-- [ ] password-reset accepted-response, approved mailbox delivery boundary, expiry, invalid/replayed token, delivery invalidation, password replacement, and all-session revocation validation;
-- [ ] strict capability-disabled verification around applicable pre-enablement scenarios;
-- [ ] no response body, token, email, password, signed URL, object key, raw identifier, provider payload, OCR text, or media bytes in evidence;
-- [ ] deterministic no-network tests for every parser, secret lifetime, replay, polling, timeout, cleanup, and failure boundary;
-- [ ] no invented route, production target, provider-account mutation, secret change, infrastructure creation, deployment, worker scheduling, native build, or activation command.
+- [ ] compose generic capability verification and synthetic authentication through one bounded execution/evidence contract;
+- [ ] strict memory-only capture of access token, asset ID, state version, signed upload URL/headers, and immutable public descriptor;
+- [ ] released `POST /v1/social/media/uploads` creation with exact synthetic idempotency and controlled replay;
+- [ ] bounded external signed `PUT` of one approved synthetic JPEG/PNG fixture without redirect or evidence leakage;
+- [ ] released upload-completion call and strict owner-asset parsing;
+- [ ] bounded polling over documented asset states with no unbounded wait or provider retry;
+- [ ] processing/recovery, immutable delivery, exact deletion, stale-upload expiry, cleanup, and replay/idempotency checks;
+- [ ] disabled-capability verification before and after applicable pre-enablement execution;
+- [ ] privacy-safe evidence containing no token, email, password, asset ID, signed URL, headers, object key, public URL, provider payload, OCR text, or media bytes;
+- [ ] deterministic no-network tests through injected API, upload, time, and fixture transports;
+- [ ] no invented route, production target, provider account mutation, deployment, worker scheduling, native build, or activation command.
 
-Actual real-provider staging execution remains external and requires direct authorization after the scenario contracts are merged.
+Password-reset scenario composition remains a separate subsequent P6 slice. Actual provider staging execution remains external and requires direct authorization.
 
 ### Remaining P6 operational runbooks
 
