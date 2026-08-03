@@ -2,11 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '@/api/client';
 
+import { PASSWORD_RESET_TOKEN_LENGTH } from './passwordResetLink';
 import {
+  isRejectedPasswordResetTokenError,
   resolvePasswordResetSubmissionError,
   validateForgotPassword,
   validateResetPassword,
 } from './passwordResetModel';
+
+const validToken = 'a'.repeat(PASSWORD_RESET_TOKEN_LENGTH);
 
 describe('password reset model', () => {
   it('validates forgot-password email without account disclosure', () => {
@@ -17,7 +21,7 @@ describe('password reset model', () => {
     expect(validateForgotPassword('user@example.com')).toEqual({});
   });
 
-  it('validates reset token and matching password fields', () => {
+  it('validates exact reset token and matching password fields', () => {
     expect(
       validateResetPassword({ token: 'short', newPassword: '123', confirmPassword: '456' }),
     ).toEqual({
@@ -27,11 +31,31 @@ describe('password reset model', () => {
     });
     expect(
       validateResetPassword({
-        token: 'a'.repeat(32),
+        token: validToken,
         newPassword: 'new-password',
         confirmPassword: 'new-password',
       }),
     ).toEqual({});
+    expect(
+      validateResetPassword({
+        token: `${'a'.repeat(PASSWORD_RESET_TOKEN_LENGTH - 1)}=`,
+        newPassword: 'new-password',
+        confirmPassword: 'new-password',
+      }),
+    ).toEqual({ token: 'This reset link is invalid or incomplete.' });
+  });
+
+  it('identifies terminal reset-token rejection without reflecting details', () => {
+    expect(
+      isRejectedPasswordResetTokenError(
+        new ApiError({ code: 'validation_error', message: 'token hash mismatch', status: 400 }),
+      ),
+    ).toBe(true);
+    expect(
+      isRejectedPasswordResetTokenError(
+        new ApiError({ code: 'network_error', message: 'socket details' }),
+      ),
+    ).toBe(false);
   });
 
   it('maps network, rate-limit, invalid-token, and service failures safely', () => {
