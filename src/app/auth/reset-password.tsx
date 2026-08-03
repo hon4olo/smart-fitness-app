@@ -87,7 +87,7 @@ export default function ResetPasswordScreen() {
   const invalidLinkMessage = localizePasswordResetMessage(
     formError ?? INVALID_RESET_LINK,
     t,
-    'passwordReset.error.invalid',
+    'passwordReset.error.resetGeneric',
   );
 
   return (
