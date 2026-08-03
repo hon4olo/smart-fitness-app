@@ -1,21 +1,119 @@
 from pathlib import Path
 
-WORKFLOW_PATH = Path('.github/workflows/p6-provider-env-roadmap-sync.yml')
-START_MARKER = "          python - <<'PY'\n"
-END_MARKER = "          PY\n"
-INDENT = '          '
 
-workflow = WORKFLOW_PATH.read_text()
-start = workflow.find(START_MARKER)
-if start < 0:
-    raise SystemExit('provider environment roadmap script start marker missing')
-start += len(START_MARKER)
-end = workflow.find(END_MARKER, start)
-if end < 0:
-    raise SystemExit('provider environment roadmap script end marker missing')
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f'{label}: expected one match, found {count}')
+    return text.replace(old, new, 1)
 
-script = ''.join(
-    line[len(INDENT):] if line.startswith(INDENT) else line
-    for line in workflow[start:end].splitlines(keepends=True)
+
+def replace_section(
+    text: str,
+    start: str,
+    end: str,
+    replacement: str,
+    label: str,
+) -> str:
+    start_index = text.find(start)
+    if start_index < 0:
+        raise SystemExit(f'{label}: start marker missing')
+    end_index = text.find(end, start_index)
+    if end_index < 0:
+        raise SystemExit(f'{label}: end marker missing')
+    return text[:start_index] + replacement.rstrip() + '\n\n' + text[end_index:]
+
+
+plan_path = Path('docs/implementation-plan.md')
+plan = plan_path.read_text()
+plan = replace_once(
+    plan,
+    '- mobile `main`: `ef048d41f47487fe079afb1b5ac4b49edea36d76`;\n'
+    '- backend `main`: `44604b216bef723680fdd12f3a5d9d100bb70e3b`;',
+    '- mobile `main`: `19bb637d900941e5721d63a8e673089c27d11ad1`;\n'
+    '- backend `main`: `bad69c42325e7156215e7fdba45962ade3372ef1`;',
+    'implementation baseline',
 )
-exec(compile(script, str(WORKFLOW_PATH), 'exec'), {})
+evidence_anchor = (
+    '- mobile PR #383 merge: '
+    '`ef048d41f47487fe079afb1b5ac4b49edea36d76`;\n'
+)
+evidence = evidence_anchor + (
+    '- mobile PR #384 exact green head: '
+    '`f6c238434fe3632cef697210bad5dc73b68c7b40`;\n'
+    '- mobile PR #384 merge: '
+    '`19bb637d900941e5721d63a8e673089c27d11ad1`;\n'
+    '- backend PR #113 exact green head: '
+    '`3e366e803f91d4d563d0b1e70cc189381534cd18`;\n'
+    '- backend PR #113 merge: '
+    '`bad69c42325e7156215e7fdba45962ade3372ef1`;\n'
+)
+plan = replace_once(plan, evidence_anchor, evidence, 'implementation evidence')
+p6_section = '''## P6 current source boundary
+
+Backend PR #113, exact green head `3e366e803f91d4d563d0b1e70cc189381534cd18`, merge `bad69c42325e7156215e7fdba45962ade3372ef1`, completed the first P6 deployment-configuration slice:
+
+- expanded `.env.example` and `.env.production.example` with the complete managed-media, Rekognition, worker, and Resend configuration surface;
+- kept every new product enablement flag `false` and every production provider selector `unavailable` by default;
+- kept provider credentials blank, backend-only, and explicitly classified as secret operational inputs;
+- documented separate staging and production matrices, explicit environment targeting, required secret names, cross-repository reset-link matching, and fail-closed preparation order;
+- added deterministic tests for complete template coverage, duplicate environment keys, safe defaults, blank provider secrets, documentation coverage, and credential-shaped values;
+- passed lint, formatting, TypeScript build, production configuration validation, all migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, the full Vitest suite, and production startup/health;
+- made no credential, account, bucket, CDN, domain, DNS, association-file, provider-call, migration execution outside CI, deployment, worker-startup, environment-activation, capability-enablement, OTA, or native-build change.
+
+The active P6 boundary is now storage and delivery policy preparation:
+
+- prepare provider-neutral private-bucket and immutable-delivery bucket or namespace policy templates;
+- define CORS, encryption, public-access blocking, lifecycle, retention, no-overwrite, and CDN-origin constraints that match the implemented storage adapters;
+- keep templates non-destructive, placeholder-only, and independently scoped for staging and production;
+- add deterministic policy-shape and secret-free tests without creating infrastructure or selecting an account-specific provider;
+- leave sender-domain DNS, link association, smoke scripts, rollout order, key rotation, outage handling, legal hold, and rollback as later bounded P6 slices.
+
+No infrastructure creation, credential configuration, provider call, deployment, worker scheduling, environment activation, capability enablement, OTA/EAS publication, native build, or device installation is authorized.
+'''
+plan = replace_once(
+    plan,
+    '## Execution rules',
+    p6_section + '\n## Execution rules',
+    'implementation P6 insertion',
+)
+plan_path.write_text(plan)
+
+roadmap_path = Path('docs/roadmap/provider-readiness.md')
+roadmap = roadmap_path.read_text()
+roadmap_section = '''## Phase P6 — deployment configuration, policies, and runbooks
+
+Status: active. The complete fail-closed environment template and staging/production configuration-matrix slice is merged. Storage/CDN policy templates are next.
+
+Merged evidence:
+
+- backend PR #113 exact green head: `3e366e803f91d4d563d0b1e70cc189381534cd18`;
+- backend PR #113 merge: `bad69c42325e7156215e7fdba45962ade3372ef1`;
+- the exact head passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+
+- [x] expand `.env.example` without adding secrets;
+- [x] document staging and production configuration matrices and required secret names;
+- [ ] prepare private bucket, public-delivery bucket or namespace, CORS, lifecycle, encryption, public-access, and CDN-origin policy templates;
+- [ ] document sender-domain DNS, link-domain association, and provider callback requirements where applicable;
+- [ ] define migration order, backend rollout order, worker startup order, capability enablement order, and rollback order;
+- [ ] add smoke scripts for configuration validation, signed upload, processing, delivery, deletion, password reset, and capability status using non-production fixtures;
+- [ ] document key rotation, provider outage, emergency media disable, cleanup pause, legal hold, and rollback procedures;
+- [ ] keep all commands non-destructive by default and require explicit environment targeting.
+
+Next bounded slice — storage and immutable-delivery policy templates:
+
+- define separate private quarantine and immutable public-delivery resources or namespaces;
+- prepare provider-neutral CORS, encryption-at-rest, public-access blocking, retention/lifecycle, no-overwrite, deletion, and CDN-origin policy templates;
+- align policy requirements with the implemented S3-compatible object-storage and delivery adapter contracts;
+- require explicit staging or production placeholders and least-privilege identities without real account IDs, bucket names, domains, or credentials;
+- add deterministic template-shape, unsafe-public-access rejection, placeholder, and secret-free coverage;
+- keep infrastructure creation, provider selection, account-specific syntax finalization, deployment, real uploads, and capability activation external.
+'''
+roadmap = replace_section(
+    roadmap,
+    '## Phase P6 — deployment configuration, policies, and runbooks',
+    '## Phase P7 — explicit sync conflict-choice contract',
+    roadmap_section,
+    'provider roadmap P6 section',
+)
+roadmap_path.write_text(roadmap)
