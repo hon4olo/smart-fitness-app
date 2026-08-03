@@ -8,10 +8,10 @@ This is the canonical execution plan for `hon4olo/smart-fitness-app` and `hon4ol
 
 Baseline before this documentation-only synchronization slice:
 
-- mobile `main`: `fad8d72cc48e311ec4cba8aee5fe5c9a838c206b`;
-- backend `main`: `400063df9107c3f1bbf914cfa799c21ad7dcbff5`;
+- mobile `main`: `de6c8eecdc81fbd6d38b6719f03bd604db5732ee`;
+- backend `main`: `2c7a1801b9bf24d6f16fbe2db4c0345bf19cffbb`;
 - open mobile pull requests: none;
-- open backend pull requests: none after backend PR #130 merged;
+- open backend pull requests: none after backend PR #131 merged;
 - all public provider-backed capabilities remain disabled;
 - no real provider/staging evidence, deployment, worker scheduling, native build, OTA/EAS publication, or production activation has been performed.
 
@@ -76,7 +76,7 @@ Operational password reset still requires externally authorized provider/DNS/dom
 
 ### Completed backend chain
 
-The source-prepared P6 chain is complete through backend PR #130:
+The source-prepared P6 chain is complete through backend PR #131:
 
 | PR | Exact green head | Merge SHA | Result |
 |---|---|---|---|
@@ -92,8 +92,9 @@ The source-prepared P6 chain is complete through backend PR #130:
 | #127 | `51915512a05d8aa2bc7f81cfac33867145454d7f` | `4af6db678ef7d7457ab5221157524363605635ba` | Configured moderation runtime and owner-bound adapter |
 | #129 | `e84ea28f2d6ab5f8e3bd8a0a6a13250615f6ebf3` | `d810e32c28a082d32e889923b66ae7e07a27fb5c` | Configured auth/quarantine/moderation lifecycle composition |
 | #130 | `127938a3ad167b12f9c1f31ad478d4a72c6b2754` | `400063df9107c3f1bbf914cfa799c21ad7dcbff5` | Exact-owner expired-processing recovery service/runtime/evidence |
+| #131 | `82674b3e4e2d4d74d38446f7f6af65cb5156b42b` | `2c7a1801b9bf24d6f16fbe2db4c0345bf19cffbb` | Exact-owner bounded processing lease, expiry wait, and full recovery composition |
 
-PR #129 Backend CI run #941 and PR #130 Backend CI run #946 each passed lint, formatting, TypeScript build, production configuration validation, migrations/idempotency, migrated-schema integration, PostgreSQL Social integration, the complete Vitest suite, and production startup with `/health` verification.
+Backend PR #131 CI run #957 passed lint, formatting, TypeScript build, production configuration validation, migrations/idempotency, migrated-schema integration, PostgreSQL Social integration, the complete Vitest suite, and production startup with `/health` verification.
 
 ### Completed mobile managed-media composition
 
@@ -103,35 +104,34 @@ Do not create a generic React upload hook, universal draft store, or universal c
 
 ### Active next P6 slice
 
-**Prepare and compose one exact synthetic-owned expired moderation-processing lease.**
+**Add derivative-delivery processing and exact-owner expired-delivery recovery boundaries.**
 
 Required source behavior:
 
-1. start only from the existing strict plan, exact confirmation, synthetic auth lease, configured runtime, and replay-verified quarantine lease;
-2. transition only the known leased owner/asset into a testable `processing` state through a new exact-owner repository/service contract;
-3. use an injected clock and bounded lease duration to make only that exact processing lease expired;
-4. never call global `processReadyBatch`, `listExpiredProcessing`, or `recoverExpiredProcessing`;
-5. pass the exact expired lease to the PR #130 recovery evidence core;
-6. verify recovery, idempotent replay, owner readback, disabled capabilities, mandatory asset deletion, account cleanup, session revocation, and resource close;
+1. inspect the existing derivative-delivery worker, repository claim/complete/recovery CAS operations, object-storage source, immutable-delivery provider, DTOs, and lifecycle states before editing;
+2. add the smallest exact-owner processing method for one approved synthetic-owned asset without invoking a global ready-list/batch;
+3. verify immutable derivative creation, delivery descriptor publication, owner readback, idempotent replay, and public capabilities remaining disabled;
+4. add exact-owner bounded delivery-lease preparation and recovery using only owner/asset-scoped row CAS operations;
+5. never call global derivative-processing or expired-delivery recovery selection when unrelated staging rows may be selected;
+6. reuse existing content-hashed owner-opaque keys, conditional immutable writes, delivery descriptors, state versions, and cleanup/deletion contracts;
 7. emit fixed aggregate evidence only;
-8. keep CI deterministic/offline through injected dependencies;
-9. preserve current lifecycle states, DTOs, persistence schema, retry policy, and public routes;
-10. perform no real staging/provider request, deployment, capability mutation, migration outside CI, worker scheduling, native build, OTA/EAS publication, or production action.
+8. keep CI deterministic/offline through injected storage/delivery/repository/clock dependencies;
+9. preserve current persistence schema, public routes, DTOs, moderation policy, retention, and cleanup policy;
+10. perform no real provider/staging request, deployment, capability mutation, migration outside CI, worker scheduling, native build, OTA/EAS publication, or production action.
 
-If the existing claim CAS cannot safely create an exact-owner expired lease without selecting unrelated rows, add the smallest owner/asset-scoped claim operation first.
+Split processing, recovery, runtime binding, and full composition into bounded PRs if one coherent slice would become too large.
 
 ### Ordered remaining P6 backlog
 
-After the active recovery-composition slice:
+After derivative delivery/recovery:
 
-1. derivative-delivery processing and exact-owner expired-delivery recovery;
-2. immutable delivery observation and replay evidence;
-3. stale-upload expiry evidence;
-4. cleanup-worker evidence, including bounded partial failure and replay;
-5. authorized worker-order composition using only synthetic-owned work;
-6. password-reset staging composition and redacted evidence;
-7. consolidated operational runbooks and evidence checklist;
-8. real non-production provider/staging execution only after direct authorization and required accounts, credentials, infrastructure, deployment, ownership, quota, and evidence destinations are available.
+1. immutable delivery observation and replay evidence;
+2. stale-upload expiry evidence;
+3. cleanup-worker evidence, including bounded partial failure and replay;
+4. authorized worker-order composition using only synthetic-owned work;
+5. password-reset staging composition and redacted evidence;
+6. consolidated operational runbooks and evidence checklist;
+7. real non-production provider/staging execution only after direct authorization and required accounts, credentials, infrastructure, deployment, ownership, quota, and evidence destinations are available.
 
 Global batch/recovery methods must not be used in synthetic scenarios when they may select unrelated staging rows.
 

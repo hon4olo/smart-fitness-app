@@ -6,9 +6,9 @@ This document tracks provider, staging, deployment, diagnostics, native-release,
 
 ## Current baseline
 
-- mobile `main` before this documentation slice: `fad8d72cc48e311ec4cba8aee5fe5c9a838c206b`;
-- backend `main`: `400063df9107c3f1bbf914cfa799c21ad7dcbff5`;
-- backend provider-readiness source is complete through PR #130;
+- mobile `main` before this documentation slice: `de6c8eecdc81fbd6d38b6719f03bd604db5732ee`;
+- backend `main`: `2c7a1801b9bf24d6f16fbe2db4c0345bf19cffbb`;
+- backend provider-readiness source is complete through PR #131;
 - mobile managed-media composition is complete through PR #400;
 - all public provider-backed capabilities remain disabled;
 - no real provider or staging evidence has been collected by autonomous source work;
@@ -65,7 +65,7 @@ Implemented:
 - idempotent persistence and stale-result handling;
 - classifier/OCR/text composition;
 - configured/ready/disabled runtime summaries;
-- exact-owner processing and expired-processing recovery boundaries.
+- exact-owner moderation processing, bounded processing-lease preparation, expired-processing recovery, replay, readback, cleanup, and full resource-owning composition.
 
 External requirements remain provider credentials/region/quota/budget/incident ownership, representative approved corpus, aggregate-only calibration, policy/reviewer ownership, escalation/appeal/retention operations, and authorized end-to-end evidence.
 
@@ -105,16 +105,14 @@ External requirements remain Resend account/credential, verified sender DNS, own
 - PR #126 — exact-owner moderation processing/replay core;
 - PR #127 — configured-ready moderation runtime and owner-bound adapter;
 - PR #129 — one resource-owning auth/quarantine/moderation composition;
-- PR #130 — exact-owner expired-processing recovery service, runtime binding, replay/readback evidence, and global-scan prohibition for synthetic work.
+- PR #130 — exact-owner expired-processing recovery service/runtime/evidence;
+- PR #131 — exact-owner monotonic bounded processing claim, expiry wait, recovery composition, mandatory asset/account cleanup, and configured resource close.
 
 Latest exact backend evidence:
 
-- PR #129 green head: `e84ea28f2d6ab5f8e3bd8a0a6a13250615f6ebf3`;
-- PR #129 merge: `d810e32c28a082d32e889923b66ae7e07a27fb5c`;
-- Backend CI run #941: full pipeline passed;
-- PR #130 green head: `127938a3ad167b12f9c1f31ad478d4a72c6b2754`;
-- PR #130 merge: `400063df9107c3f1bbf914cfa799c21ad7dcbff5`;
-- Backend CI run #946: lint, formatting, TypeScript build, production configuration validation, migrations/idempotency, migrated-schema integration, PostgreSQL Social integration, complete Vitest, and production startup/health passed.
+- PR #131 green head: `82674b3e4e2d4d74d38446f7f6af65cb5156b42b`;
+- PR #131 merge: `2c7a1801b9bf24d6f16fbe2db4c0345bf19cffbb`;
+- Backend CI run #957: lint, formatting, TypeScript build, production configuration validation, migrations/idempotency, migrated-schema integration, PostgreSQL Social integration, complete Vitest, and production startup/health passed.
 
 ### Mobile managed-media composition
 
@@ -122,56 +120,54 @@ Mobile PRs #396–#400 established composition boundaries, shared upload/polling
 
 ## Active P6 source slice
 
-### Exact-owner expired-processing lease preparation and recovery composition
+### Derivative-delivery processing and exact-owner expired-delivery recovery
 
-Compose the existing source boundaries without invoking a global worker scan:
+Inspect and extend the existing delivery worker/repository boundaries without introducing a second lifecycle:
 
 ```text
-strict plan + exact confirmation
-→ configured-ready runtime with capabilities disabled
-→ synthetic auth/session lease
-→ replay-verified exact-owner private-quarantine lease
-→ exact-owner processing-claim preparation
-→ injected clock advances only the known lease to expired
-→ exact-owner recovery core
+approved exact-owner moderated asset
+→ owner/asset-scoped derivative delivery claim
+→ normalized private source read
+→ deterministic derivative generation
+→ owner-opaque content-hashed immutable write
+→ exact delivery descriptor publication
+→ owner readback + idempotent replay
+→ bounded exact-owner delivery lease preparation
+→ bounded wait until exact lease expiry
+→ exact-owner delivery recovery
 → recovery replay + owner readback
-→ mandatory asset deletion and replay
-→ account cleanup + revoked-session verification
-→ resource close
+→ mandatory cleanup through existing lease boundaries
 → fixed aggregate evidence
 ```
 
 Acceptance criteria:
 
-- no external file, credential, fixture, provider, database, or network access before exact confirmation;
-- synthetic owner derived only inside the auth lease;
-- only the known leased asset may be claimed/expired/recovered;
-- no `processReadyBatch`, `listExpiredProcessing`, or `recoverExpiredProcessing`;
-- existing processing claim/recovery CAS, state versions, reason code, DTOs, and lifecycle invariants reused;
-- no persistence schema or public route change;
-- recovery and replay remain idempotent;
-- mandatory deletion/account cleanup/resource close run through existing lease boundaries;
-- evidence includes fixed phase outcomes only;
-- deterministic offline tests cover success, wrong owner/asset, unready state, stale claim/recovery, capability regression, cleanup failure, callback failure, and resource close;
+- no global ready-list or expired-delivery selection for synthetic evidence;
+- only the known synthetic owner/asset may be claimed, delivered, expired, or recovered;
+- approved moderation/source prerequisites remain mandatory;
+- existing row-level claim/complete/recovery CAS operations are reused;
+- immutable writes remain conditional and content-addressed;
+- delivery descriptor publishes only after successful immutable write;
+- replay creates no duplicate public object or descriptor drift;
+- exact-owner recovery accepts only the expected next-state replay after a concurrent CAS winner;
+- public capabilities remain disabled before and after evidence;
+- no persistence schema, public route, DTO, moderation policy, retention, or cleanup-policy change;
+- deterministic offline tests inject storage, delivery, image processing, clock/wait, repository, and failure paths;
 - no real staging/provider execution in CI.
 
-If the existing claim operation is batch-only, add the smallest owner/asset-scoped claim service over the existing row-level claim CAS before composition.
+Split processing, recovery, runtime binding, and full composition into bounded PRs where needed.
 
 ## Remaining P6 source backlog
 
-### 1. Derivative delivery and exact-owner recovery
-
-Add exact-owner derivative processing and expired-delivery recovery before composition. Verify approved moderation prerequisite, immutable write, descriptor publication, replay without duplicate objects, recovery, cleanup/deletion, and disabled public capabilities.
-
-### 2. Immutable delivery observation
+### 1. Immutable delivery observation
 
 Add bounded observation for the exact synthetic asset and trusted hostname: descriptor shape, immutable cache behavior where observable, content identity/replay, no private/signed-scope leakage, and policy-required deletion behavior.
 
-### 3. Upload expiry and cleanup evidence
+### 2. Upload expiry and cleanup evidence
 
 Add synthetic-owned evidence for stale `upload_pending` expiry, private object deletion, tombstone/state transition, replay, cleanup partial failure, bounded retry, and no unrelated-row selection.
 
-### 4. Worker-order composition
+### 3. Worker-order composition
 
 After all exact-owner operations exist, compose the recovery-first sequence using only synthetic-owned work:
 
@@ -184,11 +180,11 @@ After all exact-owner operations exist, compose the recovery-first sequence usin
 
 Actual worker scheduling remains an external deployment action.
 
-### 5. Password-reset staging composition
+### 4. Password-reset staging composition
 
 Compose exact confirmation, synthetic account, disabled-capability verification, send-only callback/provider runtime, token/link handling, password reset, old-session rejection, cleanup, and aggregate evidence. Do not expose account existence, email, token, URL query, provider response, or raw error.
 
-### 6. Consolidated runbooks
+### 5. Consolidated runbooks
 
 Produce operator-facing preflight, owner confirmation, evidence retention, provider/account/credential prerequisites, exact deployed SHA, capability-disabled checks, one-at-a-time enablement, observation/stop criteria, rollback/freeze, escalation, and synthetic-cleanup runbooks.
 
