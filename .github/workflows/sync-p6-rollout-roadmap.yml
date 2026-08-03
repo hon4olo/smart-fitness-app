@@ -1,0 +1,152 @@
+name: Synchronize P6 rollout roadmap
+
+on:
+  push:
+    branches:
+      - agent/p6-rollout-roadmap-sync
+
+permissions:
+  contents: write
+
+jobs:
+  synchronize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/p6-rollout-roadmap-sync
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Update canonical roadmaps
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          plan_path = Path('docs/implementation-plan.md')
+          plan = plan_path.read_text()
+
+          replacements = {
+              '- mobile `main`: `32249cf88781b75e3f50c274510bff87b68250ad`;':
+                  '- mobile `main`: `b8c8f4c6b36268594932ac4be37ab02bb350b258`;',
+              '- backend `main`: `288425d9e8608c56f814af74274301c3940a371c`;':
+                  '- backend `main`: `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`;',
+              '- backend PR #116 merge: `288425d9e8608c56f814af74274301c3940a371c`;\n- open mobile pull requests: none;':
+                  '- backend PR #116 merge: `288425d9e8608c56f814af74274301c3940a371c`;\n- backend PR #117 exact green head: `ce0555570c7686fd22306d5ac6769c9cafd81e0c`;\n- backend PR #117 merge: `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`;\n- open mobile pull requests: none;',
+          }
+          for old, new in replacements.items():
+              count = plan.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected one implementation-plan match, found {count}: {old}')
+              plan = plan.replace(old, new, 1)
+
+          start = plan.index('## P6 current source boundary')
+          end = plan.index('## Execution rules', start)
+          p6_plan = '''## P6 current source boundary
+
+Backend PR #113, exact green head `3e366e803f91d4d563d0b1e70cc189381534cd18`, merge `bad69c42325e7156215e7fdba45962ade3372ef1`, completed fail-closed environment templates and the staging/production configuration matrix.
+
+Backend PR #114, exact green head `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`, merge `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`, completed provider-neutral private-storage, immutable-delivery, CORS, lifecycle, encryption, public-access, and CDN-origin policy contracts aligned with the implemented S3-compatible adapters.
+
+Backend PR #116, exact green head `12ba41f2176079fbb4fbe13fc07e3016c16f5049`, merge `288425d9e8608c56f814af74274301c3940a371c`, completed sender and link-domain association source preparation:
+
+- added placeholder-only Resend DKIM/SPF/MX, Apple AASA, and Android Digital Asset Links templates;
+- fixed the source contract to `/auth/reset-password`, `com.dzahard28.smartfitnessapp`, external Apple Team ID, and external Android release signing fingerprint;
+- documented exact HTTPS/no-redirect hosting, staging/production isolation, privacy-safe browser fallback, rollback, and no-token evidence requirements;
+- kept the current Resend integration send-only with no callback route, webhook secret, provider-event persistence, or callback-based readiness claim;
+- added deterministic route, identifier, wildcard-rejection, placeholder, callback-disablement, and credential-shape coverage;
+- passed the complete blocking Backend CI.
+
+Backend PR #117, exact green head `ce0555570c7686fd22306d5ac6769c9cafd81e0c`, merge `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`, completed rollout and rollback ordering:
+
+- added a placeholder-only machine-readable contract for explicit environment, change ID, exact mobile/backend SHA, role, evidence, and authorization gates;
+- fixed the sequence to preflight, migration approval, migrations, backend rollout with capabilities disabled, worker readiness, recovery-first worker startup, pre-enablement verification, one-at-a-time capability enablement, and post-enablement verification;
+- fixed worker startup to upload expiry, cleanup, delivery recovery, moderation recovery, moderation processing, then derivative delivery processing;
+- fixed rollback to disable capabilities before worker shutdown and schema-compatible backend rollback;
+- prohibited automatic down migrations, destructive schema/data rollback, legal-hold removal, audit deletion, claim-token clearing, and generic credential revocation;
+- documented staging rehearsal, production target confirmation, partial outage handling, privacy-safe evidence, and the mutating nature of `npm run db:migrate` and `npm run start:production`;
+- passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health on the exact merged head.
+
+The active P6 boundary is now bounded non-production smoke scripts:
+
+- add explicit-target scripts for configuration validation, capability status, signed upload, processing, immutable delivery, deletion, and password reset;
+- use synthetic non-production fixtures and privacy-safe bounded output;
+- keep mutating and real-provider operations disabled unless the operator supplies an explicit staging target and separate authorization;
+- preserve exact idempotency, cleanup, expiry, replay, anti-enumeration, and capability-disabled verification;
+- leave real provider calls, migration execution outside CI, deployment, worker scheduling, DNS, native builds, and capability activation external.
+
+No provider account, credential, infrastructure, DNS, association deployment, callback registration, real delivery, backend deployment, migration execution outside CI, worker startup, environment activation, capability enablement, OTA/EAS publication, native build, or device installation was performed.
+
+'''
+          plan = plan[:start] + p6_plan + plan[end:]
+          plan_path.write_text(plan)
+
+          roadmap_path = Path('docs/roadmap/provider-readiness.md')
+          roadmap = roadmap_path.read_text()
+          start = roadmap.index('## Phase P6 — deployment configuration, policies, and runbooks')
+          end = roadmap.index('## Phase P7 — explicit sync conflict-choice contract', start)
+          p6_roadmap = '''## Phase P6 — deployment configuration, policies, and runbooks
+
+Status: active. Environment, storage/CDN policy, sender-domain, link-association, and rollout/rollback ordering source preparation is complete. Bounded non-production smoke scripts are next.
+
+Merged evidence:
+
+- backend PR #113 exact green head `3e366e803f91d4d563d0b1e70cc189381534cd18`, merge `bad69c42325e7156215e7fdba45962ade3372ef1`;
+- backend PR #114 exact green head `9e9408ec87a6c6fc0786cd66c8272b502dbb5790`, merge `afd5c2ac6fafb3879dfe2822fb6a7a659ba58aa5`;
+- backend PR #116 exact green head `12ba41f2176079fbb4fbe13fc07e3016c16f5049`, merge `288425d9e8608c56f814af74274301c3940a371c`;
+- backend PR #117 exact green head `ce0555570c7686fd22306d5ac6769c9cafd81e0c`, merge `17cf1f7d4b9345dc0aca463cedc030e1a6b2bad1`;
+- all exact heads passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+
+- [x] expand `.env.example` without adding secrets;
+- [x] document staging and production configuration matrices and required secret names;
+- [x] prepare private bucket, public-delivery namespace, CORS, lifecycle, encryption, public-access, and CDN-origin policy templates;
+- [x] document sender-domain DNS, link-domain association, and provider callback requirements where applicable;
+- [x] define migration order, backend rollout order, worker startup order, capability enablement order, and rollback order;
+- [ ] add smoke scripts for configuration validation, signed upload, processing, delivery, deletion, password reset, and capability status using non-production fixtures;
+- [ ] document key rotation, provider outage, emergency media disable, cleanup pause, legal hold, and rollback procedures;
+- [ ] keep all commands non-destructive by default and require explicit environment targeting.
+
+Completed rollout and rollback boundary:
+
+- placeholder-only machine-readable target, exact-SHA, role, evidence, and authorization contract;
+- preflight → migration approval → migrations → disabled backend → worker readiness → recovery-first workers → smoke verification → one-at-a-time capability enablement → observation order;
+- password reset before managed media for the selected staged activation order, with independent approval and rollback;
+- capability disablement before worker stop, state preservation, and schema-compatible code rollback;
+- forward-compatible migration preference with no automatic or destructive down migration;
+- explicit staging rehearsal and repeated production target confirmation at every mutating boundary;
+- privacy-safe aggregate evidence and separate credential/security response after traffic is stopped and evidence is preserved;
+- deterministic phase, worker-order, capability-gate, rollback-order, secret-shape, and destructive-command coverage.
+
+Next bounded slice — non-production smoke scripts:
+
+- provide a fail-closed wrapper requiring exact `staging` targeting, explicit API base, fixture identity, and confirmation before any network or mutation;
+- add read-only configuration/capability checks and bounded synthetic flows for signed upload, processing, immutable delivery, deletion, and password reset;
+- preserve disabled-capability checks, idempotency, anti-enumeration, expiry/replay, cleanup, and privacy-safe output;
+- keep CI deterministic and offline; real provider credentials, calls, infrastructure, worker scheduling, migration execution, DNS, native builds, and activation remain external.
+
+'''
+          roadmap = roadmap[:start] + p6_roadmap + roadmap[end:]
+          roadmap_path.write_text(roadmap)
+          PY
+
+          npx prettier --write docs/implementation-plan.md docs/roadmap/provider-readiness.md
+
+      - name: Remove temporary workflow and push
+        shell: bash
+        run: |
+          rm .github/workflows/sync-p6-rollout-roadmap.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/implementation-plan.md docs/roadmap/provider-readiness.md .github/workflows/sync-p6-rollout-roadmap.yml
+          git commit -m "docs: record provider rollout readiness"
+          git push
