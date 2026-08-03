@@ -54,7 +54,14 @@ def update_baseline(text: str, label: str) -> str:
         + f"\n- backend PR #109 exact green head: `{PR109_HEAD}`;"
         + f"\n- backend PR #109 merge: `{BACKEND_MAIN}`;"
     )
-    return replace_once(text, marker, addition, f"{label} PR109 evidence")
+    marker_index = text.find(marker)
+if marker_index < 0:
+    raise SystemExit(f"{label} PR109 evidence: marker not found")
+return (
+    text[:marker_index]
+    + addition
+    + text[marker_index + len(marker) :]
+)
 
 
 roadmap_path = Path("ROADMAP_PROGRESS.md")
