@@ -12,8 +12,8 @@ This is an approved autonomous source program. It does not authorize connecting 
 
 Before this documentation synchronization slice:
 
-- mobile `main`: `1c49a6f7fd236c30e0539b510d6818470a356273`;
-- backend `main`: `2c683c95274409aa5958033e96cb8acf67ca8b56`;
+- mobile `main`: `1e4bcb4dbd7d7aba8ee16ada91602e21ee401e44`;
+- backend `main`: `ecd8a2e425b032be323b9852ba9e60221a1ca968`;
 - backend PR #92 exact green head: `97f363221b77fc69041ab19d713e9d9c9124ef9d`;
 - backend PR #92 merge: `7b557a216a3e08b043941f2863c6ae64c68b0cf0`;
 - backend PR #93 exact green head: `d3a1f19ed419fe96111925ebe37e36ad855a67de`;
@@ -52,6 +52,8 @@ Before this documentation synchronization slice:
 - backend PR #109 merge: `c8d315113881e81f7b6c8522bfb5b439b4b36972`;
 - backend PR #110 exact green head: `54fe3bcf57745caddb1177ef6c75453befed407f`;
 - backend PR #110 merge: `2c683c95274409aa5958033e96cb8acf67ca8b56`;
+- backend PR #111 exact green head: `1f0d08ff6eccec676c94bd231e974ad98cdd5176`;
+- backend PR #111 merge: `ecd8a2e425b032be323b9852ba9e60221a1ca968`;
 - open mobile pull requests: none;
 - open backend pull requests: none.
 
@@ -302,7 +304,7 @@ No corpus, real media, credential values, provider account, real provider call, 
 
 ## Phase P5 — password-reset product and delivery readiness
 
-Status: active. The provider-neutral token/session backend foundation and localized mobile forgot/reset source flow exist. Resend is the selected delivery API contract, and its request, trusted reset-link, bilingual templates, strict success parser, idempotency identity, and deterministic no-network conformance are merged. Runtime transport, provider failure/retry mapping, composition/readiness, release-grade app/universal links, real delivery, and activation remain open.
+Status: active. The provider-neutral token/session backend foundation and localized mobile forgot/reset source flow exist. The selected Resend request/template/parser contract and production-shaped bounded runtime are merged. Backend selector/configuration/composition/source-support/readiness, release-grade app/universal links, real delivery, and activation remain open.
 
 Merged evidence:
 
@@ -312,7 +314,9 @@ Merged evidence:
 - mobile PR #200 merge: `1b77802bb765a1a3db6b8dcd1f081c210049a2d0`;
 - backend PR #110 exact green head: `54fe3bcf57745caddb1177ef6c75453befed407f`;
 - backend PR #110 merge: `2c683c95274409aa5958033e96cb8acf67ca8b56`;
-- backend PR #110 passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
+- backend PR #111 exact green head: `1f0d08ff6eccec676c94bd231e974ad98cdd5176`;
+- backend PR #111 merge: `ecd8a2e425b032be323b9852ba9e60221a1ca968`;
+- backend PR #110 and PR #111 passed lint, formatting, TypeScript build, production configuration validation, migrations and idempotency, migrated-schema integration, PostgreSQL Social API integration, full Vitest, and production startup/health.
 
 Mobile:
 
@@ -331,8 +335,8 @@ Backend delivery:
 - [x] add bounded EN/RU plain-text and HTML template source with expiry and security guidance;
 - [x] construct links only from an exact trusted HTTPS application reset-route base;
 - [x] add fixed bounded request construction, non-token idempotency identity, strict success parsing, and contract-level redaction tests;
-- [ ] add the production-shaped Resend runtime through the shared bounded provider HTTP transport;
-- [ ] add explicit bounded retry ownership and timeout/network/cancellation/rate-limit/idempotency/server/authentication/sender-validation/security/malformed-response mapping;
+- [x] add the production-shaped Resend runtime through the shared bounded provider HTTP transport;
+- [x] add explicit bounded retry ownership and timeout/network/cancellation/rate-limit/idempotency/server/authentication/sender-validation/security/malformed-response mapping;
 - [ ] compose the complete adapter in the backend application root and replace the generic `external_http` selector with the documented Resend selector;
 - [ ] update production source-support validation and password-reset readiness only after complete runtime/factory conformance;
 - [x] preserve token invalidation when final delivery fails through the existing password-reset service boundary;
@@ -340,11 +344,13 @@ Backend delivery:
 
 Next bounded slice:
 
-- implement only the Resend runtime transport and failure/retry mapping;
-- perform one shared transport call per attempt with a stable idempotency identity;
-- parse only bounded provider error identifiers required for classification and ignore provider messages;
-- add deterministic no-network conformance for retryable/terminal outcomes and secret/email/token/reset-link/provider-payload non-disclosure;
-- do not change environment selectors, composition root, readiness, capabilities, mobile routes, or activation in that runtime PR.
+- add the explicit `resend` backend selector and strict runtime environment inputs without committing values;
+- compose the complete adapter only in the backend application root through the shared bounded transport and an explicitly scoped circuit instance;
+- update production source-support validation and password-reset configured/ready state only for complete safe settings;
+- preserve unavailable fail-closed defaults, generic accepted responses, explicit product-flag ownership, and capability disablement when configuration is absent or incomplete;
+- add deterministic environment, factory, source-support, production-validation, readiness, capability, redaction, and no-network coverage;
+- do not configure credentials, verified sender/domain, DNS, provider account, real delivery, deployment, or activation in that backend PR;
+- after backend composition/readiness is merged, complete release-grade mobile app/universal-link source configuration and strict reset-token navigation/accessibility coverage in a separate mobile slice.
 
 External activation later requires a verified sender domain, DNS records, provider account and credentials, backend deployment, production link-domain association, real non-production delivery evidence, physical-device validation, and explicit capability enablement.
 
