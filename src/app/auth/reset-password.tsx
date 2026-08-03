@@ -1,9 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { resolvePasswordResetTokenParam } from '@/auth/passwordResetLink';
 import {
+  isRejectedPasswordResetTokenError,
   resolvePasswordResetSubmissionError,
   validateResetPassword,
   type ResetPasswordErrors,
@@ -26,13 +28,16 @@ import {
 } from '@/localization/authCopy';
 import { useLocalization } from '@/localization';
 
-const firstParam = (value: string | string[] | undefined): string =>
-  Array.isArray(value) ? value[0] ?? '' : value ?? '';
+const INVALID_RESET_LINK = 'This reset link is invalid or incomplete.';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ token?: string | string[] }>();
-  const token = useMemo(() => firstParam(params.token).trim(), [params.token]);
+  const tokenResolution = useMemo(
+    () => resolvePasswordResetTokenParam(params.token),
+    [params.token],
+  );
+  const token = tokenResolution.token;
   const insets = useSafeAreaInsets();
   const { t } = useLocalization();
   const { resetPassword } = useAuthSession();
@@ -44,8 +49,19 @@ export default function ResetPasswordScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completed, setCompleted] = useState(false);
 
+  useEffect(() => {
+    if (tokenResolution.status !== 'invalid') return;
+    router.setParams({ token: undefined });
+  }, [router, tokenResolution.status]);
+
   const handleSubmit = async () => {
-    if (isSubmitting || !passwordReset.canUse) return;
+    if (
+      isSubmitting ||
+      !passwordReset.canUse ||
+      tokenResolution.status !== 'valid'
+    ) {
+      return;
+    }
     const errors = validateResetPassword({ token, newPassword, confirmPassword });
     setFieldErrors(errors);
     setFormError(null);
@@ -54,15 +70,25 @@ export default function ResetPasswordScreen() {
     setIsSubmitting(true);
     try {
       await resetPassword({ token, newPassword });
+      router.setParams({ token: undefined });
       setNewPassword('');
       setConfirmPassword('');
       setCompleted(true);
     } catch (error) {
+      if (isRejectedPasswordResetTokenError(error)) {
+        router.setParams({ token: undefined });
+      }
       setFormError(resolvePasswordResetSubmissionError(error, 'reset'));
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const invalidLinkMessage = localizePasswordResetMessage(
+    formError ?? INVALID_RESET_LINK,
+    t,
+    'passwordReset.error.invalid',
+  );
 
   return (
     <KeyboardAvoidingView
@@ -104,6 +130,18 @@ export default function ResetPasswordScreen() {
                 label={t('passwordReset.backToSignIn')}
                 onPress={() => router.replace('/auth/sign-in')}
               />
+            ) : tokenResolution.status !== 'valid' ? (
+              <>
+                <InlineError message={invalidLinkMessage} />
+                <SecondaryButton
+                  label={t('passwordReset.requestNew')}
+                  onPress={() => router.replace('/auth/forgot-password')}
+                />
+                <SecondaryButton
+                  label={t('passwordReset.backToSignIn')}
+                  onPress={() => router.replace('/auth/sign-in')}
+                />
+              </>
             ) : (
               <>
                 <InlineError
