@@ -1,6 +1,6 @@
 # Mobile account data inventory
 
-Status: source-level technical inventory for P9-A and the mobile P9-B2 deletion-confirmation boundary.
+Status: source-level technical inventory for P9-A and the source-complete mobile P9-B2 deletion-confirmation boundary.
 
 This document records account-linked data persisted by the Expo application, why it exists, whether it is transmitted, and how local deletion is performed. It is an engineering control document, not a legal-compliance determination or a public privacy notice.
 
@@ -109,14 +109,14 @@ The inventory does not claim that every category has an independent bulk-export,
 
 ## Known limits and next work
 
-This source boundary does not deploy the backend migration, prove physical SecureStore behavior on a matching standalone build, schedule backend receipt purging, or provide public legal/policy text.
+The coordinated source boundary includes a bounded backend command for purging expired receipts, but it does not deploy the backend migration, schedule or execute that worker, prove physical SecureStore behavior on a matching standalone build, or provide public legal/policy text.
 
 Follow-up P9 work must still address:
 
-- authorized operational purging of expired backend receipts;
-- provider/cache and review-evidence disposition where applicable;
-- user-visible deletion status and exceptional-retention explanation;
+- exact provider/environment retention and deletion evidence before authorized scheduling or execution of backend receipt purging and managed-media lifecycle work;
+- provider/cache and external review-evidence disposition where applicable;
+- privacy-facing deletion status, retry guidance and exceptional-retention explanations;
 - consent, withdrawal, access control and deletion requirements before analytics activation;
 - matching backend/mobile real-device validation after deployment authorization.
 
-No analytics SDK, telemetry upload, provider activation, deployment, production migration, native build, OTA publication or production action is introduced by this slice.
+No analytics SDK, telemetry upload, provider activation, deployment, production migration, backend worker schedule, native build, OTA publication or production action is introduced by this source boundary.
