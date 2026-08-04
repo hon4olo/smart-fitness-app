@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY } from '@/auth/accountDeletionReceipt';
 import { getLocalAccountDataStorageKeys } from '@/auth/accountDataCleanup';
 import { getNutritionFavoritesStorageKey } from '@/features/nutrition/nutritionFavorites';
 import { getNutritionFoodLibraryStorageKey } from '@/features/nutrition/nutritionFoodLibrary';
@@ -58,6 +59,9 @@ describe('mobile account data inventory', () => {
     for (const key of ACCOUNT_SCOPED_ASYNC_STORAGE_KEYS) {
       expect(inventoriedKeys.has(key), key).toBe(true);
     }
+    expect(inventoriedKeys.has(PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY)).toBe(
+      true,
+    );
   });
 
   it('uses the inventory as the complete local account cleanup boundary', () => {
@@ -76,6 +80,7 @@ describe('mobile account data inventory', () => {
       storageExports.SYNC_CONFLICT_RESOLUTION_INTENT_STORAGE_KEY,
     );
     expect(actual).toContain(storageExports.LOCAL_STATE_DIAGNOSTICS_STORAGE_KEY);
+    expect(actual).not.toContain(PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY);
   });
 
   it('requires explicit purpose, deletion and user-control metadata', () => {
