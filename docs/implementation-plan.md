@@ -11,19 +11,21 @@ Detailed provider and release-readiness evidence remains in `docs/roadmap/provid
 
 ## Verified baseline
 
-Verified before the P8-D scheduled-validation slice:
+Verified after the P9-A technical data-inventory slices:
 
-- mobile `main`: `33b21d836115446c50734c1f62a86007039318e0`;
-- backend `main`: `6facc94aac4aea19ba96fd337c48eff2107e9121`;
-- no open mobile or backend pull requests before mobile PR #421;
+- mobile `main`: `78cbb5f5e0bb59d13f2c4f7f019e255c22e2fd16`;
+- backend `main`: `0a99bd1cba3bccd83435ebfd8c5fbf32d7bd5cb3`;
+- no open mobile or backend pull requests before this roadmap update;
 - backend PRs #143-#152 complete the current conflict-resolution, replay, Promise-lint, rollback, and multi-instance correctness boundary;
 - mobile PRs #406, #409, and #411-#416 complete the strict client, safe candidate, durable intent, submission, reconciliation, confirmation UI, and uncertain-response replay boundaries;
 - mobile PR #418 completes bounded generated conflict-intent model sequences;
 - mobile PR #419 completes privacy-safe support diagnostics and exact source provenance;
-- mobile PR #420 completes the four-SHA release/rollback source gate and fail-closed Expo/package/app-link evidence contract;
-- mobile PR #421 implements bounded scheduled adversarial validation, subject to exact-head Mobile CI before merge;
+- mobile PR #420 completes exact release/rollback source evidence;
+- mobile PR #421 completes bounded weekly/manual adversarial validation;
+- mobile PR #422 completes the account-linked mobile persistence inventory and fixes local account-deletion coverage;
+- backend PR #153 completes the PostgreSQL technical data inventory and exposes the remaining non-table retention/deletion work;
 - all public provider-backed capabilities remain disabled;
-- no provider/staging execution, deployment, migration outside CI, backend worker scheduling, native build, OTA/EAS publication, rollback execution, store submission, or production activation has been performed.
+- no provider/staging execution, deployment, migration outside CI, backend worker scheduling, native build, OTA/EAS publication, rollback execution, store submission, legal-hold mutation, destructive cleanup, or production activation has been performed.
 
 Always re-check exact `main`, open pull requests, `AGENTS.md`, `PROJECT_LEARNINGS.md`, this plan, and relevant architecture/operations documents before another slice.
 
@@ -49,11 +51,12 @@ There is no remaining approved autonomous source-refactor phase. Any future prov
 
 ## Current priority order
 
-P7 source correctness and P8-A through P8-C source evidence are complete. The active order is bounded scheduled validation, then privacy/legal prerequisites.
+P7 correctness, P8 release evidence, and P9-A table/mobile persistence inventory are complete. The active order is now operational retention and cross-surface deletion before analytics or broader instrumentation.
 
-1. **P8-D — Bounded adversarial scheduled validation.** Complete exact-head CI and merge expanded deterministic mobile model sequences, focused PostgreSQL retry/rollback coverage, exact-source artifacts, hard runtime bounds, and fail-closed scheduled evidence.
-2. **P9-A — Technical privacy inventory.** Map stored/transmitted data, purpose, ownership, retention, deletion, and user-facing controls before adding broader instrumentation.
-3. **P9-B — Consent and analytics prerequisites.** Define consent/withdrawal, minimization, redaction, retention, deletion, and access-control contracts before any analytics or telemetry activation.
+1. **P9-B1 — Operational retention contracts.** Define bounded owners, fields, maximum durations, access, expiry, deletion and failure evidence for application/reverse-proxy logs, backups, object storage/CDN, email, provider requests/caches, CI artifacts, support exports, reviewer evidence and incident copies.
+2. **P9-B2 — Cross-surface account deletion.** Map and prove deletion/retry/recovery across PostgreSQL, mobile persistence, object storage, provider/cache surfaces and authorized exceptional retention without performing destructive production actions.
+3. **P9-C — Consent and analytics prerequisites.** Define purpose, consent/withdrawal where required, minimization, redaction, access, retention and deletion before any analytics SDK, telemetry upload or production instrumentation.
+4. **P9-D — Privacy-facing controls and policy evidence.** Specify export/access, account deletion status, retention disclosures and technical evidence for legal/policy review. Source completion alone is not legal approval.
 
 A broader audit of retryable non-sync writes may proceed in independent focused slices, but it must not displace the active order unless it exposes a defect in a currently used contract.
 
@@ -71,125 +74,100 @@ Operational activation still depends on explicitly authorized credentials, infra
 
 Source-complete through backend PR #142.
 
-Implemented source boundaries include:
+Implemented source boundaries include strict staging-only plans and exact-SHA confirmation, synthetic authentication/cleanup, private quarantine/moderation/delivery/recovery/expiry, password-reset staging composition, and consolidated stop/rollback guidance.
 
-- strict staging-only plans and exact-SHA confirmation;
-- synthetic authentication and cleanup;
-- private quarantine, moderation, delivery, recovery, expiry, cleanup, and immutable observation;
-- password-reset staging composition;
-- consolidated operator runbook and stop/rollback guidance.
-
-The remaining P6 action is a real isolated non-production evidence run. It requires direct authorization and complete operational ownership, credentials, quota, fixture, retention, rollback, and stop-condition inputs.
-
-Do not perform that action autonomously.
+The remaining P6 action is a real isolated non-production evidence run. It requires direct authorization and complete operational ownership, credentials, quota, fixture, retention, rollback, and stop-condition inputs. Do not perform that action autonomously.
 
 ## P7 — Explicit sync-conflict resolution and focused hardening
 
 ### Backend correctness — complete through PR #152
 
-Merged evidence includes:
-
-- strict supported-choice and authenticated resolution contracts;
-- PostgreSQL-backed API integration and blocking correctness CI;
-- numeric normalization of PostgreSQL aggregate `bigint` revisions;
-- user-scoped idempotency uniqueness and runtime replay/reuse contracts;
-- deterministic transaction rollback after injected failures;
-- committed-response-loss replay with one durable effect;
-- type-aware Promise linting without broad suppressions;
-- equivalent concurrent delivery through independent Fastify instances and PostgreSQL pools.
-
-The backend proves authenticated ownership, exact revisions, advisory-lock serialization, compare-and-set conflict transition, restart-safe replay, user-scoped idempotency, complete rollback, post-commit response-loss recovery, and multi-instance correctness without process-local serialization.
+The backend proves authenticated ownership, exact revisions, user-scoped idempotency, advisory-lock and compare-and-set serialization, complete transaction rollback, committed-response-loss replay, type-aware Promise correctness, and equivalent delivery through independent Fastify instances/PostgreSQL pools.
 
 Entity deletion remains a revisioned tombstone rather than physical row removal. Do not add mechanical `FOR UPDATE` requirements where an atomic statement, compare-and-set, advisory lock, or database constraint already expresses the invariant. `AsyncLocalStorage` remains request/trace context propagation, not a race detector.
 
 ### Mobile correctness and presentation — complete through PR #416
 
-Merged behavior includes:
-
-- strict versioned response parsing and one-time token refresh;
-- safe derivation of user-resolvable delete-versus-upsert conflicts;
-- one immutable per-user intent and deterministic key per conflict;
-- bounded submission classification and authoritative pull/materialization;
-- cursor verification and terminal cleanup only after authoritative state;
-- authenticated controller/hook composition;
-- explicit localized confirmation UI without raw payload or backend-error exposure;
-- uncertain-response replay after process restart with the same persisted identity.
+The mobile has strict response parsing, persisted immutable resolution intent, bounded submission/reconciliation, explicit localized confirmation, terminal cleanup only after authoritative materialization, and uncertain-response restart replay with the same idempotency identity.
 
 The mobile never chooses automatically, never synthesizes pull state from a resolution response, and never renders payloads, entity IDs, revisions, idempotency keys, ownership IDs, or raw backend errors.
 
 Focused evidence remains in `docs/architecture/sync-conflict-resolution-mobile-intent.md`. Physical second-device and matching standalone-runtime validation remain release-device evidence rather than source-completion claims.
 
-## P8 — Diagnostics and adversarial release preparation
+## P8 — Diagnostics and adversarial release preparation — complete
 
 ### P8-A — Generated state-machine sequences — complete through PR #418
 
-Blocking pull-request evidence includes:
-
-- 128 reproducible seeds with 20-60 commands per sequence;
-- two-user isolation across create/replay, submit, retry, accepted revision, stale state, completion, removal, invalid revision, wrong key, and restart;
-- model-versus-real-store comparison after every command;
-- deterministic failing-sequence reduction and seed reporting;
-- stable choice/idempotency identity and terminal-only removal.
+Blocking evidence covers reproducible generated commands, two-user isolation, model-versus-store comparison after every command, deterministic shrinking/seed reporting, stable identity and terminal-only removal.
 
 ### P8-B — Privacy-safe diagnostics and exact provenance — complete through PR #419
 
-Merged source behavior includes:
+The versioned `support_diagnostics_snapshot` records exact immutable source provenance and bounded release/aggregate sync metadata. Explicit field construction and tests exclude email, tokens, ownership IDs, payloads, health values and nutrition text. Default retention is zero; there is no persistence, upload or analytics activation.
 
-- versioned `support_diagnostics_snapshot` evidence;
-- exact full source SHA from explicit release input or immutable GitHub CI SHA;
-- rejection of branches, tags, shortened hashes, dirty suffixes, placeholders, and malformed provenance;
-- bounded app/build/runtime/update/environment/sync metadata;
-- explicit field construction excluding arbitrary input;
-- tests excluding email, tokens, ownership IDs, payloads, health values, and nutrition text;
-- zero default retention, no persistence, no background upload, and no analytics activation.
-
-Architecture evidence remains in `docs/architecture/privacy-safe-support-diagnostics.md`. Any future collection or transmission requires a separate consent, purpose, access-control, retention, deletion, and redaction contract.
+Architecture evidence remains in `docs/architecture/privacy-safe-support-diagnostics.md`.
 
 ### P8-C — Release and rollback gates — complete through PR #420
 
-The source gate now requires:
+The source gate requires exact full release and rollback SHAs, rollback ancestry, Expo/source equality, package/scheme/runtime/channel/app-link parity, current backend disabled-capability and migration/startup evidence, bounded artifacts and fail-closed operator stop conditions.
 
-- exact full mobile/backend release SHAs;
-- exact full previously validated mobile/backend rollback SHAs;
-- distinct release/rollback commits and rollback ancestry;
-- Expo provenance equality with the selected mobile release SHA;
-- Android package, iOS bundle identifier, app scheme, runtime policy, production update channel, iOS associated domain, and Android verified app-link parity;
-- current backend disabled-capability configuration, migration idempotency, scoped-idempotency evidence, complete tests, and production startup health;
-- a bounded schema-v1 artifact containing the run ID and four exact SHAs;
-- explicit operator stop conditions and 30-day artifact retention.
+The manual release gate was not executed. Native builds, publication, deployment, rollback execution and production activation remain authorization-gated.
 
-The manual release gate was not executed. Native builds, publication, deployment, rollback execution, and production activation remain authorization-gated.
+### P8-D — Bounded scheduled adversarial validation — complete through PR #421
 
-### P8-D — Bounded scheduled adversarial validation — active in PR #421
+The weekly/manual workflow runs expanded deterministic mobile model sequences and focused PostgreSQL retry, response-loss, multi-instance, idempotency and rollback invariants against exact source SHAs. It uses disposable CI infrastructure, bounded seed/runtime ranges, explicit retention and no automatic retries that could conceal flakes.
 
-The current slice adds:
+Architecture evidence remains in `docs/architecture/bounded-adversarial-validation.md`. k6, Toxiproxy and virtual-user load remain deferred until deterministic oracles and repeated runtime/flake evidence justify them.
 
-- a weekly/manual GitHub validation workflow that does not run on pull requests or pushes;
-- expanded mobile conflict-intent model execution at 2,048 deterministic seeds;
-- a hard accepted range of 129-4,096 seeds;
-- a 129-seed pull-request smoke of the exact expansion/cleanup runner;
-- focused backend PostgreSQL suites for response loss, independent application instances, idempotency, and rollback;
-- disposable PostgreSQL only, with migrations limited to the CI database;
-- exact resolved mobile/backend SHAs and bounded schema-v1 artifacts;
-- 14-day focused logs and 30-day consolidated evidence;
-- no automatic retries that could conceal flakes.
+## P9 — Privacy, retention, deletion and analytics prerequisites
 
-Architecture evidence is in `docs/architecture/bounded-adversarial-validation.md`.
+### P9-A — Technical data inventory — complete through mobile PR #422 and backend PR #153
 
-This slice intentionally excludes k6, Toxiproxy, virtual-user load, production access, deployment, publication, and rollback execution. Such tooling remains deferred until deterministic oracles and repeated scheduled runtime/flake evidence justify the cost.
+Mobile evidence:
 
-## P9 — Privacy, legal, consent, retention, and analytics prerequisites
+- executable inventory for account-linked AsyncStorage/SecureStore surfaces, purpose, transmission, deletion and user control;
+- authoritative account-scoped key registry used by local deletion;
+- contract coverage of every exported persistent storage key;
+- resumable deletion after backend-confirmed account removal;
+- correction of two real omissions: persisted conflict-resolution intent and aggregate local-state diagnostics;
+- tokenless cached session metadata separated from native SecureStore tokens.
 
-Planned source work:
+Evidence remains in `docs/privacy/mobile-account-data-inventory.md`.
 
-- data inventory and purpose mapping;
-- consent and withdrawal contracts where required;
-- retention, deletion, account deletion, and legal-hold alignment;
-- analytics minimization and redaction;
-- user-facing privacy controls;
-- technical evidence for legal/policy review.
+Backend evidence:
 
-Source completion alone is not a legal-compliance determination.
+- executable registry covering every current PostgreSQL table exactly once;
+- explicit account-owned, mixed policy-controlled and service-shared classifications;
+- purpose, retention, deletion, transmission and user-control metadata;
+- raw-provider/hidden-reasoning minimization for Coach and moderation/media records;
+- explicit legal-hold expiry requirements and shared-catalog separation;
+- documented non-table gaps for logs, backups, object storage/CDN, providers, support/review evidence and incident copies.
+
+Evidence remains in backend `docs/privacy/backend-data-inventory.md`.
+
+The inventory is a technical control, not a public privacy notice or legal-compliance determination.
+
+### P9-B — Operational retention and deletion — active
+
+The first focused source slice should define a machine-readable retention registry for non-table surfaces with:
+
+- exact surface and responsible owner;
+- allowed data classes and forbidden fields;
+- purpose and access boundary;
+- maximum retention or explicit zero-retention requirement;
+- expiry/deletion mechanism and retry/failure evidence;
+- account-deletion relationship;
+- provider/legal-hold exception boundaries;
+- deterministic completeness tests against documented operational surfaces.
+
+Do not invent production retention guarantees that the current infrastructure cannot enforce. Unknown values must remain explicit blockers or policy decisions rather than fabricated commitments.
+
+### P9-C — Consent and analytics prerequisites — planned
+
+No analytics SDK, telemetry upload, tracking identifier or production event collection may be introduced before approved purpose, consent/withdrawal where required, minimization/redaction, access control, retention and deletion contracts exist.
+
+### P9-D — Privacy-facing controls and policy evidence — planned
+
+Planned work includes technical requirements for data access/export, deletion status/retry presentation, retention disclosures, moderation/media exceptional-retention explanations, and evidence suitable for legal/policy review.
 
 ## Permanent authorization boundaries
 
@@ -200,7 +178,7 @@ Do not perform any of the following without a direct user request for that exact
 - execute real staging/provider smoke scenarios;
 - perform native builds, install builds on devices, publish OTA/EAS updates, submit stores, execute rollback, or activate production;
 - use production user data, unrelated staging data, or unbounded/global worker selection for synthetic evidence;
-- run destructive rollback, down migration, production data deletion, legal-hold removal, audit deletion, or generic credential revocation.
+- run destructive rollback, down migration, production data deletion, legal-hold removal, audit deletion, object deletion, or generic credential revocation.
 
 ## Validation policy for every source PR
 
