@@ -28,6 +28,8 @@ Always re-check exact `main`, open pull requests, `AGENTS.md`, this plan, and re
 
 Smart Fitness remains an Expo / React Native offline-first mobile application backed by the existing Fastify/PostgreSQL service.
 
+The reviewed local-state evidence and decision remain canonical in `docs/architecture/local-state-performance-decision.md`.
+
 Approved boundaries:
 
 - the single AsyncStorage `AppState` snapshot remains the accepted local persistence architecture;
@@ -39,7 +41,7 @@ Approved boundaries:
 - provider credentials and provider calls remain backend-only;
 - unavailable provider-backed operations remain hidden or fail closed.
 
-`docs/architecture/app-context-consumer-inventory.md` records no remaining production `useAppContext` consumers. There is no approved broad source-refactor phase.
+`docs/architecture/app-context-consumer-inventory.md` records no remaining production `useAppContext` consumers. There is no remaining approved autonomous source-refactor phase.
 
 ## Program order
 
