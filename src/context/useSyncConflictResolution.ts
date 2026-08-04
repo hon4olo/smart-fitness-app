@@ -15,20 +15,17 @@ import {
   createSyncConflictResolutionIntentStore,
   createSyncConflictStore,
   getDefaultSyncCursorStore,
-  type SyncConflictResolutionIntentState,
 } from '@/storage';
 
 import {
   createSyncConflictResolutionController,
   type SyncConflictResolutionController,
+  type SyncConflictResolutionControllerReviewItem,
 } from './SyncConflictResolutionController';
 import { useWeightSync } from './SyncContext';
 
-export type SyncConflictResolutionReviewItem = {
-  candidate: SyncConflictResolutionCandidate;
-  intentChoice: SyncConflictResolutionChoice | null;
-  intentState: SyncConflictResolutionIntentState | null;
-};
+export type SyncConflictResolutionReviewItem =
+  SyncConflictResolutionControllerReviewItem;
 
 export type AuthenticatedSyncConflictResolution = {
   listCandidates(): Promise<SyncConflictResolutionCandidate[]>;
@@ -36,6 +33,9 @@ export type AuthenticatedSyncConflictResolution = {
   resolve(
     candidate: SyncConflictResolutionCandidate,
     choice: SyncConflictResolutionChoice,
+  ): Promise<SyncConflictResolutionWorkflowOutcome>;
+  continueResolution(
+    item: SyncConflictResolutionReviewItem,
   ): Promise<SyncConflictResolutionWorkflowOutcome>;
 };
 
@@ -96,19 +96,8 @@ export function useSyncConflictResolution(): AuthenticatedSyncConflictResolution
 
   const listReviewItems = useCallback(async () => {
     const userId = session?.user.id;
-    if (!userId) return [];
-    const candidates = await controller.listCandidates(userId);
-    return Promise.all(
-      candidates.map(async (candidate) => {
-        const intent = await stores.intentStore.get(userId, candidate.conflictId);
-        return {
-          candidate,
-          intentChoice: intent?.choice ?? null,
-          intentState: intent?.state ?? null,
-        } satisfies SyncConflictResolutionReviewItem;
-      }),
-    );
-  }, [controller, session?.user.id, stores.intentStore]);
+    return userId ? controller.listReviewItems(userId) : [];
+  }, [controller, session?.user.id]);
 
   const resolve = useCallback(
     async (
@@ -122,8 +111,22 @@ export function useSyncConflictResolution(): AuthenticatedSyncConflictResolution
     [controller, session?.user.id],
   );
 
+  const continueResolution = useCallback(
+    async (item: SyncConflictResolutionReviewItem) => {
+      const userId = session?.user.id;
+      if (!userId) return authenticationRequiredOutcome();
+      return controller.resume(userId, item.conflictId);
+    },
+    [controller, session?.user.id],
+  );
+
   return useMemo(
-    () => ({ listCandidates, listReviewItems, resolve }),
-    [listCandidates, listReviewItems, resolve],
+    () => ({
+      continueResolution,
+      listCandidates,
+      listReviewItems,
+      resolve,
+    }),
+    [continueResolution, listCandidates, listReviewItems, resolve],
   );
 }
