@@ -127,6 +127,18 @@ export type {
   SyncConflictSource,
   SyncConflictStore,
 } from './SyncConflictStore';
+export {
+  createSyncConflictResolutionIntentIdempotencyKey,
+  createSyncConflictResolutionIntentStore,
+  isTerminalSyncConflictResolutionIntent,
+  SYNC_CONFLICT_RESOLUTION_INTENT_STATES,
+  SYNC_CONFLICT_RESOLUTION_INTENT_STORAGE_KEY,
+} from './SyncConflictResolutionIntentStore';
+export type {
+  SyncConflictResolutionIntent,
+  SyncConflictResolutionIntentState,
+  SyncConflictResolutionIntentStore,
+} from './SyncConflictResolutionIntentStore';
 export { createSyncCursorStore, SYNC_CURSOR_STORAGE_KEY } from './SyncCursorStore';
 export type { SyncCursor, SyncCursorStore } from './SyncCursorStore';
 export { getDefaultSyncCursorStore } from './defaultSyncCursorStore';
