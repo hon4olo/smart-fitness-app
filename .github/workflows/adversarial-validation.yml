@@ -1,0 +1,185 @@
+name: Smart Fitness Adversarial Validation
+
+on:
+  schedule:
+    - cron: '17 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smart-fitness-adversarial-validation
+  cancel-in-progress: false
+
+jobs:
+  mobile-model:
+    name: Expanded mobile model sequences
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - name: Checkout mobile source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record exact mobile source
+        id: source
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install mobile dependencies
+        run: npm ci
+
+      - name: Run bounded expanded model sequences
+        env:
+          EXPECTED_MOBILE_SHA: ${{ steps.source.outputs.sha }}
+          SYNC_INTENT_PROPERTY_SEED_COUNT: '2048'
+          SYNC_INTENT_PROPERTY_EVIDENCE_PATH: scheduled-sync-intent-model-evidence.json
+        run: >-
+          node scripts/run-expanded-sync-intent-model.mjs
+          > scheduled-sync-intent-model.log 2>&1
+
+      - name: Upload mobile adversarial evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-adversarial-evidence-${{ github.run_id }}
+          path: |
+            scheduled-sync-intent-model-evidence.json
+            scheduled-sync-intent-model.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  backend-concurrency:
+    name: Backend PostgreSQL retry boundaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: smart_fitness_adversarial
+          POSTGRES_USER: smart_fitness
+          POSTGRES_PASSWORD: smart_fitness_adversarial_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U smart_fitness -d smart_fitness_adversarial"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://smart_fitness:smart_fitness_adversarial_password@127.0.0.1:5432/smart_fitness_adversarial
+      AUTH_ACCESS_TOKEN_SECRET: adversarial-access-token-secret-at-least-32-characters
+      AUTH_REFRESH_TOKEN_SECRET: adversarial-refresh-token-secret-at-least-32-characters
+    steps:
+      - name: Checkout backend source
+        uses: actions/checkout@v4
+        with:
+          repository: hon4olo/smart-fitness-backend
+          ref: main
+          path: backend
+          fetch-depth: 0
+          token: ${{ secrets.BACKEND_REPOSITORY_TOKEN || github.token }}
+          persist-credentials: false
+
+      - name: Record exact backend source
+        id: source
+        working-directory: backend
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --include=dev
+
+      - name: Apply backend migrations
+        working-directory: backend
+        run: npm run db:migrate
+
+      - name: Run focused PostgreSQL adversarial suite
+        working-directory: backend
+        run: >-
+          npx vitest run
+          tests/sync-conflict-resolution-api-postgres.test.ts
+          tests/sync-idempotency-postgres.test.ts
+          tests/sync-transaction-rollback-postgres.test.ts
+          --maxWorkers=1 --no-file-parallelism
+          > backend-adversarial.log 2>&1
+
+      - name: Upload backend adversarial evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-adversarial-evidence-${{ github.run_id }}
+          path: backend/backend-adversarial.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  evidence:
+    name: Adversarial evidence
+    runs-on: ubuntu-latest
+    needs: [mobile-model, backend-concurrency]
+    if: always()
+    steps:
+      - name: Compose exact-source result
+        env:
+          MOBILE_RESULT: ${{ needs.mobile-model.result }}
+          BACKEND_RESULT: ${{ needs.backend-concurrency.result }}
+          MOBILE_SHA: ${{ needs.mobile-model.outputs.sha }}
+          BACKEND_SHA: ${{ needs.backend-concurrency.outputs.sha }}
+        run: |
+          jq -n \
+            --argjson schemaVersion 1 \
+            --arg runId "${{ github.run_id }}" \
+            --arg mobileResult "$MOBILE_RESULT" \
+            --arg backendResult "$BACKEND_RESULT" \
+            --arg mobileSha "$MOBILE_SHA" \
+            --arg backendSha "$BACKEND_SHA" \
+            --arg seedCount "2048" \
+            '{
+              schemaVersion: $schemaVersion,
+              runId: $runId,
+              mobileResult: $mobileResult,
+              backendResult: $backendResult,
+              mobileSha: $mobileSha,
+              backendSha: $backendSha,
+              mobileModelSeedCount: ($seedCount | tonumber)
+            }' > adversarial-validation-evidence.json
+
+      - name: Upload exact-source result
+        uses: actions/upload-artifact@v4
+        with:
+          name: adversarial-validation-evidence-${{ github.run_id }}
+          path: adversarial-validation-evidence.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce both bounded suites
+        env:
+          MOBILE_RESULT: ${{ needs.mobile-model.result }}
+          BACKEND_RESULT: ${{ needs.backend-concurrency.result }}
+        run: |
+          if [ "$MOBILE_RESULT" != "success" ] || [ "$BACKEND_RESULT" != "success" ]; then
+            echo "Adversarial validation failed: mobile=$MOBILE_RESULT backend=$BACKEND_RESULT"
+            exit 1
+          fi
