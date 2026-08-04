@@ -1,4 +1,4 @@
-import * as Crypto from 'expo-crypto';
+import { getAccountDeletionSecureRandomBytes } from './accountDeletionReceiptRandom';
 
 export const ACCOUNT_DELETION_RECEIPT_SCHEMA_VERSION = 1 as const;
 export const PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY =
@@ -98,7 +98,7 @@ const isStatusSecret = (value: unknown): value is string =>
   typeof value === 'string' && /^[A-Za-z0-9_-]{43,128}$/.test(value);
 
 const defaultRandomBytes = (length: number): Uint8Array =>
-  Crypto.getRandomValues(new Uint8Array(length));
+  getAccountDeletionSecureRandomBytes(length);
 
 const toHex = (bytes: Uint8Array): string =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
