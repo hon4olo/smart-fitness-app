@@ -60,6 +60,7 @@ jobs:
         id: contract-tests
         run: >-
           npx vitest run
+          config/source-provenance.test.ts
           src/auth/createAuthService.session-cache.test.ts
           src/auth/migrating-token-manager.test.ts
           src/context/appContext/AppMutationQueue.test.ts
@@ -91,6 +92,7 @@ jobs:
           src/features/progress/bodyMeasurementModel.test.ts
           src/features/progress/safetyRecoveryProgressAnalytics.test.ts
           src/features/progress/safetyRecoveryWeeklyTrend.test.ts
+          src/features/settings/supportDiagnosticsModel.test.ts
           src/features/workouts/workoutHistoryViewModel.test.ts
           src/features/workouts/workoutSafetyGateModel.test.ts
           src/features/workouts/workoutSafetySessionMetadata.test.ts
