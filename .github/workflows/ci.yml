@@ -122,6 +122,7 @@ jobs:
           src/cloud/NutritionTargetSync.test.ts
           src/repositories/NutritionTargetSyncingRepository.test.ts
           src/storage/AsyncStorageOperationQueueStore.concurrent.test.ts
+          src/storage/SyncConflictResolutionIntentStore.property.test.ts
           src/storage/SyncConflictStore.test.ts
           > contract-tests.log 2>&1
 
