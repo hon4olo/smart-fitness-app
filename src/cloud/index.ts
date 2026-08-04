@@ -32,9 +32,7 @@ export type {
   ConflictResolutionResult,
   ConflictResolver,
 } from './CloudConflictResolver';
-export {
-  createConflictResolver,
-} from './CloudConflictResolver';
+export { createConflictResolver } from './CloudConflictResolver';
 export type {
   ConflictPolicy,
   ConflictPolicyRegistry,
@@ -44,6 +42,21 @@ export {
   DEFAULT_CONFLICT_POLICIES,
   createConflictPolicyRegistry,
 } from './CloudConflictPolicies';
+export type {
+  ResolveSyncConflictInput,
+  SyncConflictResolutionChoice,
+  SyncConflictResolutionResult,
+} from './SyncConflictResolutionApi';
+export {
+  SYNC_CONFLICT_RESOLUTION_CHOICES,
+  SYNC_CONFLICT_RESOLUTION_SCHEMA_VERSION,
+  parseSyncConflictResolutionResult,
+} from './SyncConflictResolutionApi';
+export type {
+  CreateSyncConflictResolutionClientOptions,
+  SyncConflictResolutionClient,
+} from './createSyncConflictResolutionClient';
+export { createSyncConflictResolutionClient } from './createSyncConflictResolutionClient';
 export type {
   SyncBatchValidation,
   SyncBuildResult,
