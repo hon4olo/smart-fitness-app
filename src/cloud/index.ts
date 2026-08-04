@@ -73,6 +73,13 @@ export type {
 } from './SyncConflictResolutionSubmission';
 export { createSyncConflictResolutionSubmission } from './SyncConflictResolutionSubmission';
 export type {
+  CreateSyncConflictResolutionWorkflowOptions,
+  SyncConflictResolutionWorkflow,
+  SyncConflictResolutionWorkflowOutcome,
+  SyncConflictResolutionWorkflowStatus,
+} from './SyncConflictResolutionWorkflow';
+export { createSyncConflictResolutionWorkflow } from './SyncConflictResolutionWorkflow';
+export type {
   SyncBatchValidation,
   SyncBuildResult,
   SyncConflictResolution,

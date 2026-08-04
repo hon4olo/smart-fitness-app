@@ -93,13 +93,31 @@ const transition = async (
   store: SyncConflictResolutionIntentStore,
   userId: string,
   intent: SyncConflictResolutionIntent,
-  state: 'accepted' | 'retryable' | 'stale' | 'submitting',
+  state: 'retryable' | 'stale' | 'submitting',
 ): Promise<SyncConflictResolutionIntent> => {
   const next = await store.transition(
     userId,
     intent.conflictId,
     intent.idempotencyKey,
     state,
+  );
+  if (!next) {
+    throw new Error('Sync conflict resolution intent disappeared');
+  }
+  return next;
+};
+
+const markAccepted = async (
+  store: SyncConflictResolutionIntentStore,
+  userId: string,
+  intent: SyncConflictResolutionIntent,
+  revision: number,
+): Promise<SyncConflictResolutionIntent> => {
+  const next = await store.markAccepted(
+    userId,
+    intent.conflictId,
+    intent.idempotencyKey,
+    revision,
   );
   if (!next) {
     throw new Error('Sync conflict resolution intent disappeared');
@@ -140,11 +158,11 @@ export const createSyncConflictResolutionSubmission = (
         choice: submitting.choice,
         idempotencyKey: submitting.idempotencyKey,
       });
-      const accepted = await transition(
+      const accepted = await markAccepted(
         options.intentStore,
         userId,
         submitting,
-        'accepted',
+        result.revision,
       );
       return { status: 'accepted', intent: accepted, result };
     } catch (error) {
