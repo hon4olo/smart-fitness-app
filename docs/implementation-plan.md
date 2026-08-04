@@ -11,14 +11,14 @@ Detailed provider and release-readiness evidence remains in `docs/roadmap/provid
 
 ## Verified baseline
 
-Verified before the P7-C4 source slice:
+Verified after the focused P7 correctness and retry hardening sequence:
 
-- mobile `main`: `96e2e6e9278ab972c1b25f9834145fc8cdeb881c`;
-- backend `main`: `eb1b869a683393ac402810ca25d21cc41645108d`;
-- no open mobile or backend pull requests before PR #415;
-- backend PRs #143-#149 complete the server conflict-resolution correctness boundary;
-- mobile PRs #406, #409, and #411-#414 complete the strict client, candidate, intent, submission, reconciliation, and authenticated composition boundaries;
-- mobile PR #415 completes the bounded explicit confirmation UI and restart-safe continuation gap, subject to exact-head blocking CI before merge;
+- mobile `main`: `0201b4be785672c065af40f738a121cb068545de`;
+- backend `main`: `6facc94aac4aea19ba96fd337c48eff2107e9121`;
+- open mobile pull requests: none;
+- open backend pull requests: none;
+- backend PRs #143-#152 complete the current server conflict-resolution, replay, Promise-lint, and multi-instance correctness boundary;
+- mobile PRs #406, #409, and #411-#416 complete the strict client, safe candidate, durable intent, submission, reconciliation, explicit confirmation, and uncertain-response replay boundaries;
 - all public provider-backed capabilities remain disabled;
 - no provider/staging execution, deployment, migration outside CI, worker scheduling, native build, OTA/EAS publication, or production activation has been performed.
 
@@ -46,15 +46,15 @@ There is no remaining approved autonomous source-refactor phase. Any future prov
 
 ## Current priority order
 
-Correctness and recoverability continue to precede generalized stress infrastructure.
+P7 source correctness is complete. P8 begins with bounded, deterministic evidence before generalized stress infrastructure.
 
-1. **P7-D1 — Deterministic lost-response replay.** Prove that a committed conflict-resolution request whose HTTP response is lost can be retried with the same key and produces one durable effect and one authoritative mobile outcome.
-2. **P7-D2 — Reviewed Promise correctness linting.** Enable type-aware `@typescript-eslint/no-floating-promises` and `no-misused-promises` only where configuration and findings are actionable.
-3. **P7-D3 — Focused HTTP and service concurrency.** Add deterministic multi-request and multi-instance coverage around currently used retryable writes before broad load tooling.
-4. **P8 — Diagnostics and adversarial release preparation.** Add bounded property-based sequences, multi-instance tests, and optional nightly k6/Toxiproxy scenarios after focused P7 hardening is complete.
+1. **P8-A — Property-based model sequences.** Add bounded PR-level model tests for durable conflict intent transitions, retry/restart sequences, and reconciliation invariants. Use reproducible seeds and shrinking; keep expensive database sequences out of ordinary PR runs.
+2. **P8-B — Privacy-safe diagnostics and evidence provenance.** Define stable diagnostic event contracts, exact commit/build provenance, bounded metadata, retention boundaries, and user-data exclusions before broader instrumentation.
+3. **P8-C — Release and rollback gates.** Verify backend/mobile exact-SHA release evidence, Android package/link source configuration, rollback readiness, and failure-stop conditions without publishing or deploying.
+4. **P8-D — Optional adversarial nightly validation.** Add multi-instance/load and Toxiproxy scenarios only where deterministic tests already define the expected invariant and runtime/flake evidence supports scheduled execution.
 5. **P9 — Privacy, legal, consent, retention, and analytics prerequisites.** Define technical prerequisites before broader production instrumentation.
 
-A broader audit of retryable non-sync writes may proceed in independent focused slices, but it must not displace the active correctness order unless it exposes a defect in a currently used contract.
+A broader audit of retryable non-sync writes may proceed in independent focused slices, but it must not displace the active evidence order unless it exposes a defect in a currently used contract.
 
 P6 real provider/staging evidence remains authorization-gated and does not block autonomous source work.
 
@@ -82,9 +82,9 @@ The remaining P6 action is a real isolated non-production evidence run. It requi
 
 Do not perform that action autonomously.
 
-## P7 — Explicit sync-conflict resolution
+## P7 — Explicit sync-conflict resolution and focused hardening
 
-### Backend correctness — complete through PR #149
+### Backend correctness — complete through PR #152
 
 Merged behavior and blocking evidence:
 
@@ -94,17 +94,24 @@ Merged behavior and blocking evidence:
 - PR #146: blocking conflict replay/concurrency/API CI and numeric PostgreSQL `bigint` revision comparison;
 - PR #147: forward-safe migration from global idempotency uniqueness to `(user_id, idempotency_key)`;
 - PR #148: blocking equivalent replay, conflicting key reuse, cross-user key reuse, and concurrent duplicate-delivery contracts;
-- PR #149: deterministic rollback proof for failure after domain mutation and before conflict completion.
+- PR #149: deterministic rollback proof for failure after domain mutation and before conflict completion;
+- PR #150: deterministic post-commit response-loss replay through the real API, proving one operation, one resolved conflict, and one revisioned domain tombstone;
+- PR #151: type-aware Promise correctness linting with a dedicated full-repository TypeScript lint project and no broad suppressions;
+- PR #152: equivalent concurrent delivery through two independent Fastify instances and two independent PostgreSQL pools, proving one effect and semantic replay.
 
-The backend now proves authenticated ownership, exact revision boundaries, bounded choices, advisory-lock serialization, compare-and-set conflict transition, restart-safe replay, user-scoped idempotency, one durable effect for equivalent delivery, deterministic rejection of conflicting reuse, independent cross-user keys, and complete transaction rollback.
+The backend proves authenticated ownership, exact revision boundaries, bounded choices, advisory-lock serialization, compare-and-set conflict transition, restart-safe replay, user-scoped idempotency, one durable effect for equivalent delivery, deterministic rejection of conflicting reuse, independent cross-user keys, complete transaction rollback, post-commit response-loss recovery, and multi-instance correctness without process-local serialization.
 
-The blocking CI work exposed and fixed a real defect: PostgreSQL aggregate `bigint` revisions arrived as runtime strings and could previously be compared lexicographically. Values are normalized with `BigInt` before selecting the authoritative maximum.
+The blocking work exposed and fixed or clarified real contracts:
 
-Do not add mechanical `FOR UPDATE` requirements where an atomic statement, compare-and-set, advisory lock, or database constraint already expresses the invariant.
+- PostgreSQL aggregate `bigint` revisions arrive as runtime strings and must be normalized numerically before authoritative comparison;
+- entity deletion is represented by a revisioned tombstone rather than physical row removal;
+- type-aware linting requires a project that includes runtime source, tests, and TypeScript configuration files.
 
-### Mobile correctness and presentation — complete through PR #415
+Do not add mechanical `FOR UPDATE` requirements where an atomic statement, compare-and-set, advisory lock, or database constraint already expresses the invariant. `AsyncLocalStorage` remains request/trace context propagation, not a race detector.
 
-Merged or included in PR #415:
+### Mobile correctness and presentation — complete through PR #416
+
+Merged behavior:
 
 - PR #406: exact versioned response parser and authenticated client with one-time access-token refresh;
 - PR #409: strict read-only derivation of genuinely user-resolvable persisted conflicts;
@@ -112,7 +119,8 @@ Merged or included in PR #415:
 - PR #412: bounded submission executor with retryable, stale, rejected, authentication, and duplicate-replay classification;
 - PR #413: authoritative pull/materialization, accepted revision persistence, cursor verification, and terminal cleanup;
 - PR #414: authenticated controller and hook composition through the normal synchronization path;
-- PR #415: explicit localized this-device/account choice and confirmation UI, safe outcome presentation, duplicate-action blocking, and durable continuation when the original conflict snapshot is already gone.
+- PR #415: explicit localized this-device/account choice and confirmation UI, safe outcome presentation, duplicate-action blocking, and durable continuation when the original conflict snapshot is already gone;
+- PR #416: uncertain-response and process-restart replay proof using the same persisted request and idempotency identity before authoritative reconciliation.
 
 The completed mobile boundary:
 
@@ -121,7 +129,7 @@ The completed mobile boundary:
 - stores one immutable choice and one stable key per user/conflict;
 - never treats a response payload as a synthetic pull result;
 - removes the intent only after the conflict is absent and the authoritative cursor reaches the accepted revision;
-- resumes pending, retryable, accepted, stale, and interrupted work after process restart;
+- resumes pending, retryable, accepted, stale, interrupted, and uncertain-response work after process restart;
 - presents only localized entity labels, detection time, and saved-data/deletion kinds;
 - never renders payloads, entity IDs, revisions, request IDs, fingerprints, schema versions, idempotency keys, ownership IDs, or raw backend errors;
 - never chooses automatically and never exposes the opposite choice after an intent exists;
@@ -131,56 +139,55 @@ Focused architecture evidence remains in `docs/architecture/sync-conflict-resolu
 
 Physical second-device, offline termination/restart, and matching standalone-runtime validation remain release-device evidence rather than source-completion claims.
 
-## P7-D — Focused retry and async correctness hardening
-
-### P7-D1 — Lost response after commit
-
-Required next behavior:
-
-1. deterministically commit the backend transaction;
-2. prevent the successful HTTP response from reaching the client;
-3. replay the exact request with the same user-scoped idempotency key;
-4. prove one domain effect, one effective revision, one completed conflict transition, and semantic duplicate success;
-5. prove the mobile intent remains retryable after uncertainty and reconciles through normal pull/materialization;
-6. keep this deterministic test in blocking CI before introducing proxy-based fault injection.
-
-An in-process response-loss hook or controlled socket termination is preferred for the blocking proof. Toxiproxy remains optional nightly infrastructure, not the first correctness oracle.
-
-### P7-D2 — Promise correctness linting
-
-Required approach:
-
-- use type-aware ESLint configuration;
-- enable `@typescript-eslint/no-floating-promises` and `no-misused-promises` in a focused PR;
-- review every finding rather than adding broad suppression;
-- retain intentional `void` fire-and-forget boundaries only where errors are independently handled;
-- keep `AsyncLocalStorage` limited to request/trace context propagation rather than describing it as a race detector.
-
-### P7-D3 — Focused concurrency
-
-Add deterministic service/HTTP tests for currently used retryable writes before generalized load:
-
-- equivalent duplicate requests with one effect and replay success;
-- same key with different immutable request fields and deterministic rejection;
-- different choices for one conflict with exactly one winner;
-- same key under different users with independent outcomes;
-- multi-instance execution against real PostgreSQL where process-local state cannot serialize the test accidentally.
-
 ## P8 — Diagnostics and adversarial release preparation
+
+### P8-A — Property-based model sequences
+
+The immediate source slice should model the conflict intent and reconciliation state machine rather than issue thousands of database requests.
+
+Required invariants:
+
+- one conflict has at most one immutable choice and idempotency identity;
+- retry, token refresh, and process restart never replace that identity;
+- uncertain delivery cannot transition directly to terminal cleanup;
+- accepted resolution remains durable until the authoritative cursor reaches the accepted revision and the conflict is absent;
+- stale or already-resolved outcomes can reconcile only through normal synchronization;
+- user isolation is preserved across every generated sequence;
+- malformed persisted state fails closed.
+
+PR-level runs should be bounded and reproducible, with failure seeds and shrunk counterexamples retained in test output. Larger sequence counts belong in scheduled validation after runtime and flake evidence is available.
+
+### P8-B — Privacy-safe diagnostics and evidence provenance
 
 Planned source work:
 
-- privacy-safe diagnostics and exact artifact provenance;
-- backend/mobile exact-SHA release gates;
-- Android package/link source audit;
-- rollback verification;
-- property-based model/sequence tests with bounded PR runs and larger nightly runs;
-- multi-instance HTTP concurrency tests;
-- optional nightly k6 and Toxiproxy scenarios for lock contention, pool saturation, connection reset, timeout, and retry behavior.
+- define stable diagnostic event names and bounded status categories;
+- exclude payloads, access/refresh tokens, raw provider text, ownership identifiers, and sensitive health/nutrition values;
+- attach exact source SHA, build/runtime version, schema version, and evidence timestamp where appropriate;
+- document retention, redaction, and support-export boundaries;
+- keep operational evidence separate from user-facing copy.
+
+### P8-C — Release and rollback gates
+
+Planned source work:
+
+- verify backend/mobile exact-SHA release evidence;
+- audit Android package and app-link source configuration;
+- verify rollback and stop-condition documentation;
+- ensure release evidence cannot silently refer to a moving branch;
+- keep native builds, installation, publishing, deployment, and production activation authorization-gated.
+
+### P8-D — Optional adversarial nightly validation
+
+Candidate scheduled scenarios:
+
+- larger property-based sequence counts;
+- additional independent-process HTTP concurrency;
+- bounded k6 load for lock contention and pool saturation;
+- Toxiproxy connection reset and timeout scenarios;
+- exact artifact retention for reproducible failures.
 
 Do not make 100-VU stress, 10,000 database iterations, or network fault injection mandatory on every pull request unless runtime and flake evidence justify it.
-
-Native builds, installation, TestFlight/Play distribution, OTA/EAS publication, store submission, and production activation remain external actions requiring direct authorization.
 
 ## P9 — Privacy, legal, consent, retention, and analytics prerequisites
 
