@@ -72,10 +72,13 @@ export const createAccountDeletionReceiptController = ({
     identity: AccountDeletionReceiptIdentity,
   ): Promise<AccountDeletionResult> => {
     const result = await onConfirmedDeletion(identity.userId);
-    if (result.localCleanupComplete) {
+    if (!result.localCleanupComplete) return result;
+    try {
       await clearAccountDeletionReceiptIdentity(storage);
+      return result;
+    } catch {
+      return { localCleanupComplete: false };
     }
-    return result;
   };
 
   const reconcileIdentity = async (
