@@ -110,9 +110,11 @@ const createHarness = async (
     synchronize: synchronizeMock,
   });
   return {
+    client,
     conflictStore,
     cursorStore,
     intentStore,
+    storage,
     synchronize: synchronizeMock,
     workflow,
   };
@@ -202,28 +204,53 @@ describe('SyncConflictResolutionWorkflow', () => {
     const resolve = vi.fn().mockResolvedValue(result);
     let harness: Awaited<ReturnType<typeof createHarness>>;
     harness = await createHarness(resolve, async () => {
-      const current = await harness.cursorStore.get('user-a');
       await harness.cursorStore.set({
         userId: 'user-a',
         deviceId: '33333333-3333-4333-8333-333333333333',
-        serverRevision: current?.serverRevision === 11 ? 12 : 11,
-        lastSyncedAt: '2026-08-04T11:02:00.000Z',
+        serverRevision: 11,
+        lastSyncedAt: '2026-08-04T11:01:00.000Z',
       });
       await harness.conflictStore.remove('user-a', conflictId);
     });
 
-    await harness.cursorStore.set({
-      userId: 'user-a',
-      deviceId: '33333333-3333-4333-8333-333333333333',
-      serverRevision: 11,
-      lastSyncedAt: '2026-08-04T11:00:00.000Z',
+    await expect(
+      harness.workflow.resolve('user-a', candidate, 'keep_local'),
+    ).resolves.toMatchObject({
+      status: 'waiting_for_authoritative_state',
+      intent: { state: 'accepted' },
     });
-    const first = await harness.workflow.resolve(
-      'user-a',
-      candidate,
-      'keep_local',
+    expect(resolve).toHaveBeenCalledTimes(1);
+
+    const restoredIntentStore = createSyncConflictResolutionIntentStore(
+      harness.storage,
+      { now: createClock() },
     );
-    expect(first.status).toBe('reconciled');
+    const restoredSubmission = createSyncConflictResolutionSubmission({
+      client: harness.client,
+      intentStore: restoredIntentStore,
+    });
+    const restoredWorkflow = createSyncConflictResolutionWorkflow({
+      conflictStore: harness.conflictStore,
+      cursorStore: harness.cursorStore,
+      intentStore: restoredIntentStore,
+      submission: restoredSubmission,
+      async synchronize() {
+        await harness.cursorStore.set({
+          userId: 'user-a',
+          deviceId: '33333333-3333-4333-8333-333333333333',
+          serverRevision: 12,
+          lastSyncedAt: '2026-08-04T11:02:00.000Z',
+        });
+      },
+    });
+
+    await expect(
+      restoredWorkflow.resolve('user-a', candidate, 'keep_local'),
+    ).resolves.toMatchObject({
+      status: 'reconciled',
+      intent: null,
+      submission: { status: 'not_submittable' },
+    });
     expect(resolve).toHaveBeenCalledTimes(1);
   });
 
