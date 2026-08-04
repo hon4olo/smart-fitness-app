@@ -1,5 +1,4 @@
 import {
-  ACCOUNT_SCOPED_ASYNC_STORAGE_KEYS,
   APPLICATION_STATE_STORAGE_KEYS,
   CONFLICT_STORAGE_KEYS,
   LOCAL_DIAGNOSTIC_STORAGE_KEYS,
@@ -146,5 +145,3 @@ export const MOBILE_ACCOUNT_DATA_SURFACES: readonly MobileAccountDataSurface[] =
     userControl: 'Removed automatically only after account and authentication cleanup completes.',
   },
 ];
-
-void ACCOUNT_SCOPED_ASYNC_STORAGE_KEYS;
