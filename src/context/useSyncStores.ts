@@ -9,7 +9,6 @@ import {
   createMealTemplateSyncMetadataStore,
   createNutritionTargetSyncMetadataStore,
   createSafetyRecoverySyncMetadataStore,
-  createSyncConflictResolutionIntentStore,
   createSyncConflictStore,
   createTrainingProgramSyncMetadataStore,
   createWorkoutSessionSyncMetadataStore,
@@ -21,10 +20,6 @@ export function useSyncStores() {
   const cursorStore = useMemo(() => getDefaultSyncCursorStore(), []);
   const syncStorage = useMemo(() => createAsyncStorageAdapter(), []);
   const conflictStore = useMemo(() => createSyncConflictStore(syncStorage), [syncStorage]);
-  const conflictResolutionIntentStore = useMemo(
-    () => createSyncConflictResolutionIntentStore(syncStorage),
-    [syncStorage],
-  );
   const bodyMeasurementMetadataStore = useMemo(
     () => createBodyMeasurementSyncMetadataStore(syncStorage),
     [syncStorage],
@@ -68,7 +63,6 @@ export function useSyncStores() {
 
   return {
     bodyMeasurementMetadataStore,
-    conflictResolutionIntentStore,
     conflictStore,
     cursorStore,
     customExerciseMetadataStore,
