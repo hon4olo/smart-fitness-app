@@ -76,7 +76,8 @@ describe('SyncConflictResolutionController', () => {
       synchronize: vi.fn(),
     });
 
-    await expect(controller.listCandidates(userId)).resolves.toEqual([
+    const candidates = await controller.listCandidates(userId);
+    expect(candidates).toEqual([
       {
         conflictId,
         entityType: 'weightHistory',
@@ -88,9 +89,9 @@ describe('SyncConflictResolutionController', () => {
         detectedAt: '2026-08-04T10:30:00.000Z',
       },
     ]);
-    expect(JSON.stringify(await controller.listCandidates(userId))).not.toContain(
-      'weight',
-    );
+    const serialized = JSON.stringify(candidates);
+    expect(serialized).not.toContain('remotePayload');
+    expect(serialized).not.toContain('"weight":70');
   });
 
   it('routes an explicit choice through submit, sync, and reconciliation', async () => {
