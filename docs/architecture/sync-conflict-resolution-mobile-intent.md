@@ -1,4 +1,4 @@
-# Mobile sync conflict resolution intent, submission, and reconciliation
+# Mobile sync conflict resolution intent, submission, reconciliation, and confirmation
 
 P7-C2 adds a per-user AsyncStorage-backed intent store between safe conflict-candidate derivation and authenticated conflict-resolution submission.
 
@@ -40,10 +40,22 @@ The P7-C3 reconciliation workflow enforces the post-submission boundary:
 6. require the user cursor to reach the accepted revision, including after process restart;
 7. only then transition the intent to `completed` and remove its terminal record.
 
-A failed synchronization, a remaining conflict, or a cursor below the accepted resolution revision leaves the intent durable. Retryable submission outcomes do not trigger synchronization. An accepted intent restored after restart can continue reconciliation without creating another logical request or losing its exact cursor target. This avoids treating the response payload as a substitute for ordered pull/materialization and prevents skipped intervening operations.
+A failed synchronization, a remaining conflict, or a cursor below the accepted resolution revision leaves the intent durable. Retryable submission outcomes do not trigger synchronization. An accepted intent restored after restart can continue reconciliation without creating another logical request or losing its exact cursor target. The workflow can resume directly from the durable conflict ID even if normal materialization already removed the original conflict snapshot before the cursor reached the accepted revision.
 
-The mobile composition boundary is exposed through `useSyncConflictResolution`. It derives the current user and token from `AuthContext`, constructs the strict authenticated API client, binds the persisted conflict, cursor, and intent stores, and delegates reconciliation to the existing `useWeightSync().syncNow` path. Consumers receive only `listCandidates()` and `resolve(candidate, choice)`; they cannot supply a user ID, device ID, idempotency key, raw payload, or arbitrary revision.
+The mobile composition boundary is exposed through `useSyncConflictResolution`. It derives the current user and token from `AuthContext`, constructs the strict authenticated API client, binds the persisted conflict, cursor, and intent stores, and delegates reconciliation to the existing `useWeightSync().syncNow` path. Consumers receive safe review items, initial explicit resolution, and continuation of an existing durable intent. They cannot supply a user ID, device ID, idempotency key, raw payload, or arbitrary revision.
 
-Unauthenticated listing returns no candidates and unauthenticated resolution fails closed before an intent is created. Candidate listing continues to return only bounded identity, payload-kind, and timing metadata. The hook does not run automatically and makes no destructive choice by itself.
+Unauthenticated listing returns no review items and unauthenticated resolution fails closed before an intent is created. Candidate presentation contains only a localized entity label, detection time, and whether the local-device and account versions represent saved data or deletion. Raw payloads, entity IDs, revisions, request IDs, fingerprints, schema versions, and internal errors are not rendered.
 
-Explicit localized confirmation UI remains the next bounded P7-C4 slice. No OTA/EAS publication, native build/install, backend deployment, or production activation is part of this work.
+P7-C4 extends Data & Sync with explicit confirmation:
+
+- unresolved safe candidates show separate this-device and account version kinds;
+- neither version is preferred automatically;
+- choosing either side opens a second confirmation step before intent creation;
+- all choice buttons are disabled while any resolution or synchronization action is in flight;
+- once an intent exists, the opposite choice is no longer presented;
+- retryable and accepted intents expose only continuation of the persisted choice;
+- accepted intents remain recoverable after process restart, including when the original conflict snapshot is already gone;
+- stale, retryable, authentication, rejection, waiting, and resolved results map to bounded localized copy;
+- unsupported conflicts retain the non-destructive ordinary synchronization retry path.
+
+No OTA/EAS publication, native build/install, backend deployment, or production activation is part of this work.

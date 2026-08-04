@@ -20,14 +20,22 @@ import {
 import {
   createSyncConflictResolutionController,
   type SyncConflictResolutionController,
+  type SyncConflictResolutionControllerReviewItem,
 } from './SyncConflictResolutionController';
 import { useWeightSync } from './SyncContext';
 
+export type SyncConflictResolutionReviewItem =
+  SyncConflictResolutionControllerReviewItem;
+
 export type AuthenticatedSyncConflictResolution = {
   listCandidates(): Promise<SyncConflictResolutionCandidate[]>;
+  listReviewItems(): Promise<SyncConflictResolutionReviewItem[]>;
   resolve(
     candidate: SyncConflictResolutionCandidate,
     choice: SyncConflictResolutionChoice,
+  ): Promise<SyncConflictResolutionWorkflowOutcome>;
+  continueResolution(
+    item: SyncConflictResolutionReviewItem,
   ): Promise<SyncConflictResolutionWorkflowOutcome>;
 };
 
@@ -86,6 +94,11 @@ export function useSyncConflictResolution(): AuthenticatedSyncConflictResolution
     return userId ? controller.listCandidates(userId) : [];
   }, [controller, session?.user.id]);
 
+  const listReviewItems = useCallback(async () => {
+    const userId = session?.user.id;
+    return userId ? controller.listReviewItems(userId) : [];
+  }, [controller, session?.user.id]);
+
   const resolve = useCallback(
     async (
       candidate: SyncConflictResolutionCandidate,
@@ -98,8 +111,22 @@ export function useSyncConflictResolution(): AuthenticatedSyncConflictResolution
     [controller, session?.user.id],
   );
 
+  const continueResolution = useCallback(
+    async (item: SyncConflictResolutionReviewItem) => {
+      const userId = session?.user.id;
+      if (!userId) return authenticationRequiredOutcome();
+      return controller.resume(userId, item.conflictId);
+    },
+    [controller, session?.user.id],
+  );
+
   return useMemo(
-    () => ({ listCandidates, resolve }),
-    [listCandidates, resolve],
+    () => ({
+      continueResolution,
+      listCandidates,
+      listReviewItems,
+      resolve,
+    }),
+    [continueResolution, listCandidates, listReviewItems, resolve],
   );
 }

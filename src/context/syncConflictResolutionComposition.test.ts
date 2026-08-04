@@ -35,6 +35,19 @@ describe('sync conflict resolution composition', () => {
     expect(source).not.toContain('resolvedPayload');
   });
 
+  it('lists safe review state and resumes durable intents without a snapshot', () => {
+    const hook = readSource('src/context/useSyncConflictResolution.ts');
+    const controller = readSource('src/context/SyncConflictResolutionController.ts');
+    const workflow = readSource('src/cloud/SyncConflictResolutionWorkflow.ts');
+
+    expect(hook).toContain('controller.listReviewItems(userId)');
+    expect(hook).toContain('controller.resume(userId, item.conflictId)');
+    expect(controller).toContain('options.intentStore.list(userId)');
+    expect(controller).toContain('candidate: null');
+    expect(workflow).toContain('resume(userId, conflictId)');
+    expect(hook).not.toContain('idempotencyKey');
+  });
+
   it('keeps unauthenticated use fail closed before intent creation', () => {
     const source = readSource('src/context/useSyncConflictResolution.ts');
     const userCheck = source.indexOf('if (!userId)');

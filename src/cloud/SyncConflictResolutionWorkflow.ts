@@ -35,6 +35,10 @@ export type SyncConflictResolutionWorkflow = {
     candidate: SyncConflictResolutionCandidate,
     choice: SyncConflictResolutionChoice,
   ): Promise<SyncConflictResolutionWorkflowOutcome>;
+  resume(
+    userId: string,
+    conflictId: string,
+  ): Promise<SyncConflictResolutionWorkflowOutcome>;
 };
 
 export type CreateSyncConflictResolutionWorkflowOptions = {
@@ -86,13 +90,12 @@ const completeIntent = async (
 
 export const createSyncConflictResolutionWorkflow = (
   options: CreateSyncConflictResolutionWorkflowOptions,
-): SyncConflictResolutionWorkflow => ({
-  async resolve(userId, candidate, choice) {
-    await options.intentStore.create(userId, candidate, choice);
-    const submission = await options.submission.submit(
-      userId,
-      candidate.conflictId,
-    );
+): SyncConflictResolutionWorkflow => {
+  const execute = async (
+    userId: string,
+    conflictId: string,
+  ): Promise<SyncConflictResolutionWorkflowOutcome> => {
+    const submission = await options.submission.submit(userId, conflictId);
     if (!canReconcile(submission)) {
       return {
         status: submission.status,
@@ -107,19 +110,16 @@ export const createSyncConflictResolutionWorkflow = (
     } catch {
       return {
         status: 'sync_failed',
-        intent: await options.intentStore.get(userId, candidate.conflictId),
+        intent: await options.intentStore.get(userId, conflictId),
         submission,
         ...(submission.result ? { result: submission.result } : {}),
       };
     }
 
-    const currentIntent = await options.intentStore.get(
-      userId,
-      candidate.conflictId,
-    );
+    const currentIntent = await options.intentStore.get(userId, conflictId);
     const remainingConflicts = await options.conflictStore.list(userId);
     const conflictStillPresent = remainingConflicts.some(
-      (conflict) => conflict.conflictId === candidate.conflictId,
+      (conflict) => conflict.conflictId === conflictId,
     );
     const targetRevision =
       submission.result?.revision ?? currentIntent?.resolutionRevision;
@@ -146,5 +146,15 @@ export const createSyncConflictResolutionWorkflow = (
       submission,
       ...(submission.result ? { result: submission.result } : {}),
     };
-  },
-});
+  };
+
+  return {
+    async resolve(userId, candidate, choice) {
+      await options.intentStore.create(userId, candidate, choice);
+      return execute(userId, candidate.conflictId);
+    },
+    resume(userId, conflictId) {
+      return execute(userId, conflictId);
+    },
+  };
+};

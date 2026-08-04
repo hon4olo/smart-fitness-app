@@ -5,13 +5,15 @@ import { enMessages, ruMessages } from '@/localization/messages';
 declare const __dirname: string;
 declare const require: any;
 
-const { readFileSync } = require('fs') as { readFileSync: (path: string, encoding: string) => string };
+const { readFileSync } = require('fs') as {
+  readFileSync: (path: string, encoding: string) => string;
+};
 const { resolve } = require('path') as { resolve: (...parts: string[]) => string };
 const projectRoot = resolve(__dirname, '..');
 const readSource = (path: string) => readFileSync(resolve(projectRoot, path), 'utf8');
 
 describe('Settings Data and Sync status', () => {
-  it('surfaces sanitized sync diagnostics without exposing the raw error field', () => {
+  it('surfaces bounded sync status without raw diagnostic fields', () => {
     const settings = readSource('src/app/settings/index.tsx');
     const details = readSource('src/app/sync-backup.tsx');
     const card = readSource('src/features/settings/SyncSettingsCard.tsx');
@@ -23,8 +25,8 @@ describe('Settings Data and Sync status', () => {
     expect(details).toContain('conflictCount');
     expect(details).toContain('syncNow()');
     expect(details).not.toContain('{error ?');
-    expect(details).toContain('{diagnostic ?');
-    expect(details).toContain('selectable');
+    expect(details).not.toContain('{diagnostic ?');
+    expect(details).not.toContain('selectable');
     expect(copy).toContain("'local-only': t('sync.status.localOnly')");
     expect(copy).toContain("localOnlyExplanation: t('sync.explanation.localOnly')");
     expect(enMessages['sync.status.localOnly']).toBe('Local only');
