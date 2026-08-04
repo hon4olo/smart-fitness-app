@@ -11,6 +11,14 @@ on:
         description: Full 40-character backend commit SHA
         required: true
         type: string
+      rollback_app_ref:
+        description: Full 40-character previously validated mobile rollback SHA
+        required: true
+        type: string
+      rollback_backend_ref:
+        description: Full 40-character previously validated backend rollback SHA
+        required: true
+        type: string
   workflow_call:
     inputs:
       app_ref:
@@ -19,6 +27,14 @@ on:
         type: string
       backend_ref:
         description: Full 40-character backend commit SHA
+        required: true
+        type: string
+      rollback_app_ref:
+        description: Full 40-character previously validated mobile rollback SHA
+        required: true
+        type: string
+      rollback_backend_ref:
+        description: Full 40-character previously validated backend rollback SHA
         required: true
         type: string
     secrets:
@@ -34,19 +50,33 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Require full commit SHAs
+      - name: Require full distinct commit SHAs
         shell: bash
         env:
           APP_REF: ${{ inputs.app_ref }}
           BACKEND_REF: ${{ inputs.backend_ref }}
+          ROLLBACK_APP_REF: ${{ inputs.rollback_app_ref }}
+          ROLLBACK_BACKEND_REF: ${{ inputs.rollback_backend_ref }}
         run: |
           sha_pattern='^[0-9a-fA-F]{40}$'
-          if [[ ! "$APP_REF" =~ $sha_pattern ]]; then
-            echo "app_ref must be a full 40-character commit SHA"
+          for entry in \
+            "app_ref:$APP_REF" \
+            "backend_ref:$BACKEND_REF" \
+            "rollback_app_ref:$ROLLBACK_APP_REF" \
+            "rollback_backend_ref:$ROLLBACK_BACKEND_REF"; do
+            name=${entry%%:*}
+            value=${entry#*:}
+            if [[ ! "$value" =~ $sha_pattern ]]; then
+              echo "$name must be a full 40-character commit SHA"
+              exit 1
+            fi
+          done
+          if [ "${APP_REF,,}" = "${ROLLBACK_APP_REF,,}" ]; then
+            echo "rollback_app_ref must identify a distinct previous mobile commit"
             exit 1
           fi
-          if [[ ! "$BACKEND_REF" =~ $sha_pattern ]]; then
-            echo "backend_ref must be a full 40-character commit SHA"
+          if [ "${BACKEND_REF,,}" = "${ROLLBACK_BACKEND_REF,,}" ]; then
+            echo "rollback_backend_ref must identify a distinct previous backend commit"
             exit 1
           fi
 
@@ -57,8 +87,12 @@ jobs:
     timeout-minutes: 35
     outputs:
       sha: ${{ steps.checked-sha.outputs.sha }}
+      rollback_sha: ${{ steps.rollback-sha.outputs.sha }}
     env:
       EXPO_PUBLIC_API_BASE_URL: https://release-gate.invalid
+      EXPO_PUBLIC_SOURCE_COMMIT_SHA: ${{ inputs.app_ref }}
+      PASSWORD_RESET_APP_LINK_BASE_URL: https://release-gate.invalid/auth/reset-password
+      EXPECTED_RESET_HOSTNAME: release-gate.invalid
     steps:
       - name: Checkout mobile
         uses: actions/checkout@v4
@@ -77,6 +111,27 @@ jobs:
           actual_sha=$(git rev-parse HEAD)
           if [ "${actual_sha,,}" != "${EXPECTED_SHA,,}" ]; then
             echo "Mobile checkout mismatch: expected=$EXPECTED_SHA actual=$actual_sha"
+            exit 1
+          fi
+          echo "sha=$actual_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Verify mobile rollback source
+        id: rollback-sha
+        working-directory: mobile
+        shell: bash
+        env:
+          EXPECTED_ROLLBACK_SHA: ${{ inputs.rollback_app_ref }}
+        run: |
+          if ! git cat-file -e "${EXPECTED_ROLLBACK_SHA}^{commit}" 2>/dev/null; then
+            git fetch --no-tags origin "$EXPECTED_ROLLBACK_SHA"
+          fi
+          actual_sha=$(git rev-parse "${EXPECTED_ROLLBACK_SHA}^{commit}")
+          if [ "${actual_sha,,}" != "${EXPECTED_ROLLBACK_SHA,,}" ]; then
+            echo "Mobile rollback mismatch: expected=$EXPECTED_ROLLBACK_SHA actual=$actual_sha"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$actual_sha" HEAD; then
+            echo "Mobile rollback SHA must be an ancestor of the release SHA"
             exit 1
           fi
           echo "sha=$actual_sha" >> "$GITHUB_OUTPUT"
@@ -104,9 +159,18 @@ jobs:
         working-directory: mobile
         run: npm test
 
-      - name: Validate Expo public configuration
+      - name: Generate Expo public configuration
         working-directory: mobile
-        run: npx expo config --type public > expo-public-config.json
+        run: npx expo config --type public --json > expo-public-config.json
+
+      - name: Validate mobile release provenance and routing
+        working-directory: mobile
+        env:
+          EXPECTED_MOBILE_SHA: ${{ inputs.app_ref }}
+        run: >-
+          node scripts/validate-release-expo-config.mjs
+          expo-public-config.json
+          > mobile-release-evidence.json
 
       - name: Export Expo application
         working-directory: mobile
@@ -116,12 +180,14 @@ jobs:
         working-directory: mobile
         run: npx expo-doctor
 
-      - name: Upload Expo configuration on failure
+      - name: Upload mobile release evidence on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: release-gate-expo-config
-          path: mobile/expo-public-config.json
+          name: release-gate-mobile-evidence
+          path: |
+            mobile/expo-public-config.json
+            mobile/mobile-release-evidence.json
           if-no-files-found: ignore
           retention-days: 3
 
@@ -132,6 +198,7 @@ jobs:
     timeout-minutes: 35
     outputs:
       sha: ${{ steps.checked-sha.outputs.sha }}
+      rollback_sha: ${{ steps.rollback-sha.outputs.sha }}
     services:
       postgres:
         image: postgres:16-alpine
@@ -155,6 +222,8 @@ jobs:
       AUTH_REFRESH_TOKEN_SECRET: release-gate-refresh-token-secret-at-least-32-characters
       CORS_ALLOWLIST: https://release-gate.invalid
       COACH_MODEL_ENABLED: 'false'
+      SOCIAL_CONTENT_MODERATION_ENFORCEMENT_ENABLED: 'false'
+      SOCIAL_MEDIA_UPLOADS_ENABLED: 'false'
     steps:
       - name: Checkout backend
         uses: actions/checkout@v4
@@ -176,6 +245,27 @@ jobs:
           actual_sha=$(git rev-parse HEAD)
           if [ "${actual_sha,,}" != "${EXPECTED_SHA,,}" ]; then
             echo "Backend checkout mismatch: expected=$EXPECTED_SHA actual=$actual_sha"
+            exit 1
+          fi
+          echo "sha=$actual_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Verify backend rollback source
+        id: rollback-sha
+        working-directory: backend
+        shell: bash
+        env:
+          EXPECTED_ROLLBACK_SHA: ${{ inputs.rollback_backend_ref }}
+        run: |
+          if ! git cat-file -e "${EXPECTED_ROLLBACK_SHA}^{commit}" 2>/dev/null; then
+            git fetch --no-tags origin "$EXPECTED_ROLLBACK_SHA"
+          fi
+          actual_sha=$(git rev-parse "${EXPECTED_ROLLBACK_SHA}^{commit}")
+          if [ "${actual_sha,,}" != "${EXPECTED_ROLLBACK_SHA,,}" ]; then
+            echo "Backend rollback mismatch: expected=$EXPECTED_ROLLBACK_SHA actual=$actual_sha"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$actual_sha" HEAD; then
+            echo "Backend rollback SHA must be an ancestor of the release SHA"
             exit 1
           fi
           echo "sha=$actual_sha" >> "$GITHUB_OUTPUT"
@@ -205,7 +295,12 @@ jobs:
           node --input-type=module -e
           "import('./dist/config/env.js').then(({loadEnv}) => {
             const value = loadEnv(process.env);
-            if (value.NODE_ENV !== 'production' || value.COACH_MODEL_ENABLED !== false) process.exit(1);
+            if (
+              value.NODE_ENV !== 'production' ||
+              value.COACH_MODEL_ENABLED !== false ||
+              value.SOCIAL_CONTENT_MODERATION_ENFORCEMENT_ENABLED !== false ||
+              value.SOCIAL_MEDIA_UPLOADS_ENABLED !== false
+            ) process.exit(1);
           })"
 
       - name: Apply backend migrations
@@ -219,7 +314,9 @@ jobs:
       - name: Validate migrated backend schema
         working-directory: backend
         run: >-
-          npx vitest run tests/migration.test.ts --maxWorkers=1 --no-file-parallelism
+          npx vitest run tests/migration.test.ts
+          tests/sync-idempotency-scope-migration.test.ts
+          --maxWorkers=1 --no-file-parallelism
 
       - name: Run complete backend test suite
         working-directory: backend
@@ -232,6 +329,8 @@ jobs:
           AUTH_REFRESH_TOKEN_SECRET: ''
           CORS_ALLOWLIST: ''
           COACH_MODEL_ENABLED: ''
+          SOCIAL_CONTENT_MODERATION_ENFORCEMENT_ENABLED: ''
+          SOCIAL_MEDIA_UPLOADS_ENABLED: ''
         run: npm test -- --maxWorkers=1 --no-file-parallelism
 
       - name: Start production server and verify health
@@ -273,9 +372,34 @@ jobs:
           BACKEND_RESULT: ${{ needs.backend.result }}
           MOBILE_SHA: ${{ needs.mobile.outputs.sha }}
           BACKEND_SHA: ${{ needs.backend.outputs.sha }}
+          ROLLBACK_MOBILE_SHA: ${{ needs.mobile.outputs.rollback_sha }}
+          ROLLBACK_BACKEND_SHA: ${{ needs.backend.outputs.rollback_sha }}
         run: |
           if [ "$REF_RESULT" != "success" ] || [ "$MOBILE_RESULT" != "success" ] || [ "$BACKEND_RESULT" != "success" ]; then
             echo "Release blocked: refs=$REF_RESULT mobile=$MOBILE_RESULT backend=$BACKEND_RESULT"
             exit 1
           fi
-          echo "Release gate passed for mobile=$MOBILE_SHA backend=$BACKEND_SHA"
+          jq -n \
+            --argjson schemaVersion 1 \
+            --arg runId "${{ github.run_id }}" \
+            --arg mobileSha "$MOBILE_SHA" \
+            --arg backendSha "$BACKEND_SHA" \
+            --arg rollbackMobileSha "$ROLLBACK_MOBILE_SHA" \
+            --arg rollbackBackendSha "$ROLLBACK_BACKEND_SHA" \
+            '{
+              schemaVersion: $schemaVersion,
+              runId: $runId,
+              mobileSha: $mobileSha,
+              backendSha: $backendSha,
+              rollbackMobileSha: $rollbackMobileSha,
+              rollbackBackendSha: $rollbackBackendSha
+            }' > release-evidence.json
+          echo "Release gate passed for mobile=$MOBILE_SHA backend=$BACKEND_SHA rollback_mobile=$ROLLBACK_MOBILE_SHA rollback_backend=$ROLLBACK_BACKEND_SHA"
+
+      - name: Upload immutable release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-fitness-release-evidence-${{ github.run_id }}
+          path: release-evidence.json
+          if-no-files-found: error
+          retention-days: 30
