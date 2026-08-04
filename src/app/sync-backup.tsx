@@ -22,7 +22,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function SyncBackupScreen() {
-  const { conflictCount, diagnostic, lastSyncAt, pendingOperations, status, syncNow } = useWeightSync();
+  const { conflictCount, lastSyncAt, pendingOperations, status, syncNow } = useWeightSync();
   const { formatDate, t } = useLocalization();
   const safeAreaInsets = useSafeAreaInsets();
   const copy = getSyncStatusCopy(t);
@@ -45,9 +45,6 @@ export default function SyncBackupScreen() {
           <Text style={styles.title}>{copy.currentStatus}</Text>
           <Text style={styles.value}>{copy.statusLabels[status]}</Text>
           <Text style={styles.detail}>{getSyncStatusExplanation(copy, status)}</Text>
-          {diagnostic ? (
-            <Text selectable style={styles.errorDetail}>{diagnostic}</Text>
-          ) : null}
           <Text style={styles.detail}>
             {copy.lastSync}:{' '}
             {lastSyncAt
@@ -95,15 +92,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.caption.fontSize,
     lineHeight: Typography.caption.lineHeight,
     marginTop: Spacing.one,
-  },
-  errorDetail: {
-    backgroundColor: Colors.dark.errorSoft,
-    borderRadius: 12,
-    color: Colors.dark.error,
-    fontSize: Typography.caption.fontSize,
-    lineHeight: Typography.caption.lineHeight,
-    marginTop: Spacing.two,
-    padding: Spacing.two,
   },
   row: {
     borderColor: Colors.dark.borderSubtle,
