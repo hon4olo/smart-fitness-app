@@ -65,7 +65,7 @@ Approved boundaries:
 
 The reviewed local-state evidence remains canonical in `docs/architecture/local-state-performance-decision.md`. The focused context boundary remains recorded in `docs/architecture/app-context-consumer-inventory.md`.
 
-There is no remaining approved autonomous general source-refactor phase. Future restructuring requires a new evidence-backed decision rather than continuation by default.
+There is no remaining approved autonomous source-refactor phase. Future restructuring requires a new evidence-backed decision rather than continuation by default.
 
 ## Current priority order
 
