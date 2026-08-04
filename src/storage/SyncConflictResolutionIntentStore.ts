@@ -28,6 +28,7 @@ export type SyncConflictResolutionIntent = {
   createdAt: string;
   updatedAt: string;
   lastAttemptAt?: string;
+  resolutionRevision?: number;
 };
 
 export type SyncConflictResolutionIntentStore = {
@@ -46,6 +47,12 @@ export type SyncConflictResolutionIntentStore = {
     conflictId: string,
     idempotencyKey: string,
     state: SyncConflictResolutionIntentState,
+  ): Promise<SyncConflictResolutionIntent | null>;
+  markAccepted(
+    userId: string,
+    conflictId: string,
+    idempotencyKey: string,
+    resolutionRevision: number,
   ): Promise<SyncConflictResolutionIntent | null>;
   removeTerminal(
     userId: string,
@@ -85,10 +92,10 @@ const ALLOWED_TRANSITIONS: Record<
   ReadonlySet<SyncConflictResolutionIntentState>
 > = {
   pending: new Set(['submitting']),
-  submitting: new Set(['retryable', 'accepted', 'stale']),
+  submitting: new Set(['retryable', 'stale']),
   retryable: new Set(['submitting']),
-  accepted: new Set(['submitting', 'completed']),
-  stale: new Set(['submitting', 'completed']),
+  accepted: new Set(['completed']),
+  stale: new Set(['completed']),
   completed: new Set(),
 };
 
@@ -143,6 +150,12 @@ const normalizeIntent = (
   const storedState = value.state;
   const createdAt = normalizeTimestamp(value.createdAt);
   const normalizedUpdatedAt = normalizeTimestamp(value.updatedAt);
+  const resolutionRevision =
+    value.resolutionRevision === undefined
+      ? undefined
+      : isRevision(value.resolutionRevision)
+        ? value.resolutionRevision
+        : null;
 
   if (
     !conflictId ||
@@ -152,7 +165,9 @@ const normalizeIntent = (
     !isChoice(choice) ||
     !isState(storedState) ||
     !createdAt ||
-    !normalizedUpdatedAt
+    !normalizedUpdatedAt ||
+    resolutionRevision === null ||
+    (storedState === 'accepted' && resolutionRevision === undefined)
   ) {
     return null;
   }
@@ -184,6 +199,7 @@ const normalizeIntent = (
     createdAt,
     updatedAt,
     ...(lastAttemptAt ? { lastAttemptAt } : {}),
+    ...(resolutionRevision === undefined ? {} : { resolutionRevision }),
   };
 
   return {
@@ -426,7 +442,7 @@ export const createSyncConflictResolutionIntentStore = (
     transition(userId, conflictId, idempotencyKey, state) {
       return mutate(async () => {
         const normalizedUserId = requireUserId(userId);
-        if (!isState(state)) {
+        if (!isState(state) || state === 'accepted') {
           throw new Error('Invalid sync conflict resolution intent state');
         }
         const users = await load();
@@ -451,6 +467,41 @@ export const createSyncConflictResolutionIntentStore = (
             : existing.lastAttemptAt
               ? { lastAttemptAt: existing.lastAttemptAt }
               : {}),
+        };
+        intents?.set(next.conflictId, next);
+        await persist(storage, users);
+        return next;
+      });
+    },
+
+    markAccepted(userId, conflictId, idempotencyKey, resolutionRevision) {
+      return mutate(async () => {
+        const normalizedUserId = requireUserId(userId);
+        if (!isRevision(resolutionRevision)) {
+          throw new Error('Invalid sync conflict resolution revision');
+        }
+        const users = await load();
+        const intents = users.get(normalizedUserId);
+        const existing = intents?.get(conflictId.trim());
+        if (!existing) return null;
+        if (existing.idempotencyKey !== idempotencyKey) {
+          throw new Error('Sync conflict resolution idempotency mismatch');
+        }
+        if (existing.state === 'accepted') {
+          if (existing.resolutionRevision !== resolutionRevision) {
+            throw new Error('Sync conflict resolution revision mismatch');
+          }
+          return existing;
+        }
+        if (existing.state !== 'submitting') {
+          throw new Error('Invalid sync conflict resolution intent transition');
+        }
+
+        const next: SyncConflictResolutionIntent = {
+          ...existing,
+          state: 'accepted',
+          resolutionRevision,
+          updatedAt: timestamp(),
         };
         intents?.set(next.conflictId, next);
         await persist(storage, users);
