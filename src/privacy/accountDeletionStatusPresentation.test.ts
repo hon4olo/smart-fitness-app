@@ -7,7 +7,7 @@ import {
   type AccountDeletionPresentationInput,
 } from './accountDeletionStatusPresentation';
 
-const input = <T extends Omit<AccountDeletionPresentationInput, 'schemaVersion'>>(
+const input = <T extends Record<string, unknown>>(
   value: T,
 ): T & { schemaVersion: typeof ACCOUNT_DELETION_PRESENTATION_SCHEMA_VERSION } => ({
   schemaVersion: ACCOUNT_DELETION_PRESENTATION_SCHEMA_VERSION,
