@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import {
+declare const require: any;
+
+const {
   normalizeSourceCommit,
   resolveSourceCommit,
-} from './source-provenance';
+} = require('./source-provenance') as {
+  normalizeSourceCommit(value: unknown): string | null;
+  resolveSourceCommit(
+    environment: Record<string, string | undefined> | undefined,
+  ): string | null;
+};
 
 const explicitSha = 'A'.repeat(40);
 const githubSha = 'b'.repeat(40);
