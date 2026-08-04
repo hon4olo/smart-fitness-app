@@ -52,8 +52,36 @@ type CreateIdentityOptions = {
   randomBytes?: (length: number) => Uint8Array;
 };
 
+const IDENTITY_KEYS = [
+  'schemaVersion',
+  'userId',
+  'requestId',
+  'statusSecret',
+  'requestedAt',
+] as const;
+const STATUS_KEYS = [
+  'schemaVersion',
+  'requestId',
+  'status',
+  'blockerCode',
+  'expiresAt',
+  'completedAt',
+] as const;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const hasExactKeys = (
+  value: Record<string, unknown>,
+  expected: readonly string[],
+): boolean => {
+  const actual = Object.keys(value).sort();
+  const sortedExpected = [...expected].sort();
+  return (
+    actual.length === sortedExpected.length &&
+    actual.every((key, index) => key === sortedExpected[index])
+  );
+};
 
 const isIsoTimestamp = (value: unknown): value is string =>
   typeof value === 'string' && Number.isFinite(Date.parse(value));
@@ -114,7 +142,7 @@ export const parseAccountDeletionReceiptIdentity = (
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as unknown;
-    if (!isRecord(parsed)) return null;
+    if (!isRecord(parsed) || !hasExactKeys(parsed, IDENTITY_KEYS)) return null;
     if (
       parsed.schemaVersion !== ACCOUNT_DELETION_RECEIPT_SCHEMA_VERSION ||
       typeof parsed.userId !== 'string' ||
@@ -170,7 +198,9 @@ export const parseAccountDeletionReceiptStatus = (
   value: unknown,
   expectedRequestId: string,
 ): AccountDeletionReceiptStatusDto => {
-  if (!isRecord(value)) throw new Error('Invalid account deletion status');
+  if (!isRecord(value) || !hasExactKeys(value, STATUS_KEYS)) {
+    throw new Error('Invalid account deletion status');
+  }
   const status = value.status;
   const blockerCode = value.blockerCode;
   const validBlocker =
