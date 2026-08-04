@@ -1,9 +1,11 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 import passwordResetAppLinkConfig = require('./config/password-reset-app-link');
+import sourceProvenanceConfig = require('./config/source-provenance');
 
 const { PASSWORD_RESET_APP_LINK_ENV, withPasswordResetAppLink } =
   passwordResetAppLinkConfig;
+const { resolveSourceCommit } = sourceProvenanceConfig;
 
 const environment = (
   globalThis as typeof globalThis & {
@@ -20,8 +22,19 @@ const requireStaticExpoConfig = (
   return config as ExpoConfig;
 };
 
+const withBuildProvenance = (config: ExpoConfig): ExpoConfig => ({
+  ...config,
+  extra: {
+    ...(config.extra ?? {}),
+    buildProvenance: {
+      schemaVersion: 1,
+      sourceCommit: resolveSourceCommit(environment),
+    },
+  },
+});
+
 export default ({ config }: ConfigContext): ExpoConfig =>
   withPasswordResetAppLink(
-    requireStaticExpoConfig(config),
+    withBuildProvenance(requireStaticExpoConfig(config)),
     environment?.[PASSWORD_RESET_APP_LINK_ENV],
   );
