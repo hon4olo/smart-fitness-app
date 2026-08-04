@@ -4,7 +4,10 @@ Status: P9-C source activation contract. Analytics remains disabled.
 
 This document defines the minimum technical boundary that must exist before Smart Fitness may add an analytics, crash-reporting, performance-telemetry, marketing-attribution or advertising SDK. It does not select a provider, determine a legal basis, provide legal approval or authorize collection.
 
-The executable contract is `src/privacy/analyticsActivationContract.ts`. Its test keeps the current state fail closed and checks package/config surfaces for known analytics, crash, attribution and advertising SDKs.
+Executable source boundaries:
+
+- `src/privacy/analyticsActivationContract.ts` keeps activation fail closed and records unresolved approval requirements;
+- `src/privacy/analyticsEventRegistry.ts` provides a closed, versioned event/property review mechanism while the production registry remains empty.
 
 ## Current state
 
@@ -45,6 +48,41 @@ Activation remains blocked until every prerequisite has exact reviewed evidence:
 
 A provider SDK, environment variable, API key, upload endpoint or event emission must not be introduced before this evidence exists in source and passes review.
 
+## Closed event registry
+
+The production event registry is intentionally empty. Therefore every event candidate is rejected as unregistered and no event can be collected or uploaded through this source boundary.
+
+A future event definition must include:
+
+- a lower-case versioned event name;
+- one analytics surface;
+- a named purpose ID and accountable owner;
+- an explicit finite property list;
+- a data class for every property;
+- only boolean, bounded-enum or bounded-integer property kinds.
+
+The evaluator rejects:
+
+- unknown event names or versions;
+- malformed identities;
+- missing required properties;
+- undeclared properties;
+- type mismatches;
+- enum values or integers outside reviewed bounds.
+
+No generic `track(name, properties)` escape hatch is approved. Passing this local structural validator would not itself authorize collection: the activation contract, provider/environment evidence, user-choice decision, retention/deletion contract and disclosure review must also be complete.
+
+## Allowed registry data classes
+
+The source registry mechanism recognizes only narrow structural classes:
+
+- aggregate product state;
+- bounded failure category;
+- coarse performance bucket;
+- release metadata.
+
+These labels are not automatic approval. Every actual event and property still needs purpose, re-identification and minimization review. Raw records cannot be converted into an approved event merely by renaming or hashing them.
+
 ## Forbidden analytics data
 
 The activation contract excludes at minimum:
@@ -77,9 +115,7 @@ Where user choice applies, the technical design must prove:
 - account deletion and consent withdrawal have distinct, documented effects;
 - consent evidence itself has bounded retention and deletion rules.
 
-## Event and identity minimization
-
-No generic `track(name, properties)` escape hatch is approved. A future implementation must use a closed versioned event registry and reject unknown events/properties.
+## Identity minimization
 
 Before activation, the architecture must decide whether any stable account identity is necessary. Anonymous or pseudonymous identifiers are not automatically exempt from retention, access, deletion or user-choice requirements. Advertising identifiers and cross-app linkage remain prohibited by the current contract.
 
@@ -100,16 +136,19 @@ Marketing claims or generic provider documentation are insufficient without conf
 
 ## Validation boundary
 
-The current automated contract proves only that:
+The automated source contracts prove only that:
 
 - activation evaluates to blocked;
 - every declared surface has zero collection/upload/retention;
 - mandatory prerequisites are explicit and unresolved;
 - forbidden data classes are recorded;
+- the production event registry is empty;
+- synthetic event definitions accept only exact allowlisted shapes;
+- unknown events, properties, types and values fail closed;
 - known analytics/crash/attribution/advertising SDK markers are absent from package and Expo config surfaces.
 
-It does not prove that all possible custom telemetry code could never be written. Any future network/event subsystem change still requires review against this contract and full repository CI.
+They do not prove that all possible custom telemetry code could never be written. Any future network/event subsystem change still requires review against these contracts and full repository CI.
 
 ## Authorization boundary
 
-This source slice does not add an SDK, event, consent prompt, tracking identifier, backend ingestion route, provider account, credential, environment variable, deployment, native build, OTA/EAS publication or production collection.
+This source slice does not add an SDK, production event, consent prompt, tracking identifier, backend ingestion route, provider account, credential, environment variable, deployment, native build, OTA/EAS publication or production collection.
