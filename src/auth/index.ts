@@ -1,6 +1,26 @@
 export { AuthProvider, AuthContext } from './AuthContext';
 export { createAuthService, AUTH_SESSION_STORAGE_KEY } from './createAuthService';
 export {
+  ACCOUNT_DELETION_RECEIPT_SCHEMA_VERSION,
+  PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY,
+  clearAccountDeletionReceiptIdentity,
+  createAccountDeletionReceiptIdentity,
+  parseAccountDeletionReceiptIdentity,
+  parseAccountDeletionReceiptStatus,
+  persistAccountDeletionReceiptIdentity,
+  readAccountDeletionReceiptIdentity,
+} from './accountDeletionReceipt';
+export type {
+  AccountDeletionReceiptBlockerCode,
+  AccountDeletionReceiptDeleteEnvelope,
+  AccountDeletionReceiptIdentity,
+  AccountDeletionReceiptIdentityFactory,
+  AccountDeletionReceiptStatus,
+  AccountDeletionReceiptStatusDto,
+  AccountDeletionReceiptStatusEnvelope,
+  AccountDeletionReceiptStorage,
+} from './accountDeletionReceipt';
+export {
   AccountDataCleanupError,
   PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
   clearLocalAccountData,

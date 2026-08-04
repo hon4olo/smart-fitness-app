@@ -109,6 +109,7 @@ export const createRepositoryFactory = (
           tokenManager,
           sessionStorage: storage,
           accountCleanupMarkerStorage: options.accountCleanupMarkerStorage,
+          accountDeletionReceiptStorage: options.accountCleanupMarkerStorage,
           defaultDevice: getDefaultAuthDeviceInfo(),
           onAccountDeleted: options.onAccountDeleted,
         })

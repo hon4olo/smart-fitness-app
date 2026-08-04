@@ -1,3 +1,5 @@
+import { PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY } from '@/auth/accountDeletionReceipt';
+
 import {
   APPLICATION_STATE_STORAGE_KEYS,
   CONFLICT_STORAGE_KEYS,
@@ -18,7 +20,8 @@ export type MobileAccountDataTransmission =
 export type MobileAccountDataDeletion =
   | 'account_cleanup'
   | 'auth_cleanup'
-  | 'cleanup_marker';
+  | 'cleanup_marker'
+  | 'receipt_cleanup';
 
 export type MobileAccountDataSurface = {
   id: string;
@@ -43,15 +46,18 @@ export const MOBILE_ACCOUNT_DATA_SURFACES: readonly MobileAccountDataSurface[] =
     purpose: 'Offline-first product operation and authoritative local editing.',
     transmission: 'backend_sync',
     deletion: 'account_cleanup',
-    userControl: 'Delete account; individual records may also be edited or deleted in product flows.',
+    userControl:
+      'Delete account; individual records may also be edited or deleted in product flows.',
   },
   {
     id: 'sync_metadata',
     storage: 'async_storage',
     storageKeys: SYNC_METADATA_STORAGE_KEYS,
     category: 'sync_state',
-    contains: 'Entity revisions, tombstones, fingerprints and bounded snapshots used for reconciliation.',
-    purpose: 'Incremental synchronization, duplicate-delivery safety and restart recovery.',
+    contains:
+      'Entity revisions, tombstones, fingerprints and bounded snapshots used for reconciliation.',
+    purpose:
+      'Incremental synchronization, duplicate-delivery safety and restart recovery.',
     transmission: 'backend_sync',
     deletion: 'account_cleanup',
     userControl: 'Delete account.',
@@ -61,7 +67,8 @@ export const MOBILE_ACCOUNT_DATA_SURFACES: readonly MobileAccountDataSurface[] =
     storage: 'async_storage',
     storageKeys: SYNC_RECOVERY_STORAGE_KEYS,
     category: 'sync_state',
-    contains: 'Pending operation envelopes, recovery records, idempotency identity and pull cursor.',
+    contains:
+      'Pending operation envelopes, recovery records, idempotency identity and pull cursor.',
     purpose: 'Offline delivery, retry, ordering and recovery after interruption.',
     transmission: 'backend_sync',
     deletion: 'account_cleanup',
@@ -72,8 +79,10 @@ export const MOBILE_ACCOUNT_DATA_SURFACES: readonly MobileAccountDataSurface[] =
     storage: 'async_storage',
     storageKeys: CONFLICT_STORAGE_KEYS,
     category: 'sync_state',
-    contains: 'Conflict identity, bounded revision metadata and an explicit saved resolution choice.',
-    purpose: 'Prevent silent overwrite and preserve a user decision across retry and restart.',
+    contains:
+      'Conflict identity, bounded revision metadata and an explicit saved resolution choice.',
+    purpose:
+      'Prevent silent overwrite and preserve a user decision across retry and restart.',
     transmission: 'backend_sync',
     deletion: 'account_cleanup',
     userControl: 'Resolve an eligible conflict or delete account.',
@@ -83,19 +92,24 @@ export const MOBILE_ACCOUNT_DATA_SURFACES: readonly MobileAccountDataSurface[] =
     storage: 'async_storage',
     storageKeys: SAFETY_STORAGE_KEYS,
     category: 'fitness_safety',
-    contains: 'Bounded recovery-review state and the acknowledgement shown before a workout.',
-    purpose: 'Preserve explicit safety context and immutable completed-workout provenance.',
+    contains:
+      'Bounded recovery-review state and the acknowledgement shown before a workout.',
+    purpose:
+      'Preserve explicit safety context and immutable completed-workout provenance.',
     transmission: 'backend_sync',
     deletion: 'account_cleanup',
-    userControl: 'Delete account; source limitation and recovery records remain editable.',
+    userControl:
+      'Delete account; source limitation and recovery records remain editable.',
   },
   {
     id: 'local_state_diagnostics',
     storage: 'async_storage',
     storageKeys: LOCAL_DIAGNOSTIC_STORAGE_KEYS,
     category: 'local_diagnostics',
-    contains: 'Aggregate entity counts, serialized byte size, durations and failure counters only.',
-    purpose: 'Measure local persistence size and performance without retaining raw records.',
+    contains:
+      'Aggregate entity counts, serialized byte size, durations and failure counters only.',
+    purpose:
+      'Measure local persistence size and performance without retaining raw records.',
     transmission: 'none',
     deletion: 'account_cleanup',
     userControl: 'Delete account.',
@@ -105,18 +119,21 @@ export const MOBILE_ACCOUNT_DATA_SURFACES: readonly MobileAccountDataSurface[] =
     storage: 'async_storage',
     storageKeys: [],
     category: 'preferences_and_cache',
-    contains: 'User-keyed nutrition favourites, nutrition library items and following-feed cache.',
+    contains:
+      'User-keyed nutrition favourites, nutrition library items and following-feed cache.',
     purpose: 'Fast local access and offline presentation.',
     transmission: 'backend_social',
     deletion: 'account_cleanup',
-    userControl: 'Edit the source data, clear it through product flows, or delete account.',
+    userControl:
+      'Edit the source data, clear it through product flows, or delete account.',
   },
   {
     id: 'auth_session_metadata',
     storage: 'async_storage',
     storageKeys: ['@smart_fitness_mvp_auth_session'],
     category: 'identity_and_authentication',
-    contains: 'User, device and session metadata; access and refresh tokens are excluded.',
+    contains:
+      'User, device and session metadata; access and refresh tokens are excluded.',
     purpose: 'Restore a tokenless authenticated session shell.',
     transmission: 'backend_auth',
     deletion: 'auth_cleanup',
@@ -134,6 +151,20 @@ export const MOBILE_ACCOUNT_DATA_SURFACES: readonly MobileAccountDataSurface[] =
     userControl: 'Sign out, change/reset password, or delete account.',
   },
   {
+    id: 'account_deletion_receipt',
+    storage: 'secure_store',
+    storageKeys: [PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY],
+    category: 'deletion_confirmation_secret',
+    contains:
+      'Account user ID, opaque deletion request UUID, high-entropy status secret and request timestamp.',
+    purpose:
+      'Confirm a committed deletion after a lost response without interpreting a generic authentication failure as deletion evidence.',
+    transmission: 'backend_auth',
+    deletion: 'receipt_cleanup',
+    userControl:
+      'Created only when deletion starts and removed after authoritative confirmation plus terminal local cleanup, or after a definitive unregistered/expired receipt result.',
+  },
+  {
     id: 'account_cleanup_marker',
     storage: 'secure_store',
     storageKeys: ['smart_fitness_pending_account_cleanup'],
@@ -142,6 +173,7 @@ export const MOBILE_ACCOUNT_DATA_SURFACES: readonly MobileAccountDataSurface[] =
     purpose: 'Resume local deletion after an interrupted process.',
     transmission: 'none',
     deletion: 'cleanup_marker',
-    userControl: 'Removed automatically only after account and authentication cleanup completes.',
+    userControl:
+      'Removed automatically only after account and authentication cleanup completes.',
   },
 ];

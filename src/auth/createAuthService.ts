@@ -10,8 +10,8 @@ import {
   completeLocalAccountCleanup,
   PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
 } from './accountDataCleanup';
+import { createAccountDeletionReceiptController } from './accountDeletionReceiptController';
 import { getDefaultAuthDeviceInfo } from './device';
-import { createTokenManager } from './token-manager';
 import type {
   AccountDeletionResult,
   AuthCredentials,
@@ -19,7 +19,6 @@ import type {
   AuthProfileUpdate,
   AuthService,
   AuthSession,
-  AuthTokens,
   ChangePasswordInput,
   CreateAuthServiceOptions,
   ForgotPasswordInput,
@@ -45,7 +44,9 @@ const authHeader = (token?: string): Record<string, string> | undefined =>
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const parseSessionMetadata = (value: string | null): ParsedSessionMetadata | null => {
+const parseSessionMetadata = (
+  value: string | null,
+): ParsedSessionMetadata | null => {
   if (!value) return null;
 
   try {
@@ -124,11 +125,15 @@ export const createAuthService = ({
   tokenManager,
   sessionStorage,
   accountCleanupMarkerStorage = sessionStorage,
+  accountDeletionReceiptStorage = accountCleanupMarkerStorage,
+  accountDeletionReceiptIdentityFactory,
   sessionStorageKey = AUTH_SESSION_STORAGE_KEY,
   defaultDevice = getDefaultAuthDeviceInfo(),
   onSessionChange,
   onAccountDeleted,
-}: CreateAuthServiceOptions): AuthService & { profileRepository: RemoteProfileRepository } => {
+}: CreateAuthServiceOptions): AuthService & {
+  profileRepository: RemoteProfileRepository;
+} => {
   const profileRepository = createRemoteProfileRepository(apiClient, tokenManager);
 
   const saveSession = async (session: AuthSession): Promise<AuthSession> => {
@@ -147,13 +152,44 @@ export const createAuthService = ({
     return results.every((result) => result.status === 'fulfilled');
   };
 
-  const loadSession = async (): Promise<AuthSession | null> => {
-    if (await accountCleanupMarkerStorage.read(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)) {
-      await clearLocalSession();
-      return null;
+  const completeConfirmedDeletion = async (
+    userId: string,
+  ): Promise<AccountDeletionResult> => {
+    let accountDataCleanupComplete = true;
+    try {
+      await onAccountDeleted?.(userId);
+    } catch {
+      accountDataCleanupComplete = false;
     }
 
-    const parsed = parseSessionMetadata(await sessionStorage.read(sessionStorageKey));
+    const authCleanupComplete = await clearLocalSession();
+    let markerCleanupComplete = false;
+    if (accountDataCleanupComplete && authCleanupComplete) {
+      try {
+        await completeLocalAccountCleanup(accountCleanupMarkerStorage);
+        markerCleanupComplete = true;
+      } catch {
+        markerCleanupComplete = false;
+      }
+    }
+
+    return {
+      localCleanupComplete:
+        accountDataCleanupComplete && authCleanupComplete && markerCleanupComplete,
+    };
+  };
+
+  const deletionReceipts = createAccountDeletionReceiptController({
+    apiClient,
+    storage: accountDeletionReceiptStorage,
+    identityFactory: accountDeletionReceiptIdentityFactory,
+    onConfirmedDeletion: completeConfirmedDeletion,
+  });
+
+  const readCachedSession = async (): Promise<AuthSession | null> => {
+    const parsed = parseSessionMetadata(
+      await sessionStorage.read(sessionStorageKey),
+    );
     if (!parsed) return null;
 
     const tokens = await tokenManager.loadTokens();
@@ -166,21 +202,69 @@ export const createAuthService = ({
     if (parsed.requiresRewrite) {
       await persistSessionMetadata(sessionStorage, sessionStorageKey, cachedSession);
     }
+    return cachedSession;
+  };
 
-    if (!tokenManager.isAccessTokenExpired(tokens.accessToken)) return cachedSession;
+  const refresh = async (): Promise<AuthSession | null> => {
+    const refreshToken = await tokenManager.getRefreshToken();
+    if (!refreshToken) return null;
+
+    try {
+      const response = await apiClient.post<
+        AuthEnvelope,
+        { refreshToken: string }
+      >(
+        '/v1/auth/refresh',
+        { refreshToken },
+        { retry: false },
+      );
+      return await saveSession(toSession(response));
+    } catch (error) {
+      if (isApiError(error) && error.status === 401) {
+        await clearLocalSession();
+      }
+      return null;
+    }
+  };
+
+  const loadSession = async (): Promise<AuthSession | null> => {
+    if (
+      await accountCleanupMarkerStorage.read(
+        PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
+      )
+    ) {
+      await clearLocalSession();
+      return null;
+    }
+
+    const receiptResult = await deletionReceipts.reconcilePending();
+    if (receiptResult === 'completed') return null;
+
+    const cachedSession = await readCachedSession();
+    if (!cachedSession) return null;
+    if (
+      !tokenManager.isAccessTokenExpired(cachedSession.tokens.accessToken)
+    ) {
+      return cachedSession;
+    }
 
     const refreshed = await refresh();
     if (refreshed) return refreshed;
 
     const currentTokens = await tokenManager.loadTokens();
-    return currentTokens ? { ...parsed.metadata, tokens: currentTokens } : null;
+    return currentTokens
+      ? { ...cachedSession, tokens: currentTokens }
+      : null;
   };
 
   const performAuth = async (
     path: '/v1/auth/register' | '/v1/auth/login',
     credentials: AuthCredentials,
   ): Promise<AuthSession> => {
-    const response = await apiClient.post<AuthEnvelope, Record<string, unknown>>(
+    const response = await apiClient.post<
+      AuthEnvelope,
+      Record<string, unknown>
+    >(
       path,
       {
         email: credentials.email,
@@ -193,25 +277,6 @@ export const createAuthService = ({
     );
 
     return saveSession(toSession(response));
-  };
-
-  const refresh = async (): Promise<AuthSession | null> => {
-    const refreshToken = await tokenManager.getRefreshToken();
-    if (!refreshToken) return null;
-
-    try {
-      const response = await apiClient.post<AuthEnvelope, { refreshToken: string }>(
-        '/v1/auth/refresh',
-        { refreshToken },
-        { retry: false },
-      );
-      return await saveSession(toSession(response));
-    } catch (error) {
-      if (isApiError(error) && error.status === 401) {
-        await clearLocalSession();
-      }
-      return null;
-    }
   };
 
   const getAccessToken = async (): Promise<string | null> => {
@@ -227,17 +292,22 @@ export const createAuthService = ({
   return {
     profileRepository,
     loadSession,
-    register: (credentials) => performAuth('/v1/auth/register', credentials),
+    register: (credentials) =>
+      performAuth('/v1/auth/register', credentials),
     login: (credentials) => performAuth('/v1/auth/login', credentials),
     refresh,
     logout: async () => {
       const accessToken = await tokenManager.getAccessToken();
       try {
         if (accessToken) {
-          await apiClient.post<void, undefined>('/v1/auth/logout', undefined, {
-            headers: authHeader(accessToken),
-            retry: false,
-          });
+          await apiClient.post<void, undefined>(
+            '/v1/auth/logout',
+            undefined,
+            {
+              headers: authHeader(accessToken),
+              retry: false,
+            },
+          );
         }
       } catch {
         // Offline fallback: always clear local session.
@@ -275,50 +345,28 @@ export const createAuthService = ({
       await clearLocalSession();
     },
     deleteAccount: async (password: string): Promise<AccountDeletionResult> => {
-      const currentSession = await loadSession();
+      const currentSession = await readCachedSession();
       const accessToken = await getAccessToken();
       if (!currentSession || !accessToken) {
         throw new Error('Authentication is required to delete the account.');
       }
-
-      await apiClient.request<{ success: true }, { password: string }>({
-        method: 'DELETE',
-        path: '/v1/auth/account',
-        body: { password },
-        headers: authHeader(accessToken),
-        retry: false,
+      return deletionReceipts.deleteAccount({
+        userId: currentSession.user.id,
+        password,
+        accessToken,
       });
-
-      let accountDataCleanupComplete = true;
-      try {
-        await onAccountDeleted?.(currentSession.user.id);
-      } catch {
-        accountDataCleanupComplete = false;
-      }
-
-      const authCleanupComplete = await clearLocalSession();
-      let markerCleanupComplete = false;
-      if (accountDataCleanupComplete && authCleanupComplete) {
-        try {
-          await completeLocalAccountCleanup(accountCleanupMarkerStorage);
-          markerCleanupComplete = true;
-        } catch {
-          markerCleanupComplete = false;
-        }
-      }
-
-      return {
-        localCleanupComplete:
-          accountDataCleanupComplete && authCleanupComplete && markerCleanupComplete,
-      };
     },
     fetchProfile: async () => {
       const accessToken = await getAccessToken();
-      return accessToken ? profileRepository.fetchProfile(accessToken) : null;
+      return accessToken
+        ? profileRepository.fetchProfile(accessToken)
+        : null;
     },
     updateProfile: async (patch: AuthProfileUpdate) => {
       const accessToken = await getAccessToken();
-      return accessToken ? profileRepository.updateProfile(patch, accessToken) : null;
+      return accessToken
+        ? profileRepository.updateProfile(patch, accessToken)
+        : null;
     },
     getAccessToken,
     getCurrentSession: loadSession,

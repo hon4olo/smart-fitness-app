@@ -4,6 +4,11 @@ import { ApiError, type ApiClient, type ApiRequestOptions } from '@/api/client';
 import type { StorageAdapter } from '@/storage';
 
 import { PENDING_ACCOUNT_CLEANUP_STORAGE_KEY } from './accountDataCleanup';
+import {
+  PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY,
+  type AccountDeletionReceiptIdentity,
+  type AccountDeletionReceiptStatusEnvelope,
+} from './accountDeletionReceipt';
 import { AUTH_SESSION_STORAGE_KEY, createAuthService } from './createAuthService';
 import { AUTH_TOKENS_STORAGE_KEY, createTokenManager } from './token-manager';
 import type { AuthEnvelope } from './types';
@@ -33,7 +38,7 @@ const createJwt = (expiresAtSeconds = 4_102_444_800): string => {
       .replace(/=/g, '')
       .replace(/\+/g, '-')
       .replace(/\//g, '_');
-  return `${encode({ alg: 'none', typ: 'JWT' })}.${encode({ exp: expiresAtSeconds })}.signature`;
+  return `${encode({ alg: 'none' })}.${encode({ exp: expiresAtSeconds })}.signature`;
 };
 
 const envelope: AuthEnvelope = {
@@ -65,55 +70,94 @@ const envelope: AuthEnvelope = {
   tokenType: 'Bearer',
 };
 
-const createApi = ({
-  requestError,
-}: {
-  requestError?: Error;
-} = {}) => {
-  const requests: ApiRequestOptions[] = [];
-  const api = {
-    async post() {
-      return envelope;
-    },
-    async request(options: ApiRequestOptions) {
-      requests.push(options);
-      if (requestError) throw requestError;
-      return { success: true };
-    },
-  } as unknown as ApiClient;
-  return { api, requests };
+const identity: AccountDeletionReceiptIdentity = {
+  schemaVersion: 1,
+  userId: 'user-1',
+  requestId: '11111111-1111-4111-8111-111111111111',
+  statusSecret: 'a'.repeat(64),
+  requestedAt: '2026-08-04T18:00:00.000Z',
 };
 
-const createSignedInService = async ({
-  requestError,
-  onAccountDeleted,
-}: {
-  requestError?: Error;
-  onAccountDeleted?: (userId: string) => Promise<void>;
-} = {}) => {
+const statusEnvelope = (
+  status: 'pending' | 'blocked' | 'completed',
+): AccountDeletionReceiptStatusEnvelope => ({
+  deletion: {
+    schemaVersion: 1,
+    requestId: identity.requestId,
+    status,
+    blockerCode:
+      status === 'blocked' ? 'private_media_cleanup_incomplete' : null,
+    expiresAt: '2026-09-03T18:00:00.000Z',
+    completedAt:
+      status === 'completed' ? '2026-08-04T18:00:01.000Z' : null,
+  },
+});
+
+type ApiOptions = {
+  deleteError?: Error;
+  deletionStatus?: 'pending' | 'blocked' | 'completed';
+  statusError?: Error;
+};
+
+const createApi = (options: ApiOptions = {}) => {
+  const requests: ApiRequestOptions[] = [];
+  const posts: string[] = [];
+  const api = {
+    async post(path: string) {
+      posts.push(path);
+      if (path === '/v1/auth/account-deletion/status') {
+        if (options.statusError) throw options.statusError;
+        return statusEnvelope(options.deletionStatus ?? 'pending');
+      }
+      return envelope;
+    },
+    async request(request: ApiRequestOptions) {
+      requests.push(request);
+      if (options.deleteError) throw options.deleteError;
+      return {
+        success: true,
+        ...statusEnvelope(options.deletionStatus ?? 'completed'),
+      };
+    },
+  } as unknown as ApiClient;
+  return { api, posts, requests };
+};
+
+const createSignedInService = async (
+  options: {
+    api?: ApiOptions;
+    markerStorage?: ReturnType<typeof createMemoryStorage>;
+    onAccountDeleted?: (userId: string) => Promise<void>;
+  } = {},
+) => {
   const sessionStorage = createMemoryStorage();
   const tokenStorage = createMemoryStorage();
-  const markerStorage = createMemoryStorage();
-  const { api, requests } = createApi({ requestError });
+  const markerStorage = options.markerStorage ?? createMemoryStorage();
+  const api = createApi(options.api);
   const service = createAuthService({
-    apiClient: api,
+    apiClient: api.api,
     sessionStorage,
     accountCleanupMarkerStorage: markerStorage,
+    accountDeletionReceiptStorage: markerStorage,
+    accountDeletionReceiptIdentityFactory: () => identity,
     tokenManager: createTokenManager(tokenStorage),
     onAccountDeleted: async (userId) => {
       await markerStorage.write(
         PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
-        JSON.stringify({ userId, requestedAt: '2026-07-25T00:00:00.000Z' }),
+        JSON.stringify({ userId, requestedAt: identity.requestedAt }),
       );
-      await onAccountDeleted?.(userId);
+      await options.onAccountDeleted?.(userId);
     },
   });
-  await service.login({ email: envelope.user.email, password: 'StrongPass123!' });
-  return { markerStorage, requests, service, sessionStorage, tokenStorage };
+  await service.login({
+    email: envelope.user.email,
+    password: 'StrongPass123!',
+  });
+  return { ...api, markerStorage, service, sessionStorage, tokenStorage };
 };
 
-describe('account deletion auth service', () => {
-  it('sends only the password and clears local auth after server confirmation', async () => {
+describe('account deletion auth service receipts', () => {
+  it('sends a persisted receipt identity and cleans local auth after confirmation', async () => {
     const deletedUsers: string[] = [];
     const setup = await createSignedInService({
       onAccountDeleted: async (userId) => {
@@ -124,68 +168,128 @@ describe('account deletion auth service', () => {
     await expect(setup.service.deleteAccount('StrongPass123!')).resolves.toEqual({
       localCleanupComplete: true,
     });
-    expect(setup.requests).toEqual([
-      {
-        method: 'DELETE',
-        path: '/v1/auth/account',
-        body: { password: 'StrongPass123!' },
-        headers: { authorization: `Bearer ${envelope.accessToken}` },
-        retry: false,
+    expect(setup.requests[0]).toMatchObject({
+      method: 'DELETE',
+      path: '/v1/auth/account',
+      body: {
+        password: 'StrongPass123!',
+        requestId: identity.requestId,
+        statusSecret: identity.statusSecret,
       },
-    ]);
+      retry: false,
+    });
     expect(deletedUsers).toEqual(['user-1']);
     expect(setup.sessionStorage.values.has(AUTH_SESSION_STORAGE_KEY)).toBe(false);
     expect(setup.tokenStorage.values.has(AUTH_TOKENS_STORAGE_KEY)).toBe(false);
-    expect(setup.markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(false);
+    expect(
+      setup.markerStorage.values.has(
+        PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY,
+      ),
+    ).toBe(false);
   });
 
-  it('preserves local auth when the backend rejects deletion', async () => {
-    const deletedUsers: string[] = [];
+  it('recovers a committed deletion when the response is lost', async () => {
     const setup = await createSignedInService({
-      requestError: new ApiError({
-        code: 'unauthorized',
-        message: 'Invalid credentials',
-        status: 401,
-      }),
-      onAccountDeleted: async (userId) => {
-        deletedUsers.push(userId);
-      },
-    });
-
-    await expect(setup.service.deleteAccount('WrongPassword123!')).rejects.toBeInstanceOf(
-      ApiError,
-    );
-    expect(deletedUsers).toEqual([]);
-    expect(setup.sessionStorage.values.has(AUTH_SESSION_STORAGE_KEY)).toBe(true);
-    expect(setup.tokenStorage.values.has(AUTH_TOKENS_STORAGE_KEY)).toBe(true);
-    expect(setup.markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(false);
-  });
-
-  it('signs out and retains the marker when account-data cleanup must resume', async () => {
-    const setup = await createSignedInService({
-      onAccountDeleted: async () => {
-        throw new Error('cleanup interrupted');
+      api: {
+        deleteError: new ApiError({
+          code: 'network_error',
+          message: 'response lost',
+        }),
+        deletionStatus: 'completed',
       },
     });
 
     await expect(setup.service.deleteAccount('StrongPass123!')).resolves.toEqual({
-      localCleanupComplete: false,
+      localCleanupComplete: true,
     });
+    expect(setup.posts).toContain('/v1/auth/account-deletion/status');
     expect(setup.sessionStorage.values.has(AUTH_SESSION_STORAGE_KEY)).toBe(false);
-    expect(setup.tokenStorage.values.has(AUTH_TOKENS_STORAGE_KEY)).toBe(false);
-    expect(setup.markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(true);
   });
 
-  it('never restores a cached session while deletion cleanup is pending', async () => {
-    const setup = await createSignedInService();
-    setup.markerStorage.values.set(
-      PENDING_ACCOUNT_CLEANUP_STORAGE_KEY,
-      JSON.stringify({ userId: 'user-1', requestedAt: '2026-07-25T00:00:00.000Z' }),
+  it('retains the same receipt and local account while status is unresolved', async () => {
+    const networkError = new ApiError({
+      code: 'network_error',
+      message: 'offline',
+    });
+    const setup = await createSignedInService({
+      api: { deleteError: networkError, statusError: networkError },
+    });
+
+    await expect(setup.service.deleteAccount('StrongPass123!')).rejects.toBe(
+      networkError,
     );
+    await expect(setup.service.deleteAccount('StrongPass123!')).rejects.toBe(
+      networkError,
+    );
+    expect(setup.requests[0]?.body).toEqual(setup.requests[1]?.body);
+    expect(setup.sessionStorage.values.has(AUTH_SESSION_STORAGE_KEY)).toBe(true);
+    expect(setup.tokenStorage.values.has(AUTH_TOKENS_STORAGE_KEY)).toBe(true);
+    expect(
+      setup.markerStorage.values.has(
+        PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY,
+      ),
+    ).toBe(true);
+    expect(
+      setup.markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY),
+    ).toBe(false);
+  });
+
+  it('discards an unregistered receipt after definitive credential rejection', async () => {
+    const setup = await createSignedInService({
+      api: {
+        deleteError: new ApiError({
+          code: 'unauthorized',
+          message: 'invalid password',
+          status: 401,
+        }),
+        statusError: new ApiError({
+          code: 'not_found',
+          message: 'receipt missing',
+          status: 404,
+        }),
+      },
+    });
+
+    await expect(
+      setup.service.deleteAccount('WrongPassword123!'),
+    ).rejects.toBeInstanceOf(ApiError);
+    expect(setup.sessionStorage.values.has(AUTH_SESSION_STORAGE_KEY)).toBe(true);
+    expect(
+      setup.markerStorage.values.has(
+        PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY,
+      ),
+    ).toBe(false);
+  });
+
+  it('reconciles completion after restart before restoring a session', async () => {
+    const markerStorage = createMemoryStorage({
+      [PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY]: JSON.stringify(identity),
+    });
+    const setup = await createSignedInService({
+      api: { deletionStatus: 'completed' },
+      markerStorage,
+    });
 
     await expect(setup.service.loadSession()).resolves.toBeNull();
     expect(setup.sessionStorage.values.has(AUTH_SESSION_STORAGE_KEY)).toBe(false);
     expect(setup.tokenStorage.values.has(AUTH_TOKENS_STORAGE_KEY)).toBe(false);
-    expect(setup.markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY)).toBe(true);
+  });
+
+  it('does not treat pending status as deletion confirmation', async () => {
+    const markerStorage = createMemoryStorage({
+      [PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY]: JSON.stringify(identity),
+    });
+    const setup = await createSignedInService({
+      api: { deletionStatus: 'pending' },
+      markerStorage,
+    });
+
+    await expect(setup.service.loadSession()).resolves.toMatchObject({
+      user: { id: 'user-1' },
+    });
+    expect(setup.sessionStorage.values.has(AUTH_SESSION_STORAGE_KEY)).toBe(true);
+    expect(
+      setup.markerStorage.values.has(PENDING_ACCOUNT_CLEANUP_STORAGE_KEY),
+    ).toBe(false);
   });
 });

@@ -61,6 +61,8 @@ jobs:
         run: >-
           npx vitest run
           config/source-provenance.test.ts
+          src/auth/accountDeletionReceipt.test.ts
+          src/auth/createAuthService.account-deletion.test.ts
           src/auth/createAuthService.session-cache.test.ts
           src/auth/migrating-token-manager.test.ts
           src/context/appContext/AppMutationQueue.test.ts
