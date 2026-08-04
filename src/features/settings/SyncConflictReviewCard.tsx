@@ -26,7 +26,7 @@ import {
 
 type LoadState = 'loading' | 'ready' | 'error';
 type RunningResolution = {
-  choice: SyncConflictResolutionChoice;
+  choice: SyncConflictResolutionChoice | null;
   conflictId: string;
 };
 
@@ -50,7 +50,8 @@ export function SyncConflictReviewCard() {
   const { colors } = useAppTheme();
   const { formatDate, locale, t } = useLocalization();
   const { conflictCount, status, syncNow } = useWeightSync();
-  const { listReviewItems, resolve } = useSyncConflictResolution();
+  const { continueResolution, listReviewItems, resolve } =
+    useSyncConflictResolution();
   const copy = getSyncConflictCopy(t);
   const resolutionCopy = useMemo(
     () => getSyncConflictResolutionUiCopy(locale),
@@ -84,18 +85,18 @@ export function SyncConflictReviewCard() {
     };
   }, [conflictCount, loadItems]);
 
-  const runResolution = useCallback(
+  const finishOperation = useCallback(
     async (
       item: SyncConflictResolutionReviewItem,
-      choice: SyncConflictResolutionChoice,
+      choice: SyncConflictResolutionChoice | null,
+      operation: () => ReturnType<typeof resolve>,
     ) => {
-      const conflictId = item.candidate.conflictId;
-      setRunningResolution({ conflictId, choice });
+      setRunningResolution({ conflictId: item.conflictId, choice });
       try {
-        const outcome = await resolve(item.candidate, choice);
+        const outcome = await operation();
         setNotices((current) => ({
           ...current,
-          [conflictId]: getSyncConflictResolutionOutcomeMessage(
+          [item.conflictId]: getSyncConflictResolutionOutcomeMessage(
             resolutionCopy,
             outcome.status,
           ),
@@ -104,15 +105,32 @@ export function SyncConflictReviewCard() {
       } catch {
         setNotices((current) => ({
           ...current,
-          [conflictId]: resolutionCopy.outcomeRetryable,
+          [item.conflictId]: resolutionCopy.outcomeRetryable,
         }));
       } finally {
         setRunningResolution((current) =>
-          current?.conflictId === conflictId ? null : current,
+          current?.conflictId === item.conflictId ? null : current,
         );
       }
     },
     [loadItems, resolutionCopy, resolve],
+  );
+
+  const runNewResolution = useCallback(
+    (
+      item: SyncConflictResolutionReviewItem,
+      choice: SyncConflictResolutionChoice,
+    ) => {
+      if (!item.candidate) return Promise.resolve();
+      return finishOperation(item, choice, () => resolve(item.candidate!, choice));
+    },
+    [finishOperation, resolve],
+  );
+
+  const resumeResolution = useCallback(
+    (item: SyncConflictResolutionReviewItem) =>
+      finishOperation(item, item.intentChoice, () => continueResolution(item)),
+    [continueResolution, finishOperation],
   );
 
   const confirmResolution = useCallback(
@@ -133,12 +151,12 @@ export function SyncConflictReviewCard() {
           {
             text: resolutionCopy.confirm,
             style: 'destructive',
-            onPress: () => void runResolution(item, choice),
+            onPress: () => void runNewResolution(item, choice),
           },
         ],
       );
     },
-    [resolutionCopy, runResolution],
+    [resolutionCopy, runNewResolution],
   );
 
   const retryRemainingConflicts = useCallback(async () => {
@@ -152,7 +170,8 @@ export function SyncConflictReviewCard() {
   }, [loadItems, syncNow]);
 
   const isBusy = status === 'syncing' || runningResolution !== null || isRetryingSync;
-  const otherConflictCount = Math.max(0, conflictCount - items.length);
+  const candidateCount = items.filter((item) => item.candidate !== null).length;
+  const otherConflictCount = Math.max(0, conflictCount - candidateCount);
 
   return (
     <AppCard>
@@ -162,7 +181,7 @@ export function SyncConflictReviewCard() {
           ? copy.loading
           : loadState === 'error'
             ? copy.loadFailed
-            : conflictCount === 0
+            : conflictCount === 0 && items.length === 0
               ? copy.healthy
               : copy.explanation}
       </Text>
@@ -170,8 +189,7 @@ export function SyncConflictReviewCard() {
       {items.length > 0 ? (
         <View style={styles.list}>
           {items.map((item) => {
-            const { candidate, intentChoice, intentState } = item;
-            const conflictId = candidate.conflictId;
+            const { candidate, conflictId, intentChoice, intentState } = item;
             const isRunning = runningResolution?.conflictId === conflictId;
             const hasIntent = intentChoice !== null && intentState !== null;
             const isSubmitting = isSyncConflictIntentSubmitting(intentState);
@@ -184,32 +202,37 @@ export function SyncConflictReviewCard() {
                 key={conflictId}
                 style={[styles.conflict, { borderColor: colors.borderSubtle }]}>
                 <Text style={[styles.entity, { color: colors.textPrimary }]}>
-                  {getSyncConflictEntityLabel(copy, candidate.entityType)}
+                  {candidate
+                    ? getSyncConflictEntityLabel(copy, candidate.entityType)
+                    : copy.unknownEntity}
                 </Text>
-                <Text style={[styles.meta, { color: colors.textSecondary }]}>
-                  {copy.detected}:{' '}
-                  {formatDate(candidate.detectedAt, {
-                    dateStyle: 'medium',
-                    timeStyle: 'short',
-                  })}
-                </Text>
-
-                <View style={styles.versions}>
-                  <VersionRow
-                    label={resolutionCopy.thisDevice}
-                    value={getSyncConflictPayloadKindLabel(
-                      resolutionCopy,
-                      candidate.localKind,
-                    )}
-                  />
-                  <VersionRow
-                    label={resolutionCopy.accountVersion}
-                    value={getSyncConflictPayloadKindLabel(
-                      resolutionCopy,
-                      candidate.remoteKind,
-                    )}
-                  />
-                </View>
+                {candidate ? (
+                  <>
+                    <Text style={[styles.meta, { color: colors.textSecondary }]}>
+                      {copy.detected}:{' '}
+                      {formatDate(candidate.detectedAt, {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </Text>
+                    <View style={styles.versions}>
+                      <VersionRow
+                        label={resolutionCopy.thisDevice}
+                        value={getSyncConflictPayloadKindLabel(
+                          resolutionCopy,
+                          candidate.localKind,
+                        )}
+                      />
+                      <VersionRow
+                        label={resolutionCopy.accountVersion}
+                        value={getSyncConflictPayloadKindLabel(
+                          resolutionCopy,
+                          candidate.remoteKind,
+                        )}
+                      />
+                    </View>
+                  </>
+                ) : null}
 
                 {hasIntent ? (
                   <View style={styles.intent}>
@@ -229,7 +252,7 @@ export function SyncConflictReviewCard() {
                       disabled={isBusy || isSubmitting}
                       label={isRunning || isSubmitting ? resolutionCopy.retrying : actionLabel}
                       loading={isRunning || isSubmitting}
-                      onPress={() => void runResolution(item, intentChoice)}
+                      onPress={() => void resumeResolution(item)}
                       variant="secondary"
                     />
                   </View>
@@ -237,7 +260,7 @@ export function SyncConflictReviewCard() {
                   <Text style={[styles.notice, { color: colors.textSecondary }]}>
                     {resolutionCopy.outcomeRejected}
                   </Text>
-                ) : (
+                ) : candidate ? (
                   <View style={styles.choiceArea}>
                     <Text style={[styles.note, { color: colors.textSecondary }]}>
                       {resolutionCopy.selectionExplanation}
@@ -271,6 +294,10 @@ export function SyncConflictReviewCard() {
                       />
                     </View>
                   </View>
+                ) : (
+                  <Text style={[styles.notice, { color: colors.textSecondary }]}>
+                    {resolutionCopy.outcomeRejected}
+                  </Text>
                 )}
 
                 {notices[conflictId] ? (
