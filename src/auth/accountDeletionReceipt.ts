@@ -1,3 +1,5 @@
+import * as Crypto from 'expo-crypto';
+
 export const ACCOUNT_DELETION_RECEIPT_SCHEMA_VERSION = 1 as const;
 export const PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY =
   'smart_fitness_pending_account_deletion_receipt_v1';
@@ -95,13 +97,8 @@ const isUuid = (value: unknown): value is string =>
 const isStatusSecret = (value: unknown): value is string =>
   typeof value === 'string' && /^[A-Za-z0-9_-]{43,128}$/.test(value);
 
-const defaultRandomBytes = (length: number): Uint8Array => {
-  const cryptoObject = globalThis.crypto;
-  if (!cryptoObject?.getRandomValues) {
-    throw new Error('Secure randomness is unavailable for account deletion');
-  }
-  return cryptoObject.getRandomValues(new Uint8Array(length));
-};
+const defaultRandomBytes = (length: number): Uint8Array =>
+  Crypto.getRandomValues(new Uint8Array(length));
 
 const toHex = (bytes: Uint8Array): string =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
