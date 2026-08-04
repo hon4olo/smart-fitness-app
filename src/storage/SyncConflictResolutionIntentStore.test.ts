@@ -126,6 +126,49 @@ describe('SyncConflictResolutionIntentStore', () => {
     ).toContain('"state":"retryable"');
   });
 
+  it('persists the accepted resolution revision across restart', async () => {
+    const storage = createMemoryStorage();
+    const store = createSyncConflictResolutionIntentStore(storage, {
+      now: createClock(
+        '2026-08-04T11:00:00.000Z',
+        '2026-08-04T11:01:00.000Z',
+        '2026-08-04T11:02:00.000Z',
+      ),
+    });
+    const created = await store.create(
+      'user-a',
+      createCandidate(),
+      'keep_local',
+    );
+    await store.transition(
+      'user-a',
+      firstConflictId,
+      created.idempotencyKey,
+      'submitting',
+    );
+    const accepted = await store.markAccepted(
+      'user-a',
+      firstConflictId,
+      created.idempotencyKey,
+      14,
+    );
+
+    await expect(
+      createSyncConflictResolutionIntentStore(storage).get(
+        'user-a',
+        firstConflictId,
+      ),
+    ).resolves.toEqual(accepted);
+    await expect(
+      store.markAccepted(
+        'user-a',
+        firstConflictId,
+        created.idempotencyKey,
+        15,
+      ),
+    ).rejects.toThrow('revision mismatch');
+  });
+
   it('fails closed on malformed records while repairing safe timestamps', async () => {
     const storage = createMemoryStorage();
     const validKey = createSyncConflictResolutionIntentIdempotencyKey({
@@ -158,7 +201,7 @@ describe('SyncConflictResolutionIntentStore', () => {
                 expectedRemoteRevision: 9,
                 choice: 'keep_remote',
                 idempotencyKey: 'wrong-key',
-                state: 'pending',
+                state: 'accepted',
                 createdAt: '2026-08-04T11:00:00.000Z',
                 updatedAt: '2026-08-04T11:00:00.000Z',
               },
@@ -219,11 +262,11 @@ describe('SyncConflictResolutionIntentStore', () => {
       first.idempotencyKey,
       'submitting',
     );
-    await store.transition(
+    await store.markAccepted(
       'user-a',
       firstConflictId,
       first.idempotencyKey,
-      'accepted',
+      12,
     );
     await store.transition(
       'user-a',
