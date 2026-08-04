@@ -7,7 +7,7 @@ vi.mock('expo-constants', () => ({
     expoConfig: {
       version: '1.0.0',
       extra: {
-        buildProvenance: { schemaVersion: 1, sourceCommit },
+        buildProvenance: { schemaVersion: 1, sourceCommit: 'a'.repeat(40) },
       },
     },
     nativeAppVersion: '1.0.0',
