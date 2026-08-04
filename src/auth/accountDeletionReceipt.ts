@@ -1,8 +1,12 @@
-import type { AuthStorage } from './types';
-
 export const ACCOUNT_DELETION_RECEIPT_SCHEMA_VERSION = 1 as const;
 export const PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY =
   'smart_fitness_pending_account_deletion_receipt_v1';
+
+export type AccountDeletionReceiptStorage = {
+  read(key: string): Promise<string | null>;
+  write(key: string, value: string): Promise<void>;
+  remove(key: string): Promise<void>;
+};
 
 export type AccountDeletionReceiptStatus = 'pending' | 'blocked' | 'completed';
 
@@ -134,7 +138,7 @@ export const parseAccountDeletionReceiptIdentity = (
 };
 
 export const readAccountDeletionReceiptIdentity = async (
-  storage: AuthStorage,
+  storage: AccountDeletionReceiptStorage,
 ): Promise<AccountDeletionReceiptIdentity | null> => {
   const raw = await storage.read(PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY);
   const parsed = parseAccountDeletionReceiptIdentity(raw);
@@ -145,7 +149,7 @@ export const readAccountDeletionReceiptIdentity = async (
 };
 
 export const persistAccountDeletionReceiptIdentity = async (
-  storage: AuthStorage,
+  storage: AccountDeletionReceiptStorage,
   identity: AccountDeletionReceiptIdentity,
 ): Promise<void> => {
   const validated = parseAccountDeletionReceiptIdentity(JSON.stringify(identity));
@@ -157,7 +161,7 @@ export const persistAccountDeletionReceiptIdentity = async (
 };
 
 export const clearAccountDeletionReceiptIdentity = async (
-  storage: AuthStorage,
+  storage: AccountDeletionReceiptStorage,
 ): Promise<void> => {
   await storage.remove(PENDING_ACCOUNT_DELETION_RECEIPT_STORAGE_KEY);
 };
