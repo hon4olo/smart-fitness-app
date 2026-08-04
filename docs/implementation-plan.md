@@ -11,18 +11,14 @@ Detailed provider and release-readiness evidence remains in `docs/roadmap/provid
 
 ## Verified baseline
 
-Verified before this progress synchronization:
+Verified before this roadmap synchronization:
 
-- mobile `main`: `4227a7581a47f414bd66c2867512f4d3e6d89e7d`;
-- backend `main`: `8bc59def85440c43b00f0b8d792642fe60d10903`;
+- mobile `main`: `5440503c1a8dfb55fbe6a6f41bfb74312f2b870c`;
+- backend `main`: `eb1b869a683393ac402810ca25d21cc41645108d`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
-- mobile PR #406 merged the strict authenticated conflict-resolution API client;
-- mobile PR #407 reprioritized P7 around blocking sync correctness before conflict UI;
-- backend PRs #143-#145 merged the conflict-choice contract, authenticated route, and PostgreSQL API coverage;
-- backend PR #146 made conflict replay/concurrency/API tests blocking and fixed numeric server-revision ordering;
-- backend PR #147 aligned sync-operation idempotency uniqueness with authenticated user scope;
-- backend PR #148 made replay, key-reuse, cross-user, and concurrent duplicate-delivery invariants blocking in CI;
+- backend PRs #143-#149 complete the current conflict-resolution correctness boundary;
+- mobile PRs #406 and #409 provide the strict API client and safe persisted-conflict candidate boundary;
 - all public provider-backed capabilities remain disabled;
 - no real provider/staging execution, deployment, migration outside CI, worker scheduling, native build, OTA/EAS publication, or production activation has been performed.
 
@@ -47,17 +43,18 @@ Approved boundaries:
 
 `docs/architecture/app-context-consumer-inventory.md` records no remaining production `useAppContext` consumers. There is no remaining approved autonomous source-refactor phase.
 
-## Program order
+## Priority order
 
-The order is intentionally mixed: finish the last narrow backend correctness proof that directly protects the active P7 write path, then continue the user-facing mobile flow. Expensive generalized stress infrastructure remains deferred.
+The active order is intentionally mixed by risk rather than by repository. Correctness and recoverability precede UI polish; generalized stress infrastructure remains deferred until the product path exists.
 
-1. **P7-B2 — Atomic rollback proof.** Add a deterministic PostgreSQL test proving that a failure after domain mutation but before sync-operation/conflict completion rolls the complete transaction back.
-2. **P7-C — Mobile explicit conflict resolution.** Integrate the merged client into persisted conflict state, bounded presentation, explicit choice, safe replay, and post-resolution resynchronization.
-3. **P7-D — Focused retry and async correctness hardening.** Add deterministic lost-response replay coverage and type-aware Promise linting where it produces actionable signal.
-4. **P8 — Broader diagnostics and adversarial validation.** Add property-based sequence tests, multi-instance HTTP concurrency, and optional nightly k6/Toxiproxy scenarios after the P7 product path is complete.
-5. **P9 — Privacy, legal, consent, retention, and analytics prerequisites.** Define technical requirements before analytics or broader production instrumentation.
+1. **P7-C2 — Stable mobile resolution intent.** Persist one bounded resolution attempt per conflict, including choice and idempotency identity, so offline retry and app restart cannot create a second logical request.
+2. **P7-C3 — Authenticated submit and authoritative reconciliation.** Connect the persisted intent to the merged API client, handle replay/stale/already-resolved outcomes, run pull/materialization, and remove the conflict only after authoritative state is applied.
+3. **P7-C4 — Explicit confirmation UI.** Extend Data & Sync with bounded local/account-version explanations and explicit confirmation. Never expose raw payloads or choose destructively without user action.
+4. **P7-D — Focused retry and async hardening.** Add deterministic lost-response replay coverage, then type-aware Promise linting where it produces actionable signal.
+5. **P8 — Diagnostics and adversarial validation.** Add property-based sequences, multi-instance concurrency, and optional nightly k6/Toxiproxy only after P7 is complete.
+6. **P9 — Privacy, legal, consent, retention, and analytics prerequisites.** Define technical prerequisites before broader production instrumentation.
 
-A broader inventory of retryable non-sync writes may continue in independent focused slices, but it must not displace the P7 mobile product path unless it exposes a correctness defect in a currently active contract.
+A broader audit of retryable non-sync writes may proceed in independent focused slices, but it must not displace the active mobile conflict-resolution path unless it exposes a correctness defect in a currently used contract.
 
 P6 real provider/staging evidence remains authorization-gated and does not block autonomous source work.
 
@@ -87,88 +84,92 @@ Do not perform that action autonomously.
 
 ## P7 — Explicit sync-conflict resolution
 
-### Current merged state
+### Backend correctness — complete through PR #149
 
-Backend:
+Merged behavior and blocking evidence:
 
-- PR #143: strict backend-owned conflict-choice contract for supported delete-versus-upsert revision conflicts;
+- PR #143: strict backend-owned choice contract for supported delete-versus-upsert revision conflicts;
 - PR #144: authenticated `POST /v1/sync/conflicts/:conflictId/resolve` route;
-- PR #145: PostgreSQL-backed authenticated API integration coverage;
-- PR #146: blocking PostgreSQL sync-correctness CI and numeric `bigint` revision comparison;
+- PR #145: PostgreSQL-backed authenticated API integration;
+- PR #146: blocking conflict replay/concurrency/API CI and numeric PostgreSQL `bigint` revision comparison;
 - PR #147: forward-safe migration from global idempotency uniqueness to `(user_id, idempotency_key)`;
-- PR #148: blocking runtime coverage for equivalent replay, conflicting key reuse, cross-user key reuse, and concurrent identical delivery.
+- PR #148: blocking equivalent replay, conflicting key reuse, cross-user key reuse, and concurrent duplicate-delivery contracts;
+- PR #149: deterministic rollback proof for failure after domain mutation and failure before conflict completion.
 
-Mobile:
+The backend now proves:
 
-- PR #406: strict versioned parser and authenticated API client with one-time token-refresh retry.
-
-The backend contract provides:
-
-- authenticated user and device ownership checks;
+- authenticated user and device ownership;
 - expected conflict and authoritative remote revisions;
 - bounded `keep_local` / `keep_remote` choices;
-- atomic transaction-bound resolution;
-- user revision locking and exact compare-and-set conflict transition;
-- restart-safe idempotency audit metadata;
-- deterministic rejection of stale, unauthorized, malformed, unsupported, or conflicting choices.
+- advisory-lock serialization and compare-and-set conflict transition;
+- restart-safe idempotency metadata;
+- one durable effect for equivalent replay;
+- deterministic rejection of conflicting key reuse and concurrent different choices;
+- independent user-scoped idempotency;
+- complete transaction rollback of domain mutation, sync operation, conflict transition, and effective revision.
 
-### P7-A — Blocking sync correctness gate
+The blocking CI work exposed and fixed a real defect: PostgreSQL aggregate `bigint` revisions arrived as runtime strings and could previously be compared lexicographically. Values are now normalized with `BigInt` before selecting the authoritative maximum.
 
-**Complete through backend PR #146.**
+Do not add mechanical `FOR UPDATE` requirements where an atomic statement, compare-and-set, advisory lock, or database constraint already expresses the invariant.
 
-The dedicated PostgreSQL CI path now runs the service and authenticated API conflict-resolution contracts against the migrated schema with file parallelism disabled. It blocks pull requests on replay, ownership, stale revision, concurrent choice, tombstone publication, and pull visibility.
+### Mobile foundation — complete through PR #409
 
-The first blocking run exposed and fixed a real defect: PostgreSQL aggregate `bigint` revisions were arriving as runtime strings and could be compared lexicographically. Server revision selection now normalizes values with `BigInt` before computing the maximum.
+Merged:
 
-### P7-B — Idempotency and database invariant audit
+- PR #406: exact versioned response parser and authenticated client with one-time access-token refresh;
+- PR #409: strict read-only derivation of genuinely user-resolvable persisted conflicts.
 
-**Blocking key-scope and duplicate-delivery slices complete through backend PR #148.**
+The candidate boundary accepts only pending backend push/pull `revision_mismatch` conflicts where exactly one side is a tombstone. It rejects malformed, terminal, client-only, identity-mismatched, upsert-versus-upsert, and tombstone-versus-tombstone snapshots. It returns only bounded identity, revision, payload-kind, and detection-time metadata; raw payloads, ownership IDs, and internal reasons remain hidden.
 
-Completed:
+### P7-C2 — Stable mobile resolution intent
 
-- repository lookup and PostgreSQL uniqueness now share the authenticated `(user_id, idempotency_key)` boundary;
-- migration creates the replacement composite unique index before dropping the previous global index;
-- the same key may be used independently by different users;
-- the same user and equivalent request replay one durable operation;
-- the same user and key with a different request returns `SYNC_IDEMPOTENCY_KEY_REUSE`;
-- concurrent identical delivery serializes to one operation and one replay;
-- all of these contracts run in the focused blocking PostgreSQL sync-correctness stage.
+**Immediate active slice.**
 
-Immediate remaining blocking proof:
+Required behavior:
 
-1. inject a deterministic failure after a routed domain mutation but before operation persistence or conflict completion;
-2. prove the domain mutation, sync operation, conflict transition, and revision allocation all roll back together;
-3. keep the failure injection test-only and preserve public service/route contracts.
+1. define a per-user persisted resolution-intent record keyed by conflict identity;
+2. store only conflict ID, expected revisions, bounded choice, stable idempotency key, attempt state, and safe timestamps;
+3. validate and repair malformed persisted records fail closed;
+4. reuse the same idempotency key across offline retry, token refresh, process restart, and uncertain response delivery;
+5. prohibit changing choice under the same idempotency key;
+6. never remove the original conflict snapshot merely because an intent was created;
+7. isolate users and clear only the authenticated user's terminal intent;
+8. add storage recovery, user isolation, malformed-data, and replay-identity tests.
 
-Do not require `FOR UPDATE` mechanically where an atomic statement, compare-and-set, advisory lock, or database constraint already expresses the invariant.
+No network submission or UI action is required in this slice.
 
-### P7-C — Mobile explicit conflict resolution
+### P7-C3 — Authenticated submission and authoritative reconciliation
 
-Begin immediately after the P7-B2 rollback proof is green. Independent non-blocking audit work may continue in parallel without altering the public conflict contract.
+After P7-C2 is green:
 
-Required order:
+1. submit only a validated persisted intent through the merged client;
+2. classify duplicate success, stale conflict, already-resolved conflict, authentication failure, offline failure, and unknown server failure;
+3. preserve intent and conflict on uncertain failure;
+4. on success, run the normal pull/materialization path from the returned authoritative revision boundary;
+5. remove the conflict and terminal intent only after authoritative operation application succeeds;
+6. keep retries bounded and reuse the original idempotency key;
+7. add process-restart and response-loss recovery tests before presentation integration.
 
-1. audit current persisted conflict representation and Data & Sync presentation;
-2. expose only genuinely user-resolvable conflicts returned by the backend contract;
-3. present bounded localized summaries, never raw payloads, IDs, schema versions, or idempotency keys;
-4. require an explicit user choice and confirmation;
-5. create a stable per-resolution idempotency identity and preserve it through refresh/retry;
-6. submit through the merged authenticated client;
-7. apply the returned authoritative operation through the normal sync materialization path;
-8. resynchronize without clearing unresolved state prematurely;
-9. handle duplicate success, stale conflict, already-resolved conflict, offline retry, and token refresh deterministically;
-10. add focused state, API, retry, and presentation tests before UI merge.
+### P7-C4 — Explicit confirmation UI
 
-No automatic destructive choice is permitted.
+After state and reconciliation contracts are stable:
+
+- extend the existing Data & Sync conflict review surface;
+- show only safe localized entity labels, detection time, and whether each version represents saved data or deletion;
+- explain local-device versus account version without showing raw payloads, IDs, revisions, schema versions, or internal errors;
+- require an explicit bounded choice and confirmation;
+- disable duplicate submission while an intent is active;
+- show safe retry/stale/resolved outcomes;
+- never make an automatic destructive choice.
 
 ### P7-D — Focused retry and async correctness hardening
 
-After the main conflict-choice flow is stable:
+After the main conflict-choice path is stable:
 
-- add a deterministic test where the database commit succeeds but the HTTP response is lost, followed by replay with the same key;
+- add a deterministic test where commit succeeds but the HTTP response is lost, followed by replay with the same key;
 - enable type-aware `@typescript-eslint/no-floating-promises` and `no-misused-promises` only with reviewed, actionable configuration;
 - keep `AsyncLocalStorage` limited to request/trace context propagation rather than treating it as a race detector;
-- add focused concurrency tests at service and HTTP boundaries before generalized load tooling.
+- add focused service and HTTP concurrency tests before generalized load tooling.
 
 ## P8 — Diagnostics and adversarial release preparation
 
