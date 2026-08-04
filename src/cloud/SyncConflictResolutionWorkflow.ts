@@ -113,11 +113,16 @@ export const createSyncConflictResolutionWorkflow = (
       };
     }
 
+    const currentIntent = await options.intentStore.get(
+      userId,
+      candidate.conflictId,
+    );
     const remainingConflicts = await options.conflictStore.list(userId);
     const conflictStillPresent = remainingConflicts.some(
       (conflict) => conflict.conflictId === candidate.conflictId,
     );
-    const targetRevision = submission.result?.revision;
+    const targetRevision =
+      submission.result?.revision ?? currentIntent?.resolutionRevision;
     const cursor = await options.cursorStore.get(userId);
     const cursorReachedTarget =
       targetRevision === undefined ||
@@ -126,16 +131,12 @@ export const createSyncConflictResolutionWorkflow = (
     if (conflictStillPresent || !cursorReachedTarget) {
       return {
         status: 'waiting_for_authoritative_state',
-        intent: await options.intentStore.get(userId, candidate.conflictId),
+        intent: currentIntent,
         submission,
         ...(submission.result ? { result: submission.result } : {}),
       };
     }
 
-    const currentIntent = await options.intentStore.get(
-      userId,
-      candidate.conflictId,
-    );
     const intent = currentIntent
       ? await completeIntent(options.intentStore, userId, currentIntent)
       : null;
