@@ -6,10 +6,10 @@ This document tracks provider, staging, deployment, diagnostics, native-release,
 
 ## Current baseline
 
-- mobile `main` before this documentation slice: `fd2257950df254968b85e476fc2ad3291b908cc0`;
-- backend `main`: `5803ccc79feb96b0d58fa0c12d7eb762cecabbf2`;
-- backend provider-readiness source is complete through PR #134;
-- mobile managed-media composition is complete through PR #400;
+- mobile `main` before this documentation slice: `13ad534e9d96b2ad4a3d3407a155fd898ad5614f`;
+- backend `main`: `adc02a73344949c08ac2d454ee7da2bc0e72535e`;
+- backend P6 provider/staging-readiness source is complete through PR #142;
+- mobile managed-media composition remains complete through PR #400;
 - all public provider-backed capabilities remain disabled;
 - no real provider or staging evidence has been collected by autonomous source work;
 - no provider account, credential, storage, CDN, DNS, sender domain, deployment, worker schedule, native build, device installation, OTA/EAS publication, or production activation has been performed.
@@ -38,6 +38,7 @@ Implemented:
 - conditional writes, exact deletion, checksums, metadata, prefixes, pagination, and cleanup;
 - bounded signed upload transport;
 - public capability separation from internal pre-enablement execution;
+- exact-owner upload-expiry and cleanup evidence;
 - privacy-safe readiness summaries.
 
 External requirements remain owned non-production/production accounts, credentials, encryption/lifecycle/CORS/public-access/logging/quota settings, incident ownership, and authorized upload/read/delete/replay/expiry/cleanup evidence.
@@ -50,10 +51,11 @@ Implemented:
 - immutable conditional writes and exact deletion;
 - delivery descriptors and strict mobile parsing;
 - derivative delivery/recovery worker source boundaries;
-- exact-owner derivative processing, replay, descriptor publication, owner readback, configured runtime binding, immutable-prefix cleanup, and expired-delivery recovery;
+- exact-owner derivative processing, bounded lease preparation, naturally expired recovery, replay, owner readback, and immutable-prefix cleanup;
+- trusted-host observation of descriptor shape, immutable cache behavior, content identity, private/signed-scope leakage rejection, replay, deletion, and post-delete unavailability;
 - CDN-origin policy templates.
 
-External requirements remain owned CDN/origin configuration, trusted hostname/TLS, cache/invalidation policy, and authorized derivative/replay/recovery/observation/deletion evidence.
+External requirements remain owned CDN/origin configuration, trusted hostname/TLS, cache/invalidation policy, quota/incident ownership, and authorized real derivative/replay/recovery/observation/deletion evidence.
 
 ### Media classifier, OCR, and content moderation
 
@@ -66,7 +68,8 @@ Implemented:
 - idempotent persistence and stale-result handling;
 - classifier/OCR/text composition;
 - configured/ready/disabled runtime summaries;
-- exact-owner moderation processing, bounded processing-lease preparation, expired-processing recovery, replay, readback, cleanup, and full resource-owning composition.
+- exact-owner moderation processing, bounded processing-lease preparation, naturally expired recovery, replay, readback, cleanup, and full resource-owning composition;
+- recovery-first worker-order composition that never selects unrelated staging rows.
 
 External requirements remain provider credentials/region/quota/budget/incident ownership, representative approved corpus, aggregate-only calibration, policy/reviewer ownership, escalation/appeal/retention operations, and authorized end-to-end evidence.
 
@@ -76,15 +79,18 @@ Implemented:
 
 - hashed one-time tokens, expiry, cooldown, replay rejection, delivery-failure invalidation, password replacement, and all-session revocation;
 - generic accepted responses;
-- bounded EN/RU Resend templates;
+- bounded EN/RU Resend templates and send-only runtime;
 - trusted HTTPS reset route;
 - capability-gated mobile forgot/reset flows;
 - iOS associated-domain and Android app-link source configuration;
-- placeholder-only AASA and Digital Asset Links templates.
+- placeholder-only sender DNS, AASA, and Digital Asset Links templates;
+- staging composition for reset-link validation, old access/refresh rejection, replay rejection, old-password rejection, new login, account deletion, fallback cleanup, and resource close.
 
-External requirements remain Resend account/credential, verified sender DNS, owned reset-link domain, deployed backend/native builds, deliverability/replay/expiry/revocation/link-routing/device/rollback evidence, and explicit enablement.
+External requirements remain Resend account/credential, verified sender DNS, owned reset-link domain, deployed backend/native builds, deliverability/link-routing/device/rollback evidence, and explicit enablement.
 
-## Completed P6 source evidence chain
+## P6 source-readiness status
+
+**Source-complete through backend PR #142.**
 
 ### General deployment and policy contracts
 
@@ -93,7 +99,7 @@ External requirements remain Resend account/credential, verified sender DNS, own
 - backend PR #116 — sender DNS classes, AASA, Digital Asset Links, reset route, and send-only callback boundary;
 - backend PR #117 — rollout, worker ordering, staged enablement, rollback, repeated confirmation, and evidence contracts.
 
-### Fail-closed staging and exact-owner managed-media chain
+### Fail-closed staging and exact-owner evidence chain
 
 - PR #118 — strict staging runner and exact confirmation;
 - PR #119 — synthetic auth/session scenario;
@@ -105,122 +111,85 @@ External requirements remain Resend account/credential, verified sender DNS, own
 - PR #125 — replay-verified quarantine lease;
 - PR #126 — exact-owner moderation processing/replay core;
 - PR #127 — configured-ready moderation runtime and owner-bound adapter;
-- PR #129 — one resource-owning auth/quarantine/moderation composition;
-- PR #130 — exact-owner expired-processing recovery service/runtime/evidence;
-- PR #131 — exact-owner monotonic bounded moderation claim, expiry wait, recovery composition, mandatory asset/account cleanup, and configured resource close;
-- PR #132 — exact-owner derivative-delivery processing, replay, descriptor publication, owner readback, and capability-disabled evidence;
-- PR #133 — configured production-shaped derivative-delivery runtime over one provider/database resource boundary;
-- PR #134 — exact-owner expired-delivery recovery with immutable-prefix cleanup, stable replay, runtime wiring, and aggregate evidence.
+- PR #129 — resource-owning auth/quarantine/moderation composition;
+- PR #130 — exact-owner expired-moderation recovery service/runtime/evidence;
+- PR #131 — monotonic moderation lease preparation, natural expiry wait, recovery composition, mandatory cleanup, and resource close;
+- PR #132 — exact-owner derivative-delivery processing, replay, descriptor publication, and owner readback;
+- PR #133 — configured production-shaped derivative-delivery runtime;
+- PR #134 — exact-owner expired-delivery recovery with immutable-prefix cleanup;
+- PR #135 — exact-owner bounded delivery-lease preparation;
+- PR #136 — full auth/quarantine/moderation/delivery recovery lifecycle composition;
+- PR #137 — immutable delivery observation, replay, leakage rejection, deletion, and post-delete evidence;
+- PR #138 — exact-owner stale upload expiry evidence;
+- PR #139 — exact-owner private-origin and delivery cleanup evidence;
+- PR #140 — recovery-first exact-owner worker-order composition;
+- PR #141 — password-reset staging composition and redacted evidence;
+- PR #142 — consolidated provider staging-readiness runbook and validation.
 
-Latest exact backend evidence:
+### Exact evidence for final P6 slices
 
-- PR #132 green head: `4a90e88fc30a1b3c16fc025ef6542d189a0a5ad5`;
-- PR #132 merge: `58f5cd45c9ea7a302e01c31ea93e8e419beb9fd2`;
-- Backend CI run #959 passed;
-- PR #133 green head: `55b2c06892b35addc8855b84cf110495d4853abb`;
-- PR #133 merge: `740bff09e3145ff6e8a64f7832340140efcd5c19`;
-- Backend CI run #961 passed;
-- PR #134 green head: `0a0dd115043da36b3b9999f8e8046d6a3da7592e`;
-- PR #134 merge: `5803ccc79feb96b0d58fa0c12d7eb762cecabbf2`;
-- Backend CI run #970 passed lint, formatting, TypeScript build, production configuration validation, migrations/idempotency, migrated-schema integration, PostgreSQL Social integration, complete Vitest, and production startup/health.
+| PR | Exact green head | Merge SHA | Backend CI |
+|---|---|---|---|
+| #135 | `ffd1689b91f9ec0b0f24ca45c8f526ee169263a6` | `74fdb95fd103de36a9cb5920d5722f1b854f7a13` | #977 passed |
+| #136 | `5aced0e850311ed41123e8b30cdf74fecaf110e2` | `6d9dbb8ca0e3145e19271bbf18863b66b3054e5d` | #982 passed |
+| #137 | `3eeca20d266927d16e26785b396a3afbb1fc990b` | `771e126c7b3962bbb7aa75d4f9a30ea08c09c1b7` | #990 passed |
+| #138 | `bec58d2fce0f6ad8faa21d73aa23bc1ae13fd845` | `caa7a9cc51c6ec9c3255cf396ce4c30970ddf1b7` | #995 passed |
+| #139 | `26e209e8bc9e7bf835a41f8b98544f1038d901cb` | `055883325f2bf410365a1a33d35e651fb0a81a2c` | #1005 passed |
+| #140 | `f024b5ed6700d3eb8e439bd12e414a2029f9c52c` | `05df0f0d7c1138393294e6a7d51ccad4f82ff7c7` | #1010 passed |
+| #141 | `c5bf63993daa0a4cc6c9525d467eb2eee9f06efd` | `b8c129506a7f5b6408df063990dd2235db954869` | #1016 passed |
+| #142 | `383348e2db07feacf8685200d6838f9fc774c342` | `adc02a73344949c08ac2d454ee7da2bc0e72535e` | #1018 passed |
+
+Each listed run passed lint, formatting, TypeScript build, production configuration validation, migrations/idempotency, migrated-schema integration, PostgreSQL Social integration, the complete Vitest suite, and production startup with `/health` verification.
 
 ### Mobile managed-media composition
 
 Mobile PRs #396–#400 established composition boundaries, shared upload/polling, and the stop condition against speculative generic abstractions. No further generic mobile media abstraction is approved without a concrete third consumer or demonstrated defect.
 
-## Active P6 source slice
+## Remaining P6 action — real non-production evidence
 
-### Exact-owner bounded derivative-delivery lease and full recovery composition
+The only remaining P6 work is external execution, not autonomous source development.
 
-Compose the existing exact-owner processing and recovery boundaries without introducing a second lifecycle or selecting unrelated rows:
-
-```text
-synthetic auth/session lease
-→ private-quarantine upload/validation/normalization
-→ exact-owner moderation allow
-→ owner/asset/state-version delivery claimOwned CAS
-→ fresh token + monotonic bounded lease
-→ bounded injected wait until that exact lease expires
-→ exact-owner immutable-prefix cleanup + recovery CAS
-→ stable recovery replay + owner readback
-→ public capabilities still disabled
-→ mandatory asset cleanup
-→ account cleanup + session revocation
-→ configured resource close
-→ fixed aggregate evidence
-```
-
-Acceptance criteria:
-
-- start from the existing configured delivery runtime and exact-owner recovery service/adapter;
-- claim only the known synthetic owner/asset through `claimOwned`;
-- the lease is monotonic and bounded: `leaseExpiresAt > now`; no backdated expiry fabrication;
-- wait is injected, bounded, and tied to the exact claimed lease;
-- no global ready-list, processing batch, expired-delivery list, or global recovery selection is used;
-- approved moderation and normalized private-source prerequisites remain mandatory;
-- recovery deletes only the exact immutable asset prefix before the existing row-level recovery CAS;
-- replay does not repeat cleanup or advance state again;
-- owner readback accepts only the expected recovered state/version;
-- public capabilities remain disabled before and after evidence;
-- success and failure both execute existing asset/account/session/resource cleanup boundaries;
-- evidence contains no owner/asset IDs, processing token, lease timestamp, object key, hash, immutable URL, raw row, provider payload, or raw exception;
-- no persistence schema, public route/DTO, lifecycle state/reason, delivery key/descriptor, moderation policy, retry, retention, or cleanup-policy change;
-- deterministic offline tests inject repository, clock, wait, token, storage, delivery, cleanup, and failure paths;
-- no real staging/provider execution, deployment, worker scheduling, capability mutation, migration outside CI, native build, OTA/EAS publication, or production action.
-
-Split owner-bound lease preparation and the full resource-owning composition into bounded PRs if required to keep each diff reviewable.
-
-## Remaining P6 source backlog
-
-### 1. Immutable delivery observation
-
-Add bounded observation for the exact synthetic asset and trusted hostname: descriptor shape, immutable cache behavior where observable, content identity/replay, no private/signed-scope leakage, and policy-required deletion behavior.
-
-### 2. Upload expiry and cleanup evidence
-
-Add synthetic-owned evidence for stale `upload_pending` expiry, private object deletion, tombstone/state transition, replay, cleanup partial failure, bounded retry, and no unrelated-row selection.
-
-### 3. Worker-order composition
-
-After all exact-owner operations exist, compose the recovery-first sequence using only synthetic-owned work:
-
-1. upload expiry;
-2. cleanup;
-3. delivery recovery;
-4. moderation recovery;
-5. moderation processing;
-6. derivative delivery processing.
-
-Actual worker scheduling remains an external deployment action.
-
-### 4. Password-reset staging composition
-
-Compose exact confirmation, synthetic account, disabled-capability verification, send-only callback/provider runtime, token/link handling, password reset, old-session rejection, cleanup, and aggregate evidence. Do not expose account existence, email, token, URL query, provider response, or raw error.
-
-### 5. Consolidated runbooks
-
-Produce operator-facing preflight, owner confirmation, evidence retention, provider/account/credential prerequisites, exact deployed SHA, capability-disabled checks, one-at-a-time enablement, observation/stop criteria, rollback/freeze, escalation, and synthetic-cleanup runbooks.
-
-## Real non-production evidence gates
-
-No real staging/provider action may begin until all applicable fields are known and explicitly authorized:
+A real isolated non-production run may begin only after a direct request for that exact action and all applicable fields are known:
 
 - target environment and trusted hostnames;
-- exact backend/mobile SHAs;
-- provider account/project identifiers;
-- credential delivery and rotation owner;
-- storage/CDN/sender/link domains;
+- exact deployed backend/mobile SHAs;
+- provider account/project identifiers and staging-only resources;
+- credential delivery, rotation, and incident owners;
+- storage/CDN/sender/reset-link domains;
 - deployment and worker-schedule owners;
-- approved synthetic fixtures/corpus;
-- budget/quota limits;
-- observation window;
+- approved synthetic fixtures/corpus/mailbox;
+- budget/quota limits and observation window;
 - rollback owner and stop criteria;
 - privacy/security/reviewer approval;
-- evidence destination and retention period.
+- create-only evidence destination and retention period.
 
-Execution stops if confirmation, target, SHA, capability state, provider readiness, synthetic ownership, cleanup, evidence write, or rollback prerequisites differ from the approved plan.
+The authorized operator must use `docs/operations/provider-staging-readiness-runbook.md`, keep public provider-backed capabilities disabled during pre-enablement evidence, execute only exact synthetic-owned work, stop on the first failed invariant, complete bounded cleanup, close resources, and seal aggregate evidence.
 
-## Rollout order
+Autonomous work must not perform this run.
+
+## Active autonomous source phase — P7
+
+### Backend-owned explicit sync-conflict resolution
+
+Required order:
+
+1. audit current sync conflict payloads, persistence/revision/tombstone contracts, authorization, retry behavior, and mobile presentation;
+2. define the smallest strict backend-owned choice contract only for genuinely user-resolvable conflicts;
+3. derive ownership from authentication and never accept arbitrary user ownership from the client;
+4. require conflict identity, expected authoritative revision/version, bounded choice enum, and idempotency key;
+5. reject stale, already-resolved, unauthorized, malformed, deleted/tombstoned, or non-user-resolvable conflicts;
+6. preserve automatic merge/retry for conflicts that do not require user choice;
+7. apply the selected resolution atomically and return a strict versioned result;
+8. make replay idempotent and concurrent choices deterministic;
+9. cover ownership, stale choice, replay, concurrent choice, tombstone, and restart-safe behavior in PostgreSQL/integration tests;
+10. add the minimum authenticated API only after the repository/service contract is stable;
+11. add strict mobile parsing and account-scoped UI only after the backend API is merged.
+
+Do not infer conflict semantics in the mobile client.
+
+## Real non-production rollout order
+
+Only after direct authorization:
 
 1. approve exact plan, owners, targets, and SHAs;
 2. validate configuration while capabilities remain disabled;
@@ -233,11 +202,11 @@ Execution stops if confirmation, target, SHA, capability state, provider readine
 9. observe the approved window and stop criteria;
 10. continue only after evidence review.
 
-Password reset and managed-media uploads require independent approval/observation.
+Password reset and managed-media uploads require independent approval and observation.
 
 ## Rollback and prohibited actions
 
-Approved rollback order: freeze changes, disable affected capabilities, stop relevant worker scheduling, preserve state/evidence, roll back only to schema-compatible backend, perform provider-specific credential/infrastructure action only under incident ownership, then verify disabled capabilities and health.
+Approved rollback order: freeze changes, disable affected capabilities, stop relevant worker scheduling, preserve state/evidence, roll back only to a schema-compatible backend, perform provider-specific credential/infrastructure actions only under incident ownership, then verify disabled capabilities and health.
 
 Prohibited automatic actions:
 
@@ -247,11 +216,11 @@ Prohibited automatic actions:
 - broad credential revocation without provider/incident-owner approval;
 - production data use for smoke tests;
 - global worker/recovery selection for synthetic evidence;
-- native build, OTA/EAS publication, store submission, or production activation.
+- provider account, credential, storage, CDN, DNS, sender-domain, callback, deployment, worker-schedule, or capability changes;
+- native build, device installation, OTA/EAS publication, store submission, or production activation.
 
-## P7–P9 prerequisites
+## P8–P9 prerequisites
 
-- **P7:** backend-owned explicit sync-conflict contract first, then strict mobile UI.
 - **P8:** privacy-safe diagnostics, fixed-SHA artifact provenance, Android package/link audit, rollback verification; native distribution remains external.
 - **P9:** data inventory, purpose mapping, consent/withdrawal where applicable, retention/deletion/legal-hold alignment, analytics minimization, user-facing privacy/account-deletion requirements, and legal/policy review.
 
@@ -259,4 +228,4 @@ Source completion alone is not a compliance determination.
 
 ## Validation standard
 
-Every source-only readiness PR must start from exact `main`, preserve public contracts unless explicitly changed, use deterministic injected dependencies, make no real provider/staging call in CI, cover failure/replay/cleanup/redaction/resource-close paths, respect line limits, pass complete CI on the exact final head, have no unresolved review threads, merge only that green head, and update this roadmap when phase status changes.
+Every source-only readiness PR must start from exact `main`, preserve public contracts unless explicitly changed, use deterministic injected dependencies, make no real provider/staging call in CI, cover failure/replay/cleanup/redaction/resource-close paths, respect line limits, pass complete CI on the exact final head, have no unresolved review threads, merge only that green head, and update canonical roadmaps when phase status changes.
