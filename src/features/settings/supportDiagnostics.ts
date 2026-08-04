@@ -5,7 +5,6 @@ import type { WeightSyncStatus } from '@/context/SyncContext';
 
 import {
   createSupportDiagnosticsSnapshot,
-  serializeSupportDiagnostics,
   type SupportDiagnostics,
 } from './supportDiagnosticsModel';
 
@@ -59,5 +58,3 @@ export const createSupportDiagnostics = (
     pendingOperations,
     conflictCount,
   });
-
-void serializeSupportDiagnostics;
