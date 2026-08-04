@@ -134,6 +134,7 @@ export const createSyncConflictResolutionIntentIdempotencyKey = (input: {
 
 const normalizeIntent = (
   value: unknown,
+  recoverSubmitting: boolean,
 ): { intent: SyncConflictResolutionIntent; changed: boolean } | null => {
   if (!isRecord(value)) return null;
 
@@ -167,7 +168,10 @@ const normalizeIntent = (
   const updatedAt =
     normalizedUpdatedAt < createdAt ? createdAt : normalizedUpdatedAt;
   const parsedLastAttemptAt = normalizeTimestamp(value.lastAttemptAt);
-  const state = storedState === 'submitting' ? 'retryable' : storedState;
+  const state =
+    recoverSubmitting && storedState === 'submitting'
+      ? 'retryable'
+      : storedState;
   const lastAttemptAt =
     parsedLastAttemptAt ?? (storedState === 'submitting' ? updatedAt : undefined);
   const intent: SyncConflictResolutionIntent = {
@@ -201,7 +205,10 @@ const sortIntents = (
       : left.createdAt.localeCompare(right.createdAt),
   );
 
-const parse = async (storage: StorageAdapter): Promise<ParsedState> => {
+const parse = async (
+  storage: StorageAdapter,
+  recoverSubmitting: boolean,
+): Promise<ParsedState> => {
   const raw = await storage.read(SYNC_CONFLICT_RESOLUTION_INTENT_STORAGE_KEY);
   if (!raw) return { users: new Map(), changed: false, repairable: true };
 
@@ -242,7 +249,7 @@ const parse = async (storage: StorageAdapter): Promise<ParsedState> => {
     const intents = users.get(userId) ?? new Map();
     const invalidIds = corrupted.get(userId) ?? new Set<string>();
     for (const rawIntent of record.intents) {
-      const normalized = normalizeIntent(rawIntent);
+      const normalized = normalizeIntent(rawIntent, recoverSubmitting);
       if (!normalized) {
         changed = true;
         continue;
@@ -328,6 +335,7 @@ export const createSyncConflictResolutionIntentStore = (
 ): SyncConflictResolutionIntentStore => {
   const now = () => normalizeTimestamp(options.now?.() ?? new Date().toISOString());
   let mutationTail: Promise<void> = Promise.resolve();
+  let initialized = false;
 
   const timestamp = (): string => {
     const value = now();
@@ -336,7 +344,8 @@ export const createSyncConflictResolutionIntentStore = (
   };
 
   const load = async () => {
-    const parsed = await parse(storage);
+    const parsed = await parse(storage, !initialized);
+    initialized = true;
     if (parsed.changed && parsed.repairable) {
       await persist(storage, parsed.users);
     }
