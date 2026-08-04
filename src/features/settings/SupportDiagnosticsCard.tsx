@@ -30,7 +30,7 @@ export function SupportDiagnosticsCard({
   syncStatus: WeightSyncStatus;
 }) {
   const { colors } = useAppTheme();
-  const { t } = useLocalization();
+  const { formatDate, t } = useLocalization();
   const diagnostics = useMemo(
     () => createSupportDiagnostics({ conflictCount, pendingOperations, syncStatus }),
     [conflictCount, pendingOperations, syncStatus],
@@ -39,11 +39,22 @@ export function SupportDiagnosticsCard({
   const environment =
     diagnostics.environment === 'development'
       ? t('diagnostics.environment.development')
-      : diagnostics.environment === 'production'
-        ? t('diagnostics.environment.production')
-        : diagnostics.environment === 'unknown'
-          ? t('common.unknown')
-          : diagnostics.environment;
+      : diagnostics.environment === 'preview'
+        ? t('diagnostics.environment.preview')
+        : diagnostics.environment === 'production'
+          ? t('diagnostics.environment.production')
+          : t('common.unknown');
+  const sourceCommit =
+    diagnostics.sourceCommit === 'unknown'
+      ? t('common.unknown')
+      : diagnostics.sourceCommit;
+  const evidenceTimestamp =
+    diagnostics.evidenceTimestamp === 'unknown'
+      ? t('common.unknown')
+      : formatDate(diagnostics.evidenceTimestamp, {
+          dateStyle: 'medium',
+          timeStyle: 'medium',
+        });
 
   return (
     <AppCard>
@@ -54,6 +65,8 @@ export function SupportDiagnosticsCard({
         {t('diagnostics.description')}
       </Text>
       <View style={styles.rows}>
+        <Row label={t('diagnostics.source')} value={sourceCommit} />
+        <Row label={t('diagnostics.evidenceTime')} value={evidenceTimestamp} />
         <Row label={t('diagnostics.appVersion')} value={diagnostics.appVersion} />
         <Row label={t('diagnostics.build')} value={diagnostics.buildNumber} />
         <Row label={t('diagnostics.runtime')} value={diagnostics.runtimeVersion} />
