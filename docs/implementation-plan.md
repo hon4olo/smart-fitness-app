@@ -11,10 +11,10 @@ Detailed provider and release-readiness evidence remains in `docs/roadmap/provid
 
 ## Verified baseline
 
-Verified after the first P9-B operational-retention slice:
+Verified after the P9-B2 cross-surface account-deletion source boundary:
 
-- mobile `main`: `e65c18d5ea570949e699a7cd767f4c4447f94c01`;
-- backend `main`: `80faac750f54868cd7b6cabd1b91314088e5f949`;
+- mobile `main`: `1723307ba694ba291c308425d16fffcab1d1414a`;
+- backend `main`: `c3ccf43ffc8bd0c2c82ade824b1d8963398e1caa`;
 - no open mobile or backend pull requests before this roadmap update;
 - backend PRs #143-#152 complete the conflict-resolution, replay, Promise-lint, rollback and multi-instance correctness boundary;
 - mobile PRs #406, #409 and #411-#416 complete strict client-side conflict resolution and uncertain-response replay;
@@ -22,8 +22,11 @@ Verified after the first P9-B operational-retention slice:
 - mobile PR #422 completes mobile account-data inventory and local deletion coverage;
 - backend PR #153 completes the PostgreSQL technical data inventory;
 - backend PR #154 completes the first operational-retention registry and hardens structured-log redaction;
+- backend PR #156 completes durable PostgreSQL account-deletion receipts, atomic account deletion and secret-protected uncertain-response status recovery;
+- mobile PR #425 completes receipt persistence, exact-identity retry/restart reconciliation and authoritative-only local cleanup;
+- backend PR #157 completes the bounded source purge path and PostgreSQL evidence for expired deletion receipts;
 - all public provider-backed capabilities remain disabled;
-- no provider/staging execution, deployment, migration outside CI, backend worker scheduling, native build, OTA/EAS publication, rollback execution, store submission, legal-hold mutation, destructive cleanup or production activation has been performed.
+- no provider/staging execution, deployment, migration outside CI, backend worker scheduling, native build, OTA/EAS publication, rollback execution, store submission, legal-hold mutation, destructive production cleanup or production activation has been performed.
 
 Always re-check exact `main`, open pull requests, `AGENTS.md`, `PROJECT_LEARNINGS.md`, this plan, and relevant architecture/operations documents before another slice.
 
@@ -49,12 +52,13 @@ There is no remaining approved autonomous source-refactor phase. Any future prov
 
 ## Current priority order
 
-P7 correctness, P8 release evidence, P9-A inventories and the P9-B1 retention registry are complete. The active order is cross-surface deletion/recovery before analytics or broader instrumentation.
+P7 correctness, P8 release evidence, P9-A inventories, P9-B1 retention foundations and the source-level P9-B2 deletion/recovery boundary are complete. The active order is provider/environment retention evidence before analytics or broader instrumentation.
 
-1. **P9-B2 — Cross-surface account deletion.** Define and prove a fail-closed deletion plan across PostgreSQL, mobile persistence, private object storage/CDN, provider/cache surfaces, review evidence and authorized exceptional retention. Include retry, idempotency, recovery, completion evidence and user-visible status without executing destructive production actions.
-2. **P9-B3 — Retention blocker closure.** Replace `unset_blocker` entries only with provider/environment-specific evidence for maximum lifetime, access, expiry/deletion and failure monitoring. Do not fabricate guarantees for unselected infrastructure.
-3. **P9-C — Consent and analytics prerequisites.** Define purpose, consent/withdrawal where required, minimization, redaction, access, retention and deletion before any analytics SDK, telemetry upload or production instrumentation.
-4. **P9-D — Privacy-facing controls and policy evidence.** Specify access/export, account-deletion status, retention disclosures and technical evidence for legal/policy review. Source completion alone is not legal approval.
+1. **P9-B3 — Retention blocker closure.** Replace `unset_blocker` entries only with provider/environment-specific evidence for maximum lifetime, access, expiry/deletion and failure monitoring. Do not fabricate guarantees for unselected infrastructure. Provider accounts, credentials, deployment, worker scheduling and real cleanup remain direct-authorization actions.
+2. **P9-C — Consent and analytics prerequisites.** Define purpose, consent/withdrawal where required, minimization, redaction, access, retention and deletion before any analytics SDK, telemetry upload or production instrumentation.
+3. **P9-D — Privacy-facing controls and policy evidence.** Specify access/export, account-deletion status, retention disclosures and technical evidence for legal/policy review. Source completion alone is not legal approval.
+
+P9-B3 can advance only for an exact selected provider/environment with reviewed evidence. While those external inputs are unavailable, independent source-only P9-C or P9-D specification work may proceed only if it does not imply provider approval or production activation.
 
 A broader audit of retryable non-sync writes may proceed in independent focused slices, but it must not displace the active order unless it exposes a defect in a currently used contract.
 
@@ -135,20 +139,43 @@ Evidence remains in backend `docs/privacy/operational-retention-contracts.md`.
 
 The registry does not authorize any blocked provider or infrastructure. `record_expiry` source fields do not prove that external bytes are deleted until the selected provider and deployed worker produce evidence.
 
-### P9-B2 — Cross-surface account deletion — active
+### P9-B2 — Cross-surface account deletion — source-complete through backend PRs #156/#157 and mobile PR #425
 
-The next source slice must define a versioned deletion plan with explicit steps and dependencies for:
+Merged source behavior:
 
-- authenticated PostgreSQL account deletion;
-- mobile account/auth cleanup and durable restart marker;
-- private quarantine, normalized-master and delivery-derivative cleanup;
-- cache/provider deletion or bounded exceptional retention;
-- review/evidence export handling;
-- legal-hold stop conditions;
-- retry/idempotency, completion criteria and partial-failure recovery;
-- privacy-safe user/support status without raw object keys, provider payloads or credentials.
+- authenticated password verification precedes destructive work;
+- managed private-origin and delivery-derivative cleanup runs before database deletion and fails closed when storage/delivery is unavailable;
+- active account-linked legal holds block deletion with bounded status rather than being removed or bypassed;
+- the durable PostgreSQL receipt stores an opaque request UUID and a SHA-256 status-secret hash, never the raw secret;
+- receipt transition, user deletion with database cascades and terminal `completed` state occur in one transaction;
+- a secret-protected status endpoint recovers a committed result after a lost final HTTP response without requiring the deleted session;
+- mobile persists the receipt identity in SecureStore before DELETE, reuses it across retry/restart and checks status before cached-session restoration;
+- `pending`, `blocked`, offline, malformed status, missing/expired receipt and ordinary `401` never authorize local account-data deletion;
+- authoritative `completed` status starts resumable local account/auth cleanup, and the receipt secret remains until terminal local cleanup;
+- expired backend receipts have a deterministic bounded source purge command, exact expiry recheck, aggregate-only output, retry-safe no-op behavior and focused PostgreSQL CI evidence.
 
-The plan must fail closed when an account-linked operational surface has no deletion mechanism. It must not execute real object/provider deletion, remove legal holds or claim completed production cleanup.
+Evidence remains in:
+
+- `docs/privacy/mobile-account-data-inventory.md`;
+- backend `docs/privacy/account-deletion-receipts.md`;
+- backend `docs/privacy/operational-retention-contracts.md`.
+
+This is source completion, not production cleanup proof. Provider/cache retention, external review-export destinations, logs, backups, object-storage/CDN lifecycle evidence and worker scheduling remain activation-blocked under P9-B3. No real object/provider deletion, legal-hold mutation, production migration, deployment or purge execution was performed.
+
+### P9-B3 — Retention blocker closure — active, provider/environment evidence required
+
+The operational registry remains fail closed for unresolved application/reverse-proxy logs, backups, object storage/CDN, email, model/moderation/classifier/OCR providers, food-provider cache, review exports and incident-copy handling.
+
+A blocker may be removed only for an exact selected provider/environment after recording and testing:
+
+- maximum lifetime and data region where applicable;
+- access roles and support/subprocessor access;
+- deletion, expiry or lifecycle mechanism;
+- failure monitoring and retained evidence;
+- account-deletion and environment-retirement behavior;
+- legal-hold or incident exception scope and bounded expiry.
+
+Do not replace `unset_blocker` with assumptions, marketing claims or generic provider documentation. No provider account, credentials, deployment, scheduling or production action is authorized by this plan.
 
 ### P9-C — Consent and analytics prerequisites — planned
 
