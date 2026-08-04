@@ -37,7 +37,9 @@ describe('bounded scheduled adversarial validation', () => {
       "SOURCE_LOOP = 'for (let seed = 1; seed <= 128; seed += 1)'",
     );
     expect(runner).toContain("suite: 'sync-conflict-resolution-intent-model'");
-    expect(runner).toContain("result = 'passed'");
+    expect(runner).toContain(
+      "result = execution.status === 0 ? 'passed' : 'failed'",
+    );
     expect(workflow).toContain("SYNC_INTENT_PROPERTY_SEED_COUNT: '2048'");
   });
 
