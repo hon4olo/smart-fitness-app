@@ -26,13 +26,14 @@ describe('fixed-SHA cross-repository release gate', () => {
   it('requires immutable release and distinct rollback commit SHAs', () => {
     expect(workflow).not.toContain('default: main');
     expect(workflow).toContain("sha_pattern='^[0-9a-fA-F]{40}$'");
-    expect(workflow).toContain('app_ref must be a full 40-character commit SHA');
-    expect(workflow).toContain('backend_ref must be a full 40-character commit SHA');
+    expect(workflow).toContain('"app_ref:$APP_REF"');
+    expect(workflow).toContain('"backend_ref:$BACKEND_REF"');
+    expect(workflow).toContain('"rollback_app_ref:$ROLLBACK_APP_REF"');
     expect(workflow).toContain(
-      'rollback_app_ref must be a full 40-character commit SHA',
+      '"rollback_backend_ref:$ROLLBACK_BACKEND_REF"',
     );
     expect(workflow).toContain(
-      'rollback_backend_ref must be a full 40-character commit SHA',
+      '$name must be a full 40-character commit SHA',
     );
     expect(workflow).toContain(
       'rollback_app_ref must identify a distinct previous mobile commit',
@@ -108,7 +109,9 @@ describe('fixed-SHA cross-repository release gate', () => {
     expect(documentation).toContain('EXPO_PUBLIC_SOURCE_COMMIT_SHA');
     expect(documentation).toContain('repository-wide file-size audit');
     expect(documentation).toContain('Expo export and Expo Doctor');
-    expect(documentation).toContain('migrated-schema integration test');
+    expect(documentation).toContain(
+      'migrated-schema and scoped-idempotency integration tests',
+    );
     expect(documentation).toContain('does not replace physical-device validation');
   });
 });
