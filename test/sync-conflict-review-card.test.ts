@@ -15,8 +15,8 @@ const source = readFileSync(
 );
 
 describe('sync conflict review card formatting', () => {
-  it('renders a real separator instead of a literal unicode escape', () => {
+  it('renders real spacing instead of a literal unicode escape', () => {
     expect(source).not.toContain('\\u00a0');
-    expect(source).toContain("{copy.diagnosticLabels[item.key]}:{' '}");
+    expect(source).toContain("{copy.detected}:{' '}");
   });
 });
