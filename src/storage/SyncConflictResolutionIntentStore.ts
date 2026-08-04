@@ -156,6 +156,8 @@ const normalizeIntent = (
       : isRevision(value.resolutionRevision)
         ? value.resolutionRevision
         : null;
+  const resolutionRevisionAllowed =
+    storedState === 'accepted' || storedState === 'completed';
 
   if (
     !conflictId ||
@@ -167,7 +169,8 @@ const normalizeIntent = (
     !createdAt ||
     !normalizedUpdatedAt ||
     resolutionRevision === null ||
-    (storedState === 'accepted' && resolutionRevision === undefined)
+    (storedState === 'accepted' && resolutionRevision === undefined) ||
+    (!resolutionRevisionAllowed && resolutionRevision !== undefined)
   ) {
     return null;
   }
