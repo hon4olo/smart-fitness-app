@@ -137,6 +137,27 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
+      - name: Smoke expanded model runner
+        id: expanded-model
+        env:
+          EXPECTED_MOBILE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          SYNC_INTENT_PROPERTY_SEED_COUNT: '129'
+          SYNC_INTENT_PROPERTY_EVIDENCE_PATH: expanded-model-smoke-evidence.json
+        run: >-
+          node scripts/run-expanded-sync-intent-model.mjs
+          > expanded-model-smoke.log 2>&1
+
+      - name: Upload expanded model smoke evidence
+        if: failure() && steps.expanded-model.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: expanded-model-smoke-evidence
+          path: |
+            expanded-model-smoke-evidence.json
+            expanded-model-smoke.log
+          if-no-files-found: warn
+          retention-days: 3
+
       - name: Full regression suite
         id: regressions
         run: npm test > regression-tests.log 2>&1
