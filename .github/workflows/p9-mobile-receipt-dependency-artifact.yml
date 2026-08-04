@@ -1,0 +1,33 @@
+name: P9 Mobile Receipt Dependency Artifact
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Update lockfile
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Upload dependency files
+        uses: actions/upload-artifact@v4
+        with:
+          name: p9-mobile-receipt-dependency-files
+          path: |
+            package.json
+            package-lock.json
+          if-no-files-found: error
+          retention-days: 1
