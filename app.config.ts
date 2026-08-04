@@ -1,10 +1,11 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 import passwordResetAppLinkConfig = require('./config/password-reset-app-link');
-import { resolveSourceCommit } from './config/source-provenance';
+import sourceProvenanceConfig = require('./config/source-provenance');
 
 const { PASSWORD_RESET_APP_LINK_ENV, withPasswordResetAppLink } =
   passwordResetAppLinkConfig;
+const { resolveSourceCommit } = sourceProvenanceConfig;
 
 const environment = (
   globalThis as typeof globalThis & {
