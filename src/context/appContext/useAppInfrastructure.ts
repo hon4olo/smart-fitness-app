@@ -11,11 +11,7 @@ import {
   resumePendingLocalAccountCleanup,
 } from '@/auth';
 import { createCapabilityService } from '@/capabilities';
-import {
-  createSyncConflictResolutionClient,
-  createSyncCoordinator,
-  type SyncCoordinator,
-} from '@/cloud';
+import { createSyncCoordinator, type SyncCoordinator } from '@/cloud';
 import { createProductionCloudProvider } from '@/cloud/createProductionCloudProvider';
 import { defaultState as defaultAppState } from '@/data/defaults';
 import { createRepositoryFactory } from '@/repositories';
@@ -77,10 +73,6 @@ export function useAppInfrastructure(
     () => createProductionCloudProvider({ apiClient, authService }),
     [apiClient, authService],
   );
-  const syncConflictResolutionClient = useMemo(
-    () => createSyncConflictResolutionClient({ apiClient, authService }),
-    [apiClient, authService],
-  );
   const syncCoordinator = useMemo<SyncCoordinator>(
     () => createSyncCoordinator({ queueStore, provider: cloudProvider }),
     [cloudProvider, queueStore],
@@ -135,7 +127,6 @@ export function useAppInfrastructure(
     capabilityService,
     queueStore,
     repository,
-    syncConflictResolutionClient,
     syncCoordinator,
     weightSyncMetadataStore,
   };
