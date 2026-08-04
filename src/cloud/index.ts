@@ -53,6 +53,14 @@ export {
   parseSyncConflictResolutionResult,
 } from './SyncConflictResolutionApi';
 export type {
+  SyncConflictPayloadKind,
+  SyncConflictResolutionCandidate,
+} from './SyncConflictResolutionCandidate';
+export {
+  listSyncConflictResolutionCandidates,
+  toSyncConflictResolutionCandidate,
+} from './SyncConflictResolutionCandidate';
+export type {
   CreateSyncConflictResolutionClientOptions,
   SyncConflictResolutionClient,
 } from './createSyncConflictResolutionClient';
