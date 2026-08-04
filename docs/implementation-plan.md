@@ -11,11 +11,11 @@ Detailed provider and release-readiness evidence remains in `docs/roadmap/provid
 
 ## Verified baseline
 
-Verified after the P9-B2 cross-surface account-deletion source boundary:
+Verified before the first P9-C analytics-activation source slice:
 
-- mobile `main`: `1723307ba694ba291c308425d16fffcab1d1414a`;
+- mobile `main`: `33ffa5b0d548209ac50a4c1d40eb442627fea64c`;
 - backend `main`: `c3ccf43ffc8bd0c2c82ade824b1d8963398e1caa`;
-- no open mobile or backend pull requests before this roadmap update;
+- no open mobile or backend pull requests before this source slice;
 - backend PRs #143-#152 complete the conflict-resolution, replay, Promise-lint, rollback and multi-instance correctness boundary;
 - mobile PRs #406, #409 and #411-#416 complete strict client-side conflict resolution and uncertain-response replay;
 - mobile PRs #418-#421 complete generated state-model, privacy-safe diagnostics, release/rollback and bounded scheduled adversarial evidence;
@@ -25,7 +25,9 @@ Verified after the P9-B2 cross-surface account-deletion source boundary:
 - backend PR #156 completes durable PostgreSQL account-deletion receipts, atomic account deletion and secret-protected uncertain-response status recovery;
 - mobile PR #425 completes receipt persistence, exact-identity retry/restart reconciliation and authoritative-only local cleanup;
 - backend PR #157 completes the bounded source purge path and PostgreSQL evidence for expired deletion receipts;
+- mobile PR #426 records P9-B2 source completion and moves unresolved provider/environment lifecycle evidence to P9-B3;
 - all public provider-backed capabilities remain disabled;
+- no analytics/crash/attribution/advertising SDK, telemetry upload or production event collection is active;
 - no provider/staging execution, deployment, migration outside CI, backend worker scheduling, native build, OTA/EAS publication, rollback execution, store submission, legal-hold mutation, destructive production cleanup or production activation has been performed.
 
 Always re-check exact `main`, open pull requests, `AGENTS.md`, `PROJECT_LEARNINGS.md`, this plan, and relevant architecture/operations documents before another slice.
@@ -52,13 +54,13 @@ There is no remaining approved autonomous source-refactor phase. Any future prov
 
 ## Current priority order
 
-P7 correctness, P8 release evidence, P9-A inventories, P9-B1 retention foundations and the source-level P9-B2 deletion/recovery boundary are complete. The active order is provider/environment retention evidence before analytics or broader instrumentation.
+P7 correctness, P8 release evidence, P9-A inventories, P9-B1 retention foundations and the source-level P9-B2 deletion/recovery boundary are complete. P9-B3 requires exact external provider/environment evidence; while those inputs remain unavailable, fail-closed P9-C source prerequisites are active.
 
 1. **P9-B3 — Retention blocker closure.** Replace `unset_blocker` entries only with provider/environment-specific evidence for maximum lifetime, access, expiry/deletion and failure monitoring. Do not fabricate guarantees for unselected infrastructure. Provider accounts, credentials, deployment, worker scheduling and real cleanup remain direct-authorization actions.
-2. **P9-C — Consent and analytics prerequisites.** Define purpose, consent/withdrawal where required, minimization, redaction, access, retention and deletion before any analytics SDK, telemetry upload or production instrumentation.
+2. **P9-C — Consent and analytics prerequisites.** Keep analytics activation blocked while defining purpose, user choice or other lawful basis, withdrawal where applicable, minimization, access, retention, deletion, provider and disclosure requirements. Do not add an SDK, event upload or tracking identifier.
 3. **P9-D — Privacy-facing controls and policy evidence.** Specify access/export, account-deletion status, retention disclosures and technical evidence for legal/policy review. Source completion alone is not legal approval.
 
-P9-B3 can advance only for an exact selected provider/environment with reviewed evidence. While those external inputs are unavailable, independent source-only P9-C or P9-D specification work may proceed only if it does not imply provider approval or production activation.
+P9-B3 can advance only for an exact selected provider/environment with reviewed evidence. Independent source-only P9-C or P9-D work may proceed only when it remains provider-neutral, fail closed and does not imply provider approval or production activation.
 
 A broader audit of retryable non-sync writes may proceed in independent focused slices, but it must not displace the active order unless it exposes a defect in a currently used contract.
 
@@ -177,9 +179,22 @@ A blocker may be removed only for an exact selected provider/environment after r
 
 Do not replace `unset_blocker` with assumptions, marketing claims or generic provider documentation. No provider account, credentials, deployment, scheduling or production action is authorized by this plan.
 
-### P9-C — Consent and analytics prerequisites — planned
+### P9-C — Consent and analytics prerequisites — active, analytics disabled
 
-No analytics SDK, telemetry upload, tracking identifier or production event collection may be introduced before approved purpose, consent/withdrawal where required, minimization/redaction, access control, retention and deletion contracts exist.
+The first source slice establishes a machine-readable fail-closed activation contract covering product usage, crash diagnostics, performance telemetry, marketing attribution and advertising/cross-app tracking.
+
+Current contract:
+
+- every analytics-adjacent surface is disabled;
+- provider is `null`, collection/upload are `none` and retention is `zero`;
+- activation evaluation always returns blocked prerequisites;
+- exact purpose, versioned event schema, policy/legal choice decision, withdrawal where applicable, minimization, access, retention/deletion, provider/region, account-deletion integration, security/incident controls and user disclosures are required before activation;
+- secrets, direct identity, advertising identifiers, raw health/fitness/recovery/workout/nutrition values, free text, sync payloads, private object keys, precise location and hidden model reasoning are forbidden analytics classes;
+- repository tests reject known analytics, crash, attribution and advertising SDK markers in package and Expo configuration surfaces.
+
+Evidence remains in `docs/privacy/analytics-consent-prerequisites.md`.
+
+This is an activation guard, not analytics implementation. No SDK, event, tracking identifier, consent prompt, backend ingestion route, provider account, credential or upload is introduced. Further P9-C work may define a closed event-schema review mechanism and consent-state architecture, but must keep all collection disabled until policy and provider evidence are approved.
 
 ### P9-D — Privacy-facing controls and policy evidence — planned
 
