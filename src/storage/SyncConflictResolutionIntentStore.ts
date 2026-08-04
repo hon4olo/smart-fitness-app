@@ -1,5 +1,3 @@
-import type { SyncConflictResolutionChoice } from '../cloud/SyncConflictResolutionApi';
-import type { SyncConflictResolutionCandidate } from '../cloud/SyncConflictResolutionCandidate';
 import {
   parseSyncConflictResolutionIntentState,
   persistSyncConflictResolutionIntentState,
