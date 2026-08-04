@@ -5,6 +5,7 @@ import { getMobileApiBaseUrl } from '@/api';
 import { createApiClient } from '@/api/client';
 import {
   AUTH_SESSION_STORAGE_KEY,
+  clearAccountDeletionReceiptIdentity,
   clearLocalAccountData,
   completeLocalAccountCleanup,
   createMigratingTokenManager,
@@ -54,8 +55,14 @@ export function useAppInfrastructure(
       }),
     [onAccountDeleted, secureTokenStorage, storageAdapter, tokenManager],
   );
-  const repository = useMemo(() => repositoryProvider.getRepository(), [repositoryProvider]);
-  const authService = useMemo(() => repositoryProvider.getAuthService(), [repositoryProvider]);
+  const repository = useMemo(
+    () => repositoryProvider.getRepository(),
+    [repositoryProvider],
+  );
+  const authService = useMemo(
+    () => repositoryProvider.getAuthService(),
+    [repositoryProvider],
+  );
   const queueStore = useMemo(
     () => createAsyncStorageOperationQueueStore(storageAdapter),
     [storageAdapter],
@@ -64,7 +71,10 @@ export function useAppInfrastructure(
     () => createWeightSyncMetadataStore(storageAdapter),
     [storageAdapter],
   );
-  const apiClient = useMemo(() => createApiClient({ baseUrl: getMobileApiBaseUrl() }), []);
+  const apiClient = useMemo(
+    () => createApiClient({ baseUrl: getMobileApiBaseUrl() }),
+    [],
+  );
   const capabilityService = useMemo(
     () => createCapabilityService(apiClient),
     [apiClient],
@@ -92,10 +102,13 @@ export function useAppInfrastructure(
             tokenManager.clearTokens(),
             storageAdapter.remove(AUTH_SESSION_STORAGE_KEY),
           ]);
-          if (authCleanupResults.some((result) => result.status === 'rejected')) {
+          if (
+            authCleanupResults.some((result) => result.status === 'rejected')
+          ) {
             throw new Error('Pending account auth cleanup failed');
           }
           await completeLocalAccountCleanup(secureTokenStorage);
+          await clearAccountDeletionReceiptIdentity(secureTokenStorage);
         }
 
         const storedState = await measureAppStateRestore({
