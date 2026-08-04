@@ -11,14 +11,18 @@ Detailed provider and release-readiness evidence remains in `docs/roadmap/provid
 
 ## Verified baseline
 
-Verified before this roadmap reprioritization:
+Verified before this progress synchronization:
 
-- mobile `main`: `30ec3a5ba81d671e4df54c80dea15eb17fc8da84`;
-- backend `main`: `cd4c9705dbbe532990f2978bf62401e31e15ab3c`;
+- mobile `main`: `4227a7581a47f414bd66c2867512f4d3e6d89e7d`;
+- backend `main`: `8bc59def85440c43b00f0b8d792642fe60d10903`;
 - open mobile pull requests: none;
 - open backend pull requests: none;
 - mobile PR #406 merged the strict authenticated conflict-resolution API client;
-- backend PRs #143-#145 merged the backend-owned conflict-choice contract, authenticated route, and PostgreSQL-backed API coverage;
+- mobile PR #407 reprioritized P7 around blocking sync correctness before conflict UI;
+- backend PRs #143-#145 merged the conflict-choice contract, authenticated route, and PostgreSQL API coverage;
+- backend PR #146 made conflict replay/concurrency/API tests blocking and fixed numeric server-revision ordering;
+- backend PR #147 aligned sync-operation idempotency uniqueness with authenticated user scope;
+- backend PR #148 made replay, key-reuse, cross-user, and concurrent duplicate-delivery invariants blocking in CI;
 - all public provider-backed capabilities remain disabled;
 - no real provider/staging execution, deployment, migration outside CI, worker scheduling, native build, OTA/EAS publication, or production activation has been performed.
 
@@ -45,14 +49,15 @@ Approved boundaries:
 
 ## Program order
 
-The execution order is intentionally mixed: finish the correctness gates that protect the active P7 contract, then continue the user-facing P7 flow, while deferring expensive generalized stress infrastructure to P8.
+The order is intentionally mixed: finish the last narrow backend correctness proof that directly protects the active P7 write path, then continue the user-facing mobile flow. Expensive generalized stress infrastructure remains deferred.
 
-1. **P7-A — Blocking sync correctness gate.** Make the existing PostgreSQL conflict-resolution replay/concurrency/API tests mandatory in Backend CI.
-2. **P7-B — Idempotency and database invariant audit.** Verify and correct key scope, uniqueness, compare-and-set, rollback, and duplicate-delivery invariants for retryable sync writes.
-3. **P7-C — Mobile explicit conflict resolution.** Integrate the merged client into persisted conflict state, bounded presentation, explicit choice, safe replay, and post-resolution resynchronization.
-4. **P7-D — Focused retry and async correctness hardening.** Add deterministic lost-response replay coverage and type-aware Promise linting where it produces actionable signal.
-5. **P8 — Broader diagnostics and adversarial validation.** Add property-based sequence tests, multi-instance HTTP concurrency, and optional nightly k6/Toxiproxy scenarios after the P7 product path is complete.
-6. **P9 — Privacy, legal, consent, retention, and analytics prerequisites.** Define technical requirements before analytics or broader production instrumentation.
+1. **P7-B2 — Atomic rollback proof.** Add a deterministic PostgreSQL test proving that a failure after domain mutation but before sync-operation/conflict completion rolls the complete transaction back.
+2. **P7-C — Mobile explicit conflict resolution.** Integrate the merged client into persisted conflict state, bounded presentation, explicit choice, safe replay, and post-resolution resynchronization.
+3. **P7-D — Focused retry and async correctness hardening.** Add deterministic lost-response replay coverage and type-aware Promise linting where it produces actionable signal.
+4. **P8 — Broader diagnostics and adversarial validation.** Add property-based sequence tests, multi-instance HTTP concurrency, and optional nightly k6/Toxiproxy scenarios after the P7 product path is complete.
+5. **P9 — Privacy, legal, consent, retention, and analytics prerequisites.** Define technical requirements before analytics or broader production instrumentation.
+
+A broader inventory of retryable non-sync writes may continue in independent focused slices, but it must not displace the P7 mobile product path unless it exposes a correctness defect in a currently active contract.
 
 P6 real provider/staging evidence remains authorization-gated and does not block autonomous source work.
 
@@ -88,13 +93,16 @@ Backend:
 
 - PR #143: strict backend-owned conflict-choice contract for supported delete-versus-upsert revision conflicts;
 - PR #144: authenticated `POST /v1/sync/conflicts/:conflictId/resolve` route;
-- PR #145: PostgreSQL-backed authenticated API integration coverage.
+- PR #145: PostgreSQL-backed authenticated API integration coverage;
+- PR #146: blocking PostgreSQL sync-correctness CI and numeric `bigint` revision comparison;
+- PR #147: forward-safe migration from global idempotency uniqueness to `(user_id, idempotency_key)`;
+- PR #148: blocking runtime coverage for equivalent replay, conflicting key reuse, cross-user key reuse, and concurrent identical delivery.
 
 Mobile:
 
 - PR #406: strict versioned parser and authenticated API client with one-time token-refresh retry.
 
-The backend contract already provides:
+The backend contract provides:
 
 - authenticated user and device ownership checks;
 - expected conflict and authoritative remote revisions;
@@ -106,42 +114,37 @@ The backend contract already provides:
 
 ### P7-A — Blocking sync correctness gate
 
-**Immediate active slice.**
+**Complete through backend PR #146.**
 
-Required work:
+The dedicated PostgreSQL CI path now runs the service and authenticated API conflict-resolution contracts against the migrated schema with file parallelism disabled. It blocks pull requests on replay, ownership, stale revision, concurrent choice, tombstone publication, and pull visibility.
 
-1. add a dedicated Backend CI stage using the PostgreSQL service and migrated schema;
-2. run the existing conflict-resolution service and authenticated API PostgreSQL tests with file parallelism disabled;
-3. upload focused logs on failure;
-4. keep the ordinary complete Vitest suite unchanged;
-5. merge only the exact green head.
-
-Acceptance:
-
-- the current replay and concurrent-choice tests cannot silently skip in pull-request CI;
-- one concurrent conflicting choice commits and the other fails deterministically;
-- replay produces one durable business effect;
-- HTTP integration verifies ownership, stale revision rejection, tombstone publication, and pull visibility.
+The first blocking run exposed and fixed a real defect: PostgreSQL aggregate `bigint` revisions were arriving as runtime strings and could be compared lexicographically. Server revision selection now normalizes values with `BigInt` before computing the maximum.
 
 ### P7-B — Idempotency and database invariant audit
 
-Start immediately after P7-A unless P7-A exposes a defect.
+**Blocking key-scope and duplicate-delivery slices complete through backend PR #148.**
 
-Required order:
+Completed:
 
-1. inventory every retryable backend write and its intended idempotency-key scope;
-2. compare repository lookup scope with the actual PostgreSQL unique constraint scope;
-3. add explicit tests for the same key used by two different users;
-4. verify same key/same payload replay and same key/different payload rejection;
-5. verify transaction rollback between domain mutation, operation persistence, and conflict transition;
-6. use database constraints, atomic statements, compare-and-set, advisory locks, or row locks according to the actual invariant;
-7. do not require `FOR UPDATE` mechanically where an existing atomic strategy is correct.
+- repository lookup and PostgreSQL uniqueness now share the authenticated `(user_id, idempotency_key)` boundary;
+- migration creates the replacement composite unique index before dropping the previous global index;
+- the same key may be used independently by different users;
+- the same user and equivalent request replay one durable operation;
+- the same user and key with a different request returns `SYNC_IDEMPOTENCY_KEY_REUSE`;
+- concurrent identical delivery serializes to one operation and one replay;
+- all of these contracts run in the focused blocking PostgreSQL sync-correctness stage.
 
-The first known item to verify is `sync_operations`: repository lookup is user-scoped while the current unique index appears globally scoped by `idempotency_key`.
+Immediate remaining blocking proof:
+
+1. inject a deterministic failure after a routed domain mutation but before operation persistence or conflict completion;
+2. prove the domain mutation, sync operation, conflict transition, and revision allocation all roll back together;
+3. keep the failure injection test-only and preserve public service/route contracts.
+
+Do not require `FOR UPDATE` mechanically where an atomic statement, compare-and-set, advisory lock, or database constraint already expresses the invariant.
 
 ### P7-C — Mobile explicit conflict resolution
 
-Begin after P7-A is green and the blocking portion of P7-B is resolved. P7-B follow-up tests may continue in parallel when they do not alter the public contract.
+Begin immediately after the P7-B2 rollback proof is green. Independent non-blocking audit work may continue in parallel without altering the public conflict contract.
 
 Required order:
 
