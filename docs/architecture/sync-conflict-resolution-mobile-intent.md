@@ -30,7 +30,7 @@ P7-C3 submission uses a narrow executor over the persisted record. The executor:
 
 The submission executor does not accept raw payloads, device IDs, ownership IDs, or an arbitrary idempotency key. It does not remove the conflict or intent, synthesize a pull result, advance a cursor, or apply returned payloads directly.
 
-The P7-C3 reconciliation workflow now enforces the post-submission boundary:
+The P7-C3 reconciliation workflow enforces the post-submission boundary:
 
 1. create or restore the one immutable intent;
 2. submit it through the executor;
@@ -42,4 +42,8 @@ The P7-C3 reconciliation workflow now enforces the post-submission boundary:
 
 A failed synchronization, a remaining conflict, or a cursor below the accepted resolution revision leaves the intent durable. Retryable submission outcomes do not trigger synchronization. An accepted intent restored after restart can continue reconciliation without creating another logical request or losing its exact cursor target. This avoids treating the response payload as a substitute for ordered pull/materialization and prevents skipped intervening operations.
 
-The workflow is a source-level orchestration boundary and is not yet exposed as a presentation action. SyncContext composition and explicit confirmation UI remain subsequent bounded slices. No OTA/EAS publication, native build/install, backend deployment, or production activation is part of this work.
+The mobile composition boundary is exposed through `useSyncConflictResolution`. It derives the current user and token from `AuthContext`, constructs the strict authenticated API client, binds the persisted conflict, cursor, and intent stores, and delegates reconciliation to the existing `useWeightSync().syncNow` path. Consumers receive only `listCandidates()` and `resolve(candidate, choice)`; they cannot supply a user ID, device ID, idempotency key, raw payload, or arbitrary revision.
+
+Unauthenticated listing returns no candidates and unauthenticated resolution fails closed before an intent is created. Candidate listing continues to return only bounded identity, payload-kind, and timing metadata. The hook does not run automatically and makes no destructive choice by itself.
+
+Explicit localized confirmation UI remains the next bounded P7-C4 slice. No OTA/EAS publication, native build/install, backend deployment, or production activation is part of this work.
