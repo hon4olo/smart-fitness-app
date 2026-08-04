@@ -29,6 +29,11 @@ const readSourceCommit = (): unknown =>
   (Constants.expoConfig?.extra as BuildProvenanceExtra | undefined)
     ?.buildProvenance?.sourceCommit;
 
+const resolveRuntimeEnvironment = (): 'development' | 'production' =>
+  typeof __DEV__ !== 'undefined' && __DEV__
+    ? 'development'
+    : 'production';
+
 export const createSupportDiagnostics = (
   {
     conflictCount,
@@ -52,8 +57,7 @@ export const createSupportDiagnostics = (
     updateId: Updates.updateId ?? 'embedded',
     updateSource: Updates.isEmbeddedLaunch ? 'embedded' : 'downloaded',
     environment:
-      process.env.EXPO_PUBLIC_APP_ENV ??
-      (__DEV__ ? 'development' : 'production'),
+      process.env.EXPO_PUBLIC_APP_ENV ?? resolveRuntimeEnvironment(),
     syncStatus,
     pendingOperations,
     conflictCount,
