@@ -11,14 +11,15 @@ Detailed provider and release-readiness evidence remains in `docs/roadmap/provid
 
 ## Verified baseline
 
-Verified after the focused P7 correctness and retry hardening sequence:
+Verified before the P8-B diagnostics slice:
 
-- mobile `main`: `0201b4be785672c065af40f738a121cb068545de`;
+- mobile `main`: `09591a0fff0b74e9ade9c26213eb766a5b21d38c`;
 - backend `main`: `6facc94aac4aea19ba96fd337c48eff2107e9121`;
-- open mobile pull requests: none;
-- open backend pull requests: none;
+- no open mobile or backend pull requests before mobile PR #419;
 - backend PRs #143-#152 complete the current server conflict-resolution, replay, Promise-lint, and multi-instance correctness boundary;
 - mobile PRs #406, #409, and #411-#416 complete the strict client, safe candidate, durable intent, submission, reconciliation, explicit confirmation, and uncertain-response replay boundaries;
+- mobile PR #418 completes bounded generated conflict-intent model sequences;
+- mobile PR #419 implements the privacy-safe diagnostics and exact source-provenance boundary, subject to full exact-head Mobile CI before merge;
 - all public provider-backed capabilities remain disabled;
 - no provider/staging execution, deployment, migration outside CI, worker scheduling, native build, OTA/EAS publication, or production activation has been performed.
 
@@ -46,13 +47,12 @@ There is no remaining approved autonomous source-refactor phase. Any future prov
 
 ## Current priority order
 
-P7 source correctness is complete. P8 begins with bounded, deterministic evidence before generalized stress infrastructure.
+P7 source correctness and P8-A generated state-machine evidence are complete. The active order is now release evidence quality before generalized adversarial infrastructure.
 
-1. **P8-A — Property-based model sequences.** Add bounded PR-level model tests for durable conflict intent transitions, retry/restart sequences, and reconciliation invariants. Use reproducible seeds and shrinking; keep expensive database sequences out of ordinary PR runs.
-2. **P8-B — Privacy-safe diagnostics and evidence provenance.** Define stable diagnostic event contracts, exact commit/build provenance, bounded metadata, retention boundaries, and user-data exclusions before broader instrumentation.
-3. **P8-C — Release and rollback gates.** Verify backend/mobile exact-SHA release evidence, Android package/link source configuration, rollback readiness, and failure-stop conditions without publishing or deploying.
-4. **P8-D — Optional adversarial nightly validation.** Add multi-instance/load and Toxiproxy scenarios only where deterministic tests already define the expected invariant and runtime/flake evidence supports scheduled execution.
-5. **P9 — Privacy, legal, consent, retention, and analytics prerequisites.** Define technical prerequisites before broader production instrumentation.
+1. **P8-B — Privacy-safe diagnostics and evidence provenance.** Complete exact-head CI and merge the versioned support-evidence contract, exact immutable source SHA, bounded metadata, zero default retention, and explicit data exclusions.
+2. **P8-C — Release and rollback gates.** Verify backend/mobile exact-SHA release evidence, Android package/link source configuration, rollback readiness, and failure-stop conditions without publishing or deploying.
+3. **P8-D — Optional adversarial nightly validation.** Add larger model runs, load, and network-fault scenarios only where deterministic tests already define the expected invariant and runtime/flake evidence supports scheduled execution.
+4. **P9 — Privacy, legal, consent, retention, and analytics prerequisites.** Define technical prerequisites before broader production instrumentation.
 
 A broader audit of retryable non-sync writes may proceed in independent focused slices, but it must not displace the active evidence order unless it exposes a defect in a currently used contract.
 
@@ -141,31 +141,37 @@ Physical second-device, offline termination/restart, and matching standalone-run
 
 ## P8 — Diagnostics and adversarial release preparation
 
-### P8-A — Property-based model sequences
+### P8-A — Property-based model sequences — complete through PR #418
 
-The immediate source slice should model the conflict intent and reconciliation state machine rather than issue thousands of database requests.
+The blocking mobile contract now runs bounded generated state-machine sequences against the durable conflict-resolution intent store.
 
-Required invariants:
+Implemented evidence:
 
-- one conflict has at most one immutable choice and idempotency identity;
-- retry, token refresh, and process restart never replace that identity;
-- uncertain delivery cannot transition directly to terminal cleanup;
-- accepted resolution remains durable until the authoritative cursor reaches the accepted revision and the conflict is absent;
-- stale or already-resolved outcomes can reconcile only through normal synchronization;
-- user isolation is preserved across every generated sequence;
-- malformed persisted state fails closed.
+- 128 reproducible seeds with 20-60 commands per sequence;
+- two-user isolation across create/replay, submit, retry, accepted revision, stale state, completion, removal, malformed revision, wrong key, and process restart;
+- model-versus-real-store comparison after every command;
+- deterministic failing-sequence reduction and original seed reporting;
+- stable choice and idempotency identity across retry and restart;
+- accepted state retention until authoritative reconciliation;
+- terminal-only removal and fail-closed invalid operations;
+- blocking PR-level execution without a new dependency or high-volume database loop.
 
-PR-level runs should be bounded and reproducible, with failure seeds and shrunk counterexamples retained in test output. Larger sequence counts belong in scheduled validation after runtime and flake evidence is available.
+Larger sequence counts remain scheduled-validation work only after runtime and flake evidence supports them.
 
-### P8-B — Privacy-safe diagnostics and evidence provenance
+### P8-B — Privacy-safe diagnostics and evidence provenance — active in PR #419
 
-Planned source work:
+The current slice defines:
 
-- define stable diagnostic event names and bounded status categories;
-- exclude payloads, access/refresh tokens, raw provider text, ownership identifiers, and sensitive health/nutrition values;
-- attach exact source SHA, build/runtime version, schema version, and evidence timestamp where appropriate;
-- document retention, redaction, and support-export boundaries;
-- keep operational evidence separate from user-facing copy.
+- stable event name `support_diagnostics_snapshot` and schema version `1`;
+- exact full source SHA resolved from explicit release input or immutable GitHub CI SHA;
+- rejection of branches, tags, shortened hashes, dirty suffixes, placeholders, and malformed provenance;
+- exact evidence timestamp plus app, build, runtime, channel, update, environment, sync, and bounded count metadata;
+- explicit field construction that drops arbitrary properties;
+- tests proving exclusion of email, tokens, ownership IDs, payloads, health values, nutrition text, and other unapproved content;
+- zero default retention, no persistence, no background upload, and no analytics activation;
+- architecture documentation in `docs/architecture/privacy-safe-support-diagnostics.md`.
+
+Full exact-head Mobile CI remains required before merge. Any future collection or transmission requires a separate consent, purpose, access-control, retention, deletion, and redaction contract.
 
 ### P8-C — Release and rollback gates
 
