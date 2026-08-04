@@ -1,5 +1,7 @@
 import type { ApiClient } from '@/api/client';
 
+import type { AccountDeletionReceiptIdentityFactory } from './accountDeletionReceipt';
+
 export type AuthDeviceInfo = {
   deviceName: string;
   platform: string;
@@ -140,6 +142,8 @@ export type CreateAuthServiceOptions = {
   tokenManager: TokenManager;
   sessionStorage: AuthStorage;
   accountCleanupMarkerStorage?: AuthStorage;
+  accountDeletionReceiptStorage?: AuthStorage;
+  accountDeletionReceiptIdentityFactory?: AccountDeletionReceiptIdentityFactory;
   sessionStorageKey?: string;
   defaultDevice?: AuthDeviceInfo;
   onSessionChange?: (session: AuthSession | null) => void;
