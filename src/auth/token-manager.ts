@@ -10,14 +10,58 @@ export type TokenEnvelope = AuthTokens & {
   updatedAt: string;
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+const BASE64_URL_ALPHABET =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const decodeBase64Url = (value: string): string => {
+  const paddingLength = value.match(/=+$/)?.[0].length ?? 0;
+  const unpadded = value.slice(0, value.length - paddingLength);
+  const remainder = unpadded.length % 4;
+
+  if (
+    paddingLength > 2 ||
+    unpadded.includes('=') ||
+    remainder === 1 ||
+    (paddingLength > 0 && paddingLength !== (4 - remainder) % 4)
+  ) {
+    throw new Error('Invalid base64url padding');
+  }
+
+  const bytes: number[] = [];
+  let accumulator = 0;
+  let bitCount = 0;
+
+  for (const character of unpadded) {
+    const sextet = BASE64_URL_ALPHABET.indexOf(character);
+    if (sextet < 0) {
+      throw new Error('Invalid base64url character');
+    }
+
+    accumulator = (accumulator << 6) | sextet;
+    bitCount += 6;
+
+    if (bitCount >= 8) {
+      bitCount -= 8;
+      bytes.push((accumulator >> bitCount) & 0xff);
+      accumulator &= bitCount === 0 ? 0 : (1 << bitCount) - 1;
+    }
+  }
+
+  if (bitCount > 0 && accumulator !== 0) {
+    throw new Error('Invalid base64url trailing bits');
+  }
+
+  return decodeURIComponent(
+    bytes.map((byte) => `%${byte.toString(16).padStart(2, '0')}`).join(''),
+  );
+};
 
 const toBase64UrlJson = (value: string): unknown => {
   try {
-    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
-    const padding = '='.repeat((4 - (normalized.length % 4)) % 4);
-    const decoded = globalThis.atob(normalized + padding);
-    return JSON.parse(decoded) as unknown;
+    return JSON.parse(decodeBase64Url(value)) as unknown;
   } catch {
     return null;
   }
@@ -42,7 +86,11 @@ const readJwtExpiry = (token?: string): string | null => {
   return Number.isFinite(expiresAt.getTime()) ? expiresAt.toISOString() : null;
 };
 
-const isExpiredByNow = (token: string | undefined, now: Date | string, skewSeconds: number): boolean => {
+const isExpiredByNow = (
+  token: string | undefined,
+  now: Date | string,
+  skewSeconds: number,
+): boolean => {
   if (!token) {
     return false;
   }
@@ -67,7 +115,11 @@ const parseEnvelope = (value: string | null): TokenEnvelope | null => {
 
   try {
     const parsed = JSON.parse(value) as unknown;
-    if (!isRecord(parsed) || typeof parsed.accessToken !== 'string' || typeof parsed.refreshToken !== 'string') {
+    if (
+      !isRecord(parsed) ||
+      typeof parsed.accessToken !== 'string' ||
+      typeof parsed.refreshToken !== 'string'
+    ) {
       return null;
     }
 
@@ -75,16 +127,28 @@ const parseEnvelope = (value: string | null): TokenEnvelope | null => {
       accessToken: parsed.accessToken,
       refreshToken: parsed.refreshToken,
       tokenType: 'Bearer',
-      accessTokenExpiresAt: typeof parsed.accessTokenExpiresAt === 'string' ? parsed.accessTokenExpiresAt : readJwtExpiry(parsed.accessToken),
-      refreshTokenExpiresAt: typeof parsed.refreshTokenExpiresAt === 'string' ? parsed.refreshTokenExpiresAt : readJwtExpiry(parsed.refreshToken),
-      updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : new Date().toISOString(),
+      accessTokenExpiresAt:
+        typeof parsed.accessTokenExpiresAt === 'string'
+          ? parsed.accessTokenExpiresAt
+          : readJwtExpiry(parsed.accessToken),
+      refreshTokenExpiresAt:
+        typeof parsed.refreshTokenExpiresAt === 'string'
+          ? parsed.refreshTokenExpiresAt
+          : readJwtExpiry(parsed.refreshToken),
+      updatedAt:
+        typeof parsed.updatedAt === 'string'
+          ? parsed.updatedAt
+          : new Date().toISOString(),
     };
   } catch {
     return null;
   }
 };
 
-export const createTokenManager = (storage: StorageAdapter, storageKey = AUTH_TOKENS_STORAGE_KEY): TokenManager => {
+export const createTokenManager = (
+  storage: StorageAdapter,
+  storageKey = AUTH_TOKENS_STORAGE_KEY,
+): TokenManager => {
   const loadTokens = async (): Promise<AuthTokens | null> => {
     const envelope = parseEnvelope(await storage.read(storageKey));
     if (!envelope) {
