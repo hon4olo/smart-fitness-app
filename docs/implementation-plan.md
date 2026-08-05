@@ -13,13 +13,13 @@ Provider and release-readiness evidence remains in `docs/roadmap/provider-readin
 
 Verified after the current provider-neutral P9-C/P9-D source sequence:
 
-- mobile `main`: `d213e13304a94647205aae1d06e3df39d7f74781`;
-- backend `main`: `30ca2484e65ea174affd317b0e4cf9c1ec0a4ad4`;
+- mobile `main`: `b2ab453deb675ccfdb6baee485bb40cbece7faba`;
+- backend `main`: `1a2840aacbddca5bad30693133036fd5b9f566da`;
 - no open mobile or backend pull requests before this roadmap-sync slice;
 - all public provider-backed capabilities remain disabled;
 - analytics, crash reporting, performance telemetry, attribution and advertising collection remain disabled;
 - no production analytics event or measurement purpose is registered;
-- the default production composition has no data-access export endpoint; an optional source-only route boundary, durable PostgreSQL attempt limiter and two ownership-safe allowlisted projections exist, but they are not composed by default and no multi-surface assembly, archive generation or delivery path exists;
+- the default production composition has no data-access export endpoint; an optional source-only route boundary, durable PostgreSQL attempt limiter and three ownership-safe allowlisted projections exist, but they are not composed by default and no multi-surface assembly, archive generation or delivery path exists;
 - no provider/staging execution, deployment, migration outside CI, backend worker scheduling, native build, OTA/EAS publication, rollback execution, store submission, legal-hold mutation, destructive production cleanup or production activation has been performed.
 
 Always re-check exact `main`, open pull requests, `AGENTS.md`, `PROJECT_LEARNINGS.md`, this plan and the relevant architecture/operations documents before another source slice.
@@ -44,7 +44,7 @@ This is an engineering planning estimate, not a release-readiness or legal-compl
 | P9-B2 cross-surface account deletion | source-complete |
 | P9-B3 provider/environment retention evidence | active; externally blocked |
 | P9-C consent and analytics prerequisites | active; provider-neutral source guards substantially complete |
-| P9-D privacy-facing controls and policy evidence | active; source contracts, route boundary, durable limiter and first two ownership-safe projections defined |
+| P9-D privacy-facing controls and policy evidence | active; source contracts, route boundary, durable limiter and first three ownership-safe projections defined |
 
 The remaining estimate is concentrated in exact provider/environment evidence, policy/legal decisions, real backend export implementation, product integration, localization/accessibility and physical release evidence.
 
@@ -72,7 +72,7 @@ There is no remaining approved autonomous source-refactor phase. Future restruct
 
 1. **P9-B3 — Retention blocker closure.** Replace `unset_blocker` entries only with exact selected-provider/environment evidence for maximum lifetime, access, expiry/deletion and failure monitoring. Provider accounts, credentials, deployment, worker scheduling and real cleanup remain direct-authorization actions.
 2. **P9-C — Consent and analytics prerequisites.** Keep all collection disabled. Remaining work requires policy/legal decisions, exact provider evidence, persistence/ownership decisions, reviewed disclosures and eventual product integration. Do not add an SDK, production event, tracking identifier or upload route while activation remains blocked.
-3. **P9-D — Privacy-facing controls and policy evidence.** Extend ownership-safe allowlisted projections to the remaining selected surfaces, define multi-surface assembly plus audit/idempotency and continue deletion-status/reviewed-disclosure work. The durable limiter and first two projections exist in source, but the optional route remains disabled by default pending separate deployed-composition approval; secure delivery, UI integration and public policy text remain separate reviewed slices.
+3. **P9-D — Privacy-facing controls and policy evidence.** Extend ownership-safe allowlisted projections to the remaining selected surfaces, define multi-surface assembly plus audit/idempotency and continue deletion-status/reviewed-disclosure work. The durable limiter and first three projections exist in source, but the optional route remains disabled by default pending separate deployed-composition approval; secure delivery, UI integration and public policy text remain separate reviewed slices.
 4. **Operational and physical evidence.** Execute staging/provider checks, release-device validation, worker scheduling, deployment and lifecycle proof only after explicit authorization and complete ownership inputs.
 
 P9-B3 can advance only for an exact selected provider/environment. Independent P9-C or P9-D work may proceed only when provider-neutral, fail closed and not presented as legal approval or production activation.
@@ -289,6 +289,18 @@ Backend PR #162 adds the second ownership-safe allowlisted export projection for
 - the projection remains separate from preparation, route composition and multi-surface assembly, so no export endpoint or delivery capability became active.
 
 Evidence: backend `docs/privacy/data-access-export-progress-projection.md`.
+
+Backend PR #163 adds the third ownership-safe allowlisted export projection for `health_limitations_and_recovery`:
+
+- only the authenticated owner's active `user_limitations` and `recovery_check_ins` rows are read after an active-owner check;
+- explicit selected columns exclude internal IDs, ownership/device metadata, revisions, tombstones and other users' records before serialization;
+- owner verification plus both health queries share one read-only repeatable-read PostgreSQL snapshot;
+- limitations use deterministic ordering and a fail-closed 250-row source bound; recovery check-ins use deterministic chronological ordering and a fail-closed 500-row source bound;
+- output preserves user-facing limitation classifications, dates, movement patterns, recovery scores and notes without inferring diagnoses or recommendations;
+- PostgreSQL evidence covers cross-user isolation, deleted owners and rows, secret/internal-field exclusion, both overflow boundaries and concurrent snapshot consistency;
+- the projection remains separate from preparation, route composition and multi-surface assembly, so no export endpoint or delivery capability became active.
+
+Evidence: backend `docs/privacy/data-access-export-health-projection.md`.
 
 Mobile PR #431 establishes a privacy-safe account-deletion status presentation contract:
 
