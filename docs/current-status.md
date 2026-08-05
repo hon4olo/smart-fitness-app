@@ -4,16 +4,17 @@ Updated: 2026-08-05
 
 ## Verified repository baseline
 
-Verified after backend PR #170 and closure of backend draft PR #171:
+Verified after backend PR #171:
 
-- mobile `main`: `53a7f638ef4d94b98b998f088374f64b733c3f26`;
-- backend `main`: `f840253791414abca044e85d4a50e78789699a14`;
+- mobile `main` before this documentation slice: `aad136aa2caeafb15240ff0b817f9fd3bd86110e`;
+- backend `main`: `be3548f0266f819324170e24bc4d5d66bdf10189`;
 - backend PR #168 merged the `coach_reviews_proposals_and_run_history` export projection;
 - backend PR #169 added strict parent-run/child-stage lifecycle validation for that projection;
-- backend PR #170 added an executable Social ownership/privacy audit and kept Social projection implementation globally blocked;
-- backend draft PR #171 attempted a Social projection from the pre-audit baseline and was closed without merge after confirmed policy, managed-media, deleted-target, stale-base, and file-size blockers;
+- backend PR #170 added an executable Social ownership/privacy audit and kept full Social projection implementation globally blocked;
+- backend PR #171 added the audit-approved `social_profile_and_authored_posts` source for the owner's own profile and active authored posts without registering a seventh complete projection;
 - mobile PR #447 synchronized the canonical roadmap from five to six ownership-safe projections;
 - mobile PR #448 recorded Coach lifecycle-hardening evidence and selected Social audit as the next safe slice;
+- mobile PR #449 recorded the audit boundary and the premature pre-audit form of backend PR #171 before that PR was narrowed and reopened;
 - no open mobile or backend pull requests before this documentation slice.
 
 Always re-check both repositories and open pull requests before work. This file records a checkpoint, not a live Git query.
@@ -38,10 +39,10 @@ Active packages remain unchanged:
 
 1. P9-B3 provider/environment retention evidence — externally blocked until exact providers, environments, owners, credentials, lifecycle controls, and evidence are available.
 2. P9-C consent and analytics prerequisites — collection remains disabled; no production event or measurement purpose is registered.
-3. P9-D privacy-facing controls and policy evidence — six source projections exist; Social ownership/privacy decisions remain blocked before any seventh projection.
+3. P9-D privacy-facing controls and policy evidence — six complete source projections plus the bounded Social owned-content source exist; the full Social surface remains blocked before any seventh projection.
 4. Operational and physical evidence — authorization-gated staging, deployment, worker scheduling, native build, release-device, offline-restart, accessibility, localization, and second-device validation.
 
-The Social audit does not reorder those roadmap packages or increase the implemented-projection count. See `docs/implementation-plan.md` for complete package evidence.
+The bounded Social owned-content source does not reorder those roadmap packages or increase the implemented-projection count. See `docs/implementation-plan.md` for complete package evidence.
 
 ## Mobile state
 
@@ -79,6 +80,15 @@ Backend `main` contains:
   - `workouts_programs_and_exercises`;
   - `coach_reviews_proposals_and_run_history`.
 
+Backend PR #171 additionally provides the bounded non-surface source `social_profile_and_authored_posts`:
+
+- it reads only the authenticated owner's active account, own Social profile, and active authored workout posts;
+- profile output is limited to username, display name, bio, visibility, and timestamps;
+- post output is rebuilt through a strict version-1 snapshot parser and includes only bounded user-facing workout values, caption, and creation time;
+- raw avatar URLs, managed-media references, graph edges, requests, blocks, reactions, comments, received activity, notifications, internal IDs, revisions, idempotency keys, raw JSON, and every other-user field are excluded;
+- owner/profile/post reads share one read-only repeatable-read snapshot and fail closed above 1,000 active authored posts;
+- the output uses `sourceId: social_profile_and_authored_posts`, sets `fullSurfaceProjectionAllowed: false`, and is not part of the implemented-projection registry.
+
 The Coach projection reads owner-scoped runs and stages in one repeatable-read snapshot, explicitly parses all nine current request types, excludes raw request/context/result/stage payloads and internal/provider metadata, and fails closed on unsupported result shapes, ownership mismatch, source-bound overflow, or lifecycle inconsistency.
 
 Lifecycle validation requires status-appropriate stage timestamps, prevents active stages under queued runs and unfinished stages under terminal runs, and bounds every stage start/completion inside the parent run window.
@@ -109,7 +119,9 @@ The audit establishes:
 - counterpart representation, received third-party activity, managed-media disposition, deleted/inaccessible targets, and deterministic bounds/snapshot semantics remain unresolved;
 - `SOCIAL_EXPORT_PROJECTION_IMPLEMENTATION_ALLOWED` remains `false`.
 
-Backend draft PR #171 was not accepted as a seventh projection because it was based before the audit, autonomously resolved blocked policy questions, exported the unresolved avatar URL, did not exclude deleted referenced posts, and introduced a 527-line repository above the mandatory 500-line limit. The branch remains available for selective reuse after reviewed decisions.
+Backend PR #171 was narrowed to the two audit-approved own-row tables before merge. It does not export graph edges, incoming or outgoing relationship data, target references, received third-party activity, notifications, raw avatar URLs, or managed-media state. The repository was reduced to a focused source boundary well below the 500-line limit, and exact-head Backend CI plus Account Deletion Receipt CI passed.
+
+The full registered Social surface remains blocked. Counterpart identity, incoming third-party activity, action-target representation, notifications, managed media, and deleted/private/blocked/inaccessible target behavior still require separate reviewed decisions. Incoming block disclosure remains permanently prohibited.
 
 ## Deferred audit recommendations
 
@@ -139,4 +151,4 @@ The following remain disabled, absent from default production composition, or re
 - `docs/current-status.md` provides mutable verified state;
 - `docs/handoffs/latest.md` provides the continuation checkpoint;
 - `docs/architecture/README.md` indexes focused architecture documents;
-- `docs/implementation-plan.md` remains the canonical cross-repository roadmap and already requires an explicit ownership/privacy decision before Social implementation.
+- `docs/implementation-plan.md` remains the canonical cross-repository roadmap and records the bounded owned-content source while requiring explicit ownership/privacy decisions before any full Social projection.
