@@ -4,12 +4,14 @@ Updated: 2026-08-05
 
 ## Verified repository baseline
 
-Verified after backend PR #167:
+Verified after mobile PR #445:
 
-- mobile `main`: `5669c445000c4e6d3782826049d16feb78975858`;
+- mobile `main`: `1df306eb9d83e49014eea7063b18f7e431b68dd7`;
 - backend `main`: `cbcecff4c0def1771bd91a67ff389ae517f48d8a`;
 - backend PR #167 merged the `workouts_programs_and_exercises` export projection;
-- no open mobile or backend pull requests before this roadmap-sync slice.
+- mobile PR #444 removed the destructive Expo template reset command/script and two empty root artifacts;
+- mobile PR #445 replaced the auth token manager's `globalThis.atob` dependency with strict platform-independent base64url/UTF-8 decoding and added focused fail-closed tests;
+- no open mobile or backend pull requests before this documentation slice.
 
 Always re-check both repositories and open pull requests before work. This file records a checkpoint, not a live Git query.
 
@@ -29,14 +31,14 @@ Completed source packages include:
 - P9-B1 operational retention foundation;
 - P9-B2 cross-surface account deletion source work.
 
-Active packages:
+Active packages remain unchanged:
 
 1. P9-B3 provider/environment retention evidence — externally blocked until exact providers, environments, owners, credentials, lifecycle controls, and evidence are available.
 2. P9-C consent and analytics prerequisites — collection remains disabled; no production event or measurement purpose is registered.
 3. P9-D privacy-facing controls and policy evidence — source-only preparation boundaries and ownership-safe projections are being extended.
 4. Operational and physical evidence — authorization-gated staging, deployment, worker scheduling, native build, release-device, offline-restart, accessibility, localization, and second-device validation.
 
-See `docs/implementation-plan.md` for complete package evidence.
+The repository-hygiene and JWT-hardening work does not reorder those roadmap packages. See `docs/implementation-plan.md` for complete package evidence.
 
 ## Mobile state
 
@@ -46,6 +48,8 @@ Current mobile source includes:
 - revisioned synchronization for every currently registered private mobile domain;
 - persisted conflict review and explicit conflict resolution;
 - secure native token storage;
+- strict platform-independent JWT base64url/UTF-8 expiry decoding with fail-closed malformed-token behavior;
+- no destructive template reset command or script and no tracked empty root log/success artifacts;
 - deterministic and structured Coach flows with explicit confirmation;
 - account-deletion recovery and privacy-facing fail-closed contracts;
 - blocking source CI, Expo export, and Expo Doctor checks;
@@ -83,6 +87,16 @@ Source projections are still absent for:
 - `social_relationships_and_account_activity`.
 
 The Coach surface is the next bounded candidate, subject to a fresh schema/privacy audit. Social requires explicit separation of authored, received, relationship, block, notification, and mixed-policy data before implementation.
+
+## Deferred audit recommendations
+
+The following audit suggestions are not approved implementation work without new evidence:
+
+- migrating focused Context boundaries to Zustand or Jotai;
+- replacing the reviewed AsyncStorage snapshot with SQLite, WatermelonDB, MMKV, or another local database;
+- mass-moving shared `data`, `domain`, and `components` code into feature directories;
+- mechanically consolidating `test/`, `tests/`, and colocated tests without first auditing CI, path-reading tests, and ownership;
+- adding performance refactors before release-device profiling demonstrates a specific render or interaction bottleneck.
 
 ## Disabled or authorization-gated
 
