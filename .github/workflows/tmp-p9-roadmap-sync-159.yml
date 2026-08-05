@@ -1,0 +1,104 @@
+name: Temporary P9-D Roadmap Sync 159
+
+on:
+  push:
+    branches:
+      - agent/p9-roadmap-sync-159
+    paths:
+      - '.github/workflows/tmp-p9-roadmap-sync-159.yml'
+      - 'docs/implementation-plan.md'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/p9-roadmap-sync-159
+      - name: Apply exact roadmap updates
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('docs/implementation-plan.md')
+          text = path.read_text()
+          new_backend_sha = '2e5cef5f0ded18a75d8ca11da71018789b3321be'
+          if new_backend_sha in text:
+              raise SystemExit(0)
+
+          replacements = [
+              (
+                  '- mobile `main`: `6f3ead50321812392a886d4420549ff45809145f`;',
+                  '- mobile `main`: `336a6268320657c8ced2704714ce4b22537dfa31`;',
+              ),
+              (
+                  '- backend `main`: `1acdf6f1841bcfb17d450f904a12d1da221c84ce`;',
+                  f'- backend `main`: `{new_backend_sha}`;',
+              ),
+              (
+                  '- no production data-access export route, query execution, archive generation or delivery path exists;',
+                  '- the default production composition has no data-access export endpoint; an optional source-only route boundary exists, but no durable limiter, export query, archive generation or delivery path exists;',
+              ),
+              (
+                  '| P9-D privacy-facing controls and policy evidence | active; source contracts and backend preparation boundaries substantially defined |',
+                  '| P9-D privacy-facing controls and policy evidence | active; source contracts, preparation and disabled-by-default route composition boundaries substantially defined |',
+              ),
+              (
+                  '3. **P9-D — Privacy-facing controls and policy evidence.** Continue bounded source implementation for the authenticated data-access/export lifecycle, deletion-status integration and reviewed disclosures. Actual database projections, secure delivery, UI integration and public policy text remain separate reviewed slices and may require direct authorization.',
+                  '3. **P9-D — Privacy-facing controls and policy evidence.** Continue bounded source implementation for ownership-safe export repositories, field allowlists, audit/idempotency, deletion-status integration and reviewed disclosures. The optional route remains disabled by default until a durable limiter and separate deployment approval exist; secure delivery, UI integration and public policy text remain separate reviewed slices.',
+              ),
+              (
+                  '- integrate session authentication and current-password verification into an actual bounded route lifecycle;',
+                  '- implement and inject a durable multi-instance per-account attempt limiter, then separately approve deployed route composition;',
+              ),
+              (
+                  '- **P9-D implementation and review:** authenticated route integration, ownership-safe queries/projections, rate limits, audit/idempotency, secure delivery, mobile UI/localization/accessibility and policy/legal approval;',
+                  '- **P9-D implementation and review:** durable rate limiting and separately approved route activation, ownership-safe queries/projections, audit/idempotency, secure delivery, mobile UI/localization/accessibility and policy/legal approval;',
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected one roadmap match, found {count}: {old}')
+              text = text.replace(old, new)
+
+          anchor = 'Evidence: backend `docs/privacy/data-access-export-preparation.md`.\n'
+          if text.count(anchor) != 1:
+              raise SystemExit('Expected one backend preparation evidence anchor')
+          addition = '''
+
+Backend PR #159 adds a disabled-by-default authenticated route-composition boundary:
+
+- `POST /v1/privacy/data-access/export/prepare` is registered only when an explicit attempt-guard dependency is injected;
+- default production `createApp()` has no endpoint and returns `404`;
+- auth and strict structural validation precede attempt consumption;
+- the injected guard must fail closed and rate-limit before current-password verification;
+- user identity comes only from the authenticated session;
+- invalid credentials use the existing bounded auth error;
+- valid re-verification still returns only `409 DATA_EXPORT_NOT_AVAILABLE` with no table names, internal issue codes, identifiers, passwords or secret-class labels;
+- no production limiter, route activation, export repository, query, audit record, archive or delivery path was added.
+
+Evidence: backend `docs/privacy/data-access-export-route-boundary.md`.
+'''
+          text = text.replace(anchor, anchor + addition)
+
+          required = 'There is no remaining approved autonomous source-refactor phase.'
+          if required not in text:
+              raise SystemExit('Required storage decision invariant is missing')
+
+          path.write_text(text)
+          PY
+      - name: Commit roadmap update
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/implementation-plan.md
+          git commit -m "docs: record disabled export route boundary"
+          git push origin HEAD:agent/p9-roadmap-sync-159
