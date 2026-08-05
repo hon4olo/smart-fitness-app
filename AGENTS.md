@@ -1,24 +1,10 @@
 # Smart Fitness App — Agent Instructions
 
-## Project
+## Repository role
 
 This repository is the Expo / React Native mobile client for Smart Fitness.
 
-Current approved scope:
-
-- workout tracking;
-- nutrition tracking;
-- progress tracking;
-- profile and authentication;
-- offline-first local persistence;
-- revision-aware synchronization with the production backend;
-- deterministic and structured AI Coach flows.
-
-Do not expand the product beyond the user's current task.
-
-## Connected backend
-
-Use the existing backend only:
+Connected backend:
 
 - repository: `hon4olo/smart-fitness-backend`;
 - production API: `https://api.peptonio.com`;
@@ -26,25 +12,70 @@ Use the existing backend only:
 
 Do not introduce Supabase, Firebase, a second backend, or direct provider calls from mobile.
 
-## Mobile stack and boundaries
+## Documentation source of truth
+
+Read these documents before changing code:
+
+1. `AGENTS.md` — permanent execution and safety rules.
+2. `docs/project-context.md` — stable product and architecture context.
+3. `docs/current-status.md` — verified current repository and roadmap state.
+4. `docs/handoffs/latest.md` — the latest continuation checkpoint.
+5. `PROJECT_LEARNINGS.md` — reusable project-specific implementation lessons.
+6. `docs/implementation-plan.md` — canonical cross-repository execution plan.
+7. Relevant focused documents under `docs/architecture/`, `docs/privacy/`, `docs/roadmap/`, `docs/qa/`, and `docs/release/`.
+
+Code, migrations, tests, and exact current Git history override stale prose. When a change materially alters architecture, status, active blockers, or continuation state, update the relevant documentation in the same pull request.
+
+Do not create broad duplicate architecture documents when a focused canonical document already exists. Use `docs/architecture/README.md` as the architecture index.
+
+## Product boundaries
+
+Approved product scope:
+
+- workout tracking;
+- nutrition tracking;
+- progress tracking;
+- profile and authentication;
+- offline-first local persistence;
+- revision-aware synchronization;
+- deterministic and structured AI Coach flows.
+
+Do not add without explicit approval:
+
+- blood-test analysis;
+- diagnosis logic;
+- pharmacology, hormone, SARM, or medication-dosing logic;
+- coach marketplace;
+- social-network product surfaces;
+- payments or subscriptions.
+
+## Mobile architecture
 
 - Expo SDK 56;
 - React Native and Expo Router;
 - TypeScript;
-- AsyncStorage for offline-first application state and queues;
+- AsyncStorage for offline-first application state, metadata, and queues;
 - Expo SecureStore for native access and refresh tokens;
 - shared backend API through `src/api/`;
 - dark minimal UI.
 
-Main application state lives in `src/context/AppContext.tsx`.
+One authoritative internal `AppState` still backs repositories, persistence, mutation ordering, outbox generation, and synchronization. Production consumers must use focused state boundaries rather than the full compatibility `useAppContext` hook.
+
+Available focused boundaries include:
+
+- `AppActions`;
+- `AppInfrastructure`;
+- `WorkoutState`;
+- `NutritionDataState`;
+- `ProgressState`;
+- `ProfileDataState`;
+- `SafetyRecoveryState`.
+
 Synchronization orchestration lives in `src/context/SyncContext.tsx` and `src/cloud/`.
-The cross-repository execution plan is `docs/implementation-plan.md`.
 
-## Current implementation status
+## Current synchronization baseline
 
-### Revisioned synchronization
-
-First-class revisioned sync is implemented for:
+First-class revisioned synchronization exists for:
 
 - weight history;
 - completed workout sessions and sets;
@@ -60,25 +91,24 @@ First-class revisioned sync is implemented for:
 - meal templates with strict nested food snapshots;
 - account-scoped Nutrition library items.
 
-Do not describe synchronization as weight-only and do not route unrelated entities through the weight adapter.
+Do not describe synchronization as weight-only. Do not describe custom exercises or meal templates as local-only. Do not route unrelated entities through the weight adapter.
 
 Source-level synchronization hardening is complete for the current contracts:
 
-- the eager weight-history outbox path journals its exact operation for restart replay;
-- planner-based domains regenerate missing operations from persisted state, metadata, and pending queue;
-- push and pull token refresh retries preserve exact cursor, payload, base revision, and idempotency identity;
-- behavioral concurrent-pull coverage protects local mutations during remote materialization;
-- source-level two-device conflict coverage spans every mutable synchronized domain;
-- backend PostgreSQL coverage validates Nutrition-library create/update/delete concurrency and replay;
-- unresolved conflict state persists and Data & Sync exposes safe retry, recovery, review, and diagnostic actions.
+- eager weight-history outbox operations are journaled for restart replay;
+- planner-based domains regenerate missing operations from persisted state, metadata, and pending queue state;
+- push and pull token-refresh retries preserve cursor, payload, base revision, and idempotency identity;
+- concurrent-pull coverage protects local mutations during remote materialization;
+- two-device conflict coverage spans every mutable synchronized domain;
+- unresolved conflict state persists and Data & Sync exposes bounded retry, recovery, review, and diagnostics.
 
-Remaining synchronization validation requires physical matching standalone runtimes: offline termination/restart, reconnect, recovery, and second-device conflicts.
+Remaining validation requires matching physical standalone runtimes: offline termination/restart, reconnect, recovery, and second-device conflicts.
 
-Critical local persistence is ordered and observable through the application mutation queue. Save and outbox failures are surfaced with retry controls. Application-state persistence and outbox enqueue are not one atomic transaction, so recovery semantics must remain explicit and tested.
+Application-state persistence and outbox enqueue are not one atomic transaction. Preserve explicit recovery semantics.
 
-### AI Coach
+## AI Coach baseline
 
-Implemented product surfaces include:
+Implemented mobile surfaces include:
 
 - deterministic Nutrition review and metrics;
 - structured Nutrition Strategy preview and explicit confirmation;
@@ -89,57 +119,43 @@ Implemented product surfaces include:
 - read-only Combined Review;
 - Combined Proposal with effective Safety-capped Strength;
 - separate explicit Strength-template and Nutrition-target confirmations;
-- strict parsing, revisioned writes, idempotency, and no automatic application.
+- run history, provenance, before/after summaries, trust state, and privacy-safe input coverage.
 
-A provider-backed model is capability-gated by the backend. Mobile remains provider-neutral and never contains provider secrets.
+Provider-backed models are capability-gated by the backend. Mobile remains provider-neutral and never contains provider secrets.
 
-Do not invent a client-only compensating revert. A safe revert requires an explicit backend/API contract covering ownership, revisions, idempotency, conflicts, and audit history.
-
-### Authentication, persistence, and CI
-
-The mobile client already:
-
-- stores native access and refresh tokens in Expo SecureStore;
-- migrates verified legacy token envelopes into secure storage;
-- keeps ordinary cached session storage tokenless;
-- uses volatile token storage for web and non-native test runtimes;
-- serializes critical local persistence mutations;
-- surfaces persistence and outbox failures with retry controls.
-
-`expo-secure-store` is a native dependency. A matching native runtime is required before release.
-
-Mobile CI blocks on:
-
-- repository and changed-file line limits;
-- TypeScript;
-- Coach and sync contract tests;
-- the complete regression suite;
-- Expo export;
-- Expo Doctor.
-
-No currently known tracked hand-written mobile source file exceeds 500 physical lines. Keep the blocking audit active.
+Automatic application is prohibited. Do not invent a client-only compensating revert. A safe revert requires an explicit backend contract covering ownership, revisions, idempotency, conflicts, and audit history.
 
 ## Required workflow
 
-Before code changes:
+Before changes:
 
 1. Inspect exact current `main` in both repositories.
-2. Inspect open pull requests.
-3. Read this file once per working session.
-4. Read `PROJECT_LEARNINGS.md`.
-5. Read `docs/implementation-plan.md` for roadmap work.
-6. Read `DEBUGGING_SKILL.md` for failures or regressions when present.
-7. Read only files relevant to the bounded task.
-8. Work from a clean branch based on exact current `main`.
+2. Inspect open pull requests in both repositories.
+3. Read the documentation source-of-truth set above.
+4. Read `DEBUGGING_SKILL.md` for failures or regressions.
+5. Inspect only files relevant to the bounded task.
+6. Work from a clean branch based on exact current `main`.
+7. Avoid overlapping an active pull request unless coordination is explicit.
 
-After TypeScript / TSX changes, authoritative validation is the full Mobile CI workflow. Locally, when available, run:
+After TypeScript or TSX changes, run locally when available:
 
 ```bash
 npx tsc --noEmit
 npm test
 ```
 
-Do not claim completion while CI is failing. Merge only the exact validated head.
+Authoritative validation is the full Mobile CI workflow, including:
+
+- repository and changed-file line limits;
+- TypeScript;
+- Coach and sync contract tests;
+- the full regression suite;
+- Expo export;
+- Expo Doctor.
+
+Do not claim completion while required CI is failing. Merge only the exact validated head.
+
+Documentation-only changes do not require Expo execution, but links, paths, repository baselines, and cross-repository claims must be verified.
 
 ## File-size policy
 
@@ -151,19 +167,7 @@ Hand-written source files must remain at or below 500 physical lines.
 - Preserve public behavior and tests when moving logic.
 - Generated files, lockfiles, generated migrations, and packed outputs are excluded.
 
-## Scope exclusions
-
-Do not add without explicit approval:
-
-- blood-test analysis;
-- diagnosis logic;
-- pharmacology or hormone protocols;
-- supplement dosing logic;
-- coach marketplace;
-- social-network features;
-- payments or subscriptions.
-
-## API and security rules
+## API, authentication, and security
 
 Use shared API configuration from `src/api/config.ts`.
 
@@ -172,19 +176,24 @@ Use shared API configuration from `src/api/config.ts`.
 - `EXPO_PUBLIC_FOOD_API_BASE_URL` is only a backwards-compatible fallback.
 - Secrets must never use `EXPO_PUBLIC_*` or be committed.
 - Food-provider and AI-provider credentials remain backend-only.
-- Never put tokens, email, raw health data, payloads, or full idempotency keys in telemetry or user-visible diagnostics.
+- Native access and refresh tokens use Expo SecureStore.
+- Ordinary cached session storage remains tokenless.
+- Web and non-native test runtimes use volatile token storage.
+- Never expose tokens, email, raw health data, payloads, full idempotency keys, provider diagnostics, or internal error text in telemetry or UI.
 
-## Synchronization rules
+`expo-secure-store` is a native dependency. A matching native runtime is required before release.
+
+## Synchronization invariants
 
 The app is offline-first. Preserve local usability without a network connection.
 
-When changing sync:
+When changing synchronization:
 
 - use stable entity IDs and ISO timestamps;
 - keep payloads schema-versioned;
 - enqueue through the existing operation queue;
 - preserve idempotency keys and revision metadata;
-- validate all remote payloads at the trust boundary;
+- validate remote payloads at the trust boundary;
 - never replace full local state with an unvalidated response;
 - never silently overwrite unresolved conflicts;
 - advance the cursor only after every returned operation is safely handled;
@@ -196,11 +205,9 @@ Recovery boundary:
 
 - eager outbox operations must be journaled before enqueue;
 - planner-based domains must retain enough persisted state and metadata to regenerate missing operations;
-- do not add duplicate journals to planner-based domains without a demonstrated loss path.
+- do not add duplicate journals without a demonstrated loss path.
 
 ## AI Trainer architecture
-
-AI Trainer must not become one monolithic prompt.
 
 Required backend shape:
 
@@ -219,11 +226,11 @@ Required subagent roles:
 - Strength & Volume Agent;
 - Safety & Recovery Agent.
 
-All subagent outputs use strictly typed, versioned Zod schemas. Deterministic TypeScript workers own authoritative calculations and hard safety limits. Hidden chain-of-thought is never persisted.
+All subagent outputs use strictly typed, versioned Zod schemas. Deterministic workers own authoritative calculations and hard safety limits. Hidden chain-of-thought is never persisted.
 
 ## Coding and UI rules
 
-Prefer minimal diffs. Preserve routes, IDs, schemas, persistence, sync, calculations, polling, idempotency, confirmations, and completed history unless the task explicitly changes them.
+Prefer minimal diffs. Preserve routes, IDs, schemas, persistence, synchronization, calculations, polling, idempotency, confirmations, and completed history unless the task explicitly changes them.
 
 Do:
 
@@ -233,7 +240,7 @@ Do:
 - keep persisted data serializable;
 - localize new user-facing copy;
 - use bounded display mappings for statuses, enums, provider errors, and internal codes;
-- use centralized locale/date/number/unit formatters.
+- use centralized locale, date, number, plural, and unit formatters.
 
 Do not:
 
@@ -242,15 +249,15 @@ Do not:
 - install dependencies without approval;
 - duplicate API clients;
 - call AI providers from mobile;
-- expose raw backend/provider/status/error text in presentation.
+- expose raw backend, provider, status, schema, or error text in presentation.
 
 UI invariants:
 
 - preserve the existing dark minimal style;
 - account for bottom-tab and safe-area overlap;
 - use `keyboardShouldPersistTaps="handled"` on scrollable forms;
-- keep logically related text and controls as siblings in one Flexbox parent;
-- do not position related controls using screen-relative coordinates or pixel nudges.
+- keep related text and controls as siblings in one Flexbox parent;
+- do not align related controls using screen-relative coordinates or isolated pixel nudges.
 
 ## Navigation invariants
 
@@ -270,23 +277,22 @@ For approved changes:
 
 1. branch from exact current `main`;
 2. make a bounded change;
-3. run full blocking CI;
+3. run required validation;
 4. inspect review threads;
 5. merge only the exact green head.
 
 Use `[ota]` only for OTA-safe JavaScript, TypeScript, TSX, or compatible assets.
 
-Do not perform or claim OTA publication, EAS/native builds, device installation, backend deployment, staging activation, production activation, or credential changes unless explicitly requested.
+Do not perform or claim OTA publication, EAS/native builds, device installation, backend deployment, staging activation, production activation, migration execution outside CI, worker scheduling, or credential changes unless explicitly requested.
 
-## Current priority order
+## Priority handling
 
-No currently known autonomous source-level localization or synchronization-hardening gap remains.
+The mutable priority order belongs in `docs/current-status.md` and `docs/implementation-plan.md`, not in this permanent instruction file.
 
-1. Keep architecture and status documents synchronized with actual code.
-2. Configure and run the fixed-SHA cross-repository release gate only when repository-token access is explicitly authorized.
-3. Introduce provider-neutral Coach model configuration and validate it in staging only when credentials/model selection are available.
-4. Complete physical release-device, offline-restart, accessibility, EN/RU/unit, and second-device validation only when explicitly authorized.
-5. Define an explicit local-versus-account conflict-choice contract before adding destructive conflict controls.
-6. Define privacy, consent, identity, retention, and deletion requirements before product analytics.
-7. Measure local-state size and restore/save performance before considering SQLite.
-8. Implement only newly discovered regressions or separately prioritized product scope; do not duplicate completed roadmap work.
+Default order:
+
+1. keep architecture, status, and handoff documentation synchronized with code;
+2. continue only the currently approved roadmap package;
+3. keep provider-backed capabilities and data collection fail closed until all listed blockers and approvals are resolved;
+4. perform physical release, offline-restart, accessibility, localization, and second-device validation only when explicitly authorized;
+5. implement newly discovered regressions or separately prioritized product scope without duplicating completed work.
