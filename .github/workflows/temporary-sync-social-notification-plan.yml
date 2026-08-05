@@ -1,0 +1,27 @@
+name: Temporary Sync Social Notification Plan
+
+on:
+  push:
+    branches:
+      - agent/sync-social-notification-representation-docs
+
+permissions:
+  contents: write
+
+jobs:
+  sync-plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/sync-social-notification-representation-docs
+      - name: Synchronize implementation plan
+        run: python .github/scripts/temporary_sync_social_notification_plan.py
+      - name: Commit synchronized plan
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- docs/implementation-plan.md
+          git diff --cached --quiet && exit 0
+          git commit -m "docs: record Social notification representation"
+          git push origin HEAD:agent/sync-social-notification-representation-docs
