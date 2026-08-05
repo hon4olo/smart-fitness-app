@@ -13,13 +13,13 @@ Provider and release-readiness evidence remains in `docs/roadmap/provider-readin
 
 Verified after the current provider-neutral P9-C/P9-D source sequence:
 
-- mobile `main`: `6f3ead50321812392a886d4420549ff45809145f`;
-- backend `main`: `1acdf6f1841bcfb17d450f904a12d1da221c84ce`;
+- mobile `main`: `336a6268320657c8ced2704714ce4b22537dfa31`;
+- backend `main`: `2e5cef5f0ded18a75d8ca11da71018789b3321be`;
 - no open mobile or backend pull requests before this roadmap-sync slice;
 - all public provider-backed capabilities remain disabled;
 - analytics, crash reporting, performance telemetry, attribution and advertising collection remain disabled;
 - no production analytics event or measurement purpose is registered;
-- no production data-access export route, query execution, archive generation or delivery path exists;
+- the default production composition has no data-access export endpoint; an optional source-only route boundary exists, but no durable limiter, export query, archive generation or delivery path exists;
 - no provider/staging execution, deployment, migration outside CI, backend worker scheduling, native build, OTA/EAS publication, rollback execution, store submission, legal-hold mutation, destructive production cleanup or production activation has been performed.
 
 Always re-check exact `main`, open pull requests, `AGENTS.md`, `PROJECT_LEARNINGS.md`, this plan and the relevant architecture/operations documents before another source slice.
@@ -44,7 +44,7 @@ This is an engineering planning estimate, not a release-readiness or legal-compl
 | P9-B2 cross-surface account deletion | source-complete |
 | P9-B3 provider/environment retention evidence | active; externally blocked |
 | P9-C consent and analytics prerequisites | active; provider-neutral source guards substantially complete |
-| P9-D privacy-facing controls and policy evidence | active; source contracts and backend preparation boundaries substantially defined |
+| P9-D privacy-facing controls and policy evidence | active; source contracts, preparation and disabled-by-default route composition boundaries substantially defined |
 
 The remaining estimate is concentrated in exact provider/environment evidence, policy/legal decisions, real backend export implementation, product integration, localization/accessibility and physical release evidence.
 
@@ -72,7 +72,7 @@ There is no remaining approved autonomous source-refactor phase. Future restruct
 
 1. **P9-B3 — Retention blocker closure.** Replace `unset_blocker` entries only with exact selected-provider/environment evidence for maximum lifetime, access, expiry/deletion and failure monitoring. Provider accounts, credentials, deployment, worker scheduling and real cleanup remain direct-authorization actions.
 2. **P9-C — Consent and analytics prerequisites.** Keep all collection disabled. Remaining work requires policy/legal decisions, exact provider evidence, persistence/ownership decisions, reviewed disclosures and eventual product integration. Do not add an SDK, production event, tracking identifier or upload route while activation remains blocked.
-3. **P9-D — Privacy-facing controls and policy evidence.** Continue bounded source implementation for the authenticated data-access/export lifecycle, deletion-status integration and reviewed disclosures. Actual database projections, secure delivery, UI integration and public policy text remain separate reviewed slices and may require direct authorization.
+3. **P9-D — Privacy-facing controls and policy evidence.** Continue bounded source implementation for ownership-safe export repositories, field allowlists, audit/idempotency, deletion-status integration and reviewed disclosures. The optional route remains disabled by default until a durable limiter and separate deployment approval exist; secure delivery, UI integration and public policy text remain separate reviewed slices.
 4. **Operational and physical evidence.** Execute staging/provider checks, release-device validation, worker scheduling, deployment and lifecycle proof only after explicit authorization and complete ownership inputs.
 
 P9-B3 can advance only for an exact selected provider/environment. Independent P9-C or P9-D work may proceed only when provider-neutral, fail closed and not presented as legal approval or production activation.
@@ -240,6 +240,19 @@ Backend PR #158 adds the corresponding fail-closed export-preparation boundary:
 
 Evidence: backend `docs/privacy/data-access-export-preparation.md`.
 
+Backend PR #159 adds a disabled-by-default authenticated route-composition boundary:
+
+- `POST /v1/privacy/data-access/export/prepare` is registered only when an explicit attempt-guard dependency is injected;
+- default production `createApp()` has no endpoint and returns `404`;
+- auth and strict structural validation precede attempt consumption;
+- the injected guard must fail closed and rate-limit before current-password verification;
+- user identity comes only from the authenticated session;
+- invalid credentials use the existing bounded auth error;
+- valid re-verification still returns only `409 DATA_EXPORT_NOT_AVAILABLE` with no table names, internal issue codes, identifiers, passwords or secret-class labels;
+- no production limiter, route activation, export repository, query, audit record, archive or delivery path was added.
+
+Evidence: backend `docs/privacy/data-access-export-route-boundary.md`.
+
 Mobile PR #431 establishes a privacy-safe account-deletion status presentation contract:
 
 - pending, blocked, malformed, unavailable and transport-uncertain states preserve local data;
@@ -274,7 +287,7 @@ Evidence: `docs/privacy/privacy-review-evidence-packet.md`.
 
 Remaining P9-D work:
 
-- integrate session authentication and current-password verification into an actual bounded route lifecycle;
+- implement and inject a durable multi-instance per-account attempt limiter, then separately approve deployed route composition;
 - implement ownership-safe repositories, explicit field allowlists and deterministic snapshot/pagination limits;
 - define export auditability, per-account rate limits, idempotency and committed-response-loss/retry semantics;
 - decide synchronous response versus secure expiring/revocable delivery and prove any selected provider lifecycle through P9-B3;
@@ -289,7 +302,7 @@ Approximately 11% remains, primarily:
 
 - **P9-B3 external retention evidence:** selected production/staging logs, backups, storage/CDN, email and provider lifecycle contracts;
 - **P9-C activation decisions and integration:** legal/policy choices, provider evidence, consent persistence/withdrawal architecture and eventual separately approved implementation;
-- **P9-D implementation and review:** authenticated route integration, ownership-safe queries/projections, rate limits, audit/idempotency, secure delivery, mobile UI/localization/accessibility and policy/legal approval;
+- **P9-D implementation and review:** durable rate limiting and separately approved route activation, ownership-safe queries/projections, audit/idempotency, secure delivery, mobile UI/localization/accessibility and policy/legal approval;
 - **operational evidence:** deployment, worker scheduling, staging/provider execution, physical device/offline/second-device validation and release proof.
 
 Source guards and preparation boundaries reduce implementation risk, but they cannot substitute for exact infrastructure evidence, legal/policy decisions or authorized production operations.
