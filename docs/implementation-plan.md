@@ -14,7 +14,7 @@ Provider and release-readiness evidence remains in `docs/roadmap/provider-readin
 Verified after the current provider-neutral P9-C/P9-D source sequence:
 
 - mobile `main`: `b2ab453deb675ccfdb6baee485bb40cbece7faba`;
-- backend `main`: `1a2840aacbddca5bad30693133036fd5b9f566da`;
+- backend `main`: `bf0d552ecb6ce09c9307d65d43dbdf49eb9dcdca`;
 - no open mobile or backend pull requests before this roadmap-sync slice;
 - all public provider-backed capabilities remain disabled;
 - analytics, crash reporting, performance telemetry, attribution and advertising collection remain disabled;
@@ -290,7 +290,7 @@ Backend PR #162 adds the second ownership-safe allowlisted export projection for
 
 Evidence: backend `docs/privacy/data-access-export-progress-projection.md`.
 
-Backend PR #163 adds the third ownership-safe allowlisted export projection for `health_limitations_and_recovery`:
+Backend PR #163 adds the third ownership-safe allowlisted export projection for `limitations_recovery_and_safety_context`:
 
 - only the authenticated owner's active `user_limitations` and `recovery_check_ins` rows are read after an active-owner check;
 - explicit selected columns exclude internal IDs, ownership/device metadata, revisions, tombstones and other users' records before serialization;
@@ -301,6 +301,13 @@ Backend PR #163 adds the third ownership-safe allowlisted export projection for 
 - the projection remains separate from preparation, route composition and multi-surface assembly, so no export endpoint or delivery capability became active.
 
 Evidence: backend `docs/privacy/data-access-export-health-projection.md`.
+
+Backend PR #164 corrects and guards the projection-to-registry contract:
+
+- the health/recovery output now uses the exact canonical registered ID `limitations_recovery_and_safety_context`;
+- focused PostgreSQL expectations and privacy evidence use the same identifier;
+- a permanent type-checked regression test requires every implemented projection ID to exist in the candidate-export registry;
+- the correction changes no owner query, output field, route composition, deployment or delivery behavior.
 
 Mobile PR #431 establishes a privacy-safe account-deletion status presentation contract:
 
