@@ -4,20 +4,19 @@ Updated: 2026-08-05
 
 ## Checkpoint
 
-Documentation refresh baseline:
+Roadmap synchronization after backend PR #167:
 
-- mobile `main`: `baeb0046d8dae54126dce1f36f4703c885320f39`;
-- backend `main`: `947989f8adfe85fa34248fc439b07e210f00d1b4`;
-- backend PR #165 merged the `nutrition_and_meal_data` export projection;
-- mobile PR #441 synchronized the canonical implementation plan to four ownership-safe projections;
-- no overlapping feature pull request remained at the final refresh check.
+- mobile `main` before this docs slice: `5669c445000c4e6d3782826049d16feb78975858`;
+- backend `main`: `cbcecff4c0def1771bd91a67ff389ae517f48d8a`;
+- backend PR #167 merged the fifth ownership-safe projection, `workouts_programs_and_exercises`;
+- no open mobile or backend pull requests existed before this branch was created.
 
 This file is a continuation checkpoint. It must be updated when a merged change materially alters the active package, blockers, repository baseline, or next safe action.
 
 ## Start-of-session checklist
 
 1. Fetch exact current `main` for both repositories.
-2. Inspect open PRs and avoid overlapping active branches.
+2. Inspect open pull requests and avoid overlapping active branches.
 3. Read:
    - `AGENTS.md`;
    - `docs/project-context.md`;
@@ -30,8 +29,11 @@ This file is a continuation checkpoint. It must be updated when a merged change 
 
 ## Current continuation boundary
 
-- Backend `main` contains four ownership-safe source projections, including `nutrition_and_meal_data`.
-- The next source-only P9-D work must remain ownership-safe, allowlisted, bounded, provider-neutral, and separate from route activation, multi-surface assembly, archive generation, delivery, or mobile UI unless those scopes are explicitly approved.
+- Backend `main` contains five ownership-safe source projections.
+- The remaining candidate surfaces are `coach_reviews_proposals_and_run_history` and `social_relationships_and_account_activity`.
+- The next bounded source-only candidate is Coach, but implementation must start with a fresh audit of Coach tables, structured outputs, provenance, provider metadata, hidden-reasoning exclusions, mixed-policy fields, and source bounds.
+- Do not start Social projection work until authored-versus-received activity, other-user fields, block relationships, notifications, moderation/security records, and mixed-policy data are explicitly separated.
+- Every projection must remain owner-scoped, allowlisted, bounded, provider-neutral, and separate from route activation, multi-surface assembly, archive generation, delivery, or mobile UI unless those scopes are explicitly approved.
 - P9-B3 cannot progress through assumptions; it requires exact provider/environment evidence.
 - P9-C must keep every collection path fail closed until policy, provider, persistence, disclosure, localization, accessibility, and consent requirements are resolved.
 
@@ -42,6 +44,7 @@ Do not perform or claim:
 - backend deployment;
 - production migration execution;
 - provider or staging activation;
+- route activation or archive generation;
 - worker scheduling;
 - OTA/EAS publication;
 - native build or installation;
@@ -57,7 +60,7 @@ When replacing this checkpoint, record:
 
 - verification date;
 - exact mobile and backend `main` SHAs before the handoff update;
-- open PRs and non-overlap constraints;
+- open pull requests and non-overlap constraints;
 - completed package or PR;
 - validation actually run;
 - active blockers;
