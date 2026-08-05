@@ -4,15 +4,15 @@ Updated: 2026-08-05
 
 ## Checkpoint
 
-Social data-access export ownership-audit baseline after backend PR #170:
+Social owned-content source baseline after backend PR #171:
 
-- mobile `main` before this documentation slice: `53a7f638ef4d94b98b998f088374f64b733c3f26`;
-- backend `main`: `f840253791414abca044e85d4a50e78789699a14`;
+- mobile `main` before this documentation slice: `aad136aa2caeafb15240ff0b817f9fd3bd86110e`;
+- backend `main`: `be3548f0266f819324170e24bc4d5d66bdf10189`;
 - backend PR #168 merged the sixth ownership-safe projection, `coach_reviews_proposals_and_run_history`;
 - backend PR #169 hardened parent-run/child-stage lifecycle integrity for the Coach projection;
-- backend PR #170 added the executable Social ownership/privacy audit and kept Social projection implementation globally blocked;
-- backend draft PR #171 attempted implementation from the pre-audit baseline and was closed without merge after confirmed policy and source-integrity blockers;
-- mobile PR #448 synchronized Coach lifecycle evidence and selected Social audit as the next safe slice;
+- backend PR #170 added the executable Social ownership/privacy audit and kept full Social projection implementation globally blocked;
+- backend PR #171 added only the audit-approved `social_profile_and_authored_posts` bounded source and preserved the count at six complete projections;
+- mobile PR #449 recorded the audit baseline and the earlier premature form of backend PR #171 before its scope reduction and successful merge;
 - no open mobile or backend pull requests existed before this documentation branch was created.
 
 This file is a continuation checkpoint. It must be updated when a merged change materially alters the active package, blockers, repository baseline, or next safe action.
@@ -56,24 +56,28 @@ Backend PR #170:
 - sets `SOCIAL_EXPORT_PROJECTION_IMPLEMENTATION_ALLOWED` to `false`;
 - adds exact candidate-table coverage and incoming-block exclusion tests.
 
-Backend draft PR #171 was closed without merge. Confirmed blockers were:
+## Completed Social owned-content source
 
-- stale base before PR #170 and no reconciliation with the executable audit contract;
-- autonomous resolution of blocked third-party/counterpart disclosure choices;
-- unresolved `profile.avatarUrl` export despite managed-media disposition remaining blocked;
-- referenced target-post reads without deleted-row exclusion despite contrary documentation;
-- a 527-line repository above the mandatory 500-line policy.
+Backend PR #171 was reconciled with PR #170 and reduced to the two audit-approved own-row tables:
 
-The branch and code remain available for selective reuse; nothing was deleted.
+- active-owner verification plus own Social profile and active authored posts share one read-only repeatable-read transaction;
+- profile output is limited to username, display name, bio, visibility, and timestamps;
+- active authored posts use a strict version-1 workout snapshot parser and a fail-closed 1,000-row source bound;
+- raw avatar URLs, managed-media references, graph edges, requests, blocks, reactions, comments, received activity, notifications, internal IDs, revisions, idempotency keys, raw JSON, and other-user data are excluded;
+- the source is named `social_profile_and_authored_posts`, sets `fullSurfaceProjectionAllowed: false`, and is not registered as the complete Social surface;
+- the focused repository is below the mandatory 500-line limit;
+- exact-head Backend CI and Account Deletion Receipt CI passed before merge.
+
+The complete projection count remains six. The full Social surface remains blocked by the executable audit.
 
 ## Current continuation boundary
 
 - The active roadmap priority order remains P9-B3, P9-C, P9-D, then authorization-gated operational and physical evidence.
-- There are still six implemented ownership-safe projections, not seven.
-- The next Social step is a reviewed product/privacy decision, not autonomous implementation.
-- Required decisions include counterpart identity representation, incoming follow/request disclosure, received-notification actor/target disclosure, outgoing-block counterpart representation, managed avatar/post-media disposition, and deleted/private/blocked/inaccessible target behavior.
-- Incoming blocks remain permanently excluded.
-- After decisions, any implementation must start from exact current `main`, amend the executable audit contract, stay under file-size limits, use strict allowlists and repeatable-read source bounds, and rerun all PostgreSQL/privacy evidence.
+- There are still six complete ownership-safe projections, not seven; `social_profile_and_authored_posts` is a bounded partial source.
+- The next Social step must resolve exactly one remaining audit decision rather than expand the partial source by implication.
+- Candidate decisions include counterpart identity representation for outgoing relationships, target representation for owner-authored comments/reactions, notification representation without actor/target disclosure, managed avatar/post-media disposition, and deleted/private/blocked/inaccessible target behavior.
+- Incoming blocks remain permanently excluded, and received third-party activity is not automatically owner-authored export data.
+- Any next implementation must start from exact current `main`, explicitly amend or remain within the executable audit contract, stay under file-size limits, use strict allowlists and repeatable-read bounds, and rerun PostgreSQL/privacy evidence.
 - Multi-surface assembly, route activation, audit/idempotency, archive generation, secure delivery, mobile integration, and public policy wording remain separate future scopes.
 - P9-B3 cannot progress through assumptions; it requires exact provider/environment evidence.
 - P9-C must keep every collection path fail closed until policy, provider, persistence, disclosure, localization, accessibility, and consent requirements are resolved.

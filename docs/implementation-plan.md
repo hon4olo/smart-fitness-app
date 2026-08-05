@@ -11,15 +11,15 @@ Provider and release-readiness evidence remains in `docs/roadmap/provider-readin
 
 ## Verified baseline
 
-Verified after backend PR #169 and mobile PR #447:
+Verified after backend PR #171 and mobile PR #449:
 
-- mobile `main`: `b47f1d5ea6ccc8579165810c5efdec23b8329560`;
-- backend `main`: `d5b2f887de43988dba16144859c276acf20351b4`;
+- mobile `main` before this roadmap-sync slice: `aad136aa2caeafb15240ff0b817f9fd3bd86110e`;
+- backend `main`: `be3548f0266f819324170e24bc4d5d66bdf10189`;
 - no open mobile or backend pull requests before this roadmap-sync slice;
 - all public provider-backed capabilities remain disabled;
 - analytics, crash reporting, performance telemetry, attribution and advertising collection remain disabled;
 - no production analytics event or measurement purpose is registered;
-- the default production composition has no data-access export endpoint; an optional source-only route boundary, durable PostgreSQL attempt limiter and six ownership-safe allowlisted projections exist, but they are not composed by default and no multi-surface assembly, archive generation or delivery path exists;
+- the default production composition has no data-access export endpoint; an optional source-only route boundary, durable PostgreSQL attempt limiter, six complete ownership-safe allowlisted projections, and the bounded Social owned-content source exist, but they are not composed by default and no complete Social projection, multi-surface assembly, archive generation or delivery path exists;
 - no provider/staging execution, deployment, migration outside CI, backend worker scheduling, native build, OTA/EAS publication, rollback execution, store submission, legal-hold mutation, destructive production cleanup or production activation has been performed.
 
 Always re-check exact `main`, open pull requests, `AGENTS.md`, `PROJECT_LEARNINGS.md`, this plan and the relevant architecture/operations documents before another source slice.
@@ -44,7 +44,7 @@ This is an engineering planning estimate, not a release-readiness or legal-compl
 | P9-B2 cross-surface account deletion | source-complete |
 | P9-B3 provider/environment retention evidence | active; externally blocked |
 | P9-C consent and analytics prerequisites | active; provider-neutral source guards substantially complete |
-| P9-D privacy-facing controls and policy evidence | active; source contracts, route boundary, durable limiter and first six ownership-safe projections defined |
+| P9-D privacy-facing controls and policy evidence | active; source contracts, route boundary, durable limiter, six complete projections and a bounded Social owned-content source defined |
 
 The remaining estimate is concentrated in exact provider/environment evidence, policy/legal decisions, real backend export implementation, product integration, localization/accessibility and physical release evidence.
 
@@ -72,7 +72,7 @@ There is no remaining approved autonomous source-refactor phase. Future restruct
 
 1. **P9-B3 — Retention blocker closure.** Replace `unset_blocker` entries only with exact selected-provider/environment evidence for maximum lifetime, access, expiry/deletion and failure monitoring. Provider accounts, credentials, deployment, worker scheduling and real cleanup remain direct-authorization actions.
 2. **P9-C — Consent and analytics prerequisites.** Keep all collection disabled. Remaining work requires policy/legal decisions, exact provider evidence, persistence/ownership decisions, reviewed disclosures and eventual product integration. Do not add an SDK, production event, tracking identifier or upload route while activation remains blocked.
-3. **P9-D — Privacy-facing controls and policy evidence.** Extend ownership-safe allowlisted projections to the remaining selected surfaces, define multi-surface assembly plus audit/idempotency and continue deletion-status/reviewed-disclosure work. The durable limiter and first six projections exist in source, but the optional route remains disabled by default pending separate deployed-composition approval; secure delivery, UI integration and public policy text remain separate reviewed slices.
+3. **P9-D — Privacy-facing controls and policy evidence.** Preserve the six complete ownership-safe projections and the bounded `social_profile_and_authored_posts` source, resolve one remaining Social audit decision at a time, then define multi-surface assembly plus audit/idempotency and continue deletion-status/reviewed-disclosure work. The optional route remains disabled by default pending separate deployed-composition approval; the full Social surface, secure delivery, UI integration and public policy text remain separate reviewed slices.
 4. **Operational and physical evidence.** Execute staging/provider checks, release-device validation, worker scheduling, deployment and lifecycle proof only after explicit authorization and complete ownership inputs.
 
 P9-B3 can advance only for an exact selected provider/environment. Independent P9-C or P9-D work may proceed only when provider-neutral, fail closed and not presented as legal approval or production activation.
@@ -362,6 +362,28 @@ Backend PR #169 hardens parent-run and child-stage lifecycle integrity for the C
 - focused unit tests cover valid lifecycle shapes and each invalid parent-child boundary;
 - projection DTOs, routes, schemas, migrations, persistence, provider behavior, assembly, delivery, and activation state are unchanged.
 
+Backend PR #170 adds the executable Social ownership/privacy audit:
+
+- all eight registered Social candidate tables are covered exactly once;
+- own rows, owner-authored actions, received third-party records, and two-sided relationship edges are distinguished;
+- incoming block relationships are permanently excluded;
+- follows, requests, blocks, reactions, comments, and notifications remain blocked on counterpart, target, third-party, managed-media, or inaccessible-record decisions;
+- internal account/content IDs, idempotency/dedupe keys, source workout IDs/revisions, managed-media IDs, and other-user private fields are excluded;
+- `SOCIAL_EXPORT_PROJECTION_IMPLEMENTATION_ALLOWED` remains `false`.
+
+Backend PR #171 adds the bounded audit-approved Social owned-content source:
+
+- only the authenticated owner's own Social profile and active authored workout posts are read;
+- profile output is limited to username, display name, bio, visibility, and timestamps;
+- posts are rebuilt through a strict version-1 snapshot parser and fail closed above 1,000 active rows;
+- raw avatar URLs, managed-media references, graph edges, requests, blocks, reactions, comments, received activity, notifications, internal IDs, revisions, idempotency keys, raw JSON, and every other-user field are excluded;
+- the source uses `social_profile_and_authored_posts`, sets `fullSurfaceProjectionAllowed: false`, and does not increase the complete projection count above six;
+- owner/profile/post reads share one read-only repeatable-read PostgreSQL snapshot;
+- exact-head Backend CI and Account Deletion Receipt CI passed before merge;
+- route composition, complete Social projection, assembly, archive generation, delivery, mobile runtime integration, deployment, and production activation remain absent.
+
+Evidence: backend `docs/privacy/data-access-export-social-audit.md` and `docs/privacy/data-access-export-social-projection.md`.
+
 Mobile PR #431 establishes a privacy-safe account-deletion status presentation contract:
 
 - pending, blocked, malformed, unavailable and transport-uncertain states preserve local data;
@@ -397,7 +419,7 @@ Evidence: `docs/privacy/privacy-review-evidence-packet.md`.
 Remaining P9-D work:
 
 - separately approve and inject the durable limiter into a deployed route composition, including operational monitoring and stale-row cleanup expectations;
-- audit and, only after an explicit ownership/privacy decision, implement the remaining raw candidate surface `social_relationships_and_account_activity`;
+- preserve the bounded `social_profile_and_authored_posts` source and resolve one remaining Social audit decision at a time; the complete `social_relationships_and_account_activity` surface remains blocked and must not be inferred from the partial source;
 - define deterministic multi-surface assembly, pagination/snapshot and maximum-size semantics;
 - define export auditability, idempotency and committed-response-loss/retry semantics;
 - decide synchronous response versus secure expiring/revocable delivery and prove any selected provider lifecycle through P9-B3;
@@ -412,7 +434,7 @@ Approximately 11% remains, primarily:
 
 - **P9-B3 external retention evidence:** selected production/staging logs, backups, storage/CDN, email and provider lifecycle contracts;
 - **P9-C activation decisions and integration:** legal/policy choices, provider evidence, consent persistence/withdrawal architecture and eventual separately approved implementation;
-- **P9-D implementation and review:** Social ownership/privacy audit and any subsequently approved projection, multi-surface assembly, separately approved route composition, audit/idempotency, secure delivery, mobile UI/localization/accessibility and policy/legal approval;
+- **P9-D implementation and review:** bounded own-profile/own-post Social source is complete; counterpart, action-target, received-activity, notification, media and inaccessible-record decisions remain before any full Social projection, followed by multi-surface assembly, separately approved route composition, audit/idempotency, secure delivery, mobile UI/localization/accessibility and policy/legal approval;
 - **operational evidence:** deployment, worker scheduling, staging/provider execution, physical device/offline/second-device validation and release proof.
 
 Source guards and preparation boundaries reduce implementation risk, but they cannot substitute for exact infrastructure evidence, legal/policy decisions or authorized production operations.
