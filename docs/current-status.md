@@ -4,15 +4,17 @@ Updated: 2026-08-05
 
 ## Verified repository baseline
 
-Verified after backend PR #168 and mobile PR #446:
+Verified after backend PR #169 and mobile PR #447:
 
-- mobile `main`: `6df2278614b296e782e4edffb6b4895e7176f3a6`;
-- backend `main`: `ccea35967516b168e877e8803a8dd3c7c40c973d`;
+- mobile `main`: `b47f1d5ea6ccc8579165810c5efdec23b8329560`;
+- backend `main`: `d5b2f887de43988dba16144859c276acf20351b4`;
 - backend PR #168 merged the `coach_reviews_proposals_and_run_history` export projection;
+- backend PR #169 added strict parent-run/child-stage lifecycle validation for that projection;
+- mobile PR #447 synchronized the canonical roadmap from five to six ownership-safe projections;
 - mobile PR #444 removed the destructive Expo template reset command/script and two empty root artifacts;
 - mobile PR #445 replaced the auth token manager's `globalThis.atob` dependency with strict platform-independent base64url/UTF-8 decoding and added focused fail-closed tests;
 - mobile PR #446 recorded the audit-hardening baseline;
-- no open mobile or backend pull requests before this roadmap-sync slice.
+- no open mobile or backend pull requests before this documentation slice.
 
 Always re-check both repositories and open pull requests before work. This file records a checkpoint, not a live Git query.
 
@@ -39,7 +41,7 @@ Active packages remain unchanged:
 3. P9-D privacy-facing controls and policy evidence — source-only preparation boundaries and ownership-safe projections are being extended.
 4. Operational and physical evidence — authorization-gated staging, deployment, worker scheduling, native build, release-device, offline-restart, accessibility, localization, and second-device validation.
 
-The repository-hygiene and JWT-hardening work does not reorder those roadmap packages. See `docs/implementation-plan.md` for complete package evidence.
+The Coach lifecycle hardening does not reorder those roadmap packages. See `docs/implementation-plan.md` for complete package evidence.
 
 ## Mobile state
 
@@ -77,7 +79,9 @@ Backend `main` contains:
   - `workouts_programs_and_exercises`;
   - `coach_reviews_proposals_and_run_history`.
 
-The Coach projection reads owner-scoped runs and stages in one repeatable-read snapshot, explicitly parses all nine current request types, excludes raw request/context/result/stage payloads and internal/provider metadata, and fails closed on unsupported result shapes, lifecycle inconsistencies, ownership mismatch, or source-bound overflow.
+The Coach projection reads owner-scoped runs and stages in one repeatable-read snapshot, explicitly parses all nine current request types, excludes raw request/context/result/stage payloads and internal/provider metadata, and fails closed on unsupported result shapes, ownership mismatch, source-bound overflow, or lifecycle inconsistency.
+
+Lifecycle validation now additionally requires status-appropriate stage timestamps, prevents active stages under queued runs and unfinished stages under terminal runs, and bounds every stage start/completion inside the parent run window.
 
 All projections remain separate from preparation, route activation, multi-surface assembly, archive generation, secure delivery, and mobile UI.
 

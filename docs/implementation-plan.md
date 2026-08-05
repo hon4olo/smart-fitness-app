@@ -11,10 +11,10 @@ Provider and release-readiness evidence remains in `docs/roadmap/provider-readin
 
 ## Verified baseline
 
-Verified after the current provider-neutral P9-C/P9-D source sequence:
+Verified after backend PR #169 and mobile PR #447:
 
-- mobile `main`: `6df2278614b296e782e4edffb6b4895e7176f3a6`;
-- backend `main`: `ccea35967516b168e877e8803a8dd3c7c40c973d`;
+- mobile `main`: `b47f1d5ea6ccc8579165810c5efdec23b8329560`;
+- backend `main`: `d5b2f887de43988dba16144859c276acf20351b4`;
 - no open mobile or backend pull requests before this roadmap-sync slice;
 - all public provider-backed capabilities remain disabled;
 - analytics, crash reporting, performance telemetry, attribution and advertising collection remain disabled;
@@ -352,6 +352,16 @@ Backend PR #168 adds the sixth ownership-safe allowlisted export projection for 
 
 Evidence: backend `docs/privacy/data-access-export-coach-projection.md`.
 
+Backend PR #169 hardens parent-run and child-stage lifecycle integrity for the Coach projection:
+
+- queued, running, and terminal stages require status-appropriate timestamp shapes;
+- queued parent runs cannot contain active or terminal stages;
+- terminal parent runs cannot contain queued or running stages;
+- every stage start and completion must remain inside the parent run lifecycle window;
+- the pure validator runs before projection serialization and fails closed on inconsistent stored history;
+- focused unit tests cover valid lifecycle shapes and each invalid parent-child boundary;
+- projection DTOs, routes, schemas, migrations, persistence, provider behavior, assembly, delivery, and activation state are unchanged.
+
 Mobile PR #431 establishes a privacy-safe account-deletion status presentation contract:
 
 - pending, blocked, malformed, unavailable and transport-uncertain states preserve local data;
@@ -387,7 +397,8 @@ Evidence: `docs/privacy/privacy-review-evidence-packet.md`.
 Remaining P9-D work:
 
 - separately approve and inject the durable limiter into a deployed route composition, including operational monitoring and stale-row cleanup expectations;
-- implement ownership-safe allowlisted projections for the remaining selected surfaces and define deterministic multi-surface assembly, pagination/snapshot and maximum-size semantics;
+- audit and, only after an explicit ownership/privacy decision, implement the remaining raw candidate surface `social_relationships_and_account_activity`;
+- define deterministic multi-surface assembly, pagination/snapshot and maximum-size semantics;
 - define export auditability, idempotency and committed-response-loss/retry semantics;
 - decide synchronous response versus secure expiring/revocable delivery and prove any selected provider lifecycle through P9-B3;
 - add mobile-local data transformation and integrate reviewed user confirmation/status UI;
@@ -401,7 +412,7 @@ Approximately 11% remains, primarily:
 
 - **P9-B3 external retention evidence:** selected production/staging logs, backups, storage/CDN, email and provider lifecycle contracts;
 - **P9-C activation decisions and integration:** legal/policy choices, provider evidence, consent persistence/withdrawal architecture and eventual separately approved implementation;
-- **P9-D implementation and review:** remaining allowlisted projections and multi-surface assembly, separately approved route composition, audit/idempotency, secure delivery, mobile UI/localization/accessibility and policy/legal approval;
+- **P9-D implementation and review:** Social ownership/privacy audit and any subsequently approved projection, multi-surface assembly, separately approved route composition, audit/idempotency, secure delivery, mobile UI/localization/accessibility and policy/legal approval;
 - **operational evidence:** deployment, worker scheduling, staging/provider execution, physical device/offline/second-device validation and release proof.
 
 Source guards and preparation boundaries reduce implementation risk, but they cannot substitute for exact infrastructure evidence, legal/policy decisions or authorized production operations.
