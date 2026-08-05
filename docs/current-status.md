@@ -4,14 +4,15 @@ Updated: 2026-08-05
 
 ## Verified repository baseline
 
-Verified after mobile PR #445:
+Verified after backend PR #168 and mobile PR #446:
 
-- mobile `main`: `1df306eb9d83e49014eea7063b18f7e431b68dd7`;
-- backend `main`: `cbcecff4c0def1771bd91a67ff389ae517f48d8a`;
-- backend PR #167 merged the `workouts_programs_and_exercises` export projection;
+- mobile `main`: `6df2278614b296e782e4edffb6b4895e7176f3a6`;
+- backend `main`: `ccea35967516b168e877e8803a8dd3c7c40c973d`;
+- backend PR #168 merged the `coach_reviews_proposals_and_run_history` export projection;
 - mobile PR #444 removed the destructive Expo template reset command/script and two empty root artifacts;
 - mobile PR #445 replaced the auth token manager's `globalThis.atob` dependency with strict platform-independent base64url/UTF-8 decoding and added focused fail-closed tests;
-- no open mobile or backend pull requests before this documentation slice.
+- mobile PR #446 recorded the audit-hardening baseline;
+- no open mobile or backend pull requests before this roadmap-sync slice.
 
 Always re-check both repositories and open pull requests before work. This file records a checkpoint, not a live Git query.
 
@@ -68,25 +69,25 @@ Backend `main` contains:
 - technical data and operational retention registries;
 - disabled-by-default data-access export route/preparation boundaries;
 - durable source attempt limiting;
-- five ownership-safe export projections on `main`:
+- six ownership-safe export projections on `main`:
   - `profile_and_account_metadata`;
   - `progress_measurements_and_weight`;
   - `limitations_recovery_and_safety_context`;
   - `nutrition_and_meal_data`;
-  - `workouts_programs_and_exercises`.
+  - `workouts_programs_and_exercises`;
+  - `coach_reviews_proposals_and_run_history`.
 
-The workout projection reads six owner-scoped tables in one repeatable-read snapshot, strictly parses JSON-backed records, reconstructs normalized sessions, excludes internal identifiers and metadata, and fails closed on malformed relationships or source-bound overflow.
+The Coach projection reads owner-scoped runs and stages in one repeatable-read snapshot, explicitly parses all nine current request types, excludes raw request/context/result/stage payloads and internal/provider metadata, and fails closed on unsupported result shapes, lifecycle inconsistencies, ownership mismatch, or source-bound overflow.
 
 All projections remain separate from preparation, route activation, multi-surface assembly, archive generation, secure delivery, and mobile UI.
 
-## Remaining candidate export surfaces
+## Remaining candidate export surface
 
-Source projections are still absent for:
+The only remaining raw candidate surface is:
 
-- `coach_reviews_proposals_and_run_history`;
 - `social_relationships_and_account_activity`.
 
-The Coach surface is the next bounded candidate, subject to a fresh schema/privacy audit. Social requires explicit separation of authored, received, relationship, block, notification, and mixed-policy data before implementation.
+Social requires explicit separation of authored versus received activity, self-owned versus other-user fields, relationships and blocks, notifications, moderation/security records, and mixed-policy data before implementation.
 
 ## Deferred audit recommendations
 
