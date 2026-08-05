@@ -1,0 +1,40 @@
+name: Temporary Roadmap Sync 168
+
+on:
+  push:
+    branches:
+      - agent/p9-roadmap-sync-168
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/p9-roadmap-sync-168
+          fetch-depth: 0
+
+      - name: Apply exact implementation-plan patch
+        run: python scripts/temporary-roadmap-sync-168.py
+
+      - name: Verify and commit when changed
+        run: |
+          if git diff --quiet; then
+            echo 'Implementation plan is already synchronized.'
+            exit 0
+          fi
+          git diff --check
+          test "$(git diff --name-only)" = "docs/implementation-plan.md"
+          grep -q 'Backend PR #168 adds the sixth ownership-safe' docs/implementation-plan.md
+          grep -q 'six ownership-safe allowlisted projections exist' docs/implementation-plan.md
+          grep -q 'backend `main`: `ccea35967516b168e877e8803a8dd3c7c40c973d`' docs/implementation-plan.md
+          git config user.name hon4olo
+          git config user.email 145094796+hon4olo@users.noreply.github.com
+          git add docs/implementation-plan.md
+          git commit -m 'docs: sync roadmap after backend PR 168'
+          git push origin HEAD:agent/p9-roadmap-sync-168
