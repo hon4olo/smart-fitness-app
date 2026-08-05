@@ -4,13 +4,12 @@ Updated: 2026-08-05
 
 ## Verified repository baseline
 
-Verified during this documentation refresh:
+Verified after backend PR #167:
 
-- mobile `main`: `baeb0046d8dae54126dce1f36f4703c885320f39`;
-- backend `main`: `947989f8adfe85fa34248fc439b07e210f00d1b4`;
-- mobile PR #441 synchronized the canonical implementation plan with the fourth export projection;
-- backend PR #165 merged as `947989f8adfe85fa34248fc439b07e210f00d1b4`;
-- no overlapping feature pull request remained at the final refresh check.
+- mobile `main`: `5669c445000c4e6d3782826049d16feb78975858`;
+- backend `main`: `cbcecff4c0def1771bd91a67ff389ae517f48d8a`;
+- backend PR #167 merged the `workouts_programs_and_exercises` export projection;
+- no open mobile or backend pull requests before this roadmap-sync slice.
 
 Always re-check both repositories and open pull requests before work. This file records a checkpoint, not a live Git query.
 
@@ -65,13 +64,25 @@ Backend `main` contains:
 - technical data and operational retention registries;
 - disabled-by-default data-access export route/preparation boundaries;
 - durable source attempt limiting;
-- four ownership-safe export projections on `main`:
+- five ownership-safe export projections on `main`:
   - `profile_and_account_metadata`;
   - `progress_measurements_and_weight`;
   - `limitations_recovery_and_safety_context`;
-  - `nutrition_and_meal_data`.
+  - `nutrition_and_meal_data`;
+  - `workouts_programs_and_exercises`.
 
-The projections remain separate from preparation, route activation, multi-surface assembly, archive generation, secure delivery, and mobile UI.
+The workout projection reads six owner-scoped tables in one repeatable-read snapshot, strictly parses JSON-backed records, reconstructs normalized sessions, excludes internal identifiers and metadata, and fails closed on malformed relationships or source-bound overflow.
+
+All projections remain separate from preparation, route activation, multi-surface assembly, archive generation, secure delivery, and mobile UI.
+
+## Remaining candidate export surfaces
+
+Source projections are still absent for:
+
+- `coach_reviews_proposals_and_run_history`;
+- `social_relationships_and_account_activity`.
+
+The Coach surface is the next bounded candidate, subject to a fresh schema/privacy audit. Social requires explicit separation of authored, received, relationship, block, notification, and mixed-policy data before implementation.
 
 ## Disabled or authorization-gated
 
@@ -87,11 +98,8 @@ The following remain disabled, absent from default production composition, or re
 
 ## Documentation state
 
-This refresh establishes:
-
-- `docs/project-context.md` for stable orientation;
-- `docs/current-status.md` for mutable verified state;
-- `docs/handoffs/latest.md` for continuation;
-- `docs/architecture/README.md` for focused document navigation.
-
-`docs/implementation-plan.md` remains the canonical cross-repository roadmap. No duplicate `system-overview.md`, `mobile-architecture.md`, `backend-architecture.md`, or `data-sync.md` files are created because their content is already represented by the project context, implementation plan, and focused architecture documents.
+- `docs/project-context.md` provides stable orientation;
+- `docs/current-status.md` provides mutable verified state;
+- `docs/handoffs/latest.md` provides the continuation checkpoint;
+- `docs/architecture/README.md` indexes focused architecture documents;
+- `docs/implementation-plan.md` remains the canonical cross-repository roadmap.
