@@ -174,13 +174,13 @@ jobs:
           expo-public-config.json
           > mobile-release-evidence.json
 
-      - name: Export Expo application
-        working-directory: mobile
-        run: npx expo export --clear
-
       - name: Validate Expo dependencies and configuration
         working-directory: mobile
         run: npx expo-doctor
+
+      - name: Export Expo application
+        working-directory: mobile
+        run: npx expo export --clear
 
       - name: Upload mobile release evidence on failure
         if: failure()
@@ -308,11 +308,35 @@ jobs:
 
       - name: Apply backend migrations
         working-directory: backend
-        run: npm run db:migrate
+        run: |
+          run_migrations() {
+            for attempt in 1 2 3; do
+              if npm run db:migrate; then
+                return 0
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                return 1
+              fi
+              sleep 5
+            done
+          }
+          run_migrations
 
       - name: Verify migration idempotency
         working-directory: backend
-        run: npm run db:migrate
+        run: |
+          run_migrations() {
+            for attempt in 1 2 3; do
+              if npm run db:migrate; then
+                return 0
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                return 1
+              fi
+              sleep 5
+            done
+          }
+          run_migrations
 
       - name: Validate migrated backend schema
         working-directory: backend
