@@ -1,18 +1,20 @@
 # Latest Handoff
 
-Updated: 2026-08-05
+Updated: 2026-08-06
 
 ## Checkpoint
 
-Social notification-representation baseline after backend PR #173:
+Social notification source-plan checkpoint after backend PR #174:
 
-- mobile `main` before this documentation slice: `4cf8494c8a960874747ff8b3cc32109f3c91aadc`;
-- backend `main`: `f35a8c0b9a343ac759e1d617c7d088d599b0ed7a`;
+- mobile `main` before this documentation slice: `9f850036142fd72bc8cb76a3beaf756989ad0b38`;
+- backend `main`: `5f66e7b5b9756d951bbfe1071b6e9b459604ea3d`;
 - backend PR #170 added the executable Social ownership/privacy audit and kept complete Social projection implementation globally blocked;
 - backend PR #171 added only the audit-approved `social_profile_and_authored_posts` bounded source and preserved the count at six complete projections;
 - backend PR #172 resolved avatar/post-media disposition as a separate notice-only mixed-policy surface;
-- backend PR #173 resolved notification actor/target representation through permanent omission while preserving received-activity disclosure and source implementation blockers;
+- backend PR #173 resolved notification actor/target representation through permanent omission while preserving received-activity disclosure blockage;
+- backend PR #174 added the bounded Social notification source plan and technical source-contract evidence without implementing the source;
 - mobile PR #451 synchronized the managed-media decision baseline;
+- mobile PR #454 is closed, its branch was reset back to mobile `main`, and its wider diff is not reused;
 - no open mobile or backend pull requests existed before this documentation branch was created.
 
 This file is a continuation checkpoint. It must be updated when a merged change materially alters the active package, blockers, repository baseline, or next safe action.
@@ -86,9 +88,9 @@ Actor/target representation and lifecycle questions are resolved, but disclosure
 
 - The active roadmap priority order remains P9-B3, P9-C, P9-D, then authorization-gated operational and physical evidence.
 - There are still six complete ownership-safe projections, not seven; `social_profile_and_authored_posts` remains a bounded partial source.
-- Managed media and notification actor/target representation are resolved decisions, not implemented export sources.
-- The next Social step must resolve exactly one remaining audit decision rather than expand existing contracts by implication.
-- Candidate decisions include counterpart representation for outgoing follows/requests/blocks, incoming follow/request third-party disclosure, whether minimized actor/target-free notification metadata is disclosed at all, target representation for owner-authored comments/reactions, deleted/private/blocked/inaccessible target behavior, or deterministic bounds/snapshot semantics for one exact table boundary.
+- Managed media, actor/target omission, and the notification source-plan contract are resolved decisions, not implemented export sources.
+- The next Social step must resolve exactly one remaining policy decision: whether minimized notification metadata without actor/target can be disclosed at all.
+- Candidate decisions remain separate from implementation and include counterpart representation for outgoing follows/requests/blocks, incoming follow/request third-party disclosure, target representation for owner-authored comments/reactions, deleted/private/blocked/inaccessible target behavior, or deterministic bounds/snapshot semantics for one exact table boundary.
 - Incoming blocks remain permanently excluded, and received third-party activity is not automatically owner-authored export data.
 - Any next implementation must start from exact current `main`, explicitly amend or remain within the executable audit contract, stay under file-size limits, use strict allowlists and repeatable-read bounds where applicable, and rerun required evidence.
 - Complete Social projection approval, notification source implementation, managed-media notice/binary implementation, multi-surface assembly, route activation, audit/idempotency, archive generation, secure delivery, mobile integration, and public policy wording remain separate future scopes.

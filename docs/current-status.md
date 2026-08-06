@@ -1,18 +1,20 @@
 # Smart Fitness Current Status
 
-Updated: 2026-08-05
+Updated: 2026-08-06
 
 ## Verified repository baseline
 
-Verified after backend PR #173:
+Verified after backend PR #174:
 
-- mobile `main` before this documentation slice: `4cf8494c8a960874747ff8b3cc32109f3c91aadc`;
-- backend `main`: `f35a8c0b9a343ac759e1d617c7d088d599b0ed7a`;
+- mobile `main` before this documentation slice: `9f850036142fd72bc8cb76a3beaf756989ad0b38`;
+- backend `main`: `5f66e7b5b9756d951bbfe1071b6e9b459604ea3d`;
 - backend PR #170 added an executable Social ownership/privacy audit and kept complete Social projection implementation globally blocked;
 - backend PR #171 added the audit-approved `social_profile_and_authored_posts` source without registering a seventh complete projection;
 - backend PR #172 resolved managed avatar/post-media disposition as a separate notice-only mixed-policy surface while keeping media notice/binary implementation blocked;
-- backend PR #173 resolved notification actor/target representation through permanent omission while keeping notification disclosure and source implementation blocked;
+- backend PR #173 resolved notification actor/target representation through permanent omission while keeping notification disclosure blocked;
+- backend PR #174 added the bounded Social notification source plan and technical source-contract evidence without implementing the source;
 - mobile PR #451 synchronized the canonical roadmap to the managed-media decision;
+- mobile PR #454 is closed, its branch was reset back to mobile `main`, and its wider diff is not reused;
 - no open mobile or backend pull requests before this documentation slice.
 
 Always re-check both repositories and open pull requests before work. This file records a checkpoint, not a live Git query.
@@ -37,7 +39,7 @@ Active packages remain unchanged:
 
 1. P9-B3 provider/environment retention evidence — externally blocked until exact providers, environments, owners, credentials, lifecycle controls, and evidence are available.
 2. P9-C consent and analytics prerequisites — collection remains disabled; no production event or measurement purpose is registered.
-3. P9-D privacy-facing controls and policy evidence — six complete source projections, bounded Social owned-content source, notice-only managed-media disposition, and actor/target-free notification representation exist; complete Social, notification source, and media notice/binary implementation remain blocked.
+3. P9-D privacy-facing controls and policy evidence — six complete source projections, bounded Social owned-content source, notice-only managed-media disposition, and actor/target-free notification representation exist; backend PR #174 resolves the technical notification source-plan contract, but receivedActivityDisclosure remains blocked, social_notifications remains blocked_policy_decision, and complete Social, notification source, and media notice/binary implementation remain blocked.
 4. Operational and physical evidence — authorization-gated staging, deployment, worker scheduling, native build, release-device, offline-restart, accessibility, localization, and second-device validation.
 
 The Social decisions do not reorder those roadmap packages, increase the implemented-projection count, or activate an export route. See `docs/implementation-plan.md` for complete package evidence.
@@ -95,16 +97,21 @@ Backend PR #172 adds executable decision `managed_media_notice_only`:
 - missing or unavailable media never blocks otherwise eligible non-media content and never causes an ID/URL fallback;
 - separate notice projection and binary media export remain blocked.
 
-Backend PR #173 adds executable decision `notification_metadata_without_actor_or_target`:
+Backend PR #174 adds the bounded Social notification source plan:
 
-- the maximum future notification shape is closed notification type, read timestamp, and creation timestamp;
-- actor and target representation are always omitted;
-- actor/recipient IDs, actor profile/display fields, post/comment IDs and content, dedupe keys, and delivery metadata remain excluded;
-- actor/target deletion, blocking, privacy changes, or inaccessibility have no representation effect because actor/target data is absent;
+- owner verification is required;
+- only rows where the current user is the recipient are eligible;
+- one read-only `REPEATABLE READ` transaction is used;
+- ordering is `created_at ASC`, then internal notification ID `ASC`;
+- the internal tie-breaker is not exported;
+- the eligible-row bound fails closed at 5,000 rows with no silent truncation;
+- there is no continuation token and no independently committed page model;
+- closed notification-type validation, type-specific target-shape validation, self-actor rejection, and deleted/missing owner handling all fail closed;
 - `receivedActivityDisclosure` remains `blocked`;
 - `sourceImplementationAllowed` remains `false`;
-- notification bounds, ordering, repeatable-read semantics, deleted-owner behavior, and PostgreSQL source evidence remain unresolved.
+- `social_notifications` remains a `blocked_policy_decision` surface.
 
+Notification bounds, ordering, snapshot semantics, and the technical source-plan contract are resolved. Disclosure of received notifications remains undecided. No notification query, DTO, repository, route, schema, migration, archive, delivery, or UI was added.
 All projections and partial source/decision contracts remain separate from preparation invocation, route activation, multi-surface assembly, archive generation, secure delivery, and mobile UI.
 
 ## Social export audit state

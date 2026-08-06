@@ -1,6 +1,6 @@
 # Smart Fitness Active Implementation Plan
 
-Updated: 2026-08-05
+Updated: 2026-08-06
 
 This is the canonical cross-repository execution plan for:
 
@@ -11,10 +11,12 @@ Provider and release-readiness evidence remains in `docs/roadmap/provider-readin
 
 ## Verified baseline
 
-Verified after backend PR #173 and mobile PR #451:
+Verified after backend PR #174 and mobile PR #451:
 
-- mobile `main` before this roadmap-sync slice: `4cf8494c8a960874747ff8b3cc32109f3c91aadc`;
-- backend `main`: `f35a8c0b9a343ac759e1d617c7d088d599b0ed7a`;
+- mobile `main` before this roadmap-sync slice: `9f850036142fd72bc8cb76a3beaf756989ad0b38`;
+- backend `main`: `5f66e7b5b9756d951bbfe1071b6e9b459604ea3d`;
+- backend PR #174 merged the bounded Social notification source plan and exact-head evidence before merge;
+- mobile PR #454 is closed, its branch was returned to mobile `main`, and its wider diff is not being reused;
 - no open mobile or backend pull requests before this roadmap-sync slice;
 - all public provider-backed capabilities remain disabled;
 - analytics, crash reporting, performance telemetry, attribution and advertising collection remain disabled;
@@ -72,7 +74,7 @@ There is no remaining approved autonomous source-refactor phase. Future restruct
 
 1. **P9-B3 — Retention blocker closure.** Replace `unset_blocker` entries only with exact selected-provider/environment evidence for maximum lifetime, access, expiry/deletion and failure monitoring. Provider accounts, credentials, deployment, worker scheduling and real cleanup remain direct-authorization actions.
 2. **P9-C — Consent and analytics prerequisites.** Keep all collection disabled. Remaining work requires policy/legal decisions, exact provider evidence, persistence/ownership decisions, reviewed disclosures and eventual product integration. Do not add an SDK, production event, tracking identifier or upload route while activation remains blocked.
-3. **P9-D — Privacy-facing controls and policy evidence.** Preserve the six complete ownership-safe projections, the bounded `social_profile_and_authored_posts` source, the notice-only managed-media disposition, and actor/target-free notification representation; resolve one remaining Social audit decision at a time, then define multi-surface assembly plus audit/idempotency and continue deletion-status/reviewed-disclosure work. The optional route remains disabled by default pending separate deployed-composition approval; the complete Social surface, notification source/disclosure, managed-media notice/binary implementation, secure delivery, UI integration and public policy text remain separate reviewed slices.
+3. **P9-D — Privacy-facing controls and policy evidence.** Preserve the six complete ownership-safe projections, the bounded `social_profile_and_authored_posts` source, the notice-only managed-media disposition, and actor/target-free notification representation; backend PR #174 resolves the technical notification source-plan contract without enabling disclosure or implementation, so the next safe slice is exactly one policy decision about whether minimized notification metadata without actor/target may be disclosed at all. The optional route remains disabled by default pending separate deployed-composition approval; the complete Social surface, notification source/disclosure, managed-media notice/binary implementation, secure delivery, UI integration and public policy text remain separate reviewed slices.
 4. **Operational and physical evidence.** Execute staging/provider checks, release-device validation, worker scheduling, deployment and lifecycle proof only after explicit authorization and complete ownership inputs.
 
 P9-B3 can advance only for an exact selected provider/environment. Independent P9-C or P9-D work may proceed only when provider-neutral, fail closed and not presented as legal approval or production activation.
@@ -398,15 +400,18 @@ Backend PR #172 resolves managed avatar and workout-post media disposition witho
 
 Evidence: backend `docs/privacy/data-access-export-social-media-disposition.md`.
 
-Backend PR #173 resolves Social notification actor/target representation without implementing a notification source:
+Backend PR #174 resolves Social notification source planning without implementing a notification source:
 
-- the maximum future notification shape is one closed notification type, read timestamp, and creation timestamp;
-- actor and target representation are always omitted;
-- actor/recipient IDs, actor profile/display fields, post/comment IDs and content, dedupe keys, and delivery metadata remain excluded;
-- actor/target deletion, blocking, privacy changes, or inaccessibility have no representation effect because actor/target data is absent;
-- the contract agrees exactly with the four current `SOCIAL_NOTIFICATION_TYPES`;
+- owner verification is required;
+- only rows where the authenticated user is the recipient are eligible;
+- one read-only `REPEATABLE READ` transaction is used;
+- ordering is `created_at ASC`, then internal notification ID `ASC`;
+- the internal tie-breaker is not exported;
+- the eligible-row bound fails closed at 5,000 rows with no silent truncation;
+- there is no continuation token and no independently committed page model;
+- closed notification-type validation, type-specific target-shape validation, self-actor rejection, and deleted/missing owner handling all fail closed;
 - `receivedActivityDisclosure` remains `blocked` and `sourceImplementationAllowed` remains `false`;
-- third-party received-activity disclosure and deterministic bounds/snapshot blockers remain active;
+- `social_notifications` remains a `blocked_policy_decision` surface;
 - exact-head Backend CI and Account Deletion Receipt CI passed before merge;
 - no query, DTO, repository, route, schema, migration, archive, delivery, deployment, or production activation was added.
 
@@ -462,7 +467,7 @@ Approximately 11% remains, primarily:
 
 - **P9-B3 external retention evidence:** selected production/staging logs, backups, storage/CDN, email and provider lifecycle contracts;
 - **P9-C activation decisions and integration:** legal/policy choices, provider evidence, consent persistence/withdrawal architecture and eventual separately approved implementation;
-- **P9-D implementation and review:** bounded own-profile/own-post Social source, notice-only managed-media disposition, and notification actor/target omission are complete; counterpart, action-target, received-notification disclosure, inaccessible-record and remaining table-bound decisions remain before any complete Social projection, while notification source implementation, managed-media notice/binary implementation, multi-surface assembly, separately approved route composition, audit/idempotency, secure delivery, mobile UI/localization/accessibility and policy/legal approval remain separate;
+- **P9-D implementation and review:** bounded own-profile/own-post Social source, notice-only managed-media disposition, and notification actor/target omission are complete; PR #174 resolves the technical notification source-plan contract but not disclosure or implementation; counterpart, action-target, received-notification disclosure, inaccessible-record and remaining table-bound decisions remain before any complete Social projection, while notification source implementation, managed-media notice/binary implementation, multi-surface assembly, separately approved route composition, audit/idempotency, secure delivery, mobile UI/localization/accessibility and policy/legal approval remain separate;
 - **operational evidence:** deployment, worker scheduling, staging/provider execution, physical device/offline/second-device validation and release proof.
 
 Source guards and preparation boundaries reduce implementation risk, but they cannot substitute for exact infrastructure evidence, legal/policy decisions or authorized production operations.
