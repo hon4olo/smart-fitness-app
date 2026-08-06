@@ -47,7 +47,8 @@ permissions:
 jobs:
   validate-refs:
     name: Validate immutable refs
-    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+    runs-on: [self-hosted, linux, x64, hermes-mobile-ci]
     timeout-minutes: 2
     steps:
       - name: Require full distinct commit SHAs
@@ -82,8 +83,9 @@ jobs:
 
   mobile:
     name: Mobile release validation
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
     needs: validate-refs
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, hermes-mobile-ci]
     timeout-minutes: 35
     outputs:
       sha: ${{ steps.checked-sha.outputs.sha }}
@@ -193,8 +195,9 @@ jobs:
 
   backend:
     name: Backend release validation
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
     needs: validate-refs
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, hermes-mobile-ci]
     timeout-minutes: 35
     outputs:
       sha: ${{ steps.checked-sha.outputs.sha }}
@@ -207,7 +210,7 @@ jobs:
           POSTGRES_USER: smart_fitness
           POSTGRES_PASSWORD: smart_fitness_release_gate_password
         ports:
-          - 5432:5432
+          - 55435:5432
         options: >-
           --health-cmd "pg_isready -U smart_fitness -d smart_fitness_release_gate"
           --health-interval 5s
@@ -217,7 +220,7 @@ jobs:
       NODE_ENV: production
       PORT: 3000
       HOST: 127.0.0.1
-      DATABASE_URL: postgresql://smart_fitness:smart_fitness_release_gate_password@127.0.0.1:5432/smart_fitness_release_gate
+      DATABASE_URL: postgresql://smart_fitness:smart_fitness_release_gate_password@127.0.0.1:55435/smart_fitness_release_gate
       AUTH_ACCESS_TOKEN_SECRET: release-gate-access-token-secret-at-least-32-characters
       AUTH_REFRESH_TOKEN_SECRET: release-gate-refresh-token-secret-at-least-32-characters
       CORS_ALLOWLIST: https://release-gate.invalid
@@ -361,9 +364,9 @@ jobs:
 
   release-ready:
     name: Release ready
-    runs-on: ubuntu-latest
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
+    runs-on: [self-hosted, linux, x64, hermes-mobile-ci]
     needs: [validate-refs, mobile, backend]
-    if: always()
     steps:
       - name: Enforce all release checks
         env:

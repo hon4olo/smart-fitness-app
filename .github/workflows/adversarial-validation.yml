@@ -14,8 +14,9 @@ concurrency:
 
 jobs:
   mobile-model:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
     name: Expanded mobile model sequences
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, hermes-mobile-ci]
     timeout-minutes: 25
     outputs:
       sha: ${{ steps.source.outputs.sha }}
@@ -60,8 +61,9 @@ jobs:
           retention-days: 14
 
   backend-concurrency:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
     name: Backend PostgreSQL retry boundaries
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, hermes-mobile-ci]
     timeout-minutes: 25
     outputs:
       sha: ${{ steps.source.outputs.sha }}
@@ -73,7 +75,7 @@ jobs:
           POSTGRES_USER: smart_fitness
           POSTGRES_PASSWORD: smart_fitness_adversarial_password
         ports:
-          - 5432:5432
+          - 55434:5432
         options: >-
           --health-cmd "pg_isready -U smart_fitness -d smart_fitness_adversarial"
           --health-interval 5s
@@ -81,7 +83,7 @@ jobs:
           --health-retries 10
     env:
       NODE_ENV: test
-      DATABASE_URL: postgresql://smart_fitness:smart_fitness_adversarial_password@127.0.0.1:5432/smart_fitness_adversarial
+      DATABASE_URL: postgresql://smart_fitness:smart_fitness_adversarial_password@127.0.0.1:55434/smart_fitness_adversarial
       AUTH_ACCESS_TOKEN_SECRET: adversarial-access-token-secret-at-least-32-characters
       AUTH_REFRESH_TOKEN_SECRET: adversarial-refresh-token-secret-at-least-32-characters
     steps:
@@ -137,9 +139,9 @@ jobs:
 
   evidence:
     name: Adversarial evidence
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, hermes-mobile-ci]
     needs: [mobile-model, backend-concurrency]
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
     steps:
       - name: Compose exact-source result
         env:
