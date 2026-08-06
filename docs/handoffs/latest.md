@@ -1,124 +1,81 @@
 # Latest Handoff
 
-Updated: 2026-08-05
+Updated: 2026-08-07
 
 ## Checkpoint
 
-Social notification-representation baseline after backend PR #173:
+Social notification source-plan baseline after backend PR #174:
 
-- mobile `main` before this documentation slice: `4cf8494c8a960874747ff8b3cc32109f3c91aadc`;
-- backend `main`: `f35a8c0b9a343ac759e1d617c7d088d599b0ed7a`;
-- backend PR #170 added the executable Social ownership/privacy audit and kept complete Social projection implementation globally blocked;
-- backend PR #171 added only the audit-approved `social_profile_and_authored_posts` bounded source and preserved the count at six complete projections;
-- backend PR #172 resolved avatar/post-media disposition as a separate notice-only mixed-policy surface;
-- backend PR #173 resolved notification actor/target representation through permanent omission while preserving received-activity disclosure and source implementation blockers;
-- mobile PR #451 synchronized the managed-media decision baseline;
-- no open mobile or backend pull requests existed before this documentation branch was created.
-
-This file is a continuation checkpoint. It must be updated when a merged change materially alters the active package, blockers, repository baseline, or next safe action.
+- mobile `main` before this documentation slice: `9f850036142fd72bc8cb76a3beaf756989ad0b38`;
+- backend `main`: `5f66e7b5b9756d951bbfe1071b6e9b459604ea3d`;
+- backend PR #170 established the executable Social ownership/privacy audit;
+- backend PR #171 added only the bounded `social_profile_and_authored_posts` partial source;
+- backend PR #172 resolved managed media as notice-only mixed-policy data;
+- backend PR #173 resolved notification actor/target representation through permanent omission;
+- backend PR #174 resolved notification source bounds, deterministic ordering and repeatable-read snapshot semantics;
+- backend PR #174 exact head `8ca5081928000d6f7fab62c6e2aea78e907fab4f` passed Backend CI run `31127989601` and Account Deletion Receipt CI run `31127989983` before squash merge;
+- backend PR #174 merge SHA is `5f66e7b5b9756d951bbfe1071b6e9b459604ea3d`.
 
 ## Start-of-session checklist
 
 1. Fetch exact current `main` for both repositories.
 2. Inspect open pull requests and avoid overlapping active branches.
-3. Read `AGENTS.md`, project context/status, `PROJECT_LEARNINGS.md`, the implementation plan, and relevant privacy/architecture documents.
-4. Treat the executable Social audit, managed-media disposition, and notification representation as authoritative over older wording.
-5. Confirm the task is inside exactly one approved roadmap boundary.
-6. Work from a clean branch based on exact current `main`.
+3. Read `AGENTS.md`, project context/status, `PROJECT_LEARNINGS.md`, `docs/implementation-plan.md`, and relevant privacy/architecture documents.
+4. Treat the executable Social audit and merged PRs #171-#174 as authoritative over older wording.
+5. Work inside exactly one approved roadmap boundary from a clean branch.
 
-## Completed audit-hardening and Coach boundaries
+## Current notification contract
 
-- The destructive Expo template reset command and empty root artifacts are absent.
-- JWT expiry parsing is strict, platform independent, and fail closed.
-- Backend `main` contains six complete ownership-safe export projections.
-- The Coach projection uses explicit parsers, lifecycle validation, strict source bounds, and excludes raw/internal/provider data.
-- All complete projections remain separate from preparation invocation, route activation, assembly, archive generation, delivery, and mobile UI.
+The maximum future representation remains actor/target-free:
 
-## Completed Social owned-content source
-
-Backend PR #171:
-
-- verifies an active owner and reads only the owner's Social profile and active authored posts;
-- uses one read-only repeatable-read transaction;
-- limits profile output to username, display name, bio, visibility, and timestamps;
-- strictly parses version-1 workout snapshots and fails closed above 1,000 active posts;
-- excludes avatar/media, graph edges, requests, blocks, reactions, comments, received activity, notifications, internal IDs, revisions, idempotency keys, raw JSON, and other-user data;
-- uses `sourceId: social_profile_and_authored_posts` and `fullSurfaceProjectionAllowed: false`;
-- remains outside the implemented projection registry.
-
-The complete projection count remains six.
-
-## Resolved managed-media decision
-
-Backend PR #172:
-
-- keeps avatar/post-media references outside Social owned-content and raw relationship/activity sources;
-- maps them to `managed_media_metadata` as `notice_only` / `mixed_policy_review`;
-- excludes raw URLs, asset IDs, descriptors, object keys, hashes, provider/model fields, moderation/OCR signals, reviewer state, appeals, legal holds, cleanup, delivery, lease, and retention internals;
-- preserves eligible non-media content when media is missing or unavailable;
-- prohibits internal-ID and URL fallback;
-- keeps notice projection and binary media export blocked.
-
-## Resolved notification representation
-
-Backend PR #173 defines `notification_metadata_without_actor_or_target`.
-
-The maximum future representation is:
-
-- one closed notification type;
+- closed notification type;
 - read timestamp;
 - creation timestamp.
 
-The executable contract requires:
+Actor and target representation are permanently omitted. Actor/recipient IDs, actor display/profile data, target IDs/content, dedupe keys and delivery metadata are excluded.
 
-- `owner_is_subject_only` row scope;
-- exact agreement with the four current `SOCIAL_NOTIFICATION_TYPES`;
-- actor representation `omit`;
-- target representation `omit`;
-- actor and target lifecycle semantics `no_export_effect`;
-- exclusion of actor/recipient IDs, actor profile/display fields, post/comment IDs and content, dedupe keys, and delivery metadata;
-- `receivedActivityDisclosure: blocked`;
-- `sourceImplementationAllowed: false`.
+PR #174 resolves only the technical source-plan semantics:
 
-Actor/target representation and lifecycle questions are resolved, but disclosure of received notifications remains undecided. Notification bounds, ordering, repeatable-read snapshot behavior, deleted-owner handling, and PostgreSQL source evidence remain unresolved. No notification query, DTO, projection, route, migration, or UI was added.
+- active authenticated owner required;
+- owner-as-recipient rows only;
+- one read-only PostgreSQL `REPEATABLE READ` transaction;
+- deterministic order by `created_at` ascending then internal notification ID ascending;
+- internal notification ID is a non-exported tie-breaker;
+- fail closed above 5,000 eligible rows;
+- no silent truncation, continuation token or independently committed page;
+- closed notification-type and type-specific target-shape validation;
+- self-actor rows fail closed.
+
+The following remain blocked:
+
+- `receivedActivityDisclosure`;
+- `sourceImplementationAllowed`;
+- `social_notifications` source readiness;
+- complete Social projection implementation;
+- multi-surface assembly, audit/idempotency, archive generation, secure delivery and mobile UI.
+
+No query, repository, DTO, route, schema, migration, archive, delivery, deployment or production activation was introduced by PR #174.
 
 ## Current continuation boundary
 
-- The active roadmap priority order remains P9-B3, P9-C, P9-D, then authorization-gated operational and physical evidence.
-- There are still six complete ownership-safe projections, not seven; `social_profile_and_authored_posts` remains a bounded partial source.
-- Managed media and notification actor/target representation are resolved decisions, not implemented export sources.
-- The next Social step must resolve exactly one remaining audit decision rather than expand existing contracts by implication.
-- Candidate decisions include counterpart representation for outgoing follows/requests/blocks, incoming follow/request third-party disclosure, whether minimized actor/target-free notification metadata is disclosed at all, target representation for owner-authored comments/reactions, deleted/private/blocked/inaccessible target behavior, or deterministic bounds/snapshot semantics for one exact table boundary.
-- Incoming blocks remain permanently excluded, and received third-party activity is not automatically owner-authored export data.
-- Any next implementation must start from exact current `main`, explicitly amend or remain within the executable audit contract, stay under file-size limits, use strict allowlists and repeatable-read bounds where applicable, and rerun required evidence.
-- Complete Social projection approval, notification source implementation, managed-media notice/binary implementation, multi-surface assembly, route activation, audit/idempotency, archive generation, secure delivery, mobile integration, and public policy wording remain separate future scopes.
-- P9-B3 cannot progress through assumptions; it requires exact provider/environment evidence.
-- P9-C must keep every collection path fail closed until policy, provider, persistence, disclosure, localization, accessibility, and consent requirements are resolved.
+The active roadmap priority remains P9-B3, P9-C, P9-D, then authorization-gated operational/physical evidence. P9-B3 cannot advance from assumptions and P9-C must keep collection fail closed.
 
-## Validation evidence
+For provider-neutral P9-D work, resolve exactly one remaining Social audit decision at a time. The most direct next notification slice is:
 
-Backend PR #173 exact-head evidence passed:
+**Decide whether the already-minimized actor/target-free received notification metadata may be disclosed at all.**
 
-- lint and format;
-- TypeScript build and production configuration validation;
-- migrations, migration idempotency, and migrated-schema validation;
-- PostgreSQL Social API and Sync correctness;
-- full Vitest, including notification type/allowlist, actor/target omission, lifecycle-independence, and continued disclosure/source blocking guards;
-- production startup/health;
-- separate account-deletion receipt migration/runtime/purge workflow.
+That decision must be explicit and executable. It must not silently authorize a source implementation. If disclosure remains blocked, record the reason and preserve `sourceImplementationAllowed: false`. If disclosure is approved, source implementation must still be a separate reviewed slice using the already-defined bounds/snapshot contract.
 
-This mobile documentation slice must pass the exact-head Mobile CI before merge.
+Alternative bounded Social decisions remain counterpart representation for outgoing graph/action rows, incoming follow/request disclosure, owner-authored comment/reaction target representation, and deleted/private/blocked/inaccessible target behavior.
 
-## Deferred audit recommendations
+Incoming blocks remain permanently excluded. Received third-party activity is not automatically owner-authored export data.
 
-Do not start autonomous Context-store migration, local-database migration, mass feature restructuring, test-directory consolidation, or generic performance optimization without new measured evidence.
+## Validation and runner note
+
+Backend PR #174 validation completed successfully after the Hermes backend self-hosted runner service was safely restarted. The runner configuration and credentials were not changed. Old queued runs on obsolete heads are non-authoritative; exact-head green evidence above is authoritative.
+
+Documentation-only mobile changes do not require Expo execution, but exact baselines, links and cross-repository claims must be verified and the exact-head Mobile CI must pass before merge.
 
 ## Prohibited implicit actions
 
-Do not perform or claim backend deployment, production migration execution, provider/staging activation, complete Social projection approval, notification disclosure/source implementation, managed-media notice/binary implementation, route activation, archive generation, worker scheduling, secure delivery, OTA/EAS publication, native build/install, rollback, store submission, or credential/DNS/production-environment changes.
-
-These require direct authorization.
-
-## Handoff update template
-
-When replacing this checkpoint, record verification date, exact repository SHAs, open PRs, completed package/PR, validation run, active blockers, next safe action, and actions not performed.
+Do not perform or claim backend deployment, production migration execution, provider/staging activation, complete Social projection approval, notification source implementation, managed-media notice/binary implementation, route activation, archive generation, worker scheduling, secure delivery, OTA/EAS publication, native build/install, rollback, store submission, or credential/DNS/production-environment changes without direct authorization.
