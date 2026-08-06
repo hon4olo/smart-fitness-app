@@ -1,6 +1,7 @@
 name: Expo Doctor
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
     paths:
@@ -25,7 +26,8 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+    runs-on: [self-hosted, linux, x64, hermes-mobile-ci]
     timeout-minutes: 15
     steps:
       - name: Checkout
