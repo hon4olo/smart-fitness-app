@@ -84,7 +84,8 @@ describe('fixed-SHA cross-repository release gate', () => {
       'npm test -- --maxWorkers=1 --no-file-parallelism',
     );
     expect(workflow).toContain('npm run start:production');
-    expect(workflow).toContain('http://127.0.0.1:3000/health');
+    expect(workflow).toContain('http://127.0.0.1:39001/health');
+    expect(workflow).not.toContain('http://127.0.0.1:3000/health');
   });
 
   it('keeps the final result fail-closed and emits bounded immutable evidence', () => {
