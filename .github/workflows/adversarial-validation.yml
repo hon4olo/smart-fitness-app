@@ -43,7 +43,7 @@ jobs:
       - name: Run bounded expanded model sequences
         env:
           EXPECTED_MOBILE_SHA: ${{ steps.source.outputs.sha }}
-          SYNC_INTENT_PROPERTY_SEED_COUNT: '256'
+          SYNC_INTENT_PROPERTY_SEED_COUNT: '2048'
           SYNC_INTENT_PROPERTY_EVIDENCE_PATH: scheduled-sync-intent-model-evidence.json
         run: >-
           node scripts/run-expanded-sync-intent-model.mjs

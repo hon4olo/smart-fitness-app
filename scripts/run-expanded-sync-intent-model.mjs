@@ -97,7 +97,7 @@ const run = async () => {
     const vitestPath = resolve(projectRoot, 'node_modules/vitest/vitest.mjs');
     const execution = spawnSync(
       process.execPath,
-      [vitestPath, 'run', generatedPath, '--reporter=verbose'],
+      [vitestPath, 'run', generatedPath, '--reporter=verbose', '--testTimeout', '30000'],
       {
         cwd: projectRoot,
         env: process.env,
