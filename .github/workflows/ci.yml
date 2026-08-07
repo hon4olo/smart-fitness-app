@@ -60,3 +60,6 @@ jobs:
 
       - name: Expo export
         run: npx expo export --clear
+
+      - name: Expo Doctor
+        run: npx expo-doctor
