@@ -1,4 +1,4 @@
-import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, Text, View } from 'react-native';
 import { useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -34,6 +34,7 @@ export function RoutineExercisePickerModal({
 }) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const visibleExercises = useMemo(() => exercises.slice(0, 100), [exercises]);
 
   return (
     <Modal
@@ -52,20 +53,23 @@ export function RoutineExercisePickerModal({
               accessibilityRole="button"
               onPress={onClose}
               style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}>
-              <Text style={styles.textButtonLabel}>{copy.done}</Text>
+              <Text numberOfLines={2} style={styles.textButtonLabel}>
+                {copy.done}
+              </Text>
             </Pressable>
           </View>
-          <ScrollView
-            contentInsetAdjustmentBehavior="automatic"
-            showsVerticalScrollIndicator={false}>
-            {exercises.slice(0, 100).map((exercise) => {
+          <FlatList
+            data={visibleExercises}
+            initialNumToRender={8}
+            keyExtractor={(exercise) => exercise.id}
+            maxToRenderPerBatch={8}
+            renderItem={({ item: exercise }) => {
               const selected = selectedExerciseIds.has(exercise.id);
               return (
                 <Pressable
                   accessibilityLabel={exercise.name}
                   accessibilityRole="button"
                   accessibilityState={{ selected: selected && mode?.type === 'add' }}
-                  key={exercise.id}
                   onPress={() => {
                     if (mode?.type === 'replace') {
                       onReplace(mode.exerciseId, exercise);
@@ -76,7 +80,7 @@ export function RoutineExercisePickerModal({
                   }}
                   style={({ pressed }) => [styles.pickerRow, pressed && styles.pressed]}>
                   <View style={styles.pickerRowCopy}>
-                    <Text numberOfLines={1} style={styles.pickerRowTitle}>
+                    <Text numberOfLines={2} style={styles.pickerRowTitle}>
                       {exercise.name}
                     </Text>
                     <Text numberOfLines={1} style={styles.pickerRowMeta}>
@@ -88,8 +92,11 @@ export function RoutineExercisePickerModal({
                   </Text>
                 </Pressable>
               );
-            })}
-          </ScrollView>
+            }}
+            showsVerticalScrollIndicator={false}
+            style={styles.pickerList}
+            windowSize={5}
+          />
         </View>
       </View>
     </Modal>
