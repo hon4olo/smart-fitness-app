@@ -27,7 +27,7 @@ type ProfileGoalsCardProps = {
   onWeeklyWeightChangeGoalChange: (value: string) => void;
   targetWeight: string;
   trainingDaysPerWeek: string;
-  validationErrors: ProfileGoalsValidationErrors;
+  validationErrors?: ProfileGoalsValidationErrors;
   weeklyWeightChangeGoal: string;
   weightUnit: WeightUnit;
 };
@@ -42,7 +42,7 @@ export function ProfileGoalsCard({
   onWeeklyWeightChangeGoalChange,
   targetWeight,
   trainingDaysPerWeek,
-  validationErrors,
+  validationErrors = {},
   weeklyWeightChangeGoal,
   weightUnit,
 }: ProfileGoalsCardProps) {
