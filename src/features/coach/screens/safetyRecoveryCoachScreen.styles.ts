@@ -12,9 +12,9 @@ export const createSafetyRecoveryCoachStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     backButton: {
       alignItems: 'center',
-      height: 42,
+      height: 44,
       justifyContent: 'center',
-      width: 42,
+      width: 44,
     },
     backLabel: {
       color: colors.textPrimary,
@@ -158,7 +158,7 @@ export const createSafetyRecoveryCoachStyles = (colors: typeof Colors.light) =>
       borderRadius: Radii.medium,
       borderWidth: StyleSheet.hairlineWidth,
       flex: 1,
-      minHeight: 42,
+      minHeight: 44,
       justifyContent: 'center',
       paddingHorizontal: Spacing.two,
     },
