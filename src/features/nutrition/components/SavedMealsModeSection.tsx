@@ -1,3 +1,4 @@
+import { Plus, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
@@ -123,18 +124,20 @@ export function SavedMealsModeSection({
                     <View style={styles.rowActions}>
                       <Pressable
                         accessibilityLabel={copy.addSavedMeal(template.name, selectedMealLabel)}
+                        accessibilityRole="button"
                         hitSlop={10}
                         onPress={() => onQuickAddMealTemplate(template)}
                         style={styles.iconButton}>
-                        <Text style={styles.iconButtonText}>+</Text>
+                        <Plus color={colors.textPrimary} size={20} strokeWidth={2.2} />
                       </Pressable>
                       {manageMealsOpen ? (
                         <Pressable
                           accessibilityLabel={copy.deleteSavedMeal(template.name)}
+                          accessibilityRole="button"
                           hitSlop={10}
                           onPress={() => onDeleteMealTemplate(template.id)}
                           style={styles.iconButton}>
-                          <Text style={styles.iconButtonText}>×</Text>
+                          <Trash2 color={colors.error} size={19} strokeWidth={2} />
                         </Pressable>
                       ) : null}
                     </View>
