@@ -7,7 +7,8 @@ This file is the **canonical forward roadmap**. Historical PR-by-PR detail belon
 ## Current verified baseline
 
 - Mobile repo: `ivangemini/smart-fitness-app`
-- Mobile `main` at responsive-UI branch start: `60edb23de9cab90bbc4d4e23466a481bef2b94e6` (PR #458)
+- Mobile `main`: `2ff71de222a0cc393ed41806978cce859c98b306` (PR #459 — RUI-1 responsive layout foundation)
+- Active mobile responsive branch: `ui/responsive-primary-tabs` (RUI-2)
 - Backend repo: `ivangemini/smart-fitness-backend`
 - Backend `main`: `431998bfa85bf169fd68e98a7e46651f70cfa2d9` (through backend PR #196)
 - Backend PR #197 is open and is scoped to secure private export storage/delivery source contracts.
@@ -223,7 +224,7 @@ If real-data evidence shows complete export JSON can exceed 8 MiB, design explic
 
 # Phase 10 — responsive mobile UI hardening
 
-**Status: in progress; RUI-1 foundation implemented on the responsive-UI branch.**
+**Status: in progress; RUI-1 is merged and RUI-2 is implemented on the current branch pending exact-head validation.**
 
 Canonical contract: `docs/architecture/responsive-mobile-ui.md`.
 
@@ -231,9 +232,9 @@ This phase is product-quality hardening, not a business-logic redesign. Preserve
 
 ## RUI-1 — responsive layout foundation
 
-**Status: implemented in the current package; CI/device validation pending.**
+**Status: complete and merged in PR #459 (`2ff71de222a0cc393ed41806978cce859c98b306`).**
 
-Scope:
+Completed scope:
 - shared floating-tab bottom-clearance calculation with unit coverage;
 - Nutrition bottom clearance moved off the insufficient screen-local inset;
 - Coach and Profile moved off independent `safeArea.bottom + 120` constants;
@@ -242,17 +243,30 @@ Scope:
 - touched horizontal/text rows gain bounded shrink/wrap behavior;
 - responsive rules and initial audit are documented.
 
+Validation on the exact PR head passed repository/changed-file line audits, TypeScript, **1392/1392 regression tests**, expanded sync smoke, Expo export, and Expo Doctor. This is source/CI evidence only; it does not substitute for physical-device responsive evidence.
+
 ## RUI-2 — remaining primary tab screens
 
-**Status: next mobile UI package.**
+**Status: implemented on `ui/responsive-primary-tabs`; exact-head CI and runtime evidence pending.**
 
-- Home: remove independent bottom navigation magic number and validate header/card text on narrow/large-text layouts.
-- Progress: remove independent bottom navigation magic number and validate metric/action rows under width/text pressure.
-- Re-check Nutrition last-row visibility and Workouts sticky action behavior after RUI-1 on a matching runtime.
+Current scope:
+- Home now uses the shared floating-tab clearance instead of `safeArea.bottom + 120`;
+- Home root content can grow on short screens;
+- Home header, summary hero, statistics, snapshot copy, and calories badge can shrink/wrap without reducing the base typography scale or touch targets;
+- Progress now uses the shared floating-tab clearance instead of `safeArea.bottom + 120`;
+- Progress root content can grow on short screens;
+- Progress weight hero can wrap its action instead of compressing the metric copy;
+- Progress measurement rows split width safely between long labels and values;
+- the actual `LiquidGlassTabBar` now consumes the shared height and minimum-bottom-offset constants, removing duplicated `64`/`12` geometry from that component.
+
+Still required before RUI-2 is closed:
+- exact-head Mobile CI;
+- matching-runtime review of Home/Progress narrow-width behavior;
+- re-check Nutrition final-row visibility and Workouts sticky-action clearance on a matching runtime when device/runtime evidence is authorized.
 
 ## RUI-3 — workout creation and active-session flows
 
-**Status: queued.**
+**Status: next high-frequency UI package after RUI-2 validation.**
 
 Audit and remediate:
 - active Workout Session;
@@ -286,15 +300,16 @@ Add focused source/interaction checks for proven failure patterns. Do not add a 
 
 # Execution order from this checkpoint
 
-1. Keep mobile/backend roadmap and inventories synchronized as source behavior changes.
-2. Complete and validate RUI-1; then continue RUI-2 and RUI-3 in bounded mobile UI packages.
-3. In parallel, continue P9-D secure storage-delivery source work without provider activation; avoid overlapping backend PR #197.
-4. Separately design large-account export pagination/chunking if evidence requires it.
-5. P9-B3: collect exact provider/environment retention evidence when a provider/environment is selected.
-6. P9-C: keep analytics/consent behind disabled defaults until policy/evidence is complete.
-7. Continue RUI-4/RUI-5, then add RUI-6 guardrails after the failure inventory stabilizes.
-8. Run authorized staging/provider/physical-device/release evidence, including responsive viewport/accessibility checks.
-9. Only after explicit approval: production migrations/deployment/provider activation/OTA/native release actions.
+1. Complete exact-head validation for RUI-2 and merge it if green.
+2. Continue RUI-3 across the active workout and workout-creation flows in bounded packages.
+3. Keep mobile/backend roadmap and inventories synchronized as source behavior changes.
+4. In parallel, continue P9-D secure storage-delivery source work without provider activation; avoid overlapping backend PR #197.
+5. Separately design large-account export pagination/chunking if evidence requires it.
+6. P9-B3: collect exact provider/environment retention evidence when a provider/environment is selected.
+7. P9-C: keep analytics/consent behind disabled defaults until policy/evidence is complete.
+8. Continue RUI-4/RUI-5, then add RUI-6 guardrails after the failure inventory stabilizes.
+9. Run authorized staging/provider/physical-device/release evidence, including responsive viewport/accessibility checks.
+10. Only after explicit approval: production migrations/deployment/provider activation/OTA/native release actions.
 
 # Validation policy
 
