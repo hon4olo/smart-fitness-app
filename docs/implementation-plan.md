@@ -21,6 +21,7 @@ Planning estimate before the newly added responsive-UI remediation scope was app
 - Do not claim provider, production, physical-device, native-release, OTA, or deployment evidence unless it actually ran.
 - Do not perform backend deployment, production migrations, provider activation, production data access, OTA/EAS publication, native build/install, credential/DNS changes, destructive production cleanup, or store submission without direct authorization.
 - Keep analytics/telemetry collection disabled until the P9-C consent/evidence gate is explicitly satisfied.
+- Preserve the reviewed local-state decision in `docs/architecture/local-state-performance-decision.md`; do not replace the current AsyncStorage architecture without new measured evidence and a separately reviewed decision.
 - For mobile UI work, follow `docs/architecture/responsive-mobile-ui.md`; use shared navigation/safe-area geometry instead of screen-local magic-number clearances.
 
 ---
