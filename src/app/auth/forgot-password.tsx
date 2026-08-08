@@ -60,11 +60,14 @@ export default function ForgotPasswordScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.keyboardRoot}>
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + Spacing.four, paddingTop: insets.top + Spacing.four },
         ]}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
         style={styles.screen}>
         <View style={styles.container}>
           <ScreenHeader
@@ -139,7 +142,11 @@ export default function ForgotPasswordScreen() {
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
-  content: { alignItems: 'center', paddingHorizontal: Spacing.three },
+  content: {
+    alignItems: 'center',
+    flexGrow: 1,
+    paddingHorizontal: Spacing.three,
+  },
   keyboardRoot: { flex: 1 },
   screen: { backgroundColor: Colors.dark.background, flex: 1 },
 });
