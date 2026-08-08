@@ -1,3 +1,4 @@
+import { ChevronDown, Ellipsis, Timer } from 'lucide-react-native';
 import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,6 +38,7 @@ export const SessionHeader = memo(function SessionHeader({
   const formattedVolume = `${formatNumber(weightFromKg(volume, weight), {
     maximumFractionDigits: 1,
   })} ${weight}`;
+  const finishDisabledReason = t('workouts.session.finishRequiresCompletedSet');
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 4 }]}>
@@ -46,16 +48,13 @@ export const SessionHeader = memo(function SessionHeader({
           accessibilityRole="button"
           onPress={onBack}
           style={({ pressed }) => [styles.flatIconButton, pressed && styles.pressed]}>
-          <View style={styles.chevronDown} />
+          <ChevronDown color={colors.textPrimary} size={24} strokeWidth={2} />
         </Pressable>
         <View
           accessibilityLabel={t('workouts.session.timerAccessibility')}
           accessibilityRole="image"
           style={styles.flatIconButton}>
-          <View style={styles.stopwatchIcon}>
-            <View style={styles.stopwatchStem} />
-            <View style={styles.stopwatchHand} />
-          </View>
+          <Timer color={colors.textPrimary} size={22} strokeWidth={2} />
         </View>
         <View style={styles.topSpacer} />
         <Pressable
@@ -64,9 +63,10 @@ export const SessionHeader = memo(function SessionHeader({
           hitSlop={12}
           onPress={onOverflow}
           style={({ pressed }) => [styles.overflowButton, pressed && styles.pressed]}>
-          <Text style={styles.overflowLabel}>•••</Text>
+          <Ellipsis color={colors.accent} size={24} strokeWidth={2.2} />
         </Pressable>
         <Pressable
+          accessibilityHint={finishDisabled ? finishDisabledReason : undefined}
           accessibilityLabel={t('workouts.session.finish')}
           accessibilityRole="button"
           accessibilityState={{ disabled: finishDisabled }}
@@ -82,6 +82,12 @@ export const SessionHeader = memo(function SessionHeader({
           </Text>
         </Pressable>
       </View>
+
+      {finishDisabled ? (
+        <Text accessibilityLiveRegion="polite" style={styles.finishHint}>
+          {finishDisabledReason}
+        </Text>
+      ) : null}
 
       {sets > 0 ? (
         <View style={styles.statsRow}>
@@ -134,27 +140,38 @@ const createStyles = (colors: typeof Colors.light) =>
       borderRadius: 16,
       flexShrink: 1,
       justifyContent: 'center',
-      minHeight: 32,
+      minHeight: 44,
       minWidth: 78,
       paddingHorizontal: Spacing.two,
-      paddingVertical: 6,
+      paddingVertical: Spacing.one,
     },
     finishButtonDisabled: {
-      opacity: 0.42,
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderSubtle,
+      borderWidth: StyleSheet.hairlineWidth,
     },
     finishButtonPressed: {
-      opacity: 0.9,
+      backgroundColor: colors.accentPressed,
+    },
+    finishHint: {
+      color: colors.textMuted,
+      flexShrink: 1,
+      fontSize: 12,
+      lineHeight: 16,
+      paddingHorizontal: Spacing.four,
+      paddingTop: Spacing.two,
+      textAlign: 'right',
     },
     finishLabel: {
       color: colors.textOnAccent,
       flexShrink: 1,
       fontSize: 14,
-      fontWeight: '500',
+      fontWeight: '600',
       lineHeight: 18,
       textAlign: 'center',
     },
     finishLabelDisabled: {
-      color: colors.textSecondary,
+      color: colors.textMuted,
     },
     flatIconButton: {
       alignItems: 'center',
@@ -162,29 +179,12 @@ const createStyles = (colors: typeof Colors.light) =>
       justifyContent: 'center',
       width: 44,
     },
-    chevronDown: {
-      borderBottomColor: colors.textPrimary,
-      borderBottomWidth: 1.75,
-      borderRightColor: colors.textPrimary,
-      borderRightWidth: 1.75,
-      height: 15,
-      marginTop: -7,
-      transform: [{ rotate: '45deg' }],
-      width: 15,
-    },
     overflowButton: {
       alignItems: 'center',
       flexShrink: 0,
       height: 44,
       justifyContent: 'center',
       width: 44,
-    },
-    overflowLabel: {
-      color: colors.accent,
-      fontSize: 14,
-      fontWeight: '900',
-      letterSpacing: 1.2,
-      lineHeight: 18,
     },
     pressed: {
       opacity: 0.72,
@@ -223,31 +223,6 @@ const createStyles = (colors: typeof Colors.light) =>
       lineHeight: 40,
       marginTop: 48,
       textAlign: 'center',
-    },
-    stopwatchHand: {
-      backgroundColor: colors.textPrimary,
-      height: 7,
-      left: 9,
-      position: 'absolute',
-      top: 4,
-      transform: [{ rotate: '0deg' }],
-      width: 1.5,
-    },
-    stopwatchIcon: {
-      borderColor: colors.textPrimary,
-      borderRadius: 999,
-      borderWidth: 1.75,
-      height: 21,
-      position: 'relative',
-      width: 21,
-    },
-    stopwatchStem: {
-      backgroundColor: colors.textPrimary,
-      height: 5,
-      left: 8,
-      position: 'absolute',
-      top: -7,
-      width: 4,
     },
     topRow: {
       alignItems: 'center',
