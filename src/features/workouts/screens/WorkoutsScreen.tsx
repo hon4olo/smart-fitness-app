@@ -3,7 +3,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomTabInset } from '@/constants/theme';
+import {
+  getFloatingTabBarBottomClearance,
+  getFloatingTabBarStickyActionContentPadding,
+} from '@/components/navigation/floatingTabBarLayout';
 import {
   useAppActions,
   useAppInfrastructure,
@@ -32,6 +35,8 @@ import {
   type TabKey,
 } from './WorkoutsScreenComponents';
 import { createWorkoutsScreenStyles } from './workoutsScreen.styles';
+
+const STICKY_ACTION_MIN_HEIGHT = 48;
 
 export default function WorkoutsScreen() {
   const { colors } = useAppTheme();
@@ -91,6 +96,11 @@ export default function WorkoutsScreen() {
   const visibleProgramSummaries = favoritesOnly
     ? programSummaries.filter((summary) => summary.isFavorite)
     : programSummaries;
+  const floatingTabBarClearance = getFloatingTabBarBottomClearance(insets.bottom);
+  const scrollBottomPadding = getFloatingTabBarStickyActionContentPadding(
+    insets.bottom,
+    STICKY_ACTION_MIN_HEIGHT,
+  );
 
   const startEmptyWorkout = () => {
     const draft = startEmptyWorkoutSessionDraft();
@@ -143,10 +153,7 @@ export default function WorkoutsScreen() {
       {activeTab === 'start-now' ? (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: insets.bottom + BottomTabInset + 84 },
-          ]}
+          contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]}
           showsVerticalScrollIndicator={false}>
           <View style={styles.container}>
             {header}
@@ -177,10 +184,7 @@ export default function WorkoutsScreen() {
       ) : (
         <FlatList
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: insets.bottom + BottomTabInset + 84 },
-          ]}
+          contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]}
           data={visibleProgramSummaries}
           keyExtractor={(summary) => summary.program.id}
           ListHeaderComponent={
@@ -227,7 +231,9 @@ export default function WorkoutsScreen() {
         />
       )}
 
-      <View pointerEvents="box-none" style={[styles.footer, { paddingBottom: insets.bottom + 2 }]}>
+      <View
+        pointerEvents="box-none"
+        style={[styles.footer, { bottom: floatingTabBarClearance }]}>
         <View style={styles.container}>
           <Pressable
             accessibilityHint={t(

@@ -5,87 +5,80 @@ Updated: 2026-08-08
 ## Checkpoint
 
 - Mobile repo: `ivangemini/smart-fitness-app`
-- Mobile `main` before this docs sync: `76ad9166eb8f9a58df17a551b5b76db8f5a9cc29`
+- Mobile `main` at branch start: `60edb23de9cab90bbc4d4e23466a481bef2b94e6` (PR #458)
+- Active mobile branch: `ui/responsive-layout-foundation`
 - Backend repo: `ivangemini/smart-fitness-backend`
 - Backend `main`: `431998bfa85bf169fd68e98a7e46651f70cfa2d9` (PR #196)
-- Backend PRs #192–#196 are merged and advance P9-D beyond the previous mobile roadmap checkpoint.
+- Backend PR #197 is open for secure private export storage/delivery source contracts.
 
-This mobile branch is docs-only. No mobile runtime/business-logic/persistence change is part of this handoff.
+This handoff now covers the first explicit responsive mobile UI hardening package. The package changes layout/presentation behavior only; it does not change business logic, persistence schemas, synchronization contracts, routes, completed workout data, or backend APIs.
 
-## What changed since the previous mobile handoff
+## RUI-1 package
 
-Backend P9-D now includes:
+Canonical responsive contract:
 
-1. audit/idempotency request identity;
-2. durable owner-bound request persistence (`0038`);
-3. preparation-route audit create/replay/conflict after fresh password re-verification;
-4. seven complete ownership-safe candidate projections;
-5. deterministic all-or-nothing multi-surface assembly;
-6. audited assembly execution with exact UTF-8 measurement and a hard **8 MiB** serialized JSON ceiling;
-7. deterministic in-memory JSON artifact generation with fixed filename, exact bytes and SHA-256 integrity metadata.
+`docs/architecture/responsive-mobile-ui.md`
 
-The fixed artifact filename is `smart-fitness-data-export.json` and media type is `application/json`.
+Implemented on the current branch:
 
-## Important fail-closed state
+1. Added `src/components/navigation/floatingTabBarLayout.ts` with bounded calculations for:
+   - floating tab-bar bottom clearance;
+   - sticky-action scroll-content clearance.
+2. Added focused unit tests for safe-area/minimum-offset/sticky-action/invalid-input behavior.
+3. Nutrition diary now reserves space for the floating tab bar instead of only `bottomInset + 24`.
+4. Coach and Profile no longer use independent `safeArea.bottom + 120` bottom-clearance constants.
+5. Workouts Start/Resume CTA now sits above the floating tab bar using safe-area/navigation geometry rather than `bottom: 0` plus a separate inset padding.
+6. Workouts ScrollView/FlatList reserve enough bottom space for both floating navigation and the sticky CTA.
+7. Touched Workouts/Profile/Coach text-heavy rows now allow bounded shrink/wrap behavior on narrow layouts.
+8. The canonical roadmap now tracks Responsive Mobile UI Hardening as Phase 10 with RUI-1 through RUI-6.
 
-Do not interpret source completion as product availability.
+## Audit finding that motivated the phase
 
-Still true:
+Safe-area hooks were already present on many important screens, but navigation clearance had no single contract. Different screens compensated independently, including `+120`, `BottomTabInset + 84`, and `+24` patterns.
 
-- backend default `createApp()` does not compose the optional export route;
-- `/prepare` does not invoke execution/artifact generation;
-- new/replayed preparation ends `409 DATA_EXPORT_NOT_AVAILABLE`;
-- no large-account pagination/chunking exists;
-- no artifact persistence row exists;
-- no object-storage write exists;
-- no status/download route exists;
-- no expiring/revocable download credential exists;
-- no mobile export UI exists;
-- no storage/provider environment has been selected/activated;
-- migration `0038` is source evidence only; no production migration was run.
+Do not replace those patterns with a blanket ban on fixed pixel values. Fixed dimensions remain valid for intentional component geometry such as icons, controls, touch targets, media aspect ratios and the floating tab panel. The prohibited pattern is device-specific pixel positioning of primary layout/actions.
 
-The artifact bytes are sensitive user export content and must never be logged or copied into generic telemetry/audit events.
+## Next mobile package — RUI-2
 
-## Evidence accuracy
+After RUI-1 exact-head validation/review:
 
-Backend PRs #192, #194, #195 and #196 passed exact-head Backend CI: lint, Prettier, TypeScript build, production configuration validation and the full test suite.
+- Home: replace independent bottom navigation magic number and test header/card copy under narrow width and large text.
+- Progress: replace independent bottom navigation magic number and test metric/action rows under width and text pressure.
+- Re-check Nutrition final-row visibility and Workouts sticky-action clearance on a matching runtime.
 
-Backend PR #193 passed exact-head Backend CI, Backend PostgreSQL CI and Account Deletion Receipt CI. PostgreSQL CI applied the full migration chain twice and validated migrated schema/table expectations.
+Then continue RUI-3 for the active workout and creation flows:
 
-`tests/data-access-export-request-postgres.test.ts` exists as focused PostgreSQL evidence, but the current PostgreSQL workflow does not directly enumerate that standalone new file. Do not claim that specific file ran in CI.
+- Workout Session;
+- Workout Session Finish;
+- New Routine;
+- Workout Builder;
+- Program Detail;
+- Exercise Library/detail.
 
-## Canonical next P9-D boundary
+RUI-3 priorities are keyboard overlap, short-screen reachability, set-table compression, sticky actions, long exercise names and safe-area ownership.
 
-Next implementation package: **secure storage/delivery source contract**, still with no provider activation or real object write by default.
+## Validation required for RUI-1
 
-It should define:
+Run exact-head Mobile CI:
 
-- private owner-scoped artifact identity;
-- explicit lifecycle states;
-- bounded retention/expiry and deletion;
-- account-deletion behavior;
-- expiring and revocable download authorization semantics;
-- SHA-256 integrity verification across persistence/download;
-- failure cleanup/orphan handling;
-- no public object URLs or reusable bearer credentials.
+- repository/changed-file line limits;
+- TypeScript;
+- full regression suite;
+- expanded sync-intent smoke runner;
+- Expo export;
+- Expo Doctor.
 
-Do not wire production object storage, public/default route activation or deployment into the same source-contract package unless explicitly authorized.
+Also review the responsive validation matrix in `docs/architecture/responsive-mobile-ui.md`.
 
-If evidence later shows complete export JSON can exceed 8 MiB, design pagination/chunking explicitly rather than silently raising the hard execution ceiling.
+Do not claim physical-device proof from CI. Narrow/short-device, accessibility text size, software-keyboard, iPhone safe-area and Android navigation-inset evidence remains physical/runtime validation.
 
-## Other remaining roadmap boundaries
+## Backend/P9-D continuity
 
-- P9-B3: exact provider/environment retention evidence remains externally blocked.
-- P9-C: analytics/telemetry collection remains disabled until policy, consent and provider evidence is complete.
-- P9-A: physical-device/native/OTA/release/rollback evidence remains authorization-gated.
+Backend P9-D remains independent of this UI package.
 
-## Required start for the next work session
+Backend #192–#196 provide audit/idempotency, durable request persistence, preparation integration, bounded assembly execution and deterministic JSON artifact generation. Export remains fail closed and not product-available.
 
-1. Fetch current mobile/backend `main` and open PRs.
-2. Read both `AGENTS.md` files.
-3. Read mobile `docs/implementation-plan.md`, `docs/current-status.md` and this handoff.
-4. Read backend `docs/current-status.md` and `docs/handoffs/latest.md` before P9-D continuation.
-5. Trust authoritative repository history after the account transfer; do not allow stale numeric-repository REST redirects to override normal repo reads.
+Backend PR #197 is the active source-contract package for private owner-scoped export storage/delivery lifecycle and authorization semantics. Do not overlap it from this mobile branch and do not activate provider/storage infrastructure implicitly.
 
 ## Prohibited implicit actions
 

@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { getFloatingTabBarBottomClearance } from '@/components/navigation/floatingTabBarLayout';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -37,9 +38,10 @@ export default function CoachScreen() {
 
   return (
     <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={[
         styles.content,
-        { paddingBottom: safeAreaInsets.bottom + 120 },
+        { paddingBottom: getFloatingTabBarBottomClearance(safeAreaInsets.bottom) },
       ]}
       showsVerticalScrollIndicator={false}
       style={styles.screen}>
@@ -77,14 +79,16 @@ const styles = StyleSheet.create({
   actions: { gap: Spacing.two, marginTop: Spacing.two },
   body: {
     color: Colors.dark.textSecondary,
+    flexShrink: 1,
     fontSize: Typography.body.fontSize,
     lineHeight: Typography.body.lineHeight,
   },
   container: { gap: Spacing.three, maxWidth: MaxContentWidth, width: '100%' },
-  content: { alignItems: 'center', padding: Spacing.three },
+  content: { alignItems: 'center', flexGrow: 1, padding: Spacing.three },
   screen: { backgroundColor: Colors.dark.background, flex: 1 },
   title: {
     color: Colors.dark.textPrimary,
+    flexShrink: 1,
     fontSize: Typography.cardTitle.fontSize,
     fontWeight: Typography.cardTitle.fontWeight,
     lineHeight: Typography.cardTitle.lineHeight,

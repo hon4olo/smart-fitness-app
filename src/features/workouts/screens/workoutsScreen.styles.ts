@@ -6,6 +6,7 @@ export const createTopTabsStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     label: {
       color: colors.textMuted,
+      flexShrink: 1,
       fontSize: 23,
       fontWeight: '900',
       lineHeight: 29,
@@ -18,7 +19,9 @@ export const createTopTabsStyles = (colors: typeof Colors.light) =>
     row: {
       alignItems: 'baseline',
       flexDirection: 'row',
+      flexShrink: 1,
       gap: Spacing.three,
+      minWidth: 0,
     },
   });
 
@@ -47,11 +50,13 @@ export const createRoutineCardStyles = (colors: typeof Colors.light) =>
     },
     subtitle: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: 16,
       lineHeight: 20,
     },
     title: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 18,
       fontWeight: '900',
       lineHeight: 22,
@@ -99,11 +104,13 @@ export const createProgramRowStyles = (colors: typeof Colors.light) =>
     },
     subtitle: {
       color: colors.textMuted,
+      flexShrink: 1,
       fontSize: 17,
       lineHeight: 21,
     },
     title: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 19,
       fontWeight: '900',
       lineHeight: 24,
@@ -114,6 +121,7 @@ export const createModalStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     actions: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: Spacing.two,
       justifyContent: 'flex-end',
     },
@@ -125,6 +133,7 @@ export const createModalStyles = (colors: typeof Colors.light) =>
     },
     cancelLabel: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: 16,
       fontWeight: '800',
     },
@@ -139,6 +148,7 @@ export const createModalStyles = (colors: typeof Colors.light) =>
     },
     createLabel: {
       color: colors.textOnAccent,
+      flexShrink: 1,
       fontSize: 16,
       fontWeight: '900',
     },
@@ -147,6 +157,7 @@ export const createModalStyles = (colors: typeof Colors.light) =>
     },
     modalHelperText: {
       color: colors.textMuted,
+      flexShrink: 1,
       fontSize: 14,
       fontWeight: '700',
       lineHeight: 19,
@@ -184,6 +195,7 @@ export const createModalStyles = (colors: typeof Colors.light) =>
     },
     title: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 22,
       fontWeight: '900',
       lineHeight: 28,
@@ -198,11 +210,11 @@ export const createWorkoutsScreenStyles = (colors: typeof Colors.light) =>
     },
     content: {
       alignItems: 'center',
+      flexGrow: 1,
       paddingHorizontal: Spacing.three,
       paddingTop: Spacing.two,
     },
     footer: {
-      bottom: 0,
       left: 0,
       paddingHorizontal: Spacing.three,
       position: 'absolute',
@@ -219,8 +231,9 @@ export const createWorkoutsScreenStyles = (colors: typeof Colors.light) =>
       justifyContent: 'center',
       maxWidth: 360,
       minHeight: 48,
-      minWidth: 260,
+      minWidth: 0,
       paddingHorizontal: Spacing.three,
+      width: '100%',
     },
     footerIcon: {
       color: colors.textOnAccent,
@@ -229,11 +242,14 @@ export const createWorkoutsScreenStyles = (colors: typeof Colors.light) =>
     },
     footerLabel: {
       color: colors.textOnAccent,
+      flexShrink: 1,
       fontSize: 15,
       fontWeight: '900',
+      textAlign: 'center',
     },
     emptyProgramText: {
       color: colors.textMuted,
+      flexShrink: 1,
       fontSize: 15,
       fontWeight: '700',
       lineHeight: 20,
@@ -246,6 +262,7 @@ export const createWorkoutsScreenStyles = (colors: typeof Colors.light) =>
     header: {
       alignItems: 'center',
       flexDirection: 'row',
+      gap: Spacing.two,
       justifyContent: 'space-between',
       marginBottom: Spacing.three,
     },
@@ -258,6 +275,7 @@ export const createWorkoutsScreenStyles = (colors: typeof Colors.light) =>
     },
     loadingLabel: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: 14,
       fontWeight: '800',
     },
@@ -277,6 +295,7 @@ export const createWorkoutsScreenStyles = (colors: typeof Colors.light) =>
     },
     searchButton: {
       alignItems: 'center',
+      flexShrink: 0,
       height: 38,
       justifyContent: 'center',
       width: 38,
@@ -292,6 +311,7 @@ export const createWorkoutsScreenStyles = (colors: typeof Colors.light) =>
     },
     sectionTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 20,
       fontWeight: '900',
       lineHeight: 25,

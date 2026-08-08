@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { SectionList, View } from 'react-native';
 
-import { Spacing } from '@/constants/theme';
+import { getFloatingTabBarBottomClearance } from '@/components/navigation/floatingTabBarLayout';
 import type { getNutritionDiaryCopy } from '@/localization/nutritionDiaryCopy';
 import type { FoodEntry, MealType } from '@/types';
 import type { EnergyUnit } from '@/units';
@@ -55,7 +55,10 @@ export function NutritionDiaryList({
   return (
     <SectionList
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={[styles.content, { paddingBottom: insetsBottom + Spacing.six }]}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: getFloatingTabBarBottomClearance(insetsBottom) },
+      ]}
       keyboardShouldPersistTaps="handled"
       keyExtractor={(entry) => entry.id}
       ListFooterComponent={footer}

@@ -7,11 +7,12 @@ This file is the **canonical forward roadmap**. Historical PR-by-PR detail belon
 ## Current verified baseline
 
 - Mobile repo: `ivangemini/smart-fitness-app`
-- Mobile `main`: `76ad9166eb8f9a58df17a551b5b76db8f5a9cc29`
+- Mobile `main` at responsive-UI branch start: `60edb23de9cab90bbc4d4e23466a481bef2b94e6` (PR #458)
 - Backend repo: `ivangemini/smart-fitness-backend`
 - Backend `main`: `431998bfa85bf169fd68e98a7e46651f70cfa2d9` (through backend PR #196)
+- Backend PR #197 is open and is scoped to secure private export storage/delivery source contracts.
 
-Planning estimate: approximately **92% of the current engineering roadmap is source-complete**. This is not release-readiness: several remaining items require provider/staging/physical-device evidence or explicit production authorization.
+Planning estimate before the newly added responsive-UI remediation scope was approximately **92% of the existing engineering roadmap source-complete**. Release readiness remains lower because provider/staging/physical-device/production evidence is separately gated. Responsive UI hardening is now tracked explicitly rather than being treated as incidental polish.
 
 ## Operating rules
 
@@ -20,6 +21,9 @@ Planning estimate: approximately **92% of the current engineering roadmap is sou
 - Do not claim provider, production, physical-device, native-release, OTA, or deployment evidence unless it actually ran.
 - Do not perform backend deployment, production migrations, provider activation, production data access, OTA/EAS publication, native build/install, credential/DNS changes, destructive production cleanup, or store submission without direct authorization.
 - Keep analytics/telemetry collection disabled until the P9-C consent/evidence gate is explicitly satisfied.
+- Preserve the reviewed local-state decision in `docs/architecture/local-state-performance-decision.md`; do not replace the current AsyncStorage architecture without new measured evidence and a separately reviewed decision.
+- There is no remaining approved autonomous source-refactor phase; responsive UI hardening is a bounded product-quality phase and does not reopen the completed storage/state refactor program.
+- For mobile UI work, follow `docs/architecture/responsive-mobile-ui.md`; use shared navigation/safe-area geometry instead of screen-local magic-number clearances.
 
 ---
 
@@ -217,20 +221,85 @@ If real-data evidence shows complete export JSON can exceed 8 MiB, design explic
 
 ---
 
+# Phase 10 — responsive mobile UI hardening
+
+**Status: in progress; RUI-1 foundation implemented on the responsive-UI branch.**
+
+Canonical contract: `docs/architecture/responsive-mobile-ui.md`.
+
+This phase is product-quality hardening, not a business-logic redesign. Preserve routes, persistence, sync, calculations, workout state, and data contracts while fixing layout behavior.
+
+## RUI-1 — responsive layout foundation
+
+**Status: implemented in the current package; CI/device validation pending.**
+
+Scope:
+- shared floating-tab bottom-clearance calculation with unit coverage;
+- Nutrition bottom clearance moved off the insufficient screen-local inset;
+- Coach and Profile moved off independent `safeArea.bottom + 120` constants;
+- Workouts sticky Start/Resume action positioned from actual safe-area + floating-tab geometry;
+- Workouts scroll content reserves space for the sticky action;
+- touched horizontal/text rows gain bounded shrink/wrap behavior;
+- responsive rules and initial audit are documented.
+
+## RUI-2 — remaining primary tab screens
+
+**Status: next mobile UI package.**
+
+- Home: remove independent bottom navigation magic number and validate header/card text on narrow/large-text layouts.
+- Progress: remove independent bottom navigation magic number and validate metric/action rows under width/text pressure.
+- Re-check Nutrition last-row visibility and Workouts sticky action behavior after RUI-1 on a matching runtime.
+
+## RUI-3 — workout creation and active-session flows
+
+**Status: queued.**
+
+Audit and remediate:
+- active Workout Session;
+- Workout Session Finish;
+- New Routine;
+- Workout Builder;
+- Program Detail;
+- Exercise Library/detail.
+
+Priorities: keyboard overlap, short-screen reachability, sticky actions, set-table column compression, long exercise names, and safe-area ownership.
+
+## RUI-4 — auth/onboarding/settings/Nutrition forms
+
+**Status: queued.**
+
+Audit every form for keyboard reachability, Safe Area ownership, short-height scrolling, large-text wrapping, and primary-action reachability.
+
+## RUI-5 — secondary Coach/Social/Progress surfaces
+
+**Status: queued after high-frequency flows.**
+
+Apply the same responsive contract to secondary screens without mixing unrelated product redesign.
+
+## RUI-6 — automated regression guardrails
+
+**Status: deferred until the remediation inventory is clean enough to avoid false positives.**
+
+Add focused source/interaction checks for proven failure patterns. Do not add a blanket regex rule that prohibits legitimate fixed control dimensions or legitimate overlay positioning.
+
+---
+
 # Execution order from this checkpoint
 
 1. Keep mobile/backend roadmap and inventories synchronized as source behavior changes.
-2. P9-D: design/implement secure storage-delivery **source contract** without provider activation.
-3. Separately design large-account pagination/chunking if evidence requires it.
-4. P9-B3: collect exact provider/environment retention evidence when a provider/environment is selected.
-5. P9-C: keep analytics/consent behind disabled defaults until policy/evidence is complete.
-6. Run authorized staging/provider/physical-device/release evidence.
-7. Only after explicit approval: production migrations/deployment/provider activation/OTA/native release actions.
+2. Complete and validate RUI-1; then continue RUI-2 and RUI-3 in bounded mobile UI packages.
+3. In parallel, continue P9-D secure storage-delivery source work without provider activation; avoid overlapping backend PR #197.
+4. Separately design large-account export pagination/chunking if evidence requires it.
+5. P9-B3: collect exact provider/environment retention evidence when a provider/environment is selected.
+6. P9-C: keep analytics/consent behind disabled defaults until policy/evidence is complete.
+7. Continue RUI-4/RUI-5, then add RUI-6 guardrails after the failure inventory stabilizes.
+8. Run authorized staging/provider/physical-device/release evidence, including responsive viewport/accessibility checks.
+9. Only after explicit approval: production migrations/deployment/provider activation/OTA/native release actions.
 
 # Validation policy
 
-For runtime/code PRs, use repository-required exact-head CI plus relevant focused suites. For docs-only roadmap synchronization, verify diff and branch ancestry; CI may intentionally not run because workflows ignore `docs/**` and Markdown-only changes.
+For runtime/code PRs, use repository-required exact-head CI plus relevant focused suites. Responsive UI packages additionally require review against the validation matrix in `docs/architecture/responsive-mobile-ui.md`; CI does not substitute for physical-device evidence. For docs-only roadmap synchronization, verify diff and branch ancestry; CI may intentionally not run because workflows ignore `docs/**` and Markdown-only changes.
 
 # Definition of done
 
-The current roadmap is not complete until secure export storage/delivery and product UI are reviewed, provider/environment evidence exists for activated external systems, consent requirements are satisfied if telemetry is enabled, authorized staging/physical-device/release evidence passes, and deployment/migration/rollback procedures are proven for the intended release path.
+The current roadmap is not complete until secure export storage/delivery and product UI are reviewed, responsive UI hardening is complete across primary and secondary mobile flows, provider/environment evidence exists for activated external systems, consent requirements are satisfied if telemetry is enabled, authorized staging/physical-device/release evidence passes, and deployment/migration/rollback procedures are proven for the intended release path.
