@@ -132,6 +132,7 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.accent,
       borderCurve: 'continuous',
       borderRadius: 16,
+      flexShrink: 1,
       justifyContent: 'center',
       minHeight: 32,
       minWidth: 78,
