@@ -14,7 +14,8 @@ Updated: 2026-08-08
 - VUX-3B / VUX-4A Nutrition diary affordances PR #473 → `158d3adb2b2e0a8fcc585951b8633b50260fc53c`.
 - VUX-4B Add Food action affordances PR #474 → `5eaa389328e3c649b63833fcf511484e7e2321b4`.
 - VUX-3C Progress measurement hierarchy PR #475 → `afcb93924d1d7fc2c74cbe18122495eaf5300aea`.
-- Active visual branch: `ui/progress-weight-actions`.
+- VUX-3D Progress weight action ownership PR #476 → `fd361bc5eaf10a2be8054488d9a0cbc6cbcfa41a`.
+- Active visual branch: `ui/progress-touch-targets`.
 - Backend is a separate workstream and remains outside this roadmap execution.
 
 Source/CI completion is not physical-device proof. OTA/EAS publication, native build/install, provider/production activation and store/release actions remain separately authorization-gated.
@@ -89,34 +90,45 @@ Source/CI completion is not physical-device proof. OTA/EAS publication, native b
 
 ### VUX-3C — Progress body-measurement hierarchy — PR #475
 
-- Body Measurements keeps one owning `AppCard`; the editor is now flat content inside it.
+- Body Measurements keeps one owning `AppCard`; the editor is flat content inside it.
 - A quiet hairline divider separates the editor instead of a nested raised/bordered card.
 - Metric radio choices explicitly own a 44 pt minimum touch height; unit controls remain 48 pt.
-- A focused source-contract guard protects the hierarchy/touch ownership.
+- A focused source-contract guard protects hierarchy/touch ownership.
 - Measurement model, supported units/ranges, analytics, persistence and sync remain unchanged.
 
-## VUX-3D — Progress weight action ownership
+### VUX-3D — Progress weight action ownership — PR #476
 
-**Status: active on `ui/progress-weight-actions`.**
+- `Weight details` beside the weight hero is the sole `/weight-details` owner on the Progress screen.
+- The duplicate `Training details` button was removed.
+- `Add weight` remains the only bottom action under the weight chart.
+- A focused source-contract guard requires exactly one `/weight-details` push.
+- Weight analytics, chart/range behavior, routes, persistence and sync remain unchanged.
 
-Audit finding:
+## VUX-3E — Progress compact selector touch targets
 
-- The Weight card exposes `Weight details` beside the weight hero and a second `Training details` button below the chart, but both route to `/weight-details`.
-- The duplicate destination under two labels creates ambiguous information architecture and unnecessary secondary-action weight.
+**Status: active on `ui/progress-touch-targets`.**
+
+Audit findings:
+
+- Weight range tabs `7D / 30D / 90D` rely on text plus padding and do not explicitly own the 44 pt minimum interaction height.
+- Safety & Recovery period chips in both historical cards use `minHeight: 36`.
+- Selected-week history filter chips in the weekly Safety card also use `minHeight: 36`.
+- Selection/history semantics and accessibility roles are otherwise already explicit.
 
 Current bounded remediation:
 
-- Keep the contextual `Weight details` action beside the current-weight hero as the sole `/weight-details` owner.
-- Keep `Add weight` as the only bottom action under the chart.
-- Remove only the duplicate `Training details` button; do not change `/weight-details`, `/weight-entry`, chart/range behavior or weight analytics.
-- Add a focused source-contract guard requiring exactly one `/weight-details` push from the Progress screen.
+- Weight range tabs → `minHeight: 44` while preserving tablist/tab semantics and range logic.
+- Safety period chips → `minHeight: 44` in both historical surfaces.
+- Weekly Safety history chips → `minHeight: 44` while preserving existing history filters/routes.
+- Add a focused source-contract guard for these compact interactive controls.
+- Do not change analytics, period definitions, selected-week behavior, chart data, history parameters, persistence or sync.
 
 **Merge gate:** full exact-head Mobile CI.
 
 ## Remaining hierarchy / validation review order
 
-1. Finish the bounded Progress weight-action package.
-2. Re-audit remaining Progress analytics only for concrete action/hierarchy defects; keep distinct analytics cards separate.
+1. Finish Progress compact-selector touch targets.
+2. Re-audit remaining Progress surfaces only for concrete defects; distinct analytics cards remain separate.
 3. Coach.
 4. Profile / Settings.
 5. Secondary Social / Safety / Recovery.
@@ -141,8 +153,8 @@ No source/CI result is physical-device evidence.
 
 ## Next execution order
 
-1. Finish VUX-3D Progress weight action ownership and run full exact-head Mobile CI.
-2. Merge only the validated VUX-3D head.
-3. Continue Progress only for remaining source-audited defects, then move to Coach.
+1. Finish VUX-3E Progress compact selector touch targets and run full exact-head Mobile CI.
+2. Merge only the validated VUX-3E head.
+3. Move to Coach after the remaining Progress audit shows no higher-confidence defect.
 4. Keep icon cleanup audit-driven; do not replace clear text actions or semantic symbols without a usability reason.
 5. Keep backend, OTA/EAS/native/release and production/provider actions out of this autonomous UI sequence unless directly requested.

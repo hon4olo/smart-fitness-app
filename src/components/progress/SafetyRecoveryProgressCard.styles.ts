@@ -85,7 +85,7 @@ export const safetyRecoveryProgressCardStyles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: Spacing.three,
   },
   periodChipLabel: {

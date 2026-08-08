@@ -75,7 +75,7 @@ export const safetyRecoveryWeeklyTrendStyles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: Spacing.three,
   },
   historyButtonLabel: {
@@ -137,7 +137,7 @@ export const safetyRecoveryWeeklyTrendStyles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: Spacing.three,
   },
   periodChipLabel: {
