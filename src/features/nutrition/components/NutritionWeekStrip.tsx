@@ -9,20 +9,31 @@ export type NutritionWeekDay = {
 };
 
 type NutritionWeekStripProps = {
+  accessibilityLabelForDay: (weekday: string, isLogged: boolean, isToday: boolean) => string;
   formatWeekdayLong: (dateKey: string) => string;
   onSelectDate: (dateKey: string) => void;
   styles: Record<string, any>;
   weekDays: NutritionWeekDay[];
 };
 
-export function NutritionWeekStrip({ formatWeekdayLong, onSelectDate, styles, weekDays }: NutritionWeekStripProps) {
+export function NutritionWeekStrip({
+  accessibilityLabelForDay,
+  formatWeekdayLong,
+  onSelectDate,
+  styles,
+  weekDays,
+}: NutritionWeekStripProps) {
   return (
     <View style={styles.weekSection}>
       <View style={styles.weekStrip}>
         {weekDays.map((day) => (
           <Pressable
             key={day.dateKey}
-            accessibilityLabel={`${formatWeekdayLong(day.dateKey)}, ${day.isLogged ? 'food logged' : 'no food logged'}${day.isToday ? ', today' : ''}`}
+            accessibilityLabel={accessibilityLabelForDay(
+              formatWeekdayLong(day.dateKey),
+              day.isLogged,
+              day.isToday,
+            )}
             accessibilityState={{ selected: day.isSelected }}
             hitSlop={12}
             onPress={() => onSelectDate(day.dateKey)}
@@ -36,11 +47,18 @@ export function NutritionWeekStrip({ formatWeekdayLong, onSelectDate, styles, we
                   day.isToday && !day.isLogged && styles.weekDayCircleToday,
                   day.isSelected && day.isToday && styles.weekDayCircleTodaySelected,
                 ]}>
-                {day.isLogged ? <Text style={[styles.weekDayCheck, day.isSelected && styles.weekDayCheckSelected]}>✓</Text> : null}
-                {day.isToday && !day.isLogged ? <View style={[styles.weekDayTodayDot, day.isSelected && styles.weekDayTodayDotSelected]} /> : null}
+                {day.isLogged ? (
+                  <Text style={[styles.weekDayCheck, day.isSelected && styles.weekDayCheckSelected]}>✓</Text>
+                ) : null}
+                {day.isToday && !day.isLogged ? (
+                  <View style={[styles.weekDayTodayDot, day.isSelected && styles.weekDayTodayDotSelected]} />
+                ) : null}
               </View>
             </View>
-            <Text numberOfLines={1} selectable style={[styles.weekDayLabel, day.isSelected && styles.weekDayLabelSelected]}>
+            <Text
+              numberOfLines={1}
+              selectable
+              style={[styles.weekDayLabel, day.isSelected && styles.weekDayLabelSelected]}>
               {day.dayLabel}
             </Text>
           </Pressable>
