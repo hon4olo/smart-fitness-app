@@ -32,8 +32,13 @@ export function RecoveryScorePicker<T extends number>({
         <Pressable
           accessibilityLabel={copy.clearField(label)}
           accessibilityRole="button"
+          accessibilityState={{ disabled: value === null }}
           disabled={value === null}
-          onPress={() => onChange(null)}>
+          onPress={() => onChange(null)}
+          style={({ pressed }) => [
+            styles.clearButton,
+            pressed && value !== null && styles.pressed,
+          ]}>
           <Text
             style={[
               styles.clearLabel,
@@ -77,6 +82,12 @@ export function RecoveryScorePicker<T extends number>({
 }
 
 const styles = StyleSheet.create({
+  clearButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: Spacing.one,
+  },
   clearLabel: {
     fontSize: Typography.caption.fontSize,
     fontWeight: '700',
@@ -112,7 +123,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     flex: 1,
     justifyContent: 'center',
-    minHeight: 42,
+    minHeight: 44,
   },
   scoreButtonLabel: {
     fontSize: Typography.bodyStrong.fontSize,
