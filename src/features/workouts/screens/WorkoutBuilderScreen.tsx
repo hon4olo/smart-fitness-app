@@ -266,11 +266,11 @@ export function WorkoutBuilderScreen() {
           accessibilityRole="button"
           onPress={handleDiscardAndLeave}
           style={({ pressed }) => [styles.headerAction, pressed && styles.pressed]}>
-          <Text style={styles.headerActionLabel}>
+          <Text numberOfLines={2} style={styles.headerActionLabel}>
             {programId ? copy.back : copy.cancel}
           </Text>
         </Pressable>
-        <Text style={styles.headerTitle}>
+        <Text numberOfLines={2} style={styles.headerTitle}>
           {programId ? copy.editProgram : copy.createProgram}
         </Text>
         <Pressable
@@ -284,7 +284,9 @@ export function WorkoutBuilderScreen() {
             saveDisabled && styles.saveActionDisabled,
             pressed && !saveDisabled && styles.pressed,
           ]}>
-          <Text style={styles.saveActionLabel}>{copy.save}</Text>
+          <Text numberOfLines={2} style={styles.saveActionLabel}>
+            {copy.save}
+          </Text>
         </Pressable>
       </View>
 
@@ -292,11 +294,13 @@ export function WorkoutBuilderScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.fill}>
         <ScrollView
+          automaticallyAdjustKeyboardInsets
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={[
             styles.content,
             { paddingBottom: insets.bottom + BottomTabInset + Spacing.four },
           ]}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           style={styles.scrollView}>
