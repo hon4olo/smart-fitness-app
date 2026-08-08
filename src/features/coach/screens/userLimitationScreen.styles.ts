@@ -61,8 +61,11 @@ export const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   movementChoice: {
+    alignItems: 'center',
     borderRadius: Radii.pill,
     borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'center',
+    minHeight: 44,
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.one,
   },
@@ -105,9 +108,9 @@ export const createUserLimitationScreenStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     backButton: {
       alignItems: 'center',
-      height: 42,
+      height: 44,
       justifyContent: 'center',
-      width: 42,
+      width: 44,
     },
     backLabel: {
       color: colors.textPrimary,
