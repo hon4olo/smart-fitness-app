@@ -5,12 +5,13 @@ Updated: 2026-08-08
 ## Verified repository baseline
 
 - Mobile repo: `ivangemini/smart-fitness-app`
-- Mobile `main` before this docs sync: `76ad9166eb8f9a58df17a551b5b76db8f5a9cc29` (PR #457)
+- Mobile `main` at responsive-UI branch start: `60edb23de9cab90bbc4d4e23466a481bef2b94e6` (PR #458)
+- Responsive UI branch: `ui/responsive-layout-foundation`
 - Backend repo: `ivangemini/smart-fitness-backend`
 - Backend `main`: `431998bfa85bf169fd68e98a7e46651f70cfa2d9` (PR #196)
-- Backend PRs #192–#196 are merged.
+- Backend PR #197 is open and scoped to secure private export storage/delivery source contracts.
 
-Planning estimate: approximately **92% of the current engineering roadmap is source-complete**. Release readiness is lower because provider/staging/physical-device/production evidence remains separately gated.
+The earlier planning estimate of approximately **92% source-complete** applied to the roadmap before responsive UI remediation was promoted into an explicit phase. Release readiness remains lower because provider/staging/physical-device/production evidence is separately gated.
 
 ## Mobile source state
 
@@ -25,11 +26,47 @@ The current mobile source remains on the established architecture:
 - Social source boundaries and managed-media governance hooks;
 - privacy/account-deletion UX foundations.
 
-No mobile runtime code was changed by this roadmap-sync package.
+The current responsive-UI package changes presentation/layout behavior only. It does not change routes, persistence schemas, synchronization contracts, calculations, workout ownership, completed workout history, or backend APIs.
 
-## Backend P9-D progress since mobile PR #457
+## Responsive UI hardening — RUI-1
 
-Mobile PR #457 synchronized through backend deterministic export assembly. Backend PRs #192–#196 then advanced P9-D substantially.
+A focused responsive contract now lives at `docs/architecture/responsive-mobile-ui.md`.
+
+The initial audit found that many primary surfaces already use `useSafeAreaInsets()`, but bottom navigation clearance was represented inconsistently by independent screen-local values.
+
+Observed pre-package patterns included:
+
+- Home, Progress, Coach and Profile independently using `safeAreaInsets.bottom + 120`;
+- Nutrition reserving only `insetsBottom + 24` below its virtualized diary list;
+- Workouts combining `BottomTabInset`, an additional fixed `+84`, and a separately inset absolute footer;
+- several text-heavy horizontal rows without explicit shrink behavior.
+
+RUI-1 currently implements:
+
+- shared floating-tab bottom-clearance calculation in `src/components/navigation/floatingTabBarLayout.ts`;
+- focused unit coverage for safe-area, minimum offset, sticky-action and invalid-input cases;
+- Nutrition diary clearance based on floating-tab geometry;
+- Coach and Profile bottom clearance based on the same helper rather than independent `+120` constants;
+- Workouts Start/Resume sticky action positioned above actual safe-area + floating-tab clearance;
+- scroll content reservation so the Workouts sticky action cannot hide the final content;
+- bounded `flexShrink`/wrapping improvements on touched text-heavy surfaces;
+- `flexGrow: 1` on touched bounded scroll containers where short-screen reachability requires it.
+
+No blanket prohibition on fixed component dimensions was introduced. Fixed icon/control/tab geometry remains valid when it is part of the component contract rather than a device-specific positioning hack.
+
+### Remaining responsive UI packages
+
+- **RUI-2:** Home and Progress primary-tab clearance/text-pressure cleanup, plus runtime re-check of Nutrition and Workouts.
+- **RUI-3:** active Workout Session, finish flow, New Routine, Workout Builder, Program Detail, Exercise Library/detail; focus on keyboard overlap, set-table compression, sticky actions and long names.
+- **RUI-4:** auth, onboarding, settings and Nutrition forms; focus on keyboard reachability, short-height scrolling and action reachability.
+- **RUI-5:** remaining secondary Coach/Social/Progress surfaces.
+- **RUI-6:** focused automated guardrails for proven responsive failure patterns after the remediation inventory stabilizes.
+
+Physical narrow/short-device, large-text, keyboard and real safe-area evidence remains separate from source/CI validation.
+
+## Backend P9-D progress through #196
+
+Backend PRs #192–#196 substantially advanced P9-D.
 
 ### #192 — export audit/idempotency contract
 
@@ -126,21 +163,17 @@ Despite the source progress, export is **not product-available**:
 - no mobile export UI exists;
 - no storage/provider environment is activated.
 
+Backend PR #197 is the active separately reviewed source-contract package for private export storage and delivery semantics. Do not overlap or activate provider/storage infrastructure implicitly from mobile UI work.
+
 ## Remaining roadmap concentration
+
+### Responsive mobile UI
+
+RUI-1 is implemented on the current branch and requires exact-head CI plus review. RUI-2/RUI-3 are the next high-frequency mobile UI packages; RUI-4/RUI-5/RUI-6 follow as bounded remediation packages.
 
 ### P9-D
 
-Next: separately reviewed secure storage/delivery source contract defining:
-- private owner-scoped artifact identity;
-- lifecycle states;
-- retention/expiry/deletion;
-- account-deletion behavior;
-- expiring and revocable download authorization;
-- SHA-256 verification across persistence/download;
-- orphan/failure cleanup;
-- no public object URLs or reusable bearer credentials.
-
-Provider selection, real object writes, route activation and production execution require separate authorization/evidence.
+Continue the separately reviewed secure storage/delivery source contract without provider activation, then address storage persistence/routes/UI only through explicit bounded packages.
 
 ### P9-B3
 
@@ -160,6 +193,8 @@ Backend PRs #192, #194, #195 and #196 passed exact-head Backend CI (lint, Pretti
 
 Backend PR #193 passed exact-head Backend CI, Backend PostgreSQL CI and Account Deletion Receipt CI. PostgreSQL CI applied the complete migration chain twice and validated the migrated schema. The standalone `tests/data-access-export-request-postgres.test.ts` file was added as focused evidence, but the existing PostgreSQL workflow does not directly enumerate that new file; do not falsely claim that specific standalone file ran in CI.
 
+RUI-1 source validation is not yet complete until its exact branch/PR head passes Mobile CI. CI does not replace physical-device responsive validation.
+
 ## Actions not performed
 
-No backend deployment, production migration execution, provider activation, production data access, object-storage write, public/default export-route activation, OTA/EAS publication, native build/install, credential/DNS change, destructive production cleanup or store submission was performed by backend PRs #192–#196 or this docs sync.
+No backend deployment, production migration execution, provider activation, production data access, object-storage write, public/default export-route activation, OTA/EAS publication, native build/install, credential/DNS change, destructive production cleanup or store submission was performed by this responsive UI package.
