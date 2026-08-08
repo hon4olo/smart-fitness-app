@@ -3,6 +3,7 @@ import { memo, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { getFloatingTabBarBottomClearance } from '@/components/navigation/floatingTabBarLayout';
 import { AddBodyMeasurementCard } from '@/components/progress/AddBodyMeasurementCard';
 import {
   ProgressTrendChart,
@@ -185,7 +186,7 @@ export default function ProgressScreen() {
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={[
         styles.content,
-        { paddingBottom: safeAreaInsets.bottom + 120 },
+        { paddingBottom: getFloatingTabBarBottomClearance(safeAreaInsets.bottom) },
       ]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -330,7 +331,7 @@ export default function ProgressScreen() {
 const styles = StyleSheet.create({
   chartWrap: { marginBottom: Spacing.three },
   container: { gap: Spacing.three, maxWidth: MaxContentWidth, width: '100%' },
-  content: { alignItems: 'center', padding: Spacing.three },
+  content: { alignItems: 'center', flexGrow: 1, padding: Spacing.three },
   rangeTab: {
     alignItems: 'center',
     borderRadius: 10,
@@ -338,7 +339,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
     paddingVertical: 8,
   },
-  rangeTabLabel: { color: Colors.dark.textSecondary, fontSize: 13, fontWeight: '800' },
+  rangeTabLabel: {
+    color: Colors.dark.textSecondary,
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: '800',
+  },
   rangeTabLabelSelected: { color: Colors.dark.textPrimary },
   rangeTabPressed: { opacity: 0.72 },
   rangeTabs: {
@@ -350,9 +356,28 @@ const styles = StyleSheet.create({
     padding: 3,
   },
   rangeTabSelected: { backgroundColor: Colors.dark.surfacePrimary },
-  rowDetail: { color: Colors.dark.textSecondary, fontSize: 12, lineHeight: 18 },
-  rowLabel: { color: Colors.dark.textSecondary, fontSize: 13, fontWeight: '700' },
-  rowValue: { color: Colors.dark.textPrimary, fontSize: 15, fontWeight: '800' },
+  rowDetail: {
+    color: Colors.dark.textSecondary,
+    flexShrink: 1,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  rowLabel: {
+    color: Colors.dark.textSecondary,
+    flex: 1,
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    minWidth: 0,
+  },
+  rowValue: {
+    color: Colors.dark.textPrimary,
+    flexShrink: 1,
+    fontSize: 15,
+    fontWeight: '800',
+    maxWidth: '48%',
+    textAlign: 'right',
+  },
   screen: { backgroundColor: Colors.dark.background, flex: 1 },
   sectionHeader: { gap: 2, marginBottom: Spacing.two },
   sectionRow: {
@@ -362,26 +387,50 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.two,
   },
   sectionRowCopy: {
+    alignItems: 'flex-start',
     flexDirection: 'row',
     gap: Spacing.two,
     justifyContent: 'space-between',
+    minWidth: 0,
   },
-  sectionSubtitle: { color: Colors.dark.textSecondary, fontSize: 13, lineHeight: 18 },
-  sectionTitle: { color: Colors.dark.textPrimary, fontSize: 18, fontWeight: '800' },
+  sectionSubtitle: {
+    color: Colors.dark.textSecondary,
+    flexShrink: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  sectionTitle: {
+    color: Colors.dark.textPrimary,
+    flexShrink: 1,
+    fontSize: 18,
+    fontWeight: '800',
+  },
   stack: { gap: Spacing.two },
   weightActions: { gap: Spacing.two, marginTop: Spacing.two },
   weightHero: {
     alignItems: 'flex-start',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.two,
     justifyContent: 'space-between',
     marginBottom: Spacing.two,
   },
-  weightHeroCopy: { flex: 1, gap: 2 },
-  weightHeroDetail: { color: Colors.dark.textSecondary, fontSize: 12, lineHeight: 18 },
-  weightHeroLabel: { color: Colors.dark.textSecondary, fontSize: 12, fontWeight: '700' },
+  weightHeroCopy: { flex: 1, flexBasis: 180, gap: 2, minWidth: 0 },
+  weightHeroDetail: {
+    color: Colors.dark.textSecondary,
+    flexShrink: 1,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  weightHeroLabel: {
+    color: Colors.dark.textSecondary,
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '700',
+  },
   weightHeroValue: {
     color: Colors.dark.textPrimary,
+    flexShrink: 1,
     fontSize: 34,
     fontWeight: '900',
     lineHeight: 40,

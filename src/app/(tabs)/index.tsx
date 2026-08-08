@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HomeSnapshotCard } from '@/components/home/HomeSnapshotCard';
 import { HomeSummaryCard } from '@/components/home/HomeSummaryCard';
+import { getFloatingTabBarBottomClearance } from '@/components/navigation/floatingTabBarLayout';
 import { QuickActionsCard } from '@/components/ui/QuickActionsCard';
 import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import {
@@ -257,7 +258,7 @@ export default function HomeScreen() {
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={[
         styles.content,
-        { paddingBottom: safeAreaInsets.bottom + 120 },
+        { paddingBottom: getFloatingTabBarBottomClearance(safeAreaInsets.bottom) },
       ]}
       showsVerticalScrollIndicator={false}
       style={styles.screen}>
@@ -321,18 +322,21 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { alignItems: 'center', padding: Spacing.three },
+  content: { alignItems: 'center', flexGrow: 1, padding: Spacing.three },
   container: { gap: Spacing.three, maxWidth: MaxContentWidth, width: '100%' },
   headerRow: {
     alignItems: 'center',
     flexDirection: 'row',
+    gap: Spacing.two,
     justifyContent: 'space-between',
   },
   headerTitle: {
     color: Colors.dark.textPrimary,
+    flexShrink: 1,
     fontSize: Typography.screenTitle.fontSize,
     fontWeight: Typography.screenTitle.fontWeight,
     lineHeight: Typography.screenTitle.lineHeight,
+    minWidth: 0,
   },
   pressed: { opacity: 0.72 },
   profileButton: {
@@ -341,6 +345,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.dark.borderSubtle,
     borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
+    flexShrink: 0,
     height: 44,
     justifyContent: 'center',
     width: 44,

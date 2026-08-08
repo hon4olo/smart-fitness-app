@@ -57,6 +57,7 @@ const styles = StyleSheet.create({
   header: { gap: 4, marginBottom: Spacing.two },
   subtitle: {
     color: Colors.dark.textSecondary,
+    flexShrink: 1,
     fontSize: Typography.callout.fontSize,
     lineHeight: Typography.callout.lineHeight,
   },
@@ -73,11 +74,13 @@ const styles = StyleSheet.create({
   },
   tileDetail: {
     color: Colors.dark.textSecondary,
+    flexShrink: 1,
     fontSize: Typography.caption.fontSize,
     lineHeight: Typography.caption.lineHeight,
   },
   tileLabel: {
     color: Colors.dark.textSecondary,
+    flexShrink: 1,
     fontSize: Typography.caption.fontSize,
     fontWeight: Typography.label.fontWeight,
     textTransform: 'uppercase',
@@ -85,6 +88,7 @@ const styles = StyleSheet.create({
   tilePositive: { backgroundColor: Colors.dark.successSoft, borderColor: Colors.dark.success },
   tileValue: {
     color: Colors.dark.textPrimary,
+    flexShrink: 1,
     fontSize: Typography.bodyEmphasized.fontSize,
     fontWeight: Typography.bodyEmphasized.fontWeight,
     lineHeight: Typography.bodyEmphasized.lineHeight,
@@ -92,6 +96,7 @@ const styles = StyleSheet.create({
   tileWarning: { backgroundColor: Colors.dark.warningSoft, borderColor: Colors.dark.warning },
   title: {
     color: Colors.dark.textPrimary,
+    flexShrink: 1,
     fontSize: Typography.cardTitle.fontSize,
     fontWeight: Typography.cardTitle.fontWeight,
     lineHeight: Typography.cardTitle.lineHeight,
