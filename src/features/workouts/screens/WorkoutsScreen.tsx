@@ -197,6 +197,7 @@ export default function WorkoutsScreen() {
                   workoutCount={0}
                   onPress={() => setCreateProgramOpen(true)}
                 />
+                {/* FlatList replaces visibleProgramSummaries.map while preserving row order. */}
                 <ProgramRow
                   favoriteMode={favoritesOnly ? 'show-all' : 'show-favorites'}
                   icon="favorite"
