@@ -45,6 +45,7 @@ export const createStyles = (colors: typeof Colors.light) =>
     },
     check: {
       color: colors.accent,
+      flexShrink: 0,
       fontSize: 20,
       fontWeight: '900',
       width: 24,
@@ -204,6 +205,7 @@ export const createStyles = (colors: typeof Colors.light) =>
     },
     menuActionLabel: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 17,
       fontWeight: '800',
     },
@@ -222,6 +224,7 @@ export const createStyles = (colors: typeof Colors.light) =>
     },
     menuTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 18,
       fontWeight: '900',
       marginBottom: Spacing.one,
@@ -253,8 +256,13 @@ export const createStyles = (colors: typeof Colors.light) =>
     pickerHeader: {
       alignItems: 'center',
       flexDirection: 'row',
+      gap: Spacing.two,
       justifyContent: 'space-between',
       paddingBottom: Spacing.three,
+    },
+    pickerList: {
+      flexShrink: 1,
+      minHeight: 0,
     },
     pickerOverlay: {
       ...StyleSheet.absoluteFill,
@@ -280,20 +288,24 @@ export const createStyles = (colors: typeof Colors.light) =>
     },
     pickerRowMeta: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: 13,
       fontWeight: '700',
       marginTop: 3,
     },
     pickerRowTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 16,
       fontWeight: '900',
     },
     pickerTitle: {
       color: colors.textPrimary,
+      flex: 1,
       flexShrink: 1,
       fontSize: 22,
       fontWeight: '900',
+      minWidth: 0,
     },
     planInput: {
       backgroundColor: colors.surfacePrimary,
@@ -348,12 +360,17 @@ export const createStyles = (colors: typeof Colors.light) =>
       fontWeight: '700',
     },
     textButton: {
+      flexShrink: 0,
+      maxWidth: 96,
+      paddingHorizontal: Spacing.one,
       paddingVertical: Spacing.two,
     },
     textButtonLabel: {
       color: colors.accent,
+      flexShrink: 1,
       fontSize: 16,
       fontWeight: '800',
+      textAlign: 'center',
     },
     titleInput: {
       color: colors.textPrimary,
