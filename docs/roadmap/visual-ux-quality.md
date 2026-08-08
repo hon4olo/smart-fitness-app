@@ -13,7 +13,8 @@ Updated: 2026-08-08
 - VUX-2B Profile Goals PR #472 → `1d717b114faefbac3101ff0c340554d53a7651bd`.
 - VUX-3B / VUX-4A Nutrition diary affordances PR #473 → `158d3adb2b2e0a8fcc585951b8633b50260fc53c`.
 - VUX-4B Add Food action affordances PR #474 → `5eaa389328e3c649b63833fcf511484e7e2321b4`.
-- Active visual branch: `ui/progress-measurement-hierarchy`.
+- VUX-3C Progress measurement hierarchy PR #475 → `afcb93924d1d7fc2c74cbe18122495eaf5300aea`.
+- Active visual branch: `ui/progress-weight-actions`.
 - Backend is a separate workstream and remains outside this roadmap execution.
 
 Source/CI completion is not physical-device proof. OTA/EAS publication, native build/install, provider/production activation and store/release actions remain separately authorization-gated.
@@ -26,6 +27,7 @@ Source/CI completion is not physical-device proof. OTA/EAS publication, native b
 - Never communicate disabled state through opacity alone.
 - When a disabled action is not self-explanatory, show the blocking reason near the relevant field/action and expose it to accessibility.
 - Prefer one clear owning surface over decorative card-within-card nesting.
+- Give each destination/action one clear owner inside a surface; do not duplicate the same route under different labels.
 - Preserve EN/RU localization, Dynamic Type/reflow, routes, persistence, sync, calculations and backend contracts during visual work.
 
 ## Completed visual packages
@@ -85,30 +87,36 @@ Source/CI completion is not physical-device proof. OTA/EAS publication, native b
 - Retired glyph-only styles were removed and a focused source-contract guard was added.
 - Search/provider behavior, food data, favorites, meal templates, portion logic, routes, persistence and sync are unchanged.
 
-## VUX-3C — Progress body-measurement hierarchy
+### VUX-3C — Progress body-measurement hierarchy — PR #475
 
-**Status: active on `ui/progress-measurement-hierarchy`.**
+- Body Measurements keeps one owning `AppCard`; the editor is now flat content inside it.
+- A quiet hairline divider separates the editor instead of a nested raised/bordered card.
+- Metric radio choices explicitly own a 44 pt minimum touch height; unit controls remain 48 pt.
+- A focused source-contract guard protects the hierarchy/touch ownership.
+- Measurement model, supported units/ranges, analytics, persistence and sync remain unchanged.
 
-Audit findings:
+## VUX-3D — Progress weight action ownership
 
-- The Body Measurements section already owns an `AppCard`, while `AddBodyMeasurementCard` creates a second full `AppCard` inside it.
-- Metric-selection pills do not explicitly own a 44 pt minimum touch height; unit controls already own 48 pt.
-- The editor otherwise uses the existing localized measurement labels, validation model and shared Save button correctly.
+**Status: active on `ui/progress-weight-actions`.**
+
+Audit finding:
+
+- The Weight card exposes `Weight details` beside the weight hero and a second `Training details` button below the chart, but both route to `/weight-details`.
+- The duplicate destination under two labels creates ambiguous information architecture and unnecessary secondary-action weight.
 
 Current bounded remediation:
 
-- Flatten the measurement editor into the owning Body Measurements surface instead of rendering card-within-card.
-- Separate the editor with a quiet hairline divider and spacing rather than another raised/bordered surface.
-- Give every metric radio choice a 44 pt minimum touch height while preserving radio semantics and selected styling.
-- Add a focused source-contract guard for the flat hierarchy and touch ownership.
-- Preserve `buildBodyMeasurement`, supported units/ranges, saved measurement data, analytics, routes, persistence and sync.
+- Keep the contextual `Weight details` action beside the current-weight hero as the sole `/weight-details` owner.
+- Keep `Add weight` as the only bottom action under the chart.
+- Remove only the duplicate `Training details` button; do not change `/weight-details`, `/weight-entry`, chart/range behavior or weight analytics.
+- Add a focused source-contract guard requiring exactly one `/weight-details` push from the Progress screen.
 
 **Merge gate:** full exact-head Mobile CI.
 
 ## Remaining hierarchy / validation review order
 
-1. Finish the bounded Progress measurement hierarchy package.
-2. Re-audit the rest of Progress only for concrete defects; do not flatten distinct analytics cards that own separate information.
+1. Finish the bounded Progress weight-action package.
+2. Re-audit remaining Progress analytics only for concrete action/hierarchy defects; keep distinct analytics cards separate.
 3. Coach.
 4. Profile / Settings.
 5. Secondary Social / Safety / Recovery.
@@ -133,8 +141,8 @@ No source/CI result is physical-device evidence.
 
 ## Next execution order
 
-1. Finish VUX-3C Progress measurement hierarchy and run full exact-head Mobile CI.
-2. Merge only the validated VUX-3C head.
-3. Continue Progress/Coach/Profile hierarchy only from source-audited defects.
+1. Finish VUX-3D Progress weight action ownership and run full exact-head Mobile CI.
+2. Merge only the validated VUX-3D head.
+3. Continue Progress only for remaining source-audited defects, then move to Coach.
 4. Keep icon cleanup audit-driven; do not replace clear text actions or semantic symbols without a usability reason.
 5. Keep backend, OTA/EAS/native/release and production/provider actions out of this autonomous UI sequence unless directly requested.

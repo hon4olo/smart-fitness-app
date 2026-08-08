@@ -256,11 +256,6 @@ export default function ProgressScreen() {
           )}
           <View style={styles.weightActions}>
             <AppButton label={t('progress.addWeight')} onPress={() => router.push('/weight-entry')} />
-            <AppButton
-              label={t('progress.trainingDetails')}
-              onPress={() => router.push('/weight-details')}
-              variant="secondary"
-            />
           </View>
         </AppCard>
         <AppCard>
