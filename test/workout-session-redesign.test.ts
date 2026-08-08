@@ -45,7 +45,7 @@ describe('workout session redesign', () => {
     expect(finishSource).toContain("t('workouts.finish.save')");
   });
 
-  it('uses a full-width five column set table grid', () => {
+  it('uses a responsive five column set table grid', () => {
     const sessionTable = readSource('src/features/workouts/components/session/SessionSetTable.tsx');
     const sessionLayout = readSource('src/features/workouts/components/session/sessionTableLayout.ts');
     const sessionRow = readSource('src/features/workouts/components/session/SessionSetRow.tsx');
@@ -56,9 +56,17 @@ describe('workout session redesign', () => {
     expect(sessionLayout).toContain('reps: 92');
     expect(sessionLayout).toContain('completion: 30');
     expect(sessionLayout).toContain('SESSION_TABLE_TOTAL_WIDTH =');
-    expect(sessionTable).toContain('width: SESSION_TABLE_TOTAL_WIDTH');
+    expect(sessionTable).toContain('maxWidth: SESSION_TABLE_TOTAL_WIDTH');
+    expect(sessionTable).toContain("width: '100%'");
+    expect(sessionTable).toContain('flexGrow: SESSION_TABLE_COLUMNS.previous');
+    expect(sessionTable).toContain('flexGrow: SESSION_TABLE_COLUMNS.weight');
+    expect(sessionTable).toContain('flexGrow: SESSION_TABLE_COLUMNS.reps');
     expect(sessionTable).toContain('SESSION_TABLE_COLUMNS.completion');
-    expect(sessionRow).toContain('width: SESSION_TABLE_TOTAL_WIDTH');
+    expect(sessionRow).toContain('maxWidth: SESSION_TABLE_TOTAL_WIDTH');
+    expect(sessionRow).toContain("width: '100%'");
+    expect(sessionRow).toContain('flexGrow: SESSION_TABLE_COLUMNS.previous');
+    expect(sessionRow).toContain('flexGrow: SESSION_TABLE_COLUMNS.weight');
+    expect(sessionRow).toContain('flexGrow: SESSION_TABLE_COLUMNS.reps');
     expect(sessionRow).toContain('minHeight: 48');
     expect(sessionRow).not.toContain('colOverflow');
   });
