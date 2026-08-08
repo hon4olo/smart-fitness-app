@@ -7,6 +7,7 @@ export const createProgramDetailScreenStyles = (colors: typeof Colors.light) =>
     addRoutineIcon: {
       alignItems: 'center',
       backgroundColor: colors.surfaceSecondary,
+      flexShrink: 0,
       height: 62,
       justifyContent: 'center',
       width: 62,
@@ -20,8 +21,10 @@ export const createProgramDetailScreenStyles = (colors: typeof Colors.light) =>
     addRoutineLabel: {
       color: colors.textPrimary,
       flex: 1,
+      flexShrink: 1,
       fontSize: 17,
       fontWeight: '500',
+      minWidth: 0,
     },
     addRoutineRow: {
       alignItems: 'center',
@@ -41,6 +44,7 @@ export const createProgramDetailScreenStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.overlay,
       borderCurve: 'continuous',
       borderRadius: 999,
+      flexShrink: 0,
       height: 44,
       justifyContent: 'center',
       width: 44,
@@ -62,6 +66,7 @@ export const createProgramDetailScreenStyles = (colors: typeof Colors.light) =>
       borderRadius: 14,
       height: 210,
       justifyContent: 'center',
+      maxWidth: '100%',
       width: 210,
     },
     coverLabel: {
@@ -94,6 +99,7 @@ export const createProgramDetailScreenStyles = (colors: typeof Colors.light) =>
     },
     moreButton: {
       alignItems: 'center',
+      flexShrink: 0,
       height: 44,
       justifyContent: 'center',
       width: 28,
@@ -117,6 +123,7 @@ export const createProgramDetailScreenStyles = (colors: typeof Colors.light) =>
     },
     playButton: {
       alignItems: 'center',
+      flexShrink: 0,
       height: 44,
       justifyContent: 'center',
       width: 36,
@@ -143,6 +150,7 @@ export const createProgramDetailScreenStyles = (colors: typeof Colors.light) =>
     routineIcon: {
       alignItems: 'center',
       backgroundColor: '#ED7B2F',
+      flexShrink: 0,
       height: 62,
       justifyContent: 'center',
       width: 62,
@@ -154,6 +162,7 @@ export const createProgramDetailScreenStyles = (colors: typeof Colors.light) =>
     },
     routineMeta: {
       color: colors.textMuted,
+      flexShrink: 1,
       fontSize: 15,
       fontWeight: '400',
       lineHeight: 19,
@@ -167,6 +176,7 @@ export const createProgramDetailScreenStyles = (colors: typeof Colors.light) =>
     },
     routineTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 18,
       fontWeight: '400',
       lineHeight: 22,
@@ -185,6 +195,7 @@ export const createProgramDetailScreenStyles = (colors: typeof Colors.light) =>
     },
     title: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 28,
       fontWeight: '700',
       lineHeight: 34,
@@ -194,13 +205,16 @@ export const createProgramDetailScreenStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.textPrimary,
       borderCurve: 'continuous',
       borderRadius: 999,
+      maxWidth: '100%',
       paddingHorizontal: Spacing.four,
       paddingVertical: Spacing.three,
     },
     toastText: {
       color: colors.background,
+      flexShrink: 1,
       fontSize: 15,
       fontWeight: '900',
+      textAlign: 'center',
     },
     toastWrap: {
       alignItems: 'center',
