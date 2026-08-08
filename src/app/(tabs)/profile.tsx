@@ -2,6 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { getFloatingTabBarBottomClearance } from '@/components/navigation/floatingTabBarLayout';
 import { ProfilePreferencesCard } from '@/components/profile/ProfilePreferencesCard';
 import { Colors, MaxContentWidth, Spacing, Typography } from '@/constants/theme';
 import { useProfileState } from '@/context/ProfileStateContext';
@@ -24,8 +25,9 @@ export default function ProfileScreen() {
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={[
         styles.content,
-        { paddingBottom: safeAreaInsets.bottom + 120 },
+        { paddingBottom: getFloatingTabBarBottomClearance(safeAreaInsets.bottom) },
       ]}
+      showsVerticalScrollIndicator={false}
       style={styles.screen}>
       <View style={styles.container}>
         <View style={styles.headerRow}>
@@ -57,16 +59,22 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
-  content: { alignItems: 'center', padding: Spacing.three },
+  content: { alignItems: 'center', flexGrow: 1, padding: Spacing.three },
   headerRow: {
     alignItems: 'center',
     flexDirection: 'row',
+    gap: Spacing.two,
     justifyContent: 'space-between',
   },
   pressed: { opacity: 0.72 },
   screen: { backgroundColor: Colors.dark.background, flex: 1 },
   section: { gap: Spacing.two },
-  sectionTitle: { color: Colors.dark.textPrimary, fontSize: 18, fontWeight: '800' },
+  sectionTitle: {
+    color: Colors.dark.textPrimary,
+    flexShrink: 1,
+    fontSize: 18,
+    fontWeight: '800',
+  },
   settingsButton: {
     alignItems: 'center',
     backgroundColor: Colors.dark.surfacePrimary,
@@ -80,6 +88,7 @@ const styles = StyleSheet.create({
   settingsIcon: { color: Colors.dark.textPrimary, fontSize: 26, lineHeight: 30 },
   title: {
     color: Colors.dark.textPrimary,
+    flexShrink: 1,
     fontSize: Typography.screenTitle.fontSize,
     fontWeight: Typography.screenTitle.fontWeight,
     lineHeight: Typography.screenTitle.lineHeight,
