@@ -240,7 +240,7 @@ export default function ProgramDetailScreen() {
                     <Text style={styles.routineIconLabel}>{getInitial(row.title)}</Text>
                   </View>
                   <View style={styles.routineCopy}>
-                    <Text numberOfLines={1} style={styles.routineTitle}>
+                    <Text numberOfLines={2} style={styles.routineTitle}>
                       {row.title}
                     </Text>
                     <Text numberOfLines={1} style={styles.routineMeta}>

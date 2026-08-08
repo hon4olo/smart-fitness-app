@@ -179,6 +179,7 @@ const styles = StyleSheet.create({
   headerContent: {
     flex: 1,
     gap: Spacing.one,
+    minWidth: 0,
   },
   headerRow: {
     alignItems: 'flex-start',
@@ -219,6 +220,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   quickAddAction: {
+    flexShrink: 0,
     justifyContent: 'flex-end',
   },
   quickAddField: {
@@ -234,16 +236,19 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: Colors.dark.text,
+    flexShrink: 1,
     fontSize: 18,
     fontWeight: '800',
   },
   subtitle: {
     color: Colors.dark.textSecondary,
+    flexShrink: 1,
     fontSize: 13,
     lineHeight: 18,
   },
   toggle: {
     color: Colors.dark.accent,
+    flexShrink: 0,
     fontSize: 24,
     fontWeight: '700',
   },

@@ -40,7 +40,7 @@ export function ExerciseRow({
         </Text>
       </View>
       <View style={styles.copy}>
-        <Text numberOfLines={1} style={styles.name}>
+        <Text numberOfLines={2} style={styles.name}>
           {exercise.name}
         </Text>
         <Text numberOfLines={1} style={styles.meta}>
@@ -60,7 +60,9 @@ export function ExerciseRow({
         accessibilityRole="button"
         onPress={onInfoPress}
         style={({ pressed }) => [styles.infoButton, pressed && styles.pressed]}>
-        <Text style={styles.infoLabel}>{copy.details}</Text>
+        <Text numberOfLines={2} style={styles.infoLabel}>
+          {copy.details}
+        </Text>
       </Pressable>
       <View style={[styles.selection, selected && styles.selectionSelected]}>
         <Text

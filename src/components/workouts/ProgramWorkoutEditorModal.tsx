@@ -145,7 +145,9 @@ export function ProgramWorkoutEditorModal({
                 accessibilityRole="button"
                 onPress={onClose}
                 style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
-                <Text style={styles.closeLabel}>{workout ? copy.back : copy.cancel}</Text>
+                <Text numberOfLines={2} style={styles.closeLabel}>
+                  {workout ? copy.back : copy.cancel}
+                </Text>
               </Pressable>
               <Pressable
                 accessibilityLabel={copy.save}
@@ -158,13 +160,17 @@ export function ProgramWorkoutEditorModal({
                   saveDisabled && styles.saveButtonDisabled,
                   pressed && !saveDisabled && styles.pressed,
                 ]}>
-                <Text style={styles.saveLabel}>{copy.save}</Text>
+                <Text numberOfLines={2} style={styles.saveLabel}>
+                  {copy.save}
+                </Text>
               </Pressable>
             </View>
           </View>
 
           <ScrollView
+            automaticallyAdjustKeyboardInsets
             contentContainerStyle={styles.scrollContent}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
             <WorkoutBuilderCard
@@ -200,13 +206,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.surfaceSecondary,
     borderCurve: 'continuous',
     borderRadius: 16,
+    flexShrink: 0,
+    justifyContent: 'center',
+    maxWidth: 110,
+    minHeight: 40,
     paddingHorizontal: Spacing.two,
     paddingVertical: 10,
   },
   closeLabel: {
     color: Colors.dark.text,
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '800',
+    textAlign: 'center',
   },
   fill: {
     flex: 1,
@@ -215,6 +227,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'flex-start',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.two,
     justifyContent: 'space-between',
     marginBottom: Spacing.two,
@@ -222,11 +235,13 @@ const styles = StyleSheet.create({
   headerActions: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexShrink: 0,
     gap: Spacing.one,
   },
   headerCopy: {
     flex: 1,
     gap: 4,
+    minWidth: 180,
   },
   overlay: {
     ...StyleSheet.absoluteFill,
@@ -252,6 +267,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.accent,
     borderCurve: 'continuous',
     borderRadius: 16,
+    flexShrink: 0,
+    justifyContent: 'center',
+    maxWidth: 100,
+    minHeight: 40,
     paddingHorizontal: Spacing.two,
     paddingVertical: 10,
   },
@@ -260,10 +279,13 @@ const styles = StyleSheet.create({
   },
   saveLabel: {
     color: Colors.dark.background,
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '900',
+    textAlign: 'center',
   },
   scrollContent: {
+    flexGrow: 1,
     paddingBottom: Spacing.two,
   },
   subtitle: {
@@ -273,6 +295,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: Colors.dark.text,
+    flexShrink: 1,
     fontSize: 22,
     fontWeight: '900',
   },

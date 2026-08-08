@@ -61,6 +61,7 @@ export default function WorkoutExerciseLibraryScreen() {
   const [equipmentFilter, setEquipmentFilter] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [footerHeight, setFooterHeight] = useState(0);
   const [diagnostics, setDiagnostics] = useState<ExerciseRepositoryDiagnostics>(
     exerciseRepository.getDiagnostics(),
   );
@@ -198,7 +199,7 @@ export default function WorkoutExerciseLibraryScreen() {
           <Text style={styles.backLabel}>‹</Text>
         </Pressable>
         <View style={styles.headerCopy}>
-          <Text numberOfLines={1} style={styles.title}>
+          <Text numberOfLines={2} style={styles.title}>
             {copy.title}
           </Text>
           <Text style={styles.subtitle}>{copy.pickerSubtitle}</Text>
@@ -311,15 +312,17 @@ export default function WorkoutExerciseLibraryScreen() {
       <FlatList
         ListFooterComponent={listFooter}
         ListHeaderComponent={listHeader}
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={[
           styles.content,
           {
-            paddingBottom: insets.bottom + 128,
+            paddingBottom: footerHeight + Spacing.three,
             paddingTop: insets.top + Spacing.three,
           },
         ]}
         data={loading || error ? [] : listResults}
         initialNumToRender={4}
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         keyExtractor={(item) => item.id}
         maxToRenderPerBatch={4}
@@ -331,6 +334,12 @@ export default function WorkoutExerciseLibraryScreen() {
       />
 
       <View
+        onLayout={(event) => {
+          const nextHeight = event.nativeEvent.layout.height;
+          setFooterHeight((currentHeight) =>
+            Math.abs(currentHeight - nextHeight) > 0.5 ? nextHeight : currentHeight,
+          );
+        }}
         style={[
           styles.footer,
           {

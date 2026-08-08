@@ -173,9 +173,13 @@ export function NewRoutineScreen() {
           accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [styles.navButton, pressed && styles.pressed]}>
-          <Text style={styles.navButtonLabel}>{copy.cancel}</Text>
+          <Text numberOfLines={2} style={styles.navButtonLabel}>
+            {copy.cancel}
+          </Text>
         </Pressable>
-        <Text style={styles.headerTitle}>{copy.newRoutine}</Text>
+        <Text numberOfLines={2} style={styles.headerTitle}>
+          {copy.newRoutine}
+        </Text>
         <Pressable
           accessibilityLabel={copy.save}
           accessibilityRole="button"
@@ -187,16 +191,20 @@ export function NewRoutineScreen() {
             !canSave && styles.disabled,
             pressed && canSave && styles.pressed,
           ]}>
-          <Text style={styles.navButtonLabel}>{copy.save}</Text>
+          <Text numberOfLines={2} style={styles.navButtonLabel}>
+            {copy.save}
+          </Text>
         </Pressable>
       </View>
 
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + BottomTabInset + Spacing.six },
         ]}
+        keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
@@ -254,7 +262,7 @@ export function NewRoutineScreen() {
                         <Text style={styles.exerciseHelp}>?</Text>
                       </View>
                       <View style={styles.exerciseCopy}>
-                        <Text numberOfLines={1} style={styles.exerciseTitle}>
+                        <Text numberOfLines={2} style={styles.exerciseTitle}>
                           {item.exercise.name}
                         </Text>
                         {!expanded

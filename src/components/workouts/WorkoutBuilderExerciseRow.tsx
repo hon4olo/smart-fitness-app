@@ -39,7 +39,9 @@ function MiniAction({
         disabled && styles.disabled,
         pressed && !disabled && styles.pressed,
       ]}>
-      <Text style={styles.miniActionLabel}>{label}</Text>
+      <Text numberOfLines={2} style={styles.miniActionLabel}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -175,6 +177,8 @@ const styles = StyleSheet.create({
   actionsRow: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.one,
     justifyContent: 'space-between',
   },
   disabled: {
@@ -194,6 +198,7 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     borderRadius: 12,
     borderWidth: 1,
+    flexShrink: 0,
     justifyContent: 'center',
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.one,
@@ -207,6 +212,7 @@ const styles = StyleSheet.create({
   headerContent: {
     flex: 1,
     gap: Spacing.one,
+    minWidth: 0,
   },
   hint: {
     color: Colors.dark.textSecondary,
@@ -225,6 +231,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: Colors.dark.textSecondary,
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -247,13 +254,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 34,
+    maxWidth: '100%',
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.one,
   },
   miniActionLabel: {
     color: Colors.dark.text,
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: '700',
+    textAlign: 'center',
   },
   nameInput: {
     color: Colors.dark.text,
