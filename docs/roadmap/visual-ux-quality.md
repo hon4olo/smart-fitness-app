@@ -11,7 +11,8 @@ Updated: 2026-08-08
 - VUX-2A PR #470 → `a5983354d6850ed00ac5d79a0db91981ddee1faa`.
 - VUX-3A Home Summary PR #471 → `a83d65d559f4542fa01e7a4588fb134b474a7346`.
 - VUX-2B Profile Goals PR #472 → `1d717b114faefbac3101ff0c340554d53a7651bd`.
-- Active visual branch: `ui/nutrition-affordance-p1`.
+- VUX-3B / VUX-4A Nutrition diary affordances PR #473 → `158d3adb2b2e0a8fcc585951b8633b50260fc53c`.
+- Active visual branch: `ui/add-food-affordance-icons`.
 - Backend is a separate workstream and remains outside this roadmap execution.
 
 Source/CI completion is not physical-device proof. OTA/EAS publication, native build/install, provider/production activation and store/release actions remain separately authorization-gated.
@@ -52,7 +53,7 @@ Source/CI completion is not physical-device proof. OTA/EAS publication, native b
 ### VUX-2B — Profile Goals — PR #472
 
 - Existing validity boundaries preserved: target weight > 0, weekly change >= 0, training days integer 1–7.
-- EN/RU field-level FormField errors now explain why Save is unavailable.
+- EN/RU field-level errors explain why Save is unavailable.
 - First blocking reason is exposed as the disabled Save accessibility hint.
 - Confirmation, nutrition-target recalculation and persistence behavior are unchanged.
 
@@ -63,31 +64,43 @@ Source/CI completion is not physical-device proof. OTA/EAS publication, native b
 - Current Weight and Streak are flat metrics below a divider.
 - Values/calculations/warning conditions/order are unchanged.
 
-## VUX-3B / VUX-4 — Nutrition diary affordances
+### VUX-3B / VUX-4A — Nutrition diary affordances — PR #473
 
-**Status: active on `ui/nutrition-affordance-p1`.**
+- Calendar emoji → Lucide CalendarDays.
+- Meal Add / expand-collapse glyphs → Lucide Plus / ChevronDown / ChevronRight.
+- Today has an explicit disabled background/border/text state instead of opacity-only treatment.
+- Week-strip accessibility labels are localized in EN/RU.
+- Retired glyph/disabled styles were removed and the diary source contract was updated.
+- Diary data, date selection, meal expansion, Add Food routing, calculations and SectionList behavior are unchanged.
+
+## VUX-4B — Add Food action icon consistency
+
+**Status: active on `ui/add-food-affordance-icons`.**
 
 Audit findings:
 
-- Calendar is an emoji control rather than the established Lucide action language.
-- Meal Add and expand/collapse controls use text glyphs (`+`, `▾`, `▸`).
-- Today communicates disabled state through `opacity: 0.35` only.
-- Week-strip accessibility labels are hardcoded in English despite EN/RU localization.
-- Meal-type markers (`○ ◇ □ △`) are semantic content markers and are intentionally not replaced.
+- Search clear still uses a raw `×` control glyph.
+- Search/Favorites use raw `★ / ☆` favorite controls.
+- Search/Recent/Favorites/Saved Meals use raw `+` quick-add controls.
+- Saved Meals delete and Portion Sheet close use raw `×` controls.
+- These controls already own appropriate 44 pt geometry/hit slop, so the defect is visual-language consistency rather than layout.
 
 Current bounded remediation:
 
-- Calendar → Lucide CalendarDays while preserving route/accessibility label and existing hit slop.
-- Meal Add → Lucide Plus; expand/collapse → Lucide ChevronDown/ChevronRight; existing hit slop preserves touch ownership.
-- Today uses explicit disabled background/border/text rather than opacity-only styling.
-- Week-strip accessibility text is generated from the EN/RU Nutrition diary copy.
-- Diary data, date selection, meal expansion, Add Food routing, nutrition calculations, SectionList virtualization and meal-type markers remain unchanged.
+- Search clear and Portion Sheet close → Lucide X.
+- Favorite states → Lucide Star with filled accent for the selected state.
+- Quick-add controls → Lucide Plus.
+- Saved Meal delete → Lucide Trash2 with the existing destructive semantics/accessibility label preserved.
+- Keep localized Scan/Cancel/Close-style text actions as text where the word is clearer than an icon.
+- Remove retired glyph-only text styles.
+- Add a focused source-contract guard against reintroducing the old Add Food action glyphs.
+- Preserve search/provider behavior, food data, favorites state, meal templates, portion logic, routes, persistence, sync and backend contracts.
 
 **Merge gate:** full exact-head Mobile CI.
 
 ## Remaining hierarchy / validation review order
 
-1. Re-audit Nutrition hierarchy after the affordance package; change containers only if a real hierarchy defect remains.
+1. Re-audit Nutrition/Add Food hierarchy after VUX-4B; change containers only for a concrete hierarchy defect.
 2. Progress.
 3. Coach.
 4. Profile / Settings.
@@ -113,8 +126,8 @@ No source/CI result is physical-device evidence.
 
 ## Next execution order
 
-1. Finish Nutrition affordance/accessibility cleanup and run full exact-head Mobile CI.
-2. Merge only the validated head.
-3. Re-audit Nutrition hierarchy without automatically flattening legitimate metric/meal ownership.
+1. Finish VUX-4B Add Food action icon consistency and run full exact-head Mobile CI.
+2. Merge only the validated VUX-4B head.
+3. Re-audit Nutrition/Add Food hierarchy without automatically flattening legitimate content ownership.
 4. Continue bounded visual hierarchy/validation work through Progress, Coach and Profile/Settings from concrete audit findings.
 5. Keep backend, OTA/EAS/native/release and production/provider actions out of this autonomous UI sequence unless directly requested.
