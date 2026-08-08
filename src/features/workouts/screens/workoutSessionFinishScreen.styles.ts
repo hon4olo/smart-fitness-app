@@ -8,6 +8,7 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       backgroundColor: colors.surfaceSecondary,
       borderRadius: 999,
+      flexShrink: 0,
       height: 22,
       justifyContent: 'center',
       width: 22,
@@ -24,6 +25,7 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
     },
     content: {
       alignItems: 'center',
+      flexGrow: 1,
       paddingHorizontal: Spacing.three,
     },
     discardButton: {
@@ -62,17 +64,20 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
     },
     headerSpacer: {
       flex: 1,
+      minWidth: 0,
     },
     healthIcon: {
       backgroundColor: '#FFFFFF',
     },
     infoChevron: {
       color: colors.textPrimary,
+      flexShrink: 0,
       fontSize: 20,
       lineHeight: 20,
     },
     infoIcon: {
       color: colors.textPrimary,
+      flexShrink: 0,
       fontSize: 21,
       lineHeight: 22,
       width: 30,
@@ -80,8 +85,10 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
     infoLabel: {
       color: colors.textPrimary,
       flex: 1,
+      flexShrink: 1,
       fontSize: 16,
       lineHeight: 21,
+      minWidth: 0,
     },
     infoRow: {
       alignItems: 'center',
@@ -98,6 +105,7 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       borderCurve: 'continuous',
       borderRadius: 6,
+      flexShrink: 0,
       height: 32,
       justifyContent: 'center',
       width: 32,
@@ -110,8 +118,10 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
     integrationLabel: {
       color: colors.textPrimary,
       flex: 1,
+      flexShrink: 1,
       fontSize: 16,
       lineHeight: 21,
+      minWidth: 0,
     },
     integrationList: {
       borderTopColor: colors.borderSubtle,
@@ -177,9 +187,11 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
       flex: 1,
       flexDirection: 'row',
       minHeight: 36,
+      minWidth: 0,
     },
     resumeChevron: {
       color: colors.textPrimary,
+      flexShrink: 0,
       fontSize: 30,
       fontWeight: '300',
       lineHeight: 30,
@@ -187,8 +199,10 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
     },
     resumeLabel: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 15,
       lineHeight: 20,
+      minWidth: 0,
     },
     saveButton: {
       alignItems: 'center',
@@ -197,20 +211,26 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
       borderRadius: 999,
       justifyContent: 'center',
       minHeight: 56,
+      paddingHorizontal: Spacing.three,
     },
     saveButtonDisabled: {
       opacity: 0.45,
     },
     saveButtonLabel: {
       color: colors.background,
+      flexShrink: 1,
       fontSize: 18,
       fontWeight: '900',
+      textAlign: 'center',
     },
     saveButtonLabelDisabled: {
       color: colors.textMuted,
     },
     screen: {
       backgroundColor: colors.background,
+      flex: 1,
+    },
+    scrollView: {
       flex: 1,
     },
     shareButton: {
@@ -221,14 +241,17 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
       borderWidth: 1,
       justifyContent: 'center',
       minHeight: 48,
+      paddingHorizontal: Spacing.three,
     },
     shareButtonDisabled: {
       opacity: 0.45,
     },
     shareButtonLabel: {
       color: colors.accent,
+      flexShrink: 1,
       fontSize: 16,
       fontWeight: '800',
+      textAlign: 'center',
     },
     singleLineField: {
       alignItems: 'center',
@@ -248,6 +271,7 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
     },
     switchSlot: {
       alignItems: 'center',
+      flexShrink: 0,
       height: 34,
       justifyContent: 'center',
       marginRight: -5,
@@ -256,8 +280,10 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
     title: {
       color: colors.textPrimary,
       flex: 2,
+      flexShrink: 1,
       fontSize: 18,
       fontWeight: '700',
+      minWidth: 0,
       textAlign: 'center',
     },
     titleInput: {
@@ -265,6 +291,7 @@ export const createWorkoutSessionFinishStyles = (colors: typeof Colors.light) =>
       flex: 1,
       fontSize: 16,
       lineHeight: 21,
+      minWidth: 0,
       paddingVertical: Spacing.one,
     },
   });

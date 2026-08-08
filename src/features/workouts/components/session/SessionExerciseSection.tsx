@@ -92,7 +92,7 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
           <Text style={styles.exerciseHelp}>?</Text>
         </View>
         <View style={styles.headerCopy}>
-          <Text selectable numberOfLines={1} style={styles.exerciseTitle}>
+          <Text selectable numberOfLines={2} style={styles.exerciseTitle}>
             {exercise.name}
           </Text>
           {!expanded ? (
@@ -153,9 +153,15 @@ export const SessionExerciseSection = memo(function SessionExerciseSection({
             onCommitRowInputs={onCommitRowInputs}
             onEditSetRpe={onEditSetRpe}
             onLongPressRow={onLongPressRow}
-            onPlannedRepsChange={(index, value) => onPlannedRepsChange(exercise.id, index, 'reps', value)}
-            onPlannedToggleSetCompletion={(index) => onPlannedToggleSetCompletion(exercise.id, index)}
-            onPlannedWeightChange={(index, value) => onPlannedWeightChange(exercise.id, index, 'weight', value)}
+            onPlannedRepsChange={(index, value) =>
+              onPlannedRepsChange(exercise.id, index, 'reps', value)
+            }
+            onPlannedToggleSetCompletion={(index) =>
+              onPlannedToggleSetCompletion(exercise.id, index)
+            }
+            onPlannedWeightChange={(index, value) =>
+              onPlannedWeightChange(exercise.id, index, 'weight', value)
+            }
             onRepsChange={onRepsChange}
             onToggleSetCompletion={onToggleSetCompletion}
             onWeightChange={onWeightChange}
@@ -182,10 +188,10 @@ const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     addSetButton: {
       alignItems: 'center',
+      alignSelf: 'center',
       backgroundColor: colors.surfaceElevated,
       borderCurve: 'continuous',
       borderRadius: 999,
-      alignSelf: 'center',
       justifyContent: 'center',
       minHeight: 46,
       width: '92%',
@@ -197,9 +203,11 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     collapsedLine: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: 15,
       fontVariant: ['tabular-nums'],
       lineHeight: 22,
+      minWidth: 0,
     },
     collapsedCompletedMarker: {
       alignItems: 'center',
@@ -218,6 +226,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     collapsedIndex: {
       color: colors.textPrimary,
+      flexShrink: 0,
       fontSize: 15,
       fontVariant: ['tabular-nums'],
       lineHeight: 22,
@@ -228,6 +237,7 @@ const createStyles = (colors: typeof Colors.light) =>
       flexDirection: 'row',
       gap: 9,
       minHeight: 22,
+      minWidth: 0,
     },
     exerciseHelp: {
       bottom: 2,
@@ -254,6 +264,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     exerciseTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 17,
       fontWeight: '500',
       lineHeight: 22,
@@ -278,6 +289,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     menuButton: {
       alignItems: 'center',
+      flexShrink: 0,
       height: 34,
       justifyContent: 'center',
       width: 34,

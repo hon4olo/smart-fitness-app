@@ -110,8 +110,10 @@ function Stat({ label, value }: { label: string; value: string }) {
 
   return (
     <View style={styles.stat}>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text selectable style={styles.statValue}>
+      <Text numberOfLines={1} style={styles.statLabel}>
+        {label}
+      </Text>
+      <Text selectable numberOfLines={1} style={styles.statValue}>
         {value}
       </Text>
     </View>
@@ -130,9 +132,12 @@ const createStyles = (colors: typeof Colors.light) =>
       backgroundColor: colors.accent,
       borderCurve: 'continuous',
       borderRadius: 16,
-      height: 32,
+      flexShrink: 1,
       justifyContent: 'center',
-      width: 78,
+      minHeight: 32,
+      minWidth: 78,
+      paddingHorizontal: Spacing.two,
+      paddingVertical: 6,
     },
     finishButtonDisabled: {
       opacity: 0.42,
@@ -142,6 +147,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     finishLabel: {
       color: colors.textOnAccent,
+      flexShrink: 1,
       fontSize: 14,
       fontWeight: '500',
       lineHeight: 18,
@@ -154,7 +160,7 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       height: 50,
       justifyContent: 'center',
-      width: 24,
+      width: 44,
     },
     chevronDown: {
       borderBottomColor: colors.textPrimary,
@@ -168,6 +174,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     overflowButton: {
       alignItems: 'center',
+      flexShrink: 0,
       height: 44,
       justifyContent: 'center',
       width: 44,
@@ -186,11 +193,14 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flex: 1,
       gap: 2,
+      minWidth: 0,
     },
     statLabel: {
       color: colors.textMuted,
+      flexShrink: 1,
       fontSize: 12,
       lineHeight: 16,
+      textAlign: 'center',
     },
     statsRow: {
       flexDirection: 'row',
@@ -199,9 +209,11 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     statValue: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 16,
       fontVariant: ['tabular-nums'],
       lineHeight: 22,
+      textAlign: 'center',
     },
     timer: {
       color: colors.textPrimary,
@@ -241,12 +253,13 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       borderBottomWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
-      gap: 24,
+      gap: Spacing.three,
       minHeight: 50,
-      paddingLeft: 16,
-      paddingRight: 24,
+      paddingLeft: 8,
+      paddingRight: 16,
     },
     topSpacer: {
       flex: 1,
+      minWidth: 0,
     },
   });

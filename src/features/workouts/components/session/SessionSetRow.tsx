@@ -45,11 +45,18 @@ export const SessionSetRow = memo(function SessionSetRow({
 
   return (
     <View style={styles.rowWrap}>
-      <View style={[styles.row, completed && (isDark ? styles.rowCompletedDark : styles.rowCompletedLight)]}>
+      <View
+        style={[
+          styles.row,
+          completed && (isDark ? styles.rowCompletedDark : styles.rowCompletedLight),
+        ]}>
         <Text selectable style={[styles.cell, styles.colSet]}>
           {setLabel}
         </Text>
-        <Text selectable numberOfLines={1} style={[styles.cell, styles.previousCell, styles.colPrevious]}>
+        <Text
+          selectable
+          numberOfLines={1}
+          style={[styles.cell, styles.previousCell, styles.colPrevious]}>
           {previousLabel}
         </Text>
         <TextInput
@@ -150,20 +157,26 @@ const createStyles = (colors: typeof Colors.light) =>
       justifyContent: 'center',
     },
     colPrevious: {
+      flexBasis: 0,
+      flexGrow: SESSION_TABLE_COLUMNS.previous,
       marginLeft: SESSION_TABLE_GAPS.setToPrevious,
+      minWidth: 0,
       textAlign: 'left',
-      width: SESSION_TABLE_COLUMNS.previous,
     },
     colReps: {
+      flexBasis: 0,
+      flexGrow: SESSION_TABLE_COLUMNS.reps,
       marginLeft: SESSION_TABLE_GAPS.weightToReps,
-      width: SESSION_TABLE_COLUMNS.reps,
+      minWidth: 0,
     },
     colSet: {
       width: SESSION_TABLE_COLUMNS.set,
     },
     colWeight: {
+      flexBasis: 0,
+      flexGrow: SESSION_TABLE_COLUMNS.weight,
       marginLeft: SESSION_TABLE_GAPS.previousToWeight,
-      width: SESSION_TABLE_COLUMNS.weight,
+      minWidth: 0,
     },
     iconCell: {
       alignItems: 'center',
@@ -188,6 +201,7 @@ const createStyles = (colors: typeof Colors.light) =>
       borderWidth: StyleSheet.hairlineWidth,
       color: colors.textPrimary,
       fontSize: 15,
+      fontVariant: ['tabular-nums'],
       fontWeight: '400',
       height: 30,
       includeFontPadding: false,
@@ -196,7 +210,6 @@ const createStyles = (colors: typeof Colors.light) =>
       paddingVertical: 0,
       textAlign: 'center',
       textAlignVertical: 'center',
-      fontVariant: ['tabular-nums'],
     },
     inputCellCompleted: {
       backgroundColor: 'transparent',
@@ -214,8 +227,9 @@ const createStyles = (colors: typeof Colors.light) =>
       alignItems: 'center',
       flexDirection: 'row',
       gap: 0,
+      maxWidth: SESSION_TABLE_TOTAL_WIDTH,
       minHeight: 48,
-      width: SESSION_TABLE_TOTAL_WIDTH,
+      width: '100%',
     },
     rowCompletedDark: {
       backgroundColor: '#003D1C',
@@ -225,6 +239,7 @@ const createStyles = (colors: typeof Colors.light) =>
     },
     rowWrap: {
       marginBottom: 0,
+      width: '100%',
     },
     repsCell: {
       height: 30,
@@ -240,7 +255,7 @@ const createStyles = (colors: typeof Colors.light) =>
       minHeight: 18,
       minWidth: 18,
       position: 'absolute',
-      right: 20,
+      right: 8,
       top: -10,
     },
     rpeBadgeLabel: {

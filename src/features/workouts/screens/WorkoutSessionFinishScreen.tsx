@@ -1,6 +1,16 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
@@ -91,6 +101,7 @@ export default function WorkoutSessionFinishScreen() {
   const [title, setTitle] = useState('');
   const [stravaEnabled, setStravaEnabled] = useState(false);
   const [appleHealthEnabled, setAppleHealthEnabled] = useState(false);
+  const [footerHeight, setFooterHeight] = useState(0);
   const saveGuard = useRef(false);
 
   useEffect(() => {
@@ -201,15 +212,22 @@ export default function WorkoutSessionFinishScreen() {
   };
 
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.screen}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 4, paddingBottom: insets.bottom + 176 },
+          {
+            paddingTop: insets.top + 4,
+            paddingBottom: footerHeight + Spacing.three,
+          },
         ]}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        style={styles.scrollView}>
         <View style={styles.container}>
           <View style={styles.header}>
             <Pressable
@@ -217,9 +235,13 @@ export default function WorkoutSessionFinishScreen() {
               onPress={() => router.back()}
               style={({ pressed }) => [styles.resumeButton, pressed && styles.pressed]}>
               <Text style={styles.resumeChevron}>‹</Text>
-              <Text style={styles.resumeLabel}>{t('workouts.finish.resume')}</Text>
+              <Text numberOfLines={2} style={styles.resumeLabel}>
+                {t('workouts.finish.resume')}
+              </Text>
             </Pressable>
-            <Text style={styles.title}>{t('workouts.finish.title')}</Text>
+            <Text numberOfLines={2} style={styles.title}>
+              {t('workouts.finish.title')}
+            </Text>
             <View style={styles.headerSpacer} />
           </View>
 
@@ -302,6 +324,12 @@ export default function WorkoutSessionFinishScreen() {
       </ScrollView>
 
       <View
+        onLayout={(event) => {
+          const nextHeight = event.nativeEvent.layout.height;
+          setFooterHeight((currentHeight) =>
+            Math.abs(currentHeight - nextHeight) > 0.5 ? nextHeight : currentHeight,
+          );
+        }}
         style={[
           styles.footer,
           {
@@ -337,7 +365,7 @@ export default function WorkoutSessionFinishScreen() {
           </Pressable>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

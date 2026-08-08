@@ -89,6 +89,8 @@ For a sticky action:
 - avoid a device-specific fixed `bottom` value;
 - allow the control width and label to shrink on narrow screens.
 
+If the sticky control can change height because of localization or accessibility text sizing, measure the rendered control and reserve its actual height instead of duplicating an estimated height in the scroll container.
+
 When persistence of the action is not required, prefer normal-flow Flexbox placement instead.
 
 ### 6. Text must be allowed to reflow
@@ -115,7 +117,7 @@ Keep large-screen content bounded with the existing `MaxContentWidth` convention
 
 On forms, the active field and primary completion action must remain reachable when the software keyboard is open.
 
-Use the appropriate combination of scrolling, keyboard avoidance, and focus handling for the surface.
+Use the appropriate combination of scrolling, keyboard avoidance, automatic keyboard insets, and focus handling for the surface.
 
 Do not compensate for keyboard height using guessed fixed margins.
 
@@ -154,14 +156,14 @@ Source/CI validation does not replace physical-device release evidence.
 
 The first audit found that safe-area usage already exists on many key screens, but bottom-navigation clearance was not represented by one contract.
 
-Observed examples on `main` before this package:
+Observed examples on `main` before RUI-1:
 
 - Home, Progress, Coach, and Profile used `safeAreaInsets.bottom + 120` independently.
 - Nutrition used only `insetsBottom + 24`, which could leave content under the floating tab bar.
 - Workouts combined `BottomTabInset`, another fixed `+84`, and a separately inset absolute footer.
 - Several text-heavy horizontal rows did not explicitly allow text shrink/wrap.
 
-This package starts remediation by:
+RUI-1 started remediation by:
 
 - adding shared floating-tab clearance helpers with unit tests;
 - moving Nutrition, Coach, and Profile to the shared clearance calculation;
@@ -169,28 +171,44 @@ This package starts remediation by:
 - reserving scroll content space for that CTA;
 - improving shrink/wrap behavior in the touched Workouts/Profile/Coach surfaces.
 
-## Remaining remediation inventory
+RUI-2 then moved Home and Progress to the same geometry contract and made `LiquidGlassTabBar` itself consume the shared height/minimum-bottom-offset metrics.
 
-The following work remains intentionally separate so that visual regressions can be reviewed in bounded packages:
+## Remediation inventory
 
-### RUI-2 — remaining primary tab screens
+The remaining work stays split into bounded packages so that visual regressions can be reviewed independently.
 
-- Home: replace independent bottom magic number; verify header/text shrink behavior.
-- Progress: replace independent bottom magic number; test metric/header rows on narrow width and large text.
-- Keep Nutrition list virtualization and verify its last-row visibility after the shared clearance change.
+### RUI-1 — foundation
 
-### RUI-3 — workout creation and active-session flows
+**Complete and merged in PR #459.**
 
-Audit and remediate:
+Shared navigation geometry, primary Workouts sticky-action geometry, Nutrition/Profile/Coach clearance, and the initial responsive contract are in `main`.
 
-- active Workout Session;
-- Workout Session Finish;
+### RUI-2 — primary tab screens
+
+**Complete and merged in PR #460.**
+
+Home and Progress now use the shared floating-tab clearance and have bounded text/row reflow; the floating tab implementation consumes the same shared geometry constants.
+
+### RUI-3A — active Workout Session + Finish
+
+**Implemented on `ui/rui3-active-session`; exact-head CI pending.**
+
+The active-session audit identified a fixed 358 px set-table width that exceeded the content area on common narrow phones. RUI-3A keeps 358 px as the preferred maximum while allowing the Previous/weight/reps columns to compress proportionally inside the available width.
+
+The Finish audit identified an independent `176` px scroll-padding guess for an absolute footer. RUI-3A measures the rendered footer and reserves its actual height, and uses keyboard avoidance so completion actions remain reachable while editing.
+
+This slice also hardens long exercise names, active-session keyboard insets, header touch targets, and Finish text ownership without changing workout/session persistence or save/discard semantics.
+
+### RUI-3B — remaining workout creation/detail flows
+
+Still to audit/remediate:
+
 - New Routine;
-- Workout Builder;
+- Workout Builder and workout picker/editor modals;
 - Program Detail;
 - Exercise Library and detail flows.
 
-Focus on sticky actions, keyboard overlap, set-table column compression, long exercise names, and short-screen reachability.
+Focus on sticky actions, keyboard overlap, long exercise/workout/program names, safe-area ownership, short-screen reachability, and preserving list virtualization.
 
 ### RUI-4 — auth, onboarding, profile/settings and Nutrition forms
 

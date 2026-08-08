@@ -98,11 +98,13 @@ export function WorkoutSessionBody({
       />
 
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[
           styles.content,
           { paddingBottom: bottomInset + Spacing.five },
         ]}
+        keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}>
@@ -144,7 +146,9 @@ export function WorkoutSessionBody({
                   ])
                 }
                 onNotesPress={
-                  exercise.notes ? () => Alert.alert(t('workouts.session.notes'), exercise.notes ?? '') : undefined
+                  exercise.notes
+                    ? () => Alert.alert(t('workouts.session.notes'), exercise.notes ?? '')
+                    : undefined
                 }
                 onEditSetRpe={onEditSetRpe}
                 onRepsChange={(setId, value) => onSetChange(setId, 'reps', value)}
