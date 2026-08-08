@@ -62,13 +62,19 @@ export const SessionSetTable = memo(function SessionSetTable({
           <Text style={styles.headerText}>{t('workouts.session.set')}</Text>
         </View>
         <View style={[styles.headerCell, styles.colPrevious, styles.headerCellPrevious]}>
-          <Text style={styles.headerText}>{t('workouts.session.previous')}</Text>
+          <Text numberOfLines={1} style={styles.headerText}>
+            {t('workouts.session.previous')}
+          </Text>
         </View>
         <View style={[styles.headerCell, styles.colWeight, styles.headerCellWeight]}>
-          <Text style={styles.headerText}>{weightUnit}</Text>
+          <Text numberOfLines={1} style={styles.headerText}>
+            {weightUnit}
+          </Text>
         </View>
         <View style={[styles.headerCell, styles.colReps, styles.headerCellReps]}>
-          <Text style={styles.headerText}>{t('workouts.session.reps')}</Text>
+          <Text numberOfLines={1} style={styles.headerText}>
+            {t('workouts.session.reps')}
+          </Text>
         </View>
         <View style={[styles.headerCell, styles.colCompletion, styles.headerCellCompletion]}>
           <Text style={styles.headerText}>✓</Text>
@@ -89,13 +95,18 @@ export const SessionSetTable = memo(function SessionSetTable({
                 onLongPress={() => undefined}
                 onRepsChange={(value) => onPlannedRepsChange(index, value)}
                 onToggle={() => onPlannedToggleSetCompletion(index)}
-                onWeightChange={(value) => onPlannedWeightChange(index, displayWeightInputToKg(value, weightUnit))}
+                onWeightChange={(value) =>
+                  onPlannedWeightChange(index, displayWeightInputToKg(value, weightUnit))
+                }
                 previousLabel={previousLabel(index)}
               />
             );
           }
 
-          const canonicalDraft = draftInputs[set.id] ?? { reps: `${set.reps}`, weight: `${set.weight}` };
+          const canonicalDraft = draftInputs[set.id] ?? {
+            reps: `${set.reps}`,
+            weight: `${set.weight}`,
+          };
           const numericWeight = Number(canonicalDraft.weight);
           const displayDraft = {
             reps: canonicalDraft.reps,
@@ -116,7 +127,9 @@ export const SessionSetTable = memo(function SessionSetTable({
               onLongPress={() => onLongPressRow(set.id)}
               onRepsChange={(value) => onRepsChange(set.id, value)}
               onToggle={() => onToggleSetCompletion(set.id)}
-              onWeightChange={(value) => onWeightChange(set.id, displayWeightInputToKg(value, weightUnit))}
+              onWeightChange={(value) =>
+                onWeightChange(set.id, displayWeightInputToKg(value, weightUnit))
+              }
               previousLabel={previousLabel(index)}
             />
           );
@@ -129,24 +142,43 @@ export const SessionSetTable = memo(function SessionSetTable({
 const createStyles = (colors: typeof Colors.light) =>
   StyleSheet.create({
     colCompletion: { width: SESSION_TABLE_COLUMNS.completion },
-    colPrevious: { alignItems: 'flex-start', width: SESSION_TABLE_COLUMNS.previous },
-    colReps: { width: SESSION_TABLE_COLUMNS.reps },
+    colPrevious: {
+      alignItems: 'flex-start',
+      flexBasis: 0,
+      flexGrow: SESSION_TABLE_COLUMNS.previous,
+      minWidth: 0,
+    },
+    colReps: {
+      flexBasis: 0,
+      flexGrow: SESSION_TABLE_COLUMNS.reps,
+      minWidth: 0,
+    },
     colSet: { width: SESSION_TABLE_COLUMNS.set },
-    colWeight: { width: SESSION_TABLE_COLUMNS.weight },
+    colWeight: {
+      flexBasis: 0,
+      flexGrow: SESSION_TABLE_COLUMNS.weight,
+      minWidth: 0,
+    },
     headerCell: { alignItems: 'center' },
     headerText: {
       color: colors.textMuted,
+      flexShrink: 1,
       fontSize: 13,
       fontWeight: '500',
       lineHeight: 18,
       textAlign: 'center',
     },
-    table: { alignSelf: 'center', gap: 8, width: SESSION_TABLE_TOTAL_WIDTH },
+    table: {
+      alignSelf: 'center',
+      gap: 8,
+      maxWidth: SESSION_TABLE_TOTAL_WIDTH,
+      width: '100%',
+    },
     tableBody: { gap: 0 },
     tableHeader: {
       alignItems: 'center',
-      flexDirection: 'row',
       columnGap: 0,
+      flexDirection: 'row',
       minHeight: 22,
       width: '100%',
     },
