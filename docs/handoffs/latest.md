@@ -4,135 +4,89 @@ Updated: 2026-08-08
 
 ## Checkpoint
 
-P9-D data-access export checkpoint after backend PR #191:
+- Mobile repo: `ivangemini/smart-fitness-app`
+- Mobile `main` before this docs sync: `76ad9166eb8f9a58df17a551b5b76db8f5a9cc29`
+- Backend repo: `ivangemini/smart-fitness-backend`
+- Backend `main`: `431998bfa85bf169fd68e98a7e46651f70cfa2d9` (PR #196)
+- Backend PRs #192–#196 are merged and advance P9-D beyond the previous mobile roadmap checkpoint.
 
-- mobile `main` before this documentation slice: `0d0901acd76e1435088c9b88bb28bb86a769e8f0`;
-- backend `main`: `203887655ef93c268b06db85ef03dcd4de272228`;
-- backend PR #190 completed the ownership-safe `social_relationships_and_account_activity` source/projection;
-- backend PR #191 added deterministic source-only assembly for all seven complete candidate projections;
-- no open mobile or backend pull requests existed before this documentation branch was created.
+This mobile branch is docs-only. No mobile runtime/business-logic/persistence change is part of this handoff.
 
-This file is a continuation checkpoint. Refresh it whenever a merged change materially alters the active package, blockers, repository baseline or next safe action.
+## What changed since the previous mobile handoff
 
-## Start-of-session checklist
+Backend P9-D now includes:
 
-1. Fetch exact current `main` for both repositories.
-2. Inspect open pull requests and avoid overlapping active branches.
-3. Read `AGENTS.md`, project context/status, `PROJECT_LEARNINGS.md`, the implementation plan and relevant privacy/architecture documents.
-4. Treat current code/tests and the seven-projection/assembly backend state as authoritative over older six-projection Social wording.
-5. Confirm the task is inside exactly one approved roadmap boundary.
-6. Work from a clean branch based on exact current `main`.
+1. audit/idempotency request identity;
+2. durable owner-bound request persistence (`0038`);
+3. preparation-route audit create/replay/conflict after fresh password re-verification;
+4. seven complete ownership-safe candidate projections;
+5. deterministic all-or-nothing multi-surface assembly;
+6. audited assembly execution with exact UTF-8 measurement and a hard **8 MiB** serialized JSON ceiling;
+7. deterministic in-memory JSON artifact generation with fixed filename, exact bytes and SHA-256 integrity metadata.
 
-## Completed P9-D source boundaries
+The fixed artifact filename is `smart-fitness-data-export.json` and media type is `application/json`.
 
-Backend source now includes:
+## Important fail-closed state
 
-- disabled-by-default export preparation and optional route composition;
-- durable PostgreSQL preparation-attempt limiting;
-- complete ownership-safe projections for:
-  - profile/account metadata;
-  - workouts/programs/exercises;
-  - nutrition/meal data;
-  - progress/measurements/weight;
-  - limitations/recovery/safety context;
-  - Coach reviews/proposals/run history;
-  - Social relationships/account activity;
-- deterministic source-only multi-surface assembly for those seven candidate projections.
+Do not interpret source completion as product availability.
 
-All remain separate from product availability, archive generation, secure delivery and mobile UI.
+Still true:
 
-## Complete Social projection
+- backend default `createApp()` does not compose the optional export route;
+- `/prepare` does not invoke execution/artifact generation;
+- new/replayed preparation ends `409 DATA_EXPORT_NOT_AVAILABLE`;
+- no large-account pagination/chunking exists;
+- no artifact persistence row exists;
+- no object-storage write exists;
+- no status/download route exists;
+- no expiring/revocable download credential exists;
+- no mobile export UI exists;
+- no storage/provider environment has been selected/activated;
+- migration `0038` is source evidence only; no production migration was run.
 
-Backend PR #190:
+The artifact bytes are sensitive user export content and must never be logged or copied into generic telemetry/audit events.
 
-- verifies an active authenticated owner;
-- uses one read-only PostgreSQL `REPEATABLE READ` transaction;
-- exports only the owner's Social profile and active authored workout posts;
-- includes outgoing follows, current pending outgoing follow requests and outgoing blocks without counterpart identity;
-- includes owner-authored reactions/comments only when the target is currently readable;
-- excludes incoming relationships, target/counterpart identity, other-user comments, resolved request history, deleted post history, managed-media values, notification rows, internal IDs, revisions, idempotency keys, raw JSON, moderation internals and provider/operational metadata;
-- fails closed above reviewed source bounds.
+## Evidence accuracy
 
-Received `social_notifications` are permanently excluded. Managed media remains `notice_only` / `mixed_policy_review` with no notice or binary projection.
+Backend PRs #192, #194, #195 and #196 passed exact-head Backend CI: lint, Prettier, TypeScript build, production configuration validation and the full test suite.
 
-## Multi-surface assembly boundary
+Backend PR #193 passed exact-head Backend CI, Backend PostgreSQL CI and Account Deletion Receipt CI. PostgreSQL CI applied the full migration chain twice and validated migrated schema/table expectations.
 
-Backend PR #191 defines assembly schema version 1.
+`tests/data-access-export-request-postgres.test.ts` exists as focused PostgreSQL evidence, but the current PostgreSQL workflow does not directly enumerate that standalone new file. Do not claim that specific file ran in CI.
 
-The assembler:
+## Canonical next P9-D boundary
 
-- accepts only the seven complete candidate-export surface IDs;
-- rejects notice-only surfaces before loader execution;
-- preflights selected loaders;
-- orders selected surfaces canonically;
-- invokes only selected loaders;
-- validates returned surface IDs and projection schema versions;
-- returns no partial payload on missing loaders, loader failures or contract mismatch;
-- does not expose authenticated owner IDs or repository error text.
+Next implementation package: **secure storage/delivery source contract**, still with no provider activation or real object write by default.
 
-The assembler is deliberately not called by `prepareDataAccessExport` or the optional route. The preparation issue is `assembly_not_integrated`.
+It should define:
 
-## Current continuation boundary
+- private owner-scoped artifact identity;
+- explicit lifecycle states;
+- bounded retention/expiry and deletion;
+- account-deletion behavior;
+- expiring and revocable download authorization semantics;
+- SHA-256 integrity verification across persistence/download;
+- failure cleanup/orphan handling;
+- no public object URLs or reusable bearer credentials.
 
-The active roadmap order remains:
+Do not wire production object storage, public/default route activation or deployment into the same source-contract package unless explicitly authorized.
 
-1. P9-B3 exact provider/environment retention evidence;
-2. P9-C consent/analytics prerequisites with collection disabled;
-3. P9-D privacy-facing controls;
-4. authorization-gated operational and physical evidence.
+If evidence later shows complete export JSON can exceed 8 MiB, design pagination/chunking explicitly rather than silently raising the hard execution ceiling.
 
-Within P9-D, the recommended next bounded package is **export auditability and idempotency semantics**.
+## Other remaining roadmap boundaries
 
-That package should define:
+- P9-B3: exact provider/environment retention evidence remains externally blocked.
+- P9-C: analytics/telemetry collection remains disabled until policy, consent and provider evidence is complete.
+- P9-A: physical-device/native/OTA/release/rollback evidence remains authorization-gated.
 
-- ownership-safe export attempt/audit metadata;
-- deterministic request identity;
-- retry and committed-response-loss behavior;
-- bounded retention and account-deletion interaction;
-- explicit exclusions for passwords, selected payloads, full secrets and reusable authorization proofs.
+## Required start for the next work session
 
-Keep route activation, preparation-to-assembly integration, archive generation, secure delivery, mobile UI, provider configuration, deployment and production execution outside that package.
-
-Separate future reviewed concerns include:
-
-- cross-surface snapshot semantics;
-- pagination/continuation semantics;
-- maximum assembled-size limits;
-- managed-media notice/binary export;
-- archive generation and secure expiring/revocable delivery;
-- mobile-local export transformation and reviewed confirmation/status UI;
-- localization/accessibility and approved policy wording.
-
-## P9-B3 and P9-C blockers
-
-P9-B3 cannot progress through assumptions. Exact selected-provider/environment evidence is required for lifetime, access, expiry/deletion, failure monitoring, account-deletion behavior and exceptional-retention scope.
-
-P9-C must keep analytics, crash collection, performance telemetry, attribution, advertising tracking and generic measurement disabled until policy, provider, persistence, disclosure, localization, accessibility and consent requirements are resolved and separately approved.
-
-## Validation evidence
-
-Backend PR #191 exact final head `39bd68f1706d5ff3873055f00cd9b33fbc9d2757` passed authoritative Backend CI before merge:
-
-- lint;
-- Prettier formatting check;
-- TypeScript build;
-- production configuration validation;
-- full backend test suite.
-
-PR #191 merged as backend `main` `203887655ef93c268b06db85ef03dcd4de272228`.
-
-This mobile sync changes only Markdown under `docs/`. The authoritative Mobile CI workflow intentionally ignores `docs/**` and `**/*.md` on pull requests, so no Mobile CI run is expected for this documentation-only slice. Validation is the exact three-file diff, verified repository baselines and cross-repository claims; no Expo/native/runtime execution is required by `AGENTS.md` for docs-only changes.
-
-## Deferred audit recommendations
-
-Do not start autonomous Context-store migration, local-database migration, mass feature restructuring, test-directory consolidation or generic performance optimization without new measured evidence.
+1. Fetch current mobile/backend `main` and open PRs.
+2. Read both `AGENTS.md` files.
+3. Read mobile `docs/implementation-plan.md`, `docs/current-status.md` and this handoff.
+4. Read backend `docs/current-status.md` and `docs/handoffs/latest.md` before P9-D continuation.
+5. Trust authoritative repository history after the account transfer; do not allow stale numeric-repository REST redirects to override normal repo reads.
 
 ## Prohibited implicit actions
 
-Do not perform or claim backend deployment, production migration execution, provider/staging activation, export route activation, preparation-to-assembly integration, managed-media notice/binary implementation, archive generation, worker scheduling, secure delivery, OTA/EAS publication, native build/install, rollback, store submission or credential/DNS/production-environment changes.
-
-These require direct authorization.
-
-## Handoff update template
-
-When replacing this checkpoint, record verification date, exact repository SHAs, open PRs, completed package/PR, validation run, active blockers, next safe action and actions not performed.
+Do not perform backend deployment, production migration execution, provider/storage activation, production data access, public/default export-route activation, real object-storage writes, OTA/EAS publication, native build/install, credential/DNS changes, destructive production cleanup or store submission without direct authorization.
