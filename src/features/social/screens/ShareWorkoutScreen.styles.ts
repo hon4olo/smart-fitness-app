@@ -9,6 +9,7 @@ export const createShareWorkoutStyles = (colors: typeof Colors.light) =>
       borderColor: colors.borderSubtle,
       borderRadius: 999,
       borderWidth: StyleSheet.hairlineWidth,
+      flexShrink: 0,
       height: 40,
       justifyContent: "center",
       width: 40,
@@ -22,6 +23,7 @@ export const createShareWorkoutStyles = (colors: typeof Colors.light) =>
     },
     body: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: 15,
       lineHeight: 21,
     },
@@ -36,6 +38,7 @@ export const createShareWorkoutStyles = (colors: typeof Colors.light) =>
     },
     cardTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 17,
       fontWeight: "800",
       lineHeight: 22,
@@ -47,20 +50,24 @@ export const createShareWorkoutStyles = (colors: typeof Colors.light) =>
     },
     content: {
       alignItems: "center",
+      flexGrow: 1,
       paddingHorizontal: Spacing.three,
       paddingTop: Spacing.three,
     },
     fieldLabel: {
       color: colors.textPrimary,
       flex: 1,
+      flexShrink: 1,
       fontSize: 15,
       fontWeight: "700",
+      minWidth: 0,
     },
     fieldRow: {
       alignItems: "center",
       borderBottomColor: colors.borderSubtle,
       borderBottomWidth: StyleSheet.hairlineWidth,
       flexDirection: "row",
+      gap: Spacing.two,
       minHeight: 52,
       paddingVertical: Spacing.one,
     },
@@ -72,6 +79,7 @@ export const createShareWorkoutStyles = (colors: typeof Colors.light) =>
     headerCopy: {
       flex: 1,
       gap: 2,
+      minWidth: 0,
     },
     label: {
       color: colors.textSecondary,
@@ -88,6 +96,7 @@ export const createShareWorkoutStyles = (colors: typeof Colors.light) =>
     mediaHeaderCopy: {
       flex: 1,
       gap: 2,
+      minWidth: 0,
     },
     mediaPreview: {
       aspectRatio: 4 / 3,
@@ -97,6 +106,7 @@ export const createShareWorkoutStyles = (colors: typeof Colors.light) =>
     },
     mediaWarning: {
       color: colors.warning,
+      flexShrink: 1,
       fontSize: 14,
       fontWeight: "700",
       lineHeight: 20,
@@ -112,23 +122,27 @@ export const createShareWorkoutStyles = (colors: typeof Colors.light) =>
     previewItem: {
       backgroundColor: colors.surfaceSecondary,
       borderRadius: 10,
+      flexGrow: 1,
       gap: 2,
       minWidth: "47%",
       padding: Spacing.two,
     },
     previewLabel: {
       color: colors.textMuted,
+      flexShrink: 1,
       fontSize: 12,
       fontWeight: "700",
     },
     previewTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 17,
       fontWeight: "800",
       lineHeight: 22,
     },
     previewValue: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 15,
       fontWeight: "800",
     },
@@ -158,10 +172,12 @@ export const createShareWorkoutStyles = (colors: typeof Colors.light) =>
       textAlign: "center",
     },
     switchControl: {
+      flexShrink: 0,
       transform: [{ scaleX: 0.86 }, { scaleY: 0.86 }],
     },
     title: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 24,
       fontWeight: "900",
       lineHeight: 29,
