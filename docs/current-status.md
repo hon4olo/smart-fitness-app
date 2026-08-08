@@ -1,30 +1,26 @@
 # Smart Fitness Current Status
 
-Updated: 2026-08-06
+Updated: 2026-08-08
 
 ## Verified repository baseline
 
-Verified after backend PR #174:
+Verified after backend PR #191 and mobile PR #456:
 
-- mobile `main` before this documentation slice: `9f850036142fd72bc8cb76a3beaf756989ad0b38`;
-- backend `main`: `5f66e7b5b9756d951bbfe1071b6e9b459604ea3d`;
-- backend PR #170 added an executable Social ownership/privacy audit and kept complete Social projection implementation globally blocked;
-- backend PR #171 added the audit-approved `social_profile_and_authored_posts` source without registering a seventh complete projection;
-- backend PR #172 resolved managed avatar/post-media disposition as a separate notice-only mixed-policy surface while keeping media notice/binary implementation blocked;
-- backend PR #173 resolved notification actor/target representation through permanent omission while keeping notification disclosure blocked;
-- backend PR #174 added the bounded Social notification source plan and technical source-contract evidence without implementing the source;
-- mobile PR #451 synchronized the canonical roadmap to the managed-media decision;
-- mobile PR #454 is closed, its branch was reset back to mobile `main`, and its wider diff is not reused;
-- no open mobile or backend pull requests before this documentation slice.
+- mobile `main` before this documentation slice: `0d0901acd76e1435088c9b88bb28bb86a769e8f0`;
+- backend `main`: `203887655ef93c268b06db85ef03dcd4de272228`;
+- backend PR #190 completed the ownership-safe `social_relationships_and_account_activity` export source/projection;
+- backend PR #191 added the deterministic source-only multi-surface assembler for all seven complete candidate projections;
+- mobile PR #456 optimized CI runner allocation without changing product/runtime behavior;
+- no open mobile or backend pull requests existed before this documentation branch was created.
 
 Always re-check both repositories and open pull requests before work. This file records a checkpoint, not a live Git query.
 
 ## Engineering state
 
-The canonical implementation plan estimates approximately:
+The canonical implementation plan now estimates approximately:
 
-- completed: 89%;
-- remaining: 11%.
+- completed: 90%;
+- remaining: 10%.
 
 Completed source packages include:
 
@@ -35,14 +31,14 @@ Completed source packages include:
 - P9-B1 operational retention foundation;
 - P9-B2 cross-surface account deletion source work.
 
-Active packages remain unchanged:
+Active packages:
 
-1. P9-B3 provider/environment retention evidence — externally blocked until exact providers, environments, owners, credentials, lifecycle controls, and evidence are available.
+1. P9-B3 provider/environment retention evidence — externally blocked until exact providers, environments, lifecycle controls, owners, credentials and evidence are available.
 2. P9-C consent and analytics prerequisites — collection remains disabled; no production event or measurement purpose is registered.
-3. P9-D privacy-facing controls and policy evidence — six complete source projections, bounded Social owned-content source, notice-only managed-media disposition, and actor/target-free notification representation exist; backend PR #174 resolves the technical notification source-plan contract, but receivedActivityDisclosure remains blocked, social_notifications remains blocked_policy_decision, and complete Social, notification source, and media notice/binary implementation remain blocked.
-4. Operational and physical evidence — authorization-gated staging, deployment, worker scheduling, native build, release-device, offline-restart, accessibility, localization, and second-device validation.
+3. P9-D privacy-facing controls and policy evidence — seven complete ownership-safe candidate projections and deterministic source-only assembly now exist; the next bounded package is export auditability and idempotency semantics.
+4. Operational and physical evidence — authorization-gated staging, deployment, worker scheduling, native build, release-device, offline-restart, accessibility, localization and second-device validation.
 
-The Social decisions do not reorder those roadmap packages, increase the implemented-projection count, or activate an export route. See `docs/implementation-plan.md` for complete package evidence.
+Source completion does not activate an export route, delivery path, analytics collection, deployment or release operation.
 
 ## Mobile state
 
@@ -53,10 +49,9 @@ Current mobile source includes:
 - persisted conflict review and explicit conflict resolution;
 - secure native token storage;
 - strict platform-independent JWT base64url/UTF-8 expiry decoding with fail-closed malformed-token behavior;
-- no destructive template reset command or script and no tracked empty root log/success artifacts;
 - deterministic and structured Coach flows with explicit confirmation;
 - account-deletion recovery and privacy-facing fail-closed contracts;
-- blocking source CI, Expo export, and Expo Doctor checks;
+- blocking source CI, Expo export and Expo Doctor checks;
 - no known tracked hand-written source file above 500 physical lines.
 
 Source tests do not replace physical matching-runtime validation.
@@ -68,103 +63,123 @@ Backend `main` contains:
 - authenticated ownership-safe revisioned synchronization for the full current mobile entity set;
 - deterministic and structured Coach orchestration;
 - provider-neutral capability gates;
-- account deletion and deletion-receipt source flows;
-- technical data and operational retention registries;
-- disabled-by-default data-access export route/preparation boundaries;
-- durable source attempt limiting;
-- six ownership-safe export projections on `main`:
+- account deletion and durable deletion-receipt recovery;
+- technical data, retention and privacy registries;
+- disabled-by-default data-access export preparation and optional route composition;
+- durable PostgreSQL export-attempt limiting;
+- seven complete ownership-safe candidate export projections:
   - `profile_and_account_metadata`;
+  - `workouts_programs_and_exercises`;
+  - `nutrition_and_meal_data`;
   - `progress_measurements_and_weight`;
   - `limitations_recovery_and_safety_context`;
-  - `nutrition_and_meal_data`;
-  - `workouts_programs_and_exercises`;
-  - `coach_reviews_proposals_and_run_history`.
+  - `coach_reviews_proposals_and_run_history`;
+  - `social_relationships_and_account_activity`;
+- a deterministic source-only `json_v1` multi-surface assembler for those seven projections.
 
-Backend PR #171 additionally provides the bounded non-surface source `social_profile_and_authored_posts`:
+No export is product-available by default.
 
-- it reads only the authenticated owner's active account, own Social profile, and active authored workout posts;
-- profile output is limited to username, display name, bio, visibility, and timestamps;
-- post output is rebuilt through a strict version-1 snapshot parser and includes only bounded user-facing workout values, caption, and creation time;
-- raw avatar URLs, managed-media references, graph edges, requests, blocks, reactions, comments, received activity, notifications, internal IDs, revisions, idempotency keys, raw JSON, and every other-user field are excluded;
-- owner/profile/post reads share one read-only repeatable-read snapshot and fail closed above 1,000 active authored posts;
-- the output uses `sourceId: social_profile_and_authored_posts`, sets `fullSurfaceProjectionAllowed: false`, and is not part of the implemented-projection registry.
+## Complete Social projection
 
-Backend PR #172 adds executable decision `managed_media_notice_only`:
+Backend PR #190 completed the reviewed Social source/projection.
 
-- profile avatar and workout-post media remain excluded from owned-content and raw Social relationship/activity sources;
-- both bindings map to `managed_media_metadata` as `notice_only` / `mixed_policy_review`;
-- raw URLs, asset IDs, descriptors, object keys, hashes, provider/model fields, moderation/OCR signals, reviewer state, appeals, legal holds, cleanup, delivery, lease, and retention internals remain excluded;
-- missing or unavailable media never blocks otherwise eligible non-media content and never causes an ID/URL fallback;
-- separate notice projection and binary media export remain blocked.
+The projection:
 
-Backend PR #174 adds the bounded Social notification source plan:
+- verifies an active authenticated owner;
+- uses one read-only PostgreSQL `REPEATABLE READ` transaction;
+- exports only the owner's Social profile and active authored workout posts;
+- exports outgoing follows, current pending outgoing follow requests and outgoing blocks without counterpart identity;
+- exports owner-authored reactions and comments only when the target is currently readable;
+- omits incoming follows/requests/blocks, target/counterpart identity, other-user comments, resolved request history, deleted post history, managed-media values, notification rows, internal IDs, revisions, idempotency keys, raw JSON, moderation internals and provider/operational metadata;
+- fails closed above reviewed source bounds.
 
-- owner verification is required;
-- only rows where the current user is the recipient are eligible;
-- one read-only `REPEATABLE READ` transaction is used;
-- ordering is `created_at ASC`, then internal notification ID `ASC`;
-- the internal tie-breaker is not exported;
-- the eligible-row bound fails closed at 5,000 rows with no silent truncation;
-- there is no continuation token and no independently committed page model;
-- closed notification-type validation, type-specific target-shape validation, self-actor rejection, and deleted/missing owner handling all fail closed;
-- `receivedActivityDisclosure` remains `blocked`;
-- `sourceImplementationAllowed` remains `false`;
-- `social_notifications` remains a `blocked_policy_decision` surface.
+Received `social_notifications` are permanently excluded. Managed media remains a separate `notice_only` / `mixed_policy_review` surface with no notice or binary projection.
 
-Notification bounds, ordering, snapshot semantics, and the technical source-plan contract are resolved. Disclosure of received notifications remains undecided. No notification query, DTO, repository, route, schema, migration, archive, delivery, or UI was added.
-All projections and partial source/decision contracts remain separate from preparation invocation, route activation, multi-surface assembly, archive generation, secure delivery, and mobile UI.
+The earlier bounded `social_profile_and_authored_posts` source remains focused evidence and compatibility context but is no longer the maximum implemented Social export boundary.
 
-## Social export audit state
+## Multi-surface assembly
 
-Backend PR #170 covers exactly eight registered Social candidate tables:
+Backend PR #191 adds schema version 1 of the internal `json_v1` assembler.
 
-- `social_profiles`;
-- `social_follows`;
-- `social_follow_requests`;
-- `social_blocks`;
-- `social_workout_posts`;
-- `social_workout_reactions`;
-- `social_workout_comments`;
-- `social_notifications`.
+The assembler:
 
-The current audit establishes:
+- accepts only the seven complete `candidate_export` surface IDs;
+- rejects notice-only surfaces before any loader runs;
+- preflights every selected projection loader;
+- normalizes selected surfaces into one canonical deterministic order;
+- invokes only selected loaders;
+- verifies returned surface IDs and projection schema versions;
+- returns no partial projection payload if a selected loader is absent, fails or returns a mismatched contract;
+- does not expose authenticated owner identifiers or repository error text.
 
-- own-profile and own-active-post data is implemented only through the bounded partial source and strict allowlists;
-- follows, follow requests, blocks, reactions, comments, and notifications remain `blocked_policy_decision` sources;
-- incoming block relationships are permanently excluded;
-- reactions and comments are candidate only when authored by the authenticated user;
-- internal account/content IDs, idempotency/dedupe keys, source workout IDs/revisions, and other-user private fields are excluded;
-- managed media is separate notice-only mixed-policy data and remains excluded from the Social owned-content source;
-- notification actor/target representation is resolved by omission, but received-notification third-party disclosure and source bounds/snapshot semantics remain unresolved;
-- counterpart representation, incoming third-party activity, action-target/inaccessible-record behavior, and deterministic bounds/snapshot semantics remain unresolved;
-- `SOCIAL_EXPORT_PROJECTION_IMPLEMENTATION_ALLOWED` remains `false`.
+The assembler is intentionally not connected to `prepareDataAccessExport` or the optional route. The standing preparation blocker is `assembly_not_integrated`.
 
-The complete registered Social surface remains blocked. Incoming block disclosure remains permanently prohibited, and received third-party activity is not automatically owner-authored export data.
+## Data-access route and delivery state
+
+The projections and assembler are source-complete but not product-available.
+
+Still fail closed or unimplemented:
+
+- default `createApp()` does not compose the optional data-access export route;
+- explicitly composed `/v1/privacy/data-access/export/prepare` still returns the bounded unavailable response after its existing authentication, request, attempt-limit and password checks;
+- preparation does not invoke the assembler;
+- export audit persistence is not implemented;
+- export idempotency and committed-response-loss recovery are not implemented;
+- no cross-surface PostgreSQL snapshot contract is claimed;
+- pagination/continuation and maximum assembled-size semantics are not complete;
+- archive generation is not implemented;
+- secure expiring/revocable delivery is not implemented;
+- managed-media notice/binary export is not implemented;
+- mobile export UI is not implemented.
+
+## P9-B3 retention evidence
+
+Provider/environment retention evidence remains externally blocked until exact selected environments prove maximum lifetime, access, expiry/deletion behavior, failure monitoring, account-deletion handling and bounded exceptional-retention behavior.
+
+Do not replace evidence blockers with generic provider documentation or assumptions.
+
+## P9-C analytics and consent
+
+Analytics, crash collection, performance telemetry, attribution, advertising tracking and generic measurement remain disabled.
+
+Existing fail-closed activation, event/property and consent-state contracts are source controls only. Activation still requires purpose/region policy decisions, exact provider evidence, persistence/ownership semantics, reviewed disclosures, product behavior, localization/accessibility and separate implementation approval.
+
+## Next safe P9-D boundary
+
+The recommended next bounded package is **export auditability and idempotency semantics**:
+
+- define one ownership-safe export attempt/audit record contract;
+- define request identity and retry semantics without persisting passwords, selected payloads, full secrets or reusable authorization proofs;
+- define committed-response-loss behavior and deterministic replay expectations;
+- define bounded retention and account-deletion interaction for audit metadata;
+- keep archive generation, secure delivery, route activation, mobile UI, deployment, provider configuration and production execution out of that slice.
+
+Cross-surface snapshot/pagination semantics and maximum assembled-size limits remain separate reviewed concerns before delivery can be enabled.
 
 ## Deferred audit recommendations
 
-The following audit suggestions are not approved implementation work without new evidence:
+The following are not approved autonomous implementation work without new evidence:
 
 - migrating focused Context boundaries to Zustand or Jotai;
-- replacing the reviewed AsyncStorage snapshot with SQLite, WatermelonDB, MMKV, or another local database;
-- mass-moving shared `data`, `domain`, and `components` code into feature directories;
-- mechanically consolidating `test/`, `tests/`, and colocated tests without first auditing CI, path-reading tests, and ownership;
-- adding performance refactors before release-device profiling demonstrates a specific render or interaction bottleneck.
+- replacing the reviewed AsyncStorage snapshot with SQLite, WatermelonDB, MMKV or another local database;
+- mass-moving shared code into feature directories;
+- mechanically consolidating test directories;
+- generic performance refactors without release-device profiling.
 
 ## Disabled or authorization-gated
 
 The following remain disabled, absent from default production composition, or require direct authorization:
 
-- product analytics, crash collection, performance telemetry, attribution, and advertising tracking;
-- complete Social projection implementation;
-- notification source implementation and received-activity disclosure;
+- product analytics, crash collection, performance telemetry, attribution and advertising tracking;
+- export route activation and preparation-to-assembly integration;
 - managed-media notice projection and binary media export;
-- public data-access export assembly, archive generation, secure delivery, and mobile export UI;
+- export audit/idempotency persistence, archive generation and secure delivery;
+- mobile export UI;
 - model/provider staging execution;
 - worker scheduling and external lifecycle proof;
 - backend deployment and production migration execution;
-- OTA/EAS publication, native build, installation, rollback execution, and store submission;
-- credential, DNS, provider-account, or production-environment changes.
+- OTA/EAS publication, native build, installation, rollback execution and store submission;
+- credential, DNS, provider-account or production-environment changes.
 
 ## Documentation state
 
@@ -172,4 +187,4 @@ The following remain disabled, absent from default production composition, or re
 - `docs/current-status.md` provides mutable verified state;
 - `docs/handoffs/latest.md` provides the continuation checkpoint;
 - `docs/architecture/README.md` indexes focused architecture documents;
-- `docs/implementation-plan.md` remains the canonical cross-repository roadmap and records the bounded Social source plus resolved media and notification representation decisions while requiring one reviewed decision per remaining Social boundary.
+- `docs/implementation-plan.md` remains the canonical cross-repository roadmap.
