@@ -1,3 +1,4 @@
+import { X } from 'lucide-react-native';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -110,10 +111,11 @@ export function FoodPortionSheet({
               </View>
               <Pressable
                 accessibilityLabel={copy.closePortionEditor}
+                accessibilityRole="button"
                 hitSlop={10}
                 onPress={onClose}
                 style={styles.sheetClose}>
-                <Text style={styles.sheetCloseText}>×</Text>
+                <X color={colors.textPrimary} size={20} strokeWidth={2.2} />
               </Pressable>
             </View>
 
