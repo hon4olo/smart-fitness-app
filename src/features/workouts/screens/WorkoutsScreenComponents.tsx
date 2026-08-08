@@ -243,7 +243,9 @@ export function CreateProgramModal({
                 !canCreate && styles.disabledButton,
                 pressed && canCreate && styles.pressed,
               ]}>
-              <Text style={styles.createLabel}>{t('workouts.create')}</Text>
+              <Text style={[styles.createLabel, !canCreate && styles.disabledLabel]}>
+                {t('workouts.create')}
+              </Text>
             </Pressable>
           </View>
         </View>
