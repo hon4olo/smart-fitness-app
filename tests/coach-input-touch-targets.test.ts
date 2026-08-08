@@ -15,7 +15,7 @@ const readSource = (relativePath: string) =>
   readFileSync(resolve(projectRoot, relativePath), 'utf8');
 
 const styleBlock = (source: string, name: string) => {
-  const match = source.match(new RegExp(`${name}: \\{([\\s\\S]*?)\\n   ?\\},`));
+  const match = source.match(new RegExp(`${name}:\\s*\\{([\\s\\S]*?)\\n\\s*\\},`));
   return match?.[1] ?? '';
 };
 
