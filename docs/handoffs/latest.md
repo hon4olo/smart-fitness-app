@@ -121,7 +121,7 @@ Backend PR #191 exact final head `39bd68f1706d5ff3873055f00cd9b33fbc9d2757` pass
 
 PR #191 merged as backend `main` `203887655ef93c268b06db85ef03dcd4de272228`.
 
-This mobile documentation slice must pass exact-head Mobile CI before merge.
+This mobile sync changes only Markdown under `docs/`. The authoritative Mobile CI workflow intentionally ignores `docs/**` and `**/*.md` on pull requests, so no Mobile CI run is expected for this documentation-only slice. Validation is the exact three-file diff, verified repository baselines and cross-repository claims; no Expo/native/runtime execution is required by `AGENTS.md` for docs-only changes.
 
 ## Deferred audit recommendations
 
