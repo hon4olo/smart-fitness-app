@@ -1,3 +1,4 @@
+import { Plus, Star, X } from 'lucide-react-native';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import type { FoodItem } from '@/api/foods';
@@ -84,10 +85,11 @@ export function FoodSearchModeSection({
         {query.length > 0 ? (
           <Pressable
             accessibilityLabel={copy.clearSearch}
+            accessibilityRole="button"
             hitSlop={10}
             onPress={onClearQuery}
             style={styles.clearButton}>
-            <Text style={styles.clearButtonText}>×</Text>
+            <X color={colors.textSecondary} size={20} strokeWidth={2.2} />
           </Pressable>
         ) : null}
         <Pressable
@@ -145,17 +147,24 @@ export function FoodSearchModeSection({
                 <View style={styles.rowActions}>
                   <Pressable
                     accessibilityLabel={favorite ? copy.removeFavorite(food.name) : copy.addFavorite(food.name)}
+                    accessibilityRole="button"
                     hitSlop={10}
                     onPress={() => onToggleProviderFavorite(food)}
                     style={styles.iconButton}>
-                    <Text style={styles.iconButtonText}>{favorite ? '★' : '☆'}</Text>
+                    <Star
+                      color={favorite ? colors.accent : colors.textSecondary}
+                      fill={favorite ? colors.accent : 'none'}
+                      size={19}
+                      strokeWidth={2}
+                    />
                   </Pressable>
                   <Pressable
                     accessibilityLabel={copy.quickAdd(food.name, selectedMealLabel)}
+                    accessibilityRole="button"
                     hitSlop={10}
                     onPress={() => onQuickAddFoodItem(food)}
                     style={styles.iconButton}>
-                    <Text style={styles.iconButtonText}>+</Text>
+                    <Plus color={colors.textPrimary} size={20} strokeWidth={2.2} />
                   </Pressable>
                 </View>
               }
@@ -183,17 +192,24 @@ export function FoodSearchModeSection({
                 <View style={styles.rowActions}>
                   <Pressable
                     accessibilityLabel={favorite ? copy.removeFavorite(food.name) : copy.addFavorite(food.name)}
+                    accessibilityRole="button"
                     hitSlop={10}
                     onPress={() => onToggleFavorite(food.id)}
                     style={styles.iconButton}>
-                    <Text style={styles.iconButtonText}>{favorite ? '★' : '☆'}</Text>
+                    <Star
+                      color={favorite ? colors.accent : colors.textSecondary}
+                      fill={favorite ? colors.accent : 'none'}
+                      size={19}
+                      strokeWidth={2}
+                    />
                   </Pressable>
                   <Pressable
                     accessibilityLabel={copy.quickAdd(food.name, selectedMealLabel)}
+                    accessibilityRole="button"
                     hitSlop={10}
                     onPress={() => onQuickAddCatalogFood(food)}
                     style={styles.iconButton}>
-                    <Text style={styles.iconButtonText}>+</Text>
+                    <Plus color={colors.textPrimary} size={20} strokeWidth={2.2} />
                   </Pressable>
                 </View>
               }
