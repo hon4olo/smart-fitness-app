@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { User } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -270,7 +271,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
             onPress={() => router.push('/(tabs)/profile')}
             style={({ pressed }) => [styles.profileButton, pressed && styles.pressed]}>
-            <Text style={styles.profileIcon}>👤</Text>
+            <User color={Colors.dark.textPrimary} size={22} strokeWidth={2} />
           </Pressable>
         </View>
         <HomeSummaryCard
@@ -350,6 +351,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 44,
   },
-  profileIcon: { fontSize: 22, lineHeight: 26 },
   screen: { backgroundColor: Colors.dark.background, flex: 1 },
 });
