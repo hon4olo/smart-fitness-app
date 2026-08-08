@@ -1,6 +1,6 @@
 # Mobile Architecture Index
 
-Updated: 2026-08-05
+Updated: 2026-08-08
 
 This directory contains focused architecture evidence. Use this index instead of creating overlapping broad summaries.
 
@@ -24,11 +24,12 @@ For stable cross-repository orientation, read `../project-context.md`. For curre
 - `bounded-adversarial-validation.md` — generated state-machine and adversarial validation boundary.
 - `privacy-safe-support-diagnostics.md` — bounded local support diagnostics.
 
-## Media, links, and platform composition
+## Media, links, platform composition, and UI layout
 
 - `mobile-managed-media-composition-analysis.md` — managed-media composition boundary.
 - `password-reset-app-links.md` — password-reset universal/app link architecture.
 - `list-performance-baseline.md` — list-rendering performance baseline.
+- `responsive-mobile-ui.md` — responsive layout, Safe Area, floating navigation, sticky action, scrolling, keyboard, and validation contract.
 
 ## Maintenance rule
 
