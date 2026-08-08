@@ -18,6 +18,11 @@ import { Platform, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'r
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import {
+  FLOATING_TAB_BAR_HEIGHT,
+  FLOATING_TAB_BAR_MIN_BOTTOM_OFFSET,
+} from './floatingTabBarLayout';
+
 const TAB_ICONS: Record<string, LucideIcon> = {
   index: Home,
   workouts: Dumbbell,
@@ -28,7 +33,7 @@ const TAB_ICONS: Record<string, LucideIcon> = {
 
 const VISIBLE_TABS = new Set(Object.keys(TAB_ICONS));
 const TAB_COUNT = Object.keys(TAB_ICONS).length;
-const PANEL_HEIGHT = 64;
+const PANEL_HEIGHT = FLOATING_TAB_BAR_HEIGHT;
 const PANEL_RADIUS = 32;
 const DEFAULT_PANEL_WIDTH = 340;
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -233,7 +238,7 @@ export function LiquidGlassTabBar({ state, descriptors, navigation }: BottomTabB
         style={[
           styles.outerContainer,
           {
-            bottom: Math.max(insets.bottom, 12),
+            bottom: Math.max(insets.bottom, FLOATING_TAB_BAR_MIN_BOTTOM_OFFSET),
           },
         ]}>
         <View pointerEvents="none" style={styles.shadowWide} />
