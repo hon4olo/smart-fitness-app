@@ -1,8 +1,10 @@
 import { router } from 'expo-router';
+import { History } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { getFloatingTabBarBottomClearance } from '@/components/navigation/floatingTabBarLayout';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import WorkoutsScreen from '@/features/workouts/screens/WorkoutsScreen';
 import { useLocalization } from '@/localization';
@@ -13,6 +15,7 @@ export default function WorkoutsRoute() {
   const { t } = useLocalization();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
+  const historyBottom = getFloatingTabBarBottomClearance(insets.bottom, Spacing.two);
 
   return (
     <View style={styles.screen}>
@@ -24,10 +27,10 @@ export default function WorkoutsRoute() {
         onPress={() => router.push('/workout-history')}
         style={({ pressed }) => [
           styles.historyButton,
-          { bottom: insets.bottom + 58 },
+          { bottom: historyBottom },
           pressed && styles.pressed,
         ]}>
-        <Text style={styles.historyIcon}>↺</Text>
+        <History color={colors.accent} size={18} strokeWidth={2.2} />
         <Text style={styles.historyLabel}>{t('workouts.history')}</Text>
       </Pressable>
     </View>
@@ -45,16 +48,10 @@ const createStyles = (colors: typeof Colors.light) =>
       flexDirection: 'row',
       gap: Spacing.one,
       left: Spacing.three,
-      minHeight: 42,
+      minHeight: 44,
       paddingHorizontal: Spacing.three,
       position: 'absolute',
       zIndex: 20,
-    },
-    historyIcon: {
-      color: colors.accent,
-      fontSize: 18,
-      fontWeight: '800',
-      lineHeight: 20,
     },
     historyLabel: {
       color: colors.textPrimary,

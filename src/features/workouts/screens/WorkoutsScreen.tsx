@@ -1,4 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
+import { Play, Search } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -135,7 +136,7 @@ export default function WorkoutsScreen() {
         accessibilityRole="button"
         onPress={() => router.push('/workouts/exercise-library')}
         style={({ pressed }) => [styles.searchButton, pressed && styles.pressed]}>
-        <Text style={styles.searchLabel}>⌕</Text>
+        <Search color={colors.textPrimary} size={24} strokeWidth={2.2} />
       </Pressable>
     </View>
   );
@@ -245,7 +246,7 @@ export default function WorkoutsScreen() {
             accessibilityRole="button"
             onPress={activeDraft ? resumeWorkout : startEmptyWorkout}
             style={({ pressed }) => [styles.footerButton, pressed && styles.pressed]}>
-            <Text style={styles.footerIcon}>▶</Text>
+            <Play color={colors.textOnAccent} size={17} strokeWidth={2.4} />
             <Text style={styles.footerLabel}>
               {activeDraft ? t('workouts.resumeWorkout') : t('workouts.startEmptyWorkout')}
             </Text>

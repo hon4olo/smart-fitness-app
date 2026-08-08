@@ -68,12 +68,6 @@ export const createProgramRowStyles = (colors: typeof Colors.light) =>
     addIconBox: {
       borderRadius: 999,
     },
-    addIconLabel: {
-      color: colors.textPrimary,
-      fontSize: 32,
-      fontWeight: '300',
-      lineHeight: 34,
-    },
     copy: {
       flex: 1,
       minWidth: 0,
@@ -86,12 +80,6 @@ export const createProgramRowStyles = (colors: typeof Colors.light) =>
       height: 58,
       justifyContent: 'center',
       width: 58,
-    },
-    iconLabel: {
-      color: colors.textMuted,
-      fontSize: 23,
-      fontWeight: '500',
-      lineHeight: 26,
     },
     pressed: {
       opacity: 0.72,
@@ -153,7 +141,12 @@ export const createModalStyles = (colors: typeof Colors.light) =>
       fontWeight: '900',
     },
     disabledButton: {
-      opacity: 0.45,
+      backgroundColor: colors.backgroundSecondary,
+      borderColor: colors.borderSubtle,
+      borderWidth: StyleSheet.hairlineWidth,
+    },
+    disabledLabel: {
+      color: colors.textMuted,
     },
     modalHelperText: {
       color: colors.textMuted,
@@ -235,11 +228,6 @@ export const createWorkoutsScreenStyles = (colors: typeof Colors.light) =>
       paddingHorizontal: Spacing.three,
       width: '100%',
     },
-    footerIcon: {
-      color: colors.textOnAccent,
-      fontSize: 15,
-      fontWeight: '900',
-    },
     footerLabel: {
       color: colors.textOnAccent,
       flexShrink: 1,
@@ -296,15 +284,9 @@ export const createWorkoutsScreenStyles = (colors: typeof Colors.light) =>
     searchButton: {
       alignItems: 'center',
       flexShrink: 0,
-      height: 38,
+      height: 44,
       justifyContent: 'center',
-      width: 38,
-    },
-    searchLabel: {
-      color: colors.textPrimary,
-      fontSize: 27,
-      fontWeight: '500',
-      lineHeight: 30,
+      width: 44,
     },
     sectionStack: {
       gap: Spacing.four,

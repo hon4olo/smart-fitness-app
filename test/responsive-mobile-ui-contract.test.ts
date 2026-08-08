@@ -23,6 +23,7 @@ describe('responsive mobile UI contract', () => {
       'src/components/navigation/LiquidGlassTabBar.tsx',
     );
     const home = readSource('src/app/(tabs)/index.tsx');
+    const workoutsRoute = readSource('src/app/(tabs)/workouts.tsx');
     const progress = readSource('src/app/(tabs)/progress.tsx');
     const profile = readSource('src/app/(tabs)/profile.tsx');
 
@@ -31,10 +32,12 @@ describe('responsive mobile UI contract', () => {
     expect(tabBar).toContain('FLOATING_TAB_BAR_HEIGHT');
     expect(tabBar).toContain('FLOATING_TAB_BAR_MIN_BOTTOM_OFFSET');
     expect(home).toContain('getFloatingTabBarBottomClearance');
+    expect(workoutsRoute).toContain('getFloatingTabBarBottomClearance');
     expect(progress).toContain('getFloatingTabBarBottomClearance');
     expect(profile).toContain('getFloatingTabBarBottomClearance');
 
     expect(home).not.toContain('safeAreaInsets.bottom + 120');
+    expect(workoutsRoute).not.toContain('insets.bottom + 58');
     expect(progress).not.toContain('safeAreaInsets.bottom + 120');
     expect(profile).not.toContain('safeAreaInsets.bottom + 120');
   });

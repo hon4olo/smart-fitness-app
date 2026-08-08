@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { Dumbbell, Heart, Plus } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, Text, TextInput, View } from 'react-native';
 
@@ -132,6 +133,7 @@ export function ProgramRow({
   const { locale, t } = useLocalization();
   const styles = useMemo(() => createProgramRowStyles(colors), [colors]);
   const isAdd = icon === 'add';
+  const Icon = icon === 'add' ? Plus : icon === 'favorite' ? Heart : Dumbbell;
   const workoutCountLabel = formatPlural(locale, workoutCount, {
     one: t('workouts.workoutCount.one'),
     few: t('workouts.workoutCount.few'),
@@ -159,9 +161,11 @@ export function ProgramRow({
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
       <View style={[styles.iconBox, isAdd && styles.addIconBox]}>
-        <Text style={[styles.iconLabel, isAdd && styles.addIconLabel]}>
-          {icon === 'add' ? '+' : icon === 'favorite' ? '♡' : '▰'}
-        </Text>
+        <Icon
+          color={isAdd ? colors.textPrimary : colors.textMuted}
+          size={isAdd ? 30 : 22}
+          strokeWidth={isAdd ? 1.8 : 2}
+        />
       </View>
       <View style={styles.copy}>
         <Text numberOfLines={1} style={styles.title}>
@@ -239,7 +243,9 @@ export function CreateProgramModal({
                 !canCreate && styles.disabledButton,
                 pressed && canCreate && styles.pressed,
               ]}>
-              <Text style={styles.createLabel}>{t('workouts.create')}</Text>
+              <Text style={[styles.createLabel, !canCreate && styles.disabledLabel]}>
+                {t('workouts.create')}
+              </Text>
             </Pressable>
           </View>
         </View>
