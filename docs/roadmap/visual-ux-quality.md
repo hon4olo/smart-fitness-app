@@ -9,7 +9,8 @@ Updated: 2026-08-08
 - RUI-5 merged in PR #467 as `45db592aa0470399a02dbadeadd30f36e2dab270`.
 - RUI-6 focused responsive guardrails merged in PR #466 as `0ea861766a9bbea8611599d5f6e38e611fc91514` after full exact-head Mobile CI passed.
 - VUX-1A shared visual primitives merged in PR #468 as `c6092048e3b94e7fc372c783a26668fa897428b0` after full exact-head Mobile CI passed.
-- Active visual branch: `ui/primary-affordance-icons`.
+- VUX-1B primary action affordances merged in PR #469 as `511cb08e2e1ec6e3575b2fff35a482a570bdae28` after full exact-head Mobile CI passed.
+- Active visual branch: `ui/workout-session-header-ux`.
 - Backend work is a separate workstream and is not part of this roadmap execution.
 
 Source/CI completion is not physical-device proof. OTA/EAS publication, native build/install, production/provider activation and store/release actions remain separately authorization-gated.
@@ -64,39 +65,70 @@ Delivered:
 
 ### VUX-1B — primary action affordances
 
-**Status: active on `ui/primary-affordance-icons`.**
+**Status: complete.**
 
-Current bounded package:
+PR #469 merged as `511cb08e2e1ec6e3575b2fff35a482a570bdae28`.
+
+Delivered:
 
 - Home profile `👤` → Lucide User while preserving the 44×44 button, route and accessibility label;
-- Workouts History `↺` → Lucide History;
-- Workouts History moves from legacy `insets.bottom + 58` to shared floating-tab clearance with a defined gap above the tab bar;
-- Workouts Search `⌕` → Lucide Search and the compact control owns a 44 pt touch target;
+- Workouts History `↺` → Lucide History and moved from legacy `insets.bottom + 58` to shared floating-tab clearance;
+- Workouts Search `⌕` → Lucide Search with a 44 pt touch target;
 - Workouts Start/Resume `▶` → Lucide Play without changing the action or sticky-footer geometry;
 - Program rows replace `+ / ♡ / ▰` control glyphs with Lucide Plus / Heart / Dumbbell;
-- the touched Create Program modal replaces opacity-only disabled treatment with an explicit disabled surface/text state while preserving its visible required-name helper;
-- responsive source-contract coverage prevents the Workouts History control from returning to `insets.bottom + 58`.
+- Create Program uses an explicit disabled surface/text state while preserving the visible required-name helper;
+- responsive source-contract coverage prevents Workouts History from returning to the legacy `+58` placement.
 
-**Merge gate:** full exact-head Mobile CI. Do not mark VUX-1B complete until the validated head merges.
-
-Remaining icon cleanup after VUX-1B should be audit-driven. Do not replace intentional copy, exercise initials, mathematical symbols, or clear text actions merely because they are not icons.
+Remaining icon cleanup is audit-driven. Do not replace intentional copy, exercise initials, mathematical symbols, or clear text actions merely because they are not icons.
 
 ## VUX-2 — disabled-control and validation clarity audit
 
-**Status: queued behind VUX-1B.**
+### VUX-2A — Active Workout header and Finish state
 
-Audit callers after shared button styling is consistent:
+**Status: active on `ui/workout-session-header-ux`.**
+
+Audit finding:
+
+- Active Workout Finish was disabled until at least one set was completed, but the header communicated that state only through `opacity: 0.42` and exposed no visible blocking reason;
+- Finish owned only a 32 pt minimum height;
+- back/timer/overflow controls still used custom drawn/text glyphs rather than the established Lucide language.
+
+Current bounded remediation:
+
+- preserve the existing rule that Finish becomes available only after at least one completed set;
+- add a visible localized blocking reason while Finish is unavailable: EN/RU;
+- expose the same reason as the disabled Finish accessibility hint;
+- replace opacity-only disabled styling with explicit surface/border/text states;
+- raise Finish to a 44 pt minimum touch target without changing its callback;
+- replace the hand-built chevron/stopwatch and `•••` glyph with Lucide ChevronDown / Timer / Ellipsis;
+- preserve workout draft, completion-count, finish route, overflow behavior and timer logic.
+
+**Merge gate:** full exact-head Mobile CI. Do not mark VUX-2A complete until the validated head merges.
+
+### VUX-2B — remaining caller-level disabled reasons
+
+**Status: queued.**
+
+Continue the audit after VUX-2A:
+
+- Nutrition create/save actions;
+- Profile goal save validation;
+- Coach review/apply actions;
+- Social publish/comment actions;
+- Progress measurement save;
+- other Workouts save/create controls found by source review.
+
+Rules:
 
 - disabled actions must expose a nearby validation/blocking explanation when the reason is not self-evident;
 - loading/busy must not look identical to permanently unavailable;
 - destructive disabled actions must remain visually distinct from enabled destructive actions;
-- do not introduce tooltip-only explanations that are inaccessible on touch devices.
-
-Prioritize auth/onboarding, Workout save/finish, Nutrition create/save, Profile goals, Coach review/apply and Social publish/comment flows.
+- do not introduce tooltip-only explanations that are inaccessible on touch devices;
+- do not add explanatory noise when the reason is already obvious and visible.
 
 ## VUX-3 — typography and visual hierarchy audit
 
-**Status: queued.**
+**Status: queued, with Home audit started read-only.**
 
 Review primary screens in this order:
 
@@ -107,6 +139,12 @@ Review primary screens in this order:
 5. Coach;
 6. Profile/Settings;
 7. secondary Social/Safety/Recovery surfaces.
+
+Initial Home finding for the next hierarchy package:
+
+- `HomeSummaryCard` currently nests a surfaced calories badge and two surfaced mini-stat tiles inside an already surfaced accent `AppCard`, producing unnecessary card-within-card visual noise;
+- remediation should preserve all current values/calculations and flatten inner hierarchy before changing typography or information order;
+- `HomeSnapshotCard` also uses surfaced tiles, but it must be evaluated separately rather than flattened automatically.
 
 For each screen verify:
 
@@ -121,7 +159,7 @@ Do not redesign business flows while performing this audit.
 
 ## VUX-4 — icon/action consistency
 
-**Status: continuous cleanup after VUX-1B.**
+**Status: continuous audit-driven cleanup.**
 
 - consolidate repeated header/back/settings/profile action treatments only where actual duplication justifies a shared primitive;
 - keep Lucide sizing/stroke conventions consistent;
@@ -168,9 +206,9 @@ No source/CI result should be described as physical-device evidence.
 
 ## Next execution order
 
-1. Finish VUX-1B primary affordance iconography and run full exact-head Mobile CI.
-2. Merge only the validated VUX-1B head.
-3. Run VUX-2 caller-level disabled/blocking-reason audit, beginning with Workouts and Nutrition because they contain the densest save/create flows.
-4. Start VUX-3 screen-by-screen hierarchy review, beginning with Home and Workouts.
+1. Finish VUX-2A Active Workout header/Finish clarity and run full exact-head Mobile CI.
+2. Merge only the validated VUX-2A head.
+3. Continue VUX-2B caller-level disabled/blocking-reason audit, prioritizing Nutrition/Profile/Progress and only concrete defects.
+4. Start the first VUX-3 Home hierarchy remediation by reducing unnecessary nested surfaces while preserving data and calculations.
 5. Continue VUX-4 icon consistency only where the audit finds actual temporary control glyphs or inconsistent action treatment.
 6. Keep OTA/EAS/native/release actions and all backend work out of this autonomous UI sequence unless directly requested.
