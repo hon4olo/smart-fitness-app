@@ -284,6 +284,7 @@ export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
 
           {mode === 'recent' ? (
             <RecentFoodsModeSection
+              colors={colors}
               items={recentItems}
               onOpenFood={onOpenRecentFood}
               onQuickAdd={onQuickAddRecent}
@@ -295,6 +296,7 @@ export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
 
           {mode === 'favorites' ? (
             <FavoriteFoodsModeSection
+              colors={colors}
               foods={favoriteFoods}
               libraryFoods={libraryFoods}
               onOpenFood={onOpenCatalogFood}
