@@ -1,3 +1,4 @@
+import { Settings } from 'lucide-react-native';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,7 +41,7 @@ export default function ProfileScreen() {
             accessibilityRole="button"
             onPress={() => router.push('/settings')}
             style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}>
-            <Text style={styles.settingsIcon}>⚙︎</Text>
+            <Settings color={Colors.dark.textPrimary} size={22} strokeWidth={2} />
           </Pressable>
         </View>
 
@@ -89,7 +90,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 44,
   },
-  settingsIcon: { color: Colors.dark.textPrimary, fontSize: 26, lineHeight: 30 },
   title: {
     color: Colors.dark.textPrimary,
     flex: 1,
