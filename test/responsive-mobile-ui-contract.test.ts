@@ -73,7 +73,7 @@ describe('responsive mobile UI contract', () => {
     expect(routinePicker).not.toContain('visibleExercises.map(');
   });
 
-  it('keeps editable auth, onboarding, profile, and nutrition surfaces keyboard-aware', () => {
+  it('keeps editable primary forms keyboard-aware', () => {
     const sources = [
       'src/components/auth/AuthFormScreen.tsx',
       'src/app/auth/forgot-password.tsx',
@@ -93,6 +93,26 @@ describe('responsive mobile UI contract', () => {
     }
   });
 
+  it('keeps secondary weight, coach, and social forms keyboard-aware', () => {
+    const weightEntry = readSource('src/app/weight-entry.tsx');
+    const sources = [
+      weightEntry,
+      readSource('src/features/coach/screens/UserLimitationScreen.tsx'),
+      readSource('src/features/coach/screens/RecoveryCheckInScreen.tsx'),
+      readSource('src/features/social/screens/SocialProfileEditorScreen.tsx'),
+      readSource('src/features/social/screens/ShareWorkoutScreen.tsx'),
+      readSource('src/features/social/screens/SocialWorkoutPostDetailScreen.tsx'),
+    ];
+
+    expect(weightEntry).not.toContain('safeAreaInsets.bottom + 120');
+
+    for (const source of sources) {
+      expect(source).toContain('automaticallyAdjustKeyboardInsets');
+      expect(source).toContain('keyboardDismissMode');
+      expect(source).toContain('keyboardShouldPersistTaps');
+    }
+  });
+
   it('keeps localized choice and action groups able to reflow', () => {
     const auth = readSource('src/components/auth/AuthFormScreen.tsx');
     const onboarding = readSource(
@@ -101,6 +121,12 @@ describe('responsive mobile UI contract', () => {
     const workoutActions = readSource(
       'src/components/workouts/WorkoutBuilderExerciseRow.tsx',
     );
+    const shareWorkoutStyles = readSource(
+      'src/features/social/screens/ShareWorkoutScreen.styles.ts',
+    );
+    const socialPostStyles = readSource(
+      'src/features/social/screens/SocialWorkoutPostSurface.styles.ts',
+    );
 
     expect(auth).toContain("experienceRow: {");
     expect(auth).toContain("flexWrap: 'wrap'");
@@ -108,5 +134,10 @@ describe('responsive mobile UI contract', () => {
     expect(onboarding).toContain("goalRow: { flexDirection: 'row', flexWrap: 'wrap'");
     expect(workoutActions).toContain("actionsRow: {");
     expect(workoutActions).toContain("flexWrap: 'wrap'");
+
+    expect(shareWorkoutStyles).toContain('minWidth: 0');
+    expect(shareWorkoutStyles).toContain('flexShrink: 1');
+    expect(socialPostStyles).toContain('commentActions: {');
+    expect(socialPostStyles).toContain('flexWrap: "wrap"');
   });
 });
