@@ -10,145 +10,95 @@ Updated: 2026-08-08
 - VUX-1B PR #469 → `511cb08e2e1ec6e3575b2fff35a482a570bdae28`.
 - VUX-2A PR #470 → `a5983354d6850ed00ac5d79a0db91981ddee1faa`.
 - VUX-3A Home Summary PR #471 → `a83d65d559f4542fa01e7a4588fb134b474a7346`.
-- Active visual branch: `ui/profile-goal-validation-p1`.
-- Backend work is a separate workstream and is explicitly outside this roadmap execution.
+- VUX-2B Profile Goals PR #472 → `1d717b114faefbac3101ff0c340554d53a7651bd`.
+- Active visual branch: `ui/nutrition-affordance-p1`.
+- Backend is a separate workstream and remains outside this roadmap execution.
 
 Source/CI completion is not physical-device proof. OTA/EAS publication, native build/install, provider/production activation and store/release actions remain separately authorization-gated.
 
 ## Product principles
 
-- Keep the five public tabs focused on Home, Workouts, Nutrition, Progress and Coach.
-- Keep Profile reachable from Home rather than spending a permanent bottom-tab slot.
-- Keep Profile focused on user summary, goals and Settings; keep Progress focused on outcomes/trends.
-- Keep AI Coach actions on the dedicated Coach surface.
-- Use one Lucide icon language for action controls; temporary emoji/text control glyphs are not final UI.
-- Preserve 44 pt minimum touch ownership for compact actions.
+- Keep the public tabs focused on Home, Workouts, Nutrition, Progress and Coach.
+- Use one Lucide icon language for action controls; do not replace intentional content symbols merely because they are not icons.
+- Preserve at least 44 pt touch ownership through control size or hit slop.
 - Never communicate disabled state through opacity alone.
-- When a disabled action is not self-explanatory, show the blocking reason next to the relevant field/action and expose it to accessibility.
+- When a disabled action is not self-explanatory, show the blocking reason near the relevant field/action and expose it to accessibility.
 - Prefer one clear owning surface over decorative card-within-card nesting.
-- Preserve EN/RU localization and Dynamic Type/reflow behavior.
-- Preserve routes, persistence, sync, calculations, workout/program lifecycle and backend contracts during visual work.
+- Preserve EN/RU localization, Dynamic Type/reflow, routes, persistence, sync, calculations and backend contracts during visual work.
 
-## Completed information architecture
-
-- [x] Profile removed from the public bottom bar and exposed from Home.
-- [x] Coach is the fifth public tab.
-- [x] Goal editing lives in Profile rather than Progress.
-- [x] AI Coach planning/actions live on Coach.
-- [x] Registration/onboarding ownership is separated from normal app editing.
-- [x] Core Home/Profile/Progress/Coach/Auth/Onboarding copy is EN/RU localized.
-- [x] Responsive hardening covers audited primary and secondary surfaces with focused regression guardrails.
-
-## VUX-1 — visual primitives and iconography
-
-**Status: complete for the audited primary affordances.**
+## Completed visual packages
 
 ### VUX-1A — shared primitives — PR #468
 
-Delivered:
-
-- Lucide Settings in Profile;
-- explicit disabled surface/border/text states for shared Primary, Secondary and Destructive buttons;
-- loading remains visually distinct from disabled/unavailable.
+- Lucide Settings in Profile.
+- Explicit disabled surface/border/text states for shared Primary, Secondary and Destructive buttons.
+- Loading remains visually distinct from disabled/unavailable.
 
 ### VUX-1B — primary affordances — PR #469
 
-Delivered:
-
-- Home profile emoji → Lucide User;
-- Workouts History/Search/Start → Lucide History/Search/Play;
-- Program-row `+ / ♡ / ▰` → Plus/Heart/Dumbbell;
-- Workouts History uses shared floating-tab clearance instead of legacy `+58`;
-- Search owns a 44 pt touch target;
-- Create Program has explicit disabled styling and retains its required-name helper.
-
-Further icon cleanup is audit-driven only. Do not replace intentional copy, exercise initials, mathematical symbols or clear text actions merely because they are not icons.
-
-## VUX-2 — disabled-control and validation clarity
+- Home profile emoji → Lucide User.
+- Workouts History/Search/Start → Lucide History/Search/Play.
+- Program-row action glyphs → Plus/Heart/Dumbbell.
+- History uses shared floating-tab clearance; Search owns a 44 pt touch target.
+- Create Program retains its required-name helper with an explicit disabled state.
 
 ### VUX-2A — Active Workout Finish — PR #470
 
-**Status: complete.**
+- Existing completed-set requirement preserved.
+- Visible EN/RU blocking reason + accessibility hint.
+- Explicit disabled state and 44 pt Finish target.
+- Session header controls use Lucide ChevronDown/Timer/Ellipsis.
 
-Delivered:
+### VUX-2B — Profile Goals — PR #472
 
-- preserved the existing completed-set requirement for Finish;
-- visible EN/RU blocking reason while unavailable;
-- same reason exposed as accessibility hint;
-- explicit disabled surface/border/text styling;
-- 44 pt Finish touch target;
-- Lucide ChevronDown / Timer / Ellipsis in the session header.
-
-### VUX-2B — Profile Goals field validation
-
-**Status: active on `ui/profile-goal-validation-p1`.**
-
-Audit finding:
-
-- Profile goal Save can be disabled because target weight, weekly weight change or training days are invalid, but the user receives no field-level explanation before Save becomes available.
-
-Current bounded remediation:
-
-- keep the exact existing validity boundaries:
-  - target weight must be finite and greater than zero;
-  - weekly change must be finite and zero or greater;
-  - training days must be an integer from 1 through 7;
-- derive Save disabled state from those same three conditions;
-- render the corresponding EN/RU message through each existing `FormField.errorMessage`;
-- expose the first blocking reason as the disabled Save accessibility hint;
-- preserve goal confirmation, recalculation, nutrition-target update and persistence behavior.
-
-**Merge gate:** full exact-head Mobile CI on the post-#471 `main`.
-
-Remaining disabled-reason work must stay selective. Nutrition custom-food forms already expose field errors after validation and Progress measurement flows already have an error channel; do not add duplicate explanatory noise without a concrete missing-state finding.
-
-## VUX-3 — visual hierarchy
+- Existing validity boundaries preserved: target weight > 0, weekly change >= 0, training days integer 1–7.
+- EN/RU field-level FormField errors now explain why Save is unavailable.
+- First blocking reason is exposed as the disabled Save accessibility hint.
+- Confirmation, nutrition-target recalculation and persistence behavior are unchanged.
 
 ### VUX-3A — Home Summary — PR #471
 
-**Status: complete.**
+- One owning accent/warning summary surface instead of nested cards.
+- Calories is a flat status block.
+- Current Weight and Streak are flat metrics below a divider.
+- Values/calculations/warning conditions/order are unchanged.
 
-Delivered:
+## VUX-3B / VUX-4 — Nutrition diary affordances
 
-- one owning accent/warning Home Summary surface;
-- Calories changed from a nested surfaced badge to a flat status block;
-- Current Weight and Streak changed from nested mini-cards to flat metrics below a subtle divider;
-- all values, calculations, warning conditions and information order preserved;
-- `QuickActionsCard` and `HomeSnapshotCard` intentionally left unchanged after source review because they represent distinct action/metric ownership.
+**Status: active on `ui/nutrition-affordance-p1`.**
 
-### Next hierarchy review
+Audit findings:
 
-1. Workouts hub and active session beyond the already-fixed header;
-2. Nutrition diary / Add Food;
-3. Progress;
-4. Coach;
-5. Profile / Settings;
-6. secondary Social / Safety / Recovery.
+- Calendar is an emoji control rather than the established Lucide action language.
+- Meal Add and expand/collapse controls use text glyphs (`+`, `▾`, `▸`).
+- Today communicates disabled state through `opacity: 0.35` only.
+- Week-strip accessibility labels are hardcoded in English despite EN/RU localization.
+- Meal-type markers (`○ ◇ □ △`) are semantic content markers and are intentionally not replaced.
 
-For every reviewed surface verify:
+Current bounded remediation:
 
-- one obvious primary action;
-- hierarchy expressed by typography/spacing rather than redundant containers;
-- no unnecessary card-within-card nesting;
-- EN/RU and Dynamic Type do not break metric/action relationships;
-- accent color indicates interaction/state rather than decoration;
-- loading/empty/error/success states belong to the same visual system.
+- Calendar → Lucide CalendarDays while preserving route/accessibility label and existing hit slop.
+- Meal Add → Lucide Plus; expand/collapse → Lucide ChevronDown/ChevronRight; existing hit slop preserves touch ownership.
+- Today uses explicit disabled background/border/text rather than opacity-only styling.
+- Week-strip accessibility text is generated from the EN/RU Nutrition diary copy.
+- Diary data, date selection, meal expansion, Add Food routing, nutrition calculations, SectionList virtualization and meal-type markers remain unchanged.
 
-Do not redesign business flows while performing hierarchy cleanup.
+**Merge gate:** full exact-head Mobile CI.
 
-## VUX-4 — icon/action consistency
+## Remaining hierarchy / validation review order
 
-**Status: continuous, audit-driven.**
+1. Re-audit Nutrition hierarchy after the affordance package; change containers only if a real hierarchy defect remains.
+2. Progress.
+3. Coach.
+4. Profile / Settings.
+5. Secondary Social / Safety / Recovery.
+6. Return to Workouts only for concrete audited defects; do not redesign the hub merely to satisfy roadmap order.
 
-- consolidate repeated header/back/settings/profile actions only when actual duplication warrants a primitive;
-- keep Lucide sizing/stroke conventions consistent;
-- retain 44 pt touch ownership;
-- do not replace clear text actions with ambiguous icon-only controls;
-- icon cleanup never implies permission to change route or behavior.
+For each surface verify one obvious primary action, restrained surface nesting, EN/RU/Dynamic Type resilience, consistent interaction states and coherent loading/empty/error/success presentation.
 
 ## Validation matrix
 
-For runtime UI PRs:
+Runtime UI PRs require exact-head:
 
 - repository and changed-file line audits;
 - TypeScript;
@@ -157,22 +107,14 @@ For runtime UI PRs:
 - Expo export;
 - Expo Doctor.
 
-Physical/release evidence, only when explicitly authorized:
-
-- narrow and short phones;
-- large system text / Dynamic Type;
-- English and Russian;
-- keyboard-open editable states;
-- modern iPhone safe areas and Android navigation insets;
-- populated, empty, disabled, loading, error and success states.
+Physical/release evidence remains separately authorization-gated: narrow/short phones, large text, EN/RU, keyboard-open states, iPhone safe areas, Android system insets, and populated/empty/disabled/loading/error/success states.
 
 No source/CI result is physical-device evidence.
 
 ## Next execution order
 
-1. Finish VUX-2B Profile Goals field-level validation and run exact-head Mobile CI.
-2. Merge only the validated VUX-2B head.
-3. Start the next VUX-3 hierarchy package with Workouts hub/active-session structure, changing only concrete source-audited visual defects.
-4. Continue Nutrition, Progress, Coach and Profile/Settings hierarchy in bounded packages.
-5. Continue VUX-4 icon consistency only from actual audit findings.
-6. Keep backend, OTA/EAS/native/release and production/provider actions out of this autonomous UI sequence unless directly requested.
+1. Finish Nutrition affordance/accessibility cleanup and run full exact-head Mobile CI.
+2. Merge only the validated head.
+3. Re-audit Nutrition hierarchy without automatically flattening legitimate metric/meal ownership.
+4. Continue bounded visual hierarchy/validation work through Progress, Coach and Profile/Settings from concrete audit findings.
+5. Keep backend, OTA/EAS/native/release and production/provider actions out of this autonomous UI sequence unless directly requested.
