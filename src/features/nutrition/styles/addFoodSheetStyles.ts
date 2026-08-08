@@ -29,12 +29,6 @@ export const createAddFoodSheetStyles = (colors: typeof Colors.dark) =>
       justifyContent: 'center',
       width: 44,
     },
-    sheetCloseText: {
-      color: colors.textPrimary,
-      fontSize: 24,
-      fontWeight: '900',
-      lineHeight: 24,
-    },
     sheetField: {
       gap: Spacing.one,
     },
