@@ -4,187 +4,162 @@ Updated: 2026-08-08
 
 ## Verified repository baseline
 
-Verified after backend PR #191 and mobile PR #456:
+- Mobile repo: `ivangemini/smart-fitness-app`
+- Mobile `main` before this docs sync: `76ad9166eb8f9a58df17a551b5b76db8f5a9cc29` (PR #457)
+- Backend repo: `ivangemini/smart-fitness-backend`
+- Backend `main`: `431998bfa85bf169fd68e98a7e46651f70cfa2d9` (PR #196)
+- Backend PRs #192–#196 are merged.
 
-- mobile `main` before this documentation slice: `0d0901acd76e1435088c9b88bb28bb86a769e8f0`;
-- backend `main`: `203887655ef93c268b06db85ef03dcd4de272228`;
-- backend PR #190 completed the ownership-safe `social_relationships_and_account_activity` export source/projection;
-- backend PR #191 added the deterministic source-only multi-surface assembler for all seven complete candidate projections;
-- mobile PR #456 optimized CI runner allocation without changing product/runtime behavior;
-- no open mobile or backend pull requests existed before this documentation branch was created.
+Planning estimate: approximately **92% of the current engineering roadmap is source-complete**. Release readiness is lower because provider/staging/physical-device/production evidence remains separately gated.
 
-Always re-check both repositories and open pull requests before work. This file records a checkpoint, not a live Git query.
+## Mobile source state
 
-## Engineering state
+The current mobile source remains on the established architecture:
 
-The canonical implementation plan now estimates approximately:
+- authenticated app shell and session lifecycle;
+- Home, Workouts, Nutrition, Progress and Profile flows;
+- durable local ownership/state boundaries;
+- backend sync across the current supported entity set;
+- offline outbox/retry/idempotency/conflict handling;
+- deterministic Coach surfaces and proposal/review boundaries;
+- Social source boundaries and managed-media governance hooks;
+- privacy/account-deletion UX foundations.
 
-- completed: 90%;
-- remaining: 10%.
+No mobile runtime code was changed by this roadmap-sync package.
 
-Completed source packages include:
+## Backend P9-D progress since mobile PR #457
 
-- P0-P6 provider-neutral foundations and readiness scaffolding;
-- P7 explicit synchronization-conflict resolution;
-- P8 diagnostics and adversarial release preparation;
-- P9-A technical data inventory;
-- P9-B1 operational retention foundation;
-- P9-B2 cross-surface account deletion source work.
+Mobile PR #457 synchronized through backend deterministic export assembly. Backend PRs #192–#196 then advanced P9-D substantially.
 
-Active packages:
+### #192 — export audit/idempotency contract
 
-1. P9-B3 provider/environment retention evidence — externally blocked until exact providers, environments, lifecycle controls, owners, credentials and evidence are available.
-2. P9-C consent and analytics prerequisites — collection remains disabled; no production event or measurement purpose is registered.
-3. P9-D privacy-facing controls and policy evidence — seven complete ownership-safe candidate projections and deterministic source-only assembly now exist; the next bounded package is export auditability and idempotency semantics.
-4. Operational and physical evidence — authorization-gated staging, deployment, worker scheduling, native build, release-device, offline-restart, accessibility, localization and second-device validation.
+Added:
+- canonical request fingerprinting;
+- optional strict bounded idempotency keys;
+- account-scoped SHA-256 key identity rather than raw-key persistence;
+- committed-response-loss replay;
+- same-key/different-request conflict;
+- bounded secret-free audit metadata.
 
-Source completion does not activate an export route, delivery path, analytics collection, deployment or release operation.
+### #193 — durable audit/idempotency persistence
 
-## Mobile state
+Added:
+- `data_access_export_requests`;
+- migration `0038`;
+- owner FK with `ON DELETE CASCADE`;
+- account-scoped keyed uniqueness;
+- owner-scoped repository reads;
+- concurrency-safe create/replay/conflict handling;
+- database constraints and privacy inventory classification.
 
-Current mobile source includes:
+No production migration was executed.
 
-- focused production state boundaries with zero production `useAppContext` consumers;
-- revisioned synchronization for every currently registered private mobile domain;
-- persisted conflict review and explicit conflict resolution;
-- secure native token storage;
-- strict platform-independent JWT base64url/UTF-8 expiry decoding with fail-closed malformed-token behavior;
-- deterministic and structured Coach flows with explicit confirmation;
-- account-deletion recovery and privacy-facing fail-closed contracts;
-- blocking source CI, Expo export and Expo Doctor checks;
-- no known tracked hand-written source file above 500 physical lines.
+### #194 — preparation → durable audit integration
 
-Source tests do not replace physical matching-runtime validation.
+The explicitly composed `/v1/privacy/data-access/export/prepare` route now:
 
-## Backend state
+1. requires authentication;
+2. strictly validates the body;
+3. validates optional `Idempotency-Key`;
+4. consumes the configured attempt guard;
+5. freshly re-verifies the current password;
+6. constructs bounded audit metadata;
+7. durably creates/replays/conflicts;
+8. still returns fail-closed export availability.
 
-Backend `main` contains:
+No audit write occurs before successful password re-verification.
 
-- authenticated ownership-safe revisioned synchronization for the full current mobile entity set;
-- deterministic and structured Coach orchestration;
-- provider-neutral capability gates;
-- account deletion and durable deletion-receipt recovery;
-- technical data, retention and privacy registries;
-- disabled-by-default data-access export preparation and optional route composition;
-- durable PostgreSQL export-attempt limiting;
-- seven complete ownership-safe candidate export projections:
-  - `profile_and_account_metadata`;
-  - `workouts_programs_and_exercises`;
-  - `nutrition_and_meal_data`;
-  - `progress_measurements_and_weight`;
-  - `limitations_recovery_and_safety_context`;
-  - `coach_reviews_proposals_and_run_history`;
-  - `social_relationships_and_account_activity`;
-- a deterministic source-only `json_v1` multi-surface assembler for those seven projections.
+New/replayed requests still end `409 DATA_EXPORT_NOT_AVAILABLE`. Same-key/different-request is bounded `DATA_EXPORT_IDEMPOTENCY_CONFLICT`; audit persistence failure is bounded `DATA_EXPORT_AUDIT_UNAVAILABLE`.
 
-No export is product-available by default.
+### #195 — bounded audited assembly execution
 
-## Complete Social projection
+Added source-only execution over the seven complete candidate projections:
 
-Backend PR #190 completed the reviewed Social source/projection.
+- accepts audited metadata rather than arbitrary public input;
+- hard maximum **8 MiB** serialized `json_v1` output;
+- exact UTF-8 byte accounting;
+- callers may lower but never raise the ceiling;
+- invalid limit/notice-only surface fails before loading;
+- loader/contract/serialization/oversize failures return no assembly or partial projection payload.
 
-The projection:
+This executor is deliberately not invoked by `/prepare` yet.
 
-- verifies an active authenticated owner;
-- uses one read-only PostgreSQL `REPEATABLE READ` transaction;
-- exports only the owner's Social profile and active authored workout posts;
-- exports outgoing follows, current pending outgoing follow requests and outgoing blocks without counterpart identity;
-- exports owner-authored reactions and comments only when the target is currently readable;
-- omits incoming follows/requests/blocks, target/counterpart identity, other-user comments, resolved request history, deleted post history, managed-media values, notification rows, internal IDs, revisions, idempotency keys, raw JSON, moderation internals and provider/operational metadata;
-- fails closed above reviewed source bounds.
+### #196 — deterministic JSON artifact generation
 
-Received `social_notifications` are permanently excluded. Managed media remains a separate `notice_only` / `mixed_policy_review` surface with no notice or binary projection.
+Added in-memory source-only artifact generation from a successful bounded execution result:
 
-The earlier bounded `social_profile_and_authored_posts` source remains focused evidence and compatibility context but is no longer the maximum implemented Social export boundary.
+- fixed filename `smart-fitness-data-export.json`;
+- media type `application/json`;
+- exact UTF-8 bytes of the measured assembly;
+- regenerated byte length must equal execution measurement;
+- lowercase SHA-256 digest of exact bytes;
+- fail-closed invalid execution, serialization failure and size mismatch;
+- artifact metadata excludes owner IDs, request references, request/key hashes, password, reusable authorization, object keys and delivery credentials.
 
-## Multi-surface assembly
+The artifact bytes are sensitive user export content and must not be logged.
 
-Backend PR #191 adds schema version 1 of the internal `json_v1` assembler.
+## Seven complete candidate export projections
 
-The assembler:
+1. `profile_and_account_metadata`
+2. `workouts_programs_and_exercises`
+3. `nutrition_and_meal_data`
+4. `progress_measurements_and_weight`
+5. `limitations_recovery_and_safety_context`
+6. `coach_reviews_proposals_and_run_history`
+7. `social_relationships_and_account_activity`
 
-- accepts only the seven complete `candidate_export` surface IDs;
-- rejects notice-only surfaces before any loader runs;
-- preflights every selected projection loader;
-- normalizes selected surfaces into one canonical deterministic order;
-- invokes only selected loaders;
-- verifies returned surface IDs and projection schema versions;
-- returns no partial projection payload if a selected loader is absent, fails or returns a mismatched contract;
-- does not expose authenticated owner identifiers or repository error text.
+Received Social notifications remain excluded. Managed media and sync/operational metadata remain notice-only.
 
-The assembler is intentionally not connected to `prepareDataAccessExport` or the optional route. The standing preparation blocker is `assembly_not_integrated`.
+## Current P9-D fail-closed boundary
 
-## Data-access route and delivery state
+Despite the source progress, export is **not product-available**:
 
-The projections and assembler are source-complete but not product-available.
+- default backend `createApp()` does not compose the optional export route;
+- `/prepare` does not invoke assembly execution or artifact generation;
+- preparation remains `DATA_EXPORT_NOT_AVAILABLE`;
+- no cross-surface PostgreSQL snapshot is claimed;
+- no large-account pagination/chunking exists;
+- no artifact persistence/database row exists;
+- no object-storage write exists;
+- no status/download route exists;
+- no expiring/revocable download authorization exists;
+- no mobile export UI exists;
+- no storage/provider environment is activated.
 
-Still fail closed or unimplemented:
+## Remaining roadmap concentration
 
-- default `createApp()` does not compose the optional data-access export route;
-- explicitly composed `/v1/privacy/data-access/export/prepare` still returns the bounded unavailable response after its existing authentication, request, attempt-limit and password checks;
-- preparation does not invoke the assembler;
-- export audit persistence is not implemented;
-- export idempotency and committed-response-loss recovery are not implemented;
-- no cross-surface PostgreSQL snapshot contract is claimed;
-- pagination/continuation and maximum assembled-size semantics are not complete;
-- archive generation is not implemented;
-- secure expiring/revocable delivery is not implemented;
-- managed-media notice/binary export is not implemented;
-- mobile export UI is not implemented.
+### P9-D
 
-## P9-B3 retention evidence
+Next: separately reviewed secure storage/delivery source contract defining:
+- private owner-scoped artifact identity;
+- lifecycle states;
+- retention/expiry/deletion;
+- account-deletion behavior;
+- expiring and revocable download authorization;
+- SHA-256 verification across persistence/download;
+- orphan/failure cleanup;
+- no public object URLs or reusable bearer credentials.
 
-Provider/environment retention evidence remains externally blocked until exact selected environments prove maximum lifetime, access, expiry/deletion behavior, failure monitoring, account-deletion handling and bounded exceptional-retention behavior.
+Provider selection, real object writes, route activation and production execution require separate authorization/evidence.
 
-Do not replace evidence blockers with generic provider documentation or assumptions.
+### P9-B3
 
-## P9-C analytics and consent
+Exact provider/environment retention evidence remains externally blocked until a real environment is selected and can prove maximum lifetime, access, deletion/expiry, failure monitoring and account-deletion behavior.
 
-Analytics, crash collection, performance telemetry, attribution, advertising tracking and generic measurement remain disabled.
+### P9-C
 
-Existing fail-closed activation, event/property and consent-state contracts are source controls only. Activation still requires purpose/region policy decisions, exact provider evidence, persistence/ownership semantics, reviewed disclosures, product behavior, localization/accessibility and separate implementation approval.
+Analytics/crash/performance/attribution/advertising collection remains disabled. Consent/policy/provider evidence must be complete before activation.
 
-## Next safe P9-D boundary
+### P9-A
 
-The recommended next bounded package is **export auditability and idempotency semantics**:
+Physical-device, production-scheme/native, OTA/EAS, rollback and release evidence remain authorization-gated.
 
-- define one ownership-safe export attempt/audit record contract;
-- define request identity and retry semantics without persisting passwords, selected payloads, full secrets or reusable authorization proofs;
-- define committed-response-loss behavior and deterministic replay expectations;
-- define bounded retention and account-deletion interaction for audit metadata;
-- keep archive generation, secure delivery, route activation, mobile UI, deployment, provider configuration and production execution out of that slice.
+## Validation/evidence state
 
-Cross-surface snapshot/pagination semantics and maximum assembled-size limits remain separate reviewed concerns before delivery can be enabled.
+Backend PRs #192, #194, #195 and #196 passed exact-head Backend CI (lint, Prettier, TypeScript build, production-config validation and full test suite).
 
-## Deferred audit recommendations
+Backend PR #193 passed exact-head Backend CI, Backend PostgreSQL CI and Account Deletion Receipt CI. PostgreSQL CI applied the complete migration chain twice and validated the migrated schema. The standalone `tests/data-access-export-request-postgres.test.ts` file was added as focused evidence, but the existing PostgreSQL workflow does not directly enumerate that new file; do not falsely claim that specific standalone file ran in CI.
 
-The following are not approved autonomous implementation work without new evidence:
+## Actions not performed
 
-- migrating focused Context boundaries to Zustand or Jotai;
-- replacing the reviewed AsyncStorage snapshot with SQLite, WatermelonDB, MMKV or another local database;
-- mass-moving shared code into feature directories;
-- mechanically consolidating test directories;
-- generic performance refactors without release-device profiling.
-
-## Disabled or authorization-gated
-
-The following remain disabled, absent from default production composition, or require direct authorization:
-
-- product analytics, crash collection, performance telemetry, attribution and advertising tracking;
-- export route activation and preparation-to-assembly integration;
-- managed-media notice projection and binary media export;
-- export audit/idempotency persistence, archive generation and secure delivery;
-- mobile export UI;
-- model/provider staging execution;
-- worker scheduling and external lifecycle proof;
-- backend deployment and production migration execution;
-- OTA/EAS publication, native build, installation, rollback execution and store submission;
-- credential, DNS, provider-account or production-environment changes.
-
-## Documentation state
-
-- `docs/project-context.md` provides stable orientation;
-- `docs/current-status.md` provides mutable verified state;
-- `docs/handoffs/latest.md` provides the continuation checkpoint;
-- `docs/architecture/README.md` indexes focused architecture documents;
-- `docs/implementation-plan.md` remains the canonical cross-repository roadmap.
+No backend deployment, production migration execution, provider activation, production data access, object-storage write, public/default export-route activation, OTA/EAS publication, native build/install, credential/DNS change, destructive production cleanup or store submission was performed by backend PRs #192–#196 or this docs sync.
