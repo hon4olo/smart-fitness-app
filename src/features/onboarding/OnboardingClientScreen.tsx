@@ -132,10 +132,12 @@ export default function OnboardingClientScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.screen}>
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + Spacing.six, paddingTop: insets.top + Spacing.four },
         ]}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
@@ -202,24 +204,30 @@ export default function OnboardingClientScreen() {
             <View style={styles.choiceBlock}>
               <Text style={styles.label}>{t('onboarding.goal')}</Text>
               <View style={styles.goalRow}>
-                <AppButton
-                  disabled={completionRequested}
-                  label={t('profile.goal.loseFat')}
-                  onPress={() => setGoalType('lose_fat')}
-                  variant={goalType === 'lose_fat' ? 'primary' : 'secondary'}
-                />
-                <AppButton
-                  disabled={completionRequested}
-                  label={t('profile.goal.maintain')}
-                  onPress={() => setGoalType('maintain')}
-                  variant={goalType === 'maintain' ? 'primary' : 'secondary'}
-                />
-                <AppButton
-                  disabled={completionRequested}
-                  label={t('profile.goal.gainMuscle')}
-                  onPress={() => setGoalType('gain_muscle')}
-                  variant={goalType === 'gain_muscle' ? 'primary' : 'secondary'}
-                />
+                <View style={styles.goalChoice}>
+                  <AppButton
+                    disabled={completionRequested}
+                    label={t('profile.goal.loseFat')}
+                    onPress={() => setGoalType('lose_fat')}
+                    variant={goalType === 'lose_fat' ? 'primary' : 'secondary'}
+                  />
+                </View>
+                <View style={styles.goalChoice}>
+                  <AppButton
+                    disabled={completionRequested}
+                    label={t('profile.goal.maintain')}
+                    onPress={() => setGoalType('maintain')}
+                    variant={goalType === 'maintain' ? 'primary' : 'secondary'}
+                  />
+                </View>
+                <View style={styles.goalChoice}>
+                  <AppButton
+                    disabled={completionRequested}
+                    label={t('profile.goal.gainMuscle')}
+                    onPress={() => setGoalType('gain_muscle')}
+                    variant={goalType === 'gain_muscle' ? 'primary' : 'secondary'}
+                  />
+                </View>
               </View>
             </View>
 
@@ -281,16 +289,19 @@ const styles = StyleSheet.create({
     borderColor: Colors.dark.borderSubtle,
     borderRadius: Radii.medium,
     borderWidth: StyleSheet.hairlineWidth,
-    flexBasis: '47%',
+    flexBasis: 140,
     flexGrow: 1,
     justifyContent: 'center',
     minHeight: 46,
+    minWidth: 0,
     paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
   },
   choiceBlock: { gap: Spacing.two, marginBottom: Spacing.three },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
   choiceLabel: {
     color: Colors.dark.textSecondary,
+    flexShrink: 1,
     fontSize: Typography.label.fontSize,
     fontWeight: Typography.label.fontWeight,
     textAlign: 'center',
@@ -301,7 +312,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.dark.accent,
   },
   container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: '100%' },
-  content: { alignItems: 'center', paddingHorizontal: Spacing.three },
+  content: {
+    alignItems: 'center',
+    flexGrow: 1,
+    paddingHorizontal: Spacing.three,
+  },
   eyebrow: {
     color: Colors.dark.accent,
     fontSize: Typography.caption.fontSize,
@@ -309,6 +324,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
   },
   field: { gap: Spacing.one, marginBottom: Spacing.three },
+  goalChoice: {
+    flexBasis: 140,
+    flexGrow: 1,
+    minWidth: 0,
+  },
   goalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   header: { gap: Spacing.two },
   helper: {
