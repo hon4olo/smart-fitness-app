@@ -16,7 +16,8 @@ Updated: 2026-08-08
 - VUX-3C Progress measurement hierarchy PR #475 → `afcb93924d1d7fc2c74cbe18122495eaf5300aea`.
 - VUX-3D Progress weight action ownership PR #476 → `fd361bc5eaf10a2be8054488d9a0cbc6cbcfa41a`.
 - VUX-3E Progress compact selector touch targets PR #477 → `b58356f5b814b076c964ef249f4a0cc12c30dffd`.
-- Active visual branch: `ui/coach-detail-affordances`.
+- VUX-4C Coach input touch targets PR #478 → `8e73fcb76b77c834b81c63d998d6dfa1f85b0524`.
+- Active visual branch: `ui/coach-review-touch-targets`.
 - Backend is a separate workstream and remains outside this roadmap execution.
 
 Source/CI completion is not physical-device proof. OTA/EAS publication, native build/install, provider/production activation and store/release actions remain separately authorization-gated.
@@ -113,37 +114,46 @@ Source/CI completion is not physical-device proof. OTA/EAS publication, native b
 - Selection/history semantics, period definitions, chart data and routes are unchanged.
 - A focused source-contract guard protects the compact control geometry.
 
-## VUX-4C — Coach input touch targets
+### VUX-4C — Coach input touch targets — PR #478
 
-**Status: active on `ui/coach-detail-affordances`.**
+- Recovery score controls now own a 44 pt minimum height.
+- Recovery `Clear` owns a 44 pt Pressable surface and exposes its disabled accessibility state.
+- Recovery and Limitations back controls now use 44 × 44 geometry.
+- Limitation movement chips explicitly own a 44 pt minimum height.
+- Recovery scoring, required signals, limitation state transitions, routes, persistence and sync remain unchanged.
+- A focused source-contract guard protects the interaction geometry.
+
+## VUX-4D — Coach review touch targets
+
+**Status: active on `ui/coach-review-touch-targets`.**
 
 Audit findings:
 
-- Recovery score buttons use `minHeight: 42` rather than the 44 pt interaction floor.
-- Recovery `Clear` is a text Pressable without explicit touch-area ownership.
-- Recovery and Limitations custom back controls use 42 × 42 geometry.
-- Limitation movement chips have no explicit minimum interaction height.
-- Standard limitation choices/delete controls already own 44 pt and are intentionally unchanged.
+- Safety & Recovery review back navigation uses 42 × 42 geometry.
+- Safety & Recovery review period controls use `minHeight: 42`.
+- Combined review back navigation uses 42 × 42 geometry.
+- These controls already have explicit state/selection behavior; the defect is interaction geometry, not business logic.
 
 Current bounded remediation:
 
-- Recovery score buttons → `minHeight: 44`.
-- Recovery `Clear` → explicit 44 pt minimum Pressable surface plus disabled accessibility state.
-- Recovery and Limitations back controls → 44 × 44 while preserving navigation behavior.
-- Limitation movement chips → `minHeight: 44` with centered content.
-- Add a focused source-contract guard for these controls.
-- Do not change recovery scoring, required signals, limitation selection/state transitions, sync, persistence, routes or backend contracts.
+- Safety & Recovery review back → 44 × 44.
+- Safety & Recovery review period controls → `minHeight: 44`.
+- Combined review back → 44 × 44.
+- Add a focused source-contract guard.
+- Keep raw back glyph/icon-language migration separate from this geometry-only package.
+- Do not change review calculations, period semantics, generation behavior, routes, persistence, sync or backend contracts.
 
 **Merge gate:** full exact-head Mobile CI.
 
 ## Remaining hierarchy / validation review order
 
-1. Finish Coach input touch-target package.
-2. Audit repeated Coach detail back glyphs/navigation presentation as a separate visual-language package; do not mix it with form geometry.
-3. Continue Coach history/detail compact selectors only from concrete findings.
-4. Profile / Settings.
-5. Secondary Social surfaces.
-6. Return to Workouts/Nutrition/Progress only for concrete audited defects.
+1. Finish Coach review touch-target package.
+2. Fix remaining inline-heavy Coach back geometry in Preflight and Combined Proposal as a separate bounded package.
+3. Harden Coach history filter pills from the source-audited compact-control finding.
+4. Audit repeated raw Coach back glyphs/navigation presentation as a separate visual-language package.
+5. Profile / Settings.
+6. Secondary Social surfaces.
+7. Return to Workouts/Nutrition/Progress only for concrete audited defects.
 
 For each surface verify one obvious primary action, restrained surface nesting, EN/RU/Dynamic Type resilience, consistent interaction states and coherent loading/empty/error/success presentation.
 
@@ -164,8 +174,8 @@ No source/CI result is physical-device evidence.
 
 ## Next execution order
 
-1. Finish VUX-4C Coach input touch targets and run full exact-head Mobile CI.
-2. Merge only the validated VUX-4C head.
-3. Continue Coach with repeated navigation/icon affordances and history filters as separate bounded packages.
-4. Keep icon cleanup audit-driven; do not replace clear text actions or semantic symbols without a usability reason.
+1. Finish VUX-4D Coach review touch targets and run full exact-head Mobile CI.
+2. Merge only the validated VUX-4D head.
+3. Continue with Preflight/Combined Proposal back geometry, then Coach history filters.
+4. Keep back icon migration separate and audit-driven.
 5. Keep backend, OTA/EAS/native/release and production/provider actions out of this autonomous UI sequence unless directly requested.
