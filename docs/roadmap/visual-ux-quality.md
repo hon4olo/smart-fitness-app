@@ -12,7 +12,8 @@ Updated: 2026-08-08
 - VUX-3A Home Summary PR #471 → `a83d65d559f4542fa01e7a4588fb134b474a7346`.
 - VUX-2B Profile Goals PR #472 → `1d717b114faefbac3101ff0c340554d53a7651bd`.
 - VUX-3B / VUX-4A Nutrition diary affordances PR #473 → `158d3adb2b2e0a8fcc585951b8633b50260fc53c`.
-- Active visual branch: `ui/add-food-affordance-icons`.
+- VUX-4B Add Food action affordances PR #474 → `5eaa389328e3c649b63833fcf511484e7e2321b4`.
+- Active visual branch: `ui/progress-measurement-hierarchy`.
 - Backend is a separate workstream and remains outside this roadmap execution.
 
 Source/CI completion is not physical-device proof. OTA/EAS publication, native build/install, provider/production activation and store/release actions remain separately authorization-gated.
@@ -73,39 +74,45 @@ Source/CI completion is not physical-device proof. OTA/EAS publication, native b
 - Retired glyph/disabled styles were removed and the diary source contract was updated.
 - Diary data, date selection, meal expansion, Add Food routing, calculations and SectionList behavior are unchanged.
 
-## VUX-4B — Add Food action icon consistency
+### VUX-4B — Add Food action icon consistency — PR #474
 
-**Status: active on `ui/add-food-affordance-icons`.**
+- Search clear and Portion Sheet close → Lucide X.
+- Favorite controls → Lucide Star with selected fill.
+- Quick-add controls → Lucide Plus.
+- Saved Meal delete → Lucide Trash2.
+- Existing 44 pt control geometry/hit slop and localized labels are preserved.
+- Clear localized text actions such as Scan/Cancel remain text.
+- Retired glyph-only styles were removed and a focused source-contract guard was added.
+- Search/provider behavior, food data, favorites, meal templates, portion logic, routes, persistence and sync are unchanged.
+
+## VUX-3C — Progress body-measurement hierarchy
+
+**Status: active on `ui/progress-measurement-hierarchy`.**
 
 Audit findings:
 
-- Search clear still uses a raw `×` control glyph.
-- Search/Favorites use raw `★ / ☆` favorite controls.
-- Search/Recent/Favorites/Saved Meals use raw `+` quick-add controls.
-- Saved Meals delete and Portion Sheet close use raw `×` controls.
-- These controls already own appropriate 44 pt geometry/hit slop, so the defect is visual-language consistency rather than layout.
+- The Body Measurements section already owns an `AppCard`, while `AddBodyMeasurementCard` creates a second full `AppCard` inside it.
+- Metric-selection pills do not explicitly own a 44 pt minimum touch height; unit controls already own 48 pt.
+- The editor otherwise uses the existing localized measurement labels, validation model and shared Save button correctly.
 
 Current bounded remediation:
 
-- Search clear and Portion Sheet close → Lucide X.
-- Favorite states → Lucide Star with filled accent for the selected state.
-- Quick-add controls → Lucide Plus.
-- Saved Meal delete → Lucide Trash2 with the existing destructive semantics/accessibility label preserved.
-- Keep localized Scan/Cancel/Close-style text actions as text where the word is clearer than an icon.
-- Remove retired glyph-only text styles.
-- Add a focused source-contract guard against reintroducing the old Add Food action glyphs.
-- Preserve search/provider behavior, food data, favorites state, meal templates, portion logic, routes, persistence, sync and backend contracts.
+- Flatten the measurement editor into the owning Body Measurements surface instead of rendering card-within-card.
+- Separate the editor with a quiet hairline divider and spacing rather than another raised/bordered surface.
+- Give every metric radio choice a 44 pt minimum touch height while preserving radio semantics and selected styling.
+- Add a focused source-contract guard for the flat hierarchy and touch ownership.
+- Preserve `buildBodyMeasurement`, supported units/ranges, saved measurement data, analytics, routes, persistence and sync.
 
 **Merge gate:** full exact-head Mobile CI.
 
 ## Remaining hierarchy / validation review order
 
-1. Re-audit Nutrition/Add Food hierarchy after VUX-4B; change containers only for a concrete hierarchy defect.
-2. Progress.
+1. Finish the bounded Progress measurement hierarchy package.
+2. Re-audit the rest of Progress only for concrete defects; do not flatten distinct analytics cards that own separate information.
 3. Coach.
 4. Profile / Settings.
 5. Secondary Social / Safety / Recovery.
-6. Return to Workouts only for concrete audited defects; do not redesign the hub merely to satisfy roadmap order.
+6. Return to Workouts/Nutrition only for concrete audited defects.
 
 For each surface verify one obvious primary action, restrained surface nesting, EN/RU/Dynamic Type resilience, consistent interaction states and coherent loading/empty/error/success presentation.
 
@@ -126,8 +133,8 @@ No source/CI result is physical-device evidence.
 
 ## Next execution order
 
-1. Finish VUX-4B Add Food action icon consistency and run full exact-head Mobile CI.
-2. Merge only the validated VUX-4B head.
-3. Re-audit Nutrition/Add Food hierarchy without automatically flattening legitimate content ownership.
-4. Continue bounded visual hierarchy/validation work through Progress, Coach and Profile/Settings from concrete audit findings.
+1. Finish VUX-3C Progress measurement hierarchy and run full exact-head Mobile CI.
+2. Merge only the validated VUX-3C head.
+3. Continue Progress/Coach/Profile hierarchy only from source-audited defects.
+4. Keep icon cleanup audit-driven; do not replace clear text actions or semantic symbols without a usability reason.
 5. Keep backend, OTA/EAS/native/release and production/provider actions out of this autonomous UI sequence unless directly requested.
