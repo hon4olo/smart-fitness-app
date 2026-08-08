@@ -1,3 +1,4 @@
+import { Plus, Star } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -11,6 +12,7 @@ import type { FoodCatalogItem } from '@/types';
 import { formatEnergyValue, useUnitPreferences } from '@/units';
 
 type FavoriteFoodsModeSectionProps = {
+  colors: Record<string, any>;
   foods: FoodCatalogItem[];
   libraryFoods: NutritionLibraryFood[];
   onOpenFood: (food: FoodCatalogItem) => void;
@@ -25,6 +27,7 @@ type FavoriteFoodsModeSectionProps = {
 };
 
 export function FavoriteFoodsModeSection({
+  colors,
   foods,
   libraryFoods,
   onOpenFood,
@@ -61,17 +64,24 @@ export function FavoriteFoodsModeSection({
                 <View style={styles.rowActions}>
                   <Pressable
                     accessibilityLabel={copy.removeFromLibrary(food.name)}
+                    accessibilityRole="button"
                     hitSlop={10}
                     onPress={() => onRemoveLibraryFood(food.libraryId)}
                     style={styles.iconButton}>
-                    <Text style={styles.iconButtonText}>★</Text>
+                    <Star
+                      color={colors.accent}
+                      fill={colors.accent}
+                      size={19}
+                      strokeWidth={2}
+                    />
                   </Pressable>
                   <Pressable
                     accessibilityLabel={copy.quickAdd(food.name, selectedMealLabel)}
+                    accessibilityRole="button"
                     hitSlop={10}
                     onPress={() => onQuickAddLibraryFood(food)}
                     style={styles.iconButton}>
-                    <Text style={styles.iconButtonText}>+</Text>
+                    <Plus color={colors.textPrimary} size={20} strokeWidth={2.2} />
                   </Pressable>
                 </View>
               }
@@ -90,17 +100,24 @@ export function FavoriteFoodsModeSection({
                 <View style={styles.rowActions}>
                   <Pressable
                     accessibilityLabel={copy.removeFavorite(food.name)}
+                    accessibilityRole="button"
                     hitSlop={10}
                     onPress={() => onToggleFavorite(food.id)}
                     style={styles.iconButton}>
-                    <Text style={styles.iconButtonText}>★</Text>
+                    <Star
+                      color={colors.accent}
+                      fill={colors.accent}
+                      size={19}
+                      strokeWidth={2}
+                    />
                   </Pressable>
                   <Pressable
                     accessibilityLabel={copy.quickAdd(food.name, selectedMealLabel)}
+                    accessibilityRole="button"
                     hitSlop={10}
                     onPress={() => onQuickAdd(food)}
                     style={styles.iconButton}>
-                    <Text style={styles.iconButtonText}>+</Text>
+                    <Plus color={colors.textPrimary} size={20} strokeWidth={2.2} />
                   </Pressable>
                 </View>
               }

@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -18,6 +19,7 @@ type RecentItem = {
 };
 
 type RecentFoodsModeSectionProps = {
+  colors: Record<string, any>;
   items: RecentItem[];
   onOpenFood: (item: RecentItem) => void;
   onQuickAdd: (item: RecentItem) => void;
@@ -27,6 +29,7 @@ type RecentFoodsModeSectionProps = {
 };
 
 export function RecentFoodsModeSection({
+  colors,
   items,
   onOpenFood,
   onQuickAdd,
@@ -57,10 +60,11 @@ export function RecentFoodsModeSection({
               trailing={
                 <Pressable
                   accessibilityLabel={copy.quickAdd(item.label, selectedMealLabel)}
+                  accessibilityRole="button"
                   hitSlop={10}
                   onPress={() => onQuickAdd(item)}
                   style={styles.iconButton}>
-                  <Text style={styles.iconButtonText}>+</Text>
+                  <Plus color={colors.textPrimary} size={20} strokeWidth={2.2} />
                 </Pressable>
               }
               value={`${formatEnergyValue(item.entry.calories, energy)} ${energy}`}

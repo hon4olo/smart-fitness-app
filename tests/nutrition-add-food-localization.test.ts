@@ -63,6 +63,40 @@ describe('nutrition add-food localization', () => {
     }
   });
 
+  it('uses Lucide for compact Add Food action controls instead of text glyphs', () => {
+    const search = readSource(
+      'src/features/nutrition/components/FoodSearchModeSection.tsx',
+    );
+    const recent = readSource(
+      'src/features/nutrition/components/RecentFoodsModeSection.tsx',
+    );
+    const favorites = readSource(
+      'src/features/nutrition/components/FavoriteFoodsModeSection.tsx',
+    );
+    const meals = readSource(
+      'src/features/nutrition/components/SavedMealsModeSection.tsx',
+    );
+    const portion = readSource(
+      'src/features/nutrition/components/FoodPortionSheet.tsx',
+    );
+    const actionUi = [search, recent, favorites, meals, portion].join('\n');
+
+    expect(search).toContain("from 'lucide-react-native'");
+    expect(search).toContain('Plus');
+    expect(search).toContain('Star');
+    expect(search).toContain('X');
+    expect(recent).toContain('Plus');
+    expect(favorites).toContain('Plus');
+    expect(favorites).toContain('Star');
+    expect(meals).toContain('Plus');
+    expect(meals).toContain('Trash2');
+    expect(portion).toContain('X');
+    expect(actionUi).not.toContain('>+</Text>');
+    expect(actionUi).not.toContain('>×</Text>');
+    expect(actionUi).not.toContain('>★</Text>');
+    expect(actionUi).not.toContain('>☆</Text>');
+  });
+
   it('keeps product data intact and does not expose raw backend errors in the scanner', () => {
     const route = readSource('src/app/nutrition/add-food.tsx');
     const scanner = readSource(
