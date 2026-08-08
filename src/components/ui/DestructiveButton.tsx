@@ -15,6 +15,7 @@ type DestructiveButtonProps = {
 
 export function DestructiveButton({ accessibilityHint, accessibilityLabel, disabled, label, loading, onPress, style }: DestructiveButtonProps) {
   const state = resolveButtonState({ disabled, loading });
+  const visuallyDisabled = Boolean(disabled) && !state.loading;
 
   return (
     <Pressable
@@ -24,8 +25,10 @@ export function DestructiveButton({ accessibilityHint, accessibilityLabel, disab
       accessibilityState={state.accessibilityState}
       disabled={state.disabled}
       onPress={state.disabled ? undefined : onPress}
-      style={({ pressed }) => [styles.button, pressed && !state.disabled && styles.pressed, state.disabled && styles.disabled, style]}>
-      <Text style={styles.label}>{loading ? `${label}…` : label}</Text>
+      style={({ pressed }) => [styles.button, pressed && !state.disabled && styles.pressed, visuallyDisabled && styles.disabled, style]}>
+      <Text style={[styles.label, visuallyDisabled && styles.disabledLabel]}>
+        {state.loading ? `${label}…` : label}
+      </Text>
     </Pressable>
   );
 }
@@ -45,7 +48,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
   },
   disabled: {
-    opacity: 0.5,
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
+  },
+  disabledLabel: {
+    color: Colors.dark.textMuted,
   },
   label: {
     color: Colors.dark.error,
