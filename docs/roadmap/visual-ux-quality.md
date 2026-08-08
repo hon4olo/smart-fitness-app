@@ -10,7 +10,8 @@ Updated: 2026-08-08
 - RUI-6 focused responsive guardrails merged in PR #466 as `0ea861766a9bbea8611599d5f6e38e611fc91514` after full exact-head Mobile CI passed.
 - VUX-1A shared visual primitives merged in PR #468 as `c6092048e3b94e7fc372c783a26668fa897428b0` after full exact-head Mobile CI passed.
 - VUX-1B primary action affordances merged in PR #469 as `511cb08e2e1ec6e3575b2fff35a482a570bdae28` after full exact-head Mobile CI passed.
-- Active visual branch: `ui/workout-session-header-ux`.
+- VUX-2A Active Workout header/Finish clarity merged in PR #470 as `a5983354d6850ed00ac5d79a0db91981ddee1faa` after full exact-head Mobile CI passed.
+- Active visual branch: `ui/home-hierarchy-p1`.
 - Backend work is a separate workstream and is not part of this roadmap execution.
 
 Source/CI completion is not physical-device proof. OTA/EAS publication, native build/install, production/provider activation and store/release actions remain separately authorization-gated.
@@ -27,6 +28,7 @@ Source/CI completion is not physical-device proof. OTA/EAS publication, native b
 - Never communicate disabled state through opacity alone; use an explicit surface/text/border treatment and retain a visible blocking reason or validation message where the product flow has one.
 - Use one icon language across navigation and action controls. Temporary emoji/text glyphs are not final UI.
 - Preserve minimum touch targets while polishing iconography or compact controls.
+- Prefer one clear surface hierarchy over card-within-card decoration when nested surfaces do not represent distinct interaction or ownership.
 - Localize all user-facing copy in English and Russian.
 - Preserve routes, persistence schemas, sync payloads, calculations and backend boundaries while restructuring presentation.
 
@@ -85,38 +87,28 @@ Remaining icon cleanup is audit-driven. Do not replace intentional copy, exercis
 
 ### VUX-2A — Active Workout header and Finish state
 
-**Status: active on `ui/workout-session-header-ux`.**
+**Status: complete.**
 
-Audit finding:
+PR #470 merged as `a5983354d6850ed00ac5d79a0db91981ddee1faa`.
 
-- Active Workout Finish was disabled until at least one set was completed, but the header communicated that state only through `opacity: 0.42` and exposed no visible blocking reason;
-- Finish owned only a 32 pt minimum height;
-- back/timer/overflow controls still used custom drawn/text glyphs rather than the established Lucide language.
+Delivered:
 
-Current bounded remediation:
-
-- preserve the existing rule that Finish becomes available only after at least one completed set;
-- add a visible localized blocking reason while Finish is unavailable: EN/RU;
-- expose the same reason as the disabled Finish accessibility hint;
-- replace opacity-only disabled styling with explicit surface/border/text states;
-- raise Finish to a 44 pt minimum touch target without changing its callback;
-- replace the hand-built chevron/stopwatch and `•••` glyph with Lucide ChevronDown / Timer / Ellipsis;
-- preserve workout draft, completion-count, finish route, overflow behavior and timer logic.
-
-**Merge gate:** full exact-head Mobile CI. Do not mark VUX-2A complete until the validated head merges.
+- preserved the existing rule that Finish becomes available only after at least one completed set;
+- added a visible localized EN/RU blocking reason while Finish is unavailable and exposed it as the accessibility hint;
+- replaced opacity-only Finish disabled styling with explicit surface/border/text states;
+- raised Finish to a 44 pt minimum touch target;
+- replaced the hand-built chevron/stopwatch and `•••` glyph with Lucide ChevronDown / Timer / Ellipsis;
+- preserved workout draft, completion count, finish route, overflow behavior and timer logic.
 
 ### VUX-2B — remaining caller-level disabled reasons
 
-**Status: queued.**
+**Status: audited selectively; follow-up remains queued.**
 
-Continue the audit after VUX-2A:
+Confirmed candidate:
 
-- Nutrition create/save actions;
-- Profile goal save validation;
-- Coach review/apply actions;
-- Social publish/comment actions;
-- Progress measurement save;
-- other Workouts save/create controls found by source review.
+- Profile goal Save can become disabled because target weight, weekly change or training days are invalid without currently showing the specific blocking reason.
+
+Do not mass-edit every disabled button. Nutrition custom-food inputs already expose field errors on submit, and Progress measurement forms already carry an error channel; those surfaces should change only if parent-level review shows a real missing explanation.
 
 Rules:
 
@@ -128,23 +120,34 @@ Rules:
 
 ## VUX-3 — typography and visual hierarchy audit
 
-**Status: queued, with Home audit started read-only.**
+### VUX-3A — Home summary hierarchy
 
-Review primary screens in this order:
+**Status: active on `ui/home-hierarchy-p1`.**
 
-1. Home;
+Audit finding:
+
+- `HomeSummaryCard` nested a surfaced calories badge and two surfaced mini-stat cards inside an already surfaced accent `AppCard`, producing unnecessary card-within-card noise in the first visual block on Home.
+
+Current bounded remediation:
+
+- preserve every current prop, value, calculation, warning condition and information order;
+- keep one accent/warning hero `AppCard` as the owning surface;
+- render Calories as a flat status block rather than another card;
+- render Current Weight and Streak as flat metrics below a subtle divider rather than separate inner cards;
+- retain wrapping/shrink ownership for narrow screens and long localized text;
+- do not change `HomeSnapshotCard` automatically; evaluate it separately after this package.
+
+**Merge gate:** full exact-head Mobile CI. Do not mark VUX-3A complete until the validated head merges.
+
+### Remaining hierarchy review order
+
+1. Home Snapshot / Quick Actions only if the post-VUX-3A audit still shows redundant hierarchy;
 2. Workouts hub + active session;
 3. Nutrition diary/add-food;
 4. Progress;
 5. Coach;
 6. Profile/Settings;
 7. secondary Social/Safety/Recovery surfaces.
-
-Initial Home finding for the next hierarchy package:
-
-- `HomeSummaryCard` currently nests a surfaced calories badge and two surfaced mini-stat tiles inside an already surfaced accent `AppCard`, producing unnecessary card-within-card visual noise;
-- remediation should preserve all current values/calculations and flatten inner hierarchy before changing typography or information order;
-- `HomeSnapshotCard` also uses surfaced tiles, but it must be evaluated separately rather than flattened automatically.
 
 For each screen verify:
 
@@ -206,9 +209,10 @@ No source/CI result should be described as physical-device evidence.
 
 ## Next execution order
 
-1. Finish VUX-2A Active Workout header/Finish clarity and run full exact-head Mobile CI.
-2. Merge only the validated VUX-2A head.
-3. Continue VUX-2B caller-level disabled/blocking-reason audit, prioritizing Nutrition/Profile/Progress and only concrete defects.
-4. Start the first VUX-3 Home hierarchy remediation by reducing unnecessary nested surfaces while preserving data and calculations.
-5. Continue VUX-4 icon consistency only where the audit finds actual temporary control glyphs or inconsistent action treatment.
-6. Keep OTA/EAS/native/release actions and all backend work out of this autonomous UI sequence unless directly requested.
+1. Finish VUX-3A Home Summary hierarchy and run full exact-head Mobile CI.
+2. Merge only the validated VUX-3A head.
+3. Re-audit Home as a whole; touch Snapshot or Quick Actions only if the remaining hierarchy is still unnecessarily noisy.
+4. Implement the confirmed Profile Goals validation-reason fix as a bounded VUX-2B package.
+5. Continue VUX-3 screen-by-screen with Workouts and Nutrition.
+6. Continue VUX-4 icon consistency only where the audit finds actual temporary control glyphs or inconsistent action treatment.
+7. Keep OTA/EAS/native/release actions and all backend work out of this autonomous UI sequence unless directly requested.
