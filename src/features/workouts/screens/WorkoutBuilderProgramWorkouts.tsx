@@ -45,7 +45,9 @@ export function WorkoutBuilderProgramWorkouts({
               })
             }
             style={({ pressed }) => [styles.startNextButton, pressed && styles.pressed]}>
-            <Text style={styles.startNextLabel}>{copy.startNextWorkout}</Text>
+            <Text numberOfLines={2} style={styles.startNextLabel}>
+              {copy.startNextWorkout}
+            </Text>
           </Pressable>
         ) : null}
       </View>
@@ -74,8 +76,12 @@ export function WorkoutBuilderProgramWorkouts({
                 }}
                 style={({ pressed }) => [styles.workoutRowBody, pressed && styles.pressed]}>
                 <View style={styles.workoutRowCopy}>
-                  <Text style={styles.workoutRowTitle}>{row.title}</Text>
-                  <Text style={styles.workoutRowMeta}>{row.exerciseCountLabel}</Text>
+                  <Text numberOfLines={2} style={styles.workoutRowTitle}>
+                    {row.title}
+                  </Text>
+                  <Text numberOfLines={1} style={styles.workoutRowMeta}>
+                    {row.exerciseCountLabel}
+                  </Text>
                 </View>
                 <Text accessibilityElementsHidden style={styles.workoutRowChevron}>
                   ›
@@ -122,7 +128,9 @@ export function WorkoutBuilderProgramWorkouts({
         accessibilityRole="button"
         onPress={onAddWorkout}
         style={({ pressed }) => [styles.addWorkoutButton, pressed && styles.pressed]}>
-        <Text style={styles.addWorkoutLabel}>+ {copy.addWorkout}</Text>
+        <Text numberOfLines={2} style={styles.addWorkoutLabel}>
+          + {copy.addWorkout}
+        </Text>
       </Pressable>
     </>
   );
