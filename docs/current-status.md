@@ -5,8 +5,8 @@ Updated: 2026-08-08
 ## Verified repository baseline
 
 - Mobile repo: `ivangemini/smart-fitness-app`
-- Mobile `main` at RUI-3 start: `ad5976f9c068c5661afb0ebd4b7b8cf164cab1b6` (PR #461 — RUI-2 merge checkpoint)
-- Active responsive branch: `ui/rui3-active-session` (RUI-3A)
+- Mobile `main`: `2219213a9b1ba3800d10e343bebe7fad7b13080f` (PR #462 — RUI-3A)
+- Active responsive branch: `ui/rui3-workout-creation` (RUI-3B)
 - Backend repo: `ivangemini/smart-fitness-backend`
 - Backend `main`: `431998bfa85bf169fd68e98a7e46651f70cfa2d9` (PR #196)
 - Backend PR #197 is open and scoped to secure private export storage/delivery source contracts.
@@ -26,106 +26,73 @@ The current mobile source remains on the established architecture:
 - Social source boundaries and managed-media governance hooks;
 - privacy/account-deletion UX foundations.
 
-The responsive-UI packages change presentation/layout behavior only. They do not change routes, persistence schemas, synchronization contracts, calculations, workout ownership, completed workout history, or backend APIs.
+Responsive-UI packages change presentation/layout behavior only. They do not change routes, persistence schemas, synchronization contracts, calculations, workout ownership, completed workout history, or backend APIs.
 
 ## Responsive UI hardening
 
-A focused responsive contract lives at `docs/architecture/responsive-mobile-ui.md`.
-
-The initial audit found that many primary surfaces already use `useSafeAreaInsets()`, but bottom navigation clearance was represented inconsistently by independent screen-local values.
-
-Observed pre-RUI patterns included:
-
-- Home, Progress, Coach and Profile independently using `safeAreaInsets.bottom + 120`;
-- Nutrition reserving only `insetsBottom + 24` below its virtualized diary list;
-- Workouts combining `BottomTabInset`, an additional fixed `+84`, and a separately inset absolute footer;
-- several text-heavy horizontal rows without explicit shrink/wrap behavior;
-- the floating tab implementation independently hard-coding the same `64` height and `12` minimum bottom offset later represented by the shared layout helper.
+Canonical contract: `docs/architecture/responsive-mobile-ui.md`.
 
 ### RUI-1 — merged
 
-PR #459 merged to `main` as `2ff71de222a0cc393ed41806978cce859c98b306`.
+PR #459 merged as `2ff71de222a0cc393ed41806978cce859c98b306`.
 
-RUI-1 delivered:
+Delivered shared floating-tab/safe-area geometry, Nutrition/Profile/Coach clearance, Workouts sticky-action geometry, bounded text reflow and the initial responsive architecture contract.
 
-- shared floating-tab bottom-clearance calculation in `src/components/navigation/floatingTabBarLayout.ts`;
-- focused unit coverage for safe-area, minimum-offset, sticky-action and invalid-input cases;
-- Nutrition diary clearance based on floating-tab geometry;
-- Coach and Profile bottom clearance based on the same helper rather than independent `+120` constants;
-- Workouts Start/Resume sticky action positioned above actual safe-area + floating-tab clearance;
-- scroll content reservation so the Workouts sticky action cannot hide the final content;
-- bounded `flexShrink`/wrapping improvements on touched Workouts/Profile/Coach surfaces;
-- `flexGrow: 1` on touched bounded scroll containers where short-screen reachability requires it;
-- canonical architecture and roadmap documentation for RUI-1 through RUI-6.
-
-Exact-head Mobile CI #1830 passed:
-
-- repository file line audit;
-- changed-file line limit;
-- TypeScript;
-- **1392/1392 regression tests**;
-- expanded sync model smoke;
-- Expo export;
-- Expo Doctor.
-
-No blanket prohibition on fixed component dimensions was introduced. Fixed icon/control/tab geometry remains valid when it is part of the component contract rather than a device-specific positioning hack.
+Exact-head Mobile CI #1830 passed line audits, TypeScript, **1392/1392 regression tests**, expanded sync smoke, Expo export and Expo Doctor.
 
 ### RUI-2 — merged
 
-PR #460 merged to `main` as `740ae06d24c895e882a37e715b59ce47e599ab5d`.
+PR #460 merged as `740ae06d24c895e882a37e715b59ce47e599ab5d`.
 
-RUI-2 delivered:
+Delivered shared bottom clearance for Home/Progress, short-screen flex growth, bounded primary-tab text/layout behavior and one shared runtime geometry source for `LiquidGlassTabBar`.
 
-- Home bottom clearance through `getFloatingTabBarBottomClearance(...)` instead of `safeAreaInsets.bottom + 120`;
-- Home `ScrollView` content with `flexGrow: 1` for short-height layouts;
-- Home header title shrink behavior while preserving the 44x44 profile action;
-- Home summary hero wrapping, bounded calories badge width, and shrinkable summary/stat text;
-- Home snapshot text reflow for long localization/accessibility text;
-- Progress bottom clearance through the shared helper instead of `+120`;
-- Progress `ScrollView` content with `flexGrow: 1`;
-- Progress weight hero wrapping so the details action can move rather than crush metric copy;
-- Progress measurement rows with explicit flexible label/value width ownership;
-- shared `FLOATING_TAB_BAR_HEIGHT` and `FLOATING_TAB_BAR_MIN_BOTTOM_OFFSET` consumption by `LiquidGlassTabBar`, removing duplicate runtime geometry constants from the tab implementation.
+Exact-head Mobile CI #1832 passed line audits, TypeScript, full regression suite, expanded sync smoke, Expo export and Expo Doctor.
 
-Exact-head Mobile CI #1832 passed:
+### RUI-3A — merged
 
-- repository file line audit;
-- changed-file line limit;
-- TypeScript;
-- full regression suite;
-- expanded sync model smoke;
-- Expo export;
-- Expo Doctor.
+PR #462 merged as `2219213a9b1ba3800d10e343bebe7fad7b13080f`.
 
-### RUI-3A — active session + finish, current branch
+The audit found two concrete high-frequency failures:
 
-The RUI-3 audit found two concrete layout defects in high-frequency workout flows:
+- active set-table preferred width **358 px** exceeded the content width available on common narrow phones;
+- Workout Session Finish used an independent fixed **176 px** reserve for an absolute footer whose height changes with safe area/localization/Dynamic Type.
 
-- the active set table had a fixed preferred width of **358 px**, exceeding the content width available on common narrow phones after screen padding;
-- Workout Session Finish reserved a fixed **176 px** below its scroll content for an absolute footer, so Dynamic Type or localized action growth could invalidate the clearance.
+RUI-3A delivered:
 
-The current `ui/rui3-active-session` package implements:
+- responsive five-column set grid with 358 px retained as preferred maximum rather than required viewport width;
+- proportional Previous/weight/reps compression while Set/completion controls remain bounded;
+- automatic keyboard insets/dismissal for active-session inputs;
+- two-line exercise names and bounded collapsed-set copy;
+- usable header touch areas and shrinkable Finish/stat labels;
+- `KeyboardAvoidingView` for Workout Session Finish;
+- measured Finish footer height and scroll reservation from actual rendered height;
+- bounded Finish header/info/integration/Save/Share copy;
+- updated source contract protecting the responsive five-column grid.
 
-- a 100%-width/max-358 active set table that preserves the original column proportions when space permits;
-- proportional compression of Previous/weight/reps while keeping Set and completion geometry bounded;
-- matching header/row ownership so labels and inputs stay aligned as width changes;
-- automatic keyboard insets and interactive dismissal for active-session inputs;
-- two-line exercise titles and bounded collapsed-row text ownership;
-- larger usable header touch areas plus shrinkable Finish/stat labels;
-- `KeyboardAvoidingView` around Workout Session Finish so actions remain reachable while editing;
-- runtime measurement of the Finish sticky footer and scroll reservation from its actual height instead of the `176` px guess;
-- bounded shrink/wrap rules for Finish header copy, info rows, integration labels and Save/Share labels.
+Exact-head Mobile CI #1836 passed repository/changed-file line audits, TypeScript, **1392/1392 regression tests**, expanded sync smoke, Expo export and Expo Doctor.
 
-RUI-3A still requires exact-head Mobile CI before merge. Physical narrow/short-device, keyboard, large-text and safe-area proof remains a separate runtime evidence boundary.
+### RUI-3B — current branch
+
+The current `ui/rui3-workout-creation` package implements:
+
+- Exercise Library keeps `FlatList` virtualization but measures its absolute Add footer instead of reserving `insets.bottom + 128`;
+- Exercise Library gets keyboard-aware search scrolling, two-line names and bounded Details/Add labels;
+- Program workout picker replaces an unbounded `.map()` collection with a bounded `FlatList`;
+- New Routine gets automatic keyboard insets/dismissal, flex-growing scroll content, bounded header/actions and two-line exercise names;
+- New Routine exercise picker replaces a `ScrollView` rendering up to 100 exercises with `FlatList` virtualization while preserving add/replace semantics;
+- Workout Builder gets keyboard-aware scrolling and bounded header/workout/action text;
+- workout editor modal keeps existing keyboard avoidance and adds automatic scroll insets plus a wrapping header/action row;
+- workout builder exercise action controls can wrap under localization/text-size pressure;
+- Program Detail gets only the required long-name/Add Routine/toast hardening because its safe-area/scroll architecture was already sound;
+- Exercise Detail was audited and already has safe-area scrolling, bounded content width and a two-line title, so no unrelated redesign was added.
+
+RUI-3B requires exact-head Mobile CI before merge. Physical narrow/short-device, keyboard, large-text and real safe-area proof remains separate runtime evidence.
 
 ### Remaining responsive UI packages
 
-- **RUI-3B:** New Routine, Workout Builder/editor/picker, Program Detail, Exercise Library/detail; focus on keyboard overlap, sticky footer measurement, long names and safe-area ownership.
-- **RUI-4:** auth, onboarding, settings and Nutrition forms; focus on keyboard reachability, short-height scrolling and action reachability.
+- **RUI-4:** auth, onboarding, settings and Nutrition forms; keyboard reachability, short-height scrolling and action reachability.
 - **RUI-5:** remaining secondary Coach/Social/Progress surfaces.
-- **RUI-6:** focused automated guardrails for proven responsive failure patterns after the remediation inventory stabilizes.
-
-Physical narrow/short-device, large-text, keyboard and real safe-area evidence remains separate from source/CI validation.
+- **RUI-6:** focused automated guardrails for proven responsive failure patterns after remediation stabilizes.
 
 ## Backend P9-D progress through #196
 
@@ -226,13 +193,13 @@ Despite the source progress, export is **not product-available**:
 - no mobile export UI exists;
 - no storage/provider environment is activated.
 
-Backend PR #197 is the active separately reviewed source-contract package for private export storage and delivery semantics. Do not overlap or activate provider/storage infrastructure implicitly from mobile UI work.
+Backend PR #197 remains the separate source-contract package for private export storage/delivery semantics. Do not overlap or activate provider/storage infrastructure implicitly from mobile UI work.
 
 ## Remaining roadmap concentration
 
 ### Responsive mobile UI
 
-RUI-1 and RUI-2 are merged. RUI-3A is implemented on the current branch pending exact-head validation; RUI-3B follows for the remaining workout creation/detail surfaces. RUI-4/RUI-5/RUI-6 remain queued.
+RUI-1, RUI-2 and RUI-3A are merged. RUI-3B is the current exact-head validation package. RUI-4 is next, followed by RUI-5/RUI-6.
 
 ### P9-D
 
@@ -252,11 +219,13 @@ Physical-device, production-scheme/native, OTA/EAS, rollback and release evidenc
 
 ## Validation/evidence state
 
-RUI-1 PR #459 passed exact-head Mobile CI #1830: line audits, TypeScript, 1392/1392 regression tests, expanded sync smoke, Expo export and Expo Doctor.
+RUI-1 PR #459 passed exact-head Mobile CI #1830.
 
-RUI-2 PR #460 passed exact-head Mobile CI #1832: line audits, TypeScript, full regression suite, expanded sync smoke, Expo export and Expo Doctor.
+RUI-2 PR #460 passed exact-head Mobile CI #1832.
 
-RUI-3A exact-head Mobile CI is pending on the current branch.
+RUI-3A PR #462 passed exact-head Mobile CI #1836: line audits, TypeScript, 1392/1392 regression tests, expanded sync smoke, Expo export and Expo Doctor.
+
+RUI-3B exact-head Mobile CI is pending on the current branch.
 
 Backend PRs #192, #194, #195 and #196 passed exact-head Backend CI (lint, Prettier, TypeScript build, production-config validation and full test suite).
 
