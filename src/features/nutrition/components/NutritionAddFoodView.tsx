@@ -205,10 +205,12 @@ export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.screen}>
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={[
           styles.content,
           { paddingBottom: bottomInset + Spacing.six, paddingTop: topInset + Spacing.three },
         ]}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
@@ -240,7 +242,7 @@ export function NutritionAddFoodView(props: NutritionAddFoodViewProps) {
           />
 
           <View style={styles.summaryPill}>
-            <View>
+            <View style={styles.summaryCopyBlock}>
               <Text selectable style={styles.summaryTitle}>{selectedMealCountLabel}</Text>
               <Text selectable style={styles.summaryCopy}>{macroSummaryLabel}</Text>
             </View>
