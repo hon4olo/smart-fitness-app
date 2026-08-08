@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '@/components/ui/AppCard';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 
 type HomeSummaryCardProps = {
   caloriesLabel: string;
@@ -16,13 +16,13 @@ type HomeSummaryCardProps = {
   todayLabel: string;
 };
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.miniStat}>
-      <Text selectable style={styles.miniStatLabel}>
+    <View style={styles.metric}>
+      <Text selectable style={styles.metricLabel}>
         {label}
       </Text>
-      <Text selectable style={styles.miniStatValue}>
+      <Text selectable style={styles.metricValue}>
         {value}
       </Text>
     </View>
@@ -56,54 +56,45 @@ export function HomeSummaryCard({
           </Text>
         </View>
 
-        <View style={[styles.caloriesBadge, isCaloriesOverTarget && styles.caloriesBadgeWarning]}>
-          <Text selectable style={styles.caloriesBadgeLabel}>
+        <View style={styles.caloriesStatus}>
+          <Text selectable style={styles.caloriesLabel}>
             {caloriesLabel}
           </Text>
           <Text
             selectable
-            style={[
-              styles.caloriesBadgeValue,
-              isCaloriesOverTarget && styles.caloriesBadgeValueWarning,
-            ]}>
+            style={[styles.caloriesValue, isCaloriesOverTarget && styles.caloriesValueWarning]}>
             {caloriesRemainingLabel}
           </Text>
         </View>
       </View>
 
-      <View style={styles.statsGrid}>
-        <MiniStat label={currentWeightTitle} value={currentWeightLabel} />
-        <MiniStat label={streakTitle} value={streakLabel ?? '—'} />
+      <View style={styles.divider} />
+
+      <View style={styles.metricsRow}>
+        <Metric label={currentWeightTitle} value={currentWeightLabel} />
+        <Metric label={streakTitle} value={streakLabel ?? '—'} />
       </View>
     </AppCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: Colors.dark.surfaceAccent },
-  cardWarning: { backgroundColor: Colors.dark.warningSoft },
-  caloriesBadge: {
-    alignItems: 'flex-end',
-    backgroundColor: Colors.dark.surfacePrimary,
-    borderColor: Colors.dark.borderSubtle,
-    borderCurve: 'continuous',
-    borderRadius: Radii.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexShrink: 1,
-    gap: 2,
-    maxWidth: '100%',
-    minWidth: 0,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
-  caloriesBadgeLabel: {
+  caloriesLabel: {
     color: Colors.dark.textSecondary,
     flexShrink: 1,
     fontSize: Typography.caption.fontSize,
     fontWeight: Typography.label.fontWeight,
     textAlign: 'right',
   },
-  caloriesBadgeValue: {
+  caloriesStatus: {
+    alignItems: 'flex-end',
+    flexShrink: 1,
+    gap: 2,
+    maxWidth: '100%',
+    minWidth: 0,
+    paddingTop: 2,
+  },
+  caloriesValue: {
     color: Colors.dark.textPrimary,
     flexShrink: 1,
     fontSize: Typography.cardTitle.fontSize,
@@ -111,10 +102,15 @@ const styles = StyleSheet.create({
     lineHeight: Typography.cardTitle.lineHeight,
     textAlign: 'right',
   },
-  caloriesBadgeValueWarning: { color: Colors.dark.warning },
-  caloriesBadgeWarning: {
-    backgroundColor: Colors.dark.surfacePrimary,
-    borderColor: Colors.dark.warningSoft,
+  caloriesValueWarning: { color: Colors.dark.warning },
+  card: {
+    backgroundColor: Colors.dark.surfaceAccent,
+    gap: Spacing.three,
+  },
+  cardWarning: { backgroundColor: Colors.dark.warningSoft },
+  divider: {
+    backgroundColor: Colors.dark.borderSubtle,
+    height: StyleSheet.hairlineWidth,
   },
   headerCopy: { flex: 1, flexBasis: 180, gap: 4, minWidth: 0 },
   hero: {
@@ -130,31 +126,29 @@ const styles = StyleSheet.create({
     fontSize: Typography.label.fontSize,
     fontWeight: Typography.label.fontWeight,
   },
-  miniStat: {
-    backgroundColor: Colors.dark.surfacePrimary,
-    borderColor: Colors.dark.borderSubtle,
-    borderCurve: 'continuous',
-    borderRadius: Radii.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexGrow: 1,
+  metric: {
+    flex: 1,
     gap: 2,
-    minWidth: 92,
-    padding: Spacing.three,
+    minWidth: 120,
   },
-  miniStatLabel: {
+  metricLabel: {
     color: Colors.dark.textSecondary,
     flexShrink: 1,
     fontSize: Typography.caption.fontSize,
     fontWeight: Typography.label.fontWeight,
   },
-  miniStatValue: {
+  metricValue: {
     color: Colors.dark.textPrimary,
     flexShrink: 1,
     fontSize: Typography.bodyEmphasized.fontSize,
     fontWeight: Typography.bodyEmphasized.fontWeight,
     lineHeight: Typography.bodyEmphasized.lineHeight,
   },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  metricsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.four,
+  },
   subheadline: {
     color: Colors.dark.textSecondary,
     flexShrink: 1,
