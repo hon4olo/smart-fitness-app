@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
 import { getWorkoutsHubWorkoutTitle } from '@/features/workouts/workoutsHubLocalization';
@@ -65,7 +65,9 @@ export function ProgramWorkoutPickerModal({
             accessibilityRole="button"
             onPress={onClose}
             style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
-            <Text style={styles.closeLabel}>{copy.cancel}</Text>
+            <Text numberOfLines={2} style={styles.closeLabel}>
+              {copy.cancel}
+            </Text>
           </Pressable>
         </View>
 
@@ -104,8 +106,14 @@ export function ProgramWorkoutPickerModal({
                 <Text style={styles.emptySubtitle}>{copy.noReusableWorkoutsBody}</Text>
               </View>
             ) : (
-              <View style={styles.list}>
-                {availableWorkouts.map((workout) => {
+              <FlatList
+                contentContainerStyle={styles.listContent}
+                data={availableWorkouts}
+                initialNumToRender={6}
+                keyboardShouldPersistTaps="handled"
+                keyExtractor={(workout) => workout.id}
+                maxToRenderPerBatch={6}
+                renderItem={({ item: workout }) => {
                   const selected = selectedIds.includes(workout.id);
                   const displayTitle = getWorkoutsHubWorkoutTitle(t, workout);
                   return (
@@ -113,7 +121,6 @@ export function ProgramWorkoutPickerModal({
                       accessibilityLabel={displayTitle}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: selected }}
-                      key={workout.id}
                       onPress={() => toggleWorkout(workout.id)}
                       style={({ pressed }) => [
                         styles.row,
@@ -121,8 +128,10 @@ export function ProgramWorkoutPickerModal({
                         pressed && styles.pressed,
                       ]}>
                       <View style={styles.rowCopy}>
-                        <Text style={styles.rowTitle}>{displayTitle}</Text>
-                        <Text style={styles.rowMeta}>
+                        <Text numberOfLines={2} style={styles.rowTitle}>
+                          {displayTitle}
+                        </Text>
+                        <Text numberOfLines={1} style={styles.rowMeta}>
                           {copy.exerciseCount(
                             workout.exercises.length,
                             formatNumber(workout.exercises.length, {
@@ -136,8 +145,11 @@ export function ProgramWorkoutPickerModal({
                       </Text>
                     </Pressable>
                   );
-                })}
-              </View>
+                }}
+                showsVerticalScrollIndicator={false}
+                style={styles.list}
+                windowSize={5}
+              />
             )}
 
             <View style={styles.footer}>
@@ -155,7 +167,9 @@ export function ProgramWorkoutPickerModal({
                   selectedCount === 0 && styles.disabledButton,
                   pressed && selectedCount > 0 && styles.pressed,
                 ]}>
-                <Text style={styles.primaryLabel}>{addLabel}</Text>
+                <Text numberOfLines={2} style={styles.primaryLabel}>
+                  {addLabel}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -177,6 +191,7 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     color: Colors.dark.accent,
+    flexShrink: 0,
     fontSize: 18,
     fontWeight: '900',
     minWidth: 18,
@@ -208,13 +223,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.surfaceSecondary,
     borderCurve: 'continuous',
     borderRadius: 16,
+    flexShrink: 0,
+    justifyContent: 'center',
+    maxWidth: 120,
+    minHeight: 40,
     paddingHorizontal: Spacing.two,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   closeLabel: {
     color: Colors.dark.text,
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '800',
+    textAlign: 'center',
   },
   disabledButton: {
     opacity: 0.45,
@@ -237,9 +258,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   existingGroup: {
+    flex: 1,
     gap: Spacing.two,
+    minHeight: 0,
   },
   footer: {
+    flexShrink: 0,
     paddingTop: Spacing.one,
   },
   header: {
@@ -252,9 +276,15 @@ const styles = StyleSheet.create({
   headerCopy: {
     flex: 1,
     gap: 4,
+    minWidth: 0,
   },
   list: {
+    flex: 1,
+    minHeight: 0,
+  },
+  listContent: {
     gap: Spacing.two,
+    paddingBottom: Spacing.one,
   },
   overlay: {
     ...StyleSheet.absoluteFill,
@@ -267,6 +297,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.background,
     borderCurve: 'continuous',
     borderRadius: 28,
+    maxHeight: '92%',
     maxWidth: 540,
     padding: Spacing.three,
     width: '100%',
@@ -276,12 +307,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.accent,
     borderCurve: 'continuous',
     borderRadius: 18,
-    paddingVertical: 14,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 10,
   },
   primaryLabel: {
     color: Colors.dark.background,
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: '900',
+    textAlign: 'center',
   },
   pressed: {
     opacity: 0.72,
@@ -293,15 +329,18 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    minHeight: 64,
     paddingHorizontal: Spacing.three,
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
   rowCopy: {
     flex: 1,
+    minWidth: 0,
     paddingRight: Spacing.two,
   },
   rowMeta: {
     color: Colors.dark.textSecondary,
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: '700',
     marginTop: 4,
@@ -312,6 +351,7 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     color: Colors.dark.text,
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: '800',
   },
@@ -322,6 +362,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: Colors.dark.text,
+    flexShrink: 1,
     fontSize: 22,
     fontWeight: '900',
   },
