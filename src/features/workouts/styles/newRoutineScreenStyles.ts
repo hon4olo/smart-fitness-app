@@ -17,6 +17,7 @@ export const createStyles = (colors: typeof Colors.light) =>
     },
     addButtonLabel: {
       color: colors.textOnAccent,
+      flexShrink: 1,
       fontSize: 17,
       fontWeight: '900',
       textAlign: 'center',
@@ -28,11 +29,14 @@ export const createStyles = (colors: typeof Colors.light) =>
       borderRadius: 999,
       justifyContent: 'center',
       minHeight: 56,
+      paddingHorizontal: Spacing.three,
     },
     addSetLabel: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 17,
       fontWeight: '800',
+      textAlign: 'center',
     },
     centerState: {
       alignItems: 'center',
@@ -47,21 +51,26 @@ export const createStyles = (colors: typeof Colors.light) =>
     },
     collapsedSetLine: {
       color: colors.textMuted,
+      flexShrink: 1,
       fontSize: 16,
       fontVariant: ['tabular-nums'],
       lineHeight: 24,
     },
     colPrevious: {
       flex: 1.3,
+      minWidth: 0,
     },
     colReps: {
       flex: 1,
+      minWidth: 0,
     },
     colSet: {
+      flexShrink: 0,
       width: 48,
     },
     colWeight: {
       flex: 1,
+      minWidth: 0,
     },
     container: {
       maxWidth: MaxContentWidth,
@@ -69,6 +78,7 @@ export const createStyles = (colors: typeof Colors.light) =>
     },
     content: {
       alignItems: 'center',
+      flexGrow: 1,
       paddingHorizontal: Spacing.three,
       paddingTop: Spacing.six,
     },
@@ -124,6 +134,7 @@ export const createStyles = (colors: typeof Colors.light) =>
     },
     exerciseMenuButton: {
       alignItems: 'center',
+      flexShrink: 0,
       height: 42,
       justifyContent: 'center',
       width: 42,
@@ -148,6 +159,7 @@ export const createStyles = (colors: typeof Colors.light) =>
       borderCurve: 'continuous',
       borderRadius: 8,
       borderWidth: StyleSheet.hairlineWidth,
+      flexShrink: 0,
       height: 72,
       justifyContent: 'center',
       width: 66,
@@ -159,6 +171,7 @@ export const createStyles = (colors: typeof Colors.light) =>
     },
     exerciseTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 22,
       fontWeight: '500',
       lineHeight: 29,
@@ -172,14 +185,18 @@ export const createStyles = (colors: typeof Colors.light) =>
       borderBottomColor: colors.borderSubtle,
       borderBottomWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      gap: Spacing.two,
       paddingBottom: Spacing.two,
       paddingHorizontal: Spacing.three,
     },
     headerTitle: {
       color: colors.textPrimary,
+      flex: 1,
+      flexShrink: 1,
       fontSize: 18,
       fontWeight: '900',
+      minWidth: 0,
+      textAlign: 'center',
     },
     menuAction: {
       minHeight: 50,
@@ -210,13 +227,21 @@ export const createStyles = (colors: typeof Colors.light) =>
       marginBottom: Spacing.one,
     },
     navButton: {
+      alignItems: 'center',
+      flexShrink: 0,
+      justifyContent: 'center',
+      maxWidth: 96,
+      minHeight: 44,
       minWidth: 72,
+      paddingHorizontal: Spacing.one,
       paddingVertical: Spacing.two,
     },
     navButtonLabel: {
       color: colors.accent,
+      flexShrink: 1,
       fontSize: 17,
       fontWeight: '600',
+      textAlign: 'center',
     },
     notesInput: {
       color: colors.textPrimary,
@@ -266,6 +291,7 @@ export const createStyles = (colors: typeof Colors.light) =>
     },
     pickerTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 22,
       fontWeight: '900',
     },
@@ -278,10 +304,13 @@ export const createStyles = (colors: typeof Colors.light) =>
       color: colors.textPrimary,
       fontSize: 17,
       height: 46,
+      minWidth: 0,
+      paddingHorizontal: Spacing.one,
       textAlign: 'center',
     },
     planPrevious: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: 17,
       lineHeight: 46,
     },
@@ -314,6 +343,7 @@ export const createStyles = (colors: typeof Colors.light) =>
     },
     tableHeaderText: {
       color: colors.textMuted,
+      flexShrink: 1,
       fontSize: 15,
       fontWeight: '700',
     },
