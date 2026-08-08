@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -205,10 +206,12 @@ export default function SocialProfileEditorScreen() {
 
   return (
     <ScrollView
+      automaticallyAdjustKeyboardInsets
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + Spacing.eight },
       ]}
+      keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       keyboardShouldPersistTaps="handled"
       style={styles.screen}
     >
@@ -328,6 +331,7 @@ const createStyles = (colors: typeof Colors.dark) =>
       borderColor: colors.borderSubtle,
       borderRadius: Radii.large,
       borderWidth: StyleSheet.hairlineWidth,
+      flexShrink: 0,
       height: 44,
       justifyContent: "center",
       width: 44,
@@ -347,16 +351,18 @@ const createStyles = (colors: typeof Colors.dark) =>
     container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: "100%" },
     content: {
       alignItems: "center",
+      flexGrow: 1,
       paddingHorizontal: Spacing.four,
       paddingTop: Spacing.four,
     },
     eyebrow: {
       color: colors.accent,
+      flexShrink: 1,
       fontSize: Typography.caption.fontSize,
       fontWeight: "800",
       letterSpacing: 1.2,
     },
-    headerCopy: { flex: 1, gap: Spacing.one },
+    headerCopy: { flex: 1, gap: Spacing.one, minWidth: 0 },
     headerRow: {
       alignItems: "flex-start",
       flexDirection: "row",
@@ -383,11 +389,13 @@ const createStyles = (colors: typeof Colors.dark) =>
     screen: { backgroundColor: colors.background, flex: 1 },
     subtitle: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: Typography.body.fontSize,
       lineHeight: Typography.body.lineHeight,
     },
     title: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: Typography.screenTitle.fontSize,
       fontWeight: Typography.screenTitle.fontWeight,
       letterSpacing: Typography.screenTitle.letterSpacing,

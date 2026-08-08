@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -49,11 +49,13 @@ export default function WeightEntryScreen() {
 
   return (
     <ScrollView
+      automaticallyAdjustKeyboardInsets
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={[
         styles.content,
-        { paddingBottom: safeAreaInsets.bottom + 120 },
+        { paddingBottom: safeAreaInsets.bottom + Spacing.eight },
       ]}
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
       keyboardShouldPersistTaps="handled"
       style={styles.screen}>
       <View style={styles.container}>
@@ -84,7 +86,7 @@ export default function WeightEntryScreen() {
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.three, maxWidth: MaxContentWidth, width: '100%' },
-  content: { alignItems: 'center', padding: Spacing.three },
+  content: { alignItems: 'center', flexGrow: 1, padding: Spacing.three },
   error: {
     color: Colors.dark.error,
     fontSize: 13,

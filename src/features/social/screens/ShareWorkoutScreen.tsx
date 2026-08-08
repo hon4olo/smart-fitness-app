@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   Switch,
@@ -203,10 +204,12 @@ export default function ShareWorkoutScreen() {
 
   return (
     <ScrollView
+      automaticallyAdjustKeyboardInsets
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + Spacing.six },
       ]}
+      keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       keyboardShouldPersistTaps="handled"
       style={styles.screen}
     >

@@ -232,13 +232,20 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
     },
     summaryCalories: {
       color: colors.textPrimary,
+      flexShrink: 0,
       fontSize: 15,
       fontWeight: '900',
       fontVariant: ['tabular-nums'],
     },
     summaryCopy: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: 12,
+    },
+    summaryCopyBlock: {
+      flex: 1,
+      gap: 2,
+      minWidth: 0,
     },
     summaryPill: {
       alignItems: 'center',
@@ -248,11 +255,13 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
       borderRadius: Radii.medium,
       borderWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
+      gap: Spacing.two,
       justifyContent: 'space-between',
       padding: Spacing.three,
     },
     summaryTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: 14,
       fontWeight: '800',
     },

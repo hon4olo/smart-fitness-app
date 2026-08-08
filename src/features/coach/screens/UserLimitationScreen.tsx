@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/ui/AppCard';
@@ -187,10 +187,12 @@ export default function UserLimitationScreen() {
       </View>
 
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={[
           themedStyles.content,
-          { paddingBottom: insets.bottom + Spacing.eight },
+          { flexGrow: 1, paddingBottom: insets.bottom + Spacing.eight },
         ]}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={themedStyles.container}>

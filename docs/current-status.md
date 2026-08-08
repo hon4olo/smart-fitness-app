@@ -2,237 +2,112 @@
 
 Updated: 2026-08-08
 
-## Verified repository baseline
+## Verified mobile baseline
 
 - Mobile repo: `ivangemini/smart-fitness-app`
-- Mobile `main`: `2219213a9b1ba3800d10e343bebe7fad7b13080f` (PR #462 — RUI-3A)
-- Active responsive branch: `ui/rui3-workout-creation` (RUI-3B)
-- Backend repo: `ivangemini/smart-fitness-backend`
-- Backend `main`: `431998bfa85bf169fd68e98a7e46651f70cfa2d9` (PR #196)
-- Backend PR #197 is open and scoped to secure private export storage/delivery source contracts.
+- Mobile `main`: `3473520ae1ad66b1474b015296c5593a0f14b314` (PR #465 — RUI-4B)
+- Active UI branch: `ui/rui5-secondary-surfaces`
+- Open mobile PR #466 is a **test-only RUI-6 draft** based on the current pre-RUI-5 main. Do not treat its description as proof that RUI-5 is merged; revalidate it after RUI-5 lands.
+- Backend work is a separate workstream and is intentionally out of scope for the current mobile UI pass.
 
-The earlier planning estimate of approximately **92% source-complete** applied to the roadmap before responsive UI remediation was promoted into an explicit phase. Release readiness remains lower because provider/staging/physical-device/production evidence is separately gated.
-
-## Mobile source state
-
-The current mobile source remains on the established architecture:
-
-- authenticated app shell and session lifecycle;
-- Home, Workouts, Nutrition, Progress and Profile flows;
-- durable local ownership/state boundaries;
-- backend sync across the current supported entity set;
-- offline outbox/retry/idempotency/conflict handling;
-- deterministic Coach surfaces and proposal/review boundaries;
-- Social source boundaries and managed-media governance hooks;
-- privacy/account-deletion UX foundations.
-
-Responsive-UI packages change presentation/layout behavior only. They do not change routes, persistence schemas, synchronization contracts, calculations, workout ownership, completed workout history, or backend APIs.
+The mobile architecture remains unchanged: Expo/React Native, focused state boundaries, offline-first persistence, durable sync, deterministic Coach surfaces, and existing Social source contracts. Responsive work changes presentation/layout only; it must not alter routes, persistence schemas, synchronization contracts, calculations, workout ownership/history, auth/session semantics, or backend APIs.
 
 ## Responsive UI hardening
 
 Canonical contract: `docs/architecture/responsive-mobile-ui.md`.
 
-### RUI-1 — merged
+### RUI-1 — complete
 
 PR #459 merged as `2ff71de222a0cc393ed41806978cce859c98b306`.
 
-Delivered shared floating-tab/safe-area geometry, Nutrition/Profile/Coach clearance, Workouts sticky-action geometry, bounded text reflow and the initial responsive architecture contract.
+Delivered shared floating-tab/safe-area geometry, primary Workouts sticky-action geometry, bounded text reflow and the responsive architecture contract. Exact-head Mobile CI #1830 passed the full required gate.
 
-Exact-head Mobile CI #1830 passed line audits, TypeScript, **1392/1392 regression tests**, expanded sync smoke, Expo export and Expo Doctor.
-
-### RUI-2 — merged
+### RUI-2 — complete
 
 PR #460 merged as `740ae06d24c895e882a37e715b59ce47e599ab5d`.
 
-Delivered shared bottom clearance for Home/Progress, short-screen flex growth, bounded primary-tab text/layout behavior and one shared runtime geometry source for `LiquidGlassTabBar`.
+Delivered shared Home/Progress bottom clearance, short-screen flex growth, bounded primary-tab reflow and one runtime geometry source for `LiquidGlassTabBar`. Exact-head Mobile CI #1832 passed the full required gate.
 
-Exact-head Mobile CI #1832 passed line audits, TypeScript, full regression suite, expanded sync smoke, Expo export and Expo Doctor.
-
-### RUI-3A — merged
+### RUI-3A — complete
 
 PR #462 merged as `2219213a9b1ba3800d10e343bebe7fad7b13080f`.
 
-The audit found two concrete high-frequency failures:
+Delivered the responsive active-session five-column set grid, keyboard-aware workout inputs, long-name handling, and runtime-measured Workout Session Finish footer clearance. Exact-head Mobile CI #1836 passed line audits, TypeScript, 1392/1392 regression tests, expanded sync smoke, Expo export and Expo Doctor.
 
-- active set-table preferred width **358 px** exceeded the content width available on common narrow phones;
-- Workout Session Finish used an independent fixed **176 px** reserve for an absolute footer whose height changes with safe area/localization/Dynamic Type.
+### RUI-3B — complete
 
-RUI-3A delivered:
+PR #463 merged as `5c9ac4bf96e2ecb2c1c4a07b4b09de0521f4edc8`.
 
-- responsive five-column set grid with 358 px retained as preferred maximum rather than required viewport width;
-- proportional Previous/weight/reps compression while Set/completion controls remain bounded;
-- automatic keyboard insets/dismissal for active-session inputs;
-- two-line exercise names and bounded collapsed-set copy;
-- usable header touch areas and shrinkable Finish/stat labels;
-- `KeyboardAvoidingView` for Workout Session Finish;
-- measured Finish footer height and scroll reservation from actual rendered height;
-- bounded Finish header/info/integration/Save/Share copy;
-- updated source contract protecting the responsive five-column grid.
+Delivered:
 
-Exact-head Mobile CI #1836 passed repository/changed-file line audits, TypeScript, **1392/1392 regression tests**, expanded sync smoke, Expo export and Expo Doctor.
+- measured Exercise Library sticky-footer clearance;
+- virtualized/bounded Program Workout and New Routine exercise pickers;
+- keyboard-aware New Routine, Workout Builder and workout editor flows;
+- bounded long-text/action layout across workout creation/detail surfaces;
+- no workout/program persistence, ordering, routing, sync or completed-history semantics changed.
 
-### RUI-3B — current branch
+### RUI-4A — complete
 
-The current `ui/rui3-workout-creation` package implements:
+PR #464 merged as `4a631101c11630787e046fabc84343a3b6350d0e`.
 
-- Exercise Library keeps `FlatList` virtualization but measures its absolute Add footer instead of reserving `insets.bottom + 128`;
-- Exercise Library gets keyboard-aware search scrolling, two-line names and bounded Details/Add labels;
-- Program workout picker replaces an unbounded `.map()` collection with a bounded `FlatList`;
-- New Routine gets automatic keyboard insets/dismissal, flex-growing scroll content, bounded header/actions and two-line exercise names;
-- New Routine exercise picker replaces a `ScrollView` rendering up to 100 exercises with `FlatList` virtualization while preserving add/replace semantics;
-- Workout Builder gets keyboard-aware scrolling and bounded header/workout/action text;
-- workout editor modal keeps existing keyboard avoidance and adds automatic scroll insets plus a wrapping header/action row;
-- workout builder exercise action controls can wrap under localization/text-size pressure;
-- Program Detail gets only the required long-name/Add Routine/toast hardening because its safe-area/scroll architecture was already sound;
-- Exercise Detail was audited and already has safe-area scrolling, bounded content width and a two-line title, so no unrelated redesign was added.
+Delivered keyboard/safe-area hardening for shared sign-in/register, forgot/reset password, onboarding, Change Password and Delete Account surfaces without changing auth/session/account semantics. Exact-head Mobile CI #1840 passed the full required gate.
 
-RUI-3B requires exact-head Mobile CI before merge. Physical narrow/short-device, keyboard, large-text and real safe-area proof remains separate runtime evidence.
+### RUI-4B — complete
 
-### Remaining responsive UI packages
+PR #465 merged as `3473520ae1ad66b1474b015296c5593a0f14b314`.
 
-- **RUI-4:** auth, onboarding, settings and Nutrition forms; keyboard reachability, short-height scrolling and action reachability.
-- **RUI-5:** remaining secondary Coach/Social/Progress surfaces.
-- **RUI-6:** focused automated guardrails for proven responsive failure patterns after remediation stabilizes.
+Delivered keyboard-aware editable Profile goals, Nutrition Add Food and Food Portion surfaces while preserving profile/nutrition calculations and persistence semantics.
 
-## Backend P9-D progress through #196
+### RUI-5 — active package
 
-Backend PRs #192–#196 substantially advanced P9-D.
+Branch: `ui/rui5-secondary-surfaces`.
 
-### #192 — export audit/idempotency contract
+The source audit found remaining concrete secondary-surface defects rather than treating RUI-5 as a no-op:
 
-Added:
-- canonical request fingerprinting;
-- optional strict bounded idempotency keys;
-- account-scoped SHA-256 key identity rather than raw-key persistence;
-- committed-response-loss replay;
-- same-key/different-request conflict;
-- bounded secret-free audit metadata.
+- `weight-entry` still used legacy `safeAreaInsets.bottom + 120` clearance;
+- User Limitations and Recovery Check-In contained editable fields but lacked automatic keyboard inset/dismissal behavior;
+- Social Profile Editor, Share Workout caption and Workout Post Detail comments had the same keyboard-reachability gap;
+- touched Social header/action rows needed explicit `minWidth: 0`, `flexShrink` or wrapping ownership for long localized text.
 
-### #193 — durable audit/idempotency persistence
+Current RUI-5 implementation:
 
-Added:
-- `data_access_export_requests`;
-- migration `0038`;
-- owner FK with `ON DELETE CASCADE`;
-- account-scoped keyed uniqueness;
-- owner-scoped repository reads;
-- concurrency-safe create/replay/conflict handling;
-- database constraints and privacy inventory classification.
+- removes the `+120` weight-entry positioning hack and uses actual safe-area spacing;
+- adds automatic keyboard insets and platform-appropriate interactive/on-drag dismissal to the audited editable secondary surfaces;
+- makes short-screen content flex-grow so final actions remain reachable by scrolling;
+- hardens touched Social headers, comment actions, preview fields and switch rows against localization/Dynamic Type pressure;
+- preserves touch-target geometry, dark visual language, API calls, validation, persistence and sync behavior.
 
-No production migration was executed.
+RUI-5 is **not complete until exact-head Mobile CI is green and the validated head is merged**.
 
-### #194 — preparation → durable audit integration
+### RUI-6 — queued after RUI-5
 
-The explicitly composed `/v1/privacy/data-access/export/prepare` route now:
+PR #466 already exists as a draft test-only guardrail package. It must be revalidated against the post-RUI-5 `main`; do not merge it based on stale continuity text or an old base result.
 
-1. requires authentication;
-2. strictly validates the body;
-3. validates optional `Idempotency-Key`;
-4. consumes the configured attempt guard;
-5. freshly re-verifies the current password;
-6. constructs bounded audit metadata;
-7. durably creates/replays/conflicts;
-8. still returns fail-closed export availability.
+Its intended scope is focused regression protection for failure patterns that actually occurred: shared tab clearance, measured sticky footers, virtualized growing pickers, keyboard-aware editable surfaces and localized choice/action reflow. It must not become a blanket ban on legitimate fixed control dimensions or overlay positioning.
 
-No audit write occurs before successful password re-verification.
+## Remaining mobile UI evidence
 
-New/replayed requests still end `409 DATA_EXPORT_NOT_AVAILABLE`. Same-key/different-request is bounded `DATA_EXPORT_IDEMPOTENCY_CONFLICT`; audit persistence failure is bounded `DATA_EXPORT_AUDIT_UNAVAILABLE`.
+Source/CI hardening is not physical-device proof. Release evidence still needs, when explicitly authorized:
 
-### #195 — bounded audited assembly execution
+- narrow/small-height iPhone behavior;
+- Dynamic Type / enlarged system text;
+- open-keyboard reachability;
+- notch/Dynamic Island/Home Indicator safe areas;
+- Android navigation/system insets;
+- long localization and dense/empty states.
 
-Added source-only execution over the seven complete candidate projections:
+No OTA/EAS publication or native build/install is implied by source/CI completion.
 
-- accepts audited metadata rather than arbitrary public input;
-- hard maximum **8 MiB** serialized `json_v1` output;
-- exact UTF-8 byte accounting;
-- callers may lower but never raise the ceiling;
-- invalid limit/notice-only surface fails before loading;
-- loader/contract/serialization/oversize failures return no assembly or partial projection payload.
+## Current execution order for the UI workstream
 
-This executor is deliberately not invoked by `/prepare` yet.
+1. Finish the bounded RUI-5 source diff and documentation sync.
+2. Open one RUI-5 PR and run full exact-head Mobile CI.
+3. Fix only concrete CI failures; merge only the exact validated head.
+4. Rebase/revalidate the existing test-only PR #466 on the resulting `main` and merge only if its exact-head Mobile CI is green.
+5. Keep physical-device/release evidence separate and authorization-gated.
 
-### #196 — deterministic JSON artifact generation
-
-Added in-memory source-only artifact generation from a successful bounded execution result:
-
-- fixed filename `smart-fitness-data-export.json`;
-- media type `application/json`;
-- exact UTF-8 bytes of the measured assembly;
-- regenerated byte length must equal execution measurement;
-- lowercase SHA-256 digest of exact bytes;
-- fail-closed invalid execution, serialization failure and size mismatch;
-- artifact metadata excludes owner IDs, request references, request/key hashes, password, reusable authorization, object keys and delivery credentials.
-
-The artifact bytes are sensitive user export content and must not be logged.
-
-## Seven complete candidate export projections
-
-1. `profile_and_account_metadata`
-2. `workouts_programs_and_exercises`
-3. `nutrition_and_meal_data`
-4. `progress_measurements_and_weight`
-5. `limitations_recovery_and_safety_context`
-6. `coach_reviews_proposals_and_run_history`
-7. `social_relationships_and_account_activity`
-
-Received Social notifications remain excluded. Managed media and sync/operational metadata remain notice-only.
-
-## Current P9-D fail-closed boundary
-
-Despite the source progress, export is **not product-available**:
-
-- default backend `createApp()` does not compose the optional export route;
-- `/prepare` does not invoke assembly execution or artifact generation;
-- preparation remains `DATA_EXPORT_NOT_AVAILABLE`;
-- no cross-surface PostgreSQL snapshot is claimed;
-- no large-account pagination/chunking exists;
-- no artifact persistence/database row exists;
-- no object-storage write exists;
-- no status/download route exists;
-- no expiring/revocable download authorization exists;
-- no mobile export UI exists;
-- no storage/provider environment is activated.
-
-Backend PR #197 remains the separate source-contract package for private export storage/delivery semantics. Do not overlap or activate provider/storage infrastructure implicitly from mobile UI work.
-
-## Remaining roadmap concentration
-
-### Responsive mobile UI
-
-RUI-1, RUI-2 and RUI-3A are merged. RUI-3B is the current exact-head validation package. RUI-4 is next, followed by RUI-5/RUI-6.
-
-### P9-D
-
-Continue the separately reviewed secure storage/delivery source contract without provider activation, then address storage persistence/routes/UI only through explicit bounded packages.
-
-### P9-B3
-
-Exact provider/environment retention evidence remains externally blocked until a real environment is selected and can prove maximum lifetime, access, deletion/expiry, failure monitoring and account-deletion behavior.
-
-### P9-C
-
-Analytics/crash/performance/attribution/advertising collection remains disabled. Consent/policy/provider evidence must be complete before activation.
-
-### P9-A
-
-Physical-device, production-scheme/native, OTA/EAS, rollback and release evidence remain authorization-gated.
-
-## Validation/evidence state
-
-RUI-1 PR #459 passed exact-head Mobile CI #1830.
-
-RUI-2 PR #460 passed exact-head Mobile CI #1832.
-
-RUI-3A PR #462 passed exact-head Mobile CI #1836: line audits, TypeScript, 1392/1392 regression tests, expanded sync smoke, Expo export and Expo Doctor.
-
-RUI-3B exact-head Mobile CI is pending on the current branch.
-
-Backend PRs #192, #194, #195 and #196 passed exact-head Backend CI (lint, Prettier, TypeScript build, production-config validation and full test suite).
-
-Backend PR #193 passed exact-head Backend CI, Backend PostgreSQL CI and Account Deletion Receipt CI. PostgreSQL CI applied the complete migration chain twice and validated the migrated schema. The standalone `tests/data-access-export-request-postgres.test.ts` file was added as focused evidence, but the existing PostgreSQL workflow does not directly enumerate that new file; do not falsely claim that specific standalone file ran in CI.
-
-CI does not replace physical-device responsive validation.
+Backend implementation/deployment is not part of this UI workstream.
 
 ## Actions not performed
 
-No backend deployment, production migration execution, provider activation, production data access, object-storage write, public/default export-route activation, OTA/EAS publication, native build/install, credential/DNS change, destructive production cleanup or store submission was performed by these responsive UI packages.
+No backend code/deployment, production migration, provider activation, production data access, OTA/EAS publication, native build/install, credential/DNS change, destructive production cleanup or store submission is performed by this responsive UI workstream.
