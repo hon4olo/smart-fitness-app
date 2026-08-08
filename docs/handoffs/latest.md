@@ -5,8 +5,8 @@ Updated: 2026-08-08
 ## Checkpoint
 
 - Mobile repo: `ivangemini/smart-fitness-app`
-- Mobile `main`: `2ff71de222a0cc393ed41806978cce859c98b306` (PR #459 — RUI-1)
-- Active mobile branch: `ui/responsive-primary-tabs` (RUI-2)
+- Mobile `main`: `740ae06d24c895e882a37e715b59ce47e599ab5d` (PR #460 — RUI-2)
+- Next mobile responsive package: RUI-3
 - Backend repo: `ivangemini/smart-fitness-backend`
 - Backend `main`: `431998bfa85bf169fd68e98a7e46651f70cfa2d9` (PR #196)
 - Backend PR #197 is open for secure private export storage/delivery source contracts.
@@ -36,9 +36,11 @@ It delivered:
 
 Exact-head Mobile CI #1830 passed line audits, TypeScript, **1392/1392 regression tests**, expanded sync smoke, Expo export and Expo Doctor.
 
-## RUI-2 — current package
+## RUI-2 — merged
 
-Implemented on `ui/responsive-primary-tabs`:
+PR #460 merged to `main` as `740ae06d24c895e882a37e715b59ce47e599ab5d`.
+
+It delivered:
 
 1. Home uses `getFloatingTabBarBottomClearance(...)` instead of `safeAreaInsets.bottom + 120`.
 2. Home content has `flexGrow: 1` for short-screen reachability.
@@ -49,26 +51,16 @@ Implemented on `ui/responsive-primary-tabs`:
 7. Progress content has `flexGrow: 1`.
 8. Progress weight hero can wrap its action rather than compress metric copy.
 9. Progress measurement rows explicitly share width between long labels and values.
-10. `LiquidGlassTabBar` now consumes `FLOATING_TAB_BAR_HEIGHT` and `FLOATING_TAB_BAR_MIN_BOTTOM_OFFSET`, removing duplicated `64`/`12` runtime geometry from the component.
-11. Roadmap/current-status/handoff are synchronized with the merged RUI-1 baseline and current RUI-2 scope.
+10. `LiquidGlassTabBar` consumes `FLOATING_TAB_BAR_HEIGHT` and `FLOATING_TAB_BAR_MIN_BOTTOM_OFFSET`, removing duplicated `64`/`12` runtime geometry from the component.
+11. Roadmap/current-status/handoff are synchronized around RUI-1/RUI-2 completion and the RUI-3 next step.
 
-## Validation required for RUI-2
-
-Run exact-head Mobile CI:
-
-- repository file line audit;
-- changed-file line limit;
-- TypeScript;
-- full regression suite;
-- expanded sync model smoke;
-- Expo export;
-- Expo Doctor.
+Exact-head Mobile CI #1832 passed repository/changed-file line audits, TypeScript, the full regression suite, expanded sync model smoke, Expo export and Expo Doctor.
 
 Do not claim physical-device proof from CI. Narrow/short-device, accessibility text size, software-keyboard, iPhone safe-area and Android navigation-inset evidence remains physical/runtime validation.
 
 ## Next mobile package — RUI-3
 
-After RUI-2 validation/merge, audit and remediate:
+Audit and remediate:
 
 - Workout Session;
 - Workout Session Finish;
@@ -87,13 +79,19 @@ Priorities:
 - safe-area ownership;
 - preserving active workout/session persistence and existing workout business logic.
 
+## Later responsive packages
+
+- RUI-4: auth, onboarding, settings and Nutrition forms.
+- RUI-5: remaining secondary Coach/Social/Progress surfaces.
+- RUI-6: focused automated guardrails for proven responsive regressions after the remediation inventory stabilizes.
+
 ## Backend/P9-D continuity
 
-Backend P9-D remains independent of this UI package.
+Backend P9-D remains independent of this UI program.
 
 Backend #192–#196 provide audit/idempotency, durable request persistence, preparation integration, bounded assembly execution and deterministic JSON artifact generation. Export remains fail closed and not product-available.
 
-Backend PR #197 is the active source-contract package for private owner-scoped export storage/delivery lifecycle and authorization semantics. Do not overlap it from this mobile branch and do not activate provider/storage infrastructure implicitly.
+Backend PR #197 is the active source-contract package for private owner-scoped export storage/delivery lifecycle and authorization semantics. Do not overlap it from mobile responsive work and do not activate provider/storage infrastructure implicitly.
 
 ## Prohibited implicit actions
 
