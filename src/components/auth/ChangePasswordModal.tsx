@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   getSafeChangePasswordErrorMessage,
@@ -37,6 +38,7 @@ export function ChangePasswordModal({
   onChanged,
 }: ChangePasswordModalProps) {
   const { t } = useLocalization();
+  const insets = useSafeAreaInsets();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -113,7 +115,12 @@ export function ChangePasswordModal({
         />
         <View accessibilityViewIsModal style={styles.sheet}>
           <ScrollView
-            contentContainerStyle={styles.content}
+            automaticallyAdjustKeyboardInsets
+            contentContainerStyle={[
+              styles.content,
+              { paddingBottom: insets.bottom + Spacing.four },
+            ]}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
             <Text selectable style={styles.eyebrow}>
@@ -208,8 +215,8 @@ const styles = StyleSheet.create({
     lineHeight: Typography.body.lineHeight,
   },
   content: {
+    flexGrow: 1,
     gap: Spacing.three,
-    paddingBottom: Spacing.six,
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.four,
   },

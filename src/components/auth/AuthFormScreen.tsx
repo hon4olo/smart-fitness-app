@@ -126,11 +126,14 @@ export function AuthFormScreen({ mode, onBack, onSubmit, onSwitchMode }: AuthFor
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.keyboardRoot}>
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: safeAreaInsets.bottom + 32 },
         ]}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
         style={styles.screen}>
         <View style={styles.container}>
           <ScreenHeader
@@ -274,10 +277,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.dark.borderSubtle,
     borderRadius: Radii.medium,
     borderWidth: StyleSheet.hairlineWidth,
-    flex: 1,
+    flexBasis: 120,
+    flexGrow: 1,
     justifyContent: 'center',
     minHeight: 48,
-    paddingHorizontal: Spacing.one,
+    minWidth: 0,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
   },
   experienceChoiceSelected: {
     backgroundColor: Colors.dark.backgroundSelected,
@@ -286,12 +292,17 @@ const styles = StyleSheet.create({
   experienceField: { gap: Spacing.one },
   experienceLabel: {
     color: Colors.dark.textSecondary,
+    flexShrink: 1,
     fontSize: Typography.label.fontSize,
     fontWeight: Typography.label.fontWeight,
     textAlign: 'center',
   },
   experienceLabelSelected: { color: Colors.dark.textPrimary },
-  experienceRow: { flexDirection: 'row', gap: Spacing.one },
+  experienceRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.one,
+  },
   fieldLabel: {
     color: Colors.dark.textSecondary,
     fontSize: Typography.label.fontSize,
@@ -307,6 +318,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: 'center',
+    flexGrow: 1,
     padding: Spacing.three,
     paddingTop: Spacing.four,
   },

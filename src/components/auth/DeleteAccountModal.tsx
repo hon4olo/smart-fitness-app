@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   getSafeAccountDeletionErrorMessage,
@@ -37,6 +38,7 @@ export function DeleteAccountModal({
   onDeleted,
 }: DeleteAccountModalProps) {
   const { t } = useLocalization();
+  const insets = useSafeAreaInsets();
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -91,7 +93,12 @@ export function DeleteAccountModal({
         />
         <View accessibilityViewIsModal style={styles.sheet}>
           <ScrollView
-            contentContainerStyle={styles.sheetContent}
+            automaticallyAdjustKeyboardInsets
+            contentContainerStyle={[
+              styles.sheetContent,
+              { paddingBottom: insets.bottom + Spacing.four },
+            ]}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
             <Text selectable style={styles.eyebrow}>
@@ -176,8 +183,8 @@ const styles = StyleSheet.create({
     maxHeight: '92%',
   },
   sheetContent: {
+    flexGrow: 1,
     gap: Spacing.three,
-    paddingBottom: Spacing.six,
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.four,
   },
