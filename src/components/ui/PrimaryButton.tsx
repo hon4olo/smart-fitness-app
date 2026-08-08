@@ -15,6 +15,7 @@ type PrimaryButtonProps = {
 
 export function PrimaryButton({ accessibilityHint, accessibilityLabel, disabled, label, loading, onPress, style }: PrimaryButtonProps) {
   const state = resolveButtonState({ disabled, loading });
+  const visuallyDisabled = Boolean(disabled) && !state.loading;
 
   return (
     <Pressable
@@ -24,10 +25,12 @@ export function PrimaryButton({ accessibilityHint, accessibilityLabel, disabled,
       accessibilityState={state.accessibilityState}
       disabled={state.disabled}
       onPress={state.disabled ? undefined : onPress}
-      style={({ pressed }) => [styles.button, pressed && !state.disabled && styles.pressed, state.disabled && styles.disabled, style]}>
+      style={({ pressed }) => [styles.button, pressed && !state.disabled && styles.pressed, visuallyDisabled && styles.disabled, style]}>
       <View style={styles.content}>
         {state.loading ? <ActivityIndicator color={Colors.dark.textOnAccent} /> : null}
-        <Text style={styles.label}>{state.loading ? `${label}…` : label}</Text>
+        <Text style={[styles.label, visuallyDisabled && styles.disabledLabel]}>
+          {state.loading ? `${label}…` : label}
+        </Text>
       </View>
     </Pressable>
   );
@@ -52,7 +55,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   disabled: {
-    opacity: 0.5,
+    backgroundColor: Colors.dark.surfaceSecondary,
+    borderColor: Colors.dark.borderSubtle,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  disabledLabel: {
+    color: Colors.dark.textMuted,
   },
   label: {
     color: Colors.dark.textOnAccent,
