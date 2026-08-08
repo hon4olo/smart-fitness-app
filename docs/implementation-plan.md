@@ -7,8 +7,8 @@ This file is the **canonical forward roadmap**. Historical PR-by-PR detail belon
 ## Current verified baseline
 
 - Mobile repo: `ivangemini/smart-fitness-app`
-- Mobile `main` at RUI-3 start: `ad5976f9c068c5661afb0ebd4b7b8cf164cab1b6` (PR #461 — RUI-2 merge checkpoint)
-- Active mobile branch: `ui/rui3-active-session`
+- Mobile `main`: `2219213a9b1ba3800d10e343bebe7fad7b13080f` (PR #462 — RUI-3A active session + finish)
+- Active mobile branch: `ui/rui3-workout-creation` (RUI-3B)
 - Backend repo: `ivangemini/smart-fitness-backend`
 - Backend `main`: `431998bfa85bf169fd68e98a7e46651f70cfa2d9` (through backend PR #196)
 - Backend PR #197 is open and is scoped to secure private export storage/delivery source contracts.
@@ -224,7 +224,7 @@ If real-data evidence shows complete export JSON can exceed 8 MiB, design explic
 
 # Phase 10 — responsive mobile UI hardening
 
-**Status: in progress; RUI-1 and RUI-2 are merged, RUI-3A is the active package.**
+**Status: in progress; RUI-1, RUI-2 and RUI-3A are merged. RUI-3B is the active package.**
 
 Canonical contract: `docs/architecture/responsive-mobile-ui.md`.
 
@@ -263,35 +263,46 @@ Exact-head Mobile CI #1832 passed repository/changed-file line audits, TypeScrip
 
 ## RUI-3 — workout creation and active-session flows
 
-**Status: in progress; RUI-3A active-session/finish slice is implemented on `ui/rui3-active-session` pending exact-head CI.**
+**Status: in progress; RUI-3A is complete/merged and RUI-3B is implemented on `ui/rui3-workout-creation` pending exact-head CI.**
 
 ### RUI-3A — active Workout Session + Finish
 
-Current scope:
-- the active set table keeps the original 358 px preferred geometry on wider layouts but uses the available width on narrower screens;
-- `Previous`, weight and reps columns compress proportionally while Set and completion controls retain their bounded geometry;
+**Status: complete and merged in PR #462 (`2219213a9b1ba3800d10e343bebe7fad7b13080f`).**
+
+Completed scope:
+- active set table keeps the original 358 px preferred geometry on wider layouts but uses the available width on narrower screens;
+- `Previous`, weight and reps columns compress proportionally while Set and completion controls retain bounded geometry;
 - active-session weight/reps inputs use automatic keyboard insets and interactive keyboard dismissal;
 - long exercise names can occupy two lines instead of being forced into a single clipped row;
 - active-session header controls retain usable touch areas while Finish and stat copy can reflow/shrink under text pressure;
 - Workout Session Finish uses `KeyboardAvoidingView` so Save/Share remain reachable while editing;
 - the Finish sticky footer is measured at runtime and scroll content reserves its actual height instead of an independent fixed `176` px clearance;
-- Finish header, information rows, integration labels and action labels have explicit bounded shrink/wrap ownership.
+- Finish header, information rows, integration labels and action labels have explicit bounded shrink/wrap ownership;
+- the workout-session source contract now protects the responsive five-column grid rather than requiring a fixed 358 px viewport width.
 
-RUI-3A must pass exact-head Mobile CI before merge. Physical keyboard, narrow/short-device and accessibility-size proof remains separate runtime evidence.
+Exact-head Mobile CI #1836 passed repository/changed-file line audits, TypeScript, **1392/1392 regression tests**, expanded sync smoke, Expo export and Expo Doctor.
 
 ### RUI-3B — remaining workout creation/detail surfaces
 
-Still to audit/remediate after RUI-3A:
-- New Routine;
-- Workout Builder and workout editor/picker modals;
-- Program Detail;
-- Exercise Library/detail.
+**Status: implemented on `ui/rui3-workout-creation`; exact-head CI pending.**
 
-Priorities remain keyboard overlap, short-screen reachability, sticky actions, long exercise names, safe-area ownership, and removal of screen-local footer-clearance guesses while preserving list virtualization.
+Current scope:
+- Exercise Library preserves `FlatList` virtualization while measuring its absolute Add footer and reserving the actual rendered footer height instead of `insets.bottom + 128`;
+- Exercise Library search uses automatic keyboard insets/dismissal; long exercise names and localized Details/Add labels have bounded reflow;
+- Program workout picker replaces unbounded `.map()` rendering with a bounded `FlatList`, so large workout collections cannot expand the modal beyond the viewport;
+- New Routine uses automatic keyboard insets/dismissal, flex-growing scroll content, two-line exercise/header copy and bounded navigation/action labels;
+- New Routine exercise picker replaces a `ScrollView` rendering up to 100 exercises with a virtualized `FlatList` while keeping the existing add/replace behavior;
+- Workout Builder uses automatic keyboard insets/dismissal and bounded header, section, workout-row and action copy;
+- workout editor modal keeps its existing keyboard avoidance but adds automatic scroll insets and a wrapping/bounded header/action row;
+- workout builder exercise actions can wrap instead of forcing a single horizontal row under localization/text-size pressure;
+- Program Detail was audited as structurally safe; only long routine names, Add Routine copy and saved-toast text required bounded reflow;
+- Exercise Detail was audited and already has safe-area scrolling, bounded content width and a two-line exercise title, so no unrelated redesign was added.
+
+RUI-3B must pass exact-head Mobile CI before merge. Physical keyboard, narrow/short-device, accessibility text-size and real iPhone/Android inset proof remains separate runtime evidence.
 
 ## RUI-4 — auth/onboarding/settings/Nutrition forms
 
-**Status: queued.**
+**Status: next responsive package after RUI-3B.**
 
 Audit every form for keyboard reachability, Safe Area ownership, short-height scrolling, large-text wrapping, and primary-action reachability.
 
@@ -311,14 +322,14 @@ Add focused source/interaction checks for proven failure patterns. Do not add a 
 
 # Execution order from this checkpoint
 
-1. Run exact-head Mobile CI for RUI-3A and merge only the validated head if green.
-2. Continue RUI-3B across New Routine, Workout Builder, Program Detail and Exercise Library/detail in a separate bounded package.
+1. Run exact-head Mobile CI for RUI-3B and merge only the validated head if green.
+2. Begin RUI-4 across auth, onboarding, settings and Nutrition forms in bounded packages.
 3. Keep mobile/backend roadmap and inventories synchronized as source behavior changes.
 4. In parallel, continue P9-D secure storage-delivery source work without provider activation; avoid overlapping backend PR #197.
 5. Separately design large-account export pagination/chunking if evidence requires it.
 6. P9-B3: collect exact provider/environment retention evidence when a provider/environment is selected.
 7. P9-C: keep analytics/consent behind disabled defaults until policy/evidence is complete.
-8. Continue RUI-4/RUI-5, then add RUI-6 guardrails after the failure inventory stabilizes.
+8. Continue RUI-5, then add RUI-6 guardrails after the failure inventory stabilizes.
 9. Run authorized staging/provider/physical-device/release evidence, including responsive viewport/accessibility checks.
 10. Only after explicit approval: production migrations/deployment/provider activation/OTA/native release actions.
 
