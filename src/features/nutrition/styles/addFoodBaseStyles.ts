@@ -22,12 +22,6 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
       minHeight: 44,
       width: 44,
     },
-    clearButtonText: {
-      color: colors.textSecondary,
-      fontSize: 24,
-      fontWeight: '900',
-      lineHeight: 24,
-    },
     container: {
       gap: Spacing.three,
       maxWidth: MaxContentWidth,
@@ -125,12 +119,6 @@ export const createAddFoodBaseStyles = (colors: typeof Colors.dark) =>
       height: 44,
       justifyContent: 'center',
       width: 44,
-    },
-    iconButtonText: {
-      color: colors.textPrimary,
-      fontSize: 18,
-      fontWeight: '900',
-      lineHeight: 18,
     },
     input: {
       backgroundColor: colors.surfaceSecondary,
