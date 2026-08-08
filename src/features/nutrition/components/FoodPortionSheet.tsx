@@ -93,8 +93,10 @@ export function FoodPortionSheet({
           accessibilityViewIsModal
           style={[styles.sheetFrame, { paddingBottom: insetsBottom + Spacing.two }]}>
           <ScrollView
+            automaticallyAdjustKeyboardInsets
             bounces={false}
             contentContainerStyle={styles.sheet}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
             <View style={styles.sheetHeader}>

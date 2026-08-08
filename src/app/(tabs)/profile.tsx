@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,11 +22,14 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
+      automaticallyAdjustKeyboardInsets
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={[
         styles.content,
         { paddingBottom: getFloatingTabBarBottomClearance(safeAreaInsets.bottom) },
       ]}
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       style={styles.screen}>
       <View style={styles.container}>
@@ -81,6 +84,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.dark.borderSubtle,
     borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
+    flexShrink: 0,
     height: 44,
     justifyContent: 'center',
     width: 44,
@@ -88,9 +92,11 @@ const styles = StyleSheet.create({
   settingsIcon: { color: Colors.dark.textPrimary, fontSize: 26, lineHeight: 30 },
   title: {
     color: Colors.dark.textPrimary,
+    flex: 1,
     flexShrink: 1,
     fontSize: Typography.screenTitle.fontSize,
     fontWeight: Typography.screenTitle.fontWeight,
     lineHeight: Typography.screenTitle.lineHeight,
+    minWidth: 0,
   },
 });
