@@ -17,6 +17,7 @@ export const createSocialWorkoutPostSurfaceStyles = (
       borderColor: colors.borderSubtle,
       borderRadius: Radii.large,
       borderWidth: StyleSheet.hairlineWidth,
+      flexShrink: 0,
       height: 44,
       justifyContent: "center",
       width: 44,
@@ -24,16 +25,19 @@ export const createSocialWorkoutPostSurfaceStyles = (
     backLabel: { color: colors.textPrimary, fontSize: 32, lineHeight: 34 },
     body: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: Typography.body.fontSize,
       lineHeight: Typography.body.lineHeight,
     },
     caption: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: Typography.body.fontSize,
       lineHeight: Typography.body.lineHeight,
     },
     cardTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: Typography.cardTitle.fontSize,
       fontWeight: Typography.cardTitle.fontWeight,
       lineHeight: Typography.cardTitle.lineHeight,
@@ -41,10 +45,14 @@ export const createSocialWorkoutPostSurfaceStyles = (
     commentActions: {
       alignItems: "center",
       flexDirection: "row",
+      flexShrink: 1,
+      flexWrap: "wrap",
       gap: Spacing.one,
+      justifyContent: "flex-end",
     },
     commentBody: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: Typography.body.fontSize,
       lineHeight: Typography.body.lineHeight,
     },
@@ -65,6 +73,7 @@ export const createSocialWorkoutPostSurfaceStyles = (
     },
     commentDeleteLabel: {
       color: colors.error,
+      flexShrink: 1,
       fontSize: Typography.caption.fontSize,
       fontWeight: "700",
       lineHeight: Typography.caption.lineHeight,
@@ -72,10 +81,11 @@ export const createSocialWorkoutPostSurfaceStyles = (
     commentHeader: {
       alignItems: "flex-start",
       flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.two,
       justifyContent: "space-between",
     },
-    commentHeaderCopy: { flex: 1, gap: 2 },
+    commentHeaderCopy: { flex: 1, gap: 2, minWidth: 0 },
     commentInput: { minHeight: 96 },
     commentReportButton: {
       alignItems: "center",
@@ -85,6 +95,7 @@ export const createSocialWorkoutPostSurfaceStyles = (
     },
     commentReportLabel: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: Typography.caption.fontSize,
       fontWeight: "700",
       lineHeight: Typography.caption.lineHeight,
@@ -92,11 +103,13 @@ export const createSocialWorkoutPostSurfaceStyles = (
     container: { gap: Spacing.four, maxWidth: MaxContentWidth, width: "100%" },
     content: {
       alignItems: "center",
+      flexGrow: 1,
       paddingHorizontal: Spacing.four,
       paddingTop: Spacing.four,
     },
     detailLabel: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: Typography.caption.fontSize,
       fontWeight: "700",
       letterSpacing: 0.5,
@@ -104,23 +117,26 @@ export const createSocialWorkoutPostSurfaceStyles = (
     },
     detailValue: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: Typography.body.fontSize,
       lineHeight: Typography.body.lineHeight,
     },
     exerciseCard: { gap: Spacing.three },
     exerciseName: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: Typography.cardTitle.fontSize,
       fontWeight: Typography.cardTitle.fontWeight,
       lineHeight: Typography.cardTitle.lineHeight,
     },
     eyebrow: {
       color: colors.accent,
+      flexShrink: 1,
       fontSize: Typography.caption.fontSize,
       fontWeight: "800",
       letterSpacing: 1.2,
     },
-    headerCopy: { flex: 1, gap: Spacing.one },
+    headerCopy: { flex: 1, gap: Spacing.one, minWidth: 0 },
     headerRow: {
       alignItems: "flex-start",
       flexDirection: "row",
@@ -128,6 +144,7 @@ export const createSocialWorkoutPostSurfaceStyles = (
     },
     metaText: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: Typography.caption.fontSize,
       lineHeight: Typography.caption.lineHeight,
     },
@@ -141,12 +158,14 @@ export const createSocialWorkoutPostSurfaceStyles = (
     },
     metricLabel: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: Typography.caption.fontSize,
       lineHeight: Typography.caption.lineHeight,
     },
     metricRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
     metricValue: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: Typography.label.fontSize,
       fontWeight: Typography.label.fontWeight,
       lineHeight: Typography.label.lineHeight,
@@ -157,7 +176,7 @@ export const createSocialWorkoutPostSurfaceStyles = (
       flexDirection: "row",
       gap: Spacing.three,
     },
-    postHeaderCopy: { flex: 1, gap: Spacing.one },
+    postHeaderCopy: { flex: 1, gap: Spacing.one, minWidth: 0 },
     postImage: { height: "100%", width: "100%" },
     postImageFrame: {
       borderCurve: "continuous",
@@ -167,6 +186,7 @@ export const createSocialWorkoutPostSurfaceStyles = (
     },
     postTitle: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: Typography.cardTitle.fontSize,
       fontWeight: Typography.cardTitle.fontWeight,
       lineHeight: Typography.cardTitle.lineHeight,
@@ -184,11 +204,13 @@ export const createSocialWorkoutPostSurfaceStyles = (
     },
     subtitle: {
       color: colors.textSecondary,
+      flexShrink: 1,
       fontSize: Typography.body.fontSize,
       lineHeight: Typography.body.lineHeight,
     },
     title: {
       color: colors.textPrimary,
+      flexShrink: 1,
       fontSize: Typography.screenTitle.fontSize,
       fontWeight: Typography.screenTitle.fontWeight,
       letterSpacing: Typography.screenTitle.letterSpacing,
@@ -196,6 +218,7 @@ export const createSocialWorkoutPostSurfaceStyles = (
     },
     username: {
       color: colors.accent,
+      flexShrink: 1,
       fontSize: Typography.caption.fontSize,
       fontWeight: "700",
       lineHeight: Typography.caption.lineHeight,
