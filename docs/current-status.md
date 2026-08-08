@@ -5,8 +5,8 @@ Updated: 2026-08-08
 ## Verified repository baseline
 
 - Mobile repo: `ivangemini/smart-fitness-app`
-- Mobile `main`: `2ff71de222a0cc393ed41806978cce859c98b306` (PR #459 — RUI-1 responsive layout foundation)
-- Active responsive branch: `ui/responsive-primary-tabs` (RUI-2)
+- Mobile `main`: `740ae06d24c895e882a37e715b59ce47e599ab5d` (PR #460 — RUI-2 responsive primary tabs)
+- Next responsive implementation package: RUI-3
 - Backend repo: `ivangemini/smart-fitness-backend`
 - Backend `main`: `431998bfa85bf169fd68e98a7e46651f70cfa2d9` (PR #196)
 - Backend PR #197 is open and scoped to secure private export storage/delivery source contracts.
@@ -70,9 +70,11 @@ Exact-head Mobile CI #1830 passed:
 
 No blanket prohibition on fixed component dimensions was introduced. Fixed icon/control/tab geometry remains valid when it is part of the component contract rather than a device-specific positioning hack.
 
-### RUI-2 — current branch
+### RUI-2 — merged
 
-The current `ui/responsive-primary-tabs` package implements:
+PR #460 merged to `main` as `740ae06d24c895e882a37e715b59ce47e599ab5d`.
+
+RUI-2 delivered:
 
 - Home bottom clearance through `getFloatingTabBarBottomClearance(...)` instead of `safeAreaInsets.bottom + 120`;
 - Home `ScrollView` content with `flexGrow: 1` for short-height layouts;
@@ -85,7 +87,17 @@ The current `ui/responsive-primary-tabs` package implements:
 - Progress measurement rows with explicit flexible label/value width ownership;
 - shared `FLOATING_TAB_BAR_HEIGHT` and `FLOATING_TAB_BAR_MIN_BOTTOM_OFFSET` consumption by `LiquidGlassTabBar`, removing duplicate runtime geometry constants from the tab implementation.
 
-RUI-2 still requires exact-head Mobile CI. Physical narrow/short-device, large-text, keyboard and real safe-area evidence remains separate from source/CI validation.
+Exact-head Mobile CI #1832 passed:
+
+- repository file line audit;
+- changed-file line limit;
+- TypeScript;
+- full regression suite;
+- expanded sync model smoke;
+- Expo export;
+- Expo Doctor.
+
+Physical narrow/short-device, large-text, keyboard and real safe-area evidence remains separate from source/CI validation.
 
 ### Remaining responsive UI packages
 
@@ -199,7 +211,7 @@ Backend PR #197 is the active separately reviewed source-contract package for pr
 
 ### Responsive mobile UI
 
-RUI-1 is merged. RUI-2 is the current exact-head validation package. RUI-3 is next for the high-frequency active-workout and creation flows; RUI-4/RUI-5/RUI-6 follow as bounded remediation packages.
+RUI-1 and RUI-2 are merged. RUI-3 is next for the high-frequency active-workout and creation flows; RUI-4/RUI-5/RUI-6 follow as bounded remediation packages.
 
 ### P9-D
 
@@ -221,11 +233,13 @@ Physical-device, production-scheme/native, OTA/EAS, rollback and release evidenc
 
 RUI-1 PR #459 passed exact-head Mobile CI #1830: line audits, TypeScript, 1392/1392 regression tests, expanded sync smoke, Expo export and Expo Doctor.
 
+RUI-2 PR #460 passed exact-head Mobile CI #1832: line audits, TypeScript, full regression suite, expanded sync smoke, Expo export and Expo Doctor.
+
 Backend PRs #192, #194, #195 and #196 passed exact-head Backend CI (lint, Prettier, TypeScript build, production-config validation and full test suite).
 
 Backend PR #193 passed exact-head Backend CI, Backend PostgreSQL CI and Account Deletion Receipt CI. PostgreSQL CI applied the complete migration chain twice and validated the migrated schema. The standalone `tests/data-access-export-request-postgres.test.ts` file was added as focused evidence, but the existing PostgreSQL workflow does not directly enumerate that new file; do not falsely claim that specific standalone file ran in CI.
 
-RUI-2 source validation is pending until its exact branch/PR head passes Mobile CI. CI does not replace physical-device responsive validation.
+CI does not replace physical-device responsive validation.
 
 ## Actions not performed
 
