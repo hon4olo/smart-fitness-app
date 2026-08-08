@@ -33,18 +33,6 @@ export const createStyles = (colors: typeof Colors.dark) =>
       minWidth: 44,
       paddingHorizontal: Spacing.two,
     },
-    calendarButtonText: {
-      color: colors.textPrimary,
-      fontSize: 18,
-      fontWeight: '900',
-      lineHeight: 18,
-    },
-    chevronText: {
-      color: colors.textSecondary,
-      fontSize: 16,
-      fontWeight: '900',
-      width: 14,
-    },
     container: {
       gap: Spacing.three,
       maxWidth: MaxContentWidth,
@@ -134,12 +122,6 @@ export const createStyles = (colors: typeof Colors.dark) =>
       height: 36,
       justifyContent: 'center',
       width: 36,
-    },
-    mealActionIcon: {
-      color: colors.textPrimary,
-      fontSize: 16,
-      fontWeight: '900',
-      lineHeight: 16,
     },
     mealGroup: {
       backgroundColor: colors.surfacePrimary,
@@ -336,9 +318,6 @@ export const createStyles = (colors: typeof Colors.dark) =>
       justifyContent: 'center',
       minWidth: 72,
       paddingHorizontal: Spacing.two,
-    },
-    todayButtonDisabled: {
-      opacity: 0.35,
     },
     todayButtonText: {
       color: colors.textPrimary,
