@@ -1,7 +1,6 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
-import { AppCard } from '@/components/ui/AppCard';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { getBodyMeasurementMetricLabel } from '@/features/progress/progressLocalization';
 import { useLocalization } from '@/localization';
@@ -37,7 +36,7 @@ export function AddBodyMeasurementCard({
   const availableUnits = getBodyMeasurementUnits(draft.metric);
 
   return (
-    <AppCard>
+    <View style={styles.editor}>
       <Text style={styles.sectionTitle}>{t('measurement.add')}</Text>
       <Text style={styles.inputLabel}>{t('measurement.metric')}</Text>
       <View style={styles.choiceGrid}>
@@ -106,15 +105,18 @@ export function AddBodyMeasurementCard({
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <AppButton disabled={isDisabled} label={t('measurement.save')} onPress={onSave} />
-    </AppCard>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   choice: {
+    alignItems: 'center',
     borderColor: Colors.dark.border,
     borderRadius: Radii.pill,
     borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 44,
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.one,
   },
@@ -127,6 +129,11 @@ const styles = StyleSheet.create({
   choiceLabel: { color: Colors.dark.textSecondary, fontSize: 13, fontWeight: '700' },
   choiceLabelSelected: { color: Colors.dark.accent },
   choiceSelected: { backgroundColor: Colors.dark.accentSoft, borderColor: Colors.dark.accent },
+  editor: {
+    borderTopColor: Colors.dark.divider,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: Spacing.three,
+  },
   error: { color: Colors.dark.error, fontSize: 13, marginBottom: Spacing.two },
   input: {
     backgroundColor: Colors.dark.background,
