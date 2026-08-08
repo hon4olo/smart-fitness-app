@@ -13,6 +13,11 @@ export const SESSION_TABLE_GAPS = {
   repsToCompletion: 13,
 } as const;
 
+/**
+ * Preferred table width. Flexible data columns preserve these proportions at
+ * narrower widths while the set/completion columns and intentional gaps remain
+ * fixed.
+ */
 export const SESSION_TABLE_TOTAL_WIDTH =
   SESSION_TABLE_COLUMNS.set +
   SESSION_TABLE_GAPS.setToPrevious +
