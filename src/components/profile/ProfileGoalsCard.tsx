@@ -11,6 +11,12 @@ import type { WeightUnit } from '@/units';
 
 type GoalType = 'lose_fat' | 'maintain' | 'gain_muscle';
 
+type ProfileGoalsValidationErrors = {
+  targetWeight?: string;
+  trainingDays?: string;
+  weeklyWeightChange?: string;
+};
+
 type ProfileGoalsCardProps = {
   goalType: GoalType;
   isSaveDisabled: boolean;
@@ -21,6 +27,7 @@ type ProfileGoalsCardProps = {
   onWeeklyWeightChangeGoalChange: (value: string) => void;
   targetWeight: string;
   trainingDaysPerWeek: string;
+  validationErrors?: ProfileGoalsValidationErrors;
   weeklyWeightChangeGoal: string;
   weightUnit: WeightUnit;
 };
@@ -35,6 +42,7 @@ export function ProfileGoalsCard({
   onWeeklyWeightChangeGoalChange,
   targetWeight,
   trainingDaysPerWeek,
+  validationErrors = {},
   weeklyWeightChangeGoal,
   weightUnit,
 }: ProfileGoalsCardProps) {
@@ -44,11 +52,16 @@ export function ProfileGoalsCard({
     { label: getGoalTypeLabel(t, 'maintain'), value: 'maintain' as const },
     { label: getGoalTypeLabel(t, 'gain_muscle'), value: 'gain_muscle' as const },
   ];
+  const saveAccessibilityHint =
+    validationErrors.targetWeight ??
+    validationErrors.weeklyWeightChange ??
+    validationErrors.trainingDays;
 
   return (
     <AppCard>
       <Text style={styles.sectionTitle}>{t('goals.cardTitle')}</Text>
       <FormField
+        errorMessage={validationErrors.targetWeight}
         keyboardType="decimal-pad"
         label={t('goals.targetWeight', { unit: weightUnit })}
         onChangeText={onTargetWeightChange}
@@ -57,6 +70,7 @@ export function ProfileGoalsCard({
         value={targetWeight}
       />
       <FormField
+        errorMessage={validationErrors.weeklyWeightChange}
         keyboardType="decimal-pad"
         label={t('goals.weeklyWeightChange', { unit: weightUnit })}
         onChangeText={onWeeklyWeightChangeGoalChange}
@@ -65,6 +79,7 @@ export function ProfileGoalsCard({
         value={weeklyWeightChangeGoal}
       />
       <FormField
+        errorMessage={validationErrors.trainingDays}
         keyboardType="number-pad"
         label={t('goals.trainingDays')}
         onChangeText={onTrainingDaysPerWeekChange}
@@ -79,7 +94,12 @@ export function ProfileGoalsCard({
         options={goalOptions}
         value={goalType}
       />
-      <PrimaryButton disabled={isSaveDisabled} label={t('goals.save')} onPress={onSaveGoals} />
+      <PrimaryButton
+        accessibilityHint={isSaveDisabled ? saveAccessibilityHint : undefined}
+        disabled={isSaveDisabled}
+        label={t('goals.save')}
+        onPress={onSaveGoals}
+      />
     </AppCard>
   );
 }

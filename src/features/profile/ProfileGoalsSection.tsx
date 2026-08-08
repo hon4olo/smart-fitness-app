@@ -8,6 +8,7 @@ import { useProfileState } from '@/context/ProfileStateContext';
 import { useProgressState } from '@/context/ProgressStateContext';
 import { getGoalTypeLabel } from '@/features/progress/progressLocalization';
 import { useLocalization } from '@/localization';
+import { getProfileGoalsValidationCopy } from '@/localization/profileGoalsValidationCopy';
 import {
   formatWeightValue,
   parseDisplayNumber,
@@ -25,7 +26,8 @@ export function ProfileGoalsSection() {
   const { profile } = useProfileState();
   const { weightHistory } = useProgressState();
   const { updateNutritionTargets, updateProfileGoals } = useAppActions();
-  const { t } = useLocalization();
+  const { locale, t } = useLocalization();
+  const validationCopy = getProfileGoalsValidationCopy(locale);
   const { weight: weightUnit } = useUnitPreferences();
   const [expanded, setExpanded] = useState(false);
   const [targetWeight, setTargetWeight] = useState(() =>
@@ -54,14 +56,27 @@ export function ProfileGoalsSection() {
     weightUnit,
   );
   const parsedTrainingDaysPerWeek = Number(trainingDaysPerWeek);
-  const isSaveDisabled =
-    !Number.isFinite(canonicalTargetWeight) ||
-    canonicalTargetWeight <= 0 ||
-    !Number.isFinite(canonicalWeeklyWeightChangeGoal) ||
-    canonicalWeeklyWeightChangeGoal < 0 ||
-    !Number.isInteger(parsedTrainingDaysPerWeek) ||
-    parsedTrainingDaysPerWeek < 1 ||
-    parsedTrainingDaysPerWeek > 7;
+  const validationErrors = {
+    targetWeight:
+      !Number.isFinite(canonicalTargetWeight) || canonicalTargetWeight <= 0
+        ? validationCopy.targetWeight
+        : undefined,
+    weeklyWeightChange:
+      !Number.isFinite(canonicalWeeklyWeightChangeGoal) || canonicalWeeklyWeightChangeGoal < 0
+        ? validationCopy.weeklyWeightChange
+        : undefined,
+    trainingDays:
+      !Number.isInteger(parsedTrainingDaysPerWeek) ||
+      parsedTrainingDaysPerWeek < 1 ||
+      parsedTrainingDaysPerWeek > 7
+        ? validationCopy.trainingDays
+        : undefined,
+  };
+  const isSaveDisabled = Boolean(
+    validationErrors.targetWeight ||
+      validationErrors.weeklyWeightChange ||
+      validationErrors.trainingDays,
+  );
 
   const saveGoals = () => {
     if (isSaveDisabled) return;
@@ -124,6 +139,7 @@ export function ProfileGoalsSection() {
           onWeeklyWeightChangeGoalChange={setWeeklyWeightChangeGoal}
           targetWeight={targetWeight}
           trainingDaysPerWeek={trainingDaysPerWeek}
+          validationErrors={validationErrors}
           weeklyWeightChangeGoal={weeklyWeightChangeGoal}
           weightUnit={weightUnit}
         />
