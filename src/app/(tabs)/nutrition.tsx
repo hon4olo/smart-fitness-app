@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { CalendarDays } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -110,6 +111,7 @@ export default function NutritionScreen() {
       : 0;
   const targetPercentLabel = nutritionTargets.calories > 0 ? `${targetPercent}%` : '--';
   const selectedDateAccessibility = selectedDateLabel;
+  const selectedDateIsToday = isToday(selectedDate);
   const formatWeekdayLong = (dateLabel: string) =>
     formatDate(`${dateLabel}T12:00:00`, { weekday: 'long' });
 
@@ -121,10 +123,11 @@ export default function NutritionScreen() {
         </Text>
         <Pressable
           accessibilityLabel={copy.openCalendar(selectedDateAccessibility)}
+          accessibilityRole="button"
           hitSlop={10}
           onPress={openCalendar}
           style={styles.calendarButton}>
-          <Text style={styles.calendarButtonText}>🗓</Text>
+          <CalendarDays color={colors.textPrimary} size={21} strokeWidth={2} />
         </Pressable>
       </View>
 
@@ -139,17 +142,31 @@ export default function NutritionScreen() {
           </Text>
         </View>
         <Pressable
-          accessibilityLabel={isToday(selectedDate) ? copy.todaySelected : copy.jumpToToday}
-          accessibilityState={{ disabled: isToday(selectedDate) }}
-          disabled={isToday(selectedDate)}
+          accessibilityLabel={selectedDateIsToday ? copy.todaySelected : copy.jumpToToday}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: selectedDateIsToday }}
+          disabled={selectedDateIsToday}
           hitSlop={10}
           onPress={() => updateSelectedDate(todayKey)}
-          style={[styles.todayButton, isToday(selectedDate) && styles.todayButtonDisabled]}>
-          <Text style={styles.todayButtonText}>{copy.today}</Text>
+          style={[
+            styles.todayButton,
+            selectedDateIsToday && {
+              backgroundColor: colors.backgroundSecondary,
+              borderColor: colors.divider,
+            },
+          ]}>
+          <Text
+            style={[
+              styles.todayButtonText,
+              selectedDateIsToday && { color: colors.textMuted },
+            ]}>
+            {copy.today}
+          </Text>
         </Pressable>
       </View>
 
       <NutritionWeekStrip
+        accessibilityLabelForDay={copy.weekDayAccessibility}
         formatWeekdayLong={formatWeekdayLong}
         onSelectDate={updateSelectedDate}
         styles={styles}

@@ -31,6 +31,13 @@ export const getNutritionDiaryCopy = (locale: SupportedLocale) => {
     jumpToToday: locale === 'ru' ? 'Перейти к сегодняшнему дню' : 'Jump to today',
     openCalendar: (date: string) =>
       locale === 'ru' ? `Открыть календарь для ${date}` : `Open calendar for ${date}`,
+    weekDayAccessibility: (weekday: string, isLogged: boolean, isToday: boolean) => {
+      const status = locale === 'ru'
+        ? isLogged ? 'питание записано' : 'питание не записано'
+        : isLogged ? 'food logged' : 'no food logged';
+      const today = isToday ? (locale === 'ru' ? ', сегодня' : ', today') : '';
+      return `${weekday}, ${status}${today}`;
+    },
     streak: (count: number, formatted: string) =>
       locale === 'ru'
         ? `${formatted} ${pluralRu(count, ['день', 'дня', 'дней'])} подряд`

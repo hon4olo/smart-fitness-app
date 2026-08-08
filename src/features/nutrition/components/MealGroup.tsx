@@ -1,9 +1,11 @@
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { sumNutritionTotals } from '@/lib';
 import { formatNumber as formatNutritionNumber } from '@/lib/nutrition';
 import { useLocalization } from '@/localization';
 import type { getNutritionDiaryCopy } from '@/localization/nutritionDiaryCopy';
+import { useAppTheme } from '@/theme/AppThemeProvider';
 import type { FoodEntry, MealType } from '@/types';
 import { formatEnergyValue, type EnergyUnit } from '@/units';
 
@@ -43,6 +45,7 @@ export function MealGroup({
   styles,
   subtotal,
 }: MealGroupProps) {
+  const { colors } = useAppTheme();
   const { formatNumber } = useLocalization();
   const itemCount = entries.length;
   const itemCountLabel = copy.itemCount(
@@ -54,6 +57,7 @@ export function MealGroup({
       ? Math.round((subtotal.calories / nutritionTargetCalories) * 100)
       : 0;
   const mealTargetPercentLabel = nutritionTargetCalories > 0 ? `${mealTargetPercent}%` : '--';
+  const ExpandIcon = expanded ? ChevronDown : ChevronRight;
 
   return (
     <View style={styles.mealGroup}>
@@ -84,9 +88,9 @@ export function MealGroup({
               onOpenMealPicker(mealType);
             }}
             style={styles.mealActionButton}>
-            <Text style={styles.mealActionIcon}>+</Text>
+            <Plus color={colors.textPrimary} size={20} strokeWidth={2.2} />
           </Pressable>
-          <Text style={styles.chevronText}>{expanded ? '▾' : '▸'}</Text>
+          <ExpandIcon color={colors.textSecondary} size={20} strokeWidth={2} />
         </View>
       </Pressable>
 

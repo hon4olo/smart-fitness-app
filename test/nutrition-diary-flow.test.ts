@@ -25,6 +25,7 @@ describe('nutrition compact diary 5.0', () => {
 
     expect(source).toContain('Nutrition');
     expect(source).toContain('calendarButton');
+    expect(source).toContain('CalendarDays');
     expect(source).toContain('streakChip');
     expect(source).toContain('metaRow');
     expect(source).toContain('todayButton');
@@ -56,7 +57,7 @@ describe('nutrition compact diary 5.0', () => {
     expect(nutritionUi).not.toContain('Daily summary');
     expect(nutritionUi).not.toContain('progress');
     expect(nutritionUi).toContain('mealActionButton');
-    expect(nutritionUi).toContain('mealActionIcon');
+    expect(mealGroup).toContain('Plus');
     expect(nutritionUi).toContain('foodRow');
     expect(nutritionUi).toContain('foodRowTop');
     expect(nutritionUi).toContain('foodRowDetail');
@@ -72,14 +73,23 @@ describe('nutrition compact diary 5.0', () => {
 
   test('today and calendar actions remain layout-stable and dates use the central localization boundary', () => {
     const source = readSource('src/app/(tabs)/nutrition.tsx');
+    const weekStrip = readSource('src/features/nutrition/components/NutritionWeekStrip.tsx');
+    const copy = readSource('src/localization/nutritionDiaryCopy.ts');
     const summaryHook = readSource('src/features/nutrition/hooks/useNutritionDaySummary.ts');
     const utils = readSource('src/features/nutrition/utils/nutritionScreenUtils.ts');
 
-    expect(source).toContain('todayButtonDisabled');
+    expect(source).toContain('accessibilityState={{ disabled: selectedDateIsToday }}');
+    expect(source).toContain('backgroundColor: colors.backgroundSecondary');
+    expect(source).toContain('borderColor: colors.divider');
+    expect(source).toContain('color: colors.textMuted');
+    expect(source).toContain('CalendarDays');
     expect(source).toContain("router.replace({ pathname: '/nutrition', params: { date: nextDate } })");
     expect(source).toContain("pathname: '/nutrition/date-picker'");
     expect(source).toContain('selectedDateLabel');
     expect(source).toContain("formatDate(`${dateLabel}T12:00:00`, { weekday: 'long' })");
+    expect(weekStrip).toContain('accessibilityLabelForDay');
+    expect(source).toContain('accessibilityLabelForDay={copy.weekDayAccessibility}');
+    expect(copy).toContain('weekDayAccessibility');
     expect(summaryHook).toContain("dayLabel: formatDate(date, { weekday: 'short' })");
     expect(summaryHook).toContain("dayNumber: formatDate(date, { day: 'numeric' })");
     expect(utils).not.toContain('Intl.DateTimeFormat');
@@ -103,7 +113,11 @@ describe('nutrition compact diary 5.0', () => {
     expect(nutritionUi).toContain('copy.itemCount');
     expect(nutritionUi).toContain('mealHeaderActions');
     expect(nutritionUi).toContain('mealActionButton');
-    expect(nutritionUi).toContain('chevronText');
+    expect(mealGroup).toContain('ChevronDown');
+    expect(mealGroup).toContain('ChevronRight');
+    expect(mealGroup).toContain('const ExpandIcon = expanded ? ChevronDown : ChevronRight;');
+    expect(mealGroup).toContain('Plus');
+    expect(mealGroup).not.toContain("expanded ? '▾' : '▸'");
     expect(nutritionUi).toContain('foodRowDivider');
     expect(nutritionUi).toContain('foodRowTop');
     expect(nutritionUi).toContain('foodMetadata');
