@@ -15,7 +15,8 @@ Updated: 2026-08-08
 - VUX-4B Add Food action affordances PR #474 → `5eaa389328e3c649b63833fcf511484e7e2321b4`.
 - VUX-3C Progress measurement hierarchy PR #475 → `afcb93924d1d7fc2c74cbe18122495eaf5300aea`.
 - VUX-3D Progress weight action ownership PR #476 → `fd361bc5eaf10a2be8054488d9a0cbc6cbcfa41a`.
-- Active visual branch: `ui/progress-touch-targets`.
+- VUX-3E Progress compact selector touch targets PR #477 → `b58356f5b814b076c964ef249f4a0cc12c30dffd`.
+- Active visual branch: `ui/coach-detail-affordances`.
 - Backend is a separate workstream and remains outside this roadmap execution.
 
 Source/CI completion is not physical-device proof. OTA/EAS publication, native build/install, provider/production activation and store/release actions remain separately authorization-gated.
@@ -104,35 +105,45 @@ Source/CI completion is not physical-device proof. OTA/EAS publication, native b
 - A focused source-contract guard requires exactly one `/weight-details` push.
 - Weight analytics, chart/range behavior, routes, persistence and sync remain unchanged.
 
-## VUX-3E — Progress compact selector touch targets
+### VUX-3E — Progress compact selector touch targets — PR #477
 
-**Status: active on `ui/progress-touch-targets`.**
+- Weight range tabs explicitly own a 44 pt minimum height while preserving tablist/tab semantics.
+- Safety & Recovery period chips in both historical Progress surfaces now own a 44 pt minimum height.
+- Weekly Safety selected-history filter chips now own a 44 pt minimum height.
+- Selection/history semantics, period definitions, chart data and routes are unchanged.
+- A focused source-contract guard protects the compact control geometry.
+
+## VUX-4C — Coach input touch targets
+
+**Status: active on `ui/coach-detail-affordances`.**
 
 Audit findings:
 
-- Weight range tabs `7D / 30D / 90D` rely on text plus padding and do not explicitly own the 44 pt minimum interaction height.
-- Safety & Recovery period chips in both historical cards use `minHeight: 36`.
-- Selected-week history filter chips in the weekly Safety card also use `minHeight: 36`.
-- Selection/history semantics and accessibility roles are otherwise already explicit.
+- Recovery score buttons use `minHeight: 42` rather than the 44 pt interaction floor.
+- Recovery `Clear` is a text Pressable without explicit touch-area ownership.
+- Recovery and Limitations custom back controls use 42 × 42 geometry.
+- Limitation movement chips have no explicit minimum interaction height.
+- Standard limitation choices/delete controls already own 44 pt and are intentionally unchanged.
 
 Current bounded remediation:
 
-- Weight range tabs → `minHeight: 44` while preserving tablist/tab semantics and range logic.
-- Safety period chips → `minHeight: 44` in both historical surfaces.
-- Weekly Safety history chips → `minHeight: 44` while preserving existing history filters/routes.
-- Add a focused source-contract guard for these compact interactive controls.
-- Do not change analytics, period definitions, selected-week behavior, chart data, history parameters, persistence or sync.
+- Recovery score buttons → `minHeight: 44`.
+- Recovery `Clear` → explicit 44 pt minimum Pressable surface plus disabled accessibility state.
+- Recovery and Limitations back controls → 44 × 44 while preserving navigation behavior.
+- Limitation movement chips → `minHeight: 44` with centered content.
+- Add a focused source-contract guard for these controls.
+- Do not change recovery scoring, required signals, limitation selection/state transitions, sync, persistence, routes or backend contracts.
 
 **Merge gate:** full exact-head Mobile CI.
 
 ## Remaining hierarchy / validation review order
 
-1. Finish Progress compact-selector touch targets.
-2. Re-audit remaining Progress surfaces only for concrete defects; distinct analytics cards remain separate.
-3. Coach.
+1. Finish Coach input touch-target package.
+2. Audit repeated Coach detail back glyphs/navigation presentation as a separate visual-language package; do not mix it with form geometry.
+3. Continue Coach history/detail compact selectors only from concrete findings.
 4. Profile / Settings.
-5. Secondary Social / Safety / Recovery.
-6. Return to Workouts/Nutrition only for concrete audited defects.
+5. Secondary Social surfaces.
+6. Return to Workouts/Nutrition/Progress only for concrete audited defects.
 
 For each surface verify one obvious primary action, restrained surface nesting, EN/RU/Dynamic Type resilience, consistent interaction states and coherent loading/empty/error/success presentation.
 
@@ -153,8 +164,8 @@ No source/CI result is physical-device evidence.
 
 ## Next execution order
 
-1. Finish VUX-3E Progress compact selector touch targets and run full exact-head Mobile CI.
-2. Merge only the validated VUX-3E head.
-3. Move to Coach after the remaining Progress audit shows no higher-confidence defect.
+1. Finish VUX-4C Coach input touch targets and run full exact-head Mobile CI.
+2. Merge only the validated VUX-4C head.
+3. Continue Coach with repeated navigation/icon affordances and history filters as separate bounded packages.
 4. Keep icon cleanup audit-driven; do not replace clear text actions or semantic symbols without a usability reason.
 5. Keep backend, OTA/EAS/native/release and production/provider actions out of this autonomous UI sequence unless directly requested.
